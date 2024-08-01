@@ -215,20 +215,3 @@ func (u *Upload) HasDeduplicatorName() bool {
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
 	return u.HasDeduplicatorName() && u.Deduplicator.HasNameMatch(name)
 }
-
-func (u *Upload) HasDeduplicatorNameDeviceMatch(name string, deviceModels map[string][]string) bool {
-	if u.HasDeduplicatorNameMatch(name) {
-		if u.DeviceManufacturers != nil && u.DeviceModel != nil {
-			for _, deviceManufacturer := range *u.DeviceManufacturers {
-				if allowedDeviceModels, found := deviceModels[deviceManufacturer]; found {
-					for _, allowedDeviceModel := range allowedDeviceModels {
-						if allowedDeviceModel == *u.DeviceModel {
-							return true
-						}
-					}
-				}
-			}
-		}
-	}
-	return false
-}

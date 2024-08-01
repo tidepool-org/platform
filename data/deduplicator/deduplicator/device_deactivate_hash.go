@@ -9,12 +9,12 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-type HashType int
+type DeviceDeactivateHashVersion string
 
 const (
-	_ HashType = iota
-	PlatformHash
-	LegacyHash
+	UnkownVersion  DeviceDeactivateHashVersion = ""
+	CurrentVersion DeviceDeactivateHashVersion = "1.1.0"
+	LegacyVersion  DeviceDeactivateHashVersion = "0.0.0"
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
@@ -43,7 +43,7 @@ type DeviceDeactivateHash struct {
 }
 
 func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, "0.0.0")
+	base, err := NewBase(DeviceDeactivateHashName, string(LegacyVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
 }
 
 func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, "1.1.0")
+	base, err := NewBase(DeviceDeactivateHashName, string(CurrentVersion))
 	if err != nil {
 		return nil, err
 	}
@@ -64,30 +64,39 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func isManufacturerDeviceModelMatch(dataSet *dataTypesUpload.Upload) (bool, HashType) {
+func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeactivateHashVersion {
+	if dataSet.Deduplicator != nil {
+		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
+			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
+				if *dataSet.Deduplicator.Version == string(LegacyVersion) {
+					return LegacyVersion
+				} else if *dataSet.Deduplicator.Version == string(CurrentVersion) {
+					return CurrentVersion
+				}
+			}
+		}
+	}
 	if dataSet.DeviceManufacturers != nil && dataSet.DeviceModel != nil {
-		// legacy match first
 		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
 			if allowedDeviceModels, found := DeviceDeactivateLegacyHashManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return true, LegacyHash
+						return LegacyVersion
 					}
 				}
 			}
 		}
-		// fall back to current
 		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
 			if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return true, PlatformHash
+						return CurrentVersion
 					}
 				}
 			}
 		}
 	}
-	return false, 0
+	return UnkownVersion
 }
 
 func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -103,8 +112,7 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	if dataSet.HasDeduplicatorName() {
 		return d.Get(dataSet)
 	}
-	deviceMatch, _ := isManufacturerDeviceModelMatch(dataSet)
-	return deviceMatch, nil
+	return getDeviceDeactivateHashVersion(dataSet) != UnkownVersion, nil
 }
 
 func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -113,7 +121,7 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 		return false, errors.New("data set is missing")
 	}
 
-	if dataSet.HasDeduplicatorNameDeviceMatch(DeviceDeactivateHashName, DeviceDeactivateLegacyHashManufacturerDeviceModels) {
+	if getDeviceDeactivateHashVersion(dataSet) == LegacyVersion {
 		return true, nil
 	}
 
@@ -137,14 +145,10 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		return errors.New("data set data is missing")
 	}
 
-	if match, hasher := isManufacturerDeviceModelMatch(dataSet); !match {
-		return errors.New("data set doesn't match")
-	} else {
-		if err := AssignDataSetDataIdentityHashes(dataSetData, hasher); err != nil {
-			return err
-		}
-		return d.Base.AddData(ctx, repository, dataSet, dataSetData)
+	if err := AssignDataSetDataIdentityHashes(dataSetData, getDeviceDeactivateHashVersion(dataSet)); err != nil {
+		return err
 	}
+	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
 func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {

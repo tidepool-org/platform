@@ -34,35 +34,67 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns successfully when the data is nil", func() {
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(nil, dataDeduplicatorDeduplicator.PlatformHash)).To(Succeed())
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(nil, dataDeduplicatorDeduplicator.CurrentVersion)).To(Succeed())
 		})
 
 		It("returns successfully when there is no data", func() {
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(data.Data{}, dataDeduplicatorDeduplicator.PlatformHash)).To(Succeed())
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(nil, dataDeduplicatorDeduplicator.LegacyVersion)).To(Succeed())
+		})
+
+		It("returns successfully when there is no data", func() {
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(data.Data{}, dataDeduplicatorDeduplicator.CurrentVersion)).To(Succeed())
+		})
+
+		It("returns successfully when there is no data", func() {
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(data.Data{}, dataDeduplicatorDeduplicator.LegacyVersion)).To(Succeed())
 		})
 
 		It("returns an error when any datum returns an error getting identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.PlatformHash)).To(MatchError("unable to gather identity fields for datum; test error"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.CurrentVersion)).To(MatchError("unable to gather identity fields for datum; test error"))
+		})
+
+		It("returns an error when any datum returns an error getting legacy identity fields", func() {
+			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: nil, Error: errors.New("test error")}}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to gather legacy identity fields for datum; test error"))
 		})
 
 		It("returns an error when any datum returns no identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.PlatformHash)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.CurrentVersion)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+		})
+
+		It("returns an error when any datum returns no legacy identity fields", func() {
+			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: nil, Error: nil}}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns empty identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.PlatformHash)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.CurrentVersion)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+		})
+
+		It("returns an error when any datum returns empty legacy identity fields", func() {
+			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{}, Error: nil}}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns any empty identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.PlatformHash)).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.CurrentVersion)).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
+		})
+
+		It("returns an error when any datum returns any empty legacy identity fields", func() {
+			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity field is empty"))
 		})
 
 		Context("with identity fields", func() {
@@ -79,7 +111,25 @@ var _ = Describe("Hash", func() {
 			})
 
 			It("returns successfully", func() {
-				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.PlatformHash)).To(Succeed())
+				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.CurrentVersion)).To(Succeed())
+			})
+		})
+
+		Context("with legacy identity fields", func() {
+			BeforeEach(func() {
+				dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "0"}, Error: nil}}
+				dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "1"}, Error: nil}}
+				dataSetDataTest[2].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "2"}, Error: nil}}
+			})
+
+			AfterEach(func() {
+				Expect(dataSetDataTest[0].DeduplicatorDescriptorValue).To(Equal(&data.DeduplicatorDescriptor{Hash: pointer.FromString("1i2gupee95mf7ooatr0cveo9qr6dt2i6")}))
+				Expect(dataSetDataTest[1].DeduplicatorDescriptorValue).To(Equal(&data.DeduplicatorDescriptor{Hash: pointer.FromString("f0mq6bk3d79aua8lre8ti8bosqkaf10d")}))
+				Expect(dataSetDataTest[2].DeduplicatorDescriptorValue).To(Equal(&data.DeduplicatorDescriptor{Hash: pointer.FromString("sknnju4it96cqsbcmuh3g1navg1kdvp5")}))
+			})
+
+			It("returns successfully", func() {
+				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(Succeed())
 			})
 		})
 	})

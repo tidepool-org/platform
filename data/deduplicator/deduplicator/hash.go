@@ -13,24 +13,24 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-func AssignDataSetDataIdentityHashes(dataSetData data.Data, hasher HashType) error {
+func AssignDataSetDataIdentityHashes(dataSetData data.Data, version DeviceDeactivateHashVersion) error {
 	for _, dataSetDatum := range dataSetData {
 		var hash string
-		if hasher == PlatformHash {
-			fields, err := dataSetDatum.IdentityFields()
-			if err != nil {
-				return errors.Wrap(err, "unable to gather identity fields for datum")
-			}
-			hash, err = GenerateIdentityHash(fields)
-			if err != nil {
-				return errors.Wrap(err, "unable to generate identity hash for datum")
-			}
-		} else if hasher == LegacyHash {
+		if version == LegacyVersion {
 			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
 				return errors.Wrap(err, "unable to gather legacy identity fields for datum")
 			}
 			hash, err = GenerateLegacyIdentityHash(fields)
+			if err != nil {
+				return errors.Wrap(err, "unable to generate legacy identity hash for datum")
+			}
+		} else {
+			fields, err := dataSetDatum.IdentityFields()
+			if err != nil {
+				return errors.Wrap(err, "unable to gather identity fields for datum")
+			}
+			hash, err = GenerateIdentityHash(fields)
 			if err != nil {
 				return errors.Wrap(err, "unable to generate identity hash for datum")
 			}

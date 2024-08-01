@@ -242,7 +242,6 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
 		noneDeduplicator,
-		//default
 		deviceDeactivateHashDeduplicator,
 	}
 
