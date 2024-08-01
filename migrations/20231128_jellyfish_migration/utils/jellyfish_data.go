@@ -163,7 +163,7 @@ var JellyfishUploadQueryFn = func(m *DataMigration) bool {
 				m.SetUpdates(UpdateData{
 					Filter: bson.M{"_id": result.ID},
 					ItemID: result.ID,
-					Apply:  []bson.M{{"$set": bson.M{"_deduplicator": bson.M{"name": deduplicator.DeviceDeactivateLegacyHashName, "version": "0.0.0"}}}},
+					Apply:  []bson.M{{"$set": bson.M{"_deduplicator": bson.M{"name": deduplicator.DeviceDeactivateHashName, "version": "0.0.0"}}}},
 				})
 				count++
 				m.SetLastProcessed(result.ID)

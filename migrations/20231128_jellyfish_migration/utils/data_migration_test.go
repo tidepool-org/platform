@@ -145,7 +145,7 @@ var _ = Describe("back-37", func() {
 			for _, item := range migrated {
 				Expect(item).Should(HaveKey("_deduplicator"))
 				Expect(item["_deduplicator"]).Should(HaveLen(2))
-				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("name", deduplicator.DeviceDeactivateLegacyHashName))
+				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("name", deduplicator.DeviceDeactivateHashName))
 				Expect(item["_deduplicator"]).Should(HaveKeyWithValue("version", "0.0.0"))
 			}
 		})

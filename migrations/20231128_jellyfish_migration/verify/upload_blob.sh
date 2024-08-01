@@ -31,6 +31,7 @@ output='not yet run'
 
 if [[ "$BLOB_FILE" =~ .*"tandem".* ]]; then
     output=$(node -r @babel/register lib/drivers/tandem/cli/loader.js loader.js -f $BLOB_FILE -u $USER_EMAIL -p $USER_PW)
+    echo "$output"
     echo "$output" | grep -q 'upload.toPlatform: all good' && SUCCESS=true
 else
     output=$(node -r @babel/register lib/drivers/insulet/cli/ibf_loader.js ibf_loader.js -f $BLOB_FILE -u $USER_EMAIL -p $USER_PW)

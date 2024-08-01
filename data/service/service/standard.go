@@ -238,11 +238,12 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	s.Logger().Debug("Creating data deduplicator factory")
 
 	deduplicators := []dataDeduplicatorFactory.Deduplicator{
-		deviceDeactivateHashDeduplicator,
+		deviceDeactivateLegacyHashDeduplicator,
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
 		noneDeduplicator,
-		deviceDeactivateLegacyHashDeduplicator,
+		//default
+		deviceDeactivateHashDeduplicator,
 	}
 
 	factory, err := dataDeduplicatorFactory.New(deduplicators)
