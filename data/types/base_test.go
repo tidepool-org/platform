@@ -974,9 +974,9 @@ var _ = Describe("Base", func() {
 				datum = dataTypesTest.RandomBase()
 			})
 
-			It("returns error if not implemented", func() {
+			It("returns empty", func() {
 				legacyIDFields, err := datum.LegacyIdentityFields()
-				Expect(err).To(MatchError("function must be implemented on data type"))
+				Expect(err).To(BeNil())
 				Expect(legacyIDFields).To(BeEmpty())
 			})
 
