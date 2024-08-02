@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
@@ -144,28 +145,30 @@ var _ = Describe("Bolus", func() {
 		})
 
 		Context("IdentityFields", func() {
-			var datum *bolus.Bolus
+			var datumBolus *bolus.Bolus
+			var datum data.Datum
 
 			BeforeEach(func() {
-				datum = dataTypesBolusTest.RandomBolus()
+				datumBolus = dataTypesBolusTest.RandomBolus()
+				datum = datumBolus
 			})
 
 			It("returns error if user id is missing", func() {
-				datum.UserID = nil
+				datumBolus.UserID = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.FromString("")
+				datumBolus.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if sub type is empty", func() {
-				datum.SubType = ""
+				datumBolus.SubType = ""
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -174,7 +177,7 @@ var _ = Describe("Bolus", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
+				Expect(identityFields).To(Equal([]string{*datumBolus.UserID, *datumBolus.DeviceID, (*datumBolus.Time).Format(ExpectedTimeFormat), datumBolus.Type, datumBolus.SubType}))
 			})
 		})
 	})
