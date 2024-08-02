@@ -59,7 +59,7 @@ var _ = Describe("ScheduledAlert", func() {
 	})
 
 	It("ScheduledAlertEndMaximum is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertEndMaximum).To(Equal(86400000))
+		Expect(dataTypesSettingsCgm.ScheduledAlertEndMaximum).To(Equal(172800000))
 	})
 
 	It("ScheduledAlertEndMinimum is expected", func() {
@@ -245,17 +245,17 @@ var _ = Describe("ScheduledAlert", func() {
 				),
 				Entry("end out of range (lower)",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/end"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 172800000), "/end"),
 				),
 				Entry("end in range (lower)",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(0) },
 				),
 				Entry("end in range (upper)",
-					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(86400000) },
+					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(172800000) },
 				),
 				Entry("end out of range (upper)",
-					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(86400001) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/end"),
+					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(172800001) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(172800001, 0, 172800000), "/end"),
 				),
 				Entry("alerts missing",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.Alerts = nil },

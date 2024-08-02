@@ -1,13 +1,14 @@
 package dexcom
 
 import (
-	"strconv"
-
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
+	AlertsResponseRecordType    = "alert"
+	AlertsResponseRecordVersion = "3.0"
+
 	AlertNameUnknown       = "unknown"
 	AlertNameHigh          = "high"
 	AlertNameLow           = "low"
@@ -25,15 +26,6 @@ const (
 	AlertStateActiveAlarming = "activeAlarming"
 )
 
-func AlertStates() []string {
-	return []string{
-		AlertStateUnknown,
-		AlertStateInactive,
-		AlertStateActiveSnoozed,
-		AlertStateActiveAlarming,
-	}
-}
-
 func AlertNames() []string {
 	return []string{
 		AlertNameUnknown,
@@ -49,11 +41,20 @@ func AlertNames() []string {
 	}
 }
 
+func AlertStates() []string {
+	return []string{
+		AlertStateUnknown,
+		AlertStateInactive,
+		AlertStateActiveSnoozed,
+		AlertStateActiveAlarming,
+	}
+}
+
 type AlertsResponse struct {
 	RecordType    *string `json:"recordType,omitempty"`
 	RecordVersion *string `json:"recordVersion,omitempty"`
 	UserID        *string `json:"userId,omitempty"`
-	Alerts        *Alerts `json:"records,omitempty"`
+	Records       *Alerts `json:"records,omitempty"`
 }
 
 func ParseAlertsResponse(parser structure.ObjectParser) *AlertsResponse {
@@ -70,17 +71,24 @@ func NewAlertsResponse() *AlertsResponse {
 }
 
 func (a *AlertsResponse) Parse(parser structure.ObjectParser) {
-	a.UserID = parser.String("userId")
+	parser = parser.WithMeta(a)
+
 	a.RecordType = parser.String("recordType")
 	a.RecordVersion = parser.String("recordVersion")
-	a.Alerts = ParseAlerts(parser.WithReferenceArrayParser("records"))
+	a.UserID = parser.String("userId")
+	a.Records = ParseAlerts(parser.WithReferenceArrayParser("records"))
 }
 
 func (a *AlertsResponse) Validate(validator structure.Validator) {
-	if alertsValidator := validator.WithReference("records"); a.Alerts != nil {
-		a.Alerts.Validate(alertsValidator)
-	} else {
-		alertsValidator.ReportError(structureValidator.ErrorValueNotExists())
+	validator = validator.WithMeta(a)
+
+	validator.String("recordType", a.RecordType).Exists().EqualTo(AlertsResponseRecordType)
+	validator.String("recordVersion", a.RecordVersion).Exists().EqualTo(AlertsResponseRecordVersion)
+	validator.String("userId", a.UserID).Exists().NotEmpty()
+
+	// Only validate that the records exist, remaining validation will occur later on a per-record basis
+	if a.Records == nil {
+		validator.WithReference("records").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
@@ -105,26 +113,16 @@ func (a *Alerts) Parse(parser structure.ArrayParser) {
 	}
 }
 
-func (a *Alerts) Validate(validator structure.Validator) {
-	for index, egv := range *a {
-		if alertValidator := validator.WithReference(strconv.Itoa(index)); egv != nil {
-			egv.Validate(alertValidator)
-		} else {
-			alertValidator.ReportError(structureValidator.ErrorValueNotExists())
-		}
-	}
-}
-
 type Alert struct {
-	AlertName  *string `json:"alertName,omitempty"`
-	AlertState *string `json:"alertState,omitempty"`
-
-	ID                    *string `json:"recordId,omitempty"`
+	RecordID              *string `json:"recordId,omitempty"`
 	SystemTime            *Time   `json:"systemTime,omitempty"`
 	DisplayTime           *Time   `json:"displayTime,omitempty"`
-	TransmitterID         *string `json:"transmitterId,omitempty"`
+	AlertName             *string `json:"alertName,omitempty"`
+	AlertState            *string `json:"alertState,omitempty"`
 	TransmitterGeneration *string `json:"transmitterGeneration,omitempty"`
+	TransmitterID         *string `json:"transmitterId,omitempty"`
 	DisplayDevice         *string `json:"displayDevice,omitempty"`
+	DisplayApp            *string `json:"displayApp,omitempty"`
 }
 
 func ParseAlert(parser structure.ObjectParser) *Alert {
@@ -141,24 +139,43 @@ func NewAlert() *Alert {
 }
 
 func (a *Alert) Parse(parser structure.ObjectParser) {
-	a.ID = parser.String("recordId")
+	parser = parser.WithMeta(a)
+
+	a.RecordID = parser.String("recordId")
 	a.SystemTime = ParseTime(parser, "systemTime")
 	a.DisplayTime = ParseTime(parser, "displayTime")
-	a.TransmitterID = parser.String("transmitterId")
-	a.TransmitterGeneration = parser.String("transmitterGeneration")
-	a.DisplayDevice = parser.String("displayDevice")
 	a.AlertName = parser.String("alertName")
 	a.AlertState = parser.String("alertState")
+	a.TransmitterGeneration = parser.String("transmitterGeneration")
+	a.TransmitterID = parser.String("transmitterId")
+	a.DisplayDevice = parser.String("displayDevice")
+	a.DisplayApp = parser.String("displayApp")
 }
 
 func (a *Alert) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(a)
-	validator.String("recordId", a.ID).Exists().NotEmpty()
-	validator.Time("systemTime", a.SystemTime.Raw()).NotZero().BeforeNow(SystemTimeNowThreshold)
-	validator.Time("displayTime", a.DisplayTime.Raw()).NotZero()
+
+	validator.String("recordId", a.RecordID).Exists().NotEmpty()
+	validator.Time("systemTime", a.SystemTime.Raw()).Exists().NotZero()
+	validator.Time("displayTime", a.DisplayTime.Raw()).Exists().NotZero()
 	validator.String("alertName", a.AlertName).Exists().OneOf(AlertNames()...)
 	validator.String("alertState", a.AlertState).Exists().OneOf(AlertStates()...)
 	validator.String("transmitterGeneration", a.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("transmitterId", a.TransmitterID).Exists().Using(TransmitterIDValidator)
 	validator.String("displayDevice", a.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
-	validator.String("transmitterId", a.TransmitterID).Using(TransmitterIDValidator)
+	validator.String("displayApp", a.DisplayApp).Exists().OneOf(DeviceDisplayApps()...)
+
+	// Log various warnings
+	logger := validator.Logger().WithField("meta", a)
+	if a.AlertName != nil && *a.AlertName == AlertNameUnknown {
+		logger.Warnf("AlertName is '%s'", *a.AlertName)
+	}
+	if a.AlertState != nil && *a.AlertState == AlertStateUnknown {
+		logger.Warnf("AlertState is '%s'", *a.AlertState)
+	}
+	if a.TransmitterID != nil && *a.TransmitterID == "" {
+		logger.Warnf("TransmitterID is empty", *a.TransmitterID)
+	}
 }
+
+func (a *Alert) Normalize(normalizer structure.Normalizer) {}

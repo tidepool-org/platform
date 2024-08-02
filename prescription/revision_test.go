@@ -130,7 +130,7 @@ var _ = Describe("Revision", func() {
 			})
 
 			It("sets the modified time correctly", func() {
-				Expect(revision.Attributes.CreatedTime).To(BeTemporally("~", time.Now()))
+				Expect(revision.Attributes.CreatedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified userID correctly", func() {

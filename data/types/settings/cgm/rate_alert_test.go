@@ -29,7 +29,7 @@ var _ = Describe("RateAlert", func() {
 	})
 
 	It("FallAlertRateMgdLMinuteMinimum is expected", func() {
-		Expect(dataTypesSettingsCgm.FallAlertRateMgdLMinuteMinimum).To(Equal(1.0))
+		Expect(dataTypesSettingsCgm.FallAlertRateMgdLMinuteMinimum).To(Equal(0.0))
 	})
 
 	It("FallAlertRateMmolLMinuteMaximum is expected", func() {
@@ -45,7 +45,7 @@ var _ = Describe("RateAlert", func() {
 	})
 
 	It("RiseAlertRateMgdLMinuteMinimum is expected", func() {
-		Expect(dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMinimum).To(Equal(1.0))
+		Expect(dataTypesSettingsCgm.RiseAlertRateMgdLMinuteMinimum).To(Equal(0.0))
 	})
 
 	It("RiseAlertRateMmolLMinuteMaximum is expected", func() {
@@ -280,14 +280,14 @@ var _ = Describe("RateAlert", func() {
 				Entry("units mg/dL/minute; rate out of range (lower)",
 					func(datum *dataTypesSettingsCgm.FallAlert) {
 						datum.Units = pointer.FromString("mg/dL/minute")
-						datum.Rate = pointer.FromFloat64(0.9)
+						datum.Rate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.9, 1.0, 10.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/rate"),
 				),
 				Entry("units mg/dL/minute; rate in range (lower)",
 					func(datum *dataTypesSettingsCgm.FallAlert) {
 						datum.Units = pointer.FromString("mg/dL/minute")
-						datum.Rate = pointer.FromFloat64(1.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units mg/dL/minute; rate in range (upper)",
@@ -301,7 +301,7 @@ var _ = Describe("RateAlert", func() {
 						datum.Units = pointer.FromString("mg/dL/minute")
 						datum.Rate = pointer.FromFloat64(10.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 1.0, 10.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/rate"),
 				),
 				Entry("units mmol/L/minute; rate missing",
 					func(datum *dataTypesSettingsCgm.FallAlert) {
@@ -366,7 +366,7 @@ var _ = Describe("RateAlert", func() {
 
 		It("returns expected range for units mg/dL/minute", func() {
 			minimum, maximum := dataTypesSettingsCgm.FallAlertRateRangeForUnits(pointer.FromString("mg/dL/minute"))
-			Expect(minimum).To(Equal(1.0))
+			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(10.0))
 		})
 
@@ -479,14 +479,14 @@ var _ = Describe("RateAlert", func() {
 				Entry("units mg/dL/minute; rate out of range (lower)",
 					func(datum *dataTypesSettingsCgm.RiseAlert) {
 						datum.Units = pointer.FromString("mg/dL/minute")
-						datum.Rate = pointer.FromFloat64(0.9)
+						datum.Rate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.9, 1.0, 10.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 10.0), "/rate"),
 				),
 				Entry("units mg/dL/minute; rate in range (lower)",
 					func(datum *dataTypesSettingsCgm.RiseAlert) {
 						datum.Units = pointer.FromString("mg/dL/minute")
-						datum.Rate = pointer.FromFloat64(1.0)
+						datum.Rate = pointer.FromFloat64(0.0)
 					},
 				),
 				Entry("units mg/dL/minute; rate in range (upper)",
@@ -500,7 +500,7 @@ var _ = Describe("RateAlert", func() {
 						datum.Units = pointer.FromString("mg/dL/minute")
 						datum.Rate = pointer.FromFloat64(10.1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 1.0, 10.0), "/rate"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(10.1, 0.0, 10.0), "/rate"),
 				),
 				Entry("units mmol/L/minute; rate missing",
 					func(datum *dataTypesSettingsCgm.RiseAlert) {
@@ -565,7 +565,7 @@ var _ = Describe("RateAlert", func() {
 
 		It("returns expected range for units mg/dL/minute", func() {
 			minimum, maximum := dataTypesSettingsCgm.RiseAlertRateRangeForUnits(pointer.FromString("mg/dL/minute"))
-			Expect(minimum).To(Equal(1.0))
+			Expect(minimum).To(Equal(0.0))
 			Expect(maximum).To(Equal(10.0))
 		})
 

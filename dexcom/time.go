@@ -23,7 +23,7 @@ func ParseTime(parser structure.ObjectParser, reference string) *Time {
 
 	tm, err := TimeFromString(*serialized)
 	if err != nil {
-		parser.ReportError(structureParser.ErrorValueTimeNotParsable(*serialized, time.RFC3339Nano))
+		parser.WithReferenceErrorReporter(reference).ReportError(structureParser.ErrorValueTimeNotParsable(*serialized, time.RFC3339Nano))
 		return nil
 	}
 
@@ -47,9 +47,16 @@ func TimeFromString(serialized string) (*Time, error) {
 	parsable := serialized
 
 	// Determine if there is a zone, if so only use the non-zone portion
-	zoneMatches := zoneRegexp.FindStringSubmatch(parsable)
-	if zoneMatches != nil {
+	var zoneString *string
+	if zoneMatches := zuluZoneRegexp.FindStringSubmatch(parsable); zoneMatches != nil {
 		parsable = zoneMatches[1]
+		zoneString = pointer.FromString(zoneMatches[2])
+	} else if zoneMatches := offsetZoneRegexp.FindStringSubmatch(parsable); zoneMatches != nil {
+		parsable = zoneMatches[1]
+		zoneString, err = zoneOffsetFromString(zoneMatches[2])
+		if err != nil {
+			return nil, errors.Wrap(err, "time is not parsable")
+		}
 	}
 
 	// Parse out all of the fields, be *very* lenient
@@ -59,7 +66,7 @@ func TimeFromString(serialized string) (*Time, error) {
 		digitsParser(1, 2, &month),
 		characterParser("-"),
 		digitsParser(1, 2, &day),
-		characterParser("T"),
+		characterParser("T "),
 		digitsParser(1, 2, &hour),
 		characterParser(":"),
 		digitsParser(1, 2, &minute),
@@ -91,8 +98,8 @@ func TimeFromString(serialized string) (*Time, error) {
 	}
 
 	// Add the zone portion back, if no zone then use UTC for parsing
-	if zoneMatches != nil {
-		parsable += zoneMatches[2]
+	if zoneString != nil {
+		parsable += *zoneString
 	} else {
 		parsable += "Z"
 	}
@@ -106,7 +113,7 @@ func TimeFromString(serialized string) (*Time, error) {
 	return &Time{
 		Time:          tm,
 		serialized:    serialized,
-		zoneNotParsed: zoneMatches == nil,
+		zoneNotParsed: zoneString == nil,
 	}, nil
 }
 
@@ -135,10 +142,18 @@ type Time struct {
 }
 
 func (t *Time) Raw() *time.Time {
-	if t == nil || t.IsZero() {
+	if t == nil {
 		return nil
 	}
 	return &t.Time
+}
+
+func (t Time) String() string {
+	if t.serialized != "" {
+		return t.serialized
+	} else {
+		return t.Format(time.RFC3339Nano)
+	}
 }
 
 func (t *Time) ZoneParsed() bool {
@@ -146,14 +161,52 @@ func (t *Time) ZoneParsed() bool {
 }
 
 func (t Time) MarshalJSON() ([]byte, error) {
-	if t.serialized != "" {
-		return json.Marshal(t.serialized)
-	} else {
-		return json.Marshal(t.Format(time.RFC3339Nano))
-	}
+	return json.Marshal(t.String())
 }
 
-var zoneRegexp = regexp.MustCompile(`^(.*)(Z|[+-]\d\d:\d\d)$`)
+func zoneOffsetFromString(serialized string) (*string, error) {
+	var direction *string
+	var hour *int
+	var minute *int
+	var second *int
+	var separator *string
+
+	// Parse a copy to retain original
+	parsable := serialized
+
+	// Parse out all of the fields, be *very* lenient
+	pipeline := parsePipeline{
+		charactersParser("+-", 1, 1, &direction),
+		digitsParser(1, 2, &hour),
+		charactersParser(":", 0, 1, &separator),
+		digitsParser(1, 2, &minute),
+		charactersParser(":", 0, 1, &separator),
+		digitsParser(1, 2, &second),
+	}
+	remaining, err := pipeline.Parse(parsable)
+
+	// If we had an error or there are unparsed characters left, then bail
+	if err != nil || remaining != "" || direction == nil || hour == nil {
+		return nil, errors.New("zone is not parsable")
+	}
+
+	// Some Dexcom data has a time zone offset that includes seconds (e.g. "-06:59:58"), but
+	// cannot be parsed correctly due to a bug in Go (https://github.com/golang/go/issues/68263).
+	// Since this is obviously a time zone offset calculation issue with Dexcom, fix to the
+	// nearest minute (which should correct the Dexcom issue).
+	if minute != nil && second != nil && *second >= 30 {
+		*minute += 1
+		if *minute >= 60 {
+			*minute -= 60
+			*hour += 1
+		}
+	}
+
+	return pointer.FromString(fmt.Sprintf("%s%02d:%02d", *direction, *hour, intOrDefault(minute, 0))), nil
+}
+
+var zuluZoneRegexp = regexp.MustCompile(`^(.*)(Z)$`)
+var offsetZoneRegexp = regexp.MustCompile(`^(.*[T ].*)((\+|-)[0-9]{2,2}((|:)[0-9]{2,2}){0,2})$`)
 
 func parseDigits(original string, minimum int, maximum int) (*int, string, error) {
 	digits, remaining, err := parseCharacters(original, "1234567890", minimum, maximum)
@@ -234,10 +287,18 @@ func digitsParser(minimum int, maximum int, result **int) parserFn {
 	}
 }
 
-// digitsParser creates a character parser function which can be added to a parser pipeline
+// characterParser creates a character parser function which can be added to a parser pipeline
 func characterParser(character string) parserFn {
 	return func(parsable string) (string, error) {
 		return parseCharacter(parsable, character)
+	}
+}
+
+// charactersParser creates a characters parser function which can be added to a parser pipeline
+func charactersParser(character string, minimum int, maximum int, result **string) parserFn {
+	return func(parsable string) (remaining string, err error) {
+		*result, remaining, err = parseCharacters(parsable, character, minimum, maximum)
+		return
 	}
 }
 
