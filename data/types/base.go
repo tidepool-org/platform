@@ -297,7 +297,7 @@ func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
 }
 
 func (b *Base) LegacyIdentityFields() ([]string, error) {
-	return nil, errors.New("function must be implemented on data type")
+	return []string{}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {
