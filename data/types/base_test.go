@@ -974,11 +974,10 @@ var _ = Describe("Base", func() {
 				datum = dataTypesTest.RandomBase()
 			})
 
-			It("returns the expected identity fields", func() {
+			It("returns the expected empty identity fields", func() {
 				legacyIDFields, err := datum.LegacyIdentityFields()
 				Expect(err).To(BeNil())
-				Expect(legacyIDFields).ToNot(BeEmpty())
-				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat)}))
+				Expect(legacyIDFields).To(BeEmpty())
 			})
 
 			Context("GetLegacyIDFields", func() {

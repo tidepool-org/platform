@@ -6,7 +6,13 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/test"
+
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -57,8 +63,10 @@ var _ = Describe("Hash", func() {
 
 		It("returns an error when any datum returns an error getting legacy identity fields", func() {
 			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[0].GetTypeOutputs = []string{"test-type"}
 			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: nil, Error: errors.New("test error")}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to gather legacy identity fields for datum; test error"))
+			dataSetDataTest[1].GetTypeOutputs = []string{"test-type"}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to gather legacy identity fields for datum *test.Datum; test error"))
 		})
 
 		It("returns an error when any datum returns no identity fields", func() {
@@ -69,8 +77,10 @@ var _ = Describe("Hash", func() {
 
 		It("returns an error when any datum returns no legacy identity fields", func() {
 			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[0].GetTypeOutputs = []string{"test-type"}
 			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: nil, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity fields are missing"))
+			dataSetDataTest[1].GetTypeOutputs = []string{"test-type"}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum *test.Datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns empty identity fields", func() {
@@ -81,8 +91,10 @@ var _ = Describe("Hash", func() {
 
 		It("returns an error when any datum returns empty legacy identity fields", func() {
 			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[0].GetTypeOutputs = []string{"test-type"}
 			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity fields are missing"))
+			dataSetDataTest[1].GetTypeOutputs = []string{"test-type"}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum *test.Datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns any empty identity fields", func() {
@@ -93,8 +105,10 @@ var _ = Describe("Hash", func() {
 
 		It("returns an error when any datum returns any empty legacy identity fields", func() {
 			dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), dataTest.NewDeviceID()}, Error: nil}}
+			dataSetDataTest[0].GetTypeOutputs = []string{"test-type"}
 			dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{userTest.RandomID(), ""}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum; identity field is empty"))
+			dataSetDataTest[1].GetTypeOutputs = []string{"test-type"}
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(MatchError("unable to generate legacy identity hash for datum *test.Datum; identity field is empty"))
 		})
 
 		Context("with identity fields", func() {
@@ -118,8 +132,11 @@ var _ = Describe("Hash", func() {
 		Context("with legacy identity fields", func() {
 			BeforeEach(func() {
 				dataSetDataTest[0].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "0"}, Error: nil}}
+				dataSetDataTest[0].GetTypeOutputs = []string{"test-type"}
 				dataSetDataTest[1].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "1"}, Error: nil}}
+				dataSetDataTest[1].GetTypeOutputs = []string{"test-type"}
 				dataSetDataTest[2].LegacyIdentityFieldsOutputs = []dataTest.LegacyIdentityFieldsOutput{{LegacyIdentityFields: []string{"test", "2"}, Error: nil}}
+				dataSetDataTest[2].GetTypeOutputs = []string{"test-type"}
 			})
 
 			AfterEach(func() {
@@ -131,6 +148,34 @@ var _ = Describe("Hash", func() {
 			It("returns successfully", func() {
 				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, dataDeduplicatorDeduplicator.LegacyVersion)).To(Succeed())
 			})
+		})
+
+		Context("with legacy identity fields", func() {
+			var smbgData data.Data
+			BeforeEach(func() {
+				var newSMBG = func() data.Datum {
+					datum := selfmonitored.New()
+					datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(pointer.FromString("mg/dl"))
+					datum.Type = "smbg"
+					datum.Value = pointer.FromFloat64(150)
+					datum.SubType = pointer.FromString(test.RandomStringFromArray(selfmonitored.SubTypes()))
+
+					normalizer := dataNormalizer.New()
+					Expect(normalizer).ToNot(BeNil())
+					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
+					return datum
+				}
+
+				for i := 0; i < 10; i++ {
+					smbgData = append(smbgData, newSMBG())
+				}
+
+			})
+
+			It("returns successfully", func() {
+				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(smbgData, dataDeduplicatorDeduplicator.LegacyVersion)).To(Succeed())
+			})
+
 		})
 	})
 

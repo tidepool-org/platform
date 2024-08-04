@@ -6,6 +6,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/tidepool-org/platform/data"
@@ -19,11 +20,15 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, version DeviceDeacti
 		if version == LegacyVersion {
 			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
-				return errors.Wrap(err, "unable to gather legacy identity fields for datum")
+				return errors.Wrapf(err, "unable to gather legacy identity fields for datum %T", dataSetDatum)
+			}
+			if dataSetDatum.GetType() == "smbg" {
+				log.Printf("SMBG LegacyIdentityFields are [%v]", fields)
 			}
 			hash, err = GenerateLegacyIdentityHash(fields)
+
 			if err != nil {
-				return errors.Wrap(err, "unable to generate legacy identity hash for datum")
+				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
 			}
 		} else {
 			fields, err := dataSetDatum.IdentityFields()
