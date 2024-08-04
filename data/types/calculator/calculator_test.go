@@ -1,6 +1,8 @@
 package calculator_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -151,6 +153,30 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.Recommended).To(BeNil())
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.CarbUnits).To(BeNil())
+		})
+	})
+	Context("LegacyIdentityFields", func() {
+		var datum *calculator.Calculator
+
+		BeforeEach(func() {
+			datum = NewCalculator(pointer.FromString("mmol/L"))
+		})
+
+		It("returns error if delivery type is empty", func() {
+			datum.Type = ""
+			identityFields, err := datum.LegacyIdentityFields()
+			Expect(err).To(MatchError("type is empty"))
+			Expect(identityFields).To(BeEmpty())
+		})
+
+		It("returns the expected legacy identity fields", func() {
+			datum.DeviceID = pointer.FromString("some-device")
+			t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+			Expect(err).ToNot(HaveOccurred())
+			datum.Time = pointer.FromTime(t)
+			legacyIdentityFields, err := datum.LegacyIdentityFields()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(legacyIdentityFields).To(Equal([]string{"wizard", "some-device", "2023-05-13T15:51:58Z"}))
 		})
 	})
 

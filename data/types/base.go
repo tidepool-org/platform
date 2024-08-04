@@ -297,7 +297,22 @@ func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
 }
 
 func (b *Base) LegacyIdentityFields() ([]string, error) {
-	return []string{}, nil
+	if b.Type == "" {
+		return nil, errors.New("type is empty")
+	}
+	if b.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+	if *b.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+	if b.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+	if (*b.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+	return []string{b.Type, *b.DeviceID, (*b.Time).Format(TimeFormat)}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

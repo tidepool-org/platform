@@ -47,11 +47,7 @@ func (b *Blood) IdentityFields() ([]string, error) {
 }
 
 func (b *Blood) LegacyIdentityFields() ([]string, error) {
-	return types.GetLegacyIDFields(
-		types.LegacyIDField{Name: "type", Value: &b.Type},
-		types.LegacyIDField{Name: "device id", Value: b.DeviceID},
-		types.GetLegacyTimeField(b.Time),
-	)
+	return b.Base.LegacyIdentityFields()
 }
 
 func (b *Blood) GetRawValueAndUnits() (*float64, *string, error) {
