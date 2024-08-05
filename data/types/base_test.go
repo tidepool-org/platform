@@ -32,6 +32,14 @@ import (
 const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Base", func() {
+	Context("constants", func() {
+		It("legacy time format", func() {
+			Expect(types.LegacyTimeFormat).To(Equal("2006-01-02T15:04:05.000Z"))
+		})
+		It("device time format", func() {
+			Expect(types.DeviceTimeFormat).To(Equal("2006-01-02T15:04:05"))
+		})
+	})
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
 			typ := dataTypesTest.NewType()
@@ -978,7 +986,7 @@ var _ = Describe("Base", func() {
 				legacyIDFields, err := datum.LegacyIdentityFields()
 				Expect(err).To(BeNil())
 				Expect(legacyIDFields).ToNot(BeEmpty())
-				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyDeviceTimeFormat)}))
+				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyTimeFormat)}))
 			})
 
 			Context("GetLegacyIDFields", func() {

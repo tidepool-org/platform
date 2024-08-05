@@ -21,7 +21,7 @@ const (
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	LegacyDeviceTimeFormat  = "2006-01-02T15:04:05.999Z"
+	LegacyTimeFormat        = "2006-01-02T15:04:05.000Z"
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100
@@ -279,7 +279,7 @@ func GetLegacyTimeField(t *time.Time) LegacyIDField {
 		return LegacyIDField{Name: "time", Value: &tVal}
 	}
 
-	tVal = (*t).Format(LegacyDeviceTimeFormat)
+	tVal = (*t).Format(LegacyTimeFormat)
 	return LegacyIDField{Name: "time", Value: &tVal}
 }
 
@@ -313,7 +313,7 @@ func (b *Base) LegacyIdentityFields() ([]string, error) {
 	if (*b.Time).IsZero() {
 		return nil, errors.New("time is empty")
 	}
-	return []string{b.Type, *b.DeviceID, (*b.Time).Format(LegacyDeviceTimeFormat)}, nil
+	return []string{b.Type, *b.DeviceID, (*b.Time).Format(LegacyTimeFormat)}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {
