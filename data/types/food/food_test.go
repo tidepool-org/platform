@@ -444,7 +444,7 @@ var _ = Describe("Food", func() {
 				datum.Time = pointer.FromTime(t)
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{"food", "some-device", "2023-05-13T15:51:58Z"}))
+				Expect(legacyIdentityFields).To(Equal([]string{"food", "some-device", "2023-05-13T15:51:58.000Z"}))
 			})
 		})
 	})

@@ -149,7 +149,7 @@ var _ = Describe("Device", func() {
 				datum.SubType = "some-sub-type"
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{"deviceEvent", "some-sub-type", "2023-05-13T15:51:58Z", "some-device"}))
+				Expect(legacyIdentityFields).To(Equal([]string{"deviceEvent", "some-sub-type", "2023-05-13T15:51:58.000Z", "some-device"}))
 			})
 		})
 	})

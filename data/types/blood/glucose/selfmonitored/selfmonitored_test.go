@@ -571,7 +571,7 @@ var _ = Describe("SelfMonitored", func() {
 				datum.Time = pointer.FromTime(t)
 				legacyIdentityFields, err := datum.LegacyIdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(legacyIdentityFields).To(Equal([]string{"smbg", "some-device", "2023-05-13T15:51:58Z", "12.211645580300173"}))
+				Expect(legacyIdentityFields).To(Equal([]string{"smbg", "some-device", "2023-05-13T15:51:58.000Z", "12.211645580300173"}))
 			})
 		})
 	})
