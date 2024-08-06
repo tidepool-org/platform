@@ -67,7 +67,6 @@ type UserProfile struct {
 }
 
 type ClinicProfile struct {
-	// Email     string `json:"email,omitempty"` // only found a handle of fake profiles w/ email in clinic, but will confirm doesn't exist
 	Name      string `json:"name,omitempty"`
 	Role      string `json:"role,omitempty"`
 	Telephone string `json:"telephone,omitempty"`
@@ -235,9 +234,6 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 
 	if up.Clinic != nil {
-		// if up.Clinic.Email != "" {
-		// 	addAttribute(attributes, "clinic_email", up.Clinic.Email)
-		// }
 		if up.Clinic.Name != "" {
 			addAttribute(attributes, "clinic_name", up.Clinic.Name)
 		}
@@ -304,10 +300,6 @@ func ProfileFromAttributes(username string, attributes map[string][]string) (pro
 
 	var clinicProfile ClinicProfile
 	var clinicOK bool
-	// if val := getAttribute(attributes, "clinic_email"); val != "" {
-	// 	clinicProfile.Email = val
-	// 	clinicOK = true
-	// }
 	if val := getAttribute(attributes, "clinic_name"); val != "" {
 		clinicProfile.Name = val
 		clinicOK = true
@@ -424,7 +416,6 @@ func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
 }
 
 func (p *ClinicProfile) Normalize(normalizer structure.Normalizer) {
-	// p.Email = strings.TrimSpace(p.Email)
 	p.Name = strings.TrimSpace(p.Name)
 	p.Role = strings.TrimSpace(p.Role)
 	p.Telephone = strings.TrimSpace(p.Telephone)

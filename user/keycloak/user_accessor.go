@@ -44,7 +44,7 @@ func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *userLib.User)
 	} else if err == nil && keycloakUser != nil {
 		return newUserFromKeycloakUser(keycloakUser), nil
 	}
-	// expected all users to already be migrated(?)
+	// All users should be migrated into keycloak by the time this code is released.
 	return nil, userLib.ErrUserNotMigrated
 }
 
