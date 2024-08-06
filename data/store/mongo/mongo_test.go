@@ -1395,6 +1395,7 @@ var _ = Describe("Mongo", func() {
 									dataSetData[i].SetActive(true)
 									dataSetData[i].SetCreatedTime(&createdTime)
 								}
+								dataStoreMongo.SortUsersDataSetData(dataSetData)
 
 								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
 							})

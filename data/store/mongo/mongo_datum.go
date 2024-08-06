@@ -184,8 +184,34 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		datum.SetCreatedTime(&timestamp)
 		datum.SetModifiedTime(&timestamp)
 	}
+	SortUsersDataSetData(dataSetData)
+	for _, datum := range dataSetData {
+		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
+	}
 
+	opts := options.BulkWrite().SetOrdered(true)
+
+	_, err := d.BulkWrite(ctx, insertData, opts)
+
+	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
+
+	if err != nil {
+		return fmt.Errorf("unable to create data set data: %w", err)
+	}
+	return nil
+}
+
+// SortUsersDataSetData sorts on _active, type, time to test something
+func SortUsersDataSetData(dataSetData []data.Datum) {
 	slices.SortStableFunc(dataSetData, func(a, b data.Datum) int {
+		aActive, bActive := a.IsActive(), b.IsActive()
+		if aActive != bActive {
+			if !aActive {
+				return -1
+			}
+			return 1
+		}
 		aType, bType := a.GetType(), b.GetType()
 		if aType < bType {
 			return -1
@@ -205,21 +231,6 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		}
 		return aTime.Compare(*bTime)
 	})
-	for _, datum := range dataSetData {
-		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
-	}
-
-	opts := options.BulkWrite().SetOrdered(true)
-
-	_, err := d.BulkWrite(ctx, insertData, opts)
-
-	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "dataCount": len(dataSetData), "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("CreateDataSetData")
-
-	if err != nil {
-		return fmt.Errorf("unable to create data set data: %w", err)
-	}
-	return nil
 }
 
 func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
