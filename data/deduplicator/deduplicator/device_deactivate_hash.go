@@ -12,9 +12,9 @@ import (
 type DeviceDeactivateHashVersion string
 
 const (
-	UnkownVersion  DeviceDeactivateHashVersion = ""
-	CurrentVersion DeviceDeactivateHashVersion = "1.1.0"
-	LegacyVersion  DeviceDeactivateHashVersion = "0.0.0"
+	DeviceDeactivateHashVersionUnkown  DeviceDeactivateHashVersion = ""
+	DeviceDeactivateHashVersionCurrent DeviceDeactivateHashVersion = "1.1.0"
+	DeviceDeactivateHashVersionLegacy  DeviceDeactivateHashVersion = "0.0.0"
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
@@ -43,7 +43,7 @@ type DeviceDeactivateHash struct {
 }
 
 func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, string(LegacyVersion))
+	base, err := NewBase(DeviceDeactivateHashName, string(DeviceDeactivateHashVersionLegacy))
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
 }
 
 func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, string(CurrentVersion))
+	base, err := NewBase(DeviceDeactivateHashName, string(DeviceDeactivateHashVersionCurrent))
 	if err != nil {
 		return nil, err
 	}
@@ -68,10 +68,10 @@ func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeact
 	if dataSet.Deduplicator != nil {
 		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
 			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
-				if *dataSet.Deduplicator.Version == string(LegacyVersion) {
-					return LegacyVersion
-				} else if *dataSet.Deduplicator.Version == string(CurrentVersion) {
-					return CurrentVersion
+				if *dataSet.Deduplicator.Version == string(DeviceDeactivateHashVersionLegacy) {
+					return DeviceDeactivateHashVersionLegacy
+				} else if *dataSet.Deduplicator.Version == string(DeviceDeactivateHashVersionCurrent) {
+					return DeviceDeactivateHashVersionCurrent
 				}
 			}
 		}
@@ -81,7 +81,7 @@ func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeact
 			if allowedDeviceModels, found := DeviceDeactivateLegacyHashManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return LegacyVersion
+						return DeviceDeactivateHashVersionLegacy
 					}
 				}
 			}
@@ -90,13 +90,13 @@ func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeact
 			if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return CurrentVersion
+						return DeviceDeactivateHashVersionCurrent
 					}
 				}
 			}
 		}
 	}
-	return UnkownVersion
+	return DeviceDeactivateHashVersionUnkown
 }
 
 func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -112,7 +112,7 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	if dataSet.HasDeduplicatorName() {
 		return d.Get(dataSet)
 	}
-	return getDeviceDeactivateHashVersion(dataSet) != UnkownVersion, nil
+	return getDeviceDeactivateHashVersion(dataSet) != DeviceDeactivateHashVersionUnkown, nil
 }
 
 func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -121,7 +121,7 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 		return false, errors.New("data set is missing")
 	}
 
-	if getDeviceDeactivateHashVersion(dataSet) == LegacyVersion {
+	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
 		return true, nil
 	}
 

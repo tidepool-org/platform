@@ -17,15 +17,17 @@ import (
 func AssignDataSetDataIdentityHashes(dataSetData data.Data, version DeviceDeactivateHashVersion) error {
 	for _, dataSetDatum := range dataSetData {
 		var hash string
-		if version == LegacyVersion {
+		if version == DeviceDeactivateHashVersionLegacy {
 			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
 				return errors.Wrapf(err, "unable to gather legacy identity fields for datum %T", dataSetDatum)
 			}
 			if dataSetDatum.GetType() == "smbg" {
 				log.Printf("SMBG LegacyIdentityFields are [%v]", fields)
+				hash, err = GenerateLegacyIdentityHash(fields, true)
+			} else {
+				hash, err = GenerateLegacyIdentityHash(fields, false)
 			}
-			hash, err = GenerateLegacyIdentityHash(fields)
 
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
@@ -69,18 +71,27 @@ func GenerateIdentityHash(identityFields []string) (string, error) {
 	return identityHash, nil
 }
 
-func GenerateLegacyIdentityHash(identityFields []string) (string, error) {
+func GenerateLegacyIdentityHash(identityFields []string, debugHash bool) (string, error) {
+
 	if len(identityFields) == 0 {
 		return "", errors.New("identity fields are missing")
 	}
 	hasher := sha1.New()
+	hashStr := ""
 	for _, identityField := range identityFields {
 		if identityField == "" {
 			return "", errors.New("identity field is empty")
 		}
-		hasher.Write([]byte(fmt.Sprintf("%v_", identityField)))
+		hashStr += fmt.Sprintf("%v_", strings.TrimSpace(identityField))
+		hasher.Write([]byte(fmt.Sprintf("%v_", strings.TrimSpace(identityField))))
 	}
+	hashStr += "bootstrap_"
 	hasher.Write([]byte("bootstrap_"))
 	hash := hasher.Sum(nil)
+
+	if debugHash {
+		log.Printf("Platform SMBG hash string %s", string(hashStr))
+	}
+
 	return base32.NewEncoding("0123456789abcdefghijklmnopqrstuv").WithPadding('-').EncodeToString(hash), nil
 }
