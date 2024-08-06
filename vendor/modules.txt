@@ -357,7 +357,7 @@ github.com/russross/blackfriday/v2
 # github.com/tidepool-org/clinic/client v0.0.0-20240629034458-1365c8963143
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
-# github.com/tidepool-org/devices/api v0.0.0-20240711091104-8b8e20a3e2c7
+# github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
 ## explicit; go 1.22
 github.com/tidepool-org/devices/api
 # github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
