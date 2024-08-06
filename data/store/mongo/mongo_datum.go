@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -182,11 +183,33 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
 		datum.SetModifiedTime(&timestamp)
-		datum.SetModifiedTime(&timestamp)
+	}
+
+	slices.SortStableFunc(dataSetData, func(a, b data.Datum) int {
+		aType, bType := a.GetType(), b.GetType()
+		if aType < bType {
+			return -1
+		}
+		if aType > bType {
+			return 1
+		}
+		aTime, bTime := a.GetTime(), b.GetTime()
+		if aTime == nil {
+			if bTime == nil {
+				return 0
+			}
+			return -1
+		}
+		if bTime == nil {
+			return 1
+		}
+		return aTime.Compare(*bTime)
+	})
+	for _, datum := range dataSetData {
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
-	opts := options.BulkWrite().SetOrdered(false)
+	opts := options.BulkWrite().SetOrdered(true)
 
 	_, err := d.BulkWrite(ctx, insertData, opts)
 
