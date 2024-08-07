@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -198,6 +199,6 @@ func (d *DataRepository) mongoClient() *mongo.Client {
 	return d.DatumRepository.Database().Client()
 }
 
-func isTypeUpload(typ string) bool {
-	return strings.ToLower(typ) == strings.ToLower(upload.Type)
+func isTypeUpload(typ []string) bool {
+	return slices.Contains(typ, strings.ToLower(upload.Type))
 }
