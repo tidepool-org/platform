@@ -51,7 +51,7 @@ type Date string
 // somewhat redundantly as UserProfile instead of Profile because there already
 // exists a type Profile in this package.
 type UserProfile struct {
-	FullName       string   `json:"fullName,omitempty"`
+	FullName       string   `json:"fullName,omitempty"` // Name of the patient, fake child, or clinician
 	Birthday       Date     `json:"birthday,omitempty"`
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
 	DiagnosisType  string   `json:"diagnosisType,omitempty"`
@@ -67,7 +67,7 @@ type UserProfile struct {
 }
 
 type ClinicProfile struct {
-	Name      string `json:"name,omitempty"`
+	Name      string `json:"name,omitempty"` // Refers to the name of the clinic, not clinician
 	Role      string `json:"role,omitempty"`
 	Telephone string `json:"telephone,omitempty"`
 	NPI       string `json:"npi,omitempty"`
@@ -141,21 +141,22 @@ func (up *UserProfile) ClearPatientInfo() *UserProfile {
 }
 
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
-	fullName := p.FullName
 	up := &UserProfile{
-		Clinic: p.Clinic,
+		FullName: p.FullName,
+		Clinic:   p.Clinic,
 	}
 	if p.Patient != nil {
+		// The new profiles FullName refer to the true "owner" of the profile - which
+		// may be the "fake child" so set it to the FullName within the Patient Object if it exists.
 		up.FullName = cmp.Or(pointer.ToString(p.Patient.FullName), p.FullName)
-		// Only users with isOtherPerson set has a patient.fullName field set so
-		// they have a custodian.
+		// Only users with isOtherPerson set has a patient.fullName field set so these users
+		// also have a custodian
 		if p.Patient.IsOtherPerson {
 			// Handle the few cases where one of either the fake child fullName or the profile fullName is empty (neither are both empty)
-			if fullName == "" {
-				fullName = pointer.ToString(p.Patient.FullName)
-			}
+			// The custodian's name would be the the profile.fullName field in the legacy
+			// format. But there are few cases where it's empty so set it to profile.patient.fullName if it exists
 			up.Custodian = &Custodian{
-				FullName: cmp.Or(p.FullName, fullName),
+				FullName: cmp.Or(p.FullName, pointer.ToString(p.Patient.FullName)),
 			}
 		}
 		up.Birthday = p.Patient.Birthday
@@ -167,7 +168,6 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
 	}
-	up.FullName = fullName
 	return up
 }
 
