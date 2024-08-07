@@ -352,7 +352,6 @@ var _ = Describe("Mongo", func() {
 				err = cursor.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(err).ToNot(HaveOccurred())
 				Expect(indexes).To(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
