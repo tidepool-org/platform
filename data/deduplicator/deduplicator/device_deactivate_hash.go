@@ -2,11 +2,14 @@ package deduplicator
 
 import (
 	"context"
+	"log"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type DeviceDeactivateHashVersion string
@@ -148,17 +151,17 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	opts := NewDefaultDeviceDeactivateHashOptions()
 
 	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
-		// TODO: find the last upload if there was one
-		//
-		// uploads, err := repository.GetDataSetsForUserByID(ctx, *dataSet.UserID, &dataStore.Filter{}, &page.Pagination{Page: 1, Size: 1})
-		// if dataSetData == nil {
-		// 	return err
-		// }
-		// if len(uploads) != 0 {
-		// 	deviceDeactivateHashVersion = DeviceDeactivateHashVersionLegacy
-		// }
-		// NOTE: hard coded to test
-		opts = NewLegacyDeviceDeactivateHashOptions("7394e6ad03")
+		uploads, err := repository.ListUserDataSets(ctx, *dataSet.UserID, &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}, &page.Pagination{Page: 1, Size: 1})
+		if err == nil {
+			return errors.New("error getting datasets for user")
+		}
+		if len(uploads) != 0 {
+			log.Printf("DeviceDeactivateHash latest uploadID [%s] for device [%s]", *dataSet.DeviceID, *uploads[0].UploadID)
+			if uploads[0].LegacyGroupID != nil {
+				log.Printf("DeviceDeactivateHash latest upload groupID [%s]", *uploads[0].LegacyGroupID)
+				opts = NewLegacyDeviceDeactivateHashOptions(*uploads[0].LegacyGroupID)
+			}
+		}
 	}
 
 	if err := AssignDataSetDataIdentityHashes(dataSetData, opts); err != nil {
