@@ -50,7 +50,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -80,7 +79,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -91,7 +89,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
 		{
@@ -103,7 +100,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
