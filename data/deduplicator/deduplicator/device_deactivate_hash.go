@@ -151,9 +151,11 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	opts := NewDefaultDeviceDeactivateHashOptions()
 
 	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
+		log.Printf("DeviceDeactivateHash latest userID [%s] for device [%s]", *dataSet.UserID, *dataSet.DeviceID)
+
 		uploads, err := repository.ListUserDataSets(ctx, *dataSet.UserID, &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}, &page.Pagination{Page: 1, Size: 1})
 		if err == nil {
-			return errors.New("error getting datasets for user")
+			return errors.Wrap(err, "error getting datasets for user")
 		}
 		if len(uploads) != 0 {
 			log.Printf("DeviceDeactivateHash latest uploadID [%s] for device [%s]", *dataSet.DeviceID, *uploads[0].UploadID)
