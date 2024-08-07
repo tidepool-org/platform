@@ -160,7 +160,8 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		log.Printf("DeviceDeactivateHash pagination [%v]", pagination)
 
 		uploads, err := repository.ListUserDataSets(ctx, *dataSet.UserID, filter, pagination)
-		if err == nil {
+		if err != nil {
+			log.Printf("DeviceDeactivateHash ListUserDataSets error [%s]", err.Error())
 			return errors.Wrap(err, "error getting datasets for user")
 		}
 		if len(uploads) != 0 {
