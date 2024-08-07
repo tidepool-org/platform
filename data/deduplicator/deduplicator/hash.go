@@ -6,7 +6,6 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	"log"
 	"strings"
 
 	"github.com/tidepool-org/platform/data"
@@ -14,23 +13,52 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-func AssignDataSetDataIdentityHashes(dataSetData data.Data, version DeviceDeactivateHashVersion) error {
+type deviceDeactivateHashOptions struct {
+	version       DeviceDeactivateHashVersion
+	legacyGroupID *string
+}
+
+func NewLegacyDeviceDeactivateHashOptions(legacyGroupID string) deviceDeactivateHashOptions {
+	return deviceDeactivateHashOptions{
+		version:       DeviceDeactivateHashVersionLegacy,
+		legacyGroupID: &legacyGroupID,
+	}
+}
+
+func NewDefaultDeviceDeactivateHashOptions() deviceDeactivateHashOptions {
+	return deviceDeactivateHashOptions{
+		version: DeviceDeactivateHashVersionCurrent,
+	}
+}
+
+func (d deviceDeactivateHashOptions) ValidateLegacy() error {
+	if d.version == DeviceDeactivateHashVersionLegacy {
+		if d.legacyGroupID == nil || *d.legacyGroupID == "" {
+			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
+		}
+	}
+	return nil
+}
+
+func AssignDataSetDataIdentityHashes(dataSetData data.Data, opts deviceDeactivateHashOptions) error {
 	for _, dataSetDatum := range dataSetData {
 		var hash string
-		if version == DeviceDeactivateHashVersionLegacy {
+		if opts.version == DeviceDeactivateHashVersionLegacy {
+			if err := opts.ValidateLegacy(); err != nil {
+				return err
+			}
 			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
 				return errors.Wrapf(err, "unable to gather legacy identity fields for datum %T", dataSetDatum)
 			}
-			if dataSetDatum.GetType() == "smbg" {
-				log.Printf("SMBG LegacyIdentityFields are [%v]", fields)
-				hash, err = GenerateLegacyIdentityHash(fields, true)
-			} else {
-				hash, err = GenerateLegacyIdentityHash(fields, false)
-			}
 
+			hash, err = GenerateLegacyIdentityHash(fields)
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
+			}
+			hash, err = GenerateLegacyIdentityHash([]string{hash, *opts.legacyGroupID})
+			if err != nil {
+				return errors.Wrapf(err, "unable to generate legacy identity hash with legacy groupID for datum %T", dataSetDatum)
 			}
 		} else {
 			fields, err := dataSetDatum.IdentityFields()
@@ -71,27 +99,21 @@ func GenerateIdentityHash(identityFields []string) (string, error) {
 	return identityHash, nil
 }
 
-func GenerateLegacyIdentityHash(identityFields []string, debugHash bool) (string, error) {
-
+func GenerateLegacyIdentityHash(identityFields []string) (string, error) {
 	if len(identityFields) == 0 {
 		return "", errors.New("identity fields are missing")
 	}
 	hasher := sha1.New()
-	hashStr := ""
-	for _, identityField := range identityFields {
-		if identityField == "" {
+	for _, val := range identityFields {
+		if val == "" {
 			return "", errors.New("identity field is empty")
 		}
-		hashStr += fmt.Sprintf("%v_", strings.TrimSpace(identityField))
-		hasher.Write([]byte(fmt.Sprintf("%v_", strings.TrimSpace(identityField))))
-	}
-	hashStr += "bootstrap_"
-	hasher.Write([]byte("bootstrap_"))
-	hash := hasher.Sum(nil)
-
-	if debugHash {
-		log.Printf("Platform SMBG hash string %s", string(hashStr))
+		hasher.Write([]byte(fmt.Sprintf("%v", val)))
+		hasher.Write([]byte("_"))
 	}
 
-	return base32.NewEncoding("0123456789abcdefghijklmnopqrstuv").WithPadding('-').EncodeToString(hash), nil
+	hasher.Write([]byte("bootstrap"))
+	hasher.Write([]byte("_"))
+	digest := hasher.Sum(nil)
+	return base32.NewEncoding("0123456789abcdefghijklmnopqrstuv").WithPadding('-').EncodeToString(digest), nil
 }

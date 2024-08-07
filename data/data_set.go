@@ -111,6 +111,7 @@ func (d *DataSetClient) Validate(validator structure.Validator) {
 
 type DataSetFilter struct {
 	ClientName *string
+	IsLegacy   *bool
 	Deleted    *bool
 	DeviceID   *string
 }
@@ -321,6 +322,7 @@ type DataSet struct {
 	Type                string                  `json:"type,omitempty" bson:"type,omitempty"`
 	UploadID            *string                 `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID              *string                 `json:"-" bson:"_userId,omitempty"`
+	LegacyGroupID       *string                 `json:"-" bson:"_groupId,omitempty"`
 	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"`
 	VersionInternal     int                     `json:"-" bson:"_version,omitempty"`
 }
