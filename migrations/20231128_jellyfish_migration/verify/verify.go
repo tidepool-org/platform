@@ -24,6 +24,7 @@ type config struct {
 	mongoURI          string
 	findBlobs         bool
 	verifyDeduped     bool
+	sameAccount       bool
 	platformUploadID  string
 	jellyfishUploadID string
 	uploadIdDeduped   string
@@ -33,6 +34,7 @@ type config struct {
 const MongoURIFlag = "uri"
 const PlatformUploadIDFlag = "upload-id-platform"
 const JellyfishUploadIDFlag = "upload-id-jellyfish"
+const SameAccountFlag = "same-account"
 const FindBlobFlag = "find-blobs"
 const VerifyDedupedFlag = "verify-deduped"
 const UploadIdDedupedFlag = "upload-id"
@@ -49,7 +51,7 @@ func main() {
 
 func NewVerifier(ctx context.Context) *Verify {
 	return &Verify{
-		config: &config{},
+		config: &config{sameAccount: false},
 		ctx:    ctx,
 		cli:    cli.NewApp(),
 	}
@@ -103,7 +105,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to create verification utils : %w", err)
 		}
 
-		err = m.verificationUtil.VerifyAPIDifferences(m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","))
+		err = m.verificationUtil.VerifyUploadDifferences(m.config.platformUploadID, m.config.jellyfishUploadID, strings.Split(m.config.dataTypes, ","), m.config.sameAccount)
 		if err != nil {
 			log.Printf("error running verify : %s", err.Error())
 		}
@@ -138,6 +140,12 @@ func (m *Verify) Initialize() error {
 			Name:        JellyfishUploadIDFlag,
 			Usage:       "uploadID of the second jellyfish dataset",
 			Destination: &m.config.jellyfishUploadID,
+			Required:    false,
+		},
+		cli.BoolFlag{
+			Name:        SameAccountFlag,
+			Usage:       "the datasets are uploaded to the same account",
+			Destination: &m.config.sameAccount,
 			Required:    false,
 		},
 		cli.StringFlag{

@@ -2,7 +2,6 @@ package deduplicator
 
 import (
 	"context"
-	"log"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -151,23 +150,15 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	opts := NewDefaultDeviceDeactivateHashOptions()
 
 	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
-		log.Printf("DeviceDeactivateHash latest userID [%s] for device [%s]", *dataSet.UserID, *dataSet.DeviceID)
-
 		filter := &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
 		pagination := &page.Pagination{Page: 1, Size: 1}
 
-		log.Printf("DeviceDeactivateHash filter [%v]", filter)
-		log.Printf("DeviceDeactivateHash pagination [%v]", pagination)
-
 		uploads, err := repository.ListUserDataSets(ctx, *dataSet.UserID, filter, pagination)
 		if err != nil {
-			log.Printf("DeviceDeactivateHash ListUserDataSets error [%s]", err.Error())
 			return errors.Wrap(err, "error getting datasets for user")
 		}
 		if len(uploads) != 0 {
-			log.Printf("DeviceDeactivateHash latest uploadID [%s] for device [%s]", *dataSet.DeviceID, *uploads[0].UploadID)
 			if uploads[0].LegacyGroupID != nil {
-				log.Printf("DeviceDeactivateHash latest upload groupID [%s]", *uploads[0].LegacyGroupID)
 				opts = NewLegacyDeviceDeactivateHashOptions(*uploads[0].LegacyGroupID)
 			}
 		}

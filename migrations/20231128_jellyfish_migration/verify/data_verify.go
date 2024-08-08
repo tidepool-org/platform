@@ -217,60 +217,62 @@ const (
 	PlatformExtra     = "extra"
 	PlatformDuplicate = "duplicate"
 	PlatformMissing   = "missing"
+
+	CompareDatasetsDepuplicatorKey = "_deduplicator"
+	CompareDatasetsDeviceTimeKey   = "deviceTime"
 )
 
-func CompareDatasets(platformSet []map[string]interface{}, jellyfishSet []map[string]interface{}) map[string][]map[string]interface{} {
+func CompareDatasets(dataSet []map[string]interface{}, baseSet []map[string]interface{}, datumKeyName string) map[string][]map[string]interface{} {
 
 	diffs := map[string][]map[string]interface{}{
 		PlatformExtra:     {},
 		PlatformDuplicate: {},
 		PlatformMissing:   {},
 	}
-	const deviceTimeName = "deviceTime"
-	type deviceTimeDatums map[string][]map[string]interface{}
 
-	pfCounts := deviceTimeDatums{}
-	jfCounts := deviceTimeDatums{}
+	type deviceDataMap map[string][]map[string]interface{}
 
-	for _, jDatum := range jellyfishSet {
-		strDatumTime := fmt.Sprintf("%v", jDatum[deviceTimeName])
+	baseSetMap := deviceDataMap{}
+	dataSetCounts := deviceDataMap{}
 
-		if len(jfCounts[strDatumTime]) == 0 {
-			jfCounts[strDatumTime] = []map[string]interface{}{jDatum}
-		} else if len(jfCounts[strDatumTime]) >= 1 {
-			jfCounts[strDatumTime] = append(jfCounts[strDatumTime], jDatum)
+	for _, datum := range baseSet {
+		datumKey := fmt.Sprintf("%v", datum[datumKeyName])
+
+		if len(baseSetMap[datumKey]) == 0 {
+			baseSetMap[datumKey] = []map[string]interface{}{datum}
+		} else if len(baseSetMap[datumKey]) >= 1 {
+			baseSetMap[datumKey] = append(baseSetMap[datumKey], datum)
 		}
 	}
 
-	for _, pDatum := range platformSet {
+	for _, datum := range dataSet {
+		datumKey := fmt.Sprintf("%v", datum[datumKeyName])
 
-		strDatumTime := fmt.Sprintf("%v", pDatum[deviceTimeName])
+		if len(dataSetCounts[datumKey]) == 0 {
+			dataSetCounts[datumKey] = []map[string]interface{}{datum}
+		} else if len(dataSetCounts[datumKey]) >= 1 {
 
-		if len(pfCounts[strDatumTime]) == 0 {
-			pfCounts[strDatumTime] = []map[string]interface{}{pDatum}
-		} else if len(pfCounts[strDatumTime]) >= 1 {
-
-			currentItems := pfCounts[strDatumTime]
+			currentItems := dataSetCounts[datumKey]
 			for _, item := range currentItems {
-				if fmt.Sprintf("%v", item) == fmt.Sprintf("%v", pDatum) {
-					diffs[PlatformDuplicate] = append(diffs[PlatformDuplicate], pDatum)
+				if fmt.Sprintf("%v", item) == fmt.Sprintf("%v", datum) {
+					diffs[PlatformDuplicate] = append(diffs[PlatformDuplicate], datum)
 					continue
 				} else {
-					diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)
+					diffs[PlatformExtra] = append(diffs[PlatformExtra], datum)
 					break
 				}
 			}
-			pfCounts[strDatumTime] = append(pfCounts[strDatumTime], pDatum)
+			dataSetCounts[datumKey] = append(dataSetCounts[datumKey], datum)
 		}
-		if len(jfCounts[fmt.Sprintf("%v", pDatum[deviceTimeName])]) == 0 {
-			diffs[PlatformExtra] = append(diffs[PlatformExtra], pDatum)
+		if len(baseSetMap[fmt.Sprintf("%v", datum[datumKeyName])]) == 0 {
+			diffs[PlatformExtra] = append(diffs[PlatformExtra], datum)
 		}
 	}
 
-	for jfDeviceTimeStr, jDatums := range jfCounts {
-		if len(pfCounts[jfDeviceTimeStr]) < len(jfCounts[jfDeviceTimeStr]) {
+	for datumKey, jDatums := range baseSetMap {
+		if len(dataSetCounts[datumKey]) < len(baseSetMap[datumKey]) {
 			//NOTE: more of an indicator there are missing records ...
-			for i := len(pfCounts[jfDeviceTimeStr]); i < len(jfCounts[jfDeviceTimeStr]); i++ {
+			for i := len(dataSetCounts[datumKey]); i < len(baseSetMap[datumKey]); i++ {
 				diffs[PlatformMissing] = append(diffs[PlatformMissing], jDatums[i])
 			}
 		}
@@ -285,7 +287,7 @@ var dataTypePathIgnored = map[string][]string{
 	"bolus": {"normal"},
 }
 
-func (m *DataVerify) VerifyAPIDifferences(platformUploadID string, jellyfishUploadID string, dataTyes []string) error {
+func (m *DataVerify) VerifyUploadDifferences(platformUploadID string, jellyfishUploadID string, dataTyes []string, sameAccount bool) error {
 
 	if len(dataTyes) == 0 {
 		dataTyes = DatasetTypes
@@ -307,7 +309,12 @@ func (m *DataVerify) VerifyAPIDifferences(platformUploadID string, jellyfishUplo
 		pfSet := platformDataset[dType]
 		comparePath := filepath.Join(".", "_compare", fmt.Sprintf("%s_%s", platformUploadID, jellyfishUploadID))
 		log.Printf("data written to %s", comparePath)
-		setDifferences := CompareDatasets(pfSet, jfSet)
+
+		datumKeyName := CompareDatasetsDeviceTimeKey
+		if sameAccount {
+			datumKeyName = CompareDatasetsDepuplicatorKey
+		}
+		setDifferences := CompareDatasets(pfSet, jfSet, datumKeyName)
 		if len(setDifferences[PlatformMissing]) > 0 {
 			writeFileData(setDifferences[PlatformMissing], comparePath, fmt.Sprintf("%s_platform_missing.json", dType), true)
 		}

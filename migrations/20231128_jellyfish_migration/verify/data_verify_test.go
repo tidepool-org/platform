@@ -82,14 +82,14 @@ var _ = Describe("DataVerify", func() {
 	var _ = Describe("CompareDatasets", func() {
 
 		It("will have no differences when that same and no dups", func() {
-			dSetDifference := verify.CompareDatasets(test.JFBolusSet, test.JFBolusSet)
+			dSetDifference := verify.CompareDatasets(test.JFBolusSet, test.JFBolusSet, verify.CompareDatasetsDeviceTimeKey)
 			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(0))
 			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(0))
 			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(0))
 		})
 
 		It("will find duplicates in the platform dataset", func() {
-			dSetDifference := verify.CompareDatasets(test.PlatformBolusSet, test.JFBolusSet)
+			dSetDifference := verify.CompareDatasets(test.PlatformBolusSet, test.JFBolusSet, verify.CompareDatasetsDeviceTimeKey)
 			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(395))
 			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(0))
 			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(0))
@@ -101,7 +101,7 @@ var _ = Describe("DataVerify", func() {
 				"deviceTime": "2018-01-03T13:07:10",
 			}
 
-			dSetDifference := verify.CompareDatasets(append(test.PlatformBolusSet, duplicateTimeStamp), test.JFBolusSet)
+			dSetDifference := verify.CompareDatasets(append(test.PlatformBolusSet, duplicateTimeStamp), test.JFBolusSet, verify.CompareDatasetsDeviceTimeKey)
 			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(395))
 			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(1))
 			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(0))
@@ -113,7 +113,7 @@ var _ = Describe("DataVerify", func() {
 				"deviceTime": "2023-01-18T12:00:00",
 			}
 
-			dSetDifference := verify.CompareDatasets(append(test.PlatformBolusSet, expectedExtra), test.JFBolusSet)
+			dSetDifference := verify.CompareDatasets(append(test.PlatformBolusSet, expectedExtra), test.JFBolusSet, verify.CompareDatasetsDeviceTimeKey)
 			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(395))
 			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(1))
 			Expect(dSetDifference[verify.PlatformExtra][0]).To(Equal(expectedExtra))
@@ -127,10 +127,34 @@ var _ = Describe("DataVerify", func() {
 			Expect(len(platformBasals)).To(Equal(3123))
 			Expect(len(jellyfishBasals)).To(Equal(3386))
 
-			dSetDifference := verify.CompareDatasets(platformBasals, jellyfishBasals)
+			dSetDifference := verify.CompareDatasets(platformBasals, jellyfishBasals, verify.CompareDatasetsDeviceTimeKey)
 			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(5))
 			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(4))
 			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(263))
+		})
+
+		It("will find datums that are missing in the platform dataset with deduplicator key", func() {
+			platformSMBGs := test.GetPlatformSMBGData()
+			jfSMBGs := test.GetJellyfishSMBGData()
+
+			Expect(len(platformSMBGs)).To(Equal(11))
+			Expect(len(jfSMBGs)).To(Equal(11))
+
+			dSetDifference := verify.CompareDatasets(platformSMBGs, jfSMBGs, verify.CompareDatasetsDepuplicatorKey)
+			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(0))
+			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(11))
+			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(11))
+		})
+
+		It("will match when datasets are the same using with deduplicator key", func() {
+			smbgs := test.GetPlatformSMBGData()
+
+			Expect(len(smbgs)).To(Equal(11))
+
+			dSetDifference := verify.CompareDatasets(smbgs, smbgs, verify.CompareDatasetsDepuplicatorKey)
+			Expect(len(dSetDifference[verify.PlatformDuplicate])).To(Equal(0))
+			Expect(len(dSetDifference[verify.PlatformExtra])).To(Equal(0))
+			Expect(len(dSetDifference[verify.PlatformMissing])).To(Equal(0))
 		})
 
 	})
