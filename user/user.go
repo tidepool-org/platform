@@ -179,6 +179,7 @@ func ValidateID(value string) error {
 
 var idExpression = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
 
+// IsValidUserID return true if the string is in a human readable uuid hex 8-4-4-4-12 format or legacy alphanumeric 10 characters
 func IsValidUserID(id string) bool {
 	ok, _ := regexp.MatchString(`^([a-fA-F0-9]{10})$|^([a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12})$`, id)
 	return ok
