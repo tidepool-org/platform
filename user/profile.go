@@ -2,6 +2,8 @@ package user
 
 import (
 	"cmp"
+	"encoding/json"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -11,6 +13,10 @@ import (
 )
 
 type migrationStatus int
+
+var (
+	nonLetters = regexp.MustCompile(`[^A-Za-z]`)
+)
 
 const (
 	migrationUnmigrated migrationStatus = iota
@@ -79,7 +85,7 @@ type Custodian struct {
 
 // IsPatientProfile returns true if the profile is associated with a patient - note that this is not mutually exclusive w/ a clinician, as some users have both
 func (up *UserProfile) IsPatientProfile() bool {
-	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil
+	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil || up.Clinic == nil
 }
 
 // IsClinicianProfile returns true if the profile is associated with a clinician - note that this is not mutually exclusive w/ a patient, as some users have both
@@ -190,12 +196,49 @@ type LegacyPatientProfile struct {
 	TargetDevices  []string `json:"targetDevices,omitempty"`
 	TargetTimezone string   `json:"targetTimezone,omitempty"`
 	About          string   `json:"about,omitempty"`
-	IsOtherPerson  bool     `json:"isOtherPerson,omitempty"`
+	IsOtherPerson  jsonBool `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
 	BiologicalSex  string   `json:"biologicalSex,omitempty"`
 	// The Email and Emails fields are legacy properties that will be populated from the keycloak user if the profile is finished migrating, otherwise from the seagull collection
 	Email  string   `json:"email,omitempty"`
 	Emails []string `json:"emails,omitempty"`
+}
+
+func (l *LegacyPatientProfile) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+
+	// Handle some old seagull fields that contained an empty string for the patient field, return an empty object in that case
+	dataStr := string(data)
+	if dataStr == `""` {
+		return nil
+	}
+
+	// Create a new type definition w/ same underlying type as
+	// LegacyPatientProfile so we can use the "default" UnmarshalJSON of
+	// LegacyPatientProfile as if it didn't implement json.Unmarshaler (to
+	// prevent an infinite loop)
+	type tempType LegacyPatientProfile
+	return json.Unmarshal(data, (*tempType)(l))
+}
+
+// jsonBool is a bool type that can be marshaled from string fields - this is only in support of legacy seagull profiles.
+// Once all seagull profiles have been migrated over, LegacyProfile along w/ jsonBool will be removed
+type jsonBool bool
+
+func (b *jsonBool) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 || string(data) == "null" {
+		return nil
+	}
+	dataStr := string(data)
+	boolStr := strings.ToLower(nonLetters.ReplaceAllString(dataStr, ""))
+	if boolStr == "true" {
+		*b = true
+	} else {
+		*b = false
+	}
+	return nil
 }
 
 func (up *UserProfile) ToAttributes() map[string][]string {
