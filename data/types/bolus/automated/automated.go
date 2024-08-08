@@ -9,7 +9,7 @@ import (
 const (
 	SubType = "automated" // TODO: Rename Type to "bolus/automated"; remove SubType
 
-	NormalMaximum = 100.0
+	NormalMaximum = 250.0
 	NormalMinimum = 0.0
 )
 

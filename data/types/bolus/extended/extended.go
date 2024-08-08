@@ -11,7 +11,7 @@ const (
 
 	DurationMaximum = 86400000
 	DurationMinimum = 0
-	ExtendedMaximum = 100.0
+	ExtendedMaximum = 250.0
 	ExtendedMinimum = 0.0
 )
 
