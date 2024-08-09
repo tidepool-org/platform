@@ -118,6 +118,10 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	}
 }
 
+func (c *Calculator) LegacyIdentityFields() ([]string, error) {
+	return c.Base.LegacyIdentityFields()
+}
+
 func (c *Calculator) Normalize(normalizer data.Normalizer) {
 	if !normalizer.HasMeta() {
 		normalizer = normalizer.WithMeta(c.Meta())

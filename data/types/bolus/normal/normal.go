@@ -9,7 +9,7 @@ import (
 const (
 	SubType = "normal" // TODO: Rename Type to "bolus/normal"; remove SubType
 
-	NormalMaximum = 100.0
+	NormalMaximum = 250.0
 	NormalMinimum = 0.0
 )
 

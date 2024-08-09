@@ -64,6 +64,52 @@ var _ = Describe("DeviceDeactivateHash", func() {
 				Expect(deduplicator.New(dataSet)).To(BeFalse())
 			})
 
+			It("returns false when the deduplicator name does not match", func() {
+				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
+				Expect(deduplicator.New(dataSet)).To(BeFalse())
+			})
+
+			DescribeTable("returns true when",
+				func(deviceManufacturer string, deviceModel string) {
+					dataSet.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
+					dataSet.DeviceModel = pointer.FromString(deviceModel)
+					Expect(deduplicator.New(dataSet)).To(BeTrue())
+				},
+				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
+				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
+				Entry("is LifeScan OneTouch UltraMini", "LifeScan", "OneTouch UltraMini"),
+				Entry("is LifeScan Verio", "LifeScan", "Verio"),
+				Entry("is LifeScan Verio Flex", "LifeScan", "Verio Flex"),
+				Entry("is Medtronic 523", "Medtronic", "523"),
+				Entry("is Medtronic 523K", "Medtronic", "523K"),
+				Entry("is Medtronic 551", "Medtronic", "551"),
+				Entry("is Medtronic 554", "Medtronic", "554"),
+				Entry("is Medtronic 723", "Medtronic", "723"),
+				Entry("is Medtronic 723K", "Medtronic", "723K"),
+				Entry("is Medtronic 751", "Medtronic", "751"),
+				Entry("is Medtronic 754", "Medtronic", "754"),
+				Entry("is Medtronic 1510", "Medtronic", "1510"),
+				Entry("is Medtronic 1510K", "Medtronic", "1510K"),
+				Entry("is Medtronic 1511", "Medtronic", "1511"),
+				Entry("is Medtronic 1512", "Medtronic", "1512"),
+				Entry("is Medtronic 1580", "Medtronic", "1580"),
+				Entry("is Medtronic 1581", "Medtronic", "1581"),
+				Entry("is Medtronic 1582", "Medtronic", "1582"),
+				Entry("is Medtronic 1710", "Medtronic", "1710"),
+				Entry("is Medtronic 1710K", "Medtronic", "1710K"),
+				Entry("is Medtronic 1711", "Medtronic", "1711"),
+				Entry("is Medtronic 1712", "Medtronic", "1712"),
+				Entry("is Medtronic 1714", "Medtronic", "1714"),
+				Entry("is Medtronic 1714K", "Medtronic", "1714K"),
+				Entry("is Medtronic 1715", "Medtronic", "1715"),
+				Entry("is Medtronic 1780", "Medtronic", "1780"),
+				Entry("is Medtronic 1781", "Medtronic", "1781"),
+				Entry("is Medtronic 1782", "Medtronic", "1782"),
+				Entry("is Trividia Health TRUE METRIX", "Trividia Health", "TRUE METRIX"),
+				Entry("is Trividia Health TRUE METRIX AIR", "Trividia Health", "TRUE METRIX AIR"),
+				Entry("is Trividia Health TRUE METRIX GO", "Trividia Health", "TRUE METRIX GO"),
+			)
+
 			dataSetTypeAssertions := func() {
 				It("returns false when the deduplicator name does not match", func() {
 					dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
@@ -211,6 +257,13 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 			It("returns true when the deduplicator name matches deprecated", func() {
 				dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.hash-deactivate-old")
+				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+			})
+
+			It("returns true when the deduplicator name matches and legacy id device and model", func() {
+				dataSet.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.DeviceDeactivateHashName)
+				dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Tandem"})
+				dataSet.DeviceModel = pointer.FromString("1002717")
 				Expect(deduplicator.Get(dataSet)).To(BeTrue())
 			})
 		})

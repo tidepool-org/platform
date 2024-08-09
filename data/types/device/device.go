@@ -57,3 +57,12 @@ func (d *Device) IdentityFields() ([]string, error) {
 
 	return append(identityFields, d.SubType), nil
 }
+
+func (d *Device) LegacyIdentityFields() ([]string, error) {
+	return types.GetLegacyIDFields(
+		types.LegacyIDField{Name: "type", Value: &d.Type},
+		types.LegacyIDField{Name: "sub type", Value: &d.SubType},
+		types.GetLegacyTimeField(d.Time),
+		types.LegacyIDField{Name: "device id", Value: d.DeviceID},
+	)
+}

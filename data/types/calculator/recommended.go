@@ -6,12 +6,12 @@ import (
 )
 
 const (
-	CarbohydrateMaximum = 100.0
+	CarbohydrateMaximum = 250.0
 	CarbohydrateMinimum = 0.0
-	CorrectionMaximum   = 100.0
-	CorrectionMinimum   = -100.0
-	NetMaximum          = 100.0
-	NetMinimum          = -100.0
+	CorrectionMaximum   = 250.0
+	CorrectionMinimum   = -250.0
+	NetMaximum          = 250.0
+	NetMinimum          = -250.0
 )
 
 type Recommended struct {

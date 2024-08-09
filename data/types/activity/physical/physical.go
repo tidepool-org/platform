@@ -296,3 +296,7 @@ func (p *Physical) Normalize(normalizer data.Normalizer) {
 		p.Step.Normalize(normalizer.WithReference("step"))
 	}
 }
+
+func (p *Physical) LegacyIdentityFields() ([]string, error) {
+	return p.Base.LegacyIdentityFields()
+}

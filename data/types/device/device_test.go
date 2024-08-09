@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -123,6 +124,32 @@ var _ = Describe("Device", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
+			})
+		})
+
+		Context("LegacyIdentityFields", func() {
+			var datum *device.Device
+
+			BeforeEach(func() {
+				datum = dataTypesDeviceTest.RandomDevice()
+			})
+
+			It("returns error if sub type is empty", func() {
+				datum.SubType = ""
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("sub type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				datum.SubType = "some-sub-type"
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"deviceEvent", "some-sub-type", "2023-05-13T15:51:58.000Z", "some-device"}))
 			})
 		})
 	})

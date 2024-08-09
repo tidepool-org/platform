@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
@@ -20,6 +21,7 @@ const (
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
+	LegacyTimeFormat        = "2006-01-02T15:04:05.000Z"
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100
@@ -261,6 +263,57 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+}
+
+type LegacyIDField struct {
+	Value *string
+	Name  string
+}
+
+func GetLegacyTimeField(t *time.Time) LegacyIDField {
+	if t == nil {
+		return LegacyIDField{Name: "time", Value: nil}
+	}
+	tVal := ""
+	if (*t).IsZero() {
+		return LegacyIDField{Name: "time", Value: &tVal}
+	}
+
+	tVal = (*t).Format(LegacyTimeFormat)
+	return LegacyIDField{Name: "time", Value: &tVal}
+}
+
+func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
+	identityFields := []string{}
+	for _, opt := range fields {
+		if opt.Value == nil {
+			return nil, fmt.Errorf("%s is missing", opt.Name)
+		}
+		if *opt.Value == "" {
+			return nil, fmt.Errorf("%s is empty", opt.Name)
+		}
+		identityFields = append(identityFields, *opt.Value)
+	}
+	return identityFields, nil
+}
+
+func (b *Base) LegacyIdentityFields() ([]string, error) {
+	if b.Type == "" {
+		return nil, errors.New("type is empty")
+	}
+	if b.DeviceID == nil {
+		return nil, errors.New("device id is missing")
+	}
+	if *b.DeviceID == "" {
+		return nil, errors.New("device id is empty")
+	}
+	if b.Time == nil {
+		return nil, errors.New("time is missing")
+	}
+	if (*b.Time).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+	return []string{b.Type, *b.DeviceID, (*b.Time).Format(LegacyTimeFormat)}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

@@ -16,6 +16,7 @@ type Datum interface {
 	Normalize(normalizer Normalizer)
 
 	IdentityFields() ([]string, error)
+	LegacyIdentityFields() ([]string, error)
 
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata
