@@ -317,6 +317,7 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	repository := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
+	tsk.AvailableTime = nil
 	tsk.RunTime = pointer.FromAny(time.Now())
 
 	// we don't error here if missing, as the task will be failed during runTask
@@ -347,10 +348,15 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 
 	repository := q.store.NewTaskRepository()
 
+	q.computeState(tsk)
+
+	if tsk.State != task.TaskStatePending {
+		tsk.AvailableTime = nil
+	}
+	tsk.DeadlineTime = nil
 	if tsk.RunTime != nil {
 		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
 	}
-	q.computeState(tsk)
 
 	// Without cancel to ensure task is updated in the database
 	_, err := repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStateRunning)

@@ -271,19 +271,19 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 			"modifiedTime": now,
 		}
 		unset := bson.M{}
-		if update.ProviderSessionID != nil {
-			set["providerSessionId"] = *update.ProviderSessionID
-		}
 		if update.State != nil {
 			set["state"] = *update.State
 			switch *update.State {
 			case dataSource.StateDisconnected:
-				delete(set, "providerSessionId")
 				unset["providerSessionId"] = true
 				unset["error"] = true
 			case dataSource.StateConnected:
 				unset["error"] = true
 			}
+		}
+		if update.ProviderSessionID != nil {
+			delete(unset, "providerSessionId")
+			set["providerSessionId"] = *update.ProviderSessionID
 		}
 		if update.Error != nil {
 			delete(unset, "error")

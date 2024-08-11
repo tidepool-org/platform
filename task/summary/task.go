@@ -61,11 +61,10 @@ func NewDefaultBackfillConfig() TaskConfiguration {
 
 func NewDefaultBackfillTaskCreate() *task.TaskCreate {
 	return &task.TaskCreate{
-		Name:           pointer.FromAny(BackfillType),
-		Type:           BackfillType,
-		Priority:       5,
-		AvailableTime:  pointer.FromAny(time.Now().UTC()),
-		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
+		Name:          pointer.FromAny(BackfillType),
+		Type:          BackfillType,
+		Priority:      5,
+		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]interface{}{
 			"config": NewDefaultBackfillConfig(),
 		},
@@ -84,11 +83,10 @@ func NewDefaultUpdateConfig() TaskConfiguration {
 
 func NewDefaultUpdateTaskCreate() *task.TaskCreate {
 	return &task.TaskCreate{
-		Name:           pointer.FromAny(UpdateType),
-		Type:           UpdateType,
-		Priority:       5,
-		AvailableTime:  pointer.FromAny(time.Now().UTC()),
-		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
+		Name:          pointer.FromAny(UpdateType),
+		Type:          UpdateType,
+		Priority:      5,
+		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]interface{}{
 			"config": NewDefaultUpdateConfig(),
 		},
@@ -107,11 +105,10 @@ func NewDefaultMigrationConfig() TaskConfiguration {
 
 func NewDefaultMigrationTaskCreate() *task.TaskCreate {
 	return &task.TaskCreate{
-		Name:           pointer.FromAny(MigrationType),
-		Type:           MigrationType,
-		Priority:       5,
-		AvailableTime:  pointer.FromAny(time.Now().UTC()),
-		ExpirationTime: pointer.FromAny(time.Now().UTC().AddDate(1000, 0, 0)),
+		Name:          pointer.FromAny(MigrationType),
+		Type:          MigrationType,
+		Priority:      5,
+		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]interface{}{
 			"config": NewDefaultMigrationConfig(),
 		},

@@ -3,6 +3,7 @@ package fetch
 import (
 	"fmt"
 
+	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
@@ -24,8 +25,8 @@ func NewTaskCreate(providerSessionID string, dataSourceID string) (*task.TaskCre
 		Name: pointer.FromString(TaskName(providerSessionID)),
 		Type: Type,
 		Data: map[string]interface{}{
-			"providerSessionId": providerSessionID,
-			"dataSourceId":      dataSourceID,
+			dexcom.DataKeyProviderSessionID: providerSessionID,
+			dexcom.DataKeyDataSourceID:      dataSourceID,
 		},
 	}, nil
 }

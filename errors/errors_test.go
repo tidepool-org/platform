@@ -69,6 +69,70 @@ var _ = Describe("Errors", func() {
 		})
 	})
 
+	Context("AsSource", func() {
+		It("returns nil if the error is nil", func() {
+			Expect(errors.AsSource(nil)).To(BeNil())
+		})
+
+		It("returns nil if the error is a standard error", func() {
+			err := stdErrors.New("standard library error")
+			Expect(errors.AsSource(err)).To(BeNil())
+		})
+
+		It("returns nil if the error is an object without a source", func() {
+			err := errors.New("object error")
+			Expect(errors.AsSource(err)).To(BeNil())
+		})
+
+		It("returns a source if the error is an object with a parameter source", func() {
+			err := errorsTest.WithParameterSource(errors.New("object error"), "parameter")
+			source := errors.AsSource(err)
+			Expect(source).ToNot(BeNil())
+			Expect(source.Parameter()).To(Equal("parameter"))
+			Expect(source.Pointer()).To(Equal(""))
+		})
+
+		It("returns a source if the error is an object with a pointer source", func() {
+			err := errorsTest.WithPointerSource(errors.New("object error"), "pointer")
+			source := errors.AsSource(err)
+			Expect(source).ToNot(BeNil())
+			Expect(source.Parameter()).To(Equal(""))
+			Expect(source.Pointer()).To(Equal("pointer"))
+		})
+
+		It("returns nil if the error is an array", func() {
+			firstErr := errorsTest.WithParameterSource(errors.New("first error"), "first parameter")
+			middleErr := errorsTest.WithParameterSource(errors.New("middle error"), "middle parameter")
+			lastErr := errorsTest.WithParameterSource(errors.New("last error"), "last parameter")
+			err := errors.Append(firstErr, middleErr, lastErr)
+			Expect(errors.AsSource(err)).To(BeNil())
+		})
+	})
+
+	Context("ToArray", func() {
+		It("returns nil if the error is nil", func() {
+			Expect(errors.ToArray(nil)).To(BeNil())
+		})
+
+		It("returns an error array with just the one error itself if the error is a standard error", func() {
+			err := stdErrors.New("standard library error")
+			Expect(errors.ToArray(err)).To(Equal([]error{err}))
+		})
+
+		It("returns an error array with just the one error itself if the error is an object", func() {
+			err := errors.New("object error")
+			Expect(errors.ToArray(err)).To(Equal([]error{err}))
+		})
+
+		It("returns all of the errors if the error is an array", func() {
+			firstErr := errors.New("first error")
+			middleErr := errors.New("middle error")
+			lastErr := errors.New("last error")
+			err := errors.Append(firstErr, middleErr, lastErr)
+			Expect(errors.ToArray(err)).To(Equal([]error{firstErr, middleErr, lastErr}))
+		})
+	})
+
 	Context("First", func() {
 		It("returns nil if the error is nil", func() {
 			Expect(errors.First(nil)).To(BeNil())

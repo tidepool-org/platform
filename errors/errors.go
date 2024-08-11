@@ -174,6 +174,28 @@ func WithSource(err error, src Source) error {
 	return nil
 }
 
+func AsSource(err error) Source {
+	if err == nil {
+		return nil
+	}
+	if objectErr, objectOK := err.(*object); objectOK && objectErr.Source != nil {
+		return &sourceWrapper{source: objectErr.Source}
+	}
+	return nil
+}
+
+type sourceWrapper struct {
+	*source
+}
+
+func (s *sourceWrapper) Parameter() string {
+	return s.source.Parameter
+}
+
+func (s *sourceWrapper) Pointer() string {
+	return s.source.Pointer
+}
+
 func WithMeta(err error, meta interface{}) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
@@ -227,6 +249,16 @@ func Append(errs ...error) error {
 			Errors: errors,
 		}
 	}
+}
+
+func ToArray(err error) []error {
+	if err == nil {
+		return nil
+	}
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.Errors
+	}
+	return []error{err}
 }
 
 func First(err error) error {

@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -43,12 +44,11 @@ type Client interface {
 }
 
 type ClientImpl struct {
-	client                *platform.Client
-	extendedTimeoutClient *platform.Client
+	client *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
-	clnt, err := platform.NewClient(cfg, authorizeAs)
+	clnt, err := platform.NewClientWithErrorResponseParser(cfg, authorizeAs, NewSerializableDataErrorResponseParser())
 	if err != nil {
 		return nil, err
 	}
@@ -341,4 +341,23 @@ func (c *ClientImpl) DestroyDataForUserByID(ctx context.Context, userID string) 
 
 	url := c.client.ConstructURL("v1", "users", userID, "data")
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func NewSerializableDataErrorResponseParser() *SerializableDataErrorResponseParser {
+	return &SerializableDataErrorResponseParser{}
+}
+
+type SerializableDataErrorResponseParser struct{}
+
+func (s *SerializableDataErrorResponseParser) ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error {
+	serializable := &struct {
+		Errors errors.Serializable `json:"errors,omitempty"`
+	}{}
+	if err := json.NewDecoder(res.Body).Decode(serializable); err != nil {
+		return nil
+	}
+	if serializable.Errors.Error != nil {
+		return serializable.Errors.Error
+	}
+	return nil
 }

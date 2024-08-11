@@ -13,6 +13,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -109,6 +110,33 @@ var _ = Describe("Client", func() {
 
 			It("returns success", func() {
 				clnt, err := platform.NewLegacyClient(config, platform.AuthorizeAsUser)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+		})
+
+		Context("NewClientWithErrorResponseParser", func() {
+			It("returns an error if config is missing", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(nil, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("config is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if config is invalid", func() {
+				config.Address = ""
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("config is invalid; address is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if authorize as is invalid", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAs(-1), client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("authorize as is invalid"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns success", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clnt).ToNot(BeNil())
 			})

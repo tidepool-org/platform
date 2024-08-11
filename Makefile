@@ -102,7 +102,7 @@ format-write:
 
 format-write-changed:
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} gofmt -e -s -w {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} gofmt -e -s -w {}
 
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
@@ -118,7 +118,7 @@ imports-write: goimports
 
 imports-write-changed: goimports
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"

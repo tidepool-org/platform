@@ -33,11 +33,6 @@ const (
 	TaskDurationMaximum          = 15 * time.Minute
 	TaskRetryCountMaximum        = 6  // Last retry after a total of 63 hours after first failure
 	DataRangeDaysMaximum         = 30 // Per Dexcom documentation
-
-	DataKeyDataSourceID      = "dataSourceId"
-	DataKeyDeviceHashes      = "deviceHashes"
-	DataKeyProviderSessionID = "providerSessionId"
-	DataKeyRetryCount        = "retryCount"
 )
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -220,7 +215,7 @@ func (t *TaskRunner) run() error {
 }
 
 func (t *TaskRunner) getProviderSession() error {
-	providerSessionID, ok := t.task.Data[DataKeyProviderSessionID].(string)
+	providerSessionID, ok := t.task.Data[dexcom.DataKeyProviderSessionID].(string)
 	if !ok || providerSessionID == "" {
 		return t.failTaskWithInvalidStateError(errors.New("provider session id is missing"))
 	}
@@ -259,7 +254,7 @@ func (t *TaskRunner) updateProviderSession() error {
 }
 
 func (t *TaskRunner) getDataSource() error {
-	dataSourceID, ok := t.task.Data[DataKeyDataSourceID].(string)
+	dataSourceID, ok := t.task.Data[dexcom.DataKeyDataSourceID].(string)
 	if !ok || dataSourceID == "" {
 		return t.failTaskWithInvalidStateError(errors.New("data source id is missing"))
 	}
@@ -289,10 +284,6 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, l
 	}
 	if t.afterLatestDataTime(latestDataTime) {
 		update.LatestDataTime = latestDataTime
-	}
-
-	if update.EarliestDataTime == nil && update.LatestDataTime == nil {
-		return nil
 	}
 
 	update.LastImportTime = pointer.FromTime(time.Now())
@@ -348,7 +339,7 @@ func (t *TaskRunner) createTokenSource() error {
 }
 
 func (t *TaskRunner) getDeviceHashes() error {
-	raw, rawOK := t.task.Data[DataKeyDeviceHashes]
+	raw, rawOK := t.task.Data[dexcom.DataKeyDeviceHashes]
 	if !rawOK || raw == nil {
 		return nil
 	}
@@ -370,6 +361,7 @@ func (t *TaskRunner) getDeviceHashes() error {
 }
 
 func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
+	deviceID := device.ID()
 	deviceHash, err := device.Hash()
 	if err != nil {
 		return false
@@ -379,7 +371,12 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 		t.deviceHashes = map[string]string{}
 	}
 
-	t.deviceHashes[device.ID()] = deviceHash
+	// If the device hash has not changed, then no need to update
+	if existingDeviceHash, ok := t.deviceHashes[deviceID]; ok && existingDeviceHash == deviceHash {
+		return false
+	}
+
+	t.deviceHashes[deviceID] = deviceHash
 	return true
 }
 
@@ -434,7 +431,7 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
 	}
 
-	return t.updateDataSourceWithDataTime(nil, &dataRange.EndTime)
+	return t.updateDataSourceWithLastImportTime()
 }
 
 func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
@@ -474,17 +471,10 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 }
 
 func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
-	devicesDatumArray, err := t.fetchDevices(startTime, endTime)
-	if err != nil {
-		return err
-	}
-
 	datumArray, err := t.fetchData(startTime, endTime)
 	if err != nil {
 		return err
-	}
-
-	if len(datumArray) == 0 && len(devicesDatumArray) == 0 {
+	} else if len(datumArray) == 0 {
 		return nil
 	}
 
@@ -492,44 +482,7 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 		return err
 	}
 
-	if err = t.storeDatumArray(datumArray); err != nil {
-		return err
-	}
-
-	if err = t.storeDevicesDatumArray(devicesDatumArray); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
-	if err = t.handleDexcomClientError(err); err != nil {
-		return nil, err
-	}
-
-	var devices dexcom.Devices
-	for index, record := range *response.Records {
-		if err := structureValidator.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Validate(record); err != nil {
-			t.logger.WithError(err).Error("Failure validating Dexcom Device")
-		} else if err = structureNormalizer.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Normalize(record); err != nil {
-			t.logger.WithError(err).Error("Failure normalizing Dexcom Device")
-		} else {
-			devices = append(devices, record)
-		}
-	}
-
-	var devicesDatumArray data.Data
-	for _, device := range devices {
-
-		// Only if there is a last upload date to use as the datum time, otherwise ignore
-		if device.LastUploadDate != nil && t.updateDeviceHash(device) {
-			devicesDatumArray = append(devicesDatumArray, translateDeviceToDatum(t.context, device))
-		}
-	}
-
-	return devicesDatumArray, nil
+	return t.storeDatumArray(datumArray)
 }
 
 func (t *TaskRunner) preloadDataSet() error {
@@ -562,6 +515,12 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
+	fetchDatumArray, err = t.fetchDevices(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
 	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
 	if err != nil {
 		return nil, err
@@ -576,33 +535,6 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	sort.Stable(DataByTime(datumArray))
-
-	return datumArray, nil
-}
-
-func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
-	if err = t.handleDexcomClientError(err); err != nil {
-		return nil, err
-	}
-
-	var calibrations dexcom.Calibrations
-	for index, record := range *response.Records {
-		if err := structureValidator.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Validate(record); err != nil {
-			t.logger.WithError(err).Error("Failure validating Dexcom Calibration")
-		} else if err := structureNormalizer.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Normalize(record); err != nil {
-			t.logger.WithError(err).Error("Failure normalizing Dexcom Calibration")
-		} else {
-			calibrations = append(calibrations, record)
-		}
-	}
-
-	datumArray := data.Data{}
-	for _, c := range calibrations {
-		if t.afterLatestDataTime(c.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateCalibrationToDatum(t.context, c))
-		}
-	}
 
 	return datumArray, nil
 }
@@ -625,9 +557,63 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 	}
 
 	datumArray := data.Data{}
-	for _, c := range alerts {
-		if t.afterLatestDataTime(c.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateAlertToDatum(t.context, c, response.RecordVersion))
+	for _, alert := range alerts {
+		if time := alert.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+			datumArray = append(datumArray, translateAlertToDatum(t.context, alert, response.RecordVersion))
+		}
+	}
+
+	return datumArray, nil
+}
+
+func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
+	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
+	if err = t.handleDexcomClientError(err); err != nil {
+		return nil, err
+	}
+
+	var calibrations dexcom.Calibrations
+	for index, record := range *response.Records {
+		if err := structureValidator.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Validate(record); err != nil {
+			t.logger.WithError(err).Error("Failure validating Dexcom Calibration")
+		} else if err := structureNormalizer.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Normalize(record); err != nil {
+			t.logger.WithError(err).Error("Failure normalizing Dexcom Calibration")
+		} else {
+			calibrations = append(calibrations, record)
+		}
+	}
+
+	datumArray := data.Data{}
+	for _, calibration := range calibrations {
+		if time := calibration.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+			datumArray = append(datumArray, translateCalibrationToDatum(t.context, calibration))
+		}
+	}
+
+	return datumArray, nil
+}
+
+func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.Data, error) {
+	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
+	if err = t.handleDexcomClientError(err); err != nil {
+		return nil, err
+	}
+
+	var devices dexcom.Devices
+	for index, record := range *response.Records {
+		if err := structureValidator.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Validate(record); err != nil {
+			t.logger.WithError(err).Error("Failure validating Dexcom Device")
+		} else if err := structureNormalizer.New(t.logger).WithReference("records").WithReference(strconv.Itoa(index)).Normalize(record); err != nil {
+			t.logger.WithError(err).Error("Failure normalizing Dexcom Device")
+		} else {
+			devices = append(devices, record)
+		}
+	}
+
+	datumArray := data.Data{}
+	for _, device := range devices {
+		if time := device.LastUploadDate.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.updateDeviceHash(device) {
+			datumArray = append(datumArray, translateDeviceToDatum(t.context, device))
 		}
 	}
 
@@ -652,9 +638,9 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	}
 
 	datumArray := data.Data{}
-	for _, e := range egvs {
-		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(t.context, e))
+	for _, egv := range egvs {
+		if time := egv.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+			datumArray = append(datumArray, translateEGVToDatum(t.context, egv))
 		}
 	}
 
@@ -679,23 +665,23 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	}
 
 	datumArray := data.Data{}
-	for _, e := range events {
-		switch *e.EventStatus {
+	for _, event := range events {
+		switch *event.EventStatus {
 		case dexcom.EventStatusCreated:
-			if t.afterLatestDataTime(e.SystemTime.Raw()) {
-				switch *e.EventType {
+			if time := event.SystemTime.Raw(); time != nil && InTimeRange(*time, startTime, endTime) {
+				switch *event.EventType {
 				case dexcom.EventTypeCarbs:
-					datumArray = append(datumArray, translateEventCarbsToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventCarbsToDatum(t.context, event))
 				case dexcom.EventTypeExercise:
-					datumArray = append(datumArray, translateEventExerciseToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventExerciseToDatum(t.context, event))
 				case dexcom.EventTypeHealth:
-					datumArray = append(datumArray, translateEventHealthToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventHealthToDatum(t.context, event))
 				case dexcom.EventTypeInsulin:
-					datumArray = append(datumArray, translateEventInsulinToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventInsulinToDatum(t.context, event))
 				case dexcom.EventTypeBloodGlucose:
-					datumArray = append(datumArray, translateEventBloodGlucoseToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventBloodGlucoseToDatum(t.context, event))
 				case dexcom.EventTypeNotes:
-					datumArray = append(datumArray, translateEventNotesToDatum(t.context, e))
+					datumArray = append(datumArray, translateEventNotesToDatum(t.context, event))
 				}
 			}
 		case dexcom.EventStatusUpdated, dexcom.EventStatusDeleted:
@@ -770,20 +756,22 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 			endIndex = length
 		}
 
-		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, datumArray[startIndex:endIndex]); err != nil {
+		partialDatumArray := datumArray[startIndex:endIndex]
+
+		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, partialDatumArray); err != nil {
 			return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to create data set data"))
 		}
 
-		earliestDataTime := datumArray[0].GetTime()
-		latestDataTime := datumArray[endIndex-1].GetTime()
+		earliestDataTime := partialDatumArray[0].GetTime()
+		latestDataTime := partialDatumArray[len(partialDatumArray)-1].GetTime()
 		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
 			return err
 		}
 
 		// Determine last known timezone offset and persist with the data set
 		var timezoneOffset *int
-		for index := endIndex - 1; index >= 0; index-- {
-			if timezoneOffset = datumArray[index].GetTimeZoneOffset(); timezoneOffset != nil {
+		for index := len(partialDatumArray) - 1; index >= 0; index-- {
+			if timezoneOffset = partialDatumArray[index].GetTimeZoneOffset(); timezoneOffset != nil {
 				break
 			}
 		}
@@ -792,16 +780,8 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 		}
 	}
 
-	return nil
-}
+	t.task.Data[dexcom.DataKeyDeviceHashes] = t.deviceHashes
 
-func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
-	if len(devicesDatumArray) > 0 {
-		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
-			return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to create data set data"))
-		}
-		t.task.Data[DataKeyDeviceHashes] = t.deviceHashes
-	}
 	return nil
 }
 
@@ -878,17 +858,17 @@ func (t *TaskRunner) failTaskWithError(err error) error {
 
 func (t *TaskRunner) incrementTaskRetryCount() int {
 	retryCount := 1
-	if valueRaw, ok := t.task.Data[DataKeyRetryCount]; ok && valueRaw != nil {
+	if valueRaw, ok := t.task.Data[dexcom.DataKeyRetryCount]; ok && valueRaw != nil {
 		if value, ok := valueRaw.(int); ok {
 			retryCount = value
 		}
 	}
-	t.task.Data[DataKeyRetryCount] = retryCount
+	t.task.Data[dexcom.DataKeyRetryCount] = retryCount
 	return retryCount
 }
 
 func (t *TaskRunner) resetTaskRetryCount() error {
-	delete(t.task.Data, DataKeyRetryCount)
+	delete(t.task.Data, dexcom.DataKeyRetryCount)
 	return nil
 }
 
@@ -910,6 +890,16 @@ func (d DataByTime) Less(left int, right int) bool {
 
 func (d DataByTime) Swap(left int, right int) {
 	d[left], d[right] = d[right], d[left]
+}
+
+func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {
+	if time.Before(lower) {
+		return false
+	} else if time.After(upper) {
+		return false
+	} else {
+		return true
+	}
 }
 
 func ClampTime(time time.Time, lower time.Time, upper time.Time) time.Time {

@@ -28,16 +28,16 @@ type Client struct {
 // Modern platform-based services encode all errors with detailed information in the
 // response body. Deserialize those errors and pass onward.
 func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
-	return newClient(cfg, authorizeAs, client.NewSerializableErrorResponseParser())
+	return NewClientWithErrorResponseParser(cfg, authorizeAs, client.NewSerializableErrorResponseParser())
 }
 
 // Legacy services (shoreline, highwater, gatekeeper, etc.) do not serialize their errors
 // in the response body in a manner that platform can parse.
 func NewLegacyClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
-	return newClient(cfg, authorizeAs, nil)
+	return NewClientWithErrorResponseParser(cfg, authorizeAs, nil)
 }
 
-func newClient(cfg *Config, authorizeAs AuthorizeAs, errorResponseParser client.ErrorResponseParser) (*Client, error) {
+func NewClientWithErrorResponseParser(cfg *Config, authorizeAs AuthorizeAs, errorResponseParser client.ErrorResponseParser) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	} else if err := cfg.Validate(); err != nil {
