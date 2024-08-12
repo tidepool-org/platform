@@ -24,7 +24,7 @@ const (
 	MigrationInProgress
 	MigrationError
 
-	maxProfileFieldLen = 256
+	maxProfileFieldLen = 255
 )
 
 const (
