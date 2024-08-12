@@ -19,10 +19,10 @@ var (
 )
 
 const (
-	migrationUnmigrated migrationStatus = iota
-	migrationCompleted
-	migrationInProgress
-	migrationError
+	MigrationUnmigrated migrationStatus = iota
+	MigrationCompleted
+	MigrationInProgress
+	MigrationError
 
 	maxProfileFieldLen = 256
 )
@@ -96,7 +96,7 @@ func (up *UserProfile) IsClinicianProfile() bool {
 func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
 		FullName:        up.FullName,
-		MigrationStatus: migrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
+		MigrationStatus: MigrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
 	}
 
 	if up.IsPatientProfile() {
