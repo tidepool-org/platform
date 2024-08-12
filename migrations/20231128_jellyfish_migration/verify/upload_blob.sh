@@ -50,7 +50,13 @@ if [ "$SUCCESS" = true ]; then
     echo "$records"
 else
     echo 'upload failed!'
-    error_details=$(echo "$output" | grep -A100000 'platform add data to dataset failed.' | grep -B100000 'upload.toPlatform: failed')
+    error_details=$(echo "$output" | grep -A100000 'error' | grep -B100000 '')
+
+    if [[ -z "$error_details" ]]; then
+        error_details=$(echo "$output" | grep -A100000 'platform add data to dataset failed.' | grep -B100000 'upload.toPlatform: failed')
+    fi
+
+
     echo "{'blob':'$BLOB_FILE', 'details':'{$error_details}'}" >>blob_errors.log
-    echo "$error_details"
+    echo "$output"
 fi

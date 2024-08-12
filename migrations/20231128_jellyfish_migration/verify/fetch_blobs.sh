@@ -10,11 +10,13 @@ check_val() {
     fi
 }
 
+SECRET=$(op item get  "qa3 server secret" --account tidepool.1password.com --fields label=credential --format json | jq -r '.value')
+
 check_val $JSON_FILE "JSON_FILE"
 check_val $OUTPUT_DIR "OUTPUT_DIR"
-check_val $SERVER_SECRET "SERVER_SECRET"
+check_val $SECRET "SECRET"
 
-SESSION_TOKEN="$(curl -s -I -X POST -H "X-Tidepool-Server-Secret: $SERVER_SECRET" -H "X-Tidepool-Server-Name: devops" "https://${API_ENV}.tidepool.org/auth/serverlogin" | grep 'x-tidepool-session-token' | sed 's/[^:]*: //')"
+SESSION_TOKEN="$(curl -s -I -X POST -H "X-Tidepool-Server-Secret: $SECRET" -H "X-Tidepool-Server-Name: devops" "https://${API_ENV}.tidepool.org/auth/serverlogin" | grep 'x-tidepool-session-token' | sed 's/[^:]*: //')"
 
 jq -c '.[]' $JSON_FILE | while read i; do
 
