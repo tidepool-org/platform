@@ -2,7 +2,10 @@ package api
 
 import (
 	"errors"
+	"os"
 
+	awsSdkGoAws "github.com/aws/aws-sdk-go/aws"
+	awsSdkGoAwsCredentialsStscreds "github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	awsSdkGoAwsSession "github.com/aws/aws-sdk-go/aws/session"
 	awsSdkGoServiceS3 "github.com/aws/aws-sdk-go/service/s3"
 	awsSdkGoServiceS3S3iface "github.com/aws/aws-sdk-go/service/s3/s3iface"
@@ -26,6 +29,10 @@ func New(session *awsSdkGoAwsSession.Session) (*API, error) {
 }
 
 func (a *API) S3() awsSdkGoServiceS3S3iface.S3API {
+	if awsRoleARN := os.Getenv("AWS_ROLE_ARN"); awsRoleARN != "" {
+		creds := awsSdkGoAwsCredentialsStscreds.NewCredentials(a.session, awsRoleARN)
+		return awsSdkGoServiceS3.New(a.session, &awsSdkGoAws.Config{Credentials: creds})
+	}
 	return awsSdkGoServiceS3.New(a.session)
 }
 
