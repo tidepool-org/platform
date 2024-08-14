@@ -139,9 +139,10 @@ var _ = Describe("Router", func() {
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 						})
 
-						It("retrieves user's profile if this is a service to service request", func() {
+						It("retrieves user's own profile", func() {
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userProfile)).To(MatchJSON(res.WriteInputs[0]))
 						})
 					})
 				})

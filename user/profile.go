@@ -73,10 +73,10 @@ type UserProfile struct {
 }
 
 type ClinicProfile struct {
-	Name      string `json:"name,omitempty"` // Refers to the name of the clinic, not clinician
-	Role      string `json:"role,omitempty"`
-	Telephone string `json:"telephone,omitempty"`
-	NPI       string `json:"npi,omitempty"`
+	Name      *string `json:"name,omitempty"` // Refers to the name of the clinic, not clinician
+	Role      *string `json:"role,omitempty"`
+	Telephone *string `json:"telephone,omitempty"`
+	NPI       *string `json:"npi,omitempty"`
 }
 
 type Custodian struct {
@@ -105,7 +105,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			DiagnosisDate:  up.DiagnosisDate,
 			DiagnosisType:  up.DiagnosisType,
 			TargetDevices:  up.TargetDevices,
-			TargetTimezone: up.TargetTimezone,
+			TargetTimezone: pointer.FromString(up.TargetTimezone),
 			About:          up.About,
 			MRN:            up.MRN,
 			BiologicalSex:  up.BiologicalSex,
@@ -169,7 +169,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.DiagnosisDate = p.Patient.DiagnosisDate
 		up.DiagnosisType = p.Patient.DiagnosisType
 		up.TargetDevices = p.Patient.TargetDevices
-		up.TargetTimezone = p.Patient.TargetTimezone
+		up.TargetTimezone = pointer.ToString(p.Patient.TargetTimezone)
 		up.About = p.Patient.About
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
@@ -194,7 +194,7 @@ type LegacyPatientProfile struct {
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
 	DiagnosisType  string   `json:"diagnosisType,omitempty"`
 	TargetDevices  []string `json:"targetDevices,omitempty"`
-	TargetTimezone string   `json:"targetTimezone,omitempty"`
+	TargetTimezone *string  `json:"targetTimezone,omitempty"`
 	About          string   `json:"about,omitempty"`
 	IsOtherPerson  jsonBool `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
@@ -277,17 +277,17 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	}
 
 	if up.Clinic != nil {
-		if up.Clinic.Name != "" {
-			addAttribute(attributes, "clinic_name", up.Clinic.Name)
+		if val := pointer.ToString(up.Clinic.Name); val != "" {
+			addAttribute(attributes, "clinic_name", val)
 		}
-		if up.Clinic.Role != "" {
-			addAttribute(attributes, "clinic_role", up.Clinic.Role)
+		if val := pointer.ToString(up.Clinic.Role); val != "" {
+			addAttribute(attributes, "clinic_role", val)
 		}
-		if up.Clinic.Telephone != "" {
-			addAttribute(attributes, "clinic_telephone", up.Clinic.Telephone)
+		if val := pointer.ToString(up.Clinic.Telephone); val != "" {
+			addAttribute(attributes, "clinic_telephone", val)
 		}
-		if up.Clinic.NPI != "" {
-			addAttribute(attributes, "clinic_npi", up.Clinic.NPI)
+		if val := pointer.ToString(up.Clinic.NPI); val != "" {
+			addAttribute(attributes, "clinic_npi", val)
 		}
 	}
 
@@ -344,19 +344,19 @@ func ProfileFromAttributes(username string, attributes map[string][]string) (pro
 	var clinicProfile ClinicProfile
 	var clinicOK bool
 	if val := getAttribute(attributes, "clinic_name"); val != "" {
-		clinicProfile.Name = val
+		clinicProfile.Name = pointer.FromString(val)
 		clinicOK = true
 	}
 	if val := getAttribute(attributes, "clinic_role"); val != "" {
-		clinicProfile.Role = val
+		clinicProfile.Role = pointer.FromString(val)
 		clinicOK = true
 	}
 	if val := getAttribute(attributes, "clinic_telephone"); val != "" {
-		clinicProfile.Telephone = val
+		clinicProfile.Telephone = pointer.FromString(val)
 		clinicOK = true
 	}
 	if val := getAttribute(attributes, "clinic_npi"); val != "" {
-		clinicProfile.NPI = val
+		clinicProfile.NPI = pointer.FromString(val)
 		clinicOK = true
 	}
 	if clinicOK {
@@ -459,10 +459,18 @@ func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
 }
 
 func (p *ClinicProfile) Normalize(normalizer structure.Normalizer) {
-	p.Name = strings.TrimSpace(p.Name)
-	p.Role = strings.TrimSpace(p.Role)
-	p.Telephone = strings.TrimSpace(p.Telephone)
-	p.NPI = strings.TrimSpace(p.NPI)
+	if p.Name != nil {
+		*p.Name = strings.TrimSpace(*p.Name)
+	}
+	if p.Role != nil {
+		*p.Role = strings.TrimSpace(*p.Role)
+	}
+	if p.Telephone != nil {
+		*p.Telephone = strings.TrimSpace(*p.Telephone)
+	}
+	if p.NPI != nil {
+		*p.NPI = strings.TrimSpace(*p.NPI)
+	}
 }
 
 func (up *LegacyUserProfile) Validate(v structure.Validator) {
@@ -488,7 +496,9 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 
 	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	if targetTimeZone := pointer.ToString(pp.TargetTimezone); pp.TargetTimezone != nil && targetTimeZone != "" {
+		v.String("targetTimezone", pp.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	}
 	v.String("about", &pp.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
 
@@ -505,7 +515,9 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 		pp.FullName = pointer.FromString(strings.TrimSpace(pointer.ToString(pp.FullName)))
 	}
 	pp.DiagnosisType = strings.TrimSpace(pp.DiagnosisType)
-	pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
+	if pp.TargetTimezone != nil {
+		*pp.TargetTimezone = strings.TrimSpace(*pp.TargetTimezone)
+	}
 	pp.About = strings.TrimSpace(pp.About)
 	pp.MRN = strings.TrimSpace(pp.MRN)
 	pp.BiologicalSex = strings.TrimSpace(pp.BiologicalSex)

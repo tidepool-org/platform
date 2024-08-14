@@ -198,7 +198,7 @@ func (r *Router) UpdateLegacyProfile(res rest.ResponseWriter, req *rest.Request)
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	r.updateProfile(res, req, profile.ToUserProfile())
+	r.updateLegacyProfile(res, req, profile)
 }
 
 func (r *Router) updateProfile(res rest.ResponseWriter, req *rest.Request, profile *user.UserProfile) {
@@ -217,7 +217,26 @@ func (r *Router) updateProfile(res rest.ResponseWriter, req *rest.Request, profi
 		r.handleProfileErr(responder, err)
 		return
 	}
-	responder.Empty(http.StatusOK)
+	responder.Data(http.StatusOK, profile)
+}
+
+func (r *Router) updateLegacyProfile(res rest.ResponseWriter, req *rest.Request, profile *user.LegacyUserProfile) {
+	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
+	userID := req.PathParam("userId")
+	if err := structValidator.New().Validate(profile); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	if r.handledUserNotExists(ctx, responder, userID) {
+		return
+	}
+	// Once seagull migration is complete, we can use r.UserAccessor().UpdateUserProfile.
+	if err := r.UserProfileAccessor().UpdateUserProfile(ctx, userID, profile.ToUserProfile()); err != nil {
+		r.handleProfileErr(responder, err)
+		return
+	}
+	responder.Data(http.StatusOK, profile)
 }
 
 func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
