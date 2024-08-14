@@ -60,7 +60,6 @@ type DatumRepository interface {
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
-
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)

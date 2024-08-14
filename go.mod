@@ -5,7 +5,7 @@ go 1.22
 require (
 	github.com/IBM/sarama v1.43.2
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.54.11
+	github.com/aws/aws-sdk-go v1.50.6
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/githubnemo/CompileDaemon v1.4.0
