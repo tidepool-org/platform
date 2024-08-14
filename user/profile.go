@@ -24,7 +24,7 @@ const (
 	MigrationInProgress
 	MigrationError
 
-	maxProfileFieldLen = 255
+	MaxProfileFieldLen = 255
 )
 
 const (
@@ -429,12 +429,12 @@ func (d *Date) Normalize(normalizer structure.Normalizer) {
 }
 
 func (up *UserProfile) Validate(v structure.Validator) {
-	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("diagnosisType", &up.DiagnosisType).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("about", &up.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("mrn", &up.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("biologicalSex", &up.BiologicalSex).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("diagnosisType", &up.DiagnosisType).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("about", &up.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("mrn", &up.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("biologicalSex", &up.BiologicalSex).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 
 	up.Birthday.Validate(v.WithReference("birthday"))
 	up.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
@@ -477,7 +477,7 @@ func (up *LegacyUserProfile) Validate(v structure.Validator) {
 	if up.Patient != nil {
 		up.Patient.Validate(v.WithReference("patient"))
 	}
-	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 }
 
 func (up *LegacyUserProfile) Normalize(normalizer structure.Normalizer) {
@@ -495,12 +495,12 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.Birthday.Validate(v.WithReference("birthday"))
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 
-	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	if targetTimeZone := pointer.ToString(pp.TargetTimezone); pp.TargetTimezone != nil && targetTimeZone != "" {
-		v.String("targetTimezone", pp.TargetTimezone).LengthLessThanOrEqualTo(maxProfileFieldLen)
+		v.String("targetTimezone", pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	}
-	v.String("about", &pp.About).LengthLessThanOrEqualTo(maxProfileFieldLen)
-	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(maxProfileFieldLen)
+	v.String("about", &pp.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 
 	if pp.DiagnosisType != "" {
 		v.String("diagnosisType", &pp.DiagnosisType).OneOf(DiabetesTypes...)
