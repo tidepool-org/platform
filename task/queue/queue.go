@@ -175,11 +175,15 @@ func (q *queue) Stop() {
 	}
 	q.workersWaitGroup.Wait()
 
+	close(q.completionChannel)
+
 	if q.managerCancelFunc != nil {
 		q.managerCancelFunc()
 		q.managerCancelFunc = nil
 	}
 	q.managerWaitGroup.Wait()
+
+	close(q.dispatchChannel)
 }
 
 func (q *queue) startWorkers(ctx context.Context) {
@@ -257,18 +261,16 @@ func (q *queue) startManager(ctx context.Context) {
 
 			select {
 			case <-ctx.Done(): // Drain and complete any interrupted tasks
-				for {
-					select {
-					case tsk := <-q.completionChannel:
-						q.completeTask(ctx, tsk)
-					default:
-						return
-					}
+				for tsk := range q.completionChannel {
+					q.completeTask(ctx, tsk)
 				}
+				return
 			case tsk := <-q.completionChannel:
-				q.stopTimer()
-				q.completeTask(ctx, tsk)
-				q.startTimer(q.dispatchTasks(ctx))
+				if tsk != nil {
+					q.stopTimer()
+					q.completeTask(ctx, tsk)
+					q.startTimer(q.dispatchTasks(ctx))
+				}
 			case <-q.timer.C:
 				q.startTimer(q.dispatchTasks(ctx))
 			}

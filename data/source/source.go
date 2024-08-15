@@ -105,7 +105,13 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	validator.String("providerSessionId", c.ProviderSessionID).Exists().Using(auth.ProviderSessionIDValidator)
+	if providerSessionIDValidator := validator.String("providerSessionId", c.ProviderSessionID); c.State == nil {
+		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
+	} else if *c.State != StateDisconnected {
+		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
+	} else {
+		providerSessionIDValidator.NotExists()
+	}
 	validator.String("state", c.State).Exists().OneOf(States()...)
 }
 
@@ -140,10 +146,10 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
-	if providerSessionIDValidator := validator.String("providerSessionId", u.ProviderSessionID); u.State == nil || *u.State != StateDisconnected {
-		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
-	} else {
+	if providerSessionIDValidator := validator.String("providerSessionId", u.ProviderSessionID); u.State == nil || *u.State != StateConnected {
 		providerSessionIDValidator.NotExists()
+	} else {
+		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
 	}
 	validator.String("state", u.State).OneOf(States()...)
 	if u.Error != nil {
@@ -210,7 +216,13 @@ func (s *Source) Validate(validator structure.Validator) {
 	validator.String("userId", s.UserID).Exists().Using(user.IDValidator)
 	validator.String("providerType", s.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", s.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	validator.String("providerSessionId", s.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
+	if providerSessionIDValidator := validator.String("providerSessionId", s.ProviderSessionID); s.State == nil {
+		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
+	} else if *s.State != StateDisconnected {
+		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
+	} else {
+		providerSessionIDValidator.NotExists()
+	}
 	validator.String("state", s.State).Exists().OneOf(States()...)
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))
