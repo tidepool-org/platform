@@ -27,6 +27,28 @@ import (
 	"github.com/tidepool-org/platform/tool"
 )
 
+// This tool will analyze the three Dexcom-related Mongo collections for any errors or consistency issues.
+// To build the tool:
+//
+//   BUILD=tools/dexcom_analyze make build
+//
+// To execute the tool:
+//
+//   _bin/tools/dexcom_analyze/dexcom_analyze -d data_sources.json -p provider_sessions.json -t tasks.json
+//
+// The three arguments (-d, -p, and -t) reference the paths to the three files containing the JSON dump of the
+// three Dexcom-related collections (data_sources, provider_sessions, and tasks, respectively) found in the tidepool
+// Mongo database.
+//
+// To dump each collection, execute from the relevant jumpbox and copy to your local machine:
+//
+//  mongosh '<connection-uri>' --quiet "JSON.stringify(db.data_sources.find().toArray())" > data_sources.json
+//  mongosh '<connection-uri>' --quiet "JSON.stringify(db.provider_sessions.find().toArray())" > provider_sessions.json
+//  mongosh '<connection-uri>' --quiet "JSON.stringify(db.tasks.find().toArray())" > tasks.json
+//
+// The above <connection-uri> should include the relevant connection parameters, scheme, host, credentials, options and database.
+// Note that the database MUST be 'tidepool' as that database contains the above three collections.
+
 const (
 	DataSourcesFileFlag      = "data-sources-file-flag"
 	ProviderSessionsFileFlag = "provider-sessions-file-flag"
@@ -1182,23 +1204,25 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 	case Issue_DataSource_With_DataSetIDs_DataSetIDs_Length_Invalid:
 	case Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing, Issue_DataSource_With_DataSetIDs_LastImportTime_Missing, Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3113. Will keep occurring until deployed. Will need to manually fix.")
+		// NOTE: Uncomment this block to see further details.
+		//
 		// t.outputMongoReadOperationsHeader()
-
+		//
 		// var earliestDataTimeIDs IDs
 		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing]; ok {
 		// 	earliestDataTimeIDs = otherMarshable.DataSources().IDs()
 		// }
-
+		//
 		// var lastImportTimeIDs IDs
 		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_LastImportTime_Missing]; ok {
 		// 	lastImportTimeIDs = otherMarshable.DataSources().IDs()
 		// }
-
+		//
 		// var latestDataTimeIDs IDs
 		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing]; ok {
 		// 	latestDataTimeIDs = otherMarshable.DataSources().IDs()
 		// }
-
+		//
 		// switch issue {
 		// case Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing:
 		// 	t.outputDescription("ALL:")
@@ -1254,6 +1278,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 	case Issue_DataSource_With_State_Connected_ProviderSession_Missing:
 	case Issue_DataSource_With_State_Connected_ProviderSessionID_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3118. Will keep occurring until deployed. Will need to manually remove providerSessionId field from all data sources.")
+		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoDataSourcesAggregation(marshalables.DataSources().IDs())
 		return
@@ -1266,6 +1291,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 	case Issue_DataSource_With_State_Error_ProviderSession_Missing:
 	case Issue_DataSource_With_State_Error_ProviderSessionID_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3118. Will keep occurring until deployed. Will need to manually remove providerSessionId field from all data sources.")
+		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoDataSourcesAggregation(marshalables.DataSources().IDs())
 		return
@@ -1311,12 +1337,14 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		return
 	case Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3113. Will keep occurring until deployed. May need to manually update failed tasks post-deploy.")
+		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
 		// t.outputMongoOperationf("db.tasks.aggregate([{$match: {id: {$in: [%s]}}}, {$lookup: {from: 'data_sources', localField: 'data.dataSourceId', foreignField: 'id', as: 'dataSourcesFromTasks'}}, {$addFields: {dataSetIds: '$dataSourcesFromTasks.dataSetIds'}}, {$project: {_id: 0, dataSetIds: 1}}, {$unwind: '$dataSetIds'}, {$unwind: '$dataSetIds'}, {$group: {_id: 'dataSetIds', dataSetIds: {$push: '$dataSetIds'}}}])", mongoIDs(marshalables.Tasks().IDs()))
 		return
 	case Issue_Task_With_DeviceHashes_And_DataSource_LatestDataTime_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3113. Will keep occurring until deployed. May need to manually update failed tasks post-deploy.")
+		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
 		// t.outputMongoOperationf("db.tasks.aggregate([{$match: {id: {$in: [%s]}}}, {$lookup: {from: 'data_sources', localField: 'data.dataSourceId', foreignField: 'id', as: 'dataSourcesFromTasks'}}, {$addFields: {dataSetIds: '$dataSourcesFromTasks.dataSetIds'}}, {$project: {_id: 0, dataSetIds: 1}}, {$unwind: '$dataSetIds'}, {$unwind: '$dataSetIds'}, {$group: {_id: 'dataSetIds', dataSetIds: {$push: '$dataSetIds'}}}])", mongoIDs(marshalables.Tasks().IDs()))
@@ -1341,6 +1369,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 	case Issue_Task_With_State_Pending_ExpirationTime_Present:
 	case Issue_Task_With_State_Running_AvailableTime_Present:
 		t.outputResolutionHeader("FIXED with BACK-3116. Will keep occurring until deployed. Will need to manually update failed tasks post-deploy.")
+		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
 		return
