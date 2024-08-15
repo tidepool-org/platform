@@ -25,6 +25,7 @@ const (
 	Write     = "upload"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -destination=./client_mock.go -package=permission . Client
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
 	// GroupsForUser returns permissions that have been shared with granteeUserID. It is keyed by the user that has shared something with granteeUserID. It includes the user themself.

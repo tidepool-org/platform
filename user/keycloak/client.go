@@ -6,6 +6,7 @@ import (
 	"maps"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Nerzal/gocloak/v13"
@@ -65,12 +66,14 @@ type keycloakClient struct {
 	adminToken               *oauth2.Token
 	adminTokenRefreshExpires time.Time
 	keycloak                 *gocloak.GoCloak
+	adminTokenLock           *sync.RWMutex
 }
 
 func newKeycloakClient(config *KeycloakConfig) *keycloakClient {
 	return &keycloakClient{
-		cfg:      config,
-		keycloak: gocloak.NewClient(config.BaseUrl),
+		cfg:            config,
+		keycloak:       gocloak.NewClient(config.BaseUrl),
+		adminTokenLock: &sync.RWMutex{},
 	}
 }
 
@@ -328,13 +331,15 @@ func (c *keycloakClient) getRealmURL(realm string, path ...string) string {
 	return strings.Join(path, "/")
 }
 
-func (c *keycloakClient) getAdminToken(ctx context.Context) (*oauth2.Token, error) {
+func (c *keycloakClient) getAdminToken(ctx context.Context) (oauth2.Token, error) {
 	var err error
 	if c.adminTokenIsExpired() {
 		err = c.loginAsAdmin(ctx)
 	}
 
-	return c.adminToken, err
+	c.adminTokenLock.RLock()
+	defer c.adminTokenLock.RUnlock()
+	return *c.adminToken, err
 }
 
 func (c *keycloakClient) loginAsAdmin(ctx context.Context) error {
@@ -348,12 +353,21 @@ func (c *keycloakClient) loginAsAdmin(ctx context.Context) error {
 		return err
 	}
 
+	c.adminTokenLock.Lock()
+	defer c.adminTokenLock.Unlock()
 	c.adminToken = c.jwtToAccessToken(jwt)
-	c.adminTokenRefreshExpires = time.Now().Add(time.Duration(jwt.ExpiresIn) * time.Second)
+	expiration := time.Now().Add(time.Duration(jwt.ExpiresIn)*time.Second - time.Second*5) // check if adding a small buffer to expire time to allow earlier refresh still results in a time in the future
+	if expiration.After(time.Now()) {
+		c.adminTokenRefreshExpires = expiration
+	} else {
+		c.adminTokenRefreshExpires = time.Now().Add(time.Duration(jwt.ExpiresIn) * time.Second)
+	}
 	return nil
 }
 
 func (c *keycloakClient) adminTokenIsExpired() bool {
+	c.adminTokenLock.RLock()
+	defer c.adminTokenLock.RUnlock()
 	return c.adminToken == nil || time.Now().After(c.adminTokenRefreshExpires)
 }
 

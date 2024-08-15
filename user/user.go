@@ -33,30 +33,41 @@ type Client interface {
 }
 
 type User struct {
-	UserID               *string             `json:"userid,omitempty" bson:"userid,omitempty"`
-	Username             *string             `json:"username,omitempty" bson:"username,omitempty"`
-	EmailVerified        *bool               `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
-	TermsAccepted        *string             `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
-	Roles                *[]string           `json:"roles,omitempty" bson:"roles,omitempty"`
-	Emails               []string            `json:"emails,omitempty" bson:"emails,omitempty"`
-	PwHash               string              `json:"-" bson:"pwhash,omitempty"`
-	Hash                 string              `json:"-" bson:"userhash,omitempty"`
-	IsMigrated           bool                `json:"-" bson:"-"`
-	IsUnclaimedCustodial bool                `json:"-" bson:"-"`
-	Enabled              bool                `json:"-" bson:"-"`
-	CreatedTime          string              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID        string              `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	ModifiedTime         string              `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID       string              `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	DeletedTime          string              `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID        string              `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	Attributes           map[string][]string `json:"-"`
-	Profile              *UserProfile        `json:"-"`
-	FirstName            string              `json:"firstName,omitempty"`
-	LastName             string              `json:"lastName,omitempty"`
+	UserID               *string      `json:"userid,omitempty" bson:"userid,omitempty"`
+	Username             *string      `json:"username,omitempty" bson:"username,omitempty"`
+	EmailVerified        *bool        `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
+	TermsAccepted        *string      `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
+	Roles                *[]string    `json:"roles,omitempty" bson:"roles,omitempty"`
+	Emails               []string     `json:"emails,omitempty" bson:"emails,omitempty"`
+	PwHash               string       `json:"-" bson:"pwhash,omitempty"`
+	Hash                 string       `json:"-" bson:"userhash,omitempty"`
+	IsMigrated           bool         `json:"-" bson:"-"`
+	IsUnclaimedCustodial bool         `json:"-" bson:"-"`
+	Enabled              bool         `json:"-" bson:"-"`
+	CreatedTime          string       `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedUserID        string       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
+	ModifiedTime         string       `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ModifiedUserID       string       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	DeletedTime          string       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
+	DeletedUserID        string       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	Profile              *UserProfile `json:"profile,omitempty"`
+	FirstName            string       `json:"firstName,omitempty"`
+	LastName             string       `json:"lastName,omitempty"`
+	PasswordExists       *bool        `json:"passwordExists,omitempty"`
 	// The following 2 properties are only returned for the route that returns users that have shared their data w/ another user
 	TrustorPermissions *permission.Permission `json:"trustorPermissions,omitempty"`
 	TrusteePermissions *permission.Permission `json:"trusteePermissions,omitempty"`
+}
+
+type Users []*User
+
+func (us Users) Sanitize(details request.AuthDetails) error {
+	for i := range us {
+		if err := us[i].Sanitize(details); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
@@ -100,6 +111,7 @@ func (u *User) Sanitize(details request.AuthDetails) error {
 		u.EmailVerified = nil
 		u.TermsAccepted = nil
 		u.Roles = nil
+		u.PasswordExists = nil
 	}
 	return nil
 }
