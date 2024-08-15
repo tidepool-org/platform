@@ -112,7 +112,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	}
 
 	lock := &sync.Mutex{}
-	results := make(user.Users, 0, len(mergedUserPerms))
+	results := make(user.UserArray, 0, len(mergedUserPerms))
 	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(20) // do up to 20 concurrent requests like seagull did
 	for userID, trustPerms := range mergedUserPerms {
@@ -147,7 +147,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			sharedUser.Profile = profile
 			sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
 			sharedUser.TrustorPermissions = trustPerms.TrustorPermissions
-			// type Users implements Sanitize to hide any properties for non service requests
+			// type UsersArray implements Sanitize to hide any properties for non service requests
 			lock.Lock()
 			results = append(results, sharedUser)
 			lock.Unlock()

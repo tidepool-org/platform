@@ -59,17 +59,6 @@ type User struct {
 	TrusteePermissions *permission.Permission `json:"trusteePermissions,omitempty"`
 }
 
-type Users []*User
-
-func (us Users) Sanitize(details request.AuthDetails) error {
-	for i := range us {
-		if err := us[i].Sanitize(details); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (u *User) Parse(parser structure.ObjectParser) {
 	u.UserID = parser.String("userid")
 	u.Username = parser.String("username")
