@@ -912,8 +912,20 @@ type Error struct {
 	Message string `json:"message"`
 }
 
+// FloatFilter defines model for FloatFilter.
+type FloatFilter = string
+
+// GenerateMergeReport defines model for GenerateMergeReport.
+type GenerateMergeReport struct {
+	// SourceId Clinic identifier.
+	SourceId *Id `json:"sourceId,omitempty"`
+}
+
 // Id Clinic identifier.
 type Id = string
+
+// IntFilter defines model for IntFilter.
+type IntFilter = string
 
 // MRNSettings defines model for MRNSettings.
 type MRNSettings struct {
@@ -987,6 +999,7 @@ type Patient struct {
 	// Mrn The medical record number of the patient
 	Mrn         *string             `json:"mrn,omitempty"`
 	Permissions *PatientPermissions `json:"permissions,omitempty"`
+	Reviews     []PatientReview     `json:"reviews"`
 
 	// Summary A summary of a patients recent data
 	Summary       *PatientSummary `json:"summary,omitempty"`
@@ -1443,6 +1456,15 @@ type PatientPermissions struct {
 	View      *map[string]interface{} `json:"view,omitempty"`
 }
 
+// PatientReview A summary of a patients recent data
+type PatientReview struct {
+	ClinicianId string    `json:"clinicianId"`
+	Time        time.Time `json:"time"`
+}
+
+// PatientReviews defines model for PatientReviews.
+type PatientReviews = []PatientReview
+
 // PatientSummary A summary of a patients recent data
 type PatientSummary struct {
 	// BgmStats A summary of a users recent BGM glucose values
@@ -1592,8 +1614,9 @@ type TidePatient struct {
 	FullName *string `json:"fullName,omitempty"`
 
 	// Id String representation of a Tidepool User ID. Old style IDs are 10-digit strings consisting of only hexadeximcal digits. New style IDs are 36-digit [UUID v4](https://en.wikipedia.org/wiki/Universally_unique_identifier#Version_4_(random))
-	Id   *TidepoolUserId `json:"id,omitempty"`
-	Tags *PatientTagIds  `json:"tags"`
+	Id      *TidepoolUserId `json:"id,omitempty"`
+	Reviews []PatientReview `json:"reviews"`
+	Tags    *PatientTagIds  `json:"tags"`
 }
 
 // TideResultPatient defines model for TideResultPatient.
@@ -1779,263 +1802,266 @@ type ListPatientsParams struct {
 	// OffsetPeriods If we should display, filter, and sort based on the offset periods or default periods
 	OffsetPeriods *bool `form:"offsetPeriods,omitempty" json:"offsetPeriods,omitempty"`
 
-	// CgmAverageGlucoseMmol Average glucose value of records
-	CgmAverageGlucoseMmol *string `form:"cgm.averageGlucoseMmol,omitempty" json:"cgm.averageGlucoseMmol,omitempty"`
+	// LastReviewed Inclusive
+	LastReviewed *time.Time `form:"lastReviewed,omitempty" json:"lastReviewed,omitempty"`
+
+	// CgmAverageGlucoseMmol Average glucose value of records in Mmol/L
+	CgmAverageGlucoseMmol *FloatFilter `form:"cgm.averageGlucoseMmol,omitempty" json:"cgm.averageGlucoseMmol,omitempty"`
 
 	// CgmGlucoseManagementIndicator Glucose management Indicator of records
-	CgmGlucoseManagementIndicator *string `form:"cgm.glucoseManagementIndicator,omitempty" json:"cgm.glucoseManagementIndicator,omitempty"`
+	CgmGlucoseManagementIndicator *FloatFilter `form:"cgm.glucoseManagementIndicator,omitempty" json:"cgm.glucoseManagementIndicator,omitempty"`
 
-	// CgmTimeCGMUsePercent Percentage of time of CGM use
-	CgmTimeCGMUsePercent *string `form:"cgm.timeCGMUsePercent,omitempty" json:"cgm.timeCGMUsePercent,omitempty"`
+	// CgmTimeCGMUsePercent Percentage of time [0.0-1.0]  of CGM use
+	CgmTimeCGMUsePercent *FloatFilter `form:"cgm.timeCGMUsePercent,omitempty" json:"cgm.timeCGMUsePercent,omitempty"`
 
-	// CgmTimeInVeryLowPercent Percentage of time below 54 mg/dL
-	CgmTimeInVeryLowPercent *string `form:"cgm.timeInVeryLowPercent,omitempty" json:"cgm.timeInVeryLowPercent,omitempty"`
+	// CgmTimeInVeryLowPercent Percentage of time [0.0-1.0]  below 54 mg/dL
+	CgmTimeInVeryLowPercent *FloatFilter `form:"cgm.timeInVeryLowPercent,omitempty" json:"cgm.timeInVeryLowPercent,omitempty"`
 
-	// CgmTimeInAnyLowPercent Percentage of time below 70 mg/dL
-	CgmTimeInAnyLowPercent *string `form:"cgm.timeInAnyLowPercent,omitempty" json:"cgm.timeInAnyLowPercent,omitempty"`
+	// CgmTimeInAnyLowPercent Percentage of time [0.0-1.0]  below 70 mg/dL
+	CgmTimeInAnyLowPercent *FloatFilter `form:"cgm.timeInAnyLowPercent,omitempty" json:"cgm.timeInAnyLowPercent,omitempty"`
 
-	// CgmTimeInLowPercent Percentage of time in range 54-70 mg/dL
-	CgmTimeInLowPercent *string `form:"cgm.timeInLowPercent,omitempty" json:"cgm.timeInLowPercent,omitempty"`
+	// CgmTimeInLowPercent Percentage of time [0.0-1.0]  in range 54-70 mg/dL
+	CgmTimeInLowPercent *FloatFilter `form:"cgm.timeInLowPercent,omitempty" json:"cgm.timeInLowPercent,omitempty"`
 
-	// CgmTimeInTargetPercent Percentage of time in range 70-180 mg/dL
-	CgmTimeInTargetPercent *string `form:"cgm.timeInTargetPercent,omitempty" json:"cgm.timeInTargetPercent,omitempty"`
+	// CgmTimeInTargetPercent Percentage of time [0.0-1.0]  in range 70-180 mg/dL
+	CgmTimeInTargetPercent *FloatFilter `form:"cgm.timeInTargetPercent,omitempty" json:"cgm.timeInTargetPercent,omitempty"`
 
-	// CgmTimeInHighPercent Percentage of time in range 180-250 mg/dL
-	CgmTimeInHighPercent *string `form:"cgm.timeInHighPercent,omitempty" json:"cgm.timeInHighPercent,omitempty"`
+	// CgmTimeInHighPercent Percentage of time [0.0-1.0]  in range 180-250 mg/dL
+	CgmTimeInHighPercent *FloatFilter `form:"cgm.timeInHighPercent,omitempty" json:"cgm.timeInHighPercent,omitempty"`
 
-	// CgmTimeInVeryHighPercent Percentage of time above 250 mg/dL
-	CgmTimeInVeryHighPercent *string `form:"cgm.timeInVeryHighPercent,omitempty" json:"cgm.timeInVeryHighPercent,omitempty"`
+	// CgmTimeInVeryHighPercent Percentage of time [0.0-1.0]  above 250 mg/dL
+	CgmTimeInVeryHighPercent *FloatFilter `form:"cgm.timeInVeryHighPercent,omitempty" json:"cgm.timeInVeryHighPercent,omitempty"`
 
-	// CgmTimeInExtremeHighPercent Percentage of time above 350 mg/dL
-	CgmTimeInExtremeHighPercent *string `form:"cgm.timeInExtremeHighPercent,omitempty" json:"cgm.timeInExtremeHighPercent,omitempty"`
+	// CgmTimeInExtremeHighPercent Percentage of time [0.0-1.0]  above 350 mg/dL
+	CgmTimeInExtremeHighPercent *FloatFilter `form:"cgm.timeInExtremeHighPercent,omitempty" json:"cgm.timeInExtremeHighPercent,omitempty"`
 
-	// CgmTimeInAnyHighPercent Percentage of time above 180 mg/dL
-	CgmTimeInAnyHighPercent *string `form:"cgm.timeInAnyHighPercent,omitempty" json:"cgm.timeInAnyHighPercent,omitempty"`
+	// CgmTimeInAnyHighPercent Percentage of time [0.0-1.0]  above 180 mg/dL
+	CgmTimeInAnyHighPercent *FloatFilter `form:"cgm.timeInAnyHighPercent,omitempty" json:"cgm.timeInAnyHighPercent,omitempty"`
 
-	// CgmTimeCGMUseMinutes Minutesage of time of CGM use
-	CgmTimeCGMUseMinutes *string `form:"cgm.timeCGMUseMinutes,omitempty" json:"cgm.timeCGMUseMinutes,omitempty"`
+	// CgmTimeCGMUseMinutes Minutes of CGM use
+	CgmTimeCGMUseMinutes *IntFilter `form:"cgm.timeCGMUseMinutes,omitempty" json:"cgm.timeCGMUseMinutes,omitempty"`
 
-	// CgmTimeInVeryLowMinutes Minutesage of time below 54 mg/dL
-	CgmTimeInVeryLowMinutes *string `form:"cgm.timeInVeryLowMinutes,omitempty" json:"cgm.timeInVeryLowMinutes,omitempty"`
+	// CgmTimeInVeryLowMinutes Minutes below 54 mg/dL
+	CgmTimeInVeryLowMinutes *IntFilter `form:"cgm.timeInVeryLowMinutes,omitempty" json:"cgm.timeInVeryLowMinutes,omitempty"`
 
-	// CgmTimeInAnyLowMinutes Minutesage of time below 70 mg/dL
-	CgmTimeInAnyLowMinutes *string `form:"cgm.timeInAnyLowMinutes,omitempty" json:"cgm.timeInAnyLowMinutes,omitempty"`
+	// CgmTimeInAnyLowMinutes Minutes below 70 mg/dL
+	CgmTimeInAnyLowMinutes *IntFilter `form:"cgm.timeInAnyLowMinutes,omitempty" json:"cgm.timeInAnyLowMinutes,omitempty"`
 
-	// CgmTimeInLowMinutes Minutesage of time in range 54-70 mg/dL
-	CgmTimeInLowMinutes *string `form:"cgm.timeInLowMinutes,omitempty" json:"cgm.timeInLowMinutes,omitempty"`
+	// CgmTimeInLowMinutes Minutes in range 54-70 mg/dL
+	CgmTimeInLowMinutes *IntFilter `form:"cgm.timeInLowMinutes,omitempty" json:"cgm.timeInLowMinutes,omitempty"`
 
-	// CgmTimeInTargetMinutes Minutesage of time in range 70-180 mg/dL
-	CgmTimeInTargetMinutes *string `form:"cgm.timeInTargetMinutes,omitempty" json:"cgm.timeInTargetMinutes,omitempty"`
+	// CgmTimeInTargetMinutes Minutes in range 70-180 mg/dL
+	CgmTimeInTargetMinutes *IntFilter `form:"cgm.timeInTargetMinutes,omitempty" json:"cgm.timeInTargetMinutes,omitempty"`
 
-	// CgmTimeInHighMinutes Minutesage of time in range 180-250 mg/dL
-	CgmTimeInHighMinutes *string `form:"cgm.timeInHighMinutes,omitempty" json:"cgm.timeInHighMinutes,omitempty"`
+	// CgmTimeInHighMinutes Minutes in range 180-250 mg/dL
+	CgmTimeInHighMinutes *IntFilter `form:"cgm.timeInHighMinutes,omitempty" json:"cgm.timeInHighMinutes,omitempty"`
 
-	// CgmTimeInVeryHighMinutes Minutesage of time above 250 mg/dL
-	CgmTimeInVeryHighMinutes *string `form:"cgm.timeInVeryHighMinutes,omitempty" json:"cgm.timeInVeryHighMinutes,omitempty"`
+	// CgmTimeInVeryHighMinutes Minutes above 250 mg/dL
+	CgmTimeInVeryHighMinutes *IntFilter `form:"cgm.timeInVeryHighMinutes,omitempty" json:"cgm.timeInVeryHighMinutes,omitempty"`
 
-	// CgmTimeInExtremeHighMinutes Minutesage of time above 350 mg/dL
-	CgmTimeInExtremeHighMinutes *string `form:"cgm.timeInExtremeHighMinutes,omitempty" json:"cgm.timeInExtremeHighMinutes,omitempty"`
+	// CgmTimeInExtremeHighMinutes Minutes above 350 mg/dL
+	CgmTimeInExtremeHighMinutes *IntFilter `form:"cgm.timeInExtremeHighMinutes,omitempty" json:"cgm.timeInExtremeHighMinutes,omitempty"`
 
-	// CgmTimeInAnyHighMinutes Minutesage of time above 180 mg/dL
-	CgmTimeInAnyHighMinutes *string `form:"cgm.timeInAnyHighMinutes,omitempty" json:"cgm.timeInAnyHighMinutes,omitempty"`
+	// CgmTimeInAnyHighMinutes Minutes above 180 mg/dL
+	CgmTimeInAnyHighMinutes *IntFilter `form:"cgm.timeInAnyHighMinutes,omitempty" json:"cgm.timeInAnyHighMinutes,omitempty"`
 
 	// CgmTimeCGMUseRecords Records of CGM use
-	CgmTimeCGMUseRecords *string `form:"cgm.timeCGMUseRecords,omitempty" json:"cgm.timeCGMUseRecords,omitempty"`
+	CgmTimeCGMUseRecords *IntFilter `form:"cgm.timeCGMUseRecords,omitempty" json:"cgm.timeCGMUseRecords,omitempty"`
 
 	// CgmTimeInVeryLowRecords Records below 54 mg/dL
-	CgmTimeInVeryLowRecords *string `form:"cgm.timeInVeryLowRecords,omitempty" json:"cgm.timeInVeryLowRecords,omitempty"`
+	CgmTimeInVeryLowRecords *IntFilter `form:"cgm.timeInVeryLowRecords,omitempty" json:"cgm.timeInVeryLowRecords,omitempty"`
 
 	// CgmTimeInAnyLowRecords Records below 70 mg/dL
-	CgmTimeInAnyLowRecords *string `form:"cgm.timeInAnyLowRecords,omitempty" json:"cgm.timeInAnyLowRecords,omitempty"`
+	CgmTimeInAnyLowRecords *IntFilter `form:"cgm.timeInAnyLowRecords,omitempty" json:"cgm.timeInAnyLowRecords,omitempty"`
 
 	// CgmTimeInLowRecords Records in range 54-70 mg/dL
-	CgmTimeInLowRecords *string `form:"cgm.timeInLowRecords,omitempty" json:"cgm.timeInLowRecords,omitempty"`
+	CgmTimeInLowRecords *IntFilter `form:"cgm.timeInLowRecords,omitempty" json:"cgm.timeInLowRecords,omitempty"`
 
 	// CgmTimeInTargetRecords Records in range 70-180 mg/dL
-	CgmTimeInTargetRecords *string `form:"cgm.timeInTargetRecords,omitempty" json:"cgm.timeInTargetRecords,omitempty"`
+	CgmTimeInTargetRecords *IntFilter `form:"cgm.timeInTargetRecords,omitempty" json:"cgm.timeInTargetRecords,omitempty"`
 
 	// CgmTimeInHighRecords Records in range 180-250 mg/dL
-	CgmTimeInHighRecords *string `form:"cgm.timeInHighRecords,omitempty" json:"cgm.timeInHighRecords,omitempty"`
+	CgmTimeInHighRecords *IntFilter `form:"cgm.timeInHighRecords,omitempty" json:"cgm.timeInHighRecords,omitempty"`
 
 	// CgmTimeInVeryHighRecords Records above 250 mg/dL
-	CgmTimeInVeryHighRecords *string `form:"cgm.timeInVeryHighRecords,omitempty" json:"cgm.timeInVeryHighRecords,omitempty"`
+	CgmTimeInVeryHighRecords *IntFilter `form:"cgm.timeInVeryHighRecords,omitempty" json:"cgm.timeInVeryHighRecords,omitempty"`
 
 	// CgmTimeInAnyHighRecords Records above 180 mg/dL
-	CgmTimeInAnyHighRecords *string `form:"cgm.timeInAnyHighRecords,omitempty" json:"cgm.timeInAnyHighRecords,omitempty"`
+	CgmTimeInAnyHighRecords *IntFilter `form:"cgm.timeInAnyHighRecords,omitempty" json:"cgm.timeInAnyHighRecords,omitempty"`
 
 	// CgmAverageDailyRecords Average records per day
-	CgmAverageDailyRecords *string `form:"cgm.averageDailyRecords,omitempty" json:"cgm.averageDailyRecords,omitempty"`
+	CgmAverageDailyRecords *FloatFilter `form:"cgm.averageDailyRecords,omitempty" json:"cgm.averageDailyRecords,omitempty"`
 
 	// CgmTotalRecords Total records in period
-	CgmTotalRecords *string `form:"cgm.totalRecords,omitempty" json:"cgm.totalRecords,omitempty"`
+	CgmTotalRecords *IntFilter `form:"cgm.totalRecords,omitempty" json:"cgm.totalRecords,omitempty"`
 
 	// CgmHoursWithData Total hours with data in period
-	CgmHoursWithData *string `form:"cgm.hoursWithData,omitempty" json:"cgm.hoursWithData,omitempty"`
+	CgmHoursWithData *IntFilter `form:"cgm.hoursWithData,omitempty" json:"cgm.hoursWithData,omitempty"`
 
 	// CgmDaysWithData Total days with data in period
-	CgmDaysWithData *string `form:"cgm.daysWithData,omitempty" json:"cgm.daysWithData,omitempty"`
+	CgmDaysWithData *IntFilter `form:"cgm.daysWithData,omitempty" json:"cgm.daysWithData,omitempty"`
 
-	// CgmStandardDeviation Standard deviation of records in period
-	CgmStandardDeviation *string `form:"cgm.standardDeviation,omitempty" json:"cgm.standardDeviation,omitempty"`
+	// CgmStandardDeviation Standard deviation of glucose values in Mmol/L
+	CgmStandardDeviation *FloatFilter `form:"cgm.standardDeviation,omitempty" json:"cgm.standardDeviation,omitempty"`
 
-	// CgmCoefficientOfVariation Coefficient Of Variation of records in period
-	CgmCoefficientOfVariation *string `form:"cgm.coefficientOfVariation,omitempty" json:"cgm.coefficientOfVariation,omitempty"`
+	// CgmCoefficientOfVariation Coefficient Of Variation of glucose values in Mmol/L
+	CgmCoefficientOfVariation *FloatFilter `form:"cgm.coefficientOfVariation,omitempty" json:"cgm.coefficientOfVariation,omitempty"`
 
-	// BgmAverageGlucoseMmol Average glucose value of records
-	BgmAverageGlucoseMmol *string `form:"bgm.averageGlucoseMmol,omitempty" json:"bgm.averageGlucoseMmol,omitempty"`
+	// BgmAverageGlucoseMmol Average glucose value of records in Mmol/L
+	BgmAverageGlucoseMmol *FloatFilter `form:"bgm.averageGlucoseMmol,omitempty" json:"bgm.averageGlucoseMmol,omitempty"`
 
-	// BgmTimeInVeryLowPercent Percentage of time below 54 mg/dL
-	BgmTimeInVeryLowPercent *string `form:"bgm.timeInVeryLowPercent,omitempty" json:"bgm.timeInVeryLowPercent,omitempty"`
+	// BgmTimeInVeryLowPercent Percentage of time [0.0-1.0]  below 54 mg/dL
+	BgmTimeInVeryLowPercent *FloatFilter `form:"bgm.timeInVeryLowPercent,omitempty" json:"bgm.timeInVeryLowPercent,omitempty"`
 
-	// BgmTimeInAnyLowPercent Percentage of time below 70 mg/dL
-	BgmTimeInAnyLowPercent *string `form:"bgm.timeInAnyLowPercent,omitempty" json:"bgm.timeInAnyLowPercent,omitempty"`
+	// BgmTimeInAnyLowPercent Percentage of time [0.0-1.0]  below 70 mg/dL
+	BgmTimeInAnyLowPercent *FloatFilter `form:"bgm.timeInAnyLowPercent,omitempty" json:"bgm.timeInAnyLowPercent,omitempty"`
 
-	// BgmTimeInLowPercent Percentage of time in range 54-70 mg/dL
-	BgmTimeInLowPercent *string `form:"bgm.timeInLowPercent,omitempty" json:"bgm.timeInLowPercent,omitempty"`
+	// BgmTimeInLowPercent Percentage of time [0.0-1.0]  in range 54-70 mg/dL
+	BgmTimeInLowPercent *FloatFilter `form:"bgm.timeInLowPercent,omitempty" json:"bgm.timeInLowPercent,omitempty"`
 
-	// BgmTimeInTargetPercent Percentage of time in range 70-180 mg/dL
-	BgmTimeInTargetPercent *string `form:"bgm.timeInTargetPercent,omitempty" json:"bgm.timeInTargetPercent,omitempty"`
+	// BgmTimeInTargetPercent Percentage of time [0.0-1.0]  in range 70-180 mg/dL
+	BgmTimeInTargetPercent *FloatFilter `form:"bgm.timeInTargetPercent,omitempty" json:"bgm.timeInTargetPercent,omitempty"`
 
-	// BgmTimeInHighPercent Percentage of time in range 180-250 mg/dL
-	BgmTimeInHighPercent *string `form:"bgm.timeInHighPercent,omitempty" json:"bgm.timeInHighPercent,omitempty"`
+	// BgmTimeInHighPercent Percentage of time [0.0-1.0]  in range 180-250 mg/dL
+	BgmTimeInHighPercent *FloatFilter `form:"bgm.timeInHighPercent,omitempty" json:"bgm.timeInHighPercent,omitempty"`
 
-	// BgmTimeInVeryHighPercent Percentage of time above 250 mg/dL
-	BgmTimeInVeryHighPercent *string `form:"bgm.timeInVeryHighPercent,omitempty" json:"bgm.timeInVeryHighPercent,omitempty"`
+	// BgmTimeInVeryHighPercent Percentage of time [0.0-1.0]  above 250 mg/dL
+	BgmTimeInVeryHighPercent *FloatFilter `form:"bgm.timeInVeryHighPercent,omitempty" json:"bgm.timeInVeryHighPercent,omitempty"`
 
-	// BgmTimeInExtremeHighPercent Percentage of time above 350 mg/dL
-	BgmTimeInExtremeHighPercent *string `form:"bgm.timeInExtremeHighPercent,omitempty" json:"bgm.timeInExtremeHighPercent,omitempty"`
+	// BgmTimeInExtremeHighPercent Percentage of time [0.0-1.0]  above 350 mg/dL
+	BgmTimeInExtremeHighPercent *FloatFilter `form:"bgm.timeInExtremeHighPercent,omitempty" json:"bgm.timeInExtremeHighPercent,omitempty"`
 
-	// BgmTimeInAnyHighPercent Percentage of time above 180 mg/dL
-	BgmTimeInAnyHighPercent *string `form:"bgm.timeInAnyHighPercent,omitempty" json:"bgm.timeInAnyHighPercent,omitempty"`
+	// BgmTimeInAnyHighPercent Percentage of time [0.0-1.0]  above 180 mg/dL
+	BgmTimeInAnyHighPercent *FloatFilter `form:"bgm.timeInAnyHighPercent,omitempty" json:"bgm.timeInAnyHighPercent,omitempty"`
 
 	// BgmTimeInVeryLowRecords Records below 54 mg/dL
-	BgmTimeInVeryLowRecords *string `form:"bgm.timeInVeryLowRecords,omitempty" json:"bgm.timeInVeryLowRecords,omitempty"`
+	BgmTimeInVeryLowRecords *IntFilter `form:"bgm.timeInVeryLowRecords,omitempty" json:"bgm.timeInVeryLowRecords,omitempty"`
 
 	// BgmTimeInAnyLowRecords Records below 70 mg/dL
-	BgmTimeInAnyLowRecords *string `form:"bgm.timeInAnyLowRecords,omitempty" json:"bgm.timeInAnyLowRecords,omitempty"`
+	BgmTimeInAnyLowRecords *IntFilter `form:"bgm.timeInAnyLowRecords,omitempty" json:"bgm.timeInAnyLowRecords,omitempty"`
 
 	// BgmTimeInLowRecords Records in range 54-70 mg/dL
-	BgmTimeInLowRecords *string `form:"bgm.timeInLowRecords,omitempty" json:"bgm.timeInLowRecords,omitempty"`
+	BgmTimeInLowRecords *IntFilter `form:"bgm.timeInLowRecords,omitempty" json:"bgm.timeInLowRecords,omitempty"`
 
 	// BgmTimeInTargetRecords Records in range 70-180 mg/dL
-	BgmTimeInTargetRecords *string `form:"bgm.timeInTargetRecords,omitempty" json:"bgm.timeInTargetRecords,omitempty"`
+	BgmTimeInTargetRecords *IntFilter `form:"bgm.timeInTargetRecords,omitempty" json:"bgm.timeInTargetRecords,omitempty"`
 
 	// BgmTimeInHighRecords Records in range 180-250 mg/dL
-	BgmTimeInHighRecords *string `form:"bgm.timeInHighRecords,omitempty" json:"bgm.timeInHighRecords,omitempty"`
+	BgmTimeInHighRecords *IntFilter `form:"bgm.timeInHighRecords,omitempty" json:"bgm.timeInHighRecords,omitempty"`
 
 	// BgmTimeInVeryHighRecords Records above 250 mg/dL
-	BgmTimeInVeryHighRecords *string `form:"bgm.timeInVeryHighRecords,omitempty" json:"bgm.timeInVeryHighRecords,omitempty"`
+	BgmTimeInVeryHighRecords *IntFilter `form:"bgm.timeInVeryHighRecords,omitempty" json:"bgm.timeInVeryHighRecords,omitempty"`
 
 	// BgmTimeInAnyHighRecords Records above 180 mg/dL
-	BgmTimeInAnyHighRecords *string `form:"bgm.timeInAnyHighRecords,omitempty" json:"bgm.timeInAnyHighRecords,omitempty"`
+	BgmTimeInAnyHighRecords *IntFilter `form:"bgm.timeInAnyHighRecords,omitempty" json:"bgm.timeInAnyHighRecords,omitempty"`
 
 	// BgmAverageDailyRecords Average records per day
-	BgmAverageDailyRecords *string `form:"bgm.averageDailyRecords,omitempty" json:"bgm.averageDailyRecords,omitempty"`
+	BgmAverageDailyRecords *FloatFilter `form:"bgm.averageDailyRecords,omitempty" json:"bgm.averageDailyRecords,omitempty"`
 
 	// BgmTotalRecords Total records in period
-	BgmTotalRecords *string `form:"bgm.totalRecords,omitempty" json:"bgm.totalRecords,omitempty"`
+	BgmTotalRecords *IntFilter `form:"bgm.totalRecords,omitempty" json:"bgm.totalRecords,omitempty"`
 
-	// CgmAverageGlucoseMmolDelta Average glucose value of records
-	CgmAverageGlucoseMmolDelta *string `form:"cgm.averageGlucoseMmolDelta,omitempty" json:"cgm.averageGlucoseMmolDelta,omitempty"`
+	// CgmAverageGlucoseMmolDelta Delta of average glucose value in Mmol/L
+	CgmAverageGlucoseMmolDelta *FloatFilter `form:"cgm.averageGlucoseMmolDelta,omitempty" json:"cgm.averageGlucoseMmolDelta,omitempty"`
 
 	// CgmGlucoseManagementIndicatorDelta Glucose management Indicator of records
-	CgmGlucoseManagementIndicatorDelta *string `form:"cgm.glucoseManagementIndicatorDelta,omitempty" json:"cgm.glucoseManagementIndicatorDelta,omitempty"`
+	CgmGlucoseManagementIndicatorDelta *FloatFilter `form:"cgm.glucoseManagementIndicatorDelta,omitempty" json:"cgm.glucoseManagementIndicatorDelta,omitempty"`
 
-	// CgmTimeCGMUsePercentDelta PercentDeltaage of time of CGM use
-	CgmTimeCGMUsePercentDelta *string `form:"cgm.timeCGMUsePercentDelta,omitempty" json:"cgm.timeCGMUsePercentDelta,omitempty"`
+	// CgmTimeCGMUsePercentDelta Delta of time of CGM use
+	CgmTimeCGMUsePercentDelta *FloatFilter `form:"cgm.timeCGMUsePercentDelta,omitempty" json:"cgm.timeCGMUsePercentDelta,omitempty"`
 
-	// CgmTimeInVeryLowPercentDelta PercentDeltaage of time below 54 mg/dL
-	CgmTimeInVeryLowPercentDelta *string `form:"cgm.timeInVeryLowPercentDelta,omitempty" json:"cgm.timeInVeryLowPercentDelta,omitempty"`
+	// CgmTimeInVeryLowPercentDelta Delta of time below 54 mg/dL
+	CgmTimeInVeryLowPercentDelta *FloatFilter `form:"cgm.timeInVeryLowPercentDelta,omitempty" json:"cgm.timeInVeryLowPercentDelta,omitempty"`
 
-	// CgmTimeInAnyLowPercentDelta PercentDeltaage of time below 70 mg/dL
-	CgmTimeInAnyLowPercentDelta *string `form:"cgm.timeInAnyLowPercentDelta,omitempty" json:"cgm.timeInAnyLowPercentDelta,omitempty"`
+	// CgmTimeInAnyLowPercentDelta Delta of time below 70 mg/dL
+	CgmTimeInAnyLowPercentDelta *FloatFilter `form:"cgm.timeInAnyLowPercentDelta,omitempty" json:"cgm.timeInAnyLowPercentDelta,omitempty"`
 
-	// CgmTimeInLowPercentDelta PercentDeltaage of time in range 54-70 mg/dL
-	CgmTimeInLowPercentDelta *string `form:"cgm.timeInLowPercentDelta,omitempty" json:"cgm.timeInLowPercentDelta,omitempty"`
+	// CgmTimeInLowPercentDelta Delta of time in range 54-70 mg/dL
+	CgmTimeInLowPercentDelta *FloatFilter `form:"cgm.timeInLowPercentDelta,omitempty" json:"cgm.timeInLowPercentDelta,omitempty"`
 
-	// CgmTimeInTargetPercentDelta PercentDeltaage of time in range 70-180 mg/dL
-	CgmTimeInTargetPercentDelta *string `form:"cgm.timeInTargetPercentDelta,omitempty" json:"cgm.timeInTargetPercentDelta,omitempty"`
+	// CgmTimeInTargetPercentDelta Delta of time in range 70-180 mg/dL
+	CgmTimeInTargetPercentDelta *FloatFilter `form:"cgm.timeInTargetPercentDelta,omitempty" json:"cgm.timeInTargetPercentDelta,omitempty"`
 
-	// CgmTimeInHighPercentDelta PercentDeltaage of time in range 180-250 mg/dL
-	CgmTimeInHighPercentDelta *string `form:"cgm.timeInHighPercentDelta,omitempty" json:"cgm.timeInHighPercentDelta,omitempty"`
+	// CgmTimeInHighPercentDelta Delta of time in range 180-250 mg/dL
+	CgmTimeInHighPercentDelta *FloatFilter `form:"cgm.timeInHighPercentDelta,omitempty" json:"cgm.timeInHighPercentDelta,omitempty"`
 
-	// CgmTimeInVeryHighPercentDelta PercentDeltaage of time above 250 mg/dL
-	CgmTimeInVeryHighPercentDelta *string `form:"cgm.timeInVeryHighPercentDelta,omitempty" json:"cgm.timeInVeryHighPercentDelta,omitempty"`
+	// CgmTimeInVeryHighPercentDelta Delta of time above 250 mg/dL
+	CgmTimeInVeryHighPercentDelta *FloatFilter `form:"cgm.timeInVeryHighPercentDelta,omitempty" json:"cgm.timeInVeryHighPercentDelta,omitempty"`
 
-	// CgmTimeInExtremeHighPercentDelta PercentDeltaage of time above 350 mg/dL
-	CgmTimeInExtremeHighPercentDelta *string `form:"cgm.timeInExtremeHighPercentDelta,omitempty" json:"cgm.timeInExtremeHighPercentDelta,omitempty"`
+	// CgmTimeInExtremeHighPercentDelta Delta of time above 350 mg/dL
+	CgmTimeInExtremeHighPercentDelta *FloatFilter `form:"cgm.timeInExtremeHighPercentDelta,omitempty" json:"cgm.timeInExtremeHighPercentDelta,omitempty"`
 
-	// CgmTimeInAnyHighPercentDelta PercentDeltaage of time above 180 mg/dL
-	CgmTimeInAnyHighPercentDelta *string `form:"cgm.timeInAnyHighPercentDelta,omitempty" json:"cgm.timeInAnyHighPercentDelta,omitempty"`
+	// CgmTimeInAnyHighPercentDelta Delta of time above 180 mg/dL
+	CgmTimeInAnyHighPercentDelta *FloatFilter `form:"cgm.timeInAnyHighPercentDelta,omitempty" json:"cgm.timeInAnyHighPercentDelta,omitempty"`
 
-	// CgmTimeCGMUseMinutesDelta MinutesDeltaage of time of CGM use
-	CgmTimeCGMUseMinutesDelta *string `form:"cgm.timeCGMUseMinutesDelta,omitempty" json:"cgm.timeCGMUseMinutesDelta,omitempty"`
+	// CgmTimeCGMUseMinutesDelta Delta of minutes of CGM use
+	CgmTimeCGMUseMinutesDelta *IntFilter `form:"cgm.timeCGMUseMinutesDelta,omitempty" json:"cgm.timeCGMUseMinutesDelta,omitempty"`
 
-	// CgmTimeInVeryLowMinutesDelta MinutesDeltaage of time below 54 mg/dL
-	CgmTimeInVeryLowMinutesDelta *string `form:"cgm.timeInVeryLowMinutesDelta,omitempty" json:"cgm.timeInVeryLowMinutesDelta,omitempty"`
+	// CgmTimeInVeryLowMinutesDelta Delta of minutes below 54 mg/dL
+	CgmTimeInVeryLowMinutesDelta *IntFilter `form:"cgm.timeInVeryLowMinutesDelta,omitempty" json:"cgm.timeInVeryLowMinutesDelta,omitempty"`
 
-	// CgmTimeInAnyLowMinutesDelta MinutesDeltaage of time below 70 mg/dL
-	CgmTimeInAnyLowMinutesDelta *string `form:"cgm.timeInAnyLowMinutesDelta,omitempty" json:"cgm.timeInAnyLowMinutesDelta,omitempty"`
+	// CgmTimeInAnyLowMinutesDelta Delta of minutes below 70 mg/dL
+	CgmTimeInAnyLowMinutesDelta *IntFilter `form:"cgm.timeInAnyLowMinutesDelta,omitempty" json:"cgm.timeInAnyLowMinutesDelta,omitempty"`
 
-	// CgmTimeInLowMinutesDelta MinutesDeltaage of time in range 54-70 mg/dL
-	CgmTimeInLowMinutesDelta *string `form:"cgm.timeInLowMinutesDelta,omitempty" json:"cgm.timeInLowMinutesDelta,omitempty"`
+	// CgmTimeInLowMinutesDelta Delta of minutes in range 54-70 mg/dL
+	CgmTimeInLowMinutesDelta *IntFilter `form:"cgm.timeInLowMinutesDelta,omitempty" json:"cgm.timeInLowMinutesDelta,omitempty"`
 
-	// CgmTimeInTargetMinutesDelta MinutesDeltaage of time in range 70-180 mg/dL
-	CgmTimeInTargetMinutesDelta *string `form:"cgm.timeInTargetMinutesDelta,omitempty" json:"cgm.timeInTargetMinutesDelta,omitempty"`
+	// CgmTimeInTargetMinutesDelta Delta of minutes in range 70-180 mg/dL
+	CgmTimeInTargetMinutesDelta *IntFilter `form:"cgm.timeInTargetMinutesDelta,omitempty" json:"cgm.timeInTargetMinutesDelta,omitempty"`
 
-	// CgmTimeInHighMinutesDelta MinutesDeltaage of time in range 180-250 mg/dL
-	CgmTimeInHighMinutesDelta *string `form:"cgm.timeInHighMinutesDelta,omitempty" json:"cgm.timeInHighMinutesDelta,omitempty"`
+	// CgmTimeInHighMinutesDelta Delta of minutes in range 180-250 mg/dL
+	CgmTimeInHighMinutesDelta *IntFilter `form:"cgm.timeInHighMinutesDelta,omitempty" json:"cgm.timeInHighMinutesDelta,omitempty"`
 
-	// CgmTimeInVeryHighMinutesDelta MinutesDeltaage of time above 250 mg/dL
-	CgmTimeInVeryHighMinutesDelta *string `form:"cgm.timeInVeryHighMinutesDelta,omitempty" json:"cgm.timeInVeryHighMinutesDelta,omitempty"`
+	// CgmTimeInVeryHighMinutesDelta Delta of minutes above 250 mg/dL
+	CgmTimeInVeryHighMinutesDelta *IntFilter `form:"cgm.timeInVeryHighMinutesDelta,omitempty" json:"cgm.timeInVeryHighMinutesDelta,omitempty"`
 
-	// CgmTimeInExtremeHighMinutesDelta MinutesDeltaage of time above 350 mg/dL
-	CgmTimeInExtremeHighMinutesDelta *string `form:"cgm.timeInExtremeHighMinutesDelta,omitempty" json:"cgm.timeInExtremeHighMinutesDelta,omitempty"`
+	// CgmTimeInExtremeHighMinutesDelta Delta of minutes above 350 mg/dL
+	CgmTimeInExtremeHighMinutesDelta *IntFilter `form:"cgm.timeInExtremeHighMinutesDelta,omitempty" json:"cgm.timeInExtremeHighMinutesDelta,omitempty"`
 
-	// CgmTimeInAnyHighMinutesDelta MinutesDeltaage of time above 180 mg/dL
-	CgmTimeInAnyHighMinutesDelta *string `form:"cgm.timeInAnyHighMinutesDelta,omitempty" json:"cgm.timeInAnyHighMinutesDelta,omitempty"`
+	// CgmTimeInAnyHighMinutesDelta Delta of minutes above 180 mg/dL
+	CgmTimeInAnyHighMinutesDelta *IntFilter `form:"cgm.timeInAnyHighMinutesDelta,omitempty" json:"cgm.timeInAnyHighMinutesDelta,omitempty"`
 
-	// CgmTimeCGMUseRecordsDelta RecordsDelta of CGM use
-	CgmTimeCGMUseRecordsDelta *string `form:"cgm.timeCGMUseRecordsDelta,omitempty" json:"cgm.timeCGMUseRecordsDelta,omitempty"`
+	// CgmTimeCGMUseRecordsDelta Delta of records count
+	CgmTimeCGMUseRecordsDelta *IntFilter `form:"cgm.timeCGMUseRecordsDelta,omitempty" json:"cgm.timeCGMUseRecordsDelta,omitempty"`
 
-	// CgmTimeInVeryLowRecordsDelta RecordsDelta below 54 mg/dL
-	CgmTimeInVeryLowRecordsDelta *string `form:"cgm.timeInVeryLowRecordsDelta,omitempty" json:"cgm.timeInVeryLowRecordsDelta,omitempty"`
+	// CgmTimeInVeryLowRecordsDelta Delta of records below 54 mg/dL
+	CgmTimeInVeryLowRecordsDelta *IntFilter `form:"cgm.timeInVeryLowRecordsDelta,omitempty" json:"cgm.timeInVeryLowRecordsDelta,omitempty"`
 
-	// CgmTimeInAnyLowRecordsDelta RecordsDelta below 70 mg/dL
-	CgmTimeInAnyLowRecordsDelta *string `form:"cgm.timeInAnyLowRecordsDelta,omitempty" json:"cgm.timeInAnyLowRecordsDelta,omitempty"`
+	// CgmTimeInAnyLowRecordsDelta Delta of records below 70 mg/dL
+	CgmTimeInAnyLowRecordsDelta *IntFilter `form:"cgm.timeInAnyLowRecordsDelta,omitempty" json:"cgm.timeInAnyLowRecordsDelta,omitempty"`
 
-	// CgmTimeInLowRecordsDelta RecordsDelta in range 54-70 mg/dL
-	CgmTimeInLowRecordsDelta *string `form:"cgm.timeInLowRecordsDelta,omitempty" json:"cgm.timeInLowRecordsDelta,omitempty"`
+	// CgmTimeInLowRecordsDelta Delta of records in range 54-70 mg/dL
+	CgmTimeInLowRecordsDelta *IntFilter `form:"cgm.timeInLowRecordsDelta,omitempty" json:"cgm.timeInLowRecordsDelta,omitempty"`
 
-	// CgmTimeInTargetRecordsDelta RecordsDelta in range 70-180 mg/dL
-	CgmTimeInTargetRecordsDelta *string `form:"cgm.timeInTargetRecordsDelta,omitempty" json:"cgm.timeInTargetRecordsDelta,omitempty"`
+	// CgmTimeInTargetRecordsDelta Delta of records in range 70-180 mg/dL
+	CgmTimeInTargetRecordsDelta *IntFilter `form:"cgm.timeInTargetRecordsDelta,omitempty" json:"cgm.timeInTargetRecordsDelta,omitempty"`
 
-	// CgmTimeInHighRecordsDelta RecordsDelta in range 180-250 mg/dL
-	CgmTimeInHighRecordsDelta *string `form:"cgm.timeInHighRecordsDelta,omitempty" json:"cgm.timeInHighRecordsDelta,omitempty"`
+	// CgmTimeInHighRecordsDelta Delta of records in range 180-250 mg/dL
+	CgmTimeInHighRecordsDelta *IntFilter `form:"cgm.timeInHighRecordsDelta,omitempty" json:"cgm.timeInHighRecordsDelta,omitempty"`
 
-	// CgmTimeInVeryHighRecordsDelta RecordsDelta above 250 mg/dL
-	CgmTimeInVeryHighRecordsDelta *string `form:"cgm.timeInVeryHighRecordsDelta,omitempty" json:"cgm.timeInVeryHighRecordsDelta,omitempty"`
+	// CgmTimeInVeryHighRecordsDelta Delta of records above 250 mg/dL
+	CgmTimeInVeryHighRecordsDelta *IntFilter `form:"cgm.timeInVeryHighRecordsDelta,omitempty" json:"cgm.timeInVeryHighRecordsDelta,omitempty"`
 
-	// CgmTimeInAnyHighRecordsDelta RecordsDelta above 180 mg/dL
-	CgmTimeInAnyHighRecordsDelta *string `form:"cgm.timeInAnyHighRecordsDelta,omitempty" json:"cgm.timeInAnyHighRecordsDelta,omitempty"`
+	// CgmTimeInAnyHighRecordsDelta Delta of records above 180 mg/dL
+	CgmTimeInAnyHighRecordsDelta *IntFilter `form:"cgm.timeInAnyHighRecordsDelta,omitempty" json:"cgm.timeInAnyHighRecordsDelta,omitempty"`
 
-	// CgmAverageDailyRecordsDelta Average recordsDelta per day
-	CgmAverageDailyRecordsDelta *string `form:"cgm.averageDailyRecordsDelta,omitempty" json:"cgm.averageDailyRecordsDelta,omitempty"`
+	// CgmAverageDailyRecordsDelta Delta of average records per day
+	CgmAverageDailyRecordsDelta *FloatFilter `form:"cgm.averageDailyRecordsDelta,omitempty" json:"cgm.averageDailyRecordsDelta,omitempty"`
 
-	// CgmTotalRecordsDelta Total recordsDelta in period
-	CgmTotalRecordsDelta *string `form:"cgm.totalRecordsDelta,omitempty" json:"cgm.totalRecordsDelta,omitempty"`
+	// CgmTotalRecordsDelta Delta of total records
+	CgmTotalRecordsDelta *IntFilter `form:"cgm.totalRecordsDelta,omitempty" json:"cgm.totalRecordsDelta,omitempty"`
 
-	// CgmHoursWithDataDelta Total hours with data in period
-	CgmHoursWithDataDelta *string `form:"cgm.hoursWithDataDelta,omitempty" json:"cgm.hoursWithDataDelta,omitempty"`
+	// CgmHoursWithDataDelta Delta of total hours with data
+	CgmHoursWithDataDelta *IntFilter `form:"cgm.hoursWithDataDelta,omitempty" json:"cgm.hoursWithDataDelta,omitempty"`
 
-	// CgmDaysWithDataDelta Total days with data in period
-	CgmDaysWithDataDelta *string `form:"cgm.daysWithDataDelta,omitempty" json:"cgm.daysWithDataDelta,omitempty"`
+	// CgmDaysWithDataDelta Delta of total days with data
+	CgmDaysWithDataDelta *IntFilter `form:"cgm.daysWithDataDelta,omitempty" json:"cgm.daysWithDataDelta,omitempty"`
 
-	// CgmStandardDeviationDelta Standard deviation of recordsDelta in period
-	CgmStandardDeviationDelta *string `form:"cgm.standardDeviationDelta,omitempty" json:"cgm.standardDeviationDelta,omitempty"`
+	// CgmStandardDeviationDelta Delta of the standard deviation of glucose values in Mmol/L
+	CgmStandardDeviationDelta *FloatFilter `form:"cgm.standardDeviationDelta,omitempty" json:"cgm.standardDeviationDelta,omitempty"`
 
-	// CgmCoefficientOfVariationDelta Coefficient Of Variation of recordsDelta in period
-	CgmCoefficientOfVariationDelta *string `form:"cgm.coefficientOfVariationDelta,omitempty" json:"cgm.coefficientOfVariationDelta,omitempty"`
+	// CgmCoefficientOfVariationDelta Delta of the coefficient of glucose values in Mmol/L
+	CgmCoefficientOfVariationDelta *FloatFilter `form:"cgm.coefficientOfVariationDelta,omitempty" json:"cgm.coefficientOfVariationDelta,omitempty"`
 
 	// CgmLastUploadDateFrom Inclusive
 	CgmLastUploadDateFrom *time.Time `form:"cgm.lastUploadDateFrom,omitempty" json:"cgm.lastUploadDateFrom,omitempty"`
@@ -2043,59 +2069,59 @@ type ListPatientsParams struct {
 	// CgmLastUploadDateTo Exclusive
 	CgmLastUploadDateTo *time.Time `form:"cgm.lastUploadDateTo,omitempty" json:"cgm.lastUploadDateTo,omitempty"`
 
-	// BgmAverageGlucoseMmolDelta Average glucose value of records
-	BgmAverageGlucoseMmolDelta *string `form:"bgm.averageGlucoseMmolDelta,omitempty" json:"bgm.averageGlucoseMmolDelta,omitempty"`
+	// BgmAverageGlucoseMmolDelta Delta of the average glucose values in Mmol/L
+	BgmAverageGlucoseMmolDelta *FloatFilter `form:"bgm.averageGlucoseMmolDelta,omitempty" json:"bgm.averageGlucoseMmolDelta,omitempty"`
 
-	// BgmTimeInVeryLowPercentDelta PercentDeltaage of time below 54 mg/dL
-	BgmTimeInVeryLowPercentDelta *string `form:"bgm.timeInVeryLowPercentDelta,omitempty" json:"bgm.timeInVeryLowPercentDelta,omitempty"`
+	// BgmTimeInVeryLowPercentDelta Delta of time below 54 mg/dL
+	BgmTimeInVeryLowPercentDelta *FloatFilter `form:"bgm.timeInVeryLowPercentDelta,omitempty" json:"bgm.timeInVeryLowPercentDelta,omitempty"`
 
-	// BgmTimeInAnyLowPercentDelta PercentDeltaage of time below 70 mg/dL
-	BgmTimeInAnyLowPercentDelta *string `form:"bgm.timeInAnyLowPercentDelta,omitempty" json:"bgm.timeInAnyLowPercentDelta,omitempty"`
+	// BgmTimeInAnyLowPercentDelta Delta of time below 70 mg/dL
+	BgmTimeInAnyLowPercentDelta *FloatFilter `form:"bgm.timeInAnyLowPercentDelta,omitempty" json:"bgm.timeInAnyLowPercentDelta,omitempty"`
 
-	// BgmTimeInLowPercentDelta PercentDeltaage of time in range 54-70 mg/dL
-	BgmTimeInLowPercentDelta *string `form:"bgm.timeInLowPercentDelta,omitempty" json:"bgm.timeInLowPercentDelta,omitempty"`
+	// BgmTimeInLowPercentDelta Delta of time in range 54-70 mg/dL
+	BgmTimeInLowPercentDelta *FloatFilter `form:"bgm.timeInLowPercentDelta,omitempty" json:"bgm.timeInLowPercentDelta,omitempty"`
 
-	// BgmTimeInTargetPercentDelta PercentDeltaage of time in range 70-180 mg/dL
-	BgmTimeInTargetPercentDelta *string `form:"bgm.timeInTargetPercentDelta,omitempty" json:"bgm.timeInTargetPercentDelta,omitempty"`
+	// BgmTimeInTargetPercentDelta Delta of time in range 70-180 mg/dL
+	BgmTimeInTargetPercentDelta *FloatFilter `form:"bgm.timeInTargetPercentDelta,omitempty" json:"bgm.timeInTargetPercentDelta,omitempty"`
 
-	// BgmTimeInHighPercentDelta PercentDeltaage of time in range 180-250 mg/dL
-	BgmTimeInHighPercentDelta *string `form:"bgm.timeInHighPercentDelta,omitempty" json:"bgm.timeInHighPercentDelta,omitempty"`
+	// BgmTimeInHighPercentDelta Delta of time in range 180-250 mg/dL
+	BgmTimeInHighPercentDelta *FloatFilter `form:"bgm.timeInHighPercentDelta,omitempty" json:"bgm.timeInHighPercentDelta,omitempty"`
 
-	// BgmTimeInVeryHighPercentDelta PercentDeltaage of time above 250 mg/dL
-	BgmTimeInVeryHighPercentDelta *string `form:"bgm.timeInVeryHighPercentDelta,omitempty" json:"bgm.timeInVeryHighPercentDelta,omitempty"`
+	// BgmTimeInVeryHighPercentDelta Delta of time above 250 mg/dL
+	BgmTimeInVeryHighPercentDelta *FloatFilter `form:"bgm.timeInVeryHighPercentDelta,omitempty" json:"bgm.timeInVeryHighPercentDelta,omitempty"`
 
-	// BgmTimeInExtremeHighPercentDelta PercentDeltaage of time above 350 mg/dL
-	BgmTimeInExtremeHighPercentDelta *string `form:"bgm.timeInExtremeHighPercentDelta,omitempty" json:"bgm.timeInExtremeHighPercentDelta,omitempty"`
+	// BgmTimeInExtremeHighPercentDelta Delta of time above 350 mg/dL
+	BgmTimeInExtremeHighPercentDelta *FloatFilter `form:"bgm.timeInExtremeHighPercentDelta,omitempty" json:"bgm.timeInExtremeHighPercentDelta,omitempty"`
 
-	// BgmTimeInAnyHighPercentDelta PercentDeltaage of time above 180 mg/dL
-	BgmTimeInAnyHighPercentDelta *string `form:"bgm.timeInAnyHighPercentDelta,omitempty" json:"bgm.timeInAnyHighPercentDelta,omitempty"`
+	// BgmTimeInAnyHighPercentDelta Delta of time above 180 mg/dL
+	BgmTimeInAnyHighPercentDelta *FloatFilter `form:"bgm.timeInAnyHighPercentDelta,omitempty" json:"bgm.timeInAnyHighPercentDelta,omitempty"`
 
-	// BgmTimeInVeryLowRecordsDelta RecordsDelta below 54 mg/dL
-	BgmTimeInVeryLowRecordsDelta *string `form:"bgm.timeInVeryLowRecordsDelta,omitempty" json:"bgm.timeInVeryLowRecordsDelta,omitempty"`
+	// BgmTimeInVeryLowRecordsDelta Delta of records below 54 mg/dL
+	BgmTimeInVeryLowRecordsDelta *IntFilter `form:"bgm.timeInVeryLowRecordsDelta,omitempty" json:"bgm.timeInVeryLowRecordsDelta,omitempty"`
 
-	// BgmTimeInAnyLowRecordsDelta RecordsDelta below 70 mg/dL
-	BgmTimeInAnyLowRecordsDelta *string `form:"bgm.timeInAnyLowRecordsDelta,omitempty" json:"bgm.timeInAnyLowRecordsDelta,omitempty"`
+	// BgmTimeInAnyLowRecordsDelta Delta of records below 70 mg/dL
+	BgmTimeInAnyLowRecordsDelta *IntFilter `form:"bgm.timeInAnyLowRecordsDelta,omitempty" json:"bgm.timeInAnyLowRecordsDelta,omitempty"`
 
-	// BgmTimeInLowRecordsDelta RecordsDelta in range 54-70 mg/dL
-	BgmTimeInLowRecordsDelta *string `form:"bgm.timeInLowRecordsDelta,omitempty" json:"bgm.timeInLowRecordsDelta,omitempty"`
+	// BgmTimeInLowRecordsDelta Delta of records in range 54-70 mg/dL
+	BgmTimeInLowRecordsDelta *IntFilter `form:"bgm.timeInLowRecordsDelta,omitempty" json:"bgm.timeInLowRecordsDelta,omitempty"`
 
-	// BgmTimeInTargetRecordsDelta RecordsDelta in range 70-180 mg/dL
-	BgmTimeInTargetRecordsDelta *string `form:"bgm.timeInTargetRecordsDelta,omitempty" json:"bgm.timeInTargetRecordsDelta,omitempty"`
+	// BgmTimeInTargetRecordsDelta Delta of records in range 70-180 mg/dL
+	BgmTimeInTargetRecordsDelta *IntFilter `form:"bgm.timeInTargetRecordsDelta,omitempty" json:"bgm.timeInTargetRecordsDelta,omitempty"`
 
-	// BgmTimeInHighRecordsDelta RecordsDelta in range 180-250 mg/dL
-	BgmTimeInHighRecordsDelta *string `form:"bgm.timeInHighRecordsDelta,omitempty" json:"bgm.timeInHighRecordsDelta,omitempty"`
+	// BgmTimeInHighRecordsDelta Delta of records in range 180-250 mg/dL
+	BgmTimeInHighRecordsDelta *IntFilter `form:"bgm.timeInHighRecordsDelta,omitempty" json:"bgm.timeInHighRecordsDelta,omitempty"`
 
-	// BgmTimeInVeryHighRecordsDelta RecordsDelta above 250 mg/dL
-	BgmTimeInVeryHighRecordsDelta *string `form:"bgm.timeInVeryHighRecordsDelta,omitempty" json:"bgm.timeInVeryHighRecordsDelta,omitempty"`
+	// BgmTimeInVeryHighRecordsDelta Delta of records above 250 mg/dL
+	BgmTimeInVeryHighRecordsDelta *IntFilter `form:"bgm.timeInVeryHighRecordsDelta,omitempty" json:"bgm.timeInVeryHighRecordsDelta,omitempty"`
 
-	// BgmTimeInAnyHighRecordsDelta RecordsDelta above 180 mg/dL
-	BgmTimeInAnyHighRecordsDelta *string `form:"bgm.timeInAnyHighRecordsDelta,omitempty" json:"bgm.timeInAnyHighRecordsDelta,omitempty"`
+	// BgmTimeInAnyHighRecordsDelta Delta of records above 180 mg/dL
+	BgmTimeInAnyHighRecordsDelta *IntFilter `form:"bgm.timeInAnyHighRecordsDelta,omitempty" json:"bgm.timeInAnyHighRecordsDelta,omitempty"`
 
-	// BgmAverageDailyRecordsDelta Average recordsDelta per day
-	BgmAverageDailyRecordsDelta *string `form:"bgm.averageDailyRecordsDelta,omitempty" json:"bgm.averageDailyRecordsDelta,omitempty"`
+	// BgmAverageDailyRecordsDelta Delta of average records per day
+	BgmAverageDailyRecordsDelta *IntFilter `form:"bgm.averageDailyRecordsDelta,omitempty" json:"bgm.averageDailyRecordsDelta,omitempty"`
 
-	// BgmTotalRecordsDelta Total recordsDelta in period
-	BgmTotalRecordsDelta *string `form:"bgm.totalRecordsDelta,omitempty" json:"bgm.totalRecordsDelta,omitempty"`
+	// BgmTotalRecordsDelta Delta of total record count
+	BgmTotalRecordsDelta *IntFilter `form:"bgm.totalRecordsDelta,omitempty" json:"bgm.totalRecordsDelta,omitempty"`
 
 	// BgmLastUploadDateFrom Inclusive
 	BgmLastUploadDateFrom *time.Time `form:"bgm.lastUploadDateFrom,omitempty" json:"bgm.lastUploadDateFrom,omitempty"`
@@ -2205,6 +2231,9 @@ type UpdatePatientJSONRequestBody = Patient
 
 // UpdatePatientPermissionsJSONRequestBody defines body for UpdatePatientPermissions for application/json ContentType.
 type UpdatePatientPermissionsJSONRequestBody = PatientPermissions
+
+// GenerateMergeReportJSONRequestBody defines body for GenerateMergeReport for application/json ContentType.
+type GenerateMergeReportJSONRequestBody = GenerateMergeReport
 
 // AddServiceAccountJSONRequestBody defines body for AddServiceAccount for application/json ContentType.
 type AddServiceAccountJSONRequestBody = AddServiceAccount
