@@ -1,6 +1,12 @@
 package service
 
 import (
+	"context"
+
+	"github.com/tidepool-org/platform/apple"
+
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
@@ -16,8 +22,10 @@ type Service interface {
 	ProviderFactory() provider.Factory
 
 	TaskClient() task.Client
+	ConfirmationClient() confirmationClient.ClientWithResponsesInterface
+	DeviceCheck() apple.DeviceCheck
 
-	Status() *Status
+	Status(context.Context) *Status
 }
 
 type Status struct {

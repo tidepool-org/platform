@@ -27,6 +27,7 @@ type ObjectParser interface {
 	StringArray(reference string) *[]string
 	Time(reference string, layout string) *time.Time
 	ForgivingTime(reference string, layout string) *time.Time
+	JSON(reference string, target any)
 
 	Object(reference string) *map[string]interface{}
 	Array(reference string) *[]interface{}

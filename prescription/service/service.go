@@ -2,13 +2,14 @@ package service
 
 import (
 	"context"
-
-	"github.com/kelseyhightower/envconfig"
-	"go.uber.org/fx"
+	"fmt"
 
 	"github.com/tidepool-org/mailer/mailer"
 
-	"github.com/tidepool-org/platform/user"
+	"github.com/tidepool-org/go-common/clients"
+	"github.com/tidepool-org/go-common/events"
+
+	"github.com/tidepool-org/platform/clinics"
 
 	"github.com/tidepool-org/platform/page"
 
@@ -18,72 +19,41 @@ import (
 	"github.com/tidepool-org/platform/prescription"
 )
 
+const prescriptionTemplate = "prescription_access_code"
+
 type PrescriptionService struct {
+	clinicsClient     clinics.Client
+	mailer            clients.MailerClient
 	emailTemplate     *mailer.EmailTemplate
-	config            *PrescriptionServiceConfig
-	mailer            mailer.Mailer
 	prescriptionStore prescriptionStore.Store
 }
 
-type PrescriptionServiceParams struct {
-	fx.In
-
-	Config *PrescriptionServiceConfig
-	Store  prescriptionStore.Store
-	Mailer mailer.Mailer
-}
-
-type PrescriptionServiceConfig struct {
-	WebAppURL string `envconfig:"TIDEPOOL_WEBAPP_URL" required:"true"`
-	AssetURL  string `envconfig:"TIDEPOOL_ASSETS_URL" required:"true"`
-}
-
-func NewPrescriptionServiceConfig(lifecycle fx.Lifecycle) *PrescriptionServiceConfig {
-	cfg := &PrescriptionServiceConfig{}
-	lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			return cfg.Load()
-		},
-	})
-
-	return cfg
-}
-
-func (p *PrescriptionServiceConfig) Load() error {
-	return envconfig.Process("", p)
-}
-
-func NewService(params PrescriptionServiceParams) (prescription.Service, error) {
-	if params.Store == nil {
+func NewService(store prescriptionStore.Store, clinicsClient clinics.Client, mailer clients.MailerClient) (prescription.Service, error) {
+	if store == nil {
 		return nil, errors.New("prescription store is missing")
 	}
-	if params.Mailer == nil {
-		return nil, errors.New("mailer is missing")
+	if clinicsClient == nil {
+		return nil, errors.New("clinics client is missing")
 	}
-	if params.Config == nil {
-		return nil, errors.New("config is missing")
-	}
-	emailTemplate, err := NewPrescriptionEmailTemplate()
-	if err != nil {
-		return nil, err
+	if mailer == nil {
+		return nil, errors.New("mailer client is missing")
 	}
 
 	return &PrescriptionService{
-		config:            params.Config,
-		emailTemplate:     emailTemplate,
-		mailer:            params.Mailer,
-		prescriptionStore: params.Store,
+		clinicsClient:     clinicsClient,
+		mailer:            mailer,
+		prescriptionStore: store,
 	}, nil
 }
 
-func (p *PrescriptionService) CreatePrescription(ctx context.Context, userID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionService) CreatePrescription(ctx context.Context, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	prescr, err := repo.CreatePrescription(ctx, userID, create)
-	if err != nil || prescr == nil {
-		return prescr, err
+	prescr, err := repo.CreatePrescription(ctx, create)
+	if err != nil {
+		return nil, err
 	}
-	if p.shouldSendAccessCodeEmailAfterSuccessfulCreation(create) {
-		return prescr, p.sendAccessCodeEmail(ctx, prescr)
+	if p.shouldSendAccessCodeEmail(prescr) {
+		err = p.sendAccessCodeEmail(ctx, prescr)
 	}
 	return prescr, err
 }
@@ -93,61 +63,77 @@ func (p *PrescriptionService) ListPrescriptions(ctx context.Context, filter *pre
 	return repo.ListPrescriptions(ctx, filter, pagination)
 }
 
-func (p *PrescriptionService) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+func (p *PrescriptionService) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.DeletePrescription(ctx, clinicianID, id)
+	return repo.DeletePrescription(ctx, clinicID, prescriptionID, clinicianID)
 }
 
-func (p *PrescriptionService) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionService) AddRevision(ctx context.Context, prescriptionID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.AddRevision(ctx, usr, id, create)
-}
-
-func (p *PrescriptionService) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
-	repo := p.prescriptionStore.GetPrescriptionRepository()
-	return repo.ClaimPrescription(ctx, usr, claim)
-}
-
-func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
-	repo := p.prescriptionStore.GetPrescriptionRepository()
-	prescr, err := repo.UpdatePrescriptionState(ctx, usr, id, update)
-	if err != nil || prescr == nil {
-		return prescr, err
+	prescr, err := repo.AddRevision(ctx, prescriptionID, create)
+	if err != nil {
+		return nil, err
 	}
-	if p.shouldSendAccessCodeEmailAfterSuccessfulUpdate(update) {
-		return prescr, p.sendAccessCodeEmail(ctx, prescr)
+	if p.shouldSendAccessCodeEmail(prescr) {
+		err = p.sendAccessCodeEmail(ctx, prescr)
 	}
 	return prescr, err
 }
 
-func (p *PrescriptionService) shouldSendAccessCodeEmailAfterSuccessfulCreation(create *prescription.RevisionCreate) bool {
-	return create.State == prescription.StateSubmitted
+func (p *PrescriptionService) ClaimPrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+
+	// Fetch prescription using the claim
+	prescr, err := p.GetClaimablePrescription(ctx, claim)
+	if err != nil || prescr == nil {
+		return nil, err
+	}
+
+	// Verify the prescription integrity
+	if err = prescription.VerifyRevisionIntegrityHash(*prescr.LatestRevision); err != nil {
+		return nil, fmt.Errorf("integrity check for prescription %v failed: %w", prescr.ID, err)
+	}
+
+	// Claim the prescription atomically
+	claim.RevisionHash = prescr.LatestRevision.IntegrityHash.Hash
+	prescr, err = repo.ClaimPrescription(ctx, claim)
+	if err != nil {
+		return nil, err
+	}
+
+	// Share patient account with the clinic that created the prescription
+	_, err = p.clinicsClient.SharePatientAccount(ctx, prescr.ClinicID, prescr.PatientUserID)
+	if err != nil {
+		return nil, err
+	}
+	return prescr, nil
 }
 
-func (p *PrescriptionService) shouldSendAccessCodeEmailAfterSuccessfulUpdate(update *prescription.StateUpdate) bool {
-	return update.State == prescription.StateSubmitted
+func (p *PrescriptionService) GetClaimablePrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
+	repo := p.prescriptionStore.GetPrescriptionRepository()
+	return repo.GetClaimablePrescription(ctx, claim)
+}
+
+func (p *PrescriptionService) UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+	repository := p.prescriptionStore.GetPrescriptionRepository()
+	return repository.UpdatePrescriptionState(ctx, prescriptionID, update)
+}
+
+func (p *PrescriptionService) shouldSendAccessCodeEmail(prescr *prescription.Prescription) bool {
+	return prescr != nil && prescr.State == prescription.StateSubmitted
 }
 
 func (p *PrescriptionService) sendAccessCodeEmail(ctx context.Context, prescr *prescription.Prescription) error {
-	email, err := p.createEmail(prescr)
-	if err != nil {
-		return err
+	if prescr.LatestRevision.Attributes.Email == nil {
+		return errors.New("prescription email is empty")
+	}
+	email := events.SendEmailTemplateEvent{
+		Recipient: *prescr.LatestRevision.Attributes.Email,
+		Template:  prescriptionTemplate,
+		Variables: map[string]string{
+			"AccessCode": prescr.AccessCode,
+		},
 	}
 
-	return p.mailer.Send(ctx, email)
-}
-
-func (p *PrescriptionService) createEmail(prescr *prescription.Prescription) (*mailer.Email, error) {
-	email := &mailer.Email{
-		Recipients: []string{prescr.LatestRevision.Attributes.Email},
-	}
-	emailParams := map[string]string{
-		"AccessCode": prescr.AccessCode,
-		"AssetURL":   p.config.AssetURL,
-		"WebURL":     p.config.WebAppURL,
-	}
-	if err := p.emailTemplate.RenderToEmail(emailParams, email); err != nil {
-		return nil, err
-	}
-	return email, nil
+	return p.mailer.SendEmailTemplate(ctx, email)
 }

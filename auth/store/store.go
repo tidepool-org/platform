@@ -1,22 +1,24 @@
 package store
 
 import (
-	"io"
-
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/devicetokens"
 )
 
 type Store interface {
-	NewProviderSessionSession() ProviderSessionSession
-	NewRestrictedTokenSession() RestrictedTokenSession
+	NewProviderSessionRepository() ProviderSessionRepository
+	NewRestrictedTokenRepository() RestrictedTokenRepository
+	NewDeviceTokenRepository() DeviceTokenRepository
 }
 
-type ProviderSessionSession interface {
-	io.Closer
+type ProviderSessionRepository interface {
 	auth.ProviderSessionAccessor
 }
 
-type RestrictedTokenSession interface {
-	io.Closer
+type RestrictedTokenRepository interface {
 	auth.RestrictedTokenAccessor
+}
+
+type DeviceTokenRepository interface {
+	devicetokens.Repository
 }

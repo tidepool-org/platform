@@ -1,0 +1,6 @@
+run:
+  timeout: 1m
+  tests: false
+
+linters:
+  enable-all: true

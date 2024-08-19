@@ -1,8 +1,7 @@
 package calibration_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -28,7 +27,7 @@ func NewMeta() interface{} {
 
 func NewCalibration(units *string) *calibration.Calibration {
 	datum := calibration.New()
-	datum.Device = *dataTypesDeviceTest.NewDevice()
+	datum.Device = *dataTypesDeviceTest.RandomDevice()
 	datum.SubType = "calibration"
 	datum.Units = units
 	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))

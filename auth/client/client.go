@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -26,11 +25,8 @@ func NewConfig() *Config {
 	}
 }
 
-func (c *Config) Load(configReporter config.Reporter) error {
-	if err := c.Config.Load(configReporter); err != nil {
-		return err
-	}
-	return c.ExternalConfig.Load(configReporter.WithScopes("external"))
+func (c *Config) Load(loader ConfigLoader) error {
+	return loader.Load(c)
 }
 
 func (c *Config) Validate() error {
@@ -310,4 +306,35 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+type ConfigLoader interface {
+	Load(*Config) error
+}
+
+// configHybridLoader combines an ExternalConfigLoader with a platform.ConfigLoader.
+//
+// Whereas we usually have different implementations, in this case, it's just
+// two other loaders together, so no need for multiple other implementations
+// here.
+type configHybridLoader struct {
+	ExternalConfigLoader
+	platform.ConfigLoader
+}
+
+func NewConfigLoader(ext ExternalConfigLoader, plt platform.ConfigLoader) *configHybridLoader {
+	return &configHybridLoader{
+		ExternalConfigLoader: ext,
+		ConfigLoader:         plt,
+	}
+}
+
+func (l *configHybridLoader) Load(cfg *Config) error {
+	if err := l.ExternalConfigLoader.Load(cfg.ExternalConfig); err != nil {
+		return err
+	}
+	if err := l.ConfigLoader.Load(cfg.Config); err != nil {
+		return err
+	}
+	return nil
 }

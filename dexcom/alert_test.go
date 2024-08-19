@@ -1,272 +1,102 @@
 package dexcom_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
-	errorsTest "github.com/tidepool-org/platform/errors/test"
-	structureTest "github.com/tidepool-org/platform/structure/test"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Alert", func() {
-	It("AlertScheduleSettingsStartTimeDefault is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsStartTimeDefault).To(Equal("00:00"))
+
+	It("AlertStates returns expected", func() {
+		Expect(dexcom.AlertStates()).To(Equal([]string{"unknown", "inactive", "activeSnoozed", "activeAlarming"}))
+		Expect(dexcom.AlertStates()).To(Equal([]string{
+			dexcom.AlertStateUnknown,
+			dexcom.AlertStateInactive,
+			dexcom.AlertStateActiveSnoozed,
+			dexcom.AlertStateActiveAlarming,
+		}))
 	})
 
-	It("AlertScheduleSettingsEndTimeDefault is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsEndTimeDefault).To(Equal("00:00"))
+	It("AlertNames returns expected", func() {
+		Expect(dexcom.AlertNames()).To(Equal([]string{"unknown", "high", "low", "rise", "fall", "outOfRange", "urgentLow", "urgentLowSoon", "noReadings", "fixedLow"}))
+		Expect(dexcom.AlertNames()).To(Equal([]string{
+			dexcom.AlertNameUnknown,
+			dexcom.AlertNameHigh,
+			dexcom.AlertNameLow,
+			dexcom.AlertNameRise,
+			dexcom.AlertNameFall,
+			dexcom.AlertNameOutOfRange,
+			dexcom.AlertNameUrgentLow,
+			dexcom.AlertNameUrgentLowSoon,
+			dexcom.AlertNameNoReadings,
+			dexcom.AlertNameFixedLow,
+		}))
 	})
 
-	It("AlertScheduleSettingsDaySunday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySunday).To(Equal("sunday"))
-	})
-
-	It("AlertScheduleSettingsDayMonday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayMonday).To(Equal("monday"))
-	})
-
-	It("AlertScheduleSettingsDayTuesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayTuesday).To(Equal("tuesday"))
-	})
-
-	It("AlertScheduleSettingsDayWednesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayWednesday).To(Equal("wednesday"))
-	})
-
-	It("AlertScheduleSettingsDayThursday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayThursday).To(Equal("thursday"))
-	})
-
-	It("AlertScheduleSettingsDayFriday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayFriday).To(Equal("friday"))
-	})
-
-	It("AlertScheduleSettingsDaySaturday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySaturday).To(Equal("saturday"))
-	})
-
-	It("AlertSettingAlertNameFall is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameFall).To(Equal("fall"))
-	})
-
-	It("AlertSettingAlertNameHigh is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameHigh).To(Equal("high"))
-	})
-
-	It("AlertSettingAlertNameLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameLow).To(Equal("low"))
-	})
-
-	It("AlertSettingAlertNameNoReadings is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameNoReadings).To(Equal("noReadings"))
-	})
-
-	It("AlertSettingAlertNameOutOfRange is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameOutOfRange).To(Equal("outOfRange"))
-	})
-
-	It("AlertSettingAlertNameRise is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameRise).To(Equal("rise"))
-	})
-
-	It("AlertSettingAlertNameUrgentLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLow).To(Equal("urgentLow"))
-	})
-
-	It("AlertSettingAlertNameUrgentLowSoon is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLowSoon).To(Equal("urgentLowSoon"))
-	})
-
-	It("AlertSettingSnoozeMinutesMaximum is expected", func() {
-		Expect(dexcom.AlertSettingSnoozeMinutesMaximum).To(Equal(600.0))
-	})
-
-	It("AlertSettingSnoozeMinutesMinimum is expected", func() {
-		Expect(dexcom.AlertSettingSnoozeMinutesMinimum).To(Equal(0.0))
-	})
-
-	It("AlertSettingUnitMinutes is expected", func() {
-		Expect(dexcom.AlertSettingUnitMinutes).To(Equal("minutes"))
-	})
-
-	It("AlertSettingUnitMgdL is expected", func() {
-		Expect(dexcom.AlertSettingUnitMgdL).To(Equal("mg/dL"))
-	})
-
-	It("AlertSettingUnitMgdLMinute is expected", func() {
-		Expect(dexcom.AlertSettingUnitMgdLMinute).To(Equal("mg/dL/min"))
-	})
-
-	It("AlertSettingValueFallMgdLMinuteMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinuteMaximum).To(Equal(10.0))
-	})
-
-	It("AlertSettingValueFallMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinuteMinimum).To(Equal(1.0))
-	})
-
-	It("AlertSettingValueHighMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueHighMgdLMaximum).To(Equal(400.0))
-	})
-
-	It("AlertSettingValueHighMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueHighMgdLMinimum).To(Equal(100.0))
-	})
-
-	It("AlertSettingValueLowMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueLowMgdLMaximum).To(Equal(150.0))
-	})
-
-	It("AlertSettingValueLowMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueLowMgdLMinimum).To(Equal(50.0))
-	})
-
-	It("AlertSettingValueNoReadingsMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMaximum).To(Equal(360.0))
-	})
-
-	It("AlertSettingValueNoReadingsMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMinimum).To(Equal(0.0))
-	})
-
-	It("AlertSettingValueOutOfRangeMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMaximum).To(Equal(360.0))
-	})
-
-	It("AlertSettingValueOutOfRangeMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMinimum).To(Equal(0.0))
-	})
-
-	It("AlertSettingValueRiseMgdLMinuteMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMaximum).To(Equal(10.0))
-	})
-
-	It("AlertSettingValueRiseMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMinimum).To(Equal(1.0))
-	})
-
-	It("AlertSettingValueUrgentLowMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowMgdLMaximum).To(Equal(80.0))
-	})
-
-	It("AlertSettingValueUrgentLowMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowMgdLMinimum).To(Equal(40.0))
-	})
-
-	It("AlertSettingValueUrgentLowSoonMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMaximum).To(Equal(80.0))
-	})
-
-	It("AlertSettingValueUrgentLowSoonMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMinimum).To(Equal(40.0))
-	})
-
-	It("AlertScheduleSettingsDays returns expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDays()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
-	})
-
-	Context("AlertScheduleSettingsDayIndex", func() {
-		DescribeTable("return the expected index when the day",
-			func(day string, expectedIndex int) {
-				Expect(dexcom.AlertScheduleSettingsDayIndex(day)).To(Equal(expectedIndex))
+	Describe("Validate", func() {
+		var getTestAlert = func() *dexcom.Alert {
+			return test.RandomAlert()
+		}
+		DescribeTable("requires",
+			func(setupAlertFunc func() *dexcom.Alert) {
+				testAlert := setupAlertFunc()
+				validator := validator.New()
+				testAlert.Validate(validator)
+				Expect(validator.Error()).To(HaveOccurred())
 			},
-			Entry("is an empty string", "", 0),
-			Entry("is sunday", "sunday", 1),
-			Entry("is monday", "monday", 2),
-			Entry("is tuesday", "tuesday", 3),
-			Entry("is wednesday", "wednesday", 4),
-			Entry("is thursday", "thursday", 5),
-			Entry("is friday", "friday", 6),
-			Entry("is saturday", "saturday", 7),
-			Entry("is an invalid string", "invalid", 0),
-		)
-	})
+			Entry("systemTime to be set", func() *dexcom.Alert {
+				Skip("systemTime will occassionally be unset that kills the whole upload process")
+				alert := getTestAlert()
+				alert.SystemTime = nil
+				return alert
+			}),
+			Entry("displayTime to be set", func() *dexcom.Alert {
+				Skip("displayTime will occassionally be unset that kills the whole upload process")
+				alert := getTestAlert()
+				alert.DisplayTime = nil
+				return alert
+			}),
+			Entry("id to be set", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.ID = nil
+				return alert
+			}),
+			Entry("transmitterGeneration to be set", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.TransmitterGeneration = nil
+				return alert
+			}),
 
-	It("AlertSettingAlertNames returns expected", func() {
-		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{"fall", "high", "low", "noReadings", "outOfRange", "rise", "urgentLow", "urgentLowSoon"}))
-	})
-
-	It("AlertSettingUnitFalls returns expected", func() {
-		Expect(dexcom.AlertSettingUnitFalls()).To(Equal([]string{"mg/dL/min"}))
-	})
-
-	It("AlertSettingUnitHighs returns expected", func() {
-		Expect(dexcom.AlertSettingUnitHighs()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitLows returns expected", func() {
-		Expect(dexcom.AlertSettingUnitLows()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitNoReadings returns expected", func() {
-		Expect(dexcom.AlertSettingUnitNoReadings()).To(Equal([]string{"minutes"}))
-	})
-
-	It("AlertSettingUnitOutOfRanges returns expected", func() {
-		Expect(dexcom.AlertSettingUnitOutOfRanges()).To(Equal([]string{"minutes"}))
-	})
-
-	It("AlertSettingUnitRises returns expected", func() {
-		Expect(dexcom.AlertSettingUnitRises()).To(Equal([]string{"mg/dL/min"}))
-	})
-
-	It("AlertSettingUnitUrgentLows returns expected", func() {
-		Expect(dexcom.AlertSettingUnitUrgentLows()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitUrgentLowSoons returns expected", func() {
-		Expect(dexcom.AlertSettingUnitUrgentLowSoons()).To(Equal([]string{"mg/dL"}))
-	})
-
-	Context("ParseAlertScheduleSettingsTime", func() {
-		DescribeTable("return the expected results when the input",
-			func(value string, expectedHour int, expectedMinute int, expectedOK bool) {
-				hour, minute, ok := dexcom.ParseAlertScheduleSettingsTime(value)
-				Expect(ok).To(Equal(expectedOK))
-				Expect(hour).To(Equal(expectedHour))
-				Expect(minute).To(Equal(expectedMinute))
-			},
-			Entry("is an empty string", "", 0, 0, false),
-			Entry("contains non-numbers", "a$: b", 0, 0, false),
-			Entry("does not exactly match format", "1:23", 0, 0, false),
-			Entry("has hour in range (lower)", "00:00", 0, 0, true),
-			Entry("has hour in range (upper)", "23:59", 23, 59, true),
-			Entry("has hour out of range (upper)", "24:00", 0, 0, false),
-			Entry("has minute in range (lower)", "00:00", 0, 0, true),
-			Entry("has minute in range (upper)", "23:59", 23, 59, true),
-			Entry("has minute out of range (upper)", "23:60", 0, 0, false),
-		)
-	})
-
-	Context("IsValidAlertScheduleSettingsTime, AlertScheduleSettingsTimeValidator, and ValidateAlertScheduleSettingsTime", func() {
-		DescribeTable("return the expected results when the input",
-			func(value string, expectedErrors ...error) {
-				Expect(dexcom.IsValidAlertScheduleSettingsTime(value)).To(Equal(len(expectedErrors) == 0))
-				errorReporter := structureTest.NewErrorReporter()
-				dexcom.AlertScheduleSettingsTimeValidator(value, errorReporter)
-				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
-				errorsTest.ExpectEqual(dexcom.ValidateAlertScheduleSettingsTime(value), expectedErrors...)
-			},
-			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
-			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("a$: b")),
-			Entry("does not exactly match format", "1:23", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("1:23")),
-			Entry("has hour in range (lower)", "00:00"),
-			Entry("has hour in range (upper)", "23:59"),
-			Entry("has hour out of range (upper)", "24:00", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("24:00")),
-			Entry("has minute in range (lower)", "00:00"),
-			Entry("has minute in range (upper)", "23:59"),
-			Entry("has minute out of range (upper)", "23:60", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("23:60")),
-		)
-	})
-
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as alert schedule settings time`),
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with non-empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("XX:XX"), "value-not-valid", "value is not valid", `value "XX:XX" is not valid as alert schedule settings time`),
+			Entry("alertName to be set", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.AlertName = nil
+				return alert
+			}),
+			Entry("alertName to be set to an allowed value", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.AlertName = pointer.FromString("other")
+				return alert
+			}),
+			Entry("alertState to be set", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.AlertState = nil
+				return alert
+			}),
+			Entry("alertState to be set to an allowed value", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.AlertState = pointer.FromString("other")
+				return alert
+			}),
+			Entry("displayDevice to be set", func() *dexcom.Alert {
+				alert := getTestAlert()
+				alert.DisplayDevice = nil
+				return alert
+			}),
 		)
 	})
 })

@@ -55,7 +55,7 @@ func NewType() string {
 	return test.RandomStringFromRangeAndCharset(1, 32, test.CharsetAlphaNumeric+"/")
 }
 
-func NewVersion() int {
+func NewVersionInternal() int {
 	return rand.Intn(10)
 }
 

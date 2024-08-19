@@ -1,8 +1,7 @@
 package calculator_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -34,10 +33,10 @@ func NewMeta() interface{} {
 
 func NewCalculator(units *string) *calculator.Calculator {
 	datum := calculator.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "wizard"
 	datum.BloodGlucoseInput = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(units)))
-	datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+	datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 	datum.CarbohydrateInput = pointer.FromFloat64(test.RandomFloat64FromRange(calculator.CarbohydrateInputMinimum, calculator.CarbohydrateInputMaximum))
 	datum.InsulinCarbohydrateRatio = pointer.FromFloat64(test.RandomFloat64FromRange(calculator.InsulinCarbohydrateRatioMinimum, calculator.InsulinCarbohydrateRatioMaximum))
 	datum.InsulinOnBoard = pointer.FromFloat64(test.RandomFloat64FromRange(calculator.InsulinOnBoardMinimum, calculator.InsulinOnBoardMaximum))
@@ -230,7 +229,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; blood glucose target valid",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
@@ -431,7 +430,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; blood glucose target valid",
 					pointer.FromString("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
@@ -623,7 +622,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/L; blood glucose target valid",
 					pointer.FromString("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 				),
 				Entry("units mmol/L; bolus missing",
@@ -791,7 +790,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/l; blood glucose target valid",
 					pointer.FromString("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 				),
 				Entry("units mmol/l; bolus missing",
@@ -963,7 +962,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dL; blood glucose target valid",
 					pointer.FromString("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 				),
 				Entry("units mg/dL; bolus missing",
@@ -1135,7 +1134,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; blood glucose target valid",
 					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BloodGlucoseTarget = dataBloodGlucoseTest.NewTarget(units)
+						datum.BloodGlucoseTarget = dataBloodGlucoseTest.RandomTarget(units)
 					},
 				),
 				Entry("units mg/dl; bolus missing",

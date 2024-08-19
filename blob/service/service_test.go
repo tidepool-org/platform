@@ -1,10 +1,11 @@
 package service_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -14,6 +15,7 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	eventsTest "github.com/tidepool-org/platform/events/test"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -33,12 +35,13 @@ var _ = Describe("Service", func() {
 		var authClientConfig map[string]interface{}
 		var blobStructuredStoreConfig map[string]interface{}
 		var blobUnstructuredStoreConfig map[string]interface{}
+		var deviceLogsUnstructuredStoreConfig map[string]interface{}
 		var blobServiceConfig map[string]interface{}
 		var service *blobService.Service
+		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
-
 			serverSecret = authTest.NewServiceSecret()
 			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
@@ -71,6 +74,13 @@ var _ = Describe("Service", func() {
 					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				},
 			}
+			deviceLogsUnstructuredStoreConfig = map[string]interface{}{
+				"type": "s3",
+				"s3": map[string]interface{}{
+					"bucket": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+					"prefix": test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
+				},
+			}
 			blobServiceConfig = map[string]interface{}{
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
@@ -79,7 +89,12 @@ var _ = Describe("Service", func() {
 					"store": blobStructuredStoreConfig,
 				},
 				"unstructured": map[string]interface{}{
-					"store": blobUnstructuredStoreConfig,
+					"blobs": map[string]interface{}{
+						"store": blobUnstructuredStoreConfig,
+					},
+					"logs": map[string]interface{}{
+						"store": deviceLogsUnstructuredStoreConfig,
+					},
 				},
 				"secret": authTest.NewServiceSecret(),
 				"server": map[string]interface{}{
@@ -88,7 +103,7 @@ var _ = Describe("Service", func() {
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
-
+			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 			service = blobService.New()
 			Expect(service).ToNot(BeNil())
 		})
@@ -97,6 +112,7 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
+			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 			provider.AssertOutputsEmpty()
 		})
 
@@ -116,13 +132,21 @@ var _ = Describe("Service", func() {
 				})
 
 				It("returns an error when the blob structured store config load returns an error", func() {
-					blobStructuredStoreConfig["timeout"] = "invalid"
+					timeout, timeoutSet := os.LookupEnv("TIDEPOOL_STORE_TIMEOUT")
+					os.Setenv("TIDEPOOL_STORE_TIMEOUT", "invalid")
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load blob structured store config"))
+					if timeoutSet {
+						os.Setenv("TIDEPOOL_STORE_TIMEOUT", timeout)
+					} else {
+						os.Unsetenv("TIDEPOOL_STORE_TIMEOUT")
+					}
 				})
 
 				It("returns an error when the blob structured store returns an error", func() {
-					blobStructuredStoreConfig["addresses"] = ""
+					addresses := os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+					os.Setenv("TIDEPOOL_STORE_ADDRESSES", "")
 					errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create blob structured store"))
+					os.Setenv("TIDEPOOL_STORE_ADDRESSES", addresses)
 				})
 
 				It("returns an error when the blob unstructured store returns an error", func() {
@@ -148,7 +172,7 @@ var _ = Describe("Service", func() {
 
 				Context("Status", func() {
 					It("returns successfully", func() {
-						Expect(service.Status()).ToNot(BeNil())
+						Expect(service.Status(context.Background())).ToNot(BeNil())
 					})
 				})
 

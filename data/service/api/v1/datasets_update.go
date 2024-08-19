@@ -3,8 +3,11 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
@@ -25,7 +28,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataSession().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
@@ -35,7 +38,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	if !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
@@ -72,7 +75,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		update.State = pointer.FromString(data.DataSetStateClosed)
 	}
 
-	dataSet, err = dataServiceContext.DataSession().UpdateDataSet(ctx, dataSetID, update)
+	dataSet, err = dataServiceContext.DataRepository().UpdateDataSet(ctx, dataSetID, update)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to update data set", err)
 		return
@@ -86,10 +89,18 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		} else if deduplicator == nil {
 			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataSession(), dataSet); err != nil {
+		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}
+
+		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
+		updatesSummary := make(map[string]struct{})
+		for _, typ := range types.AllSummaryTypes {
+			updatesSummary[typ] = struct{}{}
+		}
+
+		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

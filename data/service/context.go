@@ -1,11 +1,15 @@
 package service
 
 import (
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -21,10 +25,16 @@ type Context interface {
 
 	DataDeduplicatorFactory() deduplicator.Factory
 
-	DataSession() dataStoreDEPRECATED.DataSession
-	SyncTaskSession() syncTaskStore.SyncTaskSession
+	DataRepository() dataStore.DataRepository
+	SummaryRepository() dataStore.SummaryRepository
+	SyncTaskRepository() syncTaskStore.SyncTaskRepository
+	AlertsRepository() alerts.Repository
 
+	SummarizerRegistry() *summary.SummarizerRegistry
+	SummaryReporter() *reporters.PatientRealtimeDaysReporter
 	DataClient() dataClient.Client
+
+	ClinicsClient() clinics.Client
 	DataSourceClient() dataSource.Client
 }
 

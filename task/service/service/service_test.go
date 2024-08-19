@@ -1,10 +1,11 @@
 package service_test
 
 import (
+	"context"
 	"net/http"
 	"os"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -117,13 +118,21 @@ var _ = Describe("Service", func() {
 			})
 
 			It("returns an error when the task store config load returns an error", func() {
-				taskStoreConfig["timeout"] = "invalid"
+				timeout, timeoutSet := os.LookupEnv("TIDEPOOL_STORE_TIMEOUT")
+				os.Setenv("TIDEPOOL_STORE_TIMEOUT", "invalid")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load task store config"))
+				if timeoutSet {
+					os.Setenv("TIDEPOOL_STORE_TIMEOUT", timeout)
+				} else {
+					os.Unsetenv("TIDEPOOL_STORE_TIMEOUT")
+				}
 			})
 
 			It("returns an error when the task store returns an error", func() {
-				taskStoreConfig["addresses"] = ""
+				addresses := os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", "")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create task store"))
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", addresses)
 			})
 
 			It("returns successfully", func() {
@@ -155,7 +164,7 @@ var _ = Describe("Service", func() {
 
 			Context("Status", func() {
 				It("returns successfully", func() {
-					Expect(service.Status()).ToNot(BeNil())
+					Expect(service.Status(context.Background())).ToNot(BeNil())
 				})
 			})
 		})

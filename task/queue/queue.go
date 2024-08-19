@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -65,28 +67,37 @@ func (c *Config) Validate() error {
 }
 
 type Runner interface {
-	CanRunTask(tks *task.Task) bool
-
-	Run(ctx context.Context, tsk *task.Task)
+	GetRunnerType() string
+	GetRunnerDeadline() time.Time
+	GetRunnerMaximumDuration() time.Duration
+	Run(ctx context.Context, tsk *task.Task) bool
 }
 
-type Queue struct {
+type Queue interface {
+	RegisterRunner(Runner) error
+	Start()
+	Stop()
+}
+
+type queue struct {
 	logger            log.Logger
 	store             store.Store
 	workers           int
 	delay             time.Duration
-	runners           []Runner
+	runners           map[string]Runner
 	cancelFunc        context.CancelFunc
 	waitGroup         sync.WaitGroup
 	workersAvailable  int
 	dispatchChannel   chan *task.Task
 	completionChannel chan *task.Task
 	timer             *time.Timer
-	session           store.TaskSession
-	iterator          store.TaskIterator
+	taskRepository    store.TaskRepository
+	iterator          *mongo.Cursor
 }
 
-func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
+var _ Queue = &queue{}
+
+func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -104,27 +115,27 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (*Queue, error) {
 	workers := cfg.Workers
 	delay := cfg.Delay
 
-	return &Queue{
+	return &queue{
 		logger:            lgr,
 		store:             str,
 		workers:           workers,
 		delay:             delay,
-		runners:           []Runner{},
+		runners:           make(map[string]Runner),
 		dispatchChannel:   make(chan *task.Task, workers),
 		completionChannel: make(chan *task.Task, workers),
 	}, nil
 }
 
-func (q *Queue) RegisterRunner(runner Runner) error {
+func (q *queue) RegisterRunner(runner Runner) error {
 	if runner == nil {
 		return errors.New("runner is missing")
 	}
 
-	q.runners = append(q.runners, runner)
+	q.runners[runner.GetRunnerType()] = runner
 	return nil
 }
 
-func (q *Queue) Start() {
+func (q *queue) Start() {
 	if q.cancelFunc == nil {
 		ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
 		q.cancelFunc = cancelFunc
@@ -134,7 +145,7 @@ func (q *Queue) Start() {
 	}
 }
 
-func (q *Queue) Stop() {
+func (q *queue) Stop() {
 	if q.cancelFunc != nil {
 		q.cancelFunc()
 		q.cancelFunc = nil
@@ -143,13 +154,13 @@ func (q *Queue) Stop() {
 	}
 }
 
-func (q *Queue) startWorkers(ctx context.Context) {
+func (q *queue) startWorkers(ctx context.Context) {
 	for q.workersAvailable = 0; q.workersAvailable < q.workers; q.workersAvailable++ {
 		q.startWorker(ctx)
 	}
 }
 
-func (q *Queue) startWorker(ctx context.Context) {
+func (q *queue) startWorker(ctx context.Context) {
 	q.waitGroup.Add(1)
 	go func() {
 		defer q.waitGroup.Done()
@@ -166,7 +177,7 @@ func (q *Queue) startWorker(ctx context.Context) {
 	}()
 }
 
-func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
 	defer func() {
@@ -176,9 +187,17 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		}
 	}()
 
-	for _, runner := range q.runners {
-		if runner.CanRunTask(tsk) {
-			runner.Run(ctx, tsk)
+	if runner, ok := q.runners[tsk.Type]; ok {
+		status := make(chan bool, 1)
+		go func() {
+			status <- runner.Run(ctx, tsk)
+		}()
+		select {
+		case <-time.After(2 * runner.GetRunnerMaximumDuration()):
+			tsk.AppendError(errors.New("Task timed out"))
+			tsk.RepeatAvailableAfter(2 * runner.GetRunnerMaximumDuration())
+			return
+		case <-status:
 			return
 		}
 	}
@@ -187,15 +206,25 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	tsk.AppendError(errors.New("runner not found for task"))
 }
 
-func (q *Queue) startManager(ctx context.Context) {
+func (q *queue) startManager(ctx context.Context) {
 	q.waitGroup.Add(1)
+
 	go func() {
 		defer q.waitGroup.Done()
 
-		q.startTimer(time.Duration(rand.Int63n(int64(q.delay))))
+		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
 		defer q.stopTimer()
 
+		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
+		// time, it is not an error condition if it does, but could stress the db if the collection gets large
+		nextUnstickTime := time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15))))
+
 		for {
+			if nextUnstickTime.Before(time.Now()) {
+				q.unstickTasks(ctx)
+				nextUnstickTime = time.Now().Add(q.delay * 15)
+			}
+
 			select {
 			case <-ctx.Done():
 				return
@@ -210,17 +239,30 @@ func (q *Queue) startManager(ctx context.Context) {
 	}()
 }
 
-func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
+func (q *queue) unstickTasks(ctx context.Context) {
+	repository := q.store.NewTaskRepository()
+	count, err := repository.UnstickTasks(ctx)
+	if err != nil {
+		q.logger.WithError(err).Error("Failure in unsticking tasks")
+	}
+	if count > 0 {
+		q.logger.WithField("unstickCount", count).Info("Unstuck Tasks")
+	}
+}
+
+func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 	defer q.stopPendingIterator()
 	for q.workersAvailable > 0 {
 		iter := q.startPendingIterator(ctx)
 
 		tsk := &task.Task{}
-		if iter.Next(tsk) {
+		if iter.Next(ctx) {
+			err := iter.Decode(tsk)
+			if err != nil {
+				q.logger.WithError(err).Error("Failure iterating tasks")
+				return q.delay
+			}
 			q.dispatchTask(ctx, tsk)
-		} else if err := iter.Error(); err != nil {
-			q.logger.WithError(err).Error("Failure iterating tasks") // TODO: Only warn after n fallbacks
-			return q.delay                                           // TODO: Exponential fallback
 		} else {
 			return q.delay
 		}
@@ -229,18 +271,27 @@ func (q *Queue) dispatchTasks(ctx context.Context) time.Duration {
 	return q.delay
 }
 
-func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
-	ssn := q.store.NewTaskSession()
-	defer ssn.Close()
+	repository := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
-	tsk.RunTime = pointer.FromTime(time.Now())
+	tsk.RunTime = pointer.FromAny(time.Now())
+
+	// we don't error here if missing, as the task will be failed during runTask
+	if runner, ok := q.runners[tsk.Type]; ok {
+		tsk.DeadlineTime = pointer.FromAny(runner.GetRunnerDeadline())
+	}
 
 	var err error
-	tsk, err = ssn.UpdateFromState(ctx, tsk, task.TaskStatePending)
+	tsk, err = repository.UpdateFromState(ctx, tsk, task.TaskStatePending)
 	if err != nil {
+		if err == task.AlreadyClaimedTask {
+			logger.Infof("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
+			return
+		}
+
 		logger.WithError(err).Error("Failure to update state during dispatch task")
 		return
 	}
@@ -249,20 +300,19 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	q.dispatchChannel <- tsk
 }
 
-func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
+func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	logger := q.logger.WithField("taskId", tsk.ID)
 
 	q.workersAvailable++
 
-	ssn := q.store.NewTaskSession()
-	defer ssn.Close()
+	repository := q.store.NewTaskRepository()
 
 	if tsk.RunTime != nil {
 		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
 	}
 	q.computeState(tsk)
 
-	_, err := ssn.UpdateFromState(ctx, tsk, task.TaskStateRunning)
+	_, err := repository.UpdateFromState(ctx, tsk, task.TaskStateRunning)
 	if err != nil {
 		logger.WithError(err).Error("Failure to update state during complete task")
 	}
@@ -272,7 +322,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-func (q *Queue) computeState(tsk *task.Task) {
+func (q *queue) computeState(tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
 		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
@@ -292,7 +342,7 @@ func (q *Queue) computeState(tsk *task.Task) {
 	}
 }
 
-func (q *Queue) startTimer(delay time.Duration) {
+func (q *queue) startTimer(delay time.Duration) {
 	if delay > 0 {
 		if q.timer == nil {
 			q.timer = time.NewTimer(delay)
@@ -302,7 +352,7 @@ func (q *Queue) startTimer(delay time.Duration) {
 	}
 }
 
-func (q *Queue) stopTimer() {
+func (q *queue) stopTimer() {
 	if q.timer != nil {
 		if !q.timer.Stop() {
 			<-q.timer.C
@@ -310,23 +360,22 @@ func (q *Queue) stopTimer() {
 	}
 }
 
-func (q *Queue) startPendingIterator(ctx context.Context) store.TaskIterator {
-	if q.session == nil {
-		q.session = q.store.NewTaskSession()
+func (q *queue) startPendingIterator(ctx context.Context) *mongo.Cursor {
+	if q.taskRepository == nil {
+		q.taskRepository = q.store.NewTaskRepository()
 	}
 	if q.iterator == nil {
-		q.iterator = q.session.IteratePending(ctx)
+		// TODO: What happens when an error is returned?
+		q.iterator, _ = q.taskRepository.IteratePending(ctx)
 	}
 	return q.iterator
 }
 
-func (q *Queue) stopPendingIterator() {
+func (q *queue) stopPendingIterator() {
 	if q.iterator != nil {
-		q.iterator.Close()
 		q.iterator = nil
 	}
-	if q.session != nil {
-		q.session.Close()
-		q.session = nil
+	if q.taskRepository != nil {
+		q.taskRepository = nil
 	}
 }

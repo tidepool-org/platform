@@ -1,31 +1,27 @@
 # Development
-FROM golang:1.11.4-alpine AS development
+FROM golang:1.22.2-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
-RUN apk --no-cache add git make tzdata mongodb && \
-    apk add --no-cache ca-certificates tzdata && \
-    go get github.com/githubnemo/CompileDaemon && \
+RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
+    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
+    apk --no-cache add ca-certificates tzdata make git mongodb yaml-cpp=0.6.2-r2&& \
+    go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool && \
     chown -R tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
-COPY . .
+COPY --chown=tidepool . .
 ENV SERVICE=tools
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM alpine:latest AS production
-ENV ENV="/home/tidepool/.ashrc"
-RUN apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk add --no-cache ca-certificates tzdata && \
-    adduser -D tidepool
-RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/community' >> /etc/apk/repositories && \
-    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.6/main' >> /etc/apk/repositories && \
-    apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk add --no-cache mongodb && \
+FROM mongo:6.0.14 AS production
+# this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
+ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
+RUN apt -y update && \
+    apt -y install ca-certificates tzdata && \
+    adduser --disabled-password tidepool
 WORKDIR /home/tidepool
 USER tidepool
 COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
-COPY ./tools/ashrc /home/tidepool/.ashrc
+COPY ./tools/ashrc /home/tidepool/.bashrc
 CMD ["./tools"]

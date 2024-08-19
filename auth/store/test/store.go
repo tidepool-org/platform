@@ -5,30 +5,39 @@ import (
 )
 
 type Store struct {
-	NewProviderSessionSessionInvocations int
-	NewProviderSessionSessionImpl        *ProviderSessionSession
-	NewRestrictedTokenSessionInvocations int
-	NewRestrictedTokenSessionImpl        *RestrictedTokenSession
+	NewProviderSessionRepositoryInvocations int
+	NewProviderSessionRepositoryImpl        *ProviderSessionRepository
+	NewRestrictedTokenRepositoryInvocations int
+	NewRestrictedTokenRepositoryImpl        *RestrictedTokenRepository
+	NewDeviceTokenRepositoryInvocations     int
+	NewDeviceTokenRepositoryImpl            *DeviceTokenRepository
 }
 
 func NewStore() *Store {
 	return &Store{
-		NewProviderSessionSessionImpl: NewProviderSessionSession(),
-		NewRestrictedTokenSessionImpl: NewRestrictedTokenSession(),
+		NewProviderSessionRepositoryImpl: NewProviderSessionRepository(),
+		NewRestrictedTokenRepositoryImpl: NewRestrictedTokenRepository(),
+		NewDeviceTokenRepositoryImpl:     NewDeviceTokenRepository(),
 	}
 }
 
-func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
-	s.NewProviderSessionSessionInvocations++
-	return s.NewProviderSessionSessionImpl
+func (s *Store) NewProviderSessionRepository() store.ProviderSessionRepository {
+	s.NewProviderSessionRepositoryInvocations++
+	return s.NewProviderSessionRepositoryImpl
 }
 
-func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
-	s.NewRestrictedTokenSessionInvocations++
-	return s.NewRestrictedTokenSessionImpl
+func (s *Store) NewRestrictedTokenRepository() store.RestrictedTokenRepository {
+	s.NewRestrictedTokenRepositoryInvocations++
+	return s.NewRestrictedTokenRepositoryImpl
+}
+
+func (s *Store) NewDeviceTokenRepository() store.DeviceTokenRepository {
+	s.NewRestrictedTokenRepositoryInvocations++
+	return s.NewDeviceTokenRepositoryImpl
 }
 
 func (s *Store) Expectations() {
-	s.NewProviderSessionSessionImpl.Expectations()
-	s.NewRestrictedTokenSessionImpl.Expectations()
+	s.NewProviderSessionRepositoryImpl.Expectations()
+	s.NewRestrictedTokenRepositoryImpl.Expectations()
+	s.NewDeviceTokenRepositoryImpl.Expectations()
 }

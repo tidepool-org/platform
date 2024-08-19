@@ -3,6 +3,7 @@ package factory
 import (
 	"github.com/tidepool-org/platform/data"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBasal "github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalFactory "github.com/tidepool-org/platform/data/types/basal/factory"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -13,18 +14,24 @@ import (
 	dataTypesCalculator "github.com/tidepool-org/platform/data/types/calculator"
 	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceFactory "github.com/tidepool-org/platform/data/types/device/factory"
+	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	dataTypesSettingsCGM "github.com/tidepool-org/platform/data/types/settings/cgm"
+	dataTypesSettingsController "github.com/tidepool-org/platform/data/types/settings/controller"
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
+	dataTypesStatusController "github.com/tidepool-org/platform/data/types/status/controller"
+	dataTypesStatusPump "github.com/tidepool-org/platform/data/types/status/pump"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
+	dataTypesWater "github.com/tidepool-org/platform/data/types/water"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 var types = []string{
 	dataTypesActivityPhysical.Type,
+	dataTypesAlert.Type,
 	dataTypesBasal.Type,
 	dataTypesBloodGlucoseContinuous.Type,
 	dataTypesBloodGlucoseSelfmonitored.Type,
@@ -32,12 +39,17 @@ var types = []string{
 	dataTypesBolus.Type,
 	dataTypesCalculator.Type,
 	dataTypesDevice.Type,
+	dataTypesDosingDecision.Type,
 	dataTypesFood.Type,
 	dataTypesInsulin.Type,
 	dataTypesSettingsCGM.Type,
+	dataTypesSettingsController.Type,
 	dataTypesSettingsPump.Type,
 	dataTypesStateReported.Type,
+	dataTypesStatusController.Type,
+	dataTypesStatusPump.Type,
 	dataTypesUpload.Type,
+	dataTypesWater.Type,
 }
 
 func NewDatum(parser structure.ObjectParser) data.Datum {
@@ -54,6 +66,8 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 	switch *value {
 	case dataTypesActivityPhysical.Type:
 		return dataTypesActivityPhysical.New()
+	case dataTypesAlert.Type:
+		return dataTypesAlert.New()
 	case dataTypesBasal.Type:
 		return dataTypesBasalFactory.NewBasalDatum(parser)
 	case dataTypesBloodGlucoseContinuous.Type:
@@ -68,18 +82,28 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesCalculator.New()
 	case dataTypesDevice.Type:
 		return dataTypesDeviceFactory.NewDeviceDatum(parser)
+	case dataTypesDosingDecision.Type:
+		return dataTypesDosingDecision.New()
 	case dataTypesFood.Type:
 		return dataTypesFood.New()
 	case dataTypesInsulin.Type:
 		return dataTypesInsulin.New()
 	case dataTypesSettingsCGM.Type:
 		return dataTypesSettingsCGM.New()
+	case dataTypesSettingsController.Type:
+		return dataTypesSettingsController.New()
 	case dataTypesSettingsPump.Type:
 		return dataTypesSettingsPump.New()
 	case dataTypesStateReported.Type:
 		return dataTypesStateReported.New()
+	case dataTypesStatusController.Type:
+		return dataTypesStatusController.New()
+	case dataTypesStatusPump.Type:
+		return dataTypesStatusPump.New()
 	case dataTypesUpload.Type:
 		return dataTypesUpload.New()
+	case dataTypesWater.Type:
+		return dataTypesWater.New()
 	}
 
 	parser.WithReferenceErrorReporter("type").ReportError(structureValidator.ErrorValueStringNotOneOf(*value, types))

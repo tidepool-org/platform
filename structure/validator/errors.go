@@ -89,6 +89,10 @@ func ErrorValueNotInRange(value interface{}, lowerLimit interface{}, upperLimit 
 	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value %s is not between %s and %s", stringify(value), stringify(lowerLimit), stringify(upperLimit))
 }
 
+func ErrorValueNotValid() error {
+	return errors.Preparedf(ErrorCodeValueOutOfRange, "value is out of range", "value is not valid")
+}
+
 func ErrorValueNotSerializable() error {
 	return errors.Preparedf(ErrorCodeValueNotSerializable, "value is not serializable", "value is not serializable")
 }
@@ -98,6 +102,14 @@ func ErrorValueFloat64OneOf(value float64, disallowedValues []float64) error {
 }
 
 func ErrorValueFloat64NotOneOf(value float64, allowedValues []float64) error {
+	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
+}
+
+func ErrorValueDurationOneOf(value time.Duration, disallowedValues []time.Duration) error {
+	return errors.Preparedf(ErrorCodeValueDisallowed, "value is one of the disallowed values", "value %s is one of %s", stringify(value), stringify(disallowedValues))
+}
+
+func ErrorValueDurationNotOneOf(value time.Duration, allowedValues []time.Duration) error {
 	return errors.Preparedf(ErrorCodeValueNotAllowed, "value is not one of the allowed values", "value %s is not one of %s", stringify(value), stringify(allowedValues))
 }
 

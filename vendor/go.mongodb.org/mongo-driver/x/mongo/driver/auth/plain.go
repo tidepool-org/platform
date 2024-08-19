@@ -8,9 +8,6 @@ package auth
 
 import (
 	"context"
-
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // PLAIN is the mechanism name for PLAIN.
@@ -30,8 +27,8 @@ type PlainAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *PlainAuthenticator) Auth(ctx context.Context, _ description.Server, conn driver.Connection) error {
-	return ConductSaslConversation(ctx, conn, "$external", &plainSaslClient{
+func (a *PlainAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+	return ConductSaslConversation(ctx, cfg, "$external", &plainSaslClient{
 		username: a.Username,
 		password: a.Password,
 	})
@@ -42,12 +39,14 @@ type plainSaslClient struct {
 	password string
 }
 
+var _ SaslClient = (*plainSaslClient)(nil)
+
 func (c *plainSaslClient) Start() (string, []byte, error) {
 	b := []byte("\x00" + c.username + "\x00" + c.password)
 	return PLAIN, b, nil
 }
 
-func (c *plainSaslClient) Next(challenge []byte) ([]byte, error) {
+func (c *plainSaslClient) Next([]byte) ([]byte, error) {
 	return nil, newAuthError("unexpected server challenge", nil)
 }
 

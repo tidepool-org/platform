@@ -7,27 +7,17 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service/api"
 )
-
-// TODO: BEGIN: Update to new service paradigm
-// func (r *Router) SourcesRoutes() []*rest.Route {
-// 	return []*rest.Route{
-// 		rest.Get("/v1/users/:userId/data_sources", api.Require(r.ListSources)),
-// 		rest.Post("/v1/users/:userId/data_sources", api.RequireServer(r.CreateSource)),
-// 		rest.Get("/v1/data_sources/:id", api.Require(r.GetSource)),
-// 		rest.Put("/v1/data_sources/:id", api.RequireServer(r.UpdateSource)),
-// 		rest.Delete("/v1/data_sources/:id", api.RequireServer(r.DeleteSource)),
-// 	}
-// }
 
 func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/users/:userId/data_sources", Authenticate(ListSources)),
-		dataService.MakeRoute("POST", "/v1/users/:userId/data_sources", Authenticate(CreateSource)),
-		dataService.MakeRoute("DELETE", "/v1/users/:userId/data_sources", Authenticate(DeleteAllSources)),
-		dataService.MakeRoute("GET", "/v1/data_sources/:id", Authenticate(GetSource)),
-		dataService.MakeRoute("PUT", "/v1/data_sources/:id", Authenticate(UpdateSource)),
-		dataService.MakeRoute("DELETE", "/v1/data_sources/:id", Authenticate(DeleteSource)),
+		dataService.Get("/v1/users/:userId/data_sources", ListSources, api.RequireAuth),
+		dataService.Post("/v1/users/:userId/data_sources", CreateSource, api.RequireAuth),
+		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, api.RequireAuth),
+		dataService.Get("/v1/data_sources/:id", GetSource, api.RequireAuth),
+		dataService.Put("/v1/data_sources/:id", UpdateSource, api.RequireAuth),
+		dataService.Delete("/v1/data_sources/:id", DeleteSource, api.RequireAuth),
 	}
 }
 
@@ -37,7 +27,7 @@ func ListSources(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -80,7 +70,7 @@ func CreateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -120,7 +110,7 @@ func DeleteAllSources(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -154,7 +144,7 @@ func GetSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -193,7 +183,7 @@ func UpdateSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return
@@ -242,7 +232,7 @@ func DeleteSource(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 
-	details := request.DetailsFromContext(req.Context())
+	details := request.GetAuthDetails(req.Context())
 	if details == nil {
 		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
 		return

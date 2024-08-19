@@ -2,25 +2,23 @@ package store
 
 import (
 	"context"
-	"io"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/task"
 )
 
 type Store interface {
-	NewTaskSession() TaskSession
+	NewTaskRepository() TaskRepository
+	WithTypeFilter(typeFilter string) Store
+	Terminate(ctx context.Context) error
 }
 
-type TaskSession interface {
-	io.Closer
+type TaskRepository interface {
 	task.TaskAccessor
 
-	UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error)
-	IteratePending(ctx context.Context) TaskIterator
-}
+	UnstickTasks(ctx context.Context) (int64, error)
 
-type TaskIterator interface {
-	Next(tsk *task.Task) bool
-	Close() error
-	Error() error
+	UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error)
+	IteratePending(ctx context.Context) (*mongo.Cursor, error)
 }

@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"encoding/json"
 	"math"
 	"sort"
 	"time"
@@ -70,7 +71,7 @@ func (o *Object) Exists() bool {
 
 func (o *Object) Parse(objectParsable structure.ObjectParsable) error {
 	objectParsable.Parse(o)
-	return o.NotParsed()
+	return o.Error()
 }
 
 func (o *Object) References() []string {
@@ -196,21 +197,29 @@ func (o *Object) StringArray(reference string) *[]string {
 }
 
 func (o *Object) Time(reference string, layout string) *time.Time {
+	var timeValue time.Time
+	var err error
+
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	stringValue, ok := rawValue.(string)
-	if !ok {
-		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-		return nil
-	}
+	switch rawValue.(type) {
+	case time.Time:
+		timeValue = rawValue.(time.Time)
+	default:
+		stringValue, ok := rawValue.(string)
+		if !ok {
+			o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+			return nil
+		}
 
-	timeValue, err := time.Parse(layout, stringValue)
-	if err != nil {
-		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-		return nil
+		timeValue, err = time.Parse(layout, stringValue)
+		if err != nil {
+			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
+			return nil
+		}
 	}
 
 	return &timeValue
@@ -268,6 +277,28 @@ func (o *Object) Array(reference string) *[]interface{} {
 	}
 
 	return &arrayValue
+}
+
+func (o *Object) JSON(reference string, target any) {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return
+	}
+
+	stringValue, ok := rawValue.(string)
+	if !ok {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotString(rawValue))
+		return
+	}
+
+	if stringValue == "" {
+		return
+	}
+
+	err := json.Unmarshal([]byte(stringValue), target)
+	if err != nil {
+		o.base.WithReference(reference).ReportError(ErrorTypeNotJSON(rawValue, err))
+	}
 }
 
 func (o *Object) Interface(reference string) *interface{} {

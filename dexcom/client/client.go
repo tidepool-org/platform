@@ -2,9 +2,12 @@ package client
 
 import (
 	"context"
+	"net/http"
+	"strconv"
 	"time"
 
-	"golang.org/x/oauth2"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -16,7 +19,8 @@ import (
 )
 
 type Client struct {
-	client *oauthClient.Client
+	client        *oauthClient.Client
+	isSandboxData bool
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
@@ -25,17 +29,33 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 		return nil, err
 	}
 
-	// NOTE: Dexcom authorization server does not support HTTP Basic authentication
-	oauth2.RegisterBrokenAuthHeaderProvider(cfg.Address)
+	isSandboxData := false
+	if cfg != nil && cfg.Address == "https://sandbox-api.dexcom.com" {
+		isSandboxData = true
+	}
 
 	return &Client{
-		client: clnt,
+		client:        clnt,
+		isSandboxData: isSandboxData,
 	}, nil
+}
+
+func (c *Client) GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error) {
+	alertsResponse := &dexcom.AlertsResponse{}
+	paths := []string{"v3", "users", "self", "alerts"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), alertsResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get alerts")
+	}
+
+	return alertsResponse, nil
 }
 
 func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error) {
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "calibrations"), calibrationsResponse, tokenSource); err != nil {
+	paths := []string{"v3", "users", "self", "calibrations"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), calibrationsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get calibrations")
 	}
 
@@ -43,8 +63,10 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 }
 
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
-	devicesResponse := &dexcom.DevicesResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "devices"), devicesResponse, tokenSource); err != nil {
+	devicesResponse := &dexcom.DevicesResponse{IsSandboxData: c.isSandboxData}
+	paths := []string{"v3", "users", "self", "devices"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), devicesResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get devices")
 	}
 
@@ -53,7 +75,9 @@ func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime ti
 
 func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EGVsResponse, error) {
 	egvsResponse := &dexcom.EGVsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "egvs"), egvsResponse, tokenSource); err != nil {
+	paths := []string{"v3", "users", "self", "egvs"}
+
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), egvsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get egvs")
 	}
 
@@ -62,10 +86,10 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL("p", "v2", "users", "self", "events"), eventsResponse, tokenSource); err != nil {
+	paths := []string{"v3", "users", "self", "events"}
+	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
 	}
-
 	return eventsResponse, nil
 }
 
@@ -77,10 +101,10 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
 	})
 
-	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	if oauth.IsAccessTokenError(err) {
 		tokenSource.ExpireToken()
-		err = c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+		err = c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	}
 	if oauth.IsRefreshTokenError(err) {
 		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
@@ -94,3 +118,30 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 }
 
 const requestDurationMaximum = 15 * time.Second
+
+// sendRequest adds instrumentation before calling oauth.Client.SendOAuthRequest.
+func (c *Client) sendRequest(ctx context.Context, method, url string, mutators []request.RequestMutator,
+	requestBody any, responseBody any, httpClientSource oauth.HTTPClientSource) error {
+
+	var inspectors = []request.ResponseInspector{
+		&promDexcomInstrumentor{},
+	}
+	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClientSource)
+}
+
+type promDexcomInstrumentor struct{}
+
+// InspectResponse implements request.ResponseInspector.
+func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) {
+	labels := prometheus.Labels{
+		"code": strconv.Itoa(r.StatusCode),
+		"path": r.Request.URL.Path,
+	}
+	promDexcomCounter.With(labels).Inc()
+}
+
+// promDexcomCounter instruments the Dexcom API paths and status codes called.
+var promDexcomCounter = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_dexcom_api_client_requests",
+	Help: "Dexcom API client requests",
+}, []string{"code", "path"})

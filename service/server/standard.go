@@ -1,9 +1,8 @@
 package server
 
 import (
+	"context"
 	"net/http"
-
-	graceful "gopkg.in/tylerb/graceful.v1"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -11,9 +10,10 @@ import (
 )
 
 type Standard struct {
-	logger log.Logger
 	api    service.API
 	config *Config
+	logger log.Logger
+	server *http.Server
 }
 
 func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error) {
@@ -31,29 +31,39 @@ func NewStandard(cfg *Config, lgr log.Logger, api service.API) (*Standard, error
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
+	server := &http.Server{
+		Addr: cfg.Address,
+	}
+
 	return &Standard{
 		logger: lgr,
 		api:    api,
 		config: cfg,
+		server: server,
 	}, nil
 }
 
 func (s *Standard) Serve() error {
-	server := &graceful.Server{
-		Server: &http.Server{
-			Addr:    s.config.Address,
-			Handler: s.api.Handler(),
-		},
-		Timeout: s.config.Timeout,
-	}
+	s.server.Handler = s.api.Handler()
 
 	var err error
 	if s.config.TLS {
 		s.logger.Infof("Serving HTTPS at %s", s.config.Address)
-		err = server.ListenAndServeTLS(s.config.TLSCertificateFile, s.config.TLSKeyFile)
+		err = s.server.ListenAndServeTLS(s.config.TLSCertificateFile, s.config.TLSKeyFile)
 	} else {
 		s.logger.Infof("Serving HTTP at %s", s.config.Address)
-		err = server.ListenAndServe()
+		err = s.server.ListenAndServe()
 	}
 	return err
+}
+
+func (s *Standard) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), s.config.Timeout)
+	defer cancel()
+	s.logger.Info("Shutting down the server")
+	if err := s.server.Shutdown(ctx); err != nil {
+		s.logger.Errorf("Error while gracefully shutting down: %v", err)
+		return err
+	}
+	return nil
 }

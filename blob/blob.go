@@ -36,6 +36,7 @@ func Statuses() []string {
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
+	CreateDeviceLogs(ctx context.Context, userID string, content *DeviceLogsContent) (*DeviceLogsBlob, error)
 	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
@@ -130,6 +131,66 @@ func (b *Blob) Validate(validator structure.Validator) {
 }
 
 type BlobArray []*Blob
+
+type DeviceLogsContent struct {
+	Body      io.ReadCloser
+	DigestMD5 *string
+	MediaType *string
+	StartAt   *time.Time
+	EndAt     *time.Time
+}
+
+func NewDeviceLogsContent() *DeviceLogsContent {
+	return &DeviceLogsContent{}
+}
+
+func (c *DeviceLogsContent) Validate(validator structure.Validator) {
+	if c.Body == nil {
+		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
+	}
+	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
+	validator.Time("startAt", c.StartAt).Exists().NotZero()
+	validator.Time("endAt", c.EndAt).Exists().NotZero()
+}
+
+type DeviceLogsBlob struct {
+	ID          *string    `json:"id,omitempty" bson:"id,omitempty"`
+	UserID      *string    `json:"userId,omitempty" bson:"userId,omitempty"`
+	DigestMD5   *string    `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
+	MediaType   *string    `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
+	Size        *int       `json:"size,omitempty" bson:"size,omitempty"`
+	CreatedTime *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	StartAtTime *time.Time `json:"startAtTime,omitempty" bson:"startAtTime,omitempty"`
+	EndAtTime   *time.Time `json:"endAtTime,omitempty" bson:"endAtTime,omitempty"`
+	Revision    *int       `json:"revision,omitempty" bson:"revision,omitempty"`
+}
+
+type DeviceLogsBlobArray []*DeviceLogsBlob
+
+func (b *DeviceLogsBlob) Parse(parser structure.ObjectParser) {
+	b.ID = parser.String("id")
+	b.UserID = parser.String("userId")
+	b.DigestMD5 = parser.String("digestMD5")
+	b.MediaType = parser.String("mediaType")
+	b.Size = parser.Int("size")
+	b.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
+	b.StartAtTime = parser.Time("startAtTime", time.RFC3339Nano)
+	b.EndAtTime = parser.Time("endAtTime", time.RFC3339Nano)
+	b.Revision = parser.Int("revision")
+}
+
+func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
+	validator.String("id", b.ID).Exists().Using(IDValidator)
+	validator.String("userId", b.UserID).Exists().Using(user.IDValidator)
+	validator.String("digestMD5", b.DigestMD5).Exists().Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("mediaType", b.MediaType).Exists().Using(net.MediaTypeValidator)
+	validator.Int("size", b.Size).Exists().GreaterThanOrEqualTo(0)
+	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
+	validator.Time("startAtTime", b.StartAtTime).Exists().NotZero().BeforeNow(time.Second)
+	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
+	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
+}
 
 func NewID() string {
 	return id.Must(id.New(16))

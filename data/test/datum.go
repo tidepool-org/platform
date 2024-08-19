@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -29,6 +31,12 @@ type Datum struct {
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	GetTimeInvocations                   int
+	GetTimeOutputs                       []*time.Time
+	GetTypeInvocations                   int
+	GetTypeOutputs                       []string
+	SetTypeInvocations                   int
+	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
 	SetUserIDInputs                      []*string
 	SetDataSetIDInvocations              int
@@ -38,20 +46,26 @@ type Datum struct {
 	SetDeviceIDInvocations               int
 	SetDeviceIDInputs                    []*string
 	SetCreatedTimeInvocations            int
-	SetCreatedTimeInputs                 []*string
+	SetCreatedTimeInputs                 []*time.Time
 	SetCreatedUserIDInvocations          int
 	SetCreatedUserIDInputs               []*string
 	SetModifiedTimeInvocations           int
-	SetModifiedTimeInputs                []*string
+	SetModifiedTimeInputs                []*time.Time
 	SetModifiedUserIDInvocations         int
 	SetModifiedUserIDInputs              []*string
 	SetDeletedTimeInvocations            int
-	SetDeletedTimeInputs                 []*string
+	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
+	IsActiveInvocations                  int
+	IsActiveOutputs                      []bool
+	SetProvenanceInvocations             int
+	SetProvenanceInputs                  []*data.Provenance
+	GetUploadIDInvocations               int
+	GetUploadIDOutputs                   []*string
 }
 
 func NewDatum() *Datum {
@@ -116,6 +130,42 @@ func (d *Datum) GetOrigin() *origin.Origin {
 	return output
 }
 
+func (d *Datum) GetType() string {
+	d.GetTypeInvocations++
+
+	gomega.Expect(d.GetTypeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetTypeOutputs[0]
+	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) IsActive() bool {
+	d.IsActiveInvocations++
+
+	gomega.Expect(d.IsActiveOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.IsActiveOutputs[0]
+	d.IsActiveOutputs = d.IsActiveOutputs[1:]
+	return output
+}
+
+func (d *Datum) SetType(typ string) {
+	d.SetTypeInvocations++
+
+	d.SetTypeInputs = append(d.SetTypeInputs, typ)
+}
+
+func (d *Datum) GetTime() *time.Time {
+	d.GetTimeInvocations++
+
+	gomega.Expect(d.GetTimeOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetTimeOutputs[0]
+	d.GetTimeOutputs = d.GetTimeOutputs[1:]
+	return output
+}
+
 func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 
@@ -140,7 +190,7 @@ func (d *Datum) SetDeviceID(deviceID *string) {
 	d.SetDeviceIDInputs = append(d.SetDeviceIDInputs, deviceID)
 }
 
-func (d *Datum) SetCreatedTime(createdTime *string) {
+func (d *Datum) SetCreatedTime(createdTime *time.Time) {
 	d.SetCreatedTimeInvocations++
 
 	d.SetCreatedTimeInputs = append(d.SetCreatedTimeInputs, createdTime)
@@ -152,7 +202,7 @@ func (d *Datum) SetCreatedUserID(createdUserID *string) {
 	d.SetCreatedUserIDInputs = append(d.SetCreatedUserIDInputs, createdUserID)
 }
 
-func (d *Datum) SetModifiedTime(modifiedTime *string) {
+func (d *Datum) SetModifiedTime(modifiedTime *time.Time) {
 	d.SetModifiedTimeInvocations++
 
 	d.SetModifiedTimeInputs = append(d.SetModifiedTimeInputs, modifiedTime)
@@ -164,7 +214,7 @@ func (d *Datum) SetModifiedUserID(modifiedUserID *string) {
 	d.SetModifiedUserIDInputs = append(d.SetModifiedUserIDInputs, modifiedUserID)
 }
 
-func (d *Datum) SetDeletedTime(deletedTime *string) {
+func (d *Datum) SetDeletedTime(deletedTime *time.Time) {
 	d.SetDeletedTimeInvocations++
 
 	d.SetDeletedTimeInputs = append(d.SetDeletedTimeInputs, deletedTime)
@@ -174,6 +224,11 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInvocations++
 
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
+}
+
+func (d *Datum) SetProvenance(p *data.Provenance) {
+	d.SetProvenanceInvocations++
+	d.SetProvenanceInputs = append(d.SetProvenanceInputs, p)
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
@@ -193,4 +248,13 @@ func (d *Datum) Expectations() {
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetOriginOutputs).To(gomega.BeEmpty())
+}
+
+func (d *Datum) GetUploadID() *string {
+	d.GetUploadIDInvocations++
+
+	output := d.GetUploadIDOutputs[0]
+	d.GetUploadIDOutputs = d.GetUploadIDOutputs[1:]
+
+	return output
 }

@@ -7,7 +7,7 @@ import (
 	"net/url"
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -846,7 +846,7 @@ var _ = Describe("Client", func() {
 				sessionToken := authTest.NewSessionToken()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
 			})
 
 			clientAssertions()

@@ -1,16 +1,28 @@
 package service
 
 import (
+	"context"
+	"log"
+	"os"
+
+	"github.com/tidepool-org/platform/clinics"
+
+	"github.com/IBM/sarama"
+	eventsCommon "github.com/tidepool-org/go-common/events"
+
 	"github.com/tidepool-org/platform/application"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
+	dataEvents "github.com/tidepool-org/platform/data/events"
 	"github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
-	dataStoreDEPRECATEDMongo "github.com/tidepool-org/platform/data/storeDEPRECATED/mongo"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/events"
+	logInternal "github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
@@ -26,11 +38,13 @@ type Standard struct {
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
-	dataStoreDEPRECATED       *dataStoreDEPRECATEDMongo.Store
+	dataStore                 *dataStoreMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
 	dataClient                *Client
+	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	userEventsHandler         events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -55,7 +69,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
 		return err
 	}
-	if err := s.initializeDataStoreDEPRECATED(); err != nil {
+	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataSourceStructuredStore(); err != nil {
@@ -67,7 +81,13 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
+	if err := s.initializeClinicsClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
+		return err
+	}
+	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -77,20 +97,32 @@ func (s *Standard) Initialize(provider application.Provider) error {
 }
 
 func (s *Standard) Terminate() {
-	s.server = nil
+	if s.server != nil {
+		if err := s.server.Shutdown(); err != nil {
+			s.Logger().Errorf("Error while terminating the the server: %v", err)
+		}
+		s.server = nil
+	}
+	if s.userEventsHandler != nil {
+		s.Logger().Info("Terminating the userEventsHandler")
+		if err := s.userEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
+		}
+		s.userEventsHandler = nil
+	}
 	s.api = nil
 	s.dataClient = nil
 	if s.syncTaskStore != nil {
-		s.syncTaskStore.Close()
+		s.syncTaskStore.Terminate(context.Background())
 		s.syncTaskStore = nil
 	}
 	if s.dataSourceStructuredStore != nil {
-		s.dataSourceStructuredStore.Close()
+		s.dataSourceStructuredStore.Terminate(context.Background())
 		s.dataSourceStructuredStore = nil
 	}
-	if s.dataStoreDEPRECATED != nil {
-		s.dataStoreDEPRECATED.Close()
-		s.dataStoreDEPRECATED = nil
+	if s.dataStore != nil {
+		s.dataStore.Terminate(context.Background())
+		s.dataStore = nil
 	}
 	s.dataDeduplicatorFactory = nil
 	s.permissionClient = nil
@@ -104,7 +136,15 @@ func (s *Standard) Run() error {
 		return errors.New("service not initialized")
 	}
 
-	return s.server.Serve()
+	errs := make(chan error)
+	go func() {
+		errs <- s.userEventsHandler.Run()
+	}()
+	go func() {
+		errs <- s.server.Serve()
+	}()
+
+	return <-errs
 }
 
 func (s *Standard) PermissionClient() permission.Client {
@@ -120,7 +160,9 @@ func (s *Standard) initializeMetricClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("metric", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load metric client config")
 	}
 
@@ -140,7 +182,9 @@ func (s *Standard) initializePermissionClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load permission client config")
 	}
 
@@ -202,25 +246,28 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	return nil
 }
 
-func (s *Standard) initializeDataStoreDEPRECATED() error {
+func (s *Standard) initializeDataStore() error {
 	s.Logger().Debug("Loading data store DEPRECATED config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data store DEPRECATED config")
+	}
+	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("DEPRECATED", "data", "store")); err != nil {
+		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
 	s.Logger().Debug("Creating data store")
 
-	str, err := dataStoreDEPRECATEDMongo.NewStore(cfg, s.Logger())
+	str, err := dataStoreMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data store DEPRECATED")
 	}
-	s.dataStoreDEPRECATED = str
+	s.dataStore = str
 
 	s.Logger().Debug("Ensuring data store DEPRECATED indexes")
 
-	err = s.dataStoreDEPRECATED.EnsureIndexes()
+	err = s.dataStore.EnsureIndexes()
 	if err != nil {
 		return errors.Wrap(err, "unable to ensure data store DEPRECATED indexes")
 	}
@@ -232,13 +279,13 @@ func (s *Standard) initializeDataSourceStructuredStore() error {
 	s.Logger().Debug("Loading data source structured store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load data source structured store config")
 	}
 
 	s.Logger().Debug("Creating data source structured store")
 
-	str, err := dataSourceStoreStructuredMongo.NewStore(cfg, s.Logger())
+	str, err := dataSourceStoreStructuredMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data source structured store")
 	}
@@ -258,13 +305,16 @@ func (s *Standard) initializeSyncTaskStore() error {
 	s.Logger().Debug("Loading sync task store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load sync task store config")
+	}
+	if err := cfg.SetDatabaseFromReporter(s.ConfigReporter().WithScopes("sync_task", "store")); err != nil {
 		return errors.Wrap(err, "unable to load sync task store config")
 	}
 
 	s.Logger().Debug("Creating sync task store")
 
-	str, err := syncTaskMongo.NewStore(cfg, s.Logger())
+	str, err := syncTaskMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}
@@ -276,7 +326,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStoreDEPRECATED)
+	clnt, err := NewClient(s.dataStore)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -297,12 +347,24 @@ func (s *Standard) initializeDataSourceClient() error {
 	return nil
 }
 
+func (s *Standard) initializeClinicsClient() error {
+	s.Logger().Debug("Creating clinics client")
+
+	clnt, err := clinics.NewClient(s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create clinics client")
+	}
+	s.clinicsClient = &clnt
+
+	return nil
+}
+
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStoreDEPRECATED, s.syncTaskStore, s.dataClient, s.dataSourceClient)
+		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}
@@ -338,6 +400,22 @@ func (s *Standard) initializeServer() error {
 		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = newServer
+
+	return nil
+}
+
+func (s *Standard) initializeUserEventsHandler() error {
+	s.Logger().Debug("Initializing user events handler")
+	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+
+	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
+	handlers := []eventsCommon.EventHandler{handler}
+	runner := events.NewRunner(handlers)
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "unable to initialize user events handler runner")
+	}
+	s.userEventsHandler = runner
 
 	return nil
 }

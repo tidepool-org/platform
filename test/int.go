@@ -52,6 +52,7 @@ func NewObjectFromInt(value int, objectFormat ObjectFormat) interface{} {
 		if value < math.MinInt32 || value > math.MaxInt32 {
 			return int64(value)
 		}
+		return int32(value)
 	}
 	return value
 }

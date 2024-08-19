@@ -3,8 +3,7 @@ package insulin_test
 import (
 	"math"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -52,7 +51,7 @@ var _ = Describe("Concentration", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Concentration), expectedErrors ...error) {
-					datum := dataTypesInsulinTest.NewConcentration()
+					datum := dataTypesInsulinTest.RandomConcentration()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -193,7 +192,7 @@ var _ = Describe("Concentration", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Concentration)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesInsulinTest.NewConcentration()
+						datum := dataTypesInsulinTest.RandomConcentration()
 						mutator(datum)
 						expectedDatum := dataTypesInsulinTest.CloneConcentration(datum)
 						normalizer := dataNormalizer.New()

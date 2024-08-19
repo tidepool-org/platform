@@ -16,7 +16,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-const MaximumExpirationDuration = time.Hour
+const DefaultExpirationDuration = time.Hour
+const MaximumExpirationDuration = time.Hour * 24 * 90
 
 var pathExpression = regexp.MustCompile("^/.*$")
 
@@ -53,7 +54,7 @@ type RestrictedTokenCreate struct {
 
 func NewRestrictedTokenCreate() *RestrictedTokenCreate {
 	return &RestrictedTokenCreate{
-		ExpirationTime: pointer.FromTime(time.Now().Add(MaximumExpirationDuration)),
+		ExpirationTime: pointer.FromTime(time.Now().Add(DefaultExpirationDuration)),
 	}
 }
 
@@ -145,7 +146,7 @@ func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*Restrict
 	if create.ExpirationTime != nil {
 		restrictedToken.ExpirationTime = *create.ExpirationTime
 	} else {
-		restrictedToken.ExpirationTime = time.Now().Add(MaximumExpirationDuration)
+		restrictedToken.ExpirationTime = time.Now().Add(DefaultExpirationDuration)
 	}
 
 	return restrictedToken, nil
@@ -196,7 +197,7 @@ func (r *RestrictedToken) Authenticates(req *http.Request) bool {
 	return true
 }
 
-func (r *RestrictedToken) Sanitize(details request.Details) error {
+func (r *RestrictedToken) Sanitize(details request.AuthDetails) error {
 	if details != nil && (details.IsService() || details.UserID() == r.UserID) {
 		return nil
 	}
@@ -205,7 +206,7 @@ func (r *RestrictedToken) Sanitize(details request.Details) error {
 
 type RestrictedTokens []*RestrictedToken
 
-func (r RestrictedTokens) Sanitize(details request.Details) error {
+func (r RestrictedTokens) Sanitize(details request.AuthDetails) error {
 	for _, restrictedToken := range r {
 		if err := restrictedToken.Sanitize(details); err != nil {
 			return err

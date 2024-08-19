@@ -9,7 +9,7 @@ import (
 
 func NewNormal() *normal.Normal {
 	datum := normal.New()
-	datum.Bolus = *dataTypesBolusTest.NewBolus()
+	datum.Bolus = *dataTypesBolusTest.RandomBolus()
 	datum.SubType = "normal"
 	datum.Normal = pointer.FromFloat64(test.RandomFloat64FromRange(normal.NormalMinimum, normal.NormalMaximum))
 	datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, normal.NormalMaximum))

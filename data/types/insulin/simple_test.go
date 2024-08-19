@@ -1,8 +1,7 @@
 package insulin_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -59,7 +58,7 @@ var _ = Describe("Simple", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Simple), expectedErrors ...error) {
-					datum := dataTypesInsulinTest.NewSimple()
+					datum := dataTypesInsulinTest.RandomSimple()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -108,7 +107,7 @@ var _ = Describe("Simple", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/concentration/units"),
 				),
 				Entry("concentration valid",
-					func(datum *insulin.Simple) { datum.Concentration = dataTypesInsulinTest.NewConcentration() },
+					func(datum *insulin.Simple) { datum.Concentration = dataTypesInsulinTest.RandomConcentration() },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Simple) {
@@ -127,7 +126,7 @@ var _ = Describe("Simple", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Simple)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesInsulinTest.NewSimple()
+						datum := dataTypesInsulinTest.RandomSimple()
 						mutator(datum)
 						expectedDatum := dataTypesInsulinTest.CloneSimple(datum)
 						normalizer := dataNormalizer.New()

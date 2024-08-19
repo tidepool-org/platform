@@ -3,6 +3,9 @@ package client
 import (
 	"context"
 	"net/http"
+	"time"
+
+	"github.com/tidepool-org/platform/data/summary/types"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -11,6 +14,12 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	// ExtendedTimeout is used by requests that we expect to take longer than
+	// usual.
+	ExtendedTimeout = 15 * time.Minute
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -22,10 +31,21 @@ type Client interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 
 	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error)
+	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error)
+	GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error)
+	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error)
+	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error)
+	UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error)
+	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
+	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context, t string) (int, error)
 }
 
 type ClientImpl struct {
-	client *platform.Client
+	client                *platform.Client
+	extendedTimeoutClient *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
@@ -88,7 +108,6 @@ func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, creat
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, &response); err != nil {
 		return nil, err
 	}
-
 	return response.Data, nil
 }
 
@@ -110,6 +129,181 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	}
 
 	return dataSet, nil
+}
+
+func (c *ClientImpl) GetCGMSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("userId is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "cgm", userId)
+	summary := &types.Summary[*types.CGMStats, types.CGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) GetBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
+	summary := &types.Summary[*types.BGMStats, types.BGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) GetContinuousSummary(ctx context.Context, userId string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "continuous", userId)
+	summary := &types.Summary[*types.ContinuousStats, types.ContinuousStats]{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "cgm", userId)
+	summary := &types.Summary[*types.CGMStats, types.CGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Cause(err)
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
+	summary := &types.Summary[*types.BGMStats, types.BGMStats]{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Cause(err)
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) UpdateContinuousSummary(ctx context.Context, userId string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userId == "" {
+		return nil, errors.New("id is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "summaries", "continuous", userId)
+	summary := &types.Summary[*types.ContinuousStats, types.ContinuousStats]{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Cause(err)
+	}
+
+	return summary, nil
+}
+
+func (c *ClientImpl) BackfillSummaries(ctx context.Context, typ string) (int, error) {
+	var count int
+	url := c.client.ConstructURL("v1", "summaries", "backfill", typ)
+
+	ctxWithTimeout, cancel := context.WithTimeout(ctx, ExtendedTimeout)
+	defer cancel()
+	if err := c.client.RequestData(ctxWithTimeout, http.MethodPost, url, nil, nil, &count); err != nil {
+		return count, errors.Wrap(err, "backfill request returned an error")
+	}
+
+	return count, nil
+}
+
+func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if typ == "" {
+		return nil, errors.New("type is missing")
+	}
+	url := c.client.ConstructURL("v1", "summaries", "outdated", typ)
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	response := &types.OutdatedSummariesResponse{}
+	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, response)
+
+	return response, err
+}
+
+func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if typ == "" {
+		return nil, errors.New("type is missing")
+	}
+	url := c.client.ConstructURL("v1", "summaries", "migratable", typ)
+
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New().Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	var userIDs []string
+	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs)
+
+	return userIDs, err
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

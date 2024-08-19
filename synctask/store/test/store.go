@@ -3,21 +3,21 @@ package test
 import "github.com/tidepool-org/platform/synctask/store"
 
 type Store struct {
-	NewSyncTaskSessionInvocations int
-	NewSyncTaskSessionImpl        *SyncTaskSession
+	NewSyncTaskRepositoryInvocations int
+	NewSyncTaskRepositoryImpl        *SyncTaskRepository
 }
 
 func NewStore() *Store {
 	return &Store{
-		NewSyncTaskSessionImpl: NewSyncTaskSession(),
+		NewSyncTaskRepositoryImpl: NewSyncTaskRepository(),
 	}
 }
 
-func (s *Store) NewSyncTaskSession() store.SyncTaskSession {
-	s.NewSyncTaskSessionInvocations++
-	return s.NewSyncTaskSessionImpl
+func (s *Store) NewSyncTaskRepository() store.SyncTaskRepository {
+	s.NewSyncTaskRepositoryInvocations++
+	return s.NewSyncTaskRepositoryImpl
 }
 
 func (s *Store) Expectations() {
-	s.NewSyncTaskSessionImpl.Expectations()
+	s.NewSyncTaskRepositoryImpl.Expectations()
 }

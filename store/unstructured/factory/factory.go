@@ -48,3 +48,16 @@ func NewS3Store(configReporter config.Reporter, awsAPI aws.API) (storeUnstructur
 	}
 	return storeUnstructuredS3.NewStore(cfg, awsAPI)
 }
+
+func NewS3StoreWithBucket(configReporter config.Reporter, bucketKey string, awsAPI aws.API) (storeUnstructured.Store, error) {
+	cfg := storeUnstructuredS3.NewConfig()
+	if err := cfg.Load(configReporter); err != nil {
+		return nil, errors.Wrap(err, "unable to load config")
+	}
+	bucket, err := configReporter.Get(bucketKey)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to load custom bucket config")
+	}
+	cfg.Bucket = bucket
+	return storeUnstructuredS3.NewStore(cfg, awsAPI)
+}

@@ -3,8 +3,7 @@ package origin_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -27,8 +26,8 @@ var _ = Describe("Origin", func() {
 		Expect(origin.NameLengthMaximum).To(Equal(100))
 	})
 
-	It("TimeFormat is expected", func() {
-		Expect(origin.TimeFormat).To(Equal(time.RFC3339Nano))
+	It("TypeApplication is expected", func() {
+		Expect(origin.TypeApplication).To(Equal("application"))
 	})
 
 	It("TypeDevice is expected", func() {
@@ -48,7 +47,7 @@ var _ = Describe("Origin", func() {
 	})
 
 	It("Types returns expected", func() {
-		Expect(origin.Types()).To(Equal([]string{"device", "manual", "service"}))
+		Expect(origin.Types()).To(Equal([]string{"application", "device", "manual", "service"}))
 	})
 
 	Context("Origin", func() {
@@ -212,7 +211,10 @@ var _ = Describe("Origin", func() {
 				),
 				Entry("type invalid",
 					func(datum *origin.Origin) { datum.Type = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual", "service"}), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"application", "device", "manual", "service"}), "/type"),
+				),
+				Entry("type application",
+					func(datum *origin.Origin) { datum.Type = pointer.FromString("application") },
 				),
 				Entry("type device",
 					func(datum *origin.Origin) { datum.Type = pointer.FromString("device") },
@@ -252,7 +254,7 @@ var _ = Describe("Origin", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/time"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"device", "manual", "service"}), "/type"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"application", "device", "manual", "service"}), "/type"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 				),
 			)

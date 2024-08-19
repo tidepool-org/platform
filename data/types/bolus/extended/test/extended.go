@@ -9,7 +9,7 @@ import (
 
 func NewExtended() *extended.Extended {
 	datum := extended.New()
-	datum.Bolus = *dataTypesBolusTest.NewBolus()
+	datum.Bolus = *dataTypesBolusTest.RandomBolus()
 	datum.SubType = "square"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(extended.DurationMinimum, extended.DurationMaximum))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, extended.DurationMaximum))

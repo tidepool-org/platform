@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -20,7 +20,7 @@ var _ = Describe("Request", func() {
 	Context("with request", func() {
 		var errs []*service.Error
 		var logger log.Logger
-		var details request.Details
+		var details request.AuthDetails
 		var req *rest.Request
 
 		BeforeEach(func() {
@@ -33,7 +33,7 @@ var _ = Describe("Request", func() {
 				},
 			}
 			logger = logNull.NewLogger()
-			details = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+			details = request.NewAuthDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			req = testRest.NewRequest()
 			req.Env["ERRORS"] = errs
 			req.Env["LOGGER"] = logger
@@ -156,10 +156,10 @@ var _ = Describe("Request", func() {
 		})
 
 		Context("SetRequestAuthDetails", func() {
-			var newDetails request.Details
+			var newDetails request.AuthDetails
 
 			BeforeEach(func() {
-				newDetails = request.NewDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
+				newDetails = request.NewAuthDetails(request.MethodSessionToken, serviceTest.NewUserID(), authTest.NewSessionToken())
 			})
 
 			It("successfully sets the auth details", func() {

@@ -4,7 +4,9 @@ import (
 	"net/http"
 	"os"
 
-	. "github.com/onsi/ginkgo"
+	eventsTest "github.com/tidepool-org/platform/events/test"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -36,6 +38,7 @@ var _ = Describe("Service", func() {
 		var taskClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
 		var service *authServiceService.Service
+		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -92,6 +95,7 @@ var _ = Describe("Service", func() {
 			}
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = authServiceConfig
+			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 
 			service = authServiceService.New()
 			Expect(service).ToNot(BeNil())
@@ -101,6 +105,7 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
+			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 		})
 
 		Context("Initialize", func() {
@@ -114,13 +119,21 @@ var _ = Describe("Service", func() {
 			})
 
 			It("returns an error when the auth store config load returns an error", func() {
-				authStoreConfig["timeout"] = "invalid"
+				timeout, timeoutSet := os.LookupEnv("TIDEPOOL_STORE_TIMEOUT")
+				os.Setenv("TIDEPOOL_STORE_TIMEOUT", "invalid")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to load auth store config"))
+				if timeoutSet {
+					os.Setenv("TIDEPOOL_STORE_TIMEOUT", timeout)
+				} else {
+					os.Unsetenv("TIDEPOOL_STORE_TIMEOUT")
+				}
 			})
 
 			It("returns an error when the auth store returns an error", func() {
-				authStoreConfig["addresses"] = ""
+				addresses := os.Getenv("TIDEPOOL_STORE_ADDRESSES")
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", "")
 				errorsTest.ExpectEqual(service.Initialize(provider), errors.New("unable to create auth store"))
+				os.Setenv("TIDEPOOL_STORE_ADDRESSES", addresses)
 			})
 
 			It("returns successfully", func() {

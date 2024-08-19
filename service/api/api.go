@@ -55,7 +55,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	accessLogMiddleware, err := middleware.NewAccessLog()
+	accessLogMiddleware, err := middleware.NewAccessLog(middleware.AccessLogConfig{LogOnlyErrors: true})
 	if err != nil {
 		return err
 	}
@@ -63,7 +63,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	authMiddleware, err := middleware.NewAuth(a.Secret(), a.AuthClient())
+	authMiddleware, err := middleware.NewAuthenticator(a.Secret(), a.AuthClient())
 	if err != nil {
 		return err
 	}

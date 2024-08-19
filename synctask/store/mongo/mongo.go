@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -12,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/synctask/store"
 )
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	baseStore, err := storeStructuredMongo.NewStore(cfg, lgr)
+func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
+	baseStore, err := storeStructuredMongo.NewStore(config)
 	if err != nil {
 		return nil, err
 	}
@@ -27,17 +27,17 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func (s *Store) NewSyncTaskSession() store.SyncTaskSession {
-	return &SyncTaskSession{
-		Session: s.Store.NewSession("syncTasks"),
+func (s *Store) NewSyncTaskRepository() store.SyncTaskRepository {
+	return &SyncTaskRepository{
+		s.Store.GetRepository("syncTasks"),
 	}
 }
 
-type SyncTaskSession struct {
-	*storeStructuredMongo.Session
+type SyncTaskRepository struct {
+	*storeStructuredMongo.Repository
 }
 
-func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userID string) error {
+func (s *SyncTaskRepository) DestroySyncTasksForUserByID(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -45,16 +45,12 @@ func (s *SyncTaskSession) DestroySyncTasksForUserByID(ctx context.Context, userI
 		return errors.New("user id is missing")
 	}
 
-	if s.IsClosed() {
-		return errors.New("session closed")
-	}
-
 	now := time.Now()
 
 	selector := bson.M{
 		"_userId": userID,
 	}
-	removeInfo, err := s.C().RemoveAll(selector)
+	removeInfo, err := s.DeleteMany(ctx, selector)
 
 	loggerFields := log.Fields{"userId": userID, "removeInfo": removeInfo, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DestroySyncTasksForUserByID")

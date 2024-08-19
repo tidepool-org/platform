@@ -3,14 +3,20 @@ package context
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary/reporters"
+
+	"github.com/tidepool-org/platform/clinics"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -24,20 +30,25 @@ type Standard struct {
 	metricClient            metric.Client
 	permissionClient        permission.Client
 	dataDeduplicatorFactory deduplicator.Factory
-	dataStoreDEPRECATED     dataStoreDEPRECATED.Store
-	dataSession             dataStoreDEPRECATED.DataSession
+	dataStore               dataStore.Store
+	dataRepository          dataStore.DataRepository
+	summaryRepository       dataStore.SummaryRepository
+	summarizerRegistry      *summary.SummarizerRegistry
+	summaryReporter         *reporters.PatientRealtimeDaysReporter
 	syncTaskStore           syncTaskStore.Store
-	syncTasksSession        syncTaskStore.SyncTaskSession
+	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
+	clinicsClient           clinics.Client
 	dataSourceClient        dataSource.Client
+	alertsRepository        alerts.Repository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
-			dataDeduplicatorFactory, dataStoreDEPRECATED, syncTaskStore, dataClient, dataSourceClient)
+			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -55,7 +66,7 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	dataStoreDEPRECATED dataStoreDEPRECATED.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -68,7 +79,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataDeduplicatorFactory == nil {
 		return nil, errors.New("data deduplicator factory is missing")
 	}
-	if dataStoreDEPRECATED == nil {
+	if store == nil {
 		return nil, errors.New("data store DEPRECATED is missing")
 	}
 	if syncTaskStore == nil {
@@ -92,7 +103,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		metricClient:            metricClient,
 		permissionClient:        permissionClient,
 		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStoreDEPRECATED:     dataStoreDEPRECATED,
+		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
 		dataSourceClient:        dataSourceClient,
@@ -100,13 +111,23 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 }
 
 func (s *Standard) Close() {
-	if s.syncTasksSession != nil {
-		s.syncTasksSession.Close()
-		s.syncTasksSession = nil
+	if s.syncTasksRepository != nil {
+		s.syncTasksRepository = nil
 	}
-	if s.dataSession != nil {
-		s.dataSession.Close()
-		s.dataSession = nil
+	if s.dataRepository != nil {
+		s.dataRepository = nil
+	}
+	if s.summaryRepository != nil {
+		s.summaryRepository = nil
+	}
+	if s.summarizerRegistry != nil {
+		s.summarizerRegistry = nil
+	}
+	if s.summaryReporter != nil {
+		s.summaryReporter = nil
+	}
+	if s.alertsRepository != nil {
+		s.alertsRepository = nil
 	}
 }
 
@@ -126,24 +147,64 @@ func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
-func (s *Standard) DataSession() dataStoreDEPRECATED.DataSession {
-	if s.dataSession == nil {
-		s.dataSession = s.dataStoreDEPRECATED.NewDataSession()
+func (s *Standard) DataRepository() dataStore.DataRepository {
+	if s.dataRepository == nil {
+		s.dataRepository = s.dataStore.NewDataRepository()
 	}
-	return s.dataSession
+	return s.dataRepository
 }
 
-func (s *Standard) SyncTaskSession() syncTaskStore.SyncTaskSession {
-	if s.syncTasksSession == nil {
-		s.syncTasksSession = s.syncTaskStore.NewSyncTaskSession()
+func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
+	if s.summaryRepository == nil {
+		s.summaryRepository = s.dataStore.NewSummaryRepository()
 	}
-	return s.syncTasksSession
+	return s.summaryRepository
+}
+
+func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
+	if s.summarizerRegistry == nil {
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.DataRepository())
+	}
+	return s.summarizerRegistry
+}
+
+func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	if s.summaryReporter == nil {
+		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
+	}
+	return s.summaryReporter
+}
+
+func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
+	if s.syncTasksRepository == nil {
+		s.syncTasksRepository = s.syncTaskStore.NewSyncTaskRepository()
+	}
+	return s.syncTasksRepository
 }
 
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
 }
 
+func (s *Standard) ClinicsClient() clinics.Client {
+	if s.clinicsClient == nil {
+		var err error
+		s.clinicsClient, err = clinics.NewClient(s.AuthClient())
+		if err != nil {
+			s.Logger().Error("unable to create clinics client")
+		}
+	}
+
+	return s.clinicsClient
+}
+
 func (s *Standard) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
+}
+
+func (s *Standard) AlertsRepository() alerts.Repository {
+	if s.alertsRepository == nil {
+		s.alertsRepository = s.dataStore.NewAlertsRepository()
+	}
+	return s.alertsRepository
 }

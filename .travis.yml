@@ -1,21 +1,35 @@
-sudo: false
+dist: jammy
 
 language: go
 
 go:
-  - 1.11.4
+  - 1.22.2
 
-go_import_path: github.com/tidepool-org/platform
+services:
+  - docker
+
+env:
+  global:
+    - MONGODB=6.0.14
+    - MONGOSH=2.2.3
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
 
 before_install:
-  sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5;
-  echo "deb [ arch=amd64 ] https://repo.mongodb.org/apt/ubuntu trusty/mongodb-org/3.6 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-3.6.list;
-  sudo apt-get update;
-  sudo apt-get install --allow-unauthenticated -y mongodb-org=3.6.12 mongodb-org-server=3.6.12 mongodb-org-shell=3.6.12 mongodb-org-mongos=3.6.12 mongodb-org-tools=3.6.12;
-  sudo service mongod start;
-  npm install -g snyk
+  - sudo apt-get update
+  - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
+  - mkdir /tmp/data
+  - /usr/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --replSet rs0 --logpath ${PWD}/mongod.log &> /dev/null &
+  - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
+  - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
 
 addons:
+  apt:
+    sources:
+      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse'
+        key_url: 'https://pgp.mongodb.com/server-6.0.asc'
   artifacts:
     s3_region: us-west-2
     paths:
@@ -25,12 +39,5 @@ addons:
   code_climate:
     repo_token: 91ded9b66924acbe830541ab3593daf535f05f7c6db91b5cbd2d26dcf37da0b8
 
-services:
-  - docker
-
 script:
-  - make ci-generate ci-build ci-test ci-snyk ci-deploy ci-docker
-
-cache:
-  directories:
-    - $HOME/.cache/go-build
+  - make ci-generate ci-build ci-test ci-deploy ci-docker

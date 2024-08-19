@@ -4,7 +4,8 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//+build gssapi,windows
+//go:build gssapi && windows
+// +build gssapi,windows
 
 package gssapi
 
@@ -111,7 +112,7 @@ func (sc *SaslClient) Start() (string, []byte, error) {
 	status := C.sspi_client_init(&sc.state, cusername, cpassword)
 
 	if status != C.SSPI_OK {
-		return mechName, nil, sc.getError("unable to intitialize client")
+		return mechName, nil, sc.getError("unable to initialize client")
 	}
 
 	payload, err := sc.Next(nil)

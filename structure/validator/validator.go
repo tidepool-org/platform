@@ -82,12 +82,20 @@ func (v *Validator) Time(reference string, value *time.Time) structure.Time {
 	return NewTime(v.base.WithReference(reference), value)
 }
 
+func (v *Validator) Duration(reference string, value *time.Duration) structure.Duration {
+	return NewDuration(v.base.WithReference(reference), value)
+}
+
 func (v *Validator) Object(reference string, value *map[string]interface{}) structure.Object {
 	return NewObject(v.base.WithReference(reference), value)
 }
 
 func (v *Validator) Array(reference string, value *[]interface{}) structure.Array {
 	return NewArray(v.base.WithReference(reference), value)
+}
+
+func (v *Validator) Bytes(reference string, value []byte) structure.Bytes {
+	return NewBytes(v.base.WithReference(reference), value)
 }
 
 func (v *Validator) WithOrigin(origin structure.Origin) structure.Validator {

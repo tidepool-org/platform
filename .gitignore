@@ -1,6 +1,14 @@
 *.coverprofile
+*.env
+*.test
+coverprofile.out
 /_bin
 /_data
 /_log
 /_tmp
 /deploy
+/.idea
+/coverprofile.out
+.DS_Store
+.envrc
+coverprofile.out

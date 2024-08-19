@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	AvailableAfterDurationMaximum = 75 * time.Minute
-	AvailableAfterDurationMinimum = 45 * time.Minute
+	AvailableAfterDurationMaximum = 135 * time.Minute
+	AvailableAfterDurationMinimum = 105 * time.Minute
 	DataSetSize                   = 2000
-	TaskDurationMaximum           = 5 * time.Minute
+	TaskDurationMaximum           = 10 * time.Minute
 )
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -97,11 +97,19 @@ func (r *Runner) DexcomClient() dexcom.Client {
 	return r.dexcomClient
 }
 
-func (r *Runner) CanRunTask(tsk *task.Task) bool {
-	return tsk != nil && tsk.Type == Type
+func (r *Runner) GetRunnerType() string {
+	return Type
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
+func (r *Runner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(TaskDurationMaximum * 3)
+}
+
+func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+	return TaskDurationMaximum
+}
+
+func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
 	now := time.Now()
 
 	ctx = log.NewContextWithLogger(ctx, r.Logger())
@@ -119,14 +127,13 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 		tsk.ClearError()
 
 		if serverSessionToken, sErr := r.AuthClient().ServerSessionToken(); sErr != nil {
-			tsk.AppendError(errors.Wrap(sErr, "unable to get server session token"))
+			r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to get server session token"))
 		} else {
 			ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
 			if taskRunner, tErr := NewTaskRunner(r, tsk); tErr != nil {
-				tsk.AppendError(errors.Wrap(tErr, "unable to create task runner"))
+				r.ignoreAndLogTaskError(tsk, errors.Wrap(sErr, "unable to create task runner"))
 			} else if tErr = taskRunner.Run(ctx); tErr != nil {
-				tsk.AppendError(errors.Wrap(tErr, "unable to run task runner"))
+				ErrorOrRetryTask(tsk, errors.Wrap(tErr, "unable to run task runner"))
 			}
 		}
 	}
@@ -138,6 +145,11 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
 		r.Logger().WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
+	return true
+}
+
+func (r *Runner) ignoreAndLogTaskError(tsk *task.Task, err error) {
+	r.logger.Warnf("dexcom task %s error, task will be retried: %s", tsk.ID, err)
 }
 
 type TaskRunner struct {
@@ -173,8 +185,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 
 	if len(t.task.Data) == 0 {
-		t.task.SetFailed()
-		return errors.New("data is missing")
+		return FailTask(t.logger, t.task, errors.New("data is missing"))
 	}
 
 	t.context = ctx
@@ -194,7 +205,7 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 	}
 	if err := t.fetchSinceLatestDataTime(); err != nil {
 		if request.IsErrorUnauthenticated(errors.Cause(err)) {
-			t.task.SetFailed()
+			FailTask(t.logger, t.task, err)
 			if updateErr := t.updateDataSourceWithError(err); updateErr != nil {
 				t.Logger().WithError(updateErr).Error("unable to update data source with error")
 			}
@@ -207,16 +218,14 @@ func (t *TaskRunner) Run(ctx context.Context) error {
 func (t *TaskRunner) getProviderSession() error {
 	providerSessionID, ok := t.task.Data["providerSessionId"].(string)
 	if !ok || providerSessionID == "" {
-		t.task.SetFailed()
-		return errors.New("provider session id is missing")
+		return FailTask(t.logger, t.task, errors.New("provider session id is missing"))
 	}
 
 	providerSession, err := t.AuthClient().GetProviderSession(t.context, providerSessionID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get provider session")
 	} else if providerSession == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "provider session is missing")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
 
@@ -237,8 +246,7 @@ func (t *TaskRunner) updateProviderSession() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "provider session is missing")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "provider session is missing"))
 	}
 	t.providerSession = providerSession
 
@@ -248,16 +256,14 @@ func (t *TaskRunner) updateProviderSession() error {
 func (t *TaskRunner) getDataSource() error {
 	dataSourceID, ok := t.task.Data["dataSourceId"].(string)
 	if !ok || dataSourceID == "" {
-		t.task.SetFailed()
-		return errors.New("data source id is missing")
+		return FailTask(t.logger, t.task, errors.New("data source id is missing"))
 	}
 
 	source, err := t.DataSourceClient().Get(t.context, dataSourceID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get data source")
 	} else if source == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data source is missing")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "data source is missing"))
 	}
 	t.dataSource = source
 
@@ -310,8 +316,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update data source")
 	} else if source == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data source is missing")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "data source is missing"))
 	}
 
 	t.dataSource = source
@@ -321,8 +326,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 func (t *TaskRunner) createTokenSource() error {
 	tokenSource, err := oauthToken.NewSourceWithToken(t.providerSession.OAuthToken)
 	if err != nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "unable to create token source")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "unable to create token source"))
 	}
 
 	t.tokenSource = tokenSource
@@ -336,16 +340,14 @@ func (t *TaskRunner) getDeviceHashes() error {
 	}
 	rawMap, rawMapOK := raw.(map[string]interface{})
 	if !rawMapOK || rawMap == nil {
-		t.task.SetFailed()
-		return errors.New("device hashes is invalid")
+		return FailTask(t.logger, t.task, errors.New("device hashes is invalid"))
 	}
 	deviceHashes := map[string]string{}
 	for key, value := range rawMap {
 		if valueString, valueStringOK := value.(string); valueStringOK {
 			deviceHashes[key] = valueString
 		} else {
-			t.task.SetFailed()
-			return errors.New("device hash is invalid")
+			return FailTask(t.logger, t.task, errors.New("device hash is invalid"))
 		}
 	}
 
@@ -363,8 +365,8 @@ func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
 		t.deviceHashes = map[string]string{}
 	}
 
-	if t.deviceHashes[*device.SerialNumber] != deviceHash {
-		t.deviceHashes[*device.SerialNumber] = deviceHash
+	if device.TransmitterID != nil && t.deviceHashes[*device.TransmitterID] != deviceHash {
+		t.deviceHashes[*device.TransmitterID] = deviceHash
 		return true
 	}
 
@@ -380,8 +382,7 @@ func (t *TaskRunner) updateDataSet(dataSetUpdate *data.DataSetUpdate) error {
 	if err != nil {
 		return errors.Wrap(err, "unable to update data set")
 	} else if dataSet == nil {
-		t.task.SetFailed()
-		return errors.Wrap(err, "data set is missing")
+		return FailTask(t.logger, t.task, errors.Wrap(err, "data set is missing"))
 	}
 
 	t.dataSet = dataSet
@@ -498,7 +499,13 @@ func (t *TaskRunner) preloadDataSet() error {
 func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Data, error) {
 	datumArray := data.Data{}
 
-	fetchDatumArray, err := t.fetchCalibrations(startTime, endTime)
+	fetchDatumArray, err := t.fetchAlerts(startTime, endTime)
+	if err != nil {
+		return nil, err
+	}
+	datumArray = append(datumArray, fetchDatumArray...)
+
+	fetchDatumArray, err = t.fetchCalibrations(startTime, endTime)
 	if err != nil {
 		return nil, err
 	}
@@ -508,6 +515,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	if err != nil {
 		return nil, err
 	}
+
 	datumArray = append(datumArray, fetchDatumArray...)
 
 	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
@@ -545,8 +553,32 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	return datumArray, nil
 }
 
+func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.Data, error) {
+	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t.tokenSource)
+	if updateErr := t.updateProviderSession(); updateErr != nil {
+		return nil, updateErr
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	t.validator.Validate(response)
+	if err = t.validator.Error(); err != nil {
+		return nil, err
+	}
+	datumArray := data.Data{}
+	for _, c := range *response.Alerts {
+		if t.afterLatestDataTime(c.SystemTime.Raw()) {
+			datumArray = append(datumArray, translateAlertToDatum(c, response.RecordVersion))
+		}
+	}
+
+	return datumArray, nil
+}
+
 func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Data, error) {
 	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
+
 	if updateErr := t.updateProviderSession(); updateErr != nil {
 		return nil, updateErr
 	}
@@ -562,7 +594,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	datumArray := data.Data{}
 	for _, e := range *response.EGVs {
 		if t.afterLatestDataTime(e.SystemTime.Raw()) {
-			datumArray = append(datumArray, translateEGVToDatum(e, response.Unit, response.RateUnit))
+			datumArray = append(datumArray, translateEGVToDatum(e))
 		}
 	}
 
@@ -597,10 +629,14 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 					datumArray = append(datumArray, translateEventHealthToDatum(e))
 				case dexcom.EventTypeInsulin:
 					datumArray = append(datumArray, translateEventInsulinToDatum(e))
+				case dexcom.EventTypeBG:
+					datumArray = append(datumArray, translateEventBGToDatum(e))
+				case dexcom.EventTypeNote, dexcom.EventTypeNotes:
+					datumArray = append(datumArray, translateEventNoteToDatum(e))
 				}
 			}
-		case dexcom.EventStatusDeleted:
-			// FUTURE: Handle deleted events
+		case dexcom.EventStatusUpdated, dexcom.EventStatusDeleted:
+			// FUTURE: Handle updated events
 		}
 	}
 
@@ -689,10 +725,8 @@ func (t *TaskRunner) storeDevicesDatumArray(devicesDatumArray data.Data) error {
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, devicesDatumArray); err != nil {
 			return errors.Wrap(err, "unable to create data set data")
 		}
-
 		t.task.Data["deviceHashes"] = t.deviceHashes
 	}
-
 	return nil
 }
 

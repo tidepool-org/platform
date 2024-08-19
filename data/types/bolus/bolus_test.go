@@ -1,8 +1,9 @@
 package bolus_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -15,6 +16,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Bolus", func() {
 	It("Type is expected", func() {
@@ -55,7 +58,7 @@ var _ = Describe("Bolus", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *bolus.Bolus), expectedErrors ...error) {
-					datum := dataTypesBolusTest.NewBolus()
+					datum := dataTypesBolusTest.RandomBolus()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -92,7 +95,7 @@ var _ = Describe("Bolus", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 				Entry("insulin formulation valid",
-					func(datum *bolus.Bolus) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
+					func(datum *bolus.Bolus) { datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3) },
 				),
 				Entry("multiple errors",
 					func(datum *bolus.Bolus) {
@@ -113,7 +116,7 @@ var _ = Describe("Bolus", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *bolus.Bolus)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesBolusTest.NewBolus()
+						datum := dataTypesBolusTest.RandomBolus()
 						mutator(datum)
 						expectedDatum := dataTypesBolusTest.CloneBolus(datum)
 						normalizer := dataNormalizer.New()
@@ -143,7 +146,7 @@ var _ = Describe("Bolus", func() {
 			var datum *bolus.Bolus
 
 			BeforeEach(func() {
-				datum = dataTypesBolusTest.NewBolus()
+				datum = dataTypesBolusTest.RandomBolus()
 			})
 
 			It("returns error if user id is missing", func() {
@@ -170,7 +173,7 @@ var _ = Describe("Bolus", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, datum.SubType}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
 			})
 		})
 	})

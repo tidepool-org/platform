@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -62,7 +62,7 @@ var _ = Describe("Client", func() {
 		var responseHeaders http.Header
 		var logger *logTest.Logger
 		var sessionToken string
-		var details request.Details
+		var details request.AuthDetails
 		var ctx context.Context
 		var client *permissionClient.Client
 
@@ -72,7 +72,7 @@ var _ = Describe("Client", func() {
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			logger = logTest.NewLogger()
 			sessionToken = authTest.NewSessionToken()
-			details = request.NewDetails(request.MethodSessionToken, "", sessionToken)
+			details = request.NewAuthDetails(request.MethodSessionToken, "", sessionToken)
 			ctx = context.Background()
 			ctx = log.NewContextWithLogger(ctx, logger)
 			ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
@@ -85,7 +85,7 @@ var _ = Describe("Client", func() {
 			client, err = permissionClient.New(config, authorizeAs)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
-			ctx = request.NewContextWithDetails(ctx, details)
+			ctx = request.NewContextWithAuthDetails(ctx, details)
 		})
 
 		AfterEach(func() {

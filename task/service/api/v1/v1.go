@@ -11,6 +11,9 @@ import (
 	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/service"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Router struct {
@@ -34,7 +37,14 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/tasks/:id", api.RequireServer(r.GetTask)),
 		rest.Put("/v1/tasks/:id", api.RequireServer(r.UpdateTask)),
 		rest.Delete("/v1/tasks/:id", api.RequireServer(r.DeleteTask)),
+		rest.Get("/v1/metrics", r.PrometheusMetrics),
 	}
+}
+
+func (r *Router) PrometheusMetrics(res rest.ResponseWriter, req *rest.Request) {
+	// The default go-json-rest middleware gzips the content
+	promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{DisableCompression: true}).
+		ServeHTTP(res.(http.ResponseWriter), req.Request)
 }
 
 func (r *Router) ListTasks(res rest.ResponseWriter, req *rest.Request) {

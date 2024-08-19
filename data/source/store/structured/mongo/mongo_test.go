@@ -6,9 +6,10 @@ import (
 	"sort"
 	"time"
 
-	mgo "github.com/globalsign/mgo"
-	"github.com/globalsign/mgo/bson"
-	. "github.com/onsi/ginkgo"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
@@ -76,7 +77,7 @@ var _ = Describe("Mongo", func() {
 	var config *storeStructuredMongo.Config
 	var logger *logTest.Logger
 	var store *dataSourceStoreStructuredMongo.Store
-	var session dataSourceStoreStructured.Session
+	var repository dataSourceStoreStructured.DataSourcesRepository
 
 	BeforeEach(func() {
 		config = storeStructuredMongoTest.NewConfig()
@@ -84,75 +85,78 @@ var _ = Describe("Mongo", func() {
 	})
 
 	AfterEach(func() {
-		if session != nil {
-			session.Close()
-		}
 		if store != nil {
-			store.Close()
+			store.Terminate(context.Background())
 		}
 	})
 
 	Context("NewStore", func() {
 		It("returns an error when unsuccessful", func() {
 			var err error
-			store, err = dataSourceStoreStructuredMongo.NewStore(nil, logger)
-			errorsTest.ExpectEqual(err, errors.New("config is missing"))
+			store, err = dataSourceStoreStructuredMongo.NewStore(nil)
+			errorsTest.ExpectEqual(err, errors.New("database config is empty"))
 			Expect(store).To(BeNil())
 		})
 
 		It("returns a new store and no error when successful", func() {
 			var err error
-			store, err = dataSourceStoreStructuredMongo.NewStore(config, logger)
+			store, err = dataSourceStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
 	})
 
 	Context("with a new store", func() {
-		var mgoSession *mgo.Session
-		var mgoCollection *mgo.Collection
+		var mongoCollection *mongo.Collection
 
 		BeforeEach(func() {
 			var err error
-			store, err = dataSourceStoreStructuredMongo.NewStore(config, logger)
+			store, err = dataSourceStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
-			mgoSession = storeStructuredMongoTest.Session().Copy()
-			mgoCollection = mgoSession.DB(config.Database).C(config.CollectionPrefix + "data_sources")
-		})
-
-		AfterEach(func() {
-			if mgoSession != nil {
-				mgoSession.Close()
-			}
+			mongoCollection = store.GetCollection("data_sources")
 		})
 
 		Context("EnsureIndexes", func() {
 			It("returns successfully", func() {
 				Expect(store.EnsureIndexes()).To(Succeed())
-				indexes, err := mgoCollection.Indexes()
+				cursor, err := mongoCollection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
 				Expect(indexes).To(ConsistOf(
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("_id")}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("id"), "Background": Equal(true), "Unique": Equal(true)}),
-					MatchFields(IgnoreExtras, Fields{"Key": ConsistOf("userId"), "Background": Equal(true)}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("id")),
+						"Background": Equal(true),
+						"Unique":     Equal(true),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
+						"Background": Equal(true),
+					}),
 				))
 			})
 		})
 
-		Context("NewSession", func() {
-			It("returns a new session", func() {
-				session = store.NewSession()
-				Expect(session).ToNot(BeNil())
+		Context("NewDataSourcesRepository", func() {
+			It("returns a new repository", func() {
+				repository = store.NewDataSourcesRepository()
+				Expect(repository).ToNot(BeNil())
 			})
 		})
 
-		Context("with a new session", func() {
+		Context("with a new repository", func() {
 			var ctx context.Context
 
 			BeforeEach(func() {
 				Expect(store.EnsureIndexes()).To(Succeed())
-				session = store.NewSession()
+				repository = store.NewDataSourcesRepository()
 				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})
 
@@ -174,43 +178,36 @@ var _ = Describe("Mongo", func() {
 
 					It("returns an error when the context is missing", func() {
 						ctx = nil
-						result, err := session.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is missing", func() {
 						userID = ""
-						result, err := session.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is invalid", func() {
 						userID = "invalid"
-						result, err := session.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the filter is invalid", func() {
 						filter.ProviderType = pointer.FromStringArray([]string{""})
-						result, err := session.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the pagination is invalid", func() {
 						pagination.Page = -1
-						result, err := session.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
-						Expect(result).To(BeNil())
-					})
-
-					It("returns an error when the session is closed", func() {
-						session.Close()
-						result, err := session.List(ctx, userID, filter, pagination)
-						errorsTest.ExpectEqual(err, errors.New("session closed"))
 						Expect(result).To(BeNil())
 					})
 
@@ -245,18 +242,19 @@ var _ = Describe("Mongo", func() {
 								allResult = append(allResult, randomResult, userResult)
 							}
 							rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
-							Expect(mgoCollection.Insert(AsInterfaceArray(allResult)...)).To(Succeed())
+							_, err := mongoCollection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+							Expect(err).ToNot(HaveOccurred())
 						})
 
 						It("returns no result when the user id is unknown", func() {
 							userID = userTest.RandomID()
-							Expect(session.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
+							Expect(repository.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
 						})
 
 						It("returns expected result when the filter is missing", func() {
 							filter = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "pagination": pagination, "count": 12})
@@ -264,7 +262,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider type is missing", func() {
 							filter.ProviderType = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -272,7 +270,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider type is specified", func() {
 							filter.ProviderType = pointer.FromStringArray([]string{providerType})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -280,7 +278,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider name is missing", func() {
 							filter.ProviderName = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -288,7 +286,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider name is specified", func() {
 							filter.ProviderName = pointer.FromStringArray([]string{providerName})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderName == providerName
 								},
@@ -298,7 +296,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider session id is missing", func() {
 							filter.ProviderSessionID = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -306,7 +304,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter provider session id is specified", func() {
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderSessionID == providerSessionID
 								},
@@ -316,7 +314,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is missing", func() {
 							filter.State = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -324,7 +322,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to connected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateConnected
 								},
@@ -334,7 +332,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateDisconnected
 								},
@@ -344,7 +342,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateError})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateError
 								},
@@ -354,7 +352,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to both connected and disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
@@ -364,7 +362,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to both disconnected and error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected, dataSource.StateError})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateDisconnected || *s.State == dataSource.StateError)
 								},
@@ -374,7 +372,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the filter state is set to all states", func() {
 							filter.State = pointer.FromStringArray(dataSource.States())
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
@@ -385,7 +383,7 @@ var _ = Describe("Mongo", func() {
 							filter.ProviderName = pointer.FromStringArray([]string{providerName})
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderName == providerName && *s.ProviderSessionID == providerSessionID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
@@ -395,7 +393,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns expected result when the pagination is missing", func() {
 							pagination = nil
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "count": 12})
@@ -404,7 +402,7 @@ var _ = Describe("Mongo", func() {
 						It("returns expected result when the pagination limits result", func() {
 							pagination.Page = 1
 							pagination.Size = 2
-							Expect(session.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)[2:4]))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
@@ -421,43 +419,36 @@ var _ = Describe("Mongo", func() {
 
 					It("returns an error when the context is missing", func() {
 						ctx = nil
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is missing", func() {
 						userID = ""
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is invalid", func() {
 						userID = "invalid"
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the create is missing", func() {
 						create = nil
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						errorsTest.ExpectEqual(err, errors.New("create is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the create is invalid", func() {
 						create.ProviderType = pointer.FromString("")
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						errorsTest.ExpectEqual(err, errors.New("create is invalid"))
-						Expect(result).To(BeNil())
-					})
-
-					It("returns an error when the session is closed", func() {
-						session.Close()
-						result, err := session.Create(ctx, userID, create)
-						errorsTest.ExpectEqual(err, errors.New("session closed"))
 						Expect(result).To(BeNil())
 					})
 
@@ -478,12 +469,15 @@ var _ = Describe("Mongo", func() {
 							"ModifiedTime":      BeNil(),
 							"Revision":          PointTo(Equal(0)),
 						})
-						result, err := session.Create(ctx, userID, create)
+						result, err := repository.Create(ctx, userID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
 						Expect(*result).To(matchAllFields)
 						storeResult := dataSource.SourceArray{}
-						Expect(mgoCollection.Find(bson.M{"id": result.ID}).All(&storeResult)).To(Succeed())
+						cursor, err := mongoCollection.Find(context.Background(), bson.M{"id": result.ID})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(cursor).ToNot(BeNil())
+						Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
 						Expect(storeResult).To(HaveLen(1))
 						Expect(*storeResult[0]).To(matchAllFields)
 						logger.AssertDebug("Create", log.Fields{"userId": userID, "create": create, "id": *storeResult[0].ID})
@@ -493,29 +487,22 @@ var _ = Describe("Mongo", func() {
 				Context("DestroyAll", func() {
 					It("returns an error when the context is missing", func() {
 						ctx = nil
-						deleted, err := session.DestroyAll(ctx, userID)
+						deleted, err := repository.DestroyAll(ctx, userID)
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(deleted).To(BeFalse())
 					})
 
 					It("returns an error when the user id is missing", func() {
 						userID = ""
-						deleted, err := session.DestroyAll(ctx, userID)
+						deleted, err := repository.DestroyAll(ctx, userID)
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 						Expect(deleted).To(BeFalse())
 					})
 
 					It("returns an error when the user id is invalid", func() {
 						userID = "invalid"
-						deleted, err := session.DestroyAll(ctx, userID)
+						deleted, err := repository.DestroyAll(ctx, userID)
 						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
-						Expect(deleted).To(BeFalse())
-					})
-
-					It("returns an error when the session is closed", func() {
-						session.Close()
-						deleted, err := session.DestroyAll(ctx, userID)
-						errorsTest.ExpectEqual(err, errors.New("session closed"))
 						Expect(deleted).To(BeFalse())
 					})
 
@@ -527,8 +514,10 @@ var _ = Describe("Mongo", func() {
 							for _, original := range originals {
 								original.UserID = pointer.FromString(userID)
 							}
-							Expect(mgoCollection.Insert(AsInterfaceArray(originals)...)).To(Succeed())
-							Expect(mgoCollection.Insert(dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
+							_, err := mongoCollection.InsertMany(context.Background(), AsInterfaceArray(originals))
+							Expect(err).ToNot(HaveOccurred())
+							_, err = mongoCollection.InsertMany(context.Background(), []interface{}{dataSourceTest.RandomSource(), dataSourceTest.RandomSource()})
+							Expect(err).ToNot(HaveOccurred())
 						})
 
 						AfterEach(func() {
@@ -538,15 +527,15 @@ var _ = Describe("Mongo", func() {
 						It("returns false and does not destroy the original when the id does not exist", func() {
 							originalUserID := userID
 							userID = userTest.RandomID()
-							Expect(session.DestroyAll(ctx, userID)).To(BeFalse())
-							Expect(mgoCollection.Find(bson.M{"userId": originalUserID}).Count()).To(Equal(len(originals)))
-							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(len(originals) + 2))
+							Expect(repository.DestroyAll(ctx, userID)).To(BeFalse())
+							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(len(originals))))
+							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(len(originals) + 2)))
 						})
 
 						It("returns true and destroys the original when the id exists and the condition is missing", func() {
-							Expect(session.DestroyAll(ctx, userID)).To(BeTrue())
-							Expect(mgoCollection.Find(bson.M{"userId": userID}).Count()).To(Equal(0))
-							Expect(mgoCollection.Find(bson.M{}).Count()).To(Equal(2))
+							Expect(repository.DestroyAll(ctx, userID)).To(BeTrue())
+							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"userId": userID})).To(Equal(int64(0)))
+							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(2)))
 						})
 					})
 				})
@@ -561,29 +550,22 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Get(ctx, id)
+					result, err := repository.Get(ctx, id)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					result, err := session.Get(ctx, id)
+					result, err := repository.Get(ctx, id)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					result, err := session.Get(ctx, id)
+					result, err := repository.Get(ctx, id)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					result, err := session.Get(ctx, id)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeNil())
 				})
 
@@ -599,7 +581,8 @@ var _ = Describe("Mongo", func() {
 					})
 
 					JustBeforeEach(func() {
-						Expect(mgoCollection.Insert(AsInterfaceArray(allResult)...)).To(Succeed())
+						_, err := mongoCollection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -608,11 +591,11 @@ var _ = Describe("Mongo", func() {
 
 					It("returns nil when the id does not exist", func() {
 						id = dataSourceTest.RandomID()
-						Expect(session.Get(ctx, id)).To(BeNil())
+						Expect(repository.Get(ctx, id)).To(BeNil())
 					})
 
 					It("returns the result when the id exists", func() {
-						Expect(session.Get(ctx, id)).To(Equal(result))
+						Expect(repository.Get(ctx, id)).To(Equal(result))
 					})
 
 					Context("when the revision is missing", func() {
@@ -622,7 +605,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns the result with revision 0", func() {
 							result.Revision = pointer.FromInt(0)
-							Expect(session.Get(ctx, id)).To(Equal(result))
+							Expect(repository.Get(ctx, id)).To(Equal(result))
 						})
 					})
 				})
@@ -641,50 +624,43 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the update is missing", func() {
 					update = nil
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("update is missing"))
 					Expect(result).To(BeNil())
 				})
 
 				It("returns an error when the update is invalid", func() {
 					update.State = pointer.FromString("")
-					result, err := session.Update(ctx, id, condition, update)
+					result, err := repository.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, errors.New("update is invalid"))
-					Expect(result).To(BeNil())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					result, err := session.Update(ctx, id, condition, update)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(result).To(BeNil())
 				})
 
@@ -694,7 +670,8 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = dataSourceTest.RandomSource()
 						original.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(original)).To(Succeed())
+						_, err := mongoCollection.InsertOne(context.Background(), original)
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -711,7 +688,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns nil", func() {
-							Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+							Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 						})
 					})
 
@@ -737,12 +714,15 @@ var _ = Describe("Mongo", func() {
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
 								})
-								result, err := session.Update(ctx, id, condition, update)
+								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
 								storeResult := dataSource.SourceArray{}
-								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								cursor, err := mongoCollection.Find(context.Background(), bson.M{"id": id})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
 							})
@@ -767,12 +747,15 @@ var _ = Describe("Mongo", func() {
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
 								})
-								result, err := session.Update(ctx, id, condition, update)
+								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
 								storeResult := dataSource.SourceArray{}
-								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								cursor, err := mongoCollection.Find(context.Background(), bson.M{"id": id})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
 							})
@@ -796,19 +779,22 @@ var _ = Describe("Mongo", func() {
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
 								})
-								result, err := session.Update(ctx, id, condition, update)
+								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(result).ToNot(BeNil())
 								Expect(*result).To(matchAllFields)
 								storeResult := dataSource.SourceArray{}
-								Expect(mgoCollection.Find(bson.M{"id": id}).All(&storeResult)).To(Succeed())
+								cursor, err := mongoCollection.Find(context.Background(), bson.M{"id": id})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(cursor).ToNot(BeNil())
+								Expect(cursor.All(context.Background(), &storeResult)).To(Succeed())
 								Expect(storeResult).To(HaveLen(1))
 								Expect(*storeResult[0]).To(matchAllFields)
 							})
 
 							It("returns nil when the id does not exist", func() {
 								id = dataSourceTest.RandomID()
-								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
 
@@ -818,12 +804,12 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns original when the id exists", func() {
-								Expect(session.Update(ctx, id, condition, update)).To(Equal(original))
+								Expect(repository.Update(ctx, id, condition, update)).To(Equal(original))
 							})
 
 							It("returns nil when the id does not exist", func() {
 								id = dataSourceTest.RandomID()
-								Expect(session.Update(ctx, id, condition, update)).To(BeNil())
+								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
 					}
@@ -865,36 +851,29 @@ var _ = Describe("Mongo", func() {
 
 				It("returns an error when the context is missing", func() {
 					ctx = nil
-					deleted, err := session.Destroy(ctx, id, condition)
+					deleted, err := repository.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("context is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is missing", func() {
 					id = ""
-					deleted, err := session.Destroy(ctx, id, condition)
+					deleted, err := repository.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is missing"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the id is invalid", func() {
 					id = "invalid"
-					deleted, err := session.Destroy(ctx, id, condition)
+					deleted, err := repository.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("id is invalid"))
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns an error when the condition is invalid", func() {
 					condition.Revision = pointer.FromInt(-1)
-					deleted, err := session.Destroy(ctx, id, condition)
+					deleted, err := repository.Destroy(ctx, id, condition)
 					errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
-					Expect(deleted).To(BeFalse())
-				})
-
-				It("returns an error when the session is closed", func() {
-					session.Close()
-					deleted, err := session.Destroy(ctx, id, condition)
-					errorsTest.ExpectEqual(err, errors.New("session closed"))
 					Expect(deleted).To(BeFalse())
 				})
 
@@ -904,7 +883,8 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						original = dataSourceTest.RandomSource()
 						original.ID = pointer.FromString(id)
-						Expect(mgoCollection.Insert(original, dataSourceTest.RandomSource(), dataSourceTest.RandomSource())).To(Succeed())
+						_, err := mongoCollection.InsertMany(context.Background(), []interface{}{original, dataSourceTest.RandomSource(), dataSourceTest.RandomSource()})
+						Expect(err).ToNot(HaveOccurred())
 					})
 
 					AfterEach(func() {
@@ -917,32 +897,32 @@ var _ = Describe("Mongo", func() {
 
 					It("returns false and does not destroy the original when the id does not exist", func() {
 						id = dataSourceTest.RandomID()
-						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
-						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
+						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
 
 					It("returns false and does not destroy the original when the id exists, but the condition revision does not match", func() {
 						condition.Revision = pointer.FromInt(*original.Revision + 1)
-						Expect(session.Destroy(ctx, id, condition)).To(BeFalse())
-						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(1))
+						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
 
 					It("returns true and destroys the original when the id exists and the condition is missing", func() {
 						condition = nil
-						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
+						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 
 					It("returns true and destroys the original when the id exists and the condition revision is missing", func() {
 						condition.Revision = nil
-						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
+						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 
 					It("returns true and destroys the original when the id exists and the condition revision matches", func() {
 						condition.Revision = pointer.CloneInt(original.Revision)
-						Expect(session.Destroy(ctx, id, condition)).To(BeTrue())
-						Expect(mgoCollection.Find(bson.M{"id": original.ID}).Count()).To(Equal(0))
+						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
+						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
 					})
 				})
 			})

@@ -3,10 +3,14 @@ package v1
 import (
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 	"strings"
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
@@ -30,7 +34,7 @@ func (r *Router) OAuthRoutes() []*rest.Route {
 func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	if details == nil || details.Method() != request.MethodRestrictedToken {
 		r.htmlOnError(res, req, request.ErrorUnauthenticated())
@@ -62,7 +66,7 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	prvdr, err := r.oauthProvider(req)
 	if err != nil {
@@ -104,10 +108,38 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
+	redirectURLAuthorized := req.BaseUrl()
+	redirectURLAuthorized.Path = path.Join(redirectURLAuthorized.Path, prvdr.Type(), prvdr.Name(), "authorized")
+
+	redirectURLDeclined := req.BaseUrl()
+	redirectURLDeclined.Path = path.Join(redirectURLDeclined.Path, prvdr.Type(), prvdr.Name(), "declined")
+
 	restrictedToken, err := r.oauthProviderRestrictedToken(req.Request, prvdr)
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
+	}
+
+	// Include custodial account signup credentials in redirect URL query, if applicable
+	confirmation, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, confirmationClient.UserId(restrictedToken.UserID))
+	if err != nil {
+		r.htmlOnError(res, req, err)
+		return
+	}
+
+	signupParams := url.Values{}
+	if confirmation.JSON200 != nil {
+		if confirmation.JSON200.Email != "" {
+			signupParams.Add("signupEmail", string(confirmation.JSON200.Email))
+		}
+		if confirmation.JSON200.Key != "" {
+			signupParams.Add("signupKey", string(confirmation.JSON200.Key))
+		}
+	}
+
+	if len(signupParams) > 0 {
+		redirectURLAuthorized.RawQuery = signupParams.Encode()
+		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
 
 	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
@@ -117,7 +149,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
-		r.htmlOnRedirect(res, req)
+		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined.String())
+		r.htmlOnRedirect(res, req, html)
 		return
 	} else if errorCode != "" {
 		r.htmlOnError(res, req, errors.Newf("oauth provider return unexpected error %q", errorCode))
@@ -132,8 +165,15 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		r.htmlOnError(res, req, err)
 		return
 	} else if len(providerSessions) > 0 {
-		r.htmlOnError(res, req, errors.Newf("provider session already exists for user, type, and name"), alreadyConnectedError)
-		return
+		// Delete existing provider sessions and tasks if matching name and type found for user.
+		// This operation will also reset the data source to a `disconnected` state, and remove any associated tasks
+		// A new provider session and task will be created below which will update the existing data source state to `connected`.
+		for _, session := range providerSessions {
+			if deleteSessionErr := r.AuthClient().DeleteProviderSession(ctx, session.ID); deleteSessionErr != nil {
+				r.htmlOnError(res, req, errors.Newf("could not remove existing provider session"), alreadyConnectedError)
+				return
+			}
+		}
 	}
 
 	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
@@ -152,7 +192,8 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	r.htmlOnRedirect(res, req)
+	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized.String())
+	r.htmlOnRedirect(res, req, html)
 }
 
 func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
@@ -175,12 +216,13 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 
 func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
 	state := req.URL.Query().Get("state")
+	errorCode := req.URL.Query().Get("error")
 	cookieName := r.providerCookieName(prvdr)
 	for _, cookie := range req.Cookies() {
 		if cookie.Name == cookieName {
 			if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), cookie.Value); err != nil {
 				return nil, err
-			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) {
+			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (errorCode == oauth.ErrorAccessDenied || state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)) {
 				return restrictedToken, nil
 			}
 		}
@@ -188,8 +230,8 @@ func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Pro
 	return nil, request.ErrorUnauthenticated()
 }
 
-func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request) {
-	request.MustNewResponder(res, req).String(http.StatusOK, htmlOnRedirect, request.NewHeaderMutator("Content-Type", "text/html"))
+func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request, html string) {
+	request.MustNewResponder(res, req).String(http.StatusOK, html, request.NewHeaderMutator("Content-Type", "text/html"))
 }
 
 func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err error, messages ...string) {
@@ -231,7 +273,23 @@ func (r *Router) providerCookiePath(prvdr provider.Provider) string {
 	return fmt.Sprintf("/v1/%s/%s", prvdr.Type(), prvdr.Name())
 }
 
-const htmlOnRedirect = `<html><head/><body onLoad="window.close();"/></html>`
+const htmlOnRedirect = `
+<html>
+	<body onload="closeOrRedirect()">
+		<script>
+			function closeOrRedirect() {
+				var isIframe = window.location !== window.parent.location;
+				if (isIframe) {
+					window.close();
+				} else {
+					window.location.replace('%s');
+				}
+			}
+		</script>
+	</body>
+</html>
+`
+
 const htmlOnError = `
 <!doctype html>
 <html lang="" style="-ms-text-size-adjust: 100%; -webkit-text-size-adjust: 100%; color: #222; font-size: 1em; height: 100%; line-height: 1.4;">
@@ -275,4 +333,4 @@ const htmlOnError = `
 </html>
 `
 const unexpectedError = `Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help.`
-const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we’ll help you out.`
+const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out.`

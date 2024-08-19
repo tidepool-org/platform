@@ -1,7 +1,21 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+// Package wiremessage is intended for internal use only. It is made available
+// to facilitate use cases that require access to internal MongoDB driver
+// functionality and state. The API of this package is not stable and there is
+// no backward compatibility guarantee.
+//
+// WARNING: THIS PACKAGE IS EXPERIMENTAL AND MAY BE MODIFIED OR REMOVED WITHOUT
+// NOTICE! USE WITH EXTREME CAUTION!
 package wiremessage
 
 import (
 	"bytes"
+	"encoding/binary"
 	"strings"
 	"sync/atomic"
 
@@ -13,9 +27,6 @@ type WireMessage []byte
 
 var globalRequestID int32
 
-// CurrentRequestID returns the current request ID.
-func CurrentRequestID() int32 { return atomic.LoadInt32(&globalRequestID) }
-
 // NextRequestID returns the next request ID.
 func NextRequestID() int32 { return atomic.AddInt32(&globalRequestID, 1) }
 
@@ -26,11 +37,12 @@ type OpCode int32
 // supported by this library. The skipped OpCodes are historical OpCodes that
 // are no longer used.
 const (
-	OpReply        OpCode = 1
-	_              OpCode = 1001
-	OpUpdate       OpCode = 2001
-	OpInsert       OpCode = 2002
-	_              OpCode = 2003
+	OpReply  OpCode = 1
+	_        OpCode = 1001
+	OpUpdate OpCode = 2001
+	OpInsert OpCode = 2002
+	_        OpCode = 2003
+	// Deprecated: Use OpMsg instead.
 	OpQuery        OpCode = 2004
 	OpGetMore      OpCode = 2005
 	OpDelete       OpCode = 2006
@@ -78,7 +90,7 @@ type QueryFlag int32
 const (
 	_ QueryFlag = 1 << iota
 	TailableCursor
-	SlaveOK
+	SecondaryOK
 	OplogReplay
 	NoCursorTimeout
 	AwaitData
@@ -92,8 +104,8 @@ func (qf QueryFlag) String() string {
 	if qf&TailableCursor == TailableCursor {
 		strs = append(strs, "TailableCursor")
 	}
-	if qf&SlaveOK == SlaveOK {
-		strs = append(strs, "SlaveOK")
+	if qf&SecondaryOK == SecondaryOK {
+		strs = append(strs, "SecondaryOK")
 	}
 	if qf&OplogReplay == OplogReplay {
 		strs = append(strs, "OplogReplay")
@@ -168,9 +180,6 @@ const (
 	DocumentSequence
 )
 
-// OpmsgWireVersion is the minimum wire version needed to use OP_MSG
-const OpmsgWireVersion = 6
-
 // CompressorID is the ID for each type of Compressor.
 type CompressorID uint8
 
@@ -181,6 +190,22 @@ const (
 	CompressorZLib
 	CompressorZstd
 )
+
+// String implements the fmt.Stringer interface.
+func (id CompressorID) String() string {
+	switch id {
+	case CompressorNoOp:
+		return "CompressorNoOp"
+	case CompressorSnappy:
+		return "CompressorSnappy"
+	case CompressorZLib:
+		return "CompressorZLib"
+	case CompressorZstd:
+		return "CompressorZstd"
+	default:
+		return "CompressorInvalid"
+	}
+}
 
 const (
 	// DefaultZlibLevel is the default level for zlib compression
@@ -214,10 +239,11 @@ func ReadHeader(src []byte) (length, requestID, responseTo int32, opcode OpCode,
 	if len(src) < 16 {
 		return 0, 0, 0, 0, src, false
 	}
-	length = (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24)
-	requestID = (int32(src[4]) | int32(src[5])<<8 | int32(src[6])<<16 | int32(src[7])<<24)
-	responseTo = (int32(src[8]) | int32(src[9])<<8 | int32(src[10])<<16 | int32(src[11])<<24)
-	opcode = OpCode(int32(src[12]) | int32(src[13])<<8 | int32(src[14])<<16 | int32(src[15])<<24)
+
+	length = readi32unsafe(src)
+	requestID = readi32unsafe(src[4:])
+	responseTo = readi32unsafe(src[8:])
+	opcode = OpCode(readi32unsafe(src[12:]))
 	return length, requestID, responseTo, opcode, src[16:], true
 }
 
@@ -352,7 +378,8 @@ func ReadMsgSectionSingleDocument(src []byte) (doc bsoncore.Document, rem []byte
 	return bsoncore.ReadDocument(src)
 }
 
-// ReadMsgSectionDocumentSequence reads an identifier and document sequence from src.
+// ReadMsgSectionDocumentSequence reads an identifier and document sequence from src and returns the document sequence
+// data parsed into a slice of BSON documents.
 func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsoncore.Document, rem []byte, ok bool) {
 	length, rem, ok := readi32(src)
 	if !ok || int(length) > len(src) {
@@ -382,6 +409,26 @@ func ReadMsgSectionDocumentSequence(src []byte) (identifier string, docs []bsonc
 	return identifier, docs, ret, true
 }
 
+// ReadMsgSectionRawDocumentSequence reads an identifier and document sequence from src and returns the raw document
+// sequence data.
+func ReadMsgSectionRawDocumentSequence(src []byte) (identifier string, data []byte, rem []byte, ok bool) {
+	length, rem, ok := readi32(src)
+	if !ok || int(length) > len(src) {
+		return "", nil, rem, false
+	}
+
+	// After these assignments, rem will be the data containing the identifier string + the document sequence bytes and
+	// rest will be the rest of the wire message after this document sequence.
+	rem, rest := rem[:length-4], rem[length-4:]
+
+	identifier, rem, ok = readcstring(rem)
+	if !ok {
+		return "", nil, rem, false
+	}
+
+	return identifier, rem, rest, true
+}
+
 // ReadMsgChecksum reads a checksum from src.
 func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
@@ -389,32 +436,50 @@ func ReadMsgChecksum(src []byte) (checksum uint32, rem []byte, ok bool) {
 }
 
 // ReadQueryFlags reads OP_QUERY flags from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryFlags(src []byte) (flags QueryFlag, rem []byte, ok bool) {
 	i32, rem, ok := readi32(src)
 	return QueryFlag(i32), rem, ok
 }
 
 // ReadQueryFullCollectionName reads the full collection name from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryFullCollectionName(src []byte) (collname string, rem []byte, ok bool) {
 	return readcstring(src)
 }
 
 // ReadQueryNumberToSkip reads the number to skip from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryNumberToSkip(src []byte) (nts int32, rem []byte, ok bool) {
 	return readi32(src)
 }
 
 // ReadQueryNumberToReturn reads the number to return from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryNumberToReturn(src []byte) (ntr int32, rem []byte, ok bool) {
 	return readi32(src)
 }
 
 // ReadQueryQuery reads the query from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryQuery(src []byte) (query bsoncore.Document, rem []byte, ok bool) {
 	return bsoncore.ReadDocument(src)
 }
 
 // ReadQueryReturnFieldsSelector reads a return fields selector document from src.
+//
+// Deprecated: Construct wiremessages with OpMsg and use the ReadMsg* functions
+// instead.
 func ReadQueryReturnFieldsSelector(src []byte) (rfs bsoncore.Document, rem []byte, ok bool) {
 	return bsoncore.ReadDocument(src)
 }
@@ -430,7 +495,7 @@ func ReadReplyCursorID(src []byte) (cursorID int64, rem []byte, ok bool) {
 	return readi64(src)
 }
 
-// ReadReplyStartingFrom reads the starting from from src.
+// ReadReplyStartingFrom reads the starting from src.
 func ReadReplyStartingFrom(src []byte) (startingFrom int32, rem []byte, ok bool) {
 	return readi32(src)
 }
@@ -469,7 +534,9 @@ func ReadCompressedOriginalOpCode(src []byte) (opcode OpCode, rem []byte, ok boo
 
 // ReadCompressedUncompressedSize reads the uncompressed size of a
 // compressed wiremessage to dst.
-func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) { return readi32(src) }
+func ReadCompressedUncompressedSize(src []byte) (size int32, rem []byte, ok bool) {
+	return readi32(src)
+}
 
 // ReadCompressedCompressorID reads the ID of the compressor to dst.
 func ReadCompressedCompressorID(src []byte) (id CompressorID, rem []byte, ok bool) {
@@ -512,12 +579,16 @@ func ReadKillCursorsCursorIDs(src []byte, numIDs int32) (cursorIDs []int64, rem 
 	return cursorIDs, src, true
 }
 
-func appendi32(dst []byte, i32 int32) []byte {
-	return append(dst, byte(i32), byte(i32>>8), byte(i32>>16), byte(i32>>24))
+func appendi32(dst []byte, x int32) []byte {
+	b := []byte{0, 0, 0, 0}
+	binary.LittleEndian.PutUint32(b, uint32(x))
+	return append(dst, b...)
 }
 
-func appendi64(b []byte, i int64) []byte {
-	return append(b, byte(i), byte(i>>8), byte(i>>16), byte(i>>24), byte(i>>32), byte(i>>40), byte(i>>48), byte(i>>56))
+func appendi64(dst []byte, x int64) []byte {
+	b := []byte{0, 0, 0, 0, 0, 0, 0, 0}
+	binary.LittleEndian.PutUint64(b, uint64(x))
+	return append(dst, b...)
 }
 
 func appendCString(b []byte, str string) []byte {
@@ -529,21 +600,18 @@ func readi32(src []byte) (int32, []byte, bool) {
 	if len(src) < 4 {
 		return 0, src, false
 	}
-
-	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24), src[4:], true
+	return readi32unsafe(src), src[4:], true
 }
 
 func readi32unsafe(src []byte) int32 {
-	return (int32(src[0]) | int32(src[1])<<8 | int32(src[2])<<16 | int32(src[3])<<24)
+	return int32(binary.LittleEndian.Uint32(src))
 }
 
 func readi64(src []byte) (int64, []byte, bool) {
 	if len(src) < 8 {
 		return 0, src, false
 	}
-	i64 := (int64(src[0]) | int64(src[1])<<8 | int64(src[2])<<16 | int64(src[3])<<24 |
-		int64(src[4])<<32 | int64(src[5])<<40 | int64(src[6])<<48 | int64(src[7])<<56)
-	return i64, src[8:], true
+	return int64(binary.LittleEndian.Uint64(src)), src[8:], true
 }
 
 func readcstring(src []byte) (string, []byte, bool) {

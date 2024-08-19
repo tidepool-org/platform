@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	logNull "github.com/tidepool-org/platform/log/null"
@@ -18,7 +18,7 @@ import (
 var _ = Describe("AccessLog", func() {
 	Context("NewAccessLog", func() {
 		It("returns successfully", func() {
-			Expect(middleware.NewAccessLog()).ToNot(BeNil())
+			Expect(middleware.NewAccessLog(middleware.AccessLogConfig{})).ToNot(BeNil())
 		})
 	})
 
@@ -30,7 +30,7 @@ var _ = Describe("AccessLog", func() {
 
 		BeforeEach(func() {
 			var err error
-			accessLogMiddleware, err = middleware.NewAccessLog()
+			accessLogMiddleware, err = middleware.NewAccessLog(middleware.AccessLogConfig{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(accessLogMiddleware).ToNot(BeNil())
 			hndlr = func(res rest.ResponseWriter, req *rest.Request) {}

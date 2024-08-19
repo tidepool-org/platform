@@ -23,48 +23,24 @@ func Roles() []string {
 
 type Client interface {
 	Get(ctx context.Context, id string) (*User, error)
-	Delete(ctx context.Context, id string, deleet *Delete, condition *request.Condition) (bool, error)
-}
-
-type Delete struct {
-	Password *string `json:"password,omitempty"`
-}
-
-func NewDelete() *Delete {
-	return &Delete{}
-}
-
-func (d *Delete) Parse(parser structure.ObjectParser) {
-	d.Password = parser.String("password")
-}
-
-func (d *Delete) Validate(validator structure.Validator) {
-	validator.String("password", d.Password).NotEmpty()
 }
 
 type User struct {
-	UserID        *string    `json:"userid,omitempty" bson:"userid,omitempty"`     // TODO: Rename ID/id
-	Username      *string    `json:"username,omitempty" bson:"username,omitempty"` // TODO: Rename Email/email
-	PasswordHash  *string    `json:"-" bson:"pwhash,omitempty"`
-	Authenticated *bool      `json:"authenticated,omitempty" bson:"authenticated,omitempty"` // TODO: Rename EmaiLVerified/emailVerified
-	TermsAccepted *string    `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
-	Roles         *[]string  `json:"roles,omitempty" bson:"roles,omitempty"`
-	CreatedTime   *time.Time `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	ModifiedTime  *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	DeletedTime   *time.Time `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	Revision      *int       `json:"revision,omitempty" bson:"revision,omitempty"`
+	UserID        *string   `json:"userid,omitempty" bson:"userid,omitempty"`
+	Username      *string   `json:"username,omitempty" bson:"username,omitempty"`
+	EmailVerified *bool     `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
+	TermsAccepted *string   `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
+	Roles         *[]string `json:"roles,omitempty" bson:"roles,omitempty"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
 	u.UserID = parser.String("userid")
 	u.Username = parser.String("username")
-	u.Authenticated = parser.Bool("authenticated")
+	u.EmailVerified = parser.Bool("emailVerified")
 	u.TermsAccepted = parser.String("termsAccepted")
 	u.Roles = parser.StringArray("roles")
-	u.CreatedTime = parser.Time("createdTime", time.RFC3339Nano)
-	u.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
-	u.DeletedTime = parser.Time("deletedTime", time.RFC3339Nano)
-	u.Revision = parser.Int("revision")
+	parser.Bool("passwordExists")
+	parser.StringArray("emails")
 }
 
 func (u *User) Validate(validator structure.Validator) {
@@ -72,16 +48,6 @@ func (u *User) Validate(validator structure.Validator) {
 	validator.String("username", u.Username).Exists().NotEmpty()
 	validator.String("termsAccepted", u.TermsAccepted).AsTime(time.RFC3339Nano).NotZero()
 	validator.StringArray("roles", u.Roles).EachOneOf(Roles()...).EachUnique()
-	if u.CreatedTime != nil {
-		validator.Time("createdTime", u.CreatedTime).Exists().NotZero().BeforeNow(time.Second)
-	}
-	if u.ModifiedTime != nil {
-		validator.Time("modifiedTime", u.ModifiedTime).NotZero().BeforeNow(time.Second)
-	}
-	if u.DeletedTime != nil {
-		validator.Time("deletedTime", u.DeletedTime).NotZero().BeforeNow(time.Second)
-	}
-	validator.Int("revision", u.Revision).Exists().GreaterThanOrEqualTo(0)
 }
 
 func (u *User) HasRole(role string) bool {
@@ -102,10 +68,10 @@ func (u *User) IsPatient() bool {
 	return false
 }
 
-func (u *User) Sanitize(details request.Details) error {
+func (u *User) Sanitize(details request.AuthDetails) error {
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		u.Username = nil
-		u.Authenticated = nil
+		u.EmailVerified = nil
 		u.TermsAccepted = nil
 		u.Roles = nil
 	}
@@ -114,7 +80,7 @@ func (u *User) Sanitize(details request.Details) error {
 
 type UserArray []*User
 
-func (u UserArray) Sanitize(details request.Details) error {
+func (u UserArray) Sanitize(details request.AuthDetails) error {
 	for _, datum := range u {
 		if err := datum.Sanitize(details); err != nil {
 			return err

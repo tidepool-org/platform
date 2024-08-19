@@ -3,8 +3,7 @@ package upload_test
 import (
 	"sort"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -484,7 +483,7 @@ var _ = Describe("Upload", func() {
 				Entry("all missing",
 					func(datum *dataTypesUpload.Upload) {
 						*datum = *dataTypesUpload.New()
-						datum.Base = *dataTypesTest.NewBase()
+						datum.Base = *dataTypesTest.RandomBase()
 					},
 					func(datum *dataTypesUpload.Upload, expectedDatum *dataTypesUpload.Upload) {
 						Expect(datum.DataSetType).ToNot(BeNil())
@@ -522,7 +521,7 @@ var _ = Describe("Upload", func() {
 				Entry("all missing",
 					func(datum *dataTypesUpload.Upload) {
 						*datum = *dataTypesUpload.New()
-						datum.Base = *dataTypesTest.NewBase()
+						datum.Base = *dataTypesTest.RandomBase()
 					},
 					nil,
 				),

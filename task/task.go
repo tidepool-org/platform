@@ -15,6 +15,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -source=./task.go -destination=./test/mock.go -package test Client
 type Client interface {
 	TaskAccessor
 }
@@ -181,6 +182,7 @@ type Task struct {
 	Priority       int                    `json:"priority,omitempty" bson:"priority,omitempty"`
 	Data           map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
 	AvailableTime  *time.Time             `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
+	DeadlineTime   *time.Time             `json:"deadlineTime,omitempty" bson:"deadlineTime,omitempty"`
 	ExpirationTime *time.Time             `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
 	State          string                 `json:"state,omitempty" bson:"state,omitempty"`
 	Error          *errors.Serializable   `json:"error,omitempty" bson:"error,omitempty"`
@@ -266,7 +268,7 @@ func (t *Task) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
-func (t *Task) Sanitize(details request.Details) error {
+func (t *Task) Sanitize(details request.AuthDetails) error {
 	if details != nil && details.IsService() {
 		return nil
 	}
@@ -276,6 +278,7 @@ func (t *Task) Sanitize(details request.Details) error {
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.State = TaskStatePending
 	t.AvailableTime = pointer.FromTime(availableTime)
+	t.DeadlineTime = nil
 }
 
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {
@@ -317,7 +320,7 @@ func (t *Task) ClearError() {
 
 type Tasks []*Task
 
-func (t Tasks) Sanitize(details request.Details) error {
+func (t Tasks) Sanitize(details request.AuthDetails) error {
 	for _, tsk := range t {
 		if err := tsk.Sanitize(details); err != nil {
 			return err
@@ -325,3 +328,5 @@ func (t Tasks) Sanitize(details request.Details) error {
 	}
 	return nil
 }
+
+var AlreadyClaimedTask = errors.New("Task has already been claimed or is now unavailable.")

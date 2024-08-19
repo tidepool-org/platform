@@ -1,8 +1,22 @@
 package service
 
 import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/kelseyhightower/envconfig"
+
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/auth"
+
+	eventsCommon "github.com/tidepool-org/go-common/events"
+
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth/client"
+	authEvents "github.com/tidepool-org/platform/auth/events"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/service/api"
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
@@ -12,6 +26,8 @@ import (
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/events"
+	logInternal "github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -21,20 +37,43 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 )
 
+type confirmationClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
+}
+
+func (c *confirmationClientConfig) Load() error {
+	return envconfig.Process("", c)
+}
+
 type Service struct {
 	*serviceService.Service
-	domain           string
-	authStore        *authMongo.Store
-	dataSourceClient *dataSourceClient.Client
-	taskClient       task.Client
-	providerFactory  provider.Factory
-	authClient       *Client
+	domain             string
+	authStore          *authMongo.Store
+	dataSourceClient   *dataSourceClient.Client
+	confirmationClient confirmationClient.ClientWithResponsesInterface
+	taskClient         task.Client
+	providerFactory    provider.Factory
+	authClient         *Client
+	userEventsHandler  events.Runner
+	deviceCheck        apple.DeviceCheck
 }
 
 func New() *Service {
 	return &Service{
 		Service: serviceService.New(),
 	}
+}
+
+func (s *Service) Run() error {
+	errs := make(chan error)
+	go func() {
+		errs <- s.userEventsHandler.Run()
+	}()
+	go func() {
+		errs <- s.Service.Run()
+	}()
+
+	return <-errs
 }
 
 func (s *Service) Initialize(provider application.Provider) error {
@@ -54,25 +93,35 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeConfirmationClient(); err != nil {
+		return err
+	}
 	if err := s.initializeTaskClient(); err != nil {
 		return err
 	}
 	if err := s.initializeProviderFactory(); err != nil {
 		return err
 	}
-	return s.initializeAuthClient()
+	if err := s.initializeAuthClient(); err != nil {
+		return err
+	}
+	if err := s.initializeDeviceCheck(); err != nil {
+		return err
+	}
+	return s.initializeUserEventsHandler()
 }
 
 func (s *Service) Terminate() {
+	s.Service.Terminate()
+	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
+	s.terminateConfirmationClient()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
-
-	s.Service.Terminate()
 }
 
 func (s *Service) Domain() string {
@@ -87,6 +136,10 @@ func (s *Service) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
 }
 
+func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
+	return s.confirmationClient
+}
+
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
 }
@@ -95,11 +148,13 @@ func (s *Service) ProviderFactory() provider.Factory {
 	return s.providerFactory
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return s.deviceCheck
+}
+
+func (s *Service) Status(ctx context.Context) *service.Status {
 	return &service.Status{
-		Version:   s.VersionReporter().Long(),
-		AuthStore: s.authStore.Status(),
-		Server:    s.API().Status(),
+		Version: s.VersionReporter().Long(),
 	}
 }
 
@@ -153,13 +208,13 @@ func (s *Service) initializeAuthStore() error {
 	s.Logger().Debug("Loading auth store config")
 
 	cfg := storeStructuredMongo.NewConfig()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "store")); err != nil {
+	if err := cfg.Load(); err != nil {
 		return errors.Wrap(err, "unable to load auth store config")
 	}
 
 	s.Logger().Debug("Creating auth store")
 
-	str, err := authMongo.NewStore(cfg, s.Logger())
+	str, err := authMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth store")
 	}
@@ -178,7 +233,7 @@ func (s *Service) initializeAuthStore() error {
 func (s *Service) terminateAuthStore() {
 	if s.authStore != nil {
 		s.Logger().Debug("Closing auth store")
-		s.authStore.Close()
+		s.authStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying auth store")
 		s.authStore = nil
@@ -190,7 +245,9 @@ func (s *Service) initializeDataSourceClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data_source", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data source client config")
 	}
 
@@ -212,12 +269,48 @@ func (s *Service) terminateDataSourceClient() {
 	}
 }
 
+func (s *Service) initializeConfirmationClient() error {
+	s.Logger().Debug("Loading confirmation client config")
+
+	cfg := &confirmationClientConfig{}
+	if err := cfg.Load(); err != nil {
+		return err
+	}
+
+	opts := confirmationClient.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		token, err := s.authClient.ServerSessionToken()
+		if err != nil {
+			return err
+		}
+
+		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		return nil
+	})
+
+	clnt, err := confirmationClient.NewClientWithResponses(cfg.ServiceAddress, opts)
+	if err != nil {
+		return err
+	}
+	s.confirmationClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateConfirmationClient() {
+	if s.confirmationClient != nil {
+		s.Logger().Debug("Destroying confirmation client")
+		s.confirmationClient = nil
+	}
+}
+
 func (s *Service) initializeTaskClient() error {
 	s.Logger().Debug("Loading task client config")
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("task", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load task client config")
 	}
 
@@ -270,7 +363,9 @@ func (s *Service) initializeAuthClient() error {
 
 	cfg := client.NewExternalConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "client", "external")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("auth", "client", "external")
+	loader := client.NewExternalConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 
@@ -302,5 +397,48 @@ func (s *Service) terminateAuthClient() {
 		s.authClient = nil
 
 		s.SetAuthClient(nil)
+	}
+}
+
+func (s *Service) initializeUserEventsHandler() error {
+	s.Logger().Debug("Initializing user events handler")
+
+	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	handler := authEvents.NewUserDataDeletionHandler(ctx, s.authClient)
+	handlers := []eventsCommon.EventHandler{handler}
+	runner := events.NewRunner(handlers)
+
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "unable to initialize events runner")
+	}
+	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) initializeDeviceCheck() error {
+	s.Logger().Debug("Initializing device check")
+
+	cfg := apple.NewDeviceCheckConfig()
+	if err := cfg.Load(); err != nil {
+		s.Logger().Errorf("error loading device check config: %v", err)
+		return err
+	}
+
+	httpClient := &http.Client{
+		Timeout: 2 * time.Second,
+	}
+	s.deviceCheck = apple.NewDeviceCheck(cfg, httpClient)
+
+	return nil
+}
+
+func (s *Service) terminateUserEventsHandler() {
+	if s.userEventsHandler != nil {
+		s.Logger().Info("Terminating the userEventsHandler")
+		if err := s.userEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
+		}
+		s.userEventsHandler = nil
 	}
 }

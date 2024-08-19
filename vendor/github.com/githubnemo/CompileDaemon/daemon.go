@@ -18,7 +18,12 @@ If you want it to also run your program each time it builds you might add…
     $ CompileDaemon -command="./MyProgram -my-options"
 
 … and it will also keep a copy of your program running. Killing the old one and
-starting a new one each time you build.
+starting a new one each time you build. For advanced usage you can also supply
+the changed file to the command by doing…
+
+	$ CompileDaemon -command="./MyProgram -my-options %[1]s"
+
+…but note that this will not be set on the first start.
 
 You may find that you need to exclude some directories and files from
 monitoring, such as a .git repository or emacs temporary files…
@@ -34,18 +39,25 @@ Options
 There are command line options.
 
 	FILE SELECTION
-	-directory=XXX    – which directory to monitor for changes
-	-recursive=XXX    – look into subdirectories
-	-exclude-dir=XXX  – exclude directories matching glob pattern XXX
-	-exlude=XXX       – exclude files whose basename matches glob pattern XXX
-	-include=XXX      – include files whose basename matches glob pattern XXX
-	-pattern=XXX      – include files whose path matches regexp XXX
+	-directory=XXX    – Which directory to monitor for changes
+	-recursive=XXX    – Look into subdirectories
+	-exclude-dir=XXX  – Exclude directories matching glob pattern XXX
+	-exlude=XXX       – Exclude files whose basename matches glob pattern XXX
+	-include=XXX      – Include files whose basename matches glob pattern XXX
+	-pattern=XXX      – Include files whose path matches regexp XXX
+
+	FILE WATCH
+	-polling          - Use polling instead of FS notifications to detect changes. Default is false
+	-polling-interval - Milliseconds of interval between polling file changes when polling option is selected
 
 	MISC
-	-color            - enable colorized output
+	-color            - Enable colorized output
 	-log-prefix       - Enable/disable stdout/stderr labelling for the child process
 	-graceful-kill    - On supported platforms, send the child process a SIGTERM to
 	                    allow it to exit gracefully if possible.
+	-graceful-timeout - Duration (in seconds) to wait for graceful kill to complete
+	-verbose          - Print information about watched directories.
+
 	ACTIONS
 	-build=CCC        – Execute CCC to rebuild when a file changes
 	-command=CCC      – Run command CCC after a successful build, stops previous command first
@@ -57,17 +69,17 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/fatih/color"
-	"github.com/howeyc/fsnotify"
 	"io"
 	"log"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"regexp"
 	"strings"
-	"syscall"
 	"time"
+
+	"github.com/fatih/color"
 )
 
 // Milliseconds to wait for the next job to begin after a file change
@@ -82,7 +94,7 @@ func (g *globList) String() string {
 	return fmt.Sprint(*g)
 }
 func (g *globList) Set(value string) error {
-	*g = append(*g, value)
+	*g = append(*g, filepath.Clean(value))
 	return nil
 }
 func (g *globList) Matches(value string) bool {
@@ -97,25 +109,30 @@ func (g *globList) Matches(value string) bool {
 }
 
 var (
-	flag_directory    = flag.String("directory", ".", "Directory to watch for changes")
-	flag_pattern      = flag.String("pattern", FilePattern, "Pattern of watched files")
-	flag_command      = flag.String("command", "", "Command to run and restart after build")
-	flag_command_stop = flag.Bool("command-stop", false, "Stop command before building")
-	flag_recursive    = flag.Bool("recursive", true, "Watch all dirs. recursively")
-	flag_build        = flag.String("build", "go build", "Command to rebuild after changes")
-	flag_build_dir    = flag.String("build-dir", "", "Directory to run build command in.  Defaults to directory")
-	flag_color        = flag.Bool("color", false, "Colorize output for CompileDaemon status messages")
-	flag_logprefix    = flag.Bool("log-prefix", true, "Print log timestamps and subprocess stderr/stdout output")
-	flag_gracefulkill = flag.Bool("graceful-kill", false, "Gracefully attempt to kill the child process by sending a SIGTERM first")
+	flagPattern         = flag.String("pattern", FilePattern, "Pattern of watched files")
+	flagCommand         = flag.String("command", "", "Command to run and restart after build")
+	flagCommandStop     = flag.Bool("command-stop", false, "Stop command before building")
+	flagRecursive       = flag.Bool("recursive", true, "Watch all dirs. recursively")
+	flagBuild           = flag.String("build", "go build", "Command to rebuild after changes")
+	flagBuildDir        = flag.String("build-dir", "", "Directory to run build command in.  Defaults to directory")
+	flagRunDir          = flag.String("run-dir", "", "Directory to run command in.  Defaults to directory")
+	flagColor           = flag.Bool("color", false, "Colorize output for CompileDaemon status messages")
+	flagLogPrefix       = flag.Bool("log-prefix", true, "Print log timestamps and subprocess stderr/stdout output")
+	flagGracefulKill    = flag.Bool("graceful-kill", false, "Gracefully attempt to kill the child process by sending a SIGTERM first")
+	flagGracefulTimeout = flag.Uint("graceful-timeout", 3, "Duration (in seconds) to wait for graceful kill to complete")
+	flagVerbose         = flag.Bool("verbose", false, "Be verbose about which directories are watched.")
+	flagPolling         = flag.Bool("polling", false, "Use polling method to watch file change instead of fsnotify")
+	flagPollingInterval = flag.Int("polling-interval", 100, "Milliseconds of interval between polling file changes when polling option is selected")
 
 	// initialized in main() due to custom type.
-	flag_excludedDirs  globList
-	flag_excludedFiles globList
-	flag_includedFiles globList
+	flagDirectories   globList
+	flagExcludedDirs  globList
+	flagExcludedFiles globList
+	flagIncludedFiles globList
 )
 
 func okColor(format string, args ...interface{}) string {
-	if *flag_color {
+	if *flagColor {
 		return color.GreenString(format, args...)
 	} else {
 		return fmt.Sprintf(format, args...)
@@ -123,7 +140,7 @@ func okColor(format string, args ...interface{}) string {
 }
 
 func failColor(format string, args ...interface{}) string {
-	if *flag_color {
+	if *flagColor {
 		return color.RedString(format, args...)
 	} else {
 		return fmt.Sprintf(format, args...)
@@ -134,29 +151,37 @@ func failColor(format string, args ...interface{}) string {
 func build() bool {
 	log.Println(okColor("Running build command!"))
 
-	args := strings.Split(*flag_build, " ")
-	if len(args) == 0 {
-		// If the user has specified and empty then we are done.
-		return true
+	commands := strings.Split(*flagBuild, "&&")
+	success := true
+	for _, c := range commands {
+		c = strings.TrimSpace(c)
+		args := strings.Split(c, " ")
+		if len(args) == 0 {
+			// If the user has specified and empty then we are done.
+			return true
+		}
+
+		cmd := exec.Command(args[0], args[1:]...)
+
+		if *flagBuildDir != "" {
+			cmd.Dir = *flagBuildDir
+		} else if len(flagDirectories) > 0 {
+			cmd.Dir = flagDirectories[0]
+		}
+
+		output, err := cmd.CombinedOutput()
+
+		if err == nil {
+			log.Println(okColor("Build ok."))
+		} else {
+			log.Println(failColor("Error while building:\n"), failColor(string(output)))
+			if success {
+				success = false
+			}
+		}
 	}
 
-	cmd := exec.Command(args[0], args[1:]...)
-
-	if *flag_build_dir != "" {
-		cmd.Dir = *flag_build_dir
-	} else {
-		cmd.Dir = *flag_directory
-	}
-
-	output, err := cmd.CombinedOutput()
-
-	if err == nil {
-		log.Println(okColor("Build ok."))
-	} else {
-		log.Println(failColor("Error while building:\n"), failColor(string(output)))
-	}
-
-	return err == nil
+	return success
 }
 
 func matchesPattern(pattern *regexp.Regexp, file string) bool {
@@ -166,19 +191,20 @@ func matchesPattern(pattern *regexp.Regexp, file string) bool {
 // Accept build jobs and start building when there are no jobs rushing in.
 // The inrush protection is WorkDelay milliseconds long, in this period
 // every incoming job will reset the timer.
-func builder(jobs <-chan string, buildStarted chan<- struct{}, buildDone chan<- bool) {
+func builder(jobs <-chan string, buildStarted chan<- string, buildDone chan<- bool) {
 	createThreshold := func() <-chan time.Time {
 		return time.After(time.Duration(WorkDelay * time.Millisecond))
 	}
 
 	threshold := createThreshold()
+	eventPath := ""
 
 	for {
 		select {
-		case <-jobs:
+		case eventPath = <-jobs:
 			threshold = createThreshold()
 		case <-threshold:
-			buildStarted <- struct{}{}
+			buildStarted <- eventPath
 			buildDone <- build()
 		}
 	}
@@ -196,7 +222,7 @@ func logger(pipeChan <-chan io.ReadCloser) {
 				break readloop
 			}
 
-			if *flag_logprefix {
+			if *flagLogPrefix {
 				log.Print(prefix, " ", line)
 			} else {
 				log.Print(line)
@@ -218,6 +244,10 @@ func startCommand(command string) (cmd *exec.Cmd, stdout io.ReadCloser, stderr i
 	args := strings.Split(command, " ")
 	cmd = exec.Command(args[0], args[1:]...)
 
+	if *flagRunDir != "" {
+		cmd.Dir = *flagRunDir
+	}
+
 	if stdout, err = cmd.StdoutPipe(); err != nil {
 		err = fmt.Errorf("can't get stdout pipe for command: %s", err)
 		return
@@ -238,17 +268,36 @@ func startCommand(command string) (cmd *exec.Cmd, stdout io.ReadCloser, stderr i
 
 // Run the command in the given string and restart it after
 // a message was received on the buildDone channel.
-func runner(command string, buildStarted <-chan struct{}, buildDone <-chan bool) {
+func runner(commandTemplate string, buildStarted <-chan string, buildSuccess <-chan bool) {
 	var currentProcess *os.Process
 	pipeChan := make(chan io.ReadCloser)
 
 	go logger(pipeChan)
 
+	// Launch concurrent process watching for signals from outside that
+	// indicate termination to kill the running process alongside
+	// CompileDaemon to prevent orphan processes.
+	go func() {
+		processSignalChannel := make(chan os.Signal, 1)
+		signal.Notify(processSignalChannel, fatalSignals...)
+		<-processSignalChannel
+
+		log.Println(okColor("Received signal, terminating cleanly."))
+		if currentProcess != nil {
+			killProcess(currentProcess)
+		}
+		os.Exit(0)
+	}()
+
 	for {
-		<-buildStarted
-		if !*flag_command_stop {
-			buildSuccess := <-buildDone
-			if !buildSuccess {
+		eventPath := <-buildStarted
+
+		// prepend %0.s (which adds nothing) to prevent warning about missing
+		// format specifier if the user did not supply one.
+		command := fmt.Sprintf("%0.s"+commandTemplate, eventPath)
+
+		if !*flagCommandStop {
+			if !<-buildSuccess {
 				continue
 			}
 		}
@@ -256,16 +305,19 @@ func runner(command string, buildStarted <-chan struct{}, buildDone <-chan bool)
 		if currentProcess != nil {
 			killProcess(currentProcess)
 		}
-		if *flag_command_stop {
+
+		if *flagCommandStop {
 			log.Println(okColor("Command stopped. Waiting for build to complete."))
-			<-buildDone
+			if !<-buildSuccess {
+				continue
+			}
 		}
 
 		log.Println(okColor("Restarting the given command."))
 		cmd, stdoutPipe, stderrPipe, err := startCommand(command)
 
 		if err != nil {
-			log.Fatal(failColor("Could not start command:", err))
+			log.Fatal(failColor("Could not start command: %s", err))
 		}
 
 		pipeChan <- stdoutPipe
@@ -276,7 +328,7 @@ func runner(command string, buildStarted <-chan struct{}, buildDone <-chan bool)
 }
 
 func killProcess(process *os.Process) {
-	if *flag_gracefulkill {
+	if *flagGracefulKill {
 		killProcessGracefully(process)
 	} else {
 		killProcessHard(process)
@@ -287,7 +339,7 @@ func killProcessHard(process *os.Process) {
 	log.Println(okColor("Hard stopping the current process.."))
 
 	if err := process.Kill(); err != nil {
-		log.Fatal(failColor("Could not kill child process. Aborting due to danger of infinite forks."))
+		log.Println(failColor("Warning: could not kill child process.  It may have already exited."))
 	}
 
 	if _, err := process.Wait(); err != nil {
@@ -308,7 +360,7 @@ func killProcessGracefully(process *os.Process) {
 	}()
 
 	select {
-	case <-time.After(3 * time.Second):
+	case <-time.After(time.Duration(*flagGracefulTimeout) * time.Second):
 		log.Println(failColor("Could not gracefully stop the current process, proceeding to hard stop."))
 		killProcessHard(process)
 		<-done
@@ -319,34 +371,47 @@ func killProcessGracefully(process *os.Process) {
 	}
 }
 
-func flusher(buildStarted <-chan struct{}, buildDone <-chan bool) {
+func flusher(buildStarted <-chan string, buildSuccess <-chan bool) {
 	for {
 		<-buildStarted
-		<-buildDone
+		<-buildSuccess
 	}
 }
 
 func main() {
-	flag.Var(&flag_excludedDirs, "exclude-dir", " Don't watch directories matching this name")
-	flag.Var(&flag_excludedFiles, "exclude", " Don't watch files matching this name")
-	flag.Var(&flag_includedFiles, "include", " Watch files matching this name")
+	flag.Var(&flagDirectories, "directory", "Directory to watch for changes, can be set more than once")
+	flag.Var(&flagExcludedDirs, "exclude-dir", " Don't watch directories matching this name, can be set more than once")
+	flag.Var(&flagExcludedFiles, "exclude", " Don't watch files matching this name, can be set more than once")
+	flag.Var(&flagIncludedFiles, "include", " Watch files matching this name, can be set more than once")
 
 	flag.Parse()
 
-	if !*flag_logprefix {
+	if !*flagLogPrefix {
 		log.SetFlags(0)
 	}
 
-	if *flag_directory == "" {
-		fmt.Fprintf(os.Stderr, "-directory=... is required.\n")
-		os.Exit(1)
+	if len(flagDirectories) == 0 {
+		flagDirectories = globList([]string{"."})
 	}
 
-	if *flag_gracefulkill && !gracefulTerminationPossible() {
+	if *flagGracefulKill && !gracefulTerminationPossible() {
 		log.Fatal("Graceful termination is not supported on your platform.")
 	}
 
-	watcher, err := fsnotify.NewWatcher()
+	pattern := regexp.MustCompile(*flagPattern)
+
+	cfg := &WatcherConfig{
+		flagVerbose:         *flagVerbose,
+		flagRecursive:       *flagRecursive,
+		flagPolling:         *flagPolling,
+		flagPollingInterval: *flagPollingInterval,
+		flagDirectories:     flagDirectories,
+		flagExcludedDirs:    flagExcludedDirs,
+		flagExcludedFiles:   flagExcludedFiles,
+		flagIncludedFiles:   flagIncludedFiles,
+		pattern:             pattern,
+	}
+	watcher, err := NewWatcher(cfg)
 
 	if err != nil {
 		log.Fatal(err)
@@ -354,62 +419,22 @@ func main() {
 
 	defer watcher.Close()
 
-	if *flag_recursive == true {
-		err = filepath.Walk(*flag_directory, func(path string, info os.FileInfo, err error) error {
-			if err == nil && info.IsDir() {
-				if flag_excludedDirs.Matches(info.Name()) {
-					return filepath.SkipDir
-				} else {
-					return watcher.Watch(path)
-				}
-			}
-			return err
-		})
-
-		if err != nil {
-			log.Fatal("filepath.Walk():", err)
-		}
-
-	} else {
-		if err := watcher.Watch(*flag_directory); err != nil {
-			log.Fatal("watcher.Watch():", err)
-		}
+	err = watcher.AddFiles()
+	if err != nil {
+		log.Fatal("watcher.Addfiles():", err)
 	}
 
-	pattern := regexp.MustCompile(*flag_pattern)
 	jobs := make(chan string)
-	buildDone := make(chan bool)
-	buildStarted := make(chan struct{})
+	buildSuccess := make(chan bool)
+	buildStarted := make(chan string)
 
-	go builder(jobs, buildStarted, buildDone)
+	go builder(jobs, buildStarted, buildSuccess)
 
-	if *flag_command != "" {
-		go runner(*flag_command, buildStarted, buildDone)
+	if *flagCommand != "" {
+		go runner(*flagCommand, buildStarted, buildSuccess)
 	} else {
-		go flusher(buildStarted, buildDone)
+		go flusher(buildStarted, buildSuccess)
 	}
 
-	for {
-		select {
-		case ev := <-watcher.Event:
-			if ev.Name != "" {
-				base := filepath.Base(ev.Name)
-
-				if flag_includedFiles.Matches(base) || matchesPattern(pattern, ev.Name) {
-					if !flag_excludedFiles.Matches(base) {
-						jobs <- ev.Name
-					}
-				}
-			}
-
-		case err := <-watcher.Error:
-			if v, ok := err.(*os.SyscallError); ok {
-				if v.Err == syscall.EINTR {
-					continue
-				}
-				log.Fatal("watcher.Error: SyscallError:", v)
-			}
-			log.Fatal("watcher.Error:", err)
-		}
-	}
+	watcher.Watch(jobs) // start watching files
 }

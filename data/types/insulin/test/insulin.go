@@ -9,10 +9,10 @@ import (
 
 func NewInsulin() *insulin.Insulin {
 	datum := insulin.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "insulin"
 	datum.Dose = NewDose()
-	datum.Formulation = NewFormulation(3)
+	datum.Formulation = RandomFormulation(3)
 	datum.Site = pointer.FromString(test.RandomStringFromRange(1, 100))
 	return datum
 }

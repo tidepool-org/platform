@@ -4,8 +4,9 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
-//+build gssapi
-//+build windows linux darwin
+//go:build gssapi && (windows || linux || darwin)
+// +build gssapi
+// +build windows linux darwin
 
 package auth
 
@@ -14,9 +15,7 @@ import (
 	"fmt"
 	"net"
 
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/auth/internal/gssapi"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 )
 
 // GSSAPI is the mechanism name for GSSAPI.
@@ -44,8 +43,8 @@ type GSSAPIAuthenticator struct {
 }
 
 // Auth authenticates the connection.
-func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
-	target := desc.Addr.String()
+func (a *GSSAPIAuthenticator) Auth(ctx context.Context, cfg *Config) error {
+	target := cfg.Description.Addr.String()
 	hostname, _, err := net.SplitHostPort(target)
 	if err != nil {
 		return newAuthError(fmt.Sprintf("invalid endpoint (%s) specified: %s", target, err), nil)
@@ -56,5 +55,5 @@ func (a *GSSAPIAuthenticator) Auth(ctx context.Context, desc description.Server,
 	if err != nil {
 		return newAuthError("error creating gssapi", err)
 	}
-	return ConductSaslConversation(ctx, conn, "$external", client)
+	return ConductSaslConversation(ctx, cfg, "$external", client)
 }

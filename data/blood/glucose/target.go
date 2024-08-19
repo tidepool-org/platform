@@ -71,6 +71,39 @@ func (t *Target) Normalize(normalizer data.Normalizer, units *string) {
 	}
 }
 
+type Bounds struct {
+	Lower float64
+	Upper float64
+}
+
+// GetBounds returns the upper and lower bounds expressed by the range attributes.
+// Returns nil if the combination of attributes is invalid.
+func (t *Target) GetBounds() *Bounds {
+	if t.Target != nil && t.Range != nil {
+		return &Bounds{
+			Lower: *t.Target - *t.Range,
+			Upper: *t.Target + *t.Range,
+		}
+	} else if t.Target != nil && t.High != nil {
+		return &Bounds{
+			Lower: *t.Target,
+			Upper: *t.High,
+		}
+	} else if t.Target != nil {
+		return &Bounds{
+			Lower: *t.Target,
+			Upper: *t.Target,
+		}
+	} else if t.High != nil && t.Low != nil {
+		return &Bounds{
+			Lower: *t.Low,
+			Upper: *t.High,
+		}
+	}
+
+	return nil
+}
+
 func HighRangeForUnits(low float64, units *string) (float64, float64) {
 	if units != nil {
 		switch *units {

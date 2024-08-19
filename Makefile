@@ -1,3 +1,8 @@
+TIMESTAMP ?= $(shell date +%s)
+# ensure that we use the same timestamps in sub-makes. We've seen cases where
+# these can vary by 1 second
+export TIMESTAMP
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
@@ -17,10 +22,12 @@ VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
+GO_BUILD_FLAGS:=-buildvcs=false
 GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
-FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
+FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
+
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 ifdef TRAVIS_BRANCH
@@ -50,69 +57,82 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && go install .
+	cd vendor/github.com/githubnemo/CompileDaemon && go install -mod=vendor .
 endif
 
 esc:
 ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install .
+	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
+endif
+
+mockgen:
+ifeq ($(shell which mockgen),)
+	go install github.com/golang/mock/mockgen@v1.6.0
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/ginkgo && go install .
+	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && go install -mod=vendor .
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install .
+	cd vendor/golang.org/x/tools/cmd/goimports && go install -mod=vendor .
 endif
 
 golint:
 ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install .
+	cd vendor/golang.org/x/lint/golint && go install -mod=vendor .
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
 buildable: bindir CompileDaemon esc ginkgo goimports golint
 
-generate: esc
+generate: esc mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
-ci-generate: generate
+ci-generate: generate format-write-changed imports-write-changed
 	@cd $(ROOT_DIRECTORY) && \
 		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
 
 format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
+format-write-changed:
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} gofmt -e -s -w {}
 
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
 	@echo "goimports -e -w -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
+
+imports-write-changed: goimports
+	@cd $(ROOT_DIRECTORY) && \
+		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"
 	cd $(ROOT_DIRECTORY) && \
-    		go vet ./... > _tmp/govet.out 2>&1 || \
-    		(diff .govetignore _tmp/govet.out && exit 1)
+		go vet ./... > _tmp/govet.out 2>&1 || \
+		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
@@ -120,14 +140,15 @@ vet-ignore:
 lint: golint tmp
 	@echo "golint"
 	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
+		find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
 		diff .golintignore _tmp/golint.out || \
 		exit 0
 
 lint-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
 
-pre-build: format imports vet lint
+pre-build: format imports vet
+# pre-build: format imports vet lint
 
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
@@ -171,38 +192,28 @@ service-restart-all:
 	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
 
 test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -untilItFails $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)
 
 test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r $(TEST)
+	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 --compilers=2 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing $(TEST)
-
-snyk-test:
-	@echo "snyk test --dev --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk test --dev --org=tidepool
-
-snyk-monitor:
-	@echo "snyk monitor --org=tidepool"
-	@cd $(ROOT_DIRECTORY) && snyk monitor --org=tidepool
-
-ci-snyk: snyk-test snyk-monitor
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
 
 ci-test-until-failure: ginkgo
-	@echo "ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo -requireSuite -slowSpecThreshold=10 -r -randomizeSuites -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress -keepGoing -untilItFails $(TEST)
+	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
-	@echo "ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch -requireSuite -slowSpecThreshold=10 -r -randomizeAllSpecs -succinct -failOnPending -cover -trace -race -progress $(TEST)
+	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
@@ -240,8 +251,8 @@ endif
 docker:
 ifdef DOCKER
 	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}"; done
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}"; done
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
+	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
 endif
 
 docker-build:
@@ -253,9 +264,11 @@ ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
 	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
 	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
 	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
+	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 endif
 endif
 endif
@@ -282,9 +295,11 @@ ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
 	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
+	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 endif
 endif
 endif
@@ -303,7 +318,7 @@ clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin
 
 clean-cover:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
 
 clean-debug:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
@@ -313,7 +328,8 @@ clean-deploy:
 
 clean-all: clean
 
-pre-commit: format imports vet lint
+pre-commit: format imports vet
+# pre-commit: format imports vet lint
 
 gopath-implode:
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete

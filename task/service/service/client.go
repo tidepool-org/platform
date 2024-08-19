@@ -24,36 +24,26 @@ func NewClient(str taskStore.Store) (*Client, error) {
 }
 
 func (c *Client) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
-	ssn := c.taskStore.NewTaskSession()
-	defer ssn.Close()
-
-	return ssn.ListTasks(ctx, filter, pagination)
+	repository := c.taskStore.NewTaskRepository()
+	return repository.ListTasks(ctx, filter, pagination)
 }
 
 func (c *Client) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
-	ssn := c.taskStore.NewTaskSession()
-	defer ssn.Close()
-
-	return ssn.CreateTask(ctx, create)
+	repository := c.taskStore.NewTaskRepository()
+	return repository.CreateTask(ctx, create)
 }
 
 func (c *Client) GetTask(ctx context.Context, id string) (*task.Task, error) {
-	ssn := c.taskStore.NewTaskSession()
-	defer ssn.Close()
-
-	return ssn.GetTask(ctx, id)
+	repository := c.taskStore.NewTaskRepository()
+	return repository.GetTask(ctx, id)
 }
 
 func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
-	ssn := c.taskStore.NewTaskSession()
-	defer ssn.Close()
-
-	return ssn.UpdateTask(ctx, id, update)
+	repository := c.taskStore.NewTaskRepository()
+	return repository.UpdateTask(ctx, id, update)
 }
 
 func (c *Client) DeleteTask(ctx context.Context, id string) error {
-	ssn := c.taskStore.NewTaskSession()
-	defer ssn.Close()
-
-	return ssn.DeleteTask(ctx, id)
+	repository := c.taskStore.NewTaskRepository()
+	return repository.DeleteTask(ctx, id)
 }

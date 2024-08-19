@@ -17,58 +17,88 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/operation"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/session"
 )
 
-const errorInterrupted int32 = 11601
-const errorCappedPositionLost int32 = 136
-const errorCursorKilled int32 = 237
+var (
+	// ErrMissingResumeToken indicates that a change stream notification from the server did not contain a resume token.
+	ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
+	// ErrNilCursor indicates that the underlying cursor for the change stream is nil.
+	ErrNilCursor = errors.New("cursor is nil")
 
-// ErrMissingResumeToken indicates that a change stream notification from the server did not contain a resume token.
-var ErrMissingResumeToken = errors.New("cannot provide resume functionality when the resume token is missing")
+	minResumableLabelWireVersion int32 = 9 // Wire version at which the server includes the resumable error label
+	networkErrorLabel                  = "NetworkError"
+	resumableErrorLabel                = "ResumableChangeStreamError"
+	errorCursorNotFound          int32 = 43 // CursorNotFound error code
 
-// ErrNilCursor indicates that the underlying cursor for the change stream is nil.
-var ErrNilCursor = errors.New("cursor is nil")
+	// Allowlist of error codes that are considered resumable.
+	resumableChangeStreamErrors = map[int32]struct{}{
+		6:     {}, // HostUnreachable
+		7:     {}, // HostNotFound
+		89:    {}, // NetworkTimeout
+		91:    {}, // ShutdownInProgress
+		189:   {}, // PrimarySteppedDown
+		262:   {}, // ExceededTimeLimit
+		9001:  {}, // SocketException
+		10107: {}, // NotPrimary
+		11600: {}, // InterruptedAtShutdown
+		11602: {}, // InterruptedDueToReplStateChange
+		13435: {}, // NotPrimaryNoSecondaryOK
+		13436: {}, // NotPrimaryOrSecondary
+		63:    {}, // StaleShardVersion
+		150:   {}, // StaleEpoch
+		13388: {}, // StaleConfig
+		234:   {}, // RetryChangeStream
+		133:   {}, // FailedToSatisfyReadPreference
+	}
+)
 
 // ChangeStream is used to iterate over a stream of events. Each event can be decoded into a Go type via the Decode
-// method or accessed as raw BSON via the Current field. For more information about change streams, see
-// https://docs.mongodb.com/manual/changeStreams/.
+// method or accessed as raw BSON via the Current field. This type is not goroutine safe and must not be used
+// concurrently by multiple goroutines. For more information about change streams, see
+// https://www.mongodb.com/docs/manual/changeStreams/.
 type ChangeStream struct {
 	// Current is the BSON bytes of the current event. This property is only valid until the next call to Next or
 	// TryNext. If continued access is required, a copy must be made.
 	Current bson.Raw
 
-	aggregate     *operation.Aggregate
-	pipelineSlice []bsoncore.Document
-	cursor        changeStreamCursor
-	cursorOptions driver.CursorOptions
-	batch         []bsoncore.Document
-	resumeToken   bson.Raw
-	err           error
-	sess          *session.Client
-	client        *Client
-	registry      *bsoncodec.Registry
-	streamType    StreamType
-	options       *options.ChangeStreamOptions
-	selector      description.ServerSelector
-	operationTime *primitive.Timestamp
+	aggregate       *operation.Aggregate
+	pipelineSlice   []bsoncore.Document
+	pipelineOptions map[string]bsoncore.Value
+	cursor          changeStreamCursor
+	cursorOptions   driver.CursorOptions
+	batch           []bsoncore.Document
+	resumeToken     bson.Raw
+	err             error
+	sess            *session.Client
+	client          *Client
+	bsonOpts        *options.BSONOptions
+	registry        *bsoncodec.Registry
+	streamType      StreamType
+	options         *options.ChangeStreamOptions
+	selector        description.ServerSelector
+	operationTime   *primitive.Timestamp
+	wireVersion     *description.VersionRange
 }
 
 type changeStreamConfig struct {
 	readConcern    *readconcern.ReadConcern
 	readPreference *readpref.ReadPref
 	client         *Client
+	bsonOpts       *options.BSONOptions
 	registry       *bsoncodec.Registry
 	streamType     StreamType
 	collectionName string
 	databaseName   string
+	crypt          driver.Crypt
 }
 
 func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline interface{},
@@ -77,20 +107,26 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 		ctx = context.Background()
 	}
 
+	cursorOpts := config.client.createBaseCursorOptions()
+
+	cursorOpts.MarshalValueEncoderFn = newEncoderFn(config.bsonOpts, config.registry)
+
 	cs := &ChangeStream{
 		client:     config.client,
+		bsonOpts:   config.bsonOpts,
 		registry:   config.registry,
 		streamType: config.streamType,
 		options:    options.MergeChangeStreamOptions(opts...),
-		selector:   description.ReadPrefSelector(config.readPreference),
+		selector: description.CompositeSelector([]description.ServerSelector{
+			description.ReadPrefSelector(config.readPreference),
+			description.LatencySelector(config.client.localThreshold),
+		}),
+		cursorOptions: cursorOpts,
 	}
 
 	cs.sess = sessionFromContext(ctx)
 	if cs.sess == nil && cs.client.sessionPool != nil {
-		cs.sess, cs.err = session.NewClientSession(cs.client.sessionPool, cs.client.id, session.Implicit)
-		if cs.err != nil {
-			return nil, cs.Err()
-		}
+		cs.sess = session.NewImplicitClientSession(cs.client.sessionPool, cs.client.id)
 	}
 	if cs.err = cs.client.validSession(cs.sess); cs.err != nil {
 		closeImplicitSession(cs.sess)
@@ -100,19 +136,59 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	cs.aggregate = operation.NewAggregate(nil).
 		ReadPreference(config.readPreference).ReadConcern(config.readConcern).
 		Deployment(cs.client.deployment).ClusterClock(cs.client.clock).
-		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone)
+		CommandMonitor(cs.client.monitor).Session(cs.sess).ServerSelector(cs.selector).Retry(driver.RetryNone).
+		ServerAPI(cs.client.serverAPI).Crypt(config.crypt).Timeout(cs.client.timeout)
 
 	if cs.options.Collation != nil {
 		cs.aggregate.Collation(bsoncore.Document(cs.options.Collation.ToDocument()))
+	}
+	if comment := cs.options.Comment; comment != nil {
+		cs.aggregate.Comment(*comment)
+
+		commentVal, err := marshalValue(comment, cs.bsonOpts, cs.registry)
+		if err != nil {
+			return nil, err
+		}
+		cs.cursorOptions.Comment = commentVal
 	}
 	if cs.options.BatchSize != nil {
 		cs.aggregate.BatchSize(*cs.options.BatchSize)
 		cs.cursorOptions.BatchSize = *cs.options.BatchSize
 	}
 	if cs.options.MaxAwaitTime != nil {
-		cs.cursorOptions.MaxTimeMS = int64(time.Duration(*cs.options.MaxAwaitTime) / time.Millisecond)
+		cs.cursorOptions.MaxTimeMS = int64(*cs.options.MaxAwaitTime / time.Millisecond)
 	}
-	cs.cursorOptions.CommandMonitor = cs.client.monitor
+	if cs.options.Custom != nil {
+		// Marshal all custom options before passing to the initial aggregate. Return
+		// any errors from Marshaling.
+		customOptions := make(map[string]bsoncore.Value)
+		for optionName, optionValue := range cs.options.Custom {
+			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			if err != nil {
+				cs.err = err
+				closeImplicitSession(cs.sess)
+				return nil, cs.Err()
+			}
+			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			customOptions[optionName] = optionValueBSON
+		}
+		cs.aggregate.CustomOptions(customOptions)
+	}
+	if cs.options.CustomPipeline != nil {
+		// Marshal all custom pipeline options before building pipeline slice. Return
+		// any errors from Marshaling.
+		cs.pipelineOptions = make(map[string]bsoncore.Value)
+		for optionName, optionValue := range cs.options.CustomPipeline {
+			bsonType, bsonData, err := bson.MarshalValueWithRegistry(cs.registry, optionValue)
+			if err != nil {
+				cs.err = err
+				closeImplicitSession(cs.sess)
+				return nil, cs.Err()
+			}
+			optionValueBSON := bsoncore.Value{Type: bsonType, Data: bsonData}
+			cs.pipelineOptions[optionName] = optionValueBSON
+		}
+	}
 
 	switch cs.streamType {
 	case ClientStream:
@@ -157,10 +233,17 @@ func newChangeStream(ctx context.Context, config changeStreamConfig, pipeline in
 	return cs, cs.Err()
 }
 
+func (cs *ChangeStream) createOperationDeployment(server driver.Server, connection driver.Connection) driver.Deployment {
+	return &changeStreamDeployment{
+		topologyKind: cs.client.deployment.Kind(),
+		server:       server,
+		conn:         connection,
+	}
+}
+
 func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) error {
 	var server driver.Server
 	var conn driver.Connection
-	var err error
 
 	if server, cs.err = cs.client.deployment.SelectServer(ctx, cs.selector); cs.err != nil {
 		return cs.Err()
@@ -168,17 +251,18 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 	if conn, cs.err = server.Connection(ctx); cs.err != nil {
 		return cs.Err()
 	}
-
 	defer conn.Close()
+	cs.wireVersion = conn.Description().WireVersion
 
-	cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-		C: conn,
-	})
+	cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
 
 	if resuming {
-		cs.replaceOptions(ctx, conn.Description().WireVersion) // pass wire version
+		cs.replaceOptions(cs.wireVersion)
 
-		csOptDoc := cs.createPipelineOptionsDoc()
+		csOptDoc, err := cs.createPipelineOptionsDoc()
+		if err != nil {
+			return err
+		}
 		pipIdx, pipDoc := bsoncore.AppendDocumentStart(nil)
 		pipDoc = bsoncore.AppendDocumentElement(pipDoc, "$changeStream", csOptDoc)
 		if pipDoc, cs.err = bsoncore.AppendDocumentEnd(pipDoc, pipIdx); cs.err != nil {
@@ -193,51 +277,72 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 		cs.aggregate.Pipeline(plArr)
 	}
 
-	if original := cs.aggregate.Execute(ctx); original != nil {
-		wireVersion := conn.Description().WireVersion
-		retryableRead := cs.client.retryReads && wireVersion != nil && wireVersion.Max >= 6
-		if !retryableRead {
-			cs.err = replaceErrors(original)
-			return cs.err
+	// If cs.client.timeout is set and context is not already a Timeout context,
+	// honor cs.client.timeout in new Timeout context for change stream
+	// operation execution and potential retry.
+	if cs.client.timeout != nil && !csot.IsTimeoutContext(ctx) {
+		newCtx, cancelFunc := csot.MakeTimeoutContext(ctx, *cs.client.timeout)
+		// Redefine ctx to be the new timeout-derived context.
+		ctx = newCtx
+		// Cancel the timeout-derived context at the end of executeOperation to avoid a context leak.
+		defer cancelFunc()
+	}
+
+	// Execute the aggregate, retrying on retryable errors once (1) if retryable reads are enabled and
+	// infinitely (-1) if context is a Timeout context.
+	var retries int
+	if cs.client.retryReads {
+		retries = 1
+	}
+	if csot.IsTimeoutContext(ctx) {
+		retries = -1
+	}
+
+	var err error
+AggregateExecuteLoop:
+	for {
+		err = cs.aggregate.Execute(ctx)
+		// If no error or no retries remain, do not retry.
+		if err == nil || retries == 0 {
+			break AggregateExecuteLoop
 		}
 
-		cs.err = original
-		switch tt := original.(type) {
+		switch tt := err.(type) {
 		case driver.Error:
-			if !tt.Retryable() {
-				break
+			// If error is not retryable, do not retry.
+			if !tt.RetryableRead() {
+				break AggregateExecuteLoop
 			}
 
+			// If error is retryable: subtract 1 from retries, redo server selection, checkout
+			// a connection, and restart loop.
+			retries--
 			server, err = cs.client.deployment.SelectServer(ctx, cs.selector)
 			if err != nil {
-				break
+				break AggregateExecuteLoop
 			}
 
 			conn.Close()
 			conn, err = server.Connection(ctx)
 			if err != nil {
-				break
+				break AggregateExecuteLoop
 			}
 			defer conn.Close()
 
-			wireVersion := conn.Description().WireVersion
-			if wireVersion == nil || wireVersion.Max < 6 {
-				break
-			}
+			// Update the wire version with data from the new connection.
+			cs.wireVersion = conn.Description().WireVersion
 
-			cs.aggregate.Deployment(driver.SingleConnectionDeployment{
-				C: conn,
-			})
-			cs.err = cs.aggregate.Execute(ctx)
+			// Reset deployment.
+			cs.aggregate.Deployment(cs.createOperationDeployment(server, conn))
+		default:
+			// Do not retry if error is not a driver error.
+			break AggregateExecuteLoop
 		}
-
-		if cs.err != nil {
-			cs.err = replaceErrors(cs.err)
-			return cs.Err()
-		}
-
 	}
-	cs.err = nil
+	if err != nil {
+		cs.err = replaceErrors(err)
+		return cs.err
+	}
 
 	cr := cs.aggregate.ResultCursorResponse()
 	cr.Server = server
@@ -249,7 +354,7 @@ func (cs *ChangeStream) executeOperation(ctx context.Context, resuming bool) err
 
 	cs.updatePbrtFromCommand()
 	if cs.options.StartAtOperationTime == nil && cs.options.ResumeAfter == nil &&
-		cs.options.StartAfter == nil && conn.Description().WireVersion.Max >= 7 &&
+		cs.options.StartAfter == nil && cs.wireVersion.Max >= 7 &&
 		cs.emptyBatch() && cs.resumeToken == nil {
 		cs.operationTime = cs.sess.OperationTime
 	}
@@ -291,16 +396,17 @@ func (cs *ChangeStream) storeResumeToken() error {
 func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	val := reflect.ValueOf(pipeline)
 	if !val.IsValid() || !(val.Kind() == reflect.Slice) {
-		cs.err = errors.New("can only transform slices and arrays into aggregation pipelines, but got invalid")
+		cs.err = errors.New("can only marshal slices and arrays into aggregation pipelines, but got invalid")
 		return cs.err
 	}
 
 	cs.pipelineSlice = make([]bsoncore.Document, 0, val.Len()+1)
 
 	csIdx, csDoc := bsoncore.AppendDocumentStart(nil)
-	csDocTemp := cs.createPipelineOptionsDoc()
-	if cs.err != nil {
-		return cs.err
+
+	csDocTemp, err := cs.createPipelineOptionsDoc()
+	if err != nil {
+		return err
 	}
 	csDoc = bsoncore.AppendDocumentElement(csDoc, "$changeStream", csDocTemp)
 	csDoc, cs.err = bsoncore.AppendDocumentEnd(csDoc, csIdx)
@@ -311,7 +417,7 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 
 	for i := 0; i < val.Len(); i++ {
 		var elem []byte
-		elem, cs.err = transformBsoncoreDocument(cs.registry, val.Index(i).Interface())
+		elem, cs.err = marshal(val.Index(i).Interface(), cs.bsonOpts, cs.registry)
 		if cs.err != nil {
 			return cs.err
 		}
@@ -322,32 +428,40 @@ func (cs *ChangeStream) buildPipelineSlice(pipeline interface{}) error {
 	return cs.err
 }
 
-func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
+func (cs *ChangeStream) createPipelineOptionsDoc() (bsoncore.Document, error) {
 	plDocIdx, plDoc := bsoncore.AppendDocumentStart(nil)
 
 	if cs.streamType == ClientStream {
 		plDoc = bsoncore.AppendBooleanElement(plDoc, "allChangesForCluster", true)
 	}
 
-	if cs.options.FullDocument != nil {
+	if cs.options.FullDocument != nil && *cs.options.FullDocument != options.Default {
 		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocument", string(*cs.options.FullDocument))
+	}
+
+	if cs.options.FullDocumentBeforeChange != nil {
+		plDoc = bsoncore.AppendStringElement(plDoc, "fullDocumentBeforeChange", string(*cs.options.FullDocumentBeforeChange))
 	}
 
 	if cs.options.ResumeAfter != nil {
 		var raDoc bsoncore.Document
-		raDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.ResumeAfter)
+		raDoc, cs.err = marshal(cs.options.ResumeAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "resumeAfter", raDoc)
 	}
 
+	if cs.options.ShowExpandedEvents != nil {
+		plDoc = bsoncore.AppendBooleanElement(plDoc, "showExpandedEvents", *cs.options.ShowExpandedEvents)
+	}
+
 	if cs.options.StartAfter != nil {
 		var saDoc bsoncore.Document
-		saDoc, cs.err = transformBsoncoreDocument(cs.registry, cs.options.StartAfter)
+		saDoc, cs.err = marshal(cs.options.StartAfter, cs.bsonOpts, cs.registry)
 		if cs.err != nil {
-			return nil
+			return nil, cs.err
 		}
 
 		plDoc = bsoncore.AppendDocumentElement(plDoc, "startAfter", saDoc)
@@ -357,11 +471,16 @@ func (cs *ChangeStream) createPipelineOptionsDoc() bsoncore.Document {
 		plDoc = bsoncore.AppendTimestampElement(plDoc, "startAtOperationTime", cs.options.StartAtOperationTime.T, cs.options.StartAtOperationTime.I)
 	}
 
-	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
-		return nil
+	// Append custom pipeline options.
+	for optionName, optionValue := range cs.pipelineOptions {
+		plDoc = bsoncore.AppendValueElement(plDoc, optionName, optionValue)
 	}
 
-	return plDoc
+	if plDoc, cs.err = bsoncore.AppendDocumentEnd(plDoc, plDocIdx); cs.err != nil {
+		return nil, cs.err
+	}
+
+	return plDoc, nil
 }
 
 func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
@@ -375,7 +494,7 @@ func (cs *ChangeStream) pipelineToBSON() (bsoncore.Document, error) {
 	return pipelineArr, cs.err
 }
 
-func (cs *ChangeStream) replaceOptions(ctx context.Context, wireVersion *description.VersionRange) {
+func (cs *ChangeStream) replaceOptions(wireVersion *description.VersionRange) {
 	// Cached resume token: use the resume token as the resumeAfter option and set no other resume options
 	if cs.resumeToken != nil {
 		cs.options.SetResumeAfter(cs.resumeToken)
@@ -412,6 +531,22 @@ func (cs *ChangeStream) ID() int64 {
 	return cs.cursor.ID()
 }
 
+// RemainingBatchLength returns the number of documents left in the current batch. If this returns zero, the subsequent
+// call to Next or TryNext will do a network request to fetch the next batch.
+func (cs *ChangeStream) RemainingBatchLength() int {
+	return len(cs.batch)
+}
+
+// SetBatchSize sets the number of documents to fetch from the database with
+// each iteration of the ChangeStream's "Next" or "TryNext" method. This setting
+// only affects subsequent document batches fetched from the database.
+func (cs *ChangeStream) SetBatchSize(size int32) {
+	// Set batch size on the cursor options also so any "resumed" change stream
+	// cursors will pick up the latest batch size setting.
+	cs.cursorOptions.BatchSize = size
+	cs.cursor.SetBatchSize(size)
+}
+
 // Decode will unmarshal the current event document into val and return any errors from the unmarshalling process
 // without any modification. If val is nil or is a typed nil, an error will be returned.
 func (cs *ChangeStream) Decode(val interface{}) error {
@@ -419,7 +554,11 @@ func (cs *ChangeStream) Decode(val interface{}) error {
 		return ErrNilCursor
 	}
 
-	return bson.UnmarshalWithRegistry(cs.registry, cs.Current, val)
+	dec, err := getDecoder(cs.Current, cs.bsonOpts, cs.registry)
+	if err != nil {
+		return fmt.Errorf("error configuring BSON decoder: %w", err)
+	}
+	return dec.Decode(val)
 }
 
 // Err returns the last error seen by the change stream, or nil if no errors has occurred.
@@ -485,7 +624,7 @@ func (cs *ChangeStream) TryNext(ctx context.Context) bool {
 }
 
 func (cs *ChangeStream) next(ctx context.Context, nonBlocking bool) bool {
-	// return false right away if the change stream has already errored.
+	// return false right away if the change stream has already errored or if cursor is closed.
 	if cs.err != nil {
 		return false
 	}
@@ -528,6 +667,11 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 
 		cs.err = replaceErrors(cs.cursor.Err())
 		if cs.err == nil {
+			// Check if cursor is alive
+			if cs.ID() == 0 {
+				return
+			}
+
 			// If a getMore was done but the batch was empty, the batch cursor will return false with no error.
 			// Update the tracked resume token to catch the post batch resume token from the server response.
 			cs.updatePbrtFromCommand()
@@ -538,11 +682,8 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			continue // loop getMore until a non-empty batch is returned or an error occurs
 		}
 
-		switch t := cs.err.(type) {
-		case CommandError:
-			if t.Code == errorInterrupted || t.Code == errorCappedPositionLost || t.Code == errorCursorKilled || t.HasErrorLabel("NonResumableChangeStreamError") {
-				return
-			}
+		if !cs.isResumableError() {
+			return
 		}
 
 		// ignore error from cursor close because if the cursor is deleted or errors we tried to close it and will remake and try to get next batch
@@ -551,6 +692,27 @@ func (cs *ChangeStream) loopNext(ctx context.Context, nonBlocking bool) {
 			return
 		}
 	}
+}
+
+func (cs *ChangeStream) isResumableError() bool {
+	var commandErr CommandError
+	if !errors.As(cs.err, &commandErr) || commandErr.HasErrorLabel(networkErrorLabel) {
+		// All non-server errors or network errors are resumable.
+		return true
+	}
+
+	if commandErr.Code == errorCursorNotFound {
+		return true
+	}
+
+	// For wire versions 9 and above, a server error is resumable if it has the ResumableChangeStreamError label.
+	if cs.wireVersion != nil && cs.wireVersion.Includes(minResumableLabelWireVersion) {
+		return commandErr.HasErrorLabel(resumableErrorLabel)
+	}
+
+	// For wire versions below 9, a server error is resumable if its code is on the allowlist.
+	_, resumable := resumableChangeStreamErrors[commandErr.Code]
+	return resumable
 }
 
 // Returns true if the underlying cursor's batch is empty

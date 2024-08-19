@@ -8,6 +8,7 @@ import (
 )
 
 type Client interface {
+	GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*AlertsResponse, error)
 	GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*CalibrationsResponse, error)
 	GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*DevicesResponse, error)
 	GetEGVs(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*EGVsResponse, error)

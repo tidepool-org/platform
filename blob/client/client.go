@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
@@ -90,6 +92,43 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	return result, nil
 }
 
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return nil, errors.New("user id is invalid")
+	}
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
+	}
+
+	var mutators []request.RequestMutator
+	if content.DigestMD5 != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Digest", fmt.Sprintf("MD5=%s", *content.DigestMD5)))
+	}
+	if content.MediaType != nil {
+		mutators = append(mutators, request.NewHeaderMutator("Content-Type", *content.MediaType))
+	}
+	if content.StartAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339)))
+	}
+	if content.EndAt != nil {
+		mutators = append(mutators, request.NewHeaderMutator("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339)))
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "device_logs")
+	result := &blob.DeviceLogsBlob{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, mutators, content.Body, result); err != nil {
+		return nil, err
+	}
+	return result, nil
+}
+
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -137,7 +176,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	}
 
 	url := c.client.ConstructURL("v1", "blobs", id, "content")
-	headersInspector := request.NewHeadersInspector()
+	headersInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 	body, err := c.client.RequestStream(ctx, http.MethodGet, url, nil, nil, headersInspector)
 	if err != nil {
 		if request.IsErrorResourceNotFound(err) {

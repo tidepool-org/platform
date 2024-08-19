@@ -3,46 +3,71 @@ package test
 import (
 	"math"
 
-	"github.com/tidepool-org/platform/data/types/insulin"
+	dataTypeInsulin "github.com/tidepool-org/platform/data/types/insulin"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewCompound(compoundArrayDepthLimit int) *insulin.Compound {
-	datum := insulin.NewCompound()
+func RandomCompound(compoundArrayDepthLimit int) *dataTypeInsulin.Compound {
+	datum := dataTypeInsulin.NewCompound()
 	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(0.0, math.MaxFloat64))
-	datum.Formulation = NewFormulation(compoundArrayDepthLimit)
+	datum.Formulation = RandomFormulation(compoundArrayDepthLimit)
 	return datum
 }
 
-func CloneCompound(datum *insulin.Compound) *insulin.Compound {
+func CloneCompound(datum *dataTypeInsulin.Compound) *dataTypeInsulin.Compound {
 	if datum == nil {
 		return nil
 	}
-	clone := insulin.NewCompound()
+	clone := dataTypeInsulin.NewCompound()
 	clone.Amount = pointer.CloneFloat64(datum.Amount)
 	clone.Formulation = CloneFormulation(datum.Formulation)
 	return clone
 }
 
-func NewCompoundArray(compoundArrayDepthLimit int) *insulin.CompoundArray {
+func NewObjectFromCompound(datum *dataTypeInsulin.Compound, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.Amount != nil {
+		object["amount"] = test.NewObjectFromFloat64(*datum.Amount, objectFormat)
+	}
+	if datum.Formulation != nil {
+		object["formulation"] = NewObjectFromFormulation(datum.Formulation, objectFormat)
+	}
+	return object
+}
+
+func RandomCompoundArray(compoundArrayDepthLimit int) *dataTypeInsulin.CompoundArray {
 	if compoundArrayDepthLimit--; compoundArrayDepthLimit <= 0 {
 		return nil
 	}
-	datum := insulin.NewCompoundArray()
+	datum := dataTypeInsulin.NewCompoundArray()
 	for count := 0; count < test.RandomIntFromRange(1, 3); count++ {
-		*datum = append(*datum, NewCompound(compoundArrayDepthLimit))
+		*datum = append(*datum, RandomCompound(compoundArrayDepthLimit))
 	}
 	return datum
 }
 
-func CloneCompoundArray(datumArray *insulin.CompoundArray) *insulin.CompoundArray {
+func CloneCompoundArray(datumArray *dataTypeInsulin.CompoundArray) *dataTypeInsulin.CompoundArray {
 	if datumArray == nil {
 		return nil
 	}
-	clone := insulin.NewCompoundArray()
+	clone := dataTypeInsulin.NewCompoundArray()
 	for _, datum := range *datumArray {
 		*clone = append(*clone, CloneCompound(datum))
 	}
 	return clone
+}
+
+func NewArrayFromCompoundArray(datumArray *dataTypeInsulin.CompoundArray, objectFormat test.ObjectFormat) []interface{} {
+	if datumArray == nil {
+		return nil
+	}
+	array := []interface{}{}
+	for _, datum := range *datumArray {
+		array = append(array, NewObjectFromCompound(datum, objectFormat))
+	}
+	return array
 }

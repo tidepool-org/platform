@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStoreDEPRECATED "github.com/tidepool-org/platform/data/storeDEPRECATED"
+	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -39,12 +39,12 @@ func (d *DataSetDeleteOrigin) Get(dataSet *dataTypesUpload.Upload) (bool, error)
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if session == nil {
-		return nil, errors.New("session is missing")
+	if repository == nil {
+		return nil, errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
@@ -54,15 +54,15 @@ func (d *DataSetDeleteOrigin) Open(ctx context.Context, session dataStoreDEPRECA
 		dataSet.SetActive(true)
 	}
 
-	return d.Base.Open(ctx, session, dataSet)
+	return d.Base.Open(ctx, repository, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -76,24 +76,24 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, session dataStoreDEPR
 	}
 
 	if selectors := d.getSelectors(dataSetData); selectors != nil {
-		if err := session.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
+		if err := repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 			return err
 		}
-		if err := d.Base.AddData(ctx, session, dataSet, dataSetData); err != nil {
+		if err := d.Base.AddData(ctx, repository, dataSet, dataSetData); err != nil {
 			return err
 		}
-		return session.DestroyDeletedDataSetData(ctx, dataSet, selectors)
+		return repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 	}
 
-	return d.Base.AddData(ctx, session, dataSet, dataSetData)
+	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -102,15 +102,15 @@ func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, session dataStoreD
 		return errors.New("selectors is missing")
 	}
 
-	return session.ArchiveDataSetData(ctx, dataSet, selectors)
+	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPRECATED.DataSession, dataSet *dataTypesUpload.Upload) error {
+func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if session == nil {
-		return errors.New("session is missing")
+	if repository == nil {
+		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -120,7 +120,7 @@ func (d *DataSetDeleteOrigin) Close(ctx context.Context, session dataStoreDEPREC
 		return nil
 	}
 
-	return d.Base.Close(ctx, session, dataSet)
+	return d.Base.Close(ctx, repository, dataSet)
 }
 
 func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {

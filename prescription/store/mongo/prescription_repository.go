@@ -2,14 +2,13 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-
-	"github.com/tidepool-org/platform/user"
 
 	"github.com/tidepool-org/platform/page"
 
@@ -18,7 +17,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/prescription"
-	structuredMongo "github.com/tidepool-org/platform/store/structured/mongoofficial"
+	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 type PrescriptionRepository struct {
@@ -71,23 +70,20 @@ func (p *PrescriptionRepository) CreateIndexes(ctx context.Context) error {
 	return p.CreateAllIndexes(ctx, indexes)
 }
 
-func (p *PrescriptionRepository) CreatePrescription(ctx context.Context, userID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) CreatePrescription(ctx context.Context, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("userID is missing")
-	}
 
-	model := prescription.NewPrescription(userID, create)
+	model := prescription.NewPrescription(create)
 	if err := structureValidator.New().Validate(model); err != nil {
 		return nil, errors.Wrap(err, "prescription is invalid")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianID, "create": create})
 
-	_, err := p.C().InsertOne(ctx, model)
+	_, err := p.InsertOne(ctx, model)
 	logger.WithFields(log.Fields{"id": model.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreatePrescription")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create prescription")
@@ -118,8 +114,8 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	selector := newMongoSelectorFromFilter(filter)
 	selector["deletedTime"] = nil
 
-	opts := applyPagination(options.Find(), pagination)
-	cursor, err := p.C().Find(ctx, selector, opts)
+	opts := structuredMongo.FindWithPagination(pagination)
+	cursor, err := p.Find(ctx, selector, opts)
 
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListPrescriptions")
 	if err != nil {
@@ -135,17 +131,20 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	return prescriptions, nil
 }
 
-func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error) {
+func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
 	if clinicianID == "" {
 		return false, errors.New("clinician id is missing")
 	}
+	if clinicID == "" {
+		return false, errors.New("clinic id is missing")
+	}
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicianId": clinicianID, "id": id})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"clinicId": clinicID, "id": prescriptionID})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(id)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return false, nil
 	} else if err != nil {
@@ -153,11 +152,8 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinici
 	}
 
 	selector := bson.M{
-		"_id": prescriptionID,
-		"$or": []bson.M{
-			{"prescriberUserId": clinicianID},
-			{"createdUserId": clinicianID},
-		},
+		"_id":      id,
+		"clinicId": clinicID,
 		"state": bson.M{
 			"$in": []string{prescription.StateDraft, prescription.StatePending},
 		},
@@ -170,7 +166,7 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinici
 		},
 	}
 
-	res, err := p.C().UpdateOne(ctx, selector, update)
+	res, err := p.UpdateOne(ctx, selector, update)
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeletePrescription")
 	if err != nil {
 		return false, errors.Wrap(err, "unable to delete prescription")
@@ -180,17 +176,14 @@ func (p *PrescriptionRepository) DeletePrescription(ctx context.Context, clinici
 	return success, nil
 }
 
-func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User, id string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionID string, create *prescription.RevisionCreate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if usr == nil {
-		return nil, errors.New("user is missing")
-	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "create": create})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": create.ClinicianID, "prescriptionId": prescriptionID, "create": create})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(id)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return nil, nil
 	} else if err != nil {
@@ -198,22 +191,19 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User
 	}
 
 	selector := bson.M{
-		"_id": prescriptionID,
-		"$or": []bson.M{
-			{"prescriberUserId": *usr.UserID},
-			{"createdUserId": *usr.UserID},
-		},
+		"_id":      id,
+		"clinicId": create.ClinicID,
 	}
 
 	prescr := &prescription.Prescription{}
-	err = p.C().FindOne(ctx, selector).Decode(prescr)
+	err = p.FindOne(ctx, selector).Decode(prescr)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "could not get prescription to add revision to")
 	}
 
-	prescriptionUpdate := prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, create)
+	prescriptionUpdate := prescription.NewPrescriptionAddRevisionUpdate(prescr, create)
 	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
@@ -228,7 +218,48 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User
 	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
 
 	now := time.Now()
-	res, err := p.C().UpdateOne(ctx, updateSelector, update)
+	res, err := p.UpdateOne(ctx, updateSelector, update)
+	logger.WithFields(log.Fields{"id": prescriptionID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to update prescription")
+	} else if res.ModifiedCount == 0 {
+		return nil, errors.New("unable to find prescription to update")
+	}
+
+	err = p.FindOneByID(ctx, prescr.ID, prescr)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to find updated prescription")
+	}
+
+	return prescr, nil
+}
+
+func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": claim.PatientID, "claim": claim})
+
+	if claim.RevisionHash == "" {
+		return nil, fmt.Errorf("cannot claim prescription without integrity hash")
+	}
+	prescr, err := p.GetClaimablePrescription(ctx, claim)
+	if err != nil || prescr == nil {
+		return nil, err
+	}
+
+	id := prescr.ID
+	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(claim.PatientID, prescr)
+	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+		return nil, errors.Wrap(err, "the prescription update is invalid")
+	}
+
+	selector := newClaimSelector(claim)
+	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
+
+	now := time.Now()
+	res, err := p.UpdateOne(ctx, selector, update)
 	logger.WithFields(log.Fields{"id": id, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update prescription")
@@ -236,7 +267,8 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User
 		return nil, errors.New("unable to find prescription to update")
 	}
 
-	err = p.FindOneByID(ctx, prescr.ID, prescr)
+	prescr = &prescription.Prescription{}
+	err = p.FindOneByID(ctx, id, prescr)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to find updated prescription")
 	}
@@ -244,65 +276,30 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, usr *user.User
 	return prescr, nil
 }
 
-func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, usr *user.User, claim *prescription.Claim) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) GetClaimablePrescription(ctx context.Context, claim *prescription.Claim) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if usr == nil {
-		return nil, errors.New("user is missing")
-	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "claim": claim})
-
-	selector := bson.M{
-		"accessCode":    claim.AccessCode,
-		"patientUserId": nil,
-		"state":         prescription.StateSubmitted,
-	}
-
+	selector := newClaimSelector(claim)
 	prescr := &prescription.Prescription{}
-	err := p.C().FindOne(ctx, selector).Decode(prescr)
+	err := p.FindOne(ctx, selector).Decode(prescr)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
-		return nil, errors.Wrap(err, "could not get prescription to add revision to")
+		return nil, errors.Wrap(err, "could not get claimable prescription")
 	}
-
-	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(usr, prescr)
-	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
-		return nil, errors.Wrap(err, "the prescription update is invalid")
-	}
-
-	update := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
-
-	now := time.Now()
-	res, err := p.C().UpdateOne(ctx, selector, update)
-	logger.WithFields(log.Fields{"id": prescr.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to update prescription")
-	} else if res.ModifiedCount == 0 {
-		return nil, errors.New("unable to find prescription to update")
-	}
-
-	err = p.FindOneByID(ctx, prescr.ID, prescr)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to find updated prescription")
-	}
-
 	return prescr, nil
 }
 
-func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
+func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *prescription.StateUpdate) (*prescription.Prescription, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if usr == nil {
-		return nil, errors.New("user is missing")
-	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID, "id": id, "update": update})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": update.PatientID, "id": prescriptionID, "update": update})
 
-	prescriptionID, err := primitive.ObjectIDFromHex(id)
+	id, err := primitive.ObjectIDFromHex(prescriptionID)
 	if err == primitive.ErrInvalidHex {
 		return nil, nil
 	} else if err != nil {
@@ -310,28 +307,28 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, us
 	}
 
 	selector := bson.M{
-		"_id":           prescriptionID,
-		"patientUserId": *usr.UserID,
+		"_id":           id,
+		"patientUserId": update.PatientID,
 	}
 
 	prescr := &prescription.Prescription{}
-	err = p.C().FindOne(ctx, selector).Decode(prescr)
+	err = p.FindOne(ctx, selector).Decode(prescr)
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	}
 
-	prescriptionUpdate := prescription.NewPrescriptionStateUpdate(usr, prescr, update)
+	prescriptionUpdate := prescription.NewPrescriptionStateUpdate(prescr, update)
 	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
 	mongoUpdate := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
 
-	if err = p.deactiveActivePrescriptions(ctx, usr); err != nil {
+	if err = p.deactiveActivePrescriptions(ctx, update.PatientID); err != nil {
 		return nil, err
 	}
 
 	now := time.Now()
-	res, err := p.C().UpdateOne(ctx, selector, mongoUpdate)
+	res, err := p.UpdateOne(ctx, selector, mongoUpdate)
 	logger.WithFields(log.Fields{"id": prescr.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdatePrescription")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update prescription")
@@ -347,11 +344,11 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, us
 	return prescr, nil
 }
 
-func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context, usr *user.User) error {
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": usr.UserID})
+func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context, patientUserID string) error {
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": patientUserID})
 
 	selector := bson.M{
-		"patientUserId": usr.UserID,
+		"patientUserId": patientUserID,
 		"state":         prescription.StateActive,
 	}
 	update := bson.M{
@@ -361,7 +358,7 @@ func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context
 	}
 
 	now := time.Now()
-	_, err := p.C().UpdateMany(ctx, selector, update)
+	_, err := p.UpdateMany(ctx, selector, update)
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeactivatePrescriptions")
 	if err != nil {
 		return errors.Wrap(err, "unable to deactivate prescriptions for user")
@@ -372,11 +369,8 @@ func (p *PrescriptionRepository) deactiveActivePrescriptions(ctx context.Context
 
 func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	selector := bson.M{}
-	if filter.ClinicianID != "" {
-		selector["$or"] = []bson.M{
-			{"prescriberUserId": filter.ClinicianID},
-			{"createdUserId": filter.ClinicianID},
-		}
+	if filter.ClinicID != "" {
+		selector["clinicId"] = filter.ClinicID
 	}
 	if filter.PatientUserID != "" {
 		selector["patientUserId"] = filter.PatientUserID
@@ -411,12 +405,6 @@ func newMongoSelectorFromFilter(filter *prescription.Filter) bson.M {
 	return selector
 }
 
-func applyPagination(opts *options.FindOptions, pagination *page.Pagination) *options.FindOptions {
-	skip := int64(pagination.Size * pagination.Page)
-	limit := int64(pagination.Size)
-	return opts.SetSkip(skip).SetLimit(limit)
-}
-
 func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bson.M {
 	set := bson.M{}
 	update := bson.M{
@@ -438,7 +426,9 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		if code != "" {
 			set["accessCode"] = code
 		} else {
-			set["accessCode"] = nil
+			update["$unset"] = bson.M{
+				"accessCode": "",
+			}
 		}
 	}
 
@@ -450,5 +440,22 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 		set["patientUserId"] = prescrUpdate.PatientUserID
 	}
 
+	if prescrUpdate.SubmittedTime != nil {
+		set["submittedTime"] = prescrUpdate.SubmittedTime
+	}
+
 	return update
+}
+
+func newClaimSelector(claim *prescription.Claim) bson.M {
+	selector := bson.M{
+		"accessCode":                         claim.AccessCode,
+		"latestRevision.attributes.birthday": claim.Birthday,
+		"patientUserId":                      nil,
+		"state":                              prescription.StateSubmitted,
+	}
+	if claim.RevisionHash != "" {
+		selector["latestRevision.integrityHash.hash"] = claim.RevisionHash
+	}
+	return selector
 }

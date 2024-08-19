@@ -1,8 +1,7 @@
 package insulin_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -38,7 +37,7 @@ var _ = Describe("Compound", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *insulin.Compound), expectedErrors ...error) {
-					datum := dataTypesInsulinTest.NewCompound(3)
+					datum := dataTypesInsulinTest.RandomCompound(3)
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -65,7 +64,7 @@ var _ = Describe("Compound", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/formulation/name"),
 				),
 				Entry("formulation valid",
-					func(datum *insulin.Compound) { datum.Formulation = dataTypesInsulinTest.NewFormulation(3) },
+					func(datum *insulin.Compound) { datum.Formulation = dataTypesInsulinTest.RandomFormulation(3) },
 				),
 				Entry("multiple errors",
 					func(datum *insulin.Compound) {
@@ -82,7 +81,7 @@ var _ = Describe("Compound", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.Compound)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesInsulinTest.NewCompound(3)
+						datum := dataTypesInsulinTest.RandomCompound(3)
 						mutator(datum)
 						expectedDatum := dataTypesInsulinTest.CloneCompound(datum)
 						normalizer := dataNormalizer.New()
@@ -142,7 +141,7 @@ var _ = Describe("Compound", func() {
 				),
 				Entry("single invalid",
 					func(datum *insulin.CompoundArray) {
-						invalid := dataTypesInsulinTest.NewCompound(3)
+						invalid := dataTypesInsulinTest.RandomCompound(3)
 						invalid.Amount = nil
 						*datum = append(*datum, invalid)
 					},
@@ -150,42 +149,42 @@ var _ = Describe("Compound", func() {
 				),
 				Entry("single valid",
 					func(datum *insulin.CompoundArray) {
-						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.RandomCompound(3))
 					},
 				),
 				Entry("multiple invalid",
 					func(datum *insulin.CompoundArray) {
-						invalid := dataTypesInsulinTest.NewCompound(3)
+						invalid := dataTypesInsulinTest.RandomCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3), invalid, dataTypesInsulinTest.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.RandomCompound(3), invalid, dataTypesInsulinTest.RandomCompound(3))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
 				),
 				Entry("multiple valid",
 					func(datum *insulin.CompoundArray) {
-						*datum = append(*datum, dataTypesInsulinTest.NewCompound(3), dataTypesInsulinTest.NewCompound(3), dataTypesInsulinTest.NewCompound(3))
+						*datum = append(*datum, dataTypesInsulinTest.RandomCompound(3), dataTypesInsulinTest.RandomCompound(3), dataTypesInsulinTest.RandomCompound(3))
 					},
 				),
 				Entry("multiple; length in range (upper)",
 					func(datum *insulin.CompoundArray) {
 						for len(*datum) < 100 {
-							*datum = append(*datum, dataTypesInsulinTest.NewCompound(1))
+							*datum = append(*datum, dataTypesInsulinTest.RandomCompound(1))
 						}
 					},
 				),
 				Entry("multiple; length out of range (upper)",
 					func(datum *insulin.CompoundArray) {
 						for len(*datum) < 101 {
-							*datum = append(*datum, dataTypesInsulinTest.NewCompound(1))
+							*datum = append(*datum, dataTypesInsulinTest.RandomCompound(1))
 						}
 					},
 					structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100),
 				),
 				Entry("multiple errors",
 					func(datum *insulin.CompoundArray) {
-						invalid := dataTypesInsulinTest.NewCompound(3)
+						invalid := dataTypesInsulinTest.RandomCompound(3)
 						invalid.Amount = nil
-						*datum = append(*datum, nil, invalid, dataTypesInsulinTest.NewCompound(3))
+						*datum = append(*datum, nil, invalid, dataTypesInsulinTest.RandomCompound(3))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/0"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/1/amount"),
@@ -197,7 +196,7 @@ var _ = Describe("Compound", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *insulin.CompoundArray)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesInsulinTest.NewCompoundArray(3)
+						datum := dataTypesInsulinTest.RandomCompoundArray(3)
 						mutator(datum)
 						expectedDatum := dataTypesInsulinTest.CloneCompoundArray(datum)
 						normalizer := dataNormalizer.New()

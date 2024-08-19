@@ -18,6 +18,10 @@ func FromInt(value int) *int {
 	return &value
 }
 
+func FromInt64(value int64) *int64 {
+	return &value
+}
+
 func FromString(value string) *string {
 	return &value
 }
@@ -27,5 +31,9 @@ func FromStringArray(value []string) *[]string {
 }
 
 func FromTime(value time.Time) *time.Time {
+	return &value
+}
+
+func FromAny[T any](value T) *T {
 	return &value
 }

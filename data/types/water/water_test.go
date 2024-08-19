@@ -1,8 +1,7 @@
 package water_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -22,7 +21,7 @@ func NewMeta() interface{} {
 
 func NewWater() *water.Water {
 	datum := water.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "water"
 	datum.Amount = NewAmount()
 	return datum

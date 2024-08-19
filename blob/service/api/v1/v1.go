@@ -3,8 +3,14 @@ package v1
 import (
 	"fmt"
 	"net/http"
+	"strings"
+	"time"
+
+	"github.com/tidepool-org/platform/permission"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
+	"github.com/tidepool-org/platform/auth"
 
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
@@ -14,11 +20,12 @@ import (
 )
 
 type Provider interface {
+	AuthClient() auth.Client
 	BlobClient() blob.Client
 }
 
 type Router struct {
-	provider Provider
+	Provider
 }
 
 func NewRouter(provider Provider) (*Router, error) {
@@ -27,7 +34,7 @@ func NewRouter(provider Provider) (*Router, error) {
 	}
 
 	return &Router{
-		provider: provider,
+		Provider: provider,
 	}, nil
 }
 
@@ -36,6 +43,10 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Get("/v1/users/:userId/blobs", r.List),
 		rest.Post("/v1/users/:userId/blobs", r.Create),
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
+
+		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
+		rest.Get("/v1/users/:userId/device_logs", r.ListDeviceLogs),
+
 		rest.Get("/v1/blobs/:id", r.Get),
 		rest.Get("/v1/blobs/:id/content", r.GetContent),
 		rest.Delete("/v1/blobs/:id", r.Delete),
@@ -58,7 +69,12 @@ func (r *Router) List(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := r.provider.BlobClient().List(req.Context(), userID, filter, pagination)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().List(req.Context(), userID, filter, pagination)
 	if responder.RespondIfError(err) {
 		return
 	}
@@ -94,7 +110,12 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	content.DigestMD5 = digestMD5
 	content.MediaType = mediaType
 
-	result, err := r.provider.BlobClient().Create(req.Context(), userID, content)
+	_, err = r.AuthClient().EnsureAuthorizedUser(req.Context(), userID, permission.Write)
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().Create(req.Context(), userID, content)
 	if err != nil {
 		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
 			responder.Error(http.StatusBadRequest, err)
@@ -107,6 +128,81 @@ func (r *Router) Create(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusCreated, result)
 }
 
+func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	digestMD5, err := request.ParseDigestMD5Header(req.Header, "Digest")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if digestMD5 == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Digest"))
+		return
+	}
+	mediaType, err := request.ParseMediaTypeHeader(req.Header, "Content-Type")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if mediaType == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
+		return
+	} else if !strings.Contains(*mediaType, "application/json") {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderInvalid("Content-Type"))
+		return
+	}
+
+	startAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-Start-At-Time", time.RFC3339)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if startAtTime == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-Start-At-Time"))
+		return
+	}
+	endAtTime, err := request.ParseTimeHeader(req.Header, "X-Logs-End-At-Time", time.RFC3339)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	} else if endAtTime == nil {
+		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("X-Logs-End-At-Time"))
+		return
+	}
+
+	content := blob.NewDeviceLogsContent()
+	content.Body = req.Body
+	content.DigestMD5 = digestMD5
+	content.MediaType = mediaType
+	content.StartAt = startAtTime
+	content.EndAt = endAtTime
+
+	_, err = r.AuthClient().EnsureAuthorizedUser(req.Context(), userID, permission.Write)
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().CreateDeviceLogs(req.Context(), userID, content)
+	if err != nil {
+		if errors.Code(err) == request.ErrorCodeDigestsNotEqual {
+			responder.Error(http.StatusBadRequest, err)
+			return
+		} else if responder.RespondIfError(err) {
+			return
+		}
+	}
+	responder.Data(http.StatusCreated, result)
+}
+
+func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	responder.Error(http.StatusNotImplemented, errors.New("not yet implemented"))
+}
+
 func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
@@ -116,7 +212,12 @@ func (r *Router) DeleteAll(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	if responder.RespondIfError(r.provider.BlobClient().DeleteAll(req.Context(), userID)) {
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	if responder.RespondIfError(r.Provider.BlobClient().DeleteAll(req.Context(), userID)) {
 		return
 	}
 
@@ -132,7 +233,12 @@ func (r *Router) Get(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	result, err := r.provider.BlobClient().Get(req.Context(), id)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	result, err := r.Provider.BlobClient().Get(req.Context(), id)
 	if responder.RespondIfError(err) {
 		return
 	} else if result == nil {
@@ -153,7 +259,12 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	content, err := r.provider.BlobClient().GetContent(req.Context(), id)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	content, err := r.Provider.BlobClient().GetContent(req.Context(), id)
 	if responder.RespondIfError(err) {
 		return
 	} else if content == nil {
@@ -189,7 +300,12 @@ func (r *Router) Delete(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	deleted, err := r.provider.BlobClient().Delete(req.Context(), id, condition)
+	err = r.AuthClient().EnsureAuthorizedService(req.Context())
+	if responder.RespondIfError(err) {
+		return
+	}
+
+	deleted, err := r.Provider.BlobClient().Delete(req.Context(), id, condition)
 	if responder.RespondIfError(err) {
 		return
 	} else if !deleted {

@@ -24,9 +24,11 @@ type Validator interface {
 	String(reference string, value *string) String
 	StringArray(reference string, value *[]string) StringArray
 	Time(reference string, value *time.Time) Time
+	Duration(reference string, value *time.Duration) Duration
 
 	Object(reference string, value *map[string]interface{}) Object
 	Array(reference string, value *[]interface{}) Array
+	Bytes(reference string, value []byte) Bytes
 
 	WithOrigin(origin Origin) Validator
 	WithSource(source Source) Validator
@@ -178,6 +180,27 @@ type Time interface {
 	Using(usingFunc TimeUsingFunc) Time
 }
 
+type DurationUsingFunc func(value time.Duration, errorReporter ErrorReporter)
+
+type Duration interface {
+	Exists() Duration
+	NotExists() Duration
+
+	EqualTo(value time.Duration) Duration
+	NotEqualTo(value time.Duration) Duration
+
+	LessThan(limit time.Duration) Duration
+	LessThanOrEqualTo(limit time.Duration) Duration
+	GreaterThan(limit time.Duration) Duration
+	GreaterThanOrEqualTo(limit time.Duration) Duration
+	InRange(lowerLimit time.Duration, upperLimit time.Duration) Duration
+
+	OneOf(allowedValues ...time.Duration) Duration
+	NotOneOf(disallowedValues ...time.Duration) Duration
+
+	Using(usingFunc DurationUsingFunc) Duration
+}
+
 type ObjectUsingFunc func(value map[string]interface{}, errorReporter ErrorReporter)
 
 type Object interface {
@@ -200,4 +223,9 @@ type Array interface {
 	NotEmpty() Array
 
 	Using(usingFunc ArrayUsingFunc) Array
+}
+
+type Bytes interface {
+	NotEmpty() Bytes
+	LengthLessThanOrEqualTo(limit int) Bytes
 }

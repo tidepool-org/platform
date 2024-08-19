@@ -3,12 +3,14 @@ package application_test
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/application"
 	applicationTest "github.com/tidepool-org/platform/application/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 )
 
 var _ = Describe("Runner", func() {
@@ -51,7 +53,9 @@ var _ = Describe("Runner", func() {
 
 			When("Initialize returns successfully", func() {
 				BeforeEach(func() {
+					var logger log.Logger = logTest.NewLogger()
 					runner.InitializeOutputs = []error{nil}
+					provider.LoggerOutput = &logger
 				})
 
 				It("returns error when Run returns error", func() {

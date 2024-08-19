@@ -1,13 +1,18 @@
 package fetch
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesActivityPhysical "github.com/tidepool-org/platform/data/types/activity/physical"
+
+	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+
+	dataTypesBloodGlucoseSelfMonitored "github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
@@ -59,7 +64,7 @@ func translateTime(systemTime *dexcom.Time, displayTime *dexcom.Time, datum *dat
 		timeZoneOffsetDuration = offsetCount * OffsetDuration
 	}
 
-	datum.Time = pointer.FromString(systemTime.Format(dataTypes.TimeFormat))
+	datum.Time = systemTime.Raw()
 	datum.DeviceTime = pointer.FromString(displayTime.Format(dataTypes.DeviceTimeFormat))
 	datum.TimeZoneOffset = pointer.FromInt(int(timeZoneOffsetDuration / time.Minute))
 	if clockDriftOffsetDuration != 0 {
@@ -88,7 +93,18 @@ func translateCalibrationToDatum(calibration *dexcom.Calibration) data.Datum {
 	if calibration.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *calibration.TransmitterID
 	}
-
+	if calibration.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *calibration.DisplayDevice
+	}
+	if calibration.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *calibration.TransmitterGeneration
+	}
+	if calibration.TransmitterTicks != nil {
+		(*datum.Payload)["transmitterTicks"] = *calibration.TransmitterTicks
+	}
+	if calibration.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(calibration.ID)}
+	}
 	translateTime(calibration.SystemTime, calibration.DisplayTime, &datum.Base)
 	return datum
 }
@@ -101,8 +117,8 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 	datum.GUID = nil
 
 	datum.Manufacturers = pointer.FromStringArray([]string{"Dexcom"})
-	datum.SerialNumber = pointer.CloneString(device.SerialNumber)
 	datum.TransmitterID = pointer.CloneString(device.TransmitterID)
+	//TODO: potenially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
 	datum.Units = pointer.FromString(dataBloodGlucose.MgdL)
 
 	defaultAlertSchedule := device.AlertScheduleList.Default()
@@ -153,41 +169,15 @@ func translateDeviceToDatum(device *dexcom.Device) data.Datum {
 	}
 
 	datum.Payload = metadata.NewMetadata()
-	if device.UDI != nil {
-		(*datum.Payload)["udi"] = *device.UDI
-	}
+
 	if device.TransmitterGeneration != nil {
 		(*datum.Payload)["transmitterGeneration"] = *device.TransmitterGeneration
 	}
 	if device.DisplayDevice != nil {
 		(*datum.Payload)["displayDevice"] = *device.DisplayDevice
 	}
-	if device.SoftwareVersion != nil {
-		(*datum.Payload)["softwareVersion"] = *device.SoftwareVersion
-	}
-	if device.SoftwareNumber != nil {
-		(*datum.Payload)["softwareNumber"] = *device.SoftwareNumber
-	}
-	if device.Language != nil {
-		(*datum.Payload)["language"] = *device.Language
-	}
-	if device.IsMmolDisplayMode != nil {
-		(*datum.Payload)["isMmolDisplayMode"] = *device.IsMmolDisplayMode
-	}
-	if device.IsBlindedMode != nil {
-		(*datum.Payload)["isBlindedMode"] = *device.IsBlindedMode
-	}
-	if device.Is24HourMode != nil {
-		(*datum.Payload)["is24HourMode"] = *device.Is24HourMode
-	}
-	if device.DisplayTimeOffset != nil {
-		(*datum.Payload)["displayTimeOffset"] = *device.DisplayTimeOffset
-	}
-	if device.SystemTimeOffset != nil {
-		(*datum.Payload)["systemTimeOffset"] = *device.SystemTimeOffset
-	}
 
-	datum.Time = pointer.FromString(device.LastUploadDate.Format(dataTypes.TimeFormat))
+	datum.Time = pointer.FromTime(device.LastUploadDate.Time)
 	return datum
 }
 
@@ -338,22 +328,49 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 	return nil
 }
 
-func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.Datum {
-	datum := dataTypesBloodGlucoseContinuous.New()
+func translateAlertToDatum(alert *dexcom.Alert, version *string) data.Datum {
+	datum := dataTypesAlert.New()
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
 
+	datum.Payload = metadata.NewMetadata()
+
+	if alert.AlertState != nil {
+		(*datum.Payload)["alertState"] = *alert.AlertState
+	}
+	if alert.TransmitterID != nil {
+		(*datum.Payload)["transmitterId"] = *alert.TransmitterID
+	}
+	if alert.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *alert.TransmitterGeneration
+	}
+	if alert.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *alert.DisplayDevice
+	}
+	if version != nil {
+		(*datum.Payload)["version"] = *version
+	}
+
+	if alert.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(alert.ID)}
+	}
+	datum.IssuedTime = alert.DisplayTime.Raw()
+	datum.Name = pointer.CloneString(alert.AlertName)
+	translateTime(alert.SystemTime, alert.DisplayTime, &datum.Base)
+	return datum
+}
+
+func translateEGVToDatum(egv *dexcom.EGV) data.Datum {
+	datum := dataTypesBloodGlucoseContinuous.New()
 	// TODO: Refactor so we don't have to clear these here
 	datum.ID = nil
 	datum.GUID = nil
 
 	datum.Value = pointer.CloneFloat64(egv.Value)
-	datum.Units = pointer.CloneString(unit)
+	datum.Units = pointer.CloneString(egv.Unit)
 	datum.Payload = metadata.NewMetadata()
-	if egv.RealTimeValue != nil {
-		(*datum.Payload)["realTimeValue"] = *egv.RealTimeValue
-	}
-	if egv.SmoothedValue != nil {
-		(*datum.Payload)["smoothedValue"] = *egv.SmoothedValue
-	}
+
 	if egv.Status != nil {
 		(*datum.Payload)["status"] = *egv.Status
 	}
@@ -362,13 +379,19 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 	}
 	if egv.TrendRate != nil {
 		(*datum.Payload)["trendRate"] = *egv.TrendRate
-		(*datum.Payload)["trendRateUnits"] = *rateUnit
+		(*datum.Payload)["trendRateUnits"] = *egv.RateUnit
 	}
 	if egv.TransmitterID != nil {
 		(*datum.Payload)["transmitterId"] = *egv.TransmitterID
 	}
 	if egv.TransmitterTicks != nil {
 		(*datum.Payload)["transmitterTicks"] = *egv.TransmitterTicks
+	}
+	if egv.DisplayDevice != nil {
+		(*datum.Payload)["displayDevice"] = *egv.DisplayDevice
+	}
+	if egv.TransmitterGeneration != nil {
+		(*datum.Payload)["transmitterGeneration"] = *egv.TransmitterGeneration
 	}
 
 	switch *datum.Units {
@@ -388,8 +411,26 @@ func translateEGVToDatum(egv *dexcom.EGV, unit *string, rateUnit *string) data.D
 				"threshold": dexcom.EGVValuePinnedMgdLMaximum,
 			}}
 		}
+	case dexcom.EGVUnitMmolL:
+		if *datum.Value < dexcom.EGVValuePinnedMmolLMinimum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMinimum - 0.1)
+			datum.Annotations = &metadata.MetadataArray{{
+				"code":      "bg/out-of-range",
+				"value":     "low",
+				"threshold": dexcom.EGVValuePinnedMmolLMinimum,
+			}}
+		} else if *datum.Value > dexcom.EGVValuePinnedMmolLMaximum {
+			datum.Value = pointer.FromFloat64(dexcom.EGVValuePinnedMmolLMaximum + 0.1)
+			datum.Annotations = &metadata.MetadataArray{{
+				"code":      "bg/out-of-range",
+				"value":     "high",
+				"threshold": dexcom.EGVValuePinnedMmolLMaximum,
+			}}
+		}
 	}
-
+	if egv.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(egv.ID)}
+	}
 	translateTime(egv.SystemTime, egv.DisplayTime, &datum.Base)
 	return datum
 }
@@ -402,9 +443,10 @@ func translateEventCarbsToDatum(event *dexcom.Event) data.Datum {
 	datum.GUID = nil
 
 	if event.Value != nil && event.Unit != nil {
+		floatVal, _ := strconv.ParseFloat(*event.Value, 64)
 		datum.Nutrition = &dataTypesFood.Nutrition{
 			Carbohydrate: &dataTypesFood.Carbohydrate{
-				Net:   pointer.CloneFloat64(event.Value),
+				Net:   pointer.CloneFloat64(&floatVal),
 				Units: pointer.CloneString(event.Unit),
 			},
 		}
@@ -435,9 +477,12 @@ func translateEventExerciseToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-		datum.Duration = &dataTypesActivityPhysical.Duration{
-			Units: pointer.CloneString(event.Unit),
-			Value: pointer.CloneFloat64(event.Value),
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Duration = &dataTypesActivityPhysical.Duration{
+				Units: pointer.CloneString(event.Unit),
+				Value: pointer.CloneFloat64(&floatVal),
+			}
 		}
 	}
 	if event.ID != nil {
@@ -495,13 +540,75 @@ func translateEventInsulinToDatum(event *dexcom.Event) data.Datum {
 		}
 	}
 	if event.Value != nil && event.Unit != nil {
-		datum.Dose = &dataTypesInsulin.Dose{
-			Total: pointer.CloneFloat64(event.Value),
-			Units: pointer.FromString(dataTypesInsulin.DoseUnitsUnits),
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Dose = &dataTypesInsulin.Dose{
+				Total: pointer.CloneFloat64(&floatVal),
+				Units: pointer.FromString(dataTypesInsulin.DoseUnitsUnits),
+			}
 		}
 	}
 	if event.ID != nil {
 		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+
+	return datum
+}
+
+func translateEventBGToDatum(event *dexcom.Event) data.Datum {
+	datum := dataTypesBloodGlucoseSelfMonitored.New()
+
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
+
+	if event.Value != nil && event.Unit != nil {
+		floatVal, err := strconv.ParseFloat(*event.Value, 64)
+		if err == nil {
+			datum.Value = pointer.CloneFloat64(&floatVal)
+		}
+		datum.Units = pointer.CloneString(event.Unit)
+	}
+
+	if event.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)
+	return datum
+}
+
+func translateEventNoteToDatum(event *dexcom.Event) data.Datum {
+	datum := dataTypesStateReported.New()
+
+	// TODO: Refactor so we don't have to clear these here
+	datum.ID = nil
+	datum.GUID = nil
+
+	if event.SubType != nil {
+		switch *event.SubType {
+		case dexcom.EventSubTypeHealthIllness:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateIllness)}}
+		case dexcom.EventSubTypeHealthStress:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateStress)}}
+		case dexcom.EventSubTypeHealthHighSymptoms:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateHyperglycemiaSymptoms)}}
+		case dexcom.EventSubTypeHealthLowSymptoms:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateHypoglycemiaSymptoms)}}
+		case dexcom.EventSubTypeHealthCycle:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateCycle)}}
+		case dexcom.EventSubTypeHealthAlcohol:
+			datum.States = &dataTypesStateReported.StateArray{{State: pointer.FromString(dataTypesStateReported.StateStateAlcohol)}}
+		}
+	}
+	if event.ID != nil {
+		datum.Origin = &origin.Origin{ID: pointer.CloneString(event.ID)}
+	}
+
+	if event.Value != nil {
+		datum.Notes = pointer.FromStringArray([]string{})
 	}
 
 	translateTime(event.SystemTime, event.DisplayTime, &datum.Base)

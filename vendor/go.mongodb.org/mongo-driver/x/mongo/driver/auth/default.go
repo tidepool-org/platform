@@ -8,14 +8,23 @@ package auth
 
 import (
 	"context"
-
-	"go.mongodb.org/mongo-driver/x/mongo/driver"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"fmt"
 )
 
 func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
+	scram, err := newScramSHA256Authenticator(cred)
+	if err != nil {
+		return nil, newAuthError("failed to create internal authenticator", err)
+	}
+	speculative, ok := scram.(SpeculativeAuthenticator)
+	if !ok {
+		typeErr := fmt.Errorf("expected SCRAM authenticator to be SpeculativeAuthenticator but got %T", scram)
+		return nil, newAuthError("failed to create internal authenticator", typeErr)
+	}
+
 	return &DefaultAuthenticator{
-		Cred: cred,
+		Cred:                     cred,
+		speculativeAuthenticator: speculative,
 	}, nil
 }
 
@@ -23,14 +32,25 @@ func newDefaultAuthenticator(cred *Cred) (Authenticator, error) {
 // on the server version.
 type DefaultAuthenticator struct {
 	Cred *Cred
+
+	// The authenticator to use for speculative authentication. Because the correct auth mechanism is unknown when doing
+	// the initial hello, SCRAM-SHA-256 is used for the speculative attempt.
+	speculativeAuthenticator SpeculativeAuthenticator
+}
+
+var _ SpeculativeAuthenticator = (*DefaultAuthenticator)(nil)
+
+// CreateSpeculativeConversation creates a speculative conversation for SCRAM authentication.
+func (a *DefaultAuthenticator) CreateSpeculativeConversation() (SpeculativeConversation, error) {
+	return a.speculativeAuthenticator.CreateSpeculativeConversation()
 }
 
 // Auth authenticates the connection.
-func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server, conn driver.Connection) error {
+func (a *DefaultAuthenticator) Auth(ctx context.Context, cfg *Config) error {
 	var actual Authenticator
 	var err error
 
-	switch chooseAuthMechanism(desc) {
+	switch chooseAuthMechanism(cfg) {
 	case SCRAMSHA256:
 		actual, err = newScramSHA256Authenticator(a.Cred)
 	case SCRAMSHA1:
@@ -43,25 +63,20 @@ func (a *DefaultAuthenticator) Auth(ctx context.Context, desc description.Server
 		return newAuthError("error creating authenticator", err)
 	}
 
-	return actual.Auth(ctx, desc, conn)
+	return actual.Auth(ctx, cfg)
 }
 
 // If a server provides a list of supported mechanisms, we choose
 // SCRAM-SHA-256 if it exists or else MUST use SCRAM-SHA-1.
 // Otherwise, we decide based on what is supported.
-func chooseAuthMechanism(desc description.Server) string {
-	if desc.SaslSupportedMechs != nil {
-		for _, v := range desc.SaslSupportedMechs {
+func chooseAuthMechanism(cfg *Config) string {
+	if saslSupportedMechs := cfg.HandshakeInfo.SaslSupportedMechs; saslSupportedMechs != nil {
+		for _, v := range saslSupportedMechs {
 			if v == SCRAMSHA256 {
 				return v
 			}
 		}
-		return SCRAMSHA1
 	}
 
-	if err := description.ScramSHA1Supported(desc.WireVersion); err == nil {
-		return SCRAMSHA1
-	}
-
-	return MONGODBCR
+	return SCRAMSHA1
 }

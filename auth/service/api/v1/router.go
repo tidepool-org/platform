@@ -22,5 +22,16 @@ func NewRouter(svc service.Service) (*Router, error) {
 }
 
 func (r *Router) Routes() []*rest.Route {
-	return append(append(r.OAuthRoutes(), r.ProviderSessionsRoutes()...), r.RestrictedTokensRoutes()...)
+	routes := [][]*rest.Route{
+		r.OAuthRoutes(),
+		r.ProviderSessionsRoutes(),
+		r.RestrictedTokensRoutes(),
+		r.DeviceCheckRoutes(),
+		r.DeviceTokensRoutes(),
+	}
+	acc := make([]*rest.Route, 0)
+	for _, r := range routes {
+		acc = append(acc, r...)
+	}
+	return acc
 }

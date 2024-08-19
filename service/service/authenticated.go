@@ -27,9 +27,8 @@ func (a *Authenticated) Initialize(provider application.Provider) error {
 }
 
 func (a *Authenticated) Terminate() {
-	a.terminateAuthClient()
-
 	a.Service.Terminate()
+	a.terminateAuthClient()
 }
 
 func (a *Authenticated) initializeAuthClient() error {
@@ -38,7 +37,11 @@ func (a *Authenticated) initializeAuthClient() error {
 	cfg := authClient.NewConfig()
 	cfg.UserAgent = a.UserAgent()
 	cfg.ExternalConfig.UserAgent = a.UserAgent()
-	if err := cfg.Load(a.ConfigReporter().WithScopes("auth", "client")); err != nil {
+	reporter := a.ConfigReporter().WithScopes("auth", "client")
+	ext := authClient.NewExternalConfigReporterLoader(reporter.WithScopes("external"))
+	plt := platform.NewConfigReporterLoader(reporter)
+	loader := authClient.NewConfigLoader(ext, plt)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 

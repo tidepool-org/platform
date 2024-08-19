@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/globalsign/mgo/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"syreclabs.com/go/faker"
 
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 	userTest "github.com/tidepool-org/platform/user/test"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/prescription/test"
@@ -23,19 +23,17 @@ import (
 var _ = Describe("Prescription", func() {
 	Context("With a submitted revision", func() {
 		var revisionCreate *prescription.RevisionCreate
-		var userID string
 
 		BeforeEach(func() {
 			revisionCreate = test.RandomRevisionCreate()
 			revisionCreate.State = prescription.StateSubmitted
-			userID = user.NewID()
 		})
 
 		Context("Create new prescription", func() {
 			var prescr *prescription.Prescription
 
 			BeforeEach(func() {
-				prescr = prescription.NewPrescription(userID, revisionCreate)
+				prescr = prescription.NewPrescription(revisionCreate)
 				Expect(prescr).ToNot(BeNil())
 			})
 
@@ -65,11 +63,11 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the created user id correctly", func() {
-				Expect(prescr.CreatedUserID).To(Equal(userID))
+				Expect(prescr.CreatedUserID).To(Equal(revisionCreate.ClinicianID))
 			})
 
 			It("sets the prescriber user id correctly", func() {
-				Expect(prescr.PrescriberUserID).To(Equal(userID))
+				Expect(prescr.PrescriberUserID).To(Equal(revisionCreate.ClinicianID))
 			})
 
 			It("sets the created time correctly", func() {
@@ -92,20 +90,23 @@ var _ = Describe("Prescription", func() {
 				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now()))
 			})
 
-			It("sets the modified time", func() {
-				Expect(prescr.ModifiedUserID).To(Equal(userID))
+			It("sets the modified user id", func() {
+				Expect(prescr.ModifiedUserID).To(Equal(revisionCreate.ClinicianID))
+			})
+
+			It("sets the submitted time", func() {
+				Expect(prescr.SubmittedTime).ToNot(BeNil())
+				Expect(*prescr.SubmittedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 		})
 	})
 
 	Describe("Update", func() {
 		var revisionCreate *prescription.RevisionCreate
-		var usr *user.User
 
 		BeforeEach(func() {
 			revisionCreate = test.RandomRevisionCreate()
 			revisionCreate.State = prescription.StatePending
-			usr = userTest.RandomUser()
 		})
 
 		Describe("AddRevision", func() {
@@ -114,13 +115,14 @@ var _ = Describe("Prescription", func() {
 			var update *prescription.Update
 
 			BeforeEach(func() {
-				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
+				prescr = prescription.NewPrescription(revisionCreate)
 				newRevision = test.RandomRevisionCreate()
-				update = prescription.NewPrescriptionAddRevisionUpdate(usr, prescr, newRevision)
+				newRevision.State = prescription.StateSubmitted
+				update = prescription.NewPrescriptionAddRevisionUpdate(prescr, newRevision)
 			})
 
 			It("sets the revision correctly", func() {
-				expectedRevision := prescription.NewRevision(*usr.UserID, prescr.LatestRevision.RevisionID+1, newRevision)
+				expectedRevision := prescription.NewRevision(prescr.LatestRevision.RevisionID+1, newRevision)
 				expectedRevision.Attributes.CreatedTime = update.Revision.Attributes.CreatedTime
 				Expect(*update.Revision).To(Equal(*expectedRevision))
 			})
@@ -130,7 +132,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the prescriber id correctly", func() {
-				Expect(update.PrescriberUserID).To(Equal(*usr.UserID))
+				Expect(update.PrescriberUserID).To(Equal(newRevision.ClinicianID))
 			})
 
 			It("doesn't set the patient id", func() {
@@ -142,30 +144,37 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified user id", func() {
-				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+				Expect(update.ModifiedUserID).To(Equal(newRevision.ClinicianID))
+			})
+
+			It("sets the submitted time", func() {
+				Expect(update.SubmittedTime).ToNot(BeNil())
+				Expect(*update.SubmittedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 		})
 
 		Describe("ClaimUpdate", func() {
 			var prescr *prescription.Prescription
 			var update *prescription.Update
+			var userID string
 
 			BeforeEach(func() {
+				userID = userTest.RandomID()
 				revisionCreate.State = prescription.StateSubmitted
-				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
-				update = prescription.NewPrescriptionClaimUpdate(usr, prescr)
+				prescr = prescription.NewPrescription(revisionCreate)
+				update = prescription.NewPrescriptionClaimUpdate(userID, prescr)
 			})
 
-			It("sets the state to reviewed", func() {
-				Expect(update.State).To(Equal(prescription.StateReviewed))
+			It("sets the state to claimed", func() {
+				Expect(update.State).To(Equal(prescription.StateClaimed))
 			})
 
 			It("sets the patient id correctly", func() {
-				Expect(update.PatientUserID).To(Equal(*usr.UserID))
+				Expect(update.PatientUserID).To(Equal(userID))
 			})
 
 			It("doesn't set the prescriber id", func() {
@@ -177,36 +186,38 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now(), time.Second))
 			})
 
 			It("sets the modified user id", func() {
-				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+				Expect(update.ModifiedUserID).To(Equal(userID))
 			})
 		})
 
 		Describe("StateUpdate", func() {
 			var prescr *prescription.Prescription
 			var update *prescription.Update
+			var userID string
 
 			BeforeEach(func() {
-				revisionCreate.State = prescription.StateReviewed
-				prescr = prescription.NewPrescription(*usr.UserID, revisionCreate)
-				stateUpdate := prescription.NewStateUpdate()
+				userID = userTest.RandomID()
+				revisionCreate.State = prescription.StateClaimed
+				prescr = prescription.NewPrescription(revisionCreate)
+				stateUpdate := prescription.NewStateUpdate(userID)
 				stateUpdate.State = prescription.StateActive
-				update = prescription.NewPrescriptionStateUpdate(usr, prescr, stateUpdate)
+				update = prescription.NewPrescriptionStateUpdate(prescr, stateUpdate)
 			})
 
 			It("doesn't create a new revision", func() {
 				Expect(update.Revision).To(BeNil())
 			})
 
-			It("sets the state to reviewed", func() {
+			It("sets the state to active", func() {
 				Expect(update.State).To(Equal(prescription.StateActive))
 			})
 
-			It("doesn't set a patient id", func() {
-				Expect(update.PatientUserID).To(BeEmpty())
+			It("sets the patient id", func() {
+				Expect(update.PatientUserID).To(Equal(userID))
 			})
 
 			It("doesn't set the prescriber id", func() {
@@ -222,14 +233,14 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified user id", func() {
-				Expect(update.ModifiedUserID).To(Equal(*usr.UserID))
+				Expect(update.ModifiedUserID).To(Equal(userID))
 			})
 		})
 	})
 
 	Describe("Filter", func() {
 		Describe("Validate", func() {
-			When("current user is NOT a clinician", func() {
+			When("current user is a patient", func() {
 				var usr *user.User
 				var filter *prescription.Filter
 				var validate structure.Validator
@@ -239,20 +250,11 @@ var _ = Describe("Prescription", func() {
 					usr.Roles = &[]string{}
 
 					var err error
-					filter, err = prescription.NewFilter(usr)
+					filter, err = prescription.NewPatientFilter(*usr.UserID)
 					Expect(err).ToNot(HaveOccurred())
 
 					validate = validator.New()
 					Expect(validate.Validate(filter)).ToNot(HaveOccurred())
-				})
-
-				It("fails when patient id is not same as current user id", func() {
-					patientID := userTest.RandomID()
-					Expect(patientID).ToNot(Equal(filter.PatientUserID))
-					filter.PatientUserID = patientID
-
-					filter.Validate(validate)
-					Expect(validate.Error()).To(HaveOccurred())
 				})
 
 				It("fails when the state is draft", func() {
@@ -297,8 +299,8 @@ var _ = Describe("Prescription", func() {
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
-				It("doesn't fail when the state is reviewed", func() {
-					filter.State = prescription.StateReviewed
+				It("doesn't fail when the state is claimed", func() {
+					filter.State = prescription.StateClaimed
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
@@ -319,14 +321,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("doesn't fail with a valid id", func() {
-					filter.ID = bson.NewObjectId().Hex()
+					filter.ID = primitive.NewObjectID().Hex()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
 				It("fails when the id is 13 hex characters", func() {
-					filter.ID = fmt.Sprintf("%sa", bson.NewObjectId().Hex())
+					filter.ID = fmt.Sprintf("%sa", primitive.NewObjectID().Hex())
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
@@ -341,16 +343,14 @@ var _ = Describe("Prescription", func() {
 			})
 
 			When("current user is a clinician", func() {
-				var usr *user.User
+				var clinicID string
 				var filter *prescription.Filter
 				var validate structure.Validator
 
 				BeforeEach(func() {
-					usr = userTest.RandomUser()
-					usr.Roles = &[]string{user.RoleClinic}
-
+					clinicID = faker.Number().Hexadecimal(24)
 					var err error
-					filter, err = prescription.NewFilter(usr)
+					filter, err = prescription.NewClinicFilter(clinicID)
 					Expect(err).ToNot(HaveOccurred())
 
 					validate = validator.New()
@@ -413,8 +413,8 @@ var _ = Describe("Prescription", func() {
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
-				It("doesn't fail when the state is reviewed", func() {
-					filter.State = prescription.StateReviewed
+				It("doesn't fail when the state is claimed", func() {
+					filter.State = prescription.StateClaimed
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
@@ -449,14 +449,14 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("doesn't fail with a valid id", func() {
-					filter.ID = bson.NewObjectId().Hex()
+					filter.ID = primitive.NewObjectID().Hex()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())
 				})
 
 				It("fails when the id is 13 hex characters", func() {
-					filter.ID = fmt.Sprintf("%sa", bson.NewObjectId().Hex())
+					filter.ID = fmt.Sprintf("%sa", primitive.NewObjectID().Hex())
 
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())

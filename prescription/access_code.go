@@ -6,7 +6,7 @@ import (
 
 const (
 	accessCodeLength = 6
-	characters       = "ABCDEFGHJKLMNPQRSTUVWXYZ123456789"
+	characters       = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
 )
 
 func GenerateAccessCode() string {

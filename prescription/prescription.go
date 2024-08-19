@@ -22,7 +22,7 @@ const (
 	StateDraft     = "draft"
 	StatePending   = "pending"
 	StateSubmitted = "submitted"
-	StateReviewed  = "reviewed"
+	StateClaimed   = "claimed"
 	StateExpired   = "expired"
 	StateActive    = "active"
 	StateInactive  = "inactive"
@@ -35,12 +35,13 @@ type Service interface {
 }
 
 type Accessor interface {
-	CreatePrescription(ctx context.Context, userID string, create *RevisionCreate) (*Prescription, error)
+	CreatePrescription(ctx context.Context, create *RevisionCreate) (*Prescription, error)
 	ListPrescriptions(ctx context.Context, filter *Filter, pagination *page.Pagination) (Prescriptions, error)
-	DeletePrescription(ctx context.Context, clinicianID string, id string) (bool, error)
-	AddRevision(ctx context.Context, usr *user.User, id string, create *RevisionCreate) (*Prescription, error)
-	ClaimPrescription(ctx context.Context, usr *user.User, claim *Claim) (*Prescription, error)
-	UpdatePrescriptionState(ctx context.Context, usr *user.User, id string, update *StateUpdate) (*Prescription, error)
+	DeletePrescription(ctx context.Context, clinicID, prescriptionID, clinicianID string) (bool, error)
+	AddRevision(ctx context.Context, prescriptionID string, create *RevisionCreate) (*Prescription, error)
+	ClaimPrescription(ctx context.Context, claim *Claim) (*Prescription, error)
+	GetClaimablePrescription(ctx context.Context, claim *Claim) (*Prescription, error)
+	UpdatePrescriptionState(ctx context.Context, prescriptionID string, update *StateUpdate) (*Prescription, error)
 }
 
 type Prescription struct {
@@ -52,18 +53,20 @@ type Prescription struct {
 	RevisionHistory  Revisions          `json:"-" bson:"revisionHistory"`
 	ExpirationTime   *time.Time         `json:"expirationTime" bson:"expirationTime"`
 	PrescriberUserID string             `json:"prescriberUserId,omitempty" bson:"prescriberUserId,omitempty"`
+	ClinicID         string             `json:"clinicId" bson:"clinicId"`
 	CreatedTime      time.Time          `json:"createdTime" bson:"createdTime"`
 	CreatedUserID    string             `json:"createdUserId" bson:"createdUserId"`
 	DeletedTime      *time.Time         `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID    string             `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
 	ModifiedTime     time.Time          `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	ModifiedUserID   string             `json:"modifiedUserId" bson:"modifiedUserId"`
+	SubmittedTime    *time.Time         `json:"submittedTime,omitempty" bson:"submittedTime,omitempty"`
 }
 
-func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescription {
+func NewPrescription(revisionCreate *RevisionCreate) *Prescription {
 	now := time.Now()
 	accessCode := GenerateAccessCode()
-	revision := NewRevision(userID, 0, revisionCreate)
+	revision := NewRevision(0, revisionCreate)
 	revisionHistory := []*Revision{revision}
 	prescription := &Prescription{
 		ID:               primitive.NewObjectID(),
@@ -73,10 +76,12 @@ func NewPrescription(userID string, revisionCreate *RevisionCreate) *Prescriptio
 		RevisionHistory:  revisionHistory,
 		ExpirationTime:   revision.CalculateExpirationTime(),
 		CreatedTime:      now,
-		CreatedUserID:    userID,
+		CreatedUserID:    revisionCreate.ClinicianID,
+		ClinicID:         revisionCreate.ClinicID,
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ModifiedTime:     now,
-		ModifiedUserID:   userID,
+		ModifiedUserID:   revisionCreate.ClinicianID,
+		SubmittedTime:    revision.GetSubmittedTime(),
 	}
 
 	return prescription
@@ -129,7 +134,7 @@ func States() []string {
 		StateDraft,
 		StatePending,
 		StateSubmitted,
-		StateReviewed,
+		StateClaimed,
 		StateExpired,
 		StateActive,
 		StateInactive,
@@ -139,7 +144,7 @@ func States() []string {
 func StatesVisibleToPatients() []string {
 	return []string{
 		StateSubmitted,
-		StateReviewed,
+		StateClaimed,
 		StateActive,
 		StateInactive,
 	}
@@ -147,8 +152,8 @@ func StatesVisibleToPatients() []string {
 
 func validPatientStateTransitions() map[string][]string {
 	return map[string][]string{
-		StateSubmitted: {StateReviewed},
-		StateReviewed:  {StateActive},
+		StateSubmitted: {StateClaimed},
+		StateClaimed:   {StateActive},
 	}
 }
 
@@ -167,12 +172,7 @@ func stateTransitionsForUser(usr *user.User) map[string][]string {
 	return validPatientStateTransitions()
 }
 
-func ValidStateTransitions(usr *user.User, state string) []string {
-	if usr == nil {
-		return []string{}
-	}
-
-	transitions := stateTransitionsForUser(usr)
+func ValidStateTransitions(transitions map[string][]string, state string) []string {
 	valid, ok := transitions[state]
 	if !ok {
 		return []string{}
@@ -182,8 +182,7 @@ func ValidStateTransitions(usr *user.User, state string) []string {
 }
 
 type Filter struct {
-	currentUser    *user.User
-	ClinicianID    string
+	ClinicID       string
 	PatientUserID  string
 	PatientEmail   string
 	State          string
@@ -194,30 +193,31 @@ type Filter struct {
 	ModifiedBefore *time.Time
 }
 
-func NewFilter(currentUser *user.User) (*Filter, error) {
-	if currentUser == nil {
-		return nil, errors.New("current user is missing")
+func NewClinicFilter(clinicID string) (*Filter, error) {
+	if clinicID == "" {
+		return nil, errors.New("clinic id is missing")
 	}
 
-	f := &Filter{
-		currentUser: currentUser,
+	return &Filter{
+		ClinicID: clinicID,
+	}, nil
+}
+
+func NewPatientFilter(userID string) (*Filter, error) {
+	if userID == "" {
+		return nil, errors.New("user id is missing")
 	}
 
-	if currentUser.HasRole(user.RoleClinic) {
-		f.ClinicianID = *currentUser.UserID
-	} else {
-		f.PatientUserID = *currentUser.UserID
-	}
-
-	return f, nil
+	return &Filter{
+		PatientUserID: userID,
+	}, nil
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
 	if f.ID != "" {
 		validator.String("id", &f.ID).Hexadecimal().LengthEqualTo(24)
 	}
-	if f.currentUser.HasRole(user.RoleClinic) {
-		validator.String("clinicianId", &f.ClinicianID).NotEmpty().EqualTo(*f.currentUser.UserID)
+	if f.ClinicID != "" {
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(States()...)
 		}
@@ -228,11 +228,11 @@ func (f *Filter) Validate(validator structure.Validator) {
 			validator.String("patientEmail", &f.PatientEmail).Email()
 		}
 	} else {
-		validator.String("patientUserId", &f.PatientUserID).NotEmpty().EqualTo(*f.currentUser.UserID)
+		validator.String("patientUserId", &f.PatientUserID).Using(user.IDValidator)
+		validator.String("patientEmail", &f.PatientEmail).Empty()
 		if f.State != "" {
 			validator.String("state", &f.State).OneOf(StatesVisibleToPatients()...)
 		}
-		validator.String("patientEmail", &f.PatientEmail).Empty()
 	}
 }
 
@@ -240,7 +240,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("id"); ptr != nil {
 		f.ID = *ptr
 	}
-	if f.currentUser.HasRole(user.RoleClinic) {
+	if f.ClinicID != "" {
 		if ptr := parser.String("patientUserId"); ptr != nil {
 			f.PatientUserID = *ptr
 		}
@@ -267,7 +267,6 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 
 type Update struct {
 	prescription     *Prescription
-	usr              *user.User
 	Revision         *Revision
 	State            string
 	PrescriberUserID string
@@ -275,57 +274,53 @@ type Update struct {
 	ExpirationTime   *time.Time
 	ModifiedTime     time.Time
 	ModifiedUserID   string
+	SubmittedTime    *time.Time
 }
 
-func NewPrescriptionAddRevisionUpdate(usr *user.User, prescription *Prescription, create *RevisionCreate) *Update {
+func NewPrescriptionAddRevisionUpdate(prescription *Prescription, create *RevisionCreate) *Update {
 	revisionID := prescription.LatestRevision.RevisionID + 1
-	revision := NewRevision(*usr.UserID, revisionID, create)
+	revision := NewRevision(revisionID, create)
 	update := &Update{
-		usr:              usr,
 		prescription:     prescription,
 		Revision:         revision,
 		State:            create.State,
 		PrescriberUserID: revision.GetPrescriberUserID(),
 		ExpirationTime:   revision.CalculateExpirationTime(),
-		ModifiedUserID:   *usr.UserID,
+		ModifiedUserID:   create.ClinicianID,
 		ModifiedTime:     revision.Attributes.CreatedTime,
+		SubmittedTime:    revision.GetSubmittedTime(),
 	}
 
 	return update
 }
 
-func NewPrescriptionClaimUpdate(usr *user.User, prescription *Prescription) *Update {
+func NewPrescriptionClaimUpdate(patientID string, prescription *Prescription) *Update {
 	return &Update{
-		usr:            usr,
 		prescription:   prescription,
-		State:          StateReviewed,
-		PatientUserID:  *usr.UserID,
-		ModifiedUserID: *usr.UserID,
+		State:          StateClaimed,
+		PatientUserID:  patientID,
+		ModifiedUserID: patientID,
 		ModifiedTime:   time.Now(),
 	}
 }
 
-func NewPrescriptionStateUpdate(usr *user.User, prescription *Prescription, update *StateUpdate) *Update {
+func NewPrescriptionStateUpdate(prescription *Prescription, update *StateUpdate) *Update {
 	return &Update{
-		usr:            usr,
 		prescription:   prescription,
 		State:          update.State,
-		ModifiedUserID: *usr.UserID,
+		ModifiedUserID: update.PatientID,
+		PatientUserID:  update.PatientID,
 		ModifiedTime:   time.Now(),
 	}
 }
 
 func (u *Update) GetUpdatedAccessCode() *string {
-	if u.State != StateReviewed {
+	if u.State != StateClaimed {
 		return nil
 	}
 
-	// Remove the access code when the user reviews the prescription
+	// Remove the access code when the user claims the prescription
 	return pointer.FromString("")
-}
-
-func (u *Update) GetCurrentUserID() string {
-	return *u.usr.UserID
 }
 
 func (u *Update) GetPrescriptionID() primitive.ObjectID {
@@ -333,70 +328,73 @@ func (u *Update) GetPrescriptionID() primitive.ObjectID {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
-	if u.usr == nil {
-		validator.WithReference("user").ReportError(structureValidator.ErrorValueEmpty())
-		return
-	}
 	if u.prescription == nil {
 		validator.WithReference("prescription").ReportError(structureValidator.ErrorValueEmpty())
 		return
 	}
-
-	validator.String("state", &u.State).OneOf(ValidStateTransitions(u.usr, u.prescription.State)...)
-
-	if u.usr.HasRole(user.RoleClinic) {
-		u.validateForClinician(validator)
-	} else {
+	if u.PatientUserID != "" {
 		u.validateForPatient(validator)
+	} else {
+		u.validateForClinician(validator)
 	}
 }
 
 func (u *Update) validateForClinician(validator structure.Validator) {
+	stateTransitions := ValidStateTransitions(validClinicianStateTransitions(), u.prescription.State)
+	validator.String("state", &u.State).OneOf(stateTransitions...)
+	validator.String("patientUserId", &u.PatientUserID).Empty()
+
 	if u.Revision != nil {
 		u.Revision.Validate(validator.WithReference("revision"))
 	} else {
 		validator.WithReference("revision").ReportError(structureValidator.ErrorValueEmpty())
 	}
-	if u.PrescriberUserID != "" {
-		validator.String("prescriberUserId", &u.PrescriberUserID).EqualTo(*u.usr.UserID)
+}
+
+func (u *Update) validateForPatient(validator structure.Validator) {
+	stateTransitions := ValidStateTransitions(validPatientStateTransitions(), u.prescription.State)
+	validator.String("state", &u.State).OneOf(stateTransitions...)
+	validator.String("prescriberUserId", &u.PrescriberUserID).Empty()
+
+	if u.Revision != nil {
+		validator.WithReference("revision").ReportError(structureValidator.ErrorValueExists())
 	}
 	if u.PatientUserID != "" {
 		validator.String("patientUserId", &u.PatientUserID).Using(user.IDValidator)
 	}
 }
 
-func (u *Update) validateForPatient(validator structure.Validator) {
-	if u.Revision != nil {
-		validator.WithReference("revision").ReportError(structureValidator.ErrorValueExists())
-	}
-	if u.PrescriberUserID != "" {
-		validator.String("prescriberUserId", &u.PrescriberUserID).Empty()
-	}
-	if u.PatientUserID != "" {
-		validator.String("patientUserId", &u.PatientUserID).EqualTo(*u.usr.UserID)
-	}
-}
-
 type Claim struct {
-	AccessCode string `json:"accessCode"`
+	PatientID    string `json:"-"`
+	RevisionHash string `json:"-"`
+	AccessCode   string `json:"accessCode"`
+	Birthday     string `json:"birthday"`
 }
 
-func NewPrescriptionClaim() *Claim {
-	return &Claim{}
+func NewPrescriptionClaim(patientID string) *Claim {
+	return &Claim{
+		PatientID: patientID,
+	}
 }
 
 func (p *Claim) Validate(validator structure.Validator) {
+	validator.String("patientId", &p.PatientID).Exists().NotEmpty().Using(user.IDValidator)
 	validator.String("accessCode", &p.AccessCode).NotEmpty()
+	validator.String("birthday", &p.Birthday).NotEmpty().AsTime("2006-01-02")
 }
 
 type StateUpdate struct {
-	State string `json:"state"`
+	PatientID string `json:"-"`
+	State     string `json:"state"`
 }
 
-func NewStateUpdate() *StateUpdate {
-	return &StateUpdate{}
+func NewStateUpdate(patientID string) *StateUpdate {
+	return &StateUpdate{
+		PatientID: patientID,
+	}
 }
 
 func (s *StateUpdate) Validate(validator structure.Validator) {
+	validator.String("patientId", &s.PatientID).Exists().NotEmpty().Using(user.IDValidator)
 	validator.String("status", &s.State).OneOf(StatesVisibleToPatients()...)
 }

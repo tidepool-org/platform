@@ -4,24 +4,25 @@
 // not use this file except in compliance with the License. You may obtain
 // a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
 
+// Package readpref defines read preferences for MongoDB queries.
 package readpref // import "go.mongodb.org/mongo-driver/mongo/readpref"
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/tag"
 )
 
 var (
-	errInvalidReadPreference = errors.New("can not specify tags or max staleness on primary")
+	errInvalidReadPreference = errors.New("can not specify tags, max staleness, or hedge with mode primary")
 )
-
-var primary = ReadPref{mode: PrimaryMode}
 
 // Primary constructs a read preference with a PrimaryMode.
 func Primary() *ReadPref {
-	return &primary
+	return &ReadPref{mode: PrimaryMode}
 }
 
 // PrimaryPreferred constructs a read preference with a PrimaryPreferredMode.
@@ -63,6 +64,9 @@ func New(mode Mode, opts ...Option) (*ReadPref, error) {
 	}
 
 	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
 		err := opt(rp)
 		if err != nil {
 			return nil, err
@@ -78,6 +82,7 @@ type ReadPref struct {
 	maxStalenessSet bool
 	mode            Mode
 	tagSets         []tag.Set
+	hedgeEnabled    *bool
 }
 
 // MaxStaleness is the maximum amount of time to allow
@@ -96,4 +101,33 @@ func (r *ReadPref) Mode() Mode {
 // which servers should be considered.
 func (r *ReadPref) TagSets() []tag.Set {
 	return r.tagSets
+}
+
+// HedgeEnabled returns whether or not hedged reads are enabled for this read preference. If this option was not
+// specified during read preference construction, nil is returned.
+func (r *ReadPref) HedgeEnabled() *bool {
+	return r.hedgeEnabled
+}
+
+// String returns a human-readable description of the read preference.
+func (r *ReadPref) String() string {
+	var b bytes.Buffer
+	b.WriteString(r.mode.String())
+	delim := "("
+	if r.maxStalenessSet {
+		fmt.Fprintf(&b, "%smaxStaleness=%v", delim, r.maxStaleness)
+		delim = " "
+	}
+	for _, tagSet := range r.tagSets {
+		fmt.Fprintf(&b, "%stagSet=%s", delim, tagSet.String())
+		delim = " "
+	}
+	if r.hedgeEnabled != nil {
+		fmt.Fprintf(&b, "%shedgeEnabled=%v", delim, *r.hedgeEnabled)
+		delim = " "
+	}
+	if delim != "(" {
+		b.WriteString(")")
+	}
+	return b.String()
 }

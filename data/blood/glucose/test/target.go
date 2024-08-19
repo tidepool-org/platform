@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewTarget(units *string) *dataBloodGlucose.Target {
+func RandomTarget(units *string) *dataBloodGlucose.Target {
 	datum := dataBloodGlucose.NewTarget()
 	switch rand.Intn(4) {
 	case 0:
@@ -28,6 +28,13 @@ func NewTarget(units *string) *dataBloodGlucose.Target {
 	return datum
 }
 
+func RandomLowHighTarget(min float64, max float64) *dataBloodGlucose.Target {
+	datum := dataBloodGlucose.NewTarget()
+	datum.Low = pointer.FromFloat64(test.RandomFloat64FromRange(min, max))
+	datum.High = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Low, max))
+	return datum
+}
+
 func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 	clone := dataBloodGlucose.NewTarget()
 	clone.High = pointer.CloneFloat64(datum.High)
@@ -35,6 +42,26 @@ func CloneTarget(datum *dataBloodGlucose.Target) *dataBloodGlucose.Target {
 	clone.Range = pointer.CloneFloat64(datum.Range)
 	clone.Target = pointer.CloneFloat64(datum.Target)
 	return clone
+}
+
+func NewObjectFromTarget(datum *dataBloodGlucose.Target, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.High != nil {
+		object["high"] = test.NewObjectFromFloat64(*datum.High, objectFormat)
+	}
+	if datum.Low != nil {
+		object["low"] = test.NewObjectFromFloat64(*datum.Low, objectFormat)
+	}
+	if datum.Range != nil {
+		object["range"] = test.NewObjectFromFloat64(*datum.Range, objectFormat)
+	}
+	if datum.Target != nil {
+		object["target"] = test.NewObjectFromFloat64(*datum.Target, objectFormat)
+	}
+	return object
 }
 
 func ExpectNormalizedUnits(value *string, expectedValue *string) {

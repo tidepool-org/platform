@@ -2,7 +2,8 @@ package mongo
 
 import (
 	"github.com/tidepool-org/platform/auth/store"
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/devicetokens"
+	"github.com/tidepool-org/platform/errors"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -10,45 +11,57 @@ type Store struct {
 	*storeStructuredMongo.Store
 }
 
-func NewStore(cfg *storeStructuredMongo.Config, lgr log.Logger) (*Store, error) {
-	str, err := storeStructuredMongo.NewStore(cfg, lgr)
-	if err != nil {
-		return nil, err
+func NewStore(c *storeStructuredMongo.Config) (*Store, error) {
+	if c == nil {
+		return nil, errors.New("config is missing")
 	}
 
+	str, err := storeStructuredMongo.NewStore(c)
 	return &Store{
-		Store: str,
-	}, nil
+		str,
+	}, err
 }
 
 func (s *Store) EnsureIndexes() error {
-	providerSessionSession := s.providerSessionSession()
-	defer providerSessionSession.Close()
-	if err := providerSessionSession.EnsureIndexes(); err != nil {
+	providerSessionRepository := s.providerSessionRepository()
+	if err := providerSessionRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
-	restrictedTokenSession := s.restrictedTokenSession()
-	defer restrictedTokenSession.Close()
-	return restrictedTokenSession.EnsureIndexes()
+	deviceTokensRepository := s.deviceTokenRepository()
+	if err := deviceTokensRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	restrictedTokenRepository := s.restrictedTokenRepository()
+	return restrictedTokenRepository.EnsureIndexes()
 }
 
-func (s *Store) NewProviderSessionSession() store.ProviderSessionSession {
-	return s.providerSessionSession()
+func (s *Store) NewProviderSessionRepository() store.ProviderSessionRepository {
+	return s.providerSessionRepository()
 }
 
-func (s *Store) NewRestrictedTokenSession() store.RestrictedTokenSession {
-	return s.restrictedTokenSession()
+func (s *Store) NewRestrictedTokenRepository() store.RestrictedTokenRepository {
+	return s.restrictedTokenRepository()
 }
 
-func (s *Store) providerSessionSession() *ProviderSessionSession {
-	return &ProviderSessionSession{
-		Session: s.Store.NewSession("provider_sessions"),
+func (s *Store) NewDeviceTokenRepository() store.DeviceTokenRepository {
+	return s.deviceTokenRepository()
+}
+
+func (s *Store) providerSessionRepository() *ProviderSessionRepository {
+	return &ProviderSessionRepository{
+		s.Store.GetRepository("provider_sessions"),
 	}
 }
 
-func (s *Store) restrictedTokenSession() *RestrictedTokenSession {
-	return &RestrictedTokenSession{
-		Session: s.Store.NewSession("restricted_tokens"),
+func (s *Store) restrictedTokenRepository() *RestrictedTokenRepository {
+	return &RestrictedTokenRepository{
+		s.Store.GetRepository("restricted_tokens"),
 	}
+}
+
+func (s *Store) deviceTokenRepository() devicetokens.Repository {
+	r := deviceTokenRepo(*s.Store.GetRepository("deviceTokens"))
+	return &r
 }

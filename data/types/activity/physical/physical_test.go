@@ -1,8 +1,7 @@
 package physical_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -24,7 +23,7 @@ func NewMeta() interface{} {
 
 func NewPhysical() *physical.Physical {
 	datum := physical.New()
-	datum.Base = *dataTypesTest.NewBase()
+	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "physicalActivity"
 	datum.ActivityType = pointer.FromString(test.RandomStringFromArray(physical.ActivityTypes()))
 	if datum.ActivityType != nil && *datum.ActivityType == physical.ActivityTypeOther {

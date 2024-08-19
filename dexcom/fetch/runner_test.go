@@ -1,8 +1,7 @@
 package fetch_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 )
 
-var _ = Describe("Runner", func() {
-})
+var _ = Describe("Runner", func() {})

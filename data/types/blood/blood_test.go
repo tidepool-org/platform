@@ -3,9 +3,9 @@ package blood_test
 import (
 	"math"
 	"strconv"
+	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/types"
@@ -18,6 +18,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
+
+const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Blood", func() {
 	Context("New", func() {
@@ -123,7 +125,7 @@ var _ = Describe("Blood", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, *datum.Time, datum.Type, *datum.Units, strconv.FormatFloat(*datum.Value, 'f', -1, 64)}))
+				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, *datum.Units, strconv.FormatFloat(*datum.Value, 'f', -1, 64)}))
 			})
 		})
 	})

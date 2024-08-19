@@ -1,7 +1,13 @@
 package test
 
 import (
+	"context"
+
+	"github.com/tidepool-org/platform/apple"
+
 	"github.com/onsi/gomega"
+
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
@@ -25,6 +31,7 @@ type Service struct {
 	TaskClientImpl             *taskTest.Client
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
+	confirmationClient         confirmationClient.ClientWithResponsesInterface
 }
 
 func NewService() *Service {
@@ -64,7 +71,15 @@ func (s *Service) TaskClient() task.Client {
 	return s.TaskClientImpl
 }
 
-func (s *Service) Status() *service.Status {
+func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
+	return s.confirmationClient
+}
+
+func (s *Service) DeviceCheck() apple.DeviceCheck {
+	return nil
+}
+
+func (s *Service) Status(ctx context.Context) *service.Status {
 	s.StatusInvocations++
 
 	gomega.Expect(s.StatusOutputs).ToNot(gomega.BeEmpty())

@@ -4,40 +4,49 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.uber.org/fx"
 
+	"github.com/tidepool-org/platform/clinics"
+
+	"github.com/tidepool-org/platform/prescription/service"
+
 	"github.com/tidepool-org/platform/prescription"
-	"github.com/tidepool-org/platform/service"
-	user "github.com/tidepool-org/platform/user/client"
+	router "github.com/tidepool-org/platform/service"
 
 	"github.com/tidepool-org/platform/service/api"
 )
 
 type Router struct {
-	prescriptionService prescription.Service
-	userClient          *user.Client
+	deviceSettingsValidator service.DeviceSettingsValidator
+	prescriptionService     prescription.Service
+	clinicsClient           clinics.Client
 }
 
 type Params struct {
 	fx.In
 
-	PrescriptionService prescription.Service
-	UserClient          *user.Client
+	ClinicsClient           clinics.Client
+	DeviceSettingsValidator service.DeviceSettingsValidator
+	PrescriptionService     prescription.Service
 }
 
-func NewRouter(p Params) service.Router {
+func NewRouter(p Params) router.Router {
 	return &Router{
-		prescriptionService: p.PrescriptionService,
-		userClient:          p.UserClient,
+		clinicsClient:           p.ClinicsClient,
+		deviceSettingsValidator: p.DeviceSettingsValidator,
+		prescriptionService:     p.PrescriptionService,
 	}
 }
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/prescriptions", api.Require(r.CreatePrescription)),
-		rest.Get("/v1/prescriptions", api.Require(r.ListPrescriptions)),
-		rest.Post("/v1/prescriptions/claim", api.Require(r.ClaimPrescription)),
-		rest.Get("/v1/prescriptions/:prescriptionId", api.Require(r.GetPrescription)),
-		rest.Patch("/v1/prescriptions/:prescriptionId", api.Require(r.UpdateState)),
-		rest.Delete("/v1/prescriptions/:prescriptionId", api.Require(r.DeletePrescription)),
-		rest.Post("/v1/prescriptions/:prescriptionId/revisions", api.Require(r.AddRevision)),
+		rest.Get("/v1/clinics/:clinicId/prescriptions", api.RequireUser(r.ListClinicPrescriptions)),
+		rest.Post("/v1/clinics/:clinicId/prescriptions", api.RequireUser(r.CreatePrescription)),
+		rest.Get("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireUser(r.GetClinicPrescription)),
+		rest.Post("/v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions", api.RequireUser(r.AddRevision)),
+		rest.Delete("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireUser(r.DeletePrescription)),
+
+		rest.Post("/v1/patients/:userId/prescriptions", api.RequireUser(r.ClaimPrescription)),
+		rest.Get("/v1/patients/:userId/prescriptions", api.RequireAuth(r.ListUserPrescriptions)),
+		rest.Get("/v1/patients/:userId/prescriptions/:prescriptionId", api.RequireAuth(r.GetPatientPrescription)),
+		rest.Patch("/v1/patients/:userId/prescriptions/:prescriptionId", api.RequireUser(r.UpdateState)),
 	}
 }

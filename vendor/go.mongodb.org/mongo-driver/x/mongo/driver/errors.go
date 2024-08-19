@@ -1,19 +1,33 @@
+// Copyright (C) MongoDB, Inc. 2022-present.
+//
+// Licensed under the Apache License, Version 2.0 (the "License"); you may
+// not use this file except in compliance with the License. You may obtain
+// a copy of the License at http://www.apache.org/licenses/LICENSE-2.0
+
 package driver
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/internal/csot"
+	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+// LegacyNotPrimaryErrMsg is the error message that older MongoDB servers (see
+// SERVER-50412 for versions) return when a write operation is erroneously sent
+// to a non-primary node.
+const LegacyNotPrimaryErrMsg = "not master"
+
 var (
-	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001}
+	retryableCodes          = []int32{11600, 11602, 10107, 13435, 13436, 189, 91, 7, 6, 89, 9001, 262}
 	nodeIsRecoveringCodes   = []int32{11600, 11602, 13436, 189, 91}
-	notMasterCodes          = []int32{10107, 13435}
+	notPrimaryCodes         = []int32{10107, 13435, 10058}
 	nodeIsShuttingDownCodes = []int32{11600, 91}
 
 	unknownReplWriteConcernCode   = int32(79)
@@ -27,6 +41,10 @@ var (
 	TransientTransactionError = "TransientTransactionError"
 	// NetworkError is an error label for network errors.
 	NetworkError = "NetworkError"
+	// RetryableWriteError is an error label for retryable write errors.
+	RetryableWriteError = "RetryableWriteError"
+	// NoWritesPerformed is an error label indicated that no writes were performed for an operation.
+	NoWritesPerformed = "NoWritesPerformed"
 	// ErrCursorNotFound is the cursor not found error for legacy find operations.
 	ErrCursorNotFound = errors.New("cursor not found")
 	// ErrUnacknowledgedWrite is returned from functions that have an unacknowledged
@@ -35,17 +53,31 @@ var (
 	// ErrUnsupportedStorageEngine is returned when a retryable write is attempted against a server
 	// that uses a storage engine that does not support retryable writes
 	ErrUnsupportedStorageEngine = errors.New("this MongoDB deployment does not support retryable writes. Please add retryWrites=false to your connection string")
+	// ErrDeadlineWouldBeExceeded is returned when a Timeout set on an operation
+	// would be exceeded if the operation were sent to the server. It wraps
+	// context.DeadlineExceeded.
+	ErrDeadlineWouldBeExceeded = fmt.Errorf(
+		"operation not sent to server, as Timeout would be exceeded: %w",
+		context.DeadlineExceeded)
+	// ErrNegativeMaxTime is returned when MaxTime on an operation is a negative value.
+	ErrNegativeMaxTime = errors.New("a negative value was provided for MaxTime on an operation")
 )
 
 // QueryFailureError is an error representing a command failure as a document.
 type QueryFailureError struct {
 	Message  string
 	Response bsoncore.Document
+	Wrapped  error
 }
 
 // Error implements the error interface.
 func (e QueryFailureError) Error() string {
 	return fmt.Sprintf("%s: %v", e.Message, e.Response)
+}
+
+// Unwrap returns the underlying error.
+func (e QueryFailureError) Unwrap() error {
+	return e.Wrapped
 }
 
 // ResponseError is an error parsing the response to a command.
@@ -64,13 +96,15 @@ func (e ResponseError) Error() string {
 	if e.Wrapped != nil {
 		return fmt.Sprintf("%s: %s", e.Message, e.Wrapped)
 	}
-	return fmt.Sprintf("%s", e.Message)
+	return e.Message
 }
 
 // WriteCommandError is an error for a write command.
 type WriteCommandError struct {
 	WriteConcernError *WriteConcernError
 	WriteErrors       WriteErrors
+	Labels            []string
+	Raw               bsoncore.Document
 }
 
 // UnsupportedStorageEngine returns whether or not the WriteCommandError comes from a retryable write being attempted
@@ -93,20 +127,44 @@ func (wce WriteCommandError) Error() string {
 }
 
 // Retryable returns true if the error is retryable
-func (wce WriteCommandError) Retryable() bool {
+func (wce WriteCommandError) Retryable(wireVersion *description.VersionRange) bool {
+	for _, label := range wce.Labels {
+		if label == RetryableWriteError {
+			return true
+		}
+	}
+	if wireVersion != nil && wireVersion.Max >= 9 {
+		return false
+	}
+
 	if wce.WriteConcernError == nil {
 		return false
 	}
 	return (*wce.WriteConcernError).Retryable()
 }
 
+// HasErrorLabel returns true if the error contains the specified label.
+func (wce WriteCommandError) HasErrorLabel(label string) bool {
+	if wce.Labels != nil {
+		for _, l := range wce.Labels {
+			if l == label {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // WriteConcernError is a write concern failure that occurred as a result of a
 // write operation.
 type WriteConcernError struct {
-	Name    string
-	Code    int64
-	Message string
-	Details bsoncore.Document
+	Name            string
+	Code            int64
+	Message         string
+	Details         bsoncore.Document
+	Labels          []string
+	TopologyVersion *description.TopologyVersion
+	Raw             bsoncore.Document
 }
 
 func (wce WriteConcernError) Error() string {
@@ -123,9 +181,6 @@ func (wce WriteConcernError) Retryable() bool {
 			return true
 		}
 	}
-	if strings.Contains(wce.Message, "not master") || strings.Contains(wce.Message, "node is recovering") {
-		return true
-	}
 
 	return false
 }
@@ -137,7 +192,8 @@ func (wce WriteConcernError) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is recovering")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -147,17 +203,19 @@ func (wce WriteConcernError) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "node is shutting down")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (wce WriteConcernError) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (wce WriteConcernError) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if wce.Code == int64(code) {
 			return true
 		}
 	}
-	return strings.Contains(wce.Message, "not master")
+	hasNoCode := wce.Code == 0
+	return hasNoCode && strings.Contains(wce.Message, LegacyNotPrimaryErrMsg)
 }
 
 // WriteError is a non-write concern failure that occurred as a result of a write
@@ -166,6 +224,8 @@ type WriteError struct {
 	Index   int64
 	Code    int64
 	Message string
+	Details bsoncore.Document
+	Raw     bsoncore.Document
 }
 
 func (we WriteError) Error() string { return we.Message }
@@ -189,11 +249,13 @@ func (we WriteErrors) Error() string {
 
 // Error is a command execution error from the database.
 type Error struct {
-	Code    int32
-	Message string
-	Labels  []string
-	Name    string
-	Wrapped error
+	Code            int32
+	Message         string
+	Labels          []string
+	Name            string
+	Wrapped         error
+	TopologyVersion *description.TopologyVersion
+	Raw             bsoncore.Document
 }
 
 // UnsupportedStorageEngine returns whether e came as a result of an unsupported storage engine
@@ -203,10 +265,20 @@ func (e Error) UnsupportedStorageEngine() bool {
 
 // Error implements the error interface.
 func (e Error) Error() string {
+	var msg string
 	if e.Name != "" {
-		return fmt.Sprintf("(%v) %v", e.Name, e.Message)
+		msg = fmt.Sprintf("(%v)", e.Name)
 	}
-	return e.Message
+	msg += " " + e.Message
+	if e.Wrapped != nil {
+		msg += ": " + e.Wrapped.Error()
+	}
+	return msg
+}
+
+// Unwrap returns the underlying error.
+func (e Error) Unwrap() error {
+	return e.Wrapped
 }
 
 // HasErrorLabel returns true if the error contains the specified label.
@@ -221,8 +293,8 @@ func (e Error) HasErrorLabel(label string) bool {
 	return false
 }
 
-// Retryable returns true if the error is retryable
-func (e Error) Retryable() bool {
+// RetryableRead returns true if the error is retryable for a read operation
+func (e Error) RetryableRead() bool {
 	for _, label := range e.Labels {
 		if label == NetworkError {
 			return true
@@ -233,8 +305,24 @@ func (e Error) Retryable() bool {
 			return true
 		}
 	}
-	if strings.Contains(e.Message, "not master") || strings.Contains(e.Message, "node is recovering") {
-		return true
+
+	return false
+}
+
+// RetryableWrite returns true if the error is retryable for a write operation
+func (e Error) RetryableWrite(wireVersion *description.VersionRange) bool {
+	for _, label := range e.Labels {
+		if label == NetworkError || label == RetryableWriteError {
+			return true
+		}
+	}
+	if wireVersion != nil && wireVersion.Max >= 9 {
+		return false
+	}
+	for _, code := range retryableCodes {
+		if e.Code == code {
+			return true
+		}
 	}
 
 	return false
@@ -257,7 +345,8 @@ func (e Error) NodeIsRecovering() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is recovering")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is recovering")
 }
 
 // NodeIsShuttingDown returns true if this error is a node is shutting down error.
@@ -267,17 +356,19 @@ func (e Error) NodeIsShuttingDown() bool {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "node is shutting down")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, "node is shutting down")
 }
 
-// NotMaster returns true if this error is a not master error.
-func (e Error) NotMaster() bool {
-	for _, code := range notMasterCodes {
+// NotPrimary returns true if this error is a not primary error.
+func (e Error) NotPrimary() bool {
+	for _, code := range notPrimaryCodes {
 		if e.Code == code {
 			return true
 		}
 	}
-	return strings.Contains(e.Message, "not master")
+	hasNoCode := e.Code == 0
+	return hasNoCode && strings.Contains(e.Message, LegacyNotPrimaryErrMsg)
 }
 
 // NamespaceNotFound returns true if this errors is a NamespaceNotFound error.
@@ -285,15 +376,16 @@ func (e Error) NamespaceNotFound() bool {
 	return e.Code == 26 || e.Message == "ns not found"
 }
 
-// helper method to extract an error from a reader if there is one; first returned item is the
-// error if it exists, the second holds parsing errors
-func extractError(rdr bsoncore.Document) error {
+// ExtractErrorFromServerResponse extracts an error from a server response bsoncore.Document
+// if there is one. Also used in testing for SDAM.
+func ExtractErrorFromServerResponse(ctx context.Context, doc bsoncore.Document) error {
 	var errmsg, codeName string
 	var code int32
 	var labels []string
 	var ok bool
+	var tv *description.TopologyVersion
 	var wcError WriteCommandError
-	elems, err := rdr.Elements()
+	elems, err := doc.Elements()
 	if err != nil {
 		return err
 	}
@@ -314,6 +406,10 @@ func extractError(rdr bsoncore.Document) error {
 				if elem.Value().Double() == 1 {
 					ok = true
 				}
+			case bson.TypeBoolean:
+				if elem.Value().Boolean() {
+					ok = true
+				}
 			}
 		case "errmsg":
 			if str, okay := elem.Value().StringValueOK(); okay {
@@ -329,12 +425,12 @@ func extractError(rdr bsoncore.Document) error {
 			}
 		case "errorLabels":
 			if arr, okay := elem.Value().ArrayOK(); okay {
-				elems, err := arr.Elements()
+				vals, err := arr.Values()
 				if err != nil {
 					continue
 				}
-				for _, elem := range elems {
-					if str, ok := elem.Value().StringValueOK(); ok {
+				for _, val := range vals {
+					if str, ok := val.StringValueOK(); ok {
 						labels = append(labels, str)
 					}
 				}
@@ -364,6 +460,11 @@ func extractError(rdr bsoncore.Document) error {
 				if msg, exists := doc.Lookup("errmsg").StringValueOK(); exists {
 					we.Message = msg
 				}
+				if info, exists := doc.Lookup("errInfo").DocumentOK(); exists {
+					we.Details = make([]byte, len(info))
+					copy(we.Details, info)
+				}
+				we.Raw = doc
 				wcError.WriteErrors = append(wcError.WriteErrors, we)
 			}
 		case "writeConcernError":
@@ -372,6 +473,7 @@ func extractError(rdr bsoncore.Document) error {
 				break
 			}
 			wcError.WriteConcernError = new(WriteConcernError)
+			wcError.WriteConcernError.Raw = doc
 			if code, exists := doc.Lookup("code").AsInt64OK(); exists {
 				wcError.WriteConcernError.Code = code
 			}
@@ -385,6 +487,26 @@ func extractError(rdr bsoncore.Document) error {
 				wcError.WriteConcernError.Details = make([]byte, len(info))
 				copy(wcError.WriteConcernError.Details, info)
 			}
+			if errLabels, exists := doc.Lookup("errorLabels").ArrayOK(); exists {
+				vals, err := errLabels.Values()
+				if err != nil {
+					continue
+				}
+				for _, val := range vals {
+					if str, ok := val.StringValueOK(); ok {
+						labels = append(labels, str)
+					}
+				}
+			}
+		case "topologyVersion":
+			doc, ok := elem.Value().DocumentOK()
+			if !ok {
+				break
+			}
+			version, err := description.NewTopologyVersion(bson.Raw(doc))
+			if err == nil {
+				tv = version
+			}
 		}
 	}
 
@@ -393,15 +515,36 @@ func extractError(rdr bsoncore.Document) error {
 			errmsg = "command failed"
 		}
 
-		return Error{
-			Code:    code,
-			Message: errmsg,
-			Name:    codeName,
-			Labels:  labels,
+		err := Error{
+			Code:            code,
+			Message:         errmsg,
+			Name:            codeName,
+			Labels:          labels,
+			TopologyVersion: tv,
+			Raw:             doc,
 		}
+
+		// If CSOT is enabled and we get a MaxTimeMSExpired error, assume that
+		// the error was caused by setting "maxTimeMS" on the command based on
+		// the context deadline or on "timeoutMS". In that case, make the error
+		// wrap context.DeadlineExceeded so that users can always check
+		//
+		//  errors.Is(err, context.DeadlineExceeded)
+		//
+		// for either client-side or server-side timeouts.
+		if csot.IsTimeoutContext(ctx) && err.Code == 50 {
+			err.Wrapped = context.DeadlineExceeded
+		}
+
+		return err
 	}
 
 	if len(wcError.WriteErrors) > 0 || wcError.WriteConcernError != nil {
+		wcError.Labels = labels
+		if wcError.WriteConcernError != nil {
+			wcError.WriteConcernError.TopologyVersion = tv
+		}
+		wcError.Raw = doc
 		return wcError
 	}
 

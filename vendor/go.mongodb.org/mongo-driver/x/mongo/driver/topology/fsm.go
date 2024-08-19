@@ -9,102 +9,174 @@ package topology
 import (
 	"bytes"
 	"fmt"
+	"sync/atomic"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/address"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/description"
+	"go.mongodb.org/mongo-driver/internal/ptrutil"
+	"go.mongodb.org/mongo-driver/mongo/address"
+	"go.mongodb.org/mongo-driver/mongo/description"
 )
 
-var supportedWireVersions = description.NewVersionRange(2, 8)
-var minSupportedMongoDBVersion = "2.6"
+var (
+	// MinSupportedMongoDBVersion is the version string for the lowest MongoDB version supported by the driver.
+	MinSupportedMongoDBVersion = "3.6"
+
+	// SupportedWireVersions is the range of wire versions supported by the driver.
+	SupportedWireVersions = description.NewVersionRange(6, 21)
+)
 
 type fsm struct {
 	description.Topology
-	SetName       string
-	maxElectionID primitive.ObjectID
-	maxSetVersion uint32
+	maxElectionID    primitive.ObjectID
+	maxSetVersion    uint32
+	compatible       atomic.Value
+	compatibilityErr error
 }
 
 func newFSM() *fsm {
-	return new(fsm)
+	f := fsm{}
+	f.compatible.Store(true)
+	return &f
 }
 
-// apply should operate on immutable TopologyDescriptions and Descriptions. This way we don't have to
-// lock for the entire time we're applying server description.
-func (f *fsm) apply(s description.Server) (description.Topology, error) {
+// selectFSMSessionTimeout selects the timeout to return for the topology's
+// finite state machine. If the logicalSessionTimeoutMinutes on the FSM exists
+// and the server is data-bearing, then we determine this value by returning
+//
+//	min{server timeout, FSM timeout}
+//
+// where a "nil" value is considered less than 0.
+//
+// Otherwise, if the FSM's logicalSessionTimeoutMinutes exist, then this
+// function returns the FSM timeout.
+//
+// In the case where the FSM timeout DNE, we check all servers to see if any
+// still do not have a timeout. This function chooses the lowest of the existing
+// timeouts.
+func selectFSMSessionTimeout(f *fsm, s description.Server) *int64 {
+	oldMinutes := f.SessionTimeoutMinutesPtr
+	comp := ptrutil.CompareInt64(oldMinutes, s.SessionTimeoutMinutesPtr)
 
+	// If the server is data-bearing and the current timeout exists and is
+	// either:
+	//
+	// 1. larger than the server timeout, or
+	// 2. non-nil while the server timeout is nil
+	//
+	// then return the server timeout.
+	if s.DataBearing() && (comp == 1 || comp == 2) {
+		return s.SessionTimeoutMinutesPtr
+	}
+
+	// If the current timeout exists and the server is not data-bearing OR
+	// min{server timeout, current timeout} = current timeout, then return
+	// the current timeout.
+	if oldMinutes != nil {
+		return oldMinutes
+	}
+
+	timeout := s.SessionTimeoutMinutesPtr
+	for _, server := range f.Servers {
+		// If the server is not data-bearing, then we do not consider
+		// it's timeout whether set or not.
+		if !server.DataBearing() {
+			continue
+		}
+
+		srvTimeout := server.SessionTimeoutMinutesPtr
+		comp := ptrutil.CompareInt64(timeout, srvTimeout)
+
+		if comp <= 0 { // timeout <= srvTimout
+			continue
+		}
+
+		timeout = server.SessionTimeoutMinutesPtr
+	}
+
+	return timeout
+}
+
+// apply takes a new server description and modifies the FSM's topology description based on it. It returns the
+// updated topology description as well as a server description. The returned server description is either the same
+// one that was passed in, or a new one in the case that it had to be changed.
+//
+// apply should operation on immutable descriptions so we don't have to lock for the entire time we're applying the
+// server description.
+func (f *fsm) apply(s description.Server) (description.Topology, description.Server) {
 	newServers := make([]description.Server, len(f.Servers))
 	copy(newServers, f.Servers)
 
-	oldMinutes := f.SessionTimeoutMinutes
+	// Reset the logicalSessionTimeoutMinutes to the minimum of the FSM
+	// and the description.server/f.servers.
+	serverTimeoutMinutes := selectFSMSessionTimeout(f, s)
+
 	f.Topology = description.Topology{
 		Kind:    f.Kind,
 		Servers: newServers,
+		SetName: f.SetName,
 	}
 
-	// For data bearing servers, set SessionTimeoutMinutes to the lowest among them
-	if oldMinutes == 0 {
-		// If timeout currently 0, check all servers to see if any still don't have a timeout
-		// If they all have timeout, pick the lowest.
-		timeout := s.SessionTimeoutMinutes
-		for _, server := range f.Servers {
-			if server.DataBearing() && server.SessionTimeoutMinutes < timeout {
-				timeout = server.SessionTimeoutMinutes
-			}
-		}
-		f.SessionTimeoutMinutes = timeout
-	} else {
-		if s.DataBearing() && oldMinutes > s.SessionTimeoutMinutes {
-			f.SessionTimeoutMinutes = s.SessionTimeoutMinutes
-		} else {
-			f.SessionTimeoutMinutes = oldMinutes
-		}
+	f.Topology.SessionTimeoutMinutesPtr = serverTimeoutMinutes
+
+	if serverTimeoutMinutes != nil {
+		f.SessionTimeoutMinutes = uint32(*serverTimeoutMinutes)
 	}
 
 	if _, ok := f.findServer(s.Addr); !ok {
-		return f.Topology, nil
+		return f.Topology, s
 	}
 
-	if s.WireVersion != nil {
-		if s.WireVersion.Max < supportedWireVersions.Min {
-			return description.Topology{}, fmt.Errorf(
-				"server at %s reports wire version %d, but this version of the Go driver requires "+
-					"at least %d (MongoDB %s)",
-				s.Addr.String(),
-				s.WireVersion.Max,
-				supportedWireVersions.Min,
-				minSupportedMongoDBVersion,
-			)
-		}
-
-		if s.WireVersion.Min > supportedWireVersions.Max {
-			return description.Topology{}, fmt.Errorf(
-				"server at %s requires wire version %d, but this version of the Go driver only "+
-					"supports up to %d",
-				s.Addr.String(),
-				s.WireVersion.Min,
-				supportedWireVersions.Max,
-			)
-		}
-	}
-
+	updatedDesc := s
 	switch f.Kind {
 	case description.Unknown:
-		f.applyToUnknown(s)
+		updatedDesc = f.applyToUnknown(s)
 	case description.Sharded:
-		f.applyToSharded(s)
+		updatedDesc = f.applyToSharded(s)
 	case description.ReplicaSetNoPrimary:
-		f.applyToReplicaSetNoPrimary(s)
+		updatedDesc = f.applyToReplicaSetNoPrimary(s)
 	case description.ReplicaSetWithPrimary:
-		f.applyToReplicaSetWithPrimary(s)
+		updatedDesc = f.applyToReplicaSetWithPrimary(s)
 	case description.Single:
-		f.applyToSingle(s)
+		updatedDesc = f.applyToSingle(s)
 	}
 
-	return f.Topology, nil
+	for _, server := range f.Servers {
+		if server.WireVersion != nil {
+			if server.WireVersion.Max < SupportedWireVersions.Min {
+				f.compatible.Store(false)
+				f.compatibilityErr = fmt.Errorf(
+					"server at %s reports wire version %d, but this version of the Go driver requires "+
+						"at least %d (MongoDB %s)",
+					server.Addr.String(),
+					server.WireVersion.Max,
+					SupportedWireVersions.Min,
+					MinSupportedMongoDBVersion,
+				)
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s
+			}
+
+			if server.WireVersion.Min > SupportedWireVersions.Max {
+				f.compatible.Store(false)
+				f.compatibilityErr = fmt.Errorf(
+					"server at %s requires wire version %d, but this version of the Go driver only supports up to %d",
+					server.Addr.String(),
+					server.WireVersion.Min,
+					SupportedWireVersions.Max,
+				)
+				f.Topology.CompatibilityErr = f.compatibilityErr
+				return f.Topology, s
+			}
+		}
+	}
+
+	f.compatible.Store(true)
+	f.compatibilityErr = nil
+
+	return f.Topology, updatedDesc
 }
 
-func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) {
+func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Standalone, description.Mongos:
 		f.removeServerByAddr(s.Addr)
@@ -115,9 +187,11 @@ func (f *fsm) applyToReplicaSetNoPrimary(s description.Server) {
 	case description.Unknown, description.RSGhost:
 		f.replaceServer(s)
 	}
+
+	return s
 }
 
-func (f *fsm) applyToReplicaSetWithPrimary(s description.Server) {
+func (f *fsm) applyToReplicaSetWithPrimary(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Standalone, description.Mongos:
 		f.removeServerByAddr(s.Addr)
@@ -130,39 +204,53 @@ func (f *fsm) applyToReplicaSetWithPrimary(s description.Server) {
 		f.replaceServer(s)
 		f.checkIfHasPrimary()
 	}
+
+	return s
 }
 
-func (f *fsm) applyToSharded(s description.Server) {
+func (f *fsm) applyToSharded(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Mongos, description.Unknown:
 		f.replaceServer(s)
 	case description.Standalone, description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
 		f.removeServerByAddr(s.Addr)
 	}
+
+	return s
 }
 
-func (f *fsm) applyToSingle(s description.Server) {
+func (f *fsm) applyToSingle(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Unknown:
 		f.replaceServer(s)
 	case description.Standalone, description.Mongos:
 		if f.SetName != "" {
 			f.removeServerByAddr(s.Addr)
-			return
+			return s
 		}
 
 		f.replaceServer(s)
 	case description.RSPrimary, description.RSSecondary, description.RSArbiter, description.RSMember, description.RSGhost:
+		// A replica set name can be provided when creating a direct connection. In this case, if the set name returned
+		// by the hello response doesn't match up with the one provided during configuration, the server description
+		// is replaced with a default Unknown description.
+		//
+		// We create a new server description rather than doing s.Kind = description.Unknown because the other fields,
+		// such as RTT, need to be cleared for Unknown descriptions as well.
 		if f.SetName != "" && f.SetName != s.SetName {
-			f.removeServerByAddr(s.Addr)
-			return
+			s = description.Server{
+				Addr: s.Addr,
+				Kind: description.Unknown,
+			}
 		}
 
 		f.replaceServer(s)
 	}
+
+	return s
 }
 
-func (f *fsm) applyToUnknown(s description.Server) {
+func (f *fsm) applyToUnknown(s description.Server) description.Server {
 	switch s.Kind {
 	case description.Mongos:
 		f.setKind(description.Sharded)
@@ -177,6 +265,8 @@ func (f *fsm) applyToUnknown(s description.Server) {
 	case description.Unknown, description.RSGhost:
 		f.replaceServer(s)
 	}
+
+	return s
 }
 
 func (f *fsm) checkIfHasPrimary() {
@@ -187,30 +277,78 @@ func (f *fsm) checkIfHasPrimary() {
 	}
 }
 
-func (f *fsm) updateRSFromPrimary(s description.Server) {
+// hasStalePrimary returns true if the topology has a primary that is "stale".
+func hasStalePrimary(fsm fsm, srv description.Server) bool {
+	// Compare the election ID values of the server and the topology lexicographically.
+	compRes := bytes.Compare(srv.ElectionID[:], fsm.maxElectionID[:])
+
+	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max >= 17 {
+		// In the Post-6.0 case, a primary is considered "stale" if the server's election ID is greater than the
+		// topology's max election ID. In these versions, the primary is also considered "stale" if the server's
+		// election ID is LTE to the topologies election ID and the server's "setVersion" is less than the topology's
+		// max "setVersion".
+		return compRes == -1 || (compRes != 1 && srv.SetVersion < fsm.maxSetVersion)
+	}
+
+	// If the server's election ID is less than the topology's max election ID, the primary is considered
+	// "stale". Similarly, if the server's "setVersion" is less than the topology's max "setVersion", the
+	// primary is considered stale.
+	return compRes == -1 || fsm.maxSetVersion > srv.SetVersion
+}
+
+// transferEVTuple will transfer the ("ElectionID", "SetVersion") tuple from the description server to the topology.
+// If the primary is stale, the tuple will not be transferred, the topology will update it's "Kind" value, and this
+// routine will return "false".
+func transferEVTuple(srv description.Server, fsm *fsm) bool {
+	stalePrimary := hasStalePrimary(*fsm, srv)
+
+	if wireVersion := srv.WireVersion; wireVersion != nil && wireVersion.Max >= 17 {
+		if stalePrimary {
+			fsm.checkIfHasPrimary()
+			return false
+		}
+
+		fsm.maxElectionID = srv.ElectionID
+		fsm.maxSetVersion = srv.SetVersion
+
+		return true
+	}
+
+	if srv.SetVersion != 0 && !srv.ElectionID.IsZero() {
+		if stalePrimary {
+			fsm.replaceServer(description.Server{
+				Addr: srv.Addr,
+				LastError: fmt.Errorf(
+					"was a primary, but its set version or election id is stale"),
+			})
+
+			fsm.checkIfHasPrimary()
+
+			return false
+		}
+
+		fsm.maxElectionID = srv.ElectionID
+	}
+
+	if srv.SetVersion > fsm.maxSetVersion {
+		fsm.maxSetVersion = srv.SetVersion
+	}
+
+	return true
+}
+
+func (f *fsm) updateRSFromPrimary(srv description.Server) {
 	if f.SetName == "" {
-		f.SetName = s.SetName
-	} else if f.SetName != s.SetName {
-		f.removeServerByAddr(s.Addr)
+		f.SetName = srv.SetName
+	} else if f.SetName != srv.SetName {
+		f.removeServerByAddr(srv.Addr)
 		f.checkIfHasPrimary()
+
 		return
 	}
 
-	if s.SetVersion != 0 && !bytes.Equal(s.ElectionID[:], primitive.NilObjectID[:]) {
-		if f.maxSetVersion > s.SetVersion || bytes.Compare(f.maxElectionID[:], s.ElectionID[:]) == 1 {
-			f.replaceServer(description.Server{
-				Addr:      s.Addr,
-				LastError: fmt.Errorf("was a primary, but its set version or election id is stale"),
-			})
-			f.checkIfHasPrimary()
-			return
-		}
-
-		f.maxElectionID = s.ElectionID
-	}
-
-	if s.SetVersion > f.maxSetVersion {
-		f.maxSetVersion = s.SetVersion
+	if ok := transferEVTuple(srv, f); !ok {
+		return
 	}
 
 	if j, ok := f.findPrimary(); ok {
@@ -220,22 +358,23 @@ func (f *fsm) updateRSFromPrimary(s description.Server) {
 		})
 	}
 
-	f.replaceServer(s)
+	f.replaceServer(srv)
 
 	for j := len(f.Servers) - 1; j >= 0; j-- {
 		found := false
-		for _, member := range s.Members {
+		for _, member := range srv.Members {
 			if member == f.Servers[j].Addr {
 				found = true
 				break
 			}
 		}
+
 		if !found {
 			f.removeServer(j)
 		}
 	}
 
-	for _, member := range s.Members {
+	for _, member := range srv.Members {
 		if _, ok := f.findServer(member); !ok {
 			f.addServer(member)
 		}
@@ -333,12 +472,10 @@ func (f *fsm) removeServerByAddr(addr address.Address) {
 	}
 }
 
-func (f *fsm) replaceServer(s description.Server) bool {
+func (f *fsm) replaceServer(s description.Server) {
 	if i, ok := f.findServer(s.Addr); ok {
 		f.setServer(i, s)
-		return true
 	}
-	return false
 }
 
 func (f *fsm) setServer(i int, s description.Server) {

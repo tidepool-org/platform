@@ -1,23 +1,23 @@
 package scheduled_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/basal"
 	"github.com/tidepool-org/platform/data/types/basal/scheduled"
-	dataTypesBasalScheduledTest "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/test"
+
+	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataTypesBasalScheduledTest "github.com/tidepool-org/platform/data/types/basal/scheduled/test"
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -29,13 +29,13 @@ func NewMeta() interface{} {
 
 func NewScheduled() *scheduled.Scheduled {
 	datum := scheduled.New()
-	datum.Basal = *dataTypesBasalTest.NewBasal()
+	datum.Basal = *dataTypesBasalTest.RandomBasal()
 	datum.DeliveryType = "scheduled"
 	datum.Duration = pointer.FromInt(test.RandomIntFromRange(scheduled.DurationMinimum, scheduled.DurationMaximum))
 	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, scheduled.DurationMaximum))
-	datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
+	datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(scheduled.RateMinimum, scheduled.RateMaximum))
-	datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
+	datum.ScheduleName = pointer.FromString(dataTypesBasalTest.RandomScheduleName())
 	return datum
 }
 
@@ -312,7 +312,7 @@ var _ = Describe("Scheduled", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple", NewMeta()),
 				),
 				Entry("insulin formulation valid",
-					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3) },
+					func(datum *scheduled.Scheduled) { datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3) },
 				),
 				Entry("rate missing",
 					func(datum *scheduled.Scheduled) { datum.Rate = nil },
@@ -338,7 +338,7 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("schedule name valid",
 					func(datum *scheduled.Scheduled) {
-						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
+						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.RandomScheduleName())
 					},
 				),
 				Entry("multiple errors",
@@ -428,7 +428,7 @@ var _ = Describe("Scheduled", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *scheduled.SuppressedScheduled), expectedErrors ...error) {
-					datum := dataTypesBasalScheduledTest.NewSuppressedScheduled()
+					datum := dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
@@ -480,7 +480,7 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("insulin formulation valid",
 					func(datum *scheduled.SuppressedScheduled) {
-						datum.InsulinFormulation = dataTypesInsulinTest.NewFormulation(3)
+						datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
 					},
 				),
 				Entry("rate missing",
@@ -507,7 +507,7 @@ var _ = Describe("Scheduled", func() {
 				),
 				Entry("schedule name valid",
 					func(datum *scheduled.SuppressedScheduled) {
-						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.NewScheduleName())
+						datum.ScheduleName = pointer.FromString(dataTypesBasalTest.RandomScheduleName())
 					},
 				),
 				Entry("multiple errors",
@@ -533,7 +533,7 @@ var _ = Describe("Scheduled", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *scheduled.SuppressedScheduled)) {
 					for _, origin := range structure.Origins() {
-						datum := dataTypesBasalScheduledTest.NewSuppressedScheduled()
+						datum := dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 						mutator(datum)
 						expectedDatum := dataTypesBasalScheduledTest.CloneSuppressedScheduled(datum)
 						normalizer := dataNormalizer.New()

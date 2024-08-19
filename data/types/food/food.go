@@ -103,14 +103,4 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 	}
 
 	f.Base.Normalize(normalizer)
-
-	if f.Amount != nil {
-		f.Amount.Normalize(normalizer.WithReference("amount"))
-	}
-	if f.Ingredients != nil {
-		f.Ingredients.Normalize(normalizer.WithReference("ingredients"))
-	}
-	if f.Nutrition != nil {
-		f.Nutrition.Normalize(normalizer.WithReference("nutrition"))
-	}
 }

@@ -6,14 +6,12 @@ import (
 	"encoding/base64"
 	"io"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
@@ -22,9 +20,9 @@ import (
 )
 
 type Provider interface {
-	AuthClient() auth.Client
 	BlobStructuredStore() blobStoreStructured.Store
 	BlobUnstructuredStore() blobStoreUnstructured.Store
+	DeviceLogsUnstructuredStore() blobStoreUnstructured.Store
 }
 
 type Client struct {
@@ -44,33 +42,22 @@ func New(provider Provider) (*Client, error) {
 // FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
 
 func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.List(ctx, userID, filter, pagination)
+	repository := c.BlobStructuredStore().NewBlobRepository()
+	return repository.List(ctx, userID, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error) {
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Write); err != nil {
-		return nil, err
-	}
-
 	if content == nil {
 		return nil, errors.New("content is missing")
 	} else if err := structureValidator.New().Validate(content); err != nil {
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
+	repository := c.BlobStructuredStore().NewBlobRepository()
 
 	structuredCreate := blobStoreStructured.NewCreate()
 	structuredCreate.MediaType = pointer.CloneString(content.MediaType)
-	result, err := session.Create(ctx, userID, structuredCreate)
+	result, err := repository.Create(ctx, userID, structuredCreate)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +70,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	options.MediaType = content.MediaType
 	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
 			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
 		}
 		return nil, err
@@ -94,7 +81,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
 		}
-		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
 			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
 		}
 		return nil, request.ErrorResourceTooLarge()
@@ -105,7 +92,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
 		}
-		if _, destroyErr := session.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
 			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
 		}
 		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
@@ -115,20 +102,78 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	update.DigestMD5 = pointer.FromString(digestMD5)
 	update.Size = pointer.FromInt(size)
 	update.Status = pointer.FromString(blob.StatusAvailable)
-	return session.Update(ctx, *result.ID, nil, update)
+	return repository.Update(ctx, *result.ID, nil, update)
+}
+
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	if content == nil {
+		return nil, errors.New("content is missing")
+	} else if err := structureValidator.New().Validate(content); err != nil {
+		return nil, errors.Wrap(err, "content is invalid")
+	}
+
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+
+	structuredCreate := blobStoreStructured.NewCreate()
+	structuredCreate.MediaType = pointer.CloneString(content.MediaType)
+	result, err := repository.Create(ctx, userID, structuredCreate)
+	if err != nil {
+		return nil, err
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "id": *result.ID})
+
+	hasher := md5.New()
+	sizer := NewSizeWriter()
+	options := storeUnstructured.NewOptions()
+	options.MediaType = content.MediaType
+	err = c.DeviceLogsUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
+	if err != nil {
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
+		}
+		return nil, err
+	}
+
+	size := sizer.Size
+	if size > blob.SizeMaximum {
+		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
+		}
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
+		}
+		return nil, request.ErrorResourceTooLarge()
+	}
+
+	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
+		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
+		}
+		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
+		}
+		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
+	}
+
+	update := blobStoreStructured.NewDeviceLogsUpdate()
+	update.DigestMD5 = pointer.FromString(digestMD5)
+	update.Size = pointer.FromInt(size)
+	update.StartAt = pointer.FromTime(*content.StartAt)
+	update.EndAt = pointer.FromTime(*content.EndAt)
+	return repository.Update(ctx, *result.ID, nil, update)
+}
+
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	return nil, errors.New("not implemented")
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	ctx = log.ContextWithField(ctx, "userId", userID)
+	repository := c.BlobStructuredStore().NewBlobRepository()
 
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return err
-	}
-
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
-
-	if deleted, err := session.DeleteAll(ctx, userID); err != nil {
+	if deleted, err := repository.DeleteAll(ctx, userID); err != nil {
 		return err
 	} else if !deleted {
 		return nil
@@ -138,30 +183,19 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 		return err
 	}
 
-	_, err := session.DestroyAll(ctx, userID)
+	_, err := repository.DestroyAll(ctx, userID)
 	return err
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*blob.Blob, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
-
-	return session.Get(ctx, id, nil)
+	repository := c.BlobStructuredStore().NewBlobRepository()
+	return repository.Get(ctx, id, nil)
 }
 
 func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
+	repository := c.BlobStructuredStore().NewBlobRepository()
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
-
-	result, err := session.Get(ctx, id, nil)
+	result, err := repository.Get(ctx, id, nil)
 	if err != nil {
 		return nil, err
 	} else if result == nil {
@@ -181,21 +215,16 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return false, err
-	}
+	repository := c.BlobStructuredStore().NewBlobRepository()
 
-	session := c.BlobStructuredStore().NewSession()
-	defer session.Close()
-
-	result, err := session.Get(ctx, id, condition)
+	result, err := repository.Get(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if result == nil {
 		return false, nil
 	}
 
-	deleted, err := session.Delete(ctx, id, condition)
+	deleted, err := repository.Delete(ctx, id, condition)
 	if err != nil {
 		return false, err
 	} else if !deleted {
@@ -209,7 +238,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 		log.LoggerFromContext(ctx).WithField("id", id).Error("Deleting blob with no content")
 	}
 
-	return session.Destroy(ctx, id, nil)
+	return repository.Destroy(ctx, id, nil)
 }
 
 type SizeWriter struct {
