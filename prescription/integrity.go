@@ -14,7 +14,6 @@ const (
 
 type IntegrityAttributes struct {
 	DataAttributes
-	CreatedUserID string `json:"createdUserId,omitempty"`
 }
 
 type IntegrityHash struct {
@@ -25,14 +24,12 @@ type IntegrityHash struct {
 func NewIntegrityAttributesFromRevisionCreate(create RevisionCreate) IntegrityAttributes {
 	return IntegrityAttributes{
 		DataAttributes: create.DataAttributes,
-		CreatedUserID:  create.CreatedUserID,
 	}
 }
 
 func NewIntegrityAttributesFromRevision(revision Revision) IntegrityAttributes {
 	return IntegrityAttributes{
 		DataAttributes: revision.Attributes.DataAttributes,
-		CreatedUserID:  revision.Attributes.CreatedUserID,
 	}
 }
 

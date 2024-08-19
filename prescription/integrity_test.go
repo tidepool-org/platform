@@ -24,7 +24,6 @@ var _ = Describe("Integrity hash", func() {
 			attrs := prescription.NewIntegrityAttributesFromRevisionCreate(*revisionCreate)
 			matchAttributes := MatchAllFields(Fields{
 				"DataAttributes": Equal(revisionCreate.DataAttributes),
-				"CreatedUserID":  Equal(revisionCreate.CreatedUserID),
 			})
 			Expect(attrs).To(matchAttributes)
 		})
@@ -41,7 +40,6 @@ var _ = Describe("Integrity hash", func() {
 			attrs := prescription.NewIntegrityAttributesFromRevision(*revision)
 			matchAttributes := MatchAllFields(Fields{
 				"DataAttributes": Equal(revision.Attributes.DataAttributes),
-				"CreatedUserID":  Equal(revision.Attributes.CreatedUserID),
 			})
 			Expect(attrs).To(matchAttributes)
 		})
@@ -90,7 +88,6 @@ var _ = Describe("Integrity hash", func() {
 				attrs = test.IntegrityAttributes
 				Expect(attrs).To(MatchAllFields(Fields{
 					"DataAttributes": Ignore(),
-					"CreatedUserID":  Ignore(),
 				}))
 				Expect(attrs.DataAttributes).To(MatchAllFields(Fields{
 					"AccountType":             Ignore(),

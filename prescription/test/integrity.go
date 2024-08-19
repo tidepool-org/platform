@@ -111,8 +111,7 @@ var IntegrityAttributes = prescription.IntegrityAttributes{
 		PrescriberTermsAccepted: pointer.FromBool(true),
 		State:                   "submitted",
 	},
-	CreatedUserID: "1234567890",
 }
 
 // ExpectedHash is the expected integrity hash for the values above
-const ExpectedHash = "994c84b67bbace6721fc490e2ede422a88c75b21b20d8d9480d3d85b726ce226dc1f035e9961e604e4c7b230459bddb1950df1e397b3ff518b9ce07c32bc1327"
+const ExpectedHash = "d9b021a9eba11c6edfc433e8569aaa170e41736282c652bc27831cc68d9ed80ff774ee478310098c92d58ecdb6f50b1c1a7f5a0342e3bf2dfc5cc5414b9cc69b"
