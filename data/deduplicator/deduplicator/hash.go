@@ -40,11 +40,11 @@ func (d deviceDeactivateHashOptions) ValidateLegacy() error {
 	return nil
 }
 
-func AssignDataSetDataIdentityHashes(dataSetData data.Data, opts deviceDeactivateHashOptions) error {
+func AssignDataSetDataIdentityHashes(dataSetData data.Data, options deviceDeactivateHashOptions) error {
 	for _, dataSetDatum := range dataSetData {
 		var hash string
-		if opts.version == DeviceDeactivateHashVersionLegacy {
-			if err := opts.ValidateLegacy(); err != nil {
+		if options.version == DeviceDeactivateHashVersionLegacy {
+			if err := options.ValidateLegacy(); err != nil {
 				return err
 			}
 			fields, err := dataSetDatum.LegacyIdentityFields()
@@ -56,7 +56,7 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, opts deviceDeactivat
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
 			}
-			hash, err = GenerateLegacyIdentityHash([]string{hash, *opts.legacyGroupID})
+			hash, err = GenerateLegacyIdentityHash([]string{hash, *options.legacyGroupID})
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash with legacy groupID for datum %T", dataSetDatum)
 			}

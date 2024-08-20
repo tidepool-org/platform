@@ -33,11 +33,12 @@ var DeviceDeactivateLegacyHashManufacturerDeviceModels = map[string][]string{
 	"Bayer":     {"Contour Next Link", "Contour Next Link 2.4", "Contour Next", "Contour USB", "Contour Next USB", "Contour Next One", "Contour", "Contour Next EZ", "Contour Plus", "Contour Plus Blue"},
 	"Dexcom":    {"G5 touchscreen receiver", "G6 touchscreen receiver"},
 	"GlucoRx":   {"Nexus", "HCT", "Nexus Mini Ultra", "Go"},
-	"Insulet":   {"Dash", "Eros", "OmniPod"},
 	"i-SENS":    {"CareSens"},
 	"MicroTech": {"Equil"},
 	"Roche":     {"Aviva Connect", "Performa Connect", "Guide", "Instant (single-button)", "Guide Me", "Instant (two-button)", "Instant S (single-button)", "ReliOn Platinum"},
-	"Tandem":    {"1002717", "5602", "5448004", "5448003", "5448001", "5448", "4628003", "4628", "10037177", "1001357", "1000354", "1000096"},
+
+	"Insulet": {"Dash", "Eros", "OmniPod"},
+	"Tandem":  {"1002717", "5602", "5448004", "5448003", "5448001", "5448", "4628003", "4628", "10037177", "1001357", "1000354", "1000096"},
 }
 
 type DeviceDeactivateHash struct {
@@ -147,7 +148,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		return errors.New("data set data is missing")
 	}
 
-	opts := NewDefaultDeviceDeactivateHashOptions()
+	options := NewDefaultDeviceDeactivateHashOptions()
 
 	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
 		filter := &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
@@ -159,12 +160,12 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		}
 		if len(uploads) != 0 {
 			if uploads[0].LegacyGroupID != nil {
-				opts = NewLegacyDeviceDeactivateHashOptions(*uploads[0].LegacyGroupID)
+				options = NewLegacyDeviceDeactivateHashOptions(*uploads[0].LegacyGroupID)
 			}
 		}
 	}
 
-	if err := AssignDataSetDataIdentityHashes(dataSetData, opts); err != nil {
+	if err := AssignDataSetDataIdentityHashes(dataSetData, options); err != nil {
 		return err
 	}
 	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
