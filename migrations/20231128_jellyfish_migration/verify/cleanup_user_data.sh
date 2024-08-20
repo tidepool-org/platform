@@ -16,7 +16,6 @@ check_val $SECRET "SECRET"
 check_val $USER_ID_ONE "USER_ID_ONE"
 
 if [[ -z "$SERVER_TOKEN" ]]; then
-
     SERVER_TOKEN="$(curl -s -I -X POST -H "X-Tidepool-Server-Secret: $SECRET" -H "X-Tidepool-Server-Name: devops" "https://${API_ENV}.tidepool.org/auth/serverlogin" | grep 'x-tidepool-session-token' | sed 's/[^:]*: //')"
 fi
 
