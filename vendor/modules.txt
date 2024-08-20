@@ -357,7 +357,7 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/tidepool-org/clinic/client v0.0.0-20240629034458-1365c8963143
+# github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
