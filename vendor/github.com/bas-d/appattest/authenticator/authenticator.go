@@ -219,13 +219,13 @@ func (a *AuthenticatorData) Verify(appIDHash []byte, credentialId []byte, produc
 	// 8. Verify that the authenticator data’s aaguid field is either appattestdevelop if operating in the development environment,
 	// or appattest followed by seven 0x00 bytes if operating in the production environment.
 	aaguid := make([]byte, 16)
-	guidStr := "appattestdevelop"
 	if production {
-		guidStr = "appattest"
+		copy(aaguid, []byte("appattest"))
+	} else {
+		copy(aaguid, []byte("appattestdevelop"))
 	}
-	copy(aaguid, guidStr)
 	if !bytes.Equal(a.AttData.AAGUID, aaguid) {
-		return utils.ErrVerification.WithDetails(fmt.Sprintf(`AAGUID was not "%s"`, guidStr))
+		return utils.ErrVerification.WithDetails("AAGUID was not appattestdevelop\n")
 	}
 
 	// 9. Verify that the authenticator data’s credentialId field is the same as the key identifier.
