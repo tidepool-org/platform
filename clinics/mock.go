@@ -50,6 +50,21 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicID, clinicianID)
 }
 
+// GetPatients mocks base method.
+func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams) ([]client.Patient, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params)
+	ret0, _ := ret[0].([]client.Patient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPatients indicates an expected call of GetPatients.
+func (mr *MockClientMockRecorder) GetPatients(ctx, clinicId, userToken, params interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatients", reflect.TypeOf((*MockClient)(nil).GetPatients), ctx, clinicId, userToken, params)
+}
+
 // ListEHREnabledClinics mocks base method.
 func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]client.Clinic, error) {
 	m.ctrl.T.Helper()

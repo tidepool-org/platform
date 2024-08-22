@@ -615,3 +615,10 @@ func ErrorFromContext(ctx context.Context) error {
 	}
 	return nil
 }
+
+func Meta(err error) interface{} {
+	if objectErr, objectOK := err.(*object); objectOK {
+		return objectErr.Meta
+	}
+	return nil
+}

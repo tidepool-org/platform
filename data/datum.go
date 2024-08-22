@@ -24,6 +24,7 @@ type Datum interface {
 	IsActive() bool
 	GetTime() *time.Time
 	GetTimeZoneOffset() *int
+	GetUploadID() *string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

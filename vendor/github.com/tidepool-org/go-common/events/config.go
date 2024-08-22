@@ -2,7 +2,7 @@ package events
 
 import (
 	"errors"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
 )
 

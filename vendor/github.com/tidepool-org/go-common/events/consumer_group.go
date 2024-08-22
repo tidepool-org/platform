@@ -3,7 +3,7 @@ package events
 import (
 	"context"
 	"fmt"
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 	"github.com/tidepool-org/go-common/errors"
 	"log"
 	"sync"

@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -9,12 +10,15 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"errors"
-
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	baseDatum "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/data/types/upload"
+	platerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -46,7 +50,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -76,7 +79,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -87,7 +89,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
 		{
@@ -99,7 +100,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -159,7 +159,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -199,7 +199,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -222,7 +222,11 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 		"archivedDatasetId": 1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
 		return fmt.Errorf("unable to archive data set data: %w", err)
@@ -239,7 +243,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -263,7 +267,11 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 		"deletedUserId":     1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete data set data")
 		return fmt.Errorf("unable to delete data set data: %w", err)
@@ -280,7 +288,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -292,7 +300,11 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	selector["uploadId"] = dataSet.UploadID
 	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
-	changeInfo, err := d.DeleteMany(ctx, selector)
+	opts := options.Delete()
+	if hasOriginID {
+		opts.SetHint("OriginId")
+	}
+	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
 		return fmt.Errorf("unable to destroy deleted data set data: %w", err)
@@ -309,7 +321,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(selectors)
 	if err != nil {
 		return err
 	}
@@ -482,11 +494,11 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
+func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
-		return bson.M{}, nil
+		return bson.M{}, false, nil
 	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, errors.Join(ErrSelectorsInvalid, err)
+		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
@@ -514,57 +526,13 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	}
 
 	if len(selector) == 0 {
-		return nil, errors.New("selectors is invalid")
+		return nil, false, errors.New("selectors is invalid")
 	}
 
-	return selector, nil
+	return selector, len(selectorOriginIDs) > 0 && len(selectorIDs) == 0, nil
 }
 
-func (d *DatumRepository) CheckDataSetContainsTypeInRange(ctx context.Context, dataSetId string, typ string, startTime time.Time, endTime time.Time) (bool, error) {
-	if ctx == nil {
-		return false, errors.New("context is missing")
-	}
-
-	if dataSetId == "" {
-		return false, errors.New("dataSetId is empty")
-	}
-
-	if typ == "" {
-		return false, errors.New("typ is empty")
-	}
-
-	// quit early if range is 0
-	if startTime.Equal(endTime) {
-		return false, nil
-	}
-
-	// return error if ranges are inverted, as this can produce unexpected results
-	if startTime.After(endTime) {
-		return false, fmt.Errorf("startTime (%s) after endTime (%s)", startTime, endTime)
-	}
-
-	selector := bson.M{
-		"_active":  true,
-		"uploadId": dataSetId,
-		"type":     typ,
-		"time": bson.M{
-			"$gt":  startTime,
-			"$lte": endTime,
-		},
-	}
-
-	result := bson.M{}
-	if err := d.FindOne(ctx, selector).Decode(result); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return false, nil
-		}
-		return false, fmt.Errorf("unable to check for type %s in dataset %s: %w", typ, dataSetId, err)
-	}
-
-	return true, nil
-}
-
-func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (*mongo.Cursor, error) {
+func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -573,7 +541,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 		return nil, errors.New("userId is empty")
 	}
 
-	if typ == "" {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -605,11 +573,16 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
-		"type":    typ,
 		"time": bson.M{
 			"$gt":  status.FirstData,
 			"$lte": status.LastData,
 		},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	// we have everything we need to pull only modified records, but other areas are not ready for this yet
@@ -630,7 +603,57 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ s
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) GetAlertableData(ctx context.Context,
+	params store.AlertableParams) (*store.AlertableResponse, error) {
+
+	if params.End.IsZero() {
+		params.End = time.Now()
+	}
+
+	cursor, err := d.getAlertableData(ctx, params, dosingdecision.Type)
+	if err != nil {
+		return nil, err
+	}
+	dosingDecisions := []*dosingdecision.DosingDecision{}
+	if err := cursor.All(ctx, &dosingDecisions); err != nil {
+		return nil, platerrors.Wrap(err, "Unable to load alertable dosing documents")
+	}
+	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
+	if err != nil {
+		return nil, err
+	}
+	glucoseData := []*glucose.Glucose{}
+	if err := cursor.All(ctx, &glucoseData); err != nil {
+		return nil, platerrors.Wrap(err, "Unable to load alertable glucose documents")
+	}
+	response := &store.AlertableResponse{
+		DosingDecisions: dosingDecisions,
+		Glucose:         glucoseData,
+	}
+
+	return response, nil
+}
+
+func (d *DatumRepository) getAlertableData(ctx context.Context,
+	params store.AlertableParams, typ string) (*mongo.Cursor, error) {
+
+	selector := bson.M{
+		"_active":  true,
+		"uploadId": params.UploadID,
+		"type":     typ,
+		"_userId":  params.UserID,
+		"time":     bson.M{"$gte": params.Start, "$lte": params.End},
+	}
+	findOptions := options.Find().SetSort(bson.D{{Key: "time", Value: -1}})
+	cursor, err := d.Find(ctx, selector, findOptions)
+	if err != nil {
+		format := "Unable to find alertable %s data in dataset %s"
+		return nil, platerrors.Wrapf(err, format, typ, params.UploadID)
+	}
+	return cursor, nil
+}
+
+func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -639,11 +662,16 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userId,
-		"type":    typ,
 		"time": bson.M{
 			"$gte": pastCutoff,
 			"$lte": futureCutoff,
 		},
+	}
+
+	if len(typ) == 1 {
+		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
 	}
 
 	findOptions := options.Find()
@@ -670,17 +698,23 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ s
 	return nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get latest modified record
 	selector := bson.M{
 		"_userId": userId,
-		"_active": bson.M{"$ne": -1111},
-		"type":    typ,
+		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
 			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
 	}
+
+	if len(typ) == 1 {
+		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
+	}
+
 	findOptions := options.Find()
 	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
 	findOptions.SetLimit(1)
@@ -711,16 +745,21 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	return nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ string, status *types.UserLastUpdated) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
-		"_active": bson.M{"$ne": -1111},
 		"_userId": userId,
-		"type":    typ,
+		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
 			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
+	}
+
+	if len(typ) == 1 {
+		selector["type"] = typ[0]
+	} else {
+		selector["type"] = bson.M{"$in": typ}
 	}
 
 	findOptions := options.Find()
@@ -756,7 +795,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ string, lastUpdated time.Time) (*types.UserLastUpdated, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	var err error
 
 	if ctx == nil {
@@ -767,7 +806,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, errors.New("userId is empty")
 	}
 
-	if typ == "" {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -776,14 +815,19 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
-	status := &types.UserLastUpdated{
+	status := &data.UserDataStatus{
 		LastUpdated:     lastUpdated,
-		NextLastUpdated: time.Now().UTC(),
+		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
 	err = d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
+	}
+
+	// the user has no eligible data, quit out early
+	if status.LastData.IsZero() {
+		return nil, nil
 	}
 
 	err = d.populateLastUpload(ctx, userId, typ, status)
@@ -799,15 +843,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	return status, nil
 }
 
-func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]string, error) {
-	var distinctUserIDMap = make(map[string]struct{})
-	var empty struct{}
-
+func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 
-	if typ == "" {
+	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
@@ -823,8 +864,13 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 	selector := bson.M{
 		"_userId": bson.M{"$ne": -1111},
 		"_active": true,
-		"type":    typ,
 		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
+	}
+
+	if len(typ) > 1 {
+		selector["type"] = bson.M{"$in": typ}
+	} else {
+		selector["type"] = typ[0]
 	}
 
 	result, err := d.Distinct(ctx, "_userId", selector)
@@ -832,13 +878,9 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ string) ([]st
 		return nil, fmt.Errorf("error fetching distinct userIDs: %w", err)
 	}
 
+	userIDs := make([]string, 0, len(result))
 	for _, v := range result {
-		distinctUserIDMap[v.(string)] = empty
-	}
-
-	userIDs := make([]string, 0, len(distinctUserIDMap))
-	for k := range distinctUserIDMap {
-		userIDs = append(userIDs, k)
+		userIDs = append(userIDs, v.(string))
 	}
 
 	return userIDs, nil
