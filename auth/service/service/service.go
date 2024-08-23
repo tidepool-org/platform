@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	stdErrors "errors"
 	"net/http"
 	"time"
 
@@ -57,8 +56,6 @@ type Service struct {
 	deviceCheck        apple.DeviceCheck
 	appValidator       *appvalidate.Validator
 	partnerSecrets     *appvalidate.PartnerSecrets
-	coastalSecrets     *appvalidate.CoastalSecrets
-	palmTreeSecrets    *appvalidate.PalmTreeSecrets
 }
 
 func New() *Service {
@@ -475,14 +472,26 @@ func (s *Service) initializeAppValidate() error {
 func (s *Service) initializePartnerSecrets() error {
 	s.Logger().Debug("Initializing partner secrets")
 	var err error
-	s.partnerSecrets, err = appvalidate.NewPartnerSecrets()
-	// Allow system to not fail if there are no credentials loaded.
+
+	// We are OK with partner secrets being missing so we only log any errors.
+	coastalCfg, err := appvalidate.NewCoastalSecretsConfig()
 	if err != nil {
-		s.Logger().Warnf("error initializing partner secrets: %v", err)
+		s.Logger().Warnf("error initializing Coastal config: %v", err)
 	}
-	if err != nil && !stdErrors.Is(err, appvalidate.ErrInvalidPartnerCredentials) {
-		return err
+	coastalSecret, err := appvalidate.NewCoastalSecrets(*coastalCfg)
+	if err != nil {
+		s.Logger().Warnf("error initializing Coastal secrets: %v", err)
 	}
+
+	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig()
+	if err != nil {
+		s.Logger().Warnf("error initializing Palmtree config: %v", err)
+	}
+	palmtreeSecret, err := appvalidate.NewPalmTreeSecrets(*palmtreeCfg)
+	if err != nil {
+		s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
+	}
+	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecret, palmtreeSecret)
 	return nil
 }
 

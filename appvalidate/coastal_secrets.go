@@ -13,7 +13,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -32,7 +31,8 @@ type CoastalSecretsConfig struct {
 	ClientSecret string `envconfig:"COASTAL_CLIENT_SECRET"`
 	RCTypeID     string `envconfig:"COASTAL_RC_TYPE_ID"`
 	// KeyData is the raw contents of the ED25519 private key file in PEM format.
-	KeyData []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
+	KeyData        []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
+	certificateURL string
 }
 
 type CoastalSecrets struct {
@@ -40,45 +40,45 @@ type CoastalSecrets struct {
 	pk     ed25519.PrivateKey
 }
 
-func NewCoastalSecrets() (*CoastalSecrets, error) {
-	cfg, err := newCoastalSecretsConfig()
-	if err != nil {
-		return nil, err
-	}
-	return newCoastalSecrets(cfg)
-}
-
-func newCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
+func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
 	cfg := &CoastalSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
 	}
+	if err := structValidator.New().Validate(cfg); err != nil {
+		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
+	}
+	fullPath, err := url.JoinPath(cfg.BaseURL, "devices/api/v1/certificates")
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse Coastal API certificate path: %w", err)
+	}
+	uri, err := url.ParseRequestURI(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse Coastal API certificate URI: %w", err)
+	}
+	cfg.certificateURL = uri.String()
+
 	return cfg, nil
 }
 
-func newCoastalSecrets(c *CoastalSecretsConfig) (*CoastalSecrets, error) {
-	if c == nil {
-		return nil, fmt.Errorf("Coastal: %w", ErrEmptySecretsConfig)
+func NewCoastalSecrets(cfg CoastalSecretsConfig) (*CoastalSecrets, error) {
+	if err := structValidator.New().Validate(&cfg); err != nil {
+		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
-	if len(c.KeyData) == 0 {
-		return nil, ErrInvalidPartnerCredentials
-	}
-	keyBlock, _ := pem.Decode(c.KeyData)
+	keyBlock, _ := pem.Decode(cfg.KeyData)
 	if keyBlock == nil {
 		return nil, fmt.Errorf("Coastal key data is not in PEM format: %w", ErrInvalidPartnerCredentials)
 	}
 	privKeyAny, err := x509.ParsePKCS8PrivateKey(keyBlock.Bytes)
 	if err != nil {
-		return &CoastalSecrets{
-			Config: *c,
-		}, errors.Join(ErrInvalidPartnerCredentials, fmt.Errorf("unable to parse EC private key: %w", err))
+		return nil, errors.Join(ErrInvalidPartnerCredentials, fmt.Errorf("unable to parse EC private key: %w", err))
 	}
 	privateKey, ok := privKeyAny.(ed25519.PrivateKey)
 	if !ok {
 		return nil, fmt.Errorf("unexpected coastal private key type: %T", privKeyAny)
 	}
 	return &CoastalSecrets{
-		Config: *c,
+		Config: cfg,
 		pk:     privateKey,
 	}, nil
 }
@@ -155,13 +155,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 		return nil, fmt.Errorf("Coastal marshal error: %w", err)
 	}
 
-	u, err := url.Parse(c.Config.BaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse Coastal API baseURL: %w", err)
-	}
-	u.Path = path.Join(u.Path, "devices/api/v1/certificates")
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.Config.certificateURL, bytes.NewReader(b))
 	if err != nil {
 		return nil, err
 	}
@@ -207,4 +201,13 @@ func newCoastalPayload(rcTypeID string) *CoastalPayload {
 	return &CoastalPayload{
 		RCTypeID: rcTypeID,
 	}
+}
+
+func (cfg *CoastalSecretsConfig) Validate(v structure.Validator) {
+	v.String("APIKey", &cfg.APIKey).NotEmpty()
+	v.String("BaseURL", &cfg.BaseURL).NotEmpty()
+	v.String("ClientID", &cfg.ClientID).NotEmpty()
+	v.String("ClientSecret", &cfg.ClientSecret).NotEmpty()
+	v.String("RCTypeID", &cfg.RCTypeID).NotEmpty()
+	v.Bytes("KeyData", cfg.KeyData).NotEmpty()
 }

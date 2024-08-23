@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"path"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -37,7 +36,8 @@ type PalmTreeSecretsConfig struct {
 	// CertData is the raw contents of the tls certificate file
 	CertData []byte `envconfig:"PALMTREE_TLS_CERT_DATA"`
 	// KeyData is the raw contents of the tls private key file
-	KeyData []byte `envconfig:"PALMTREE_TLS_KEY_DATA"`
+	KeyData        []byte `envconfig:"PALMTREE_TLS_KEY_DATA"`
+	certificateURL string
 }
 
 type PalmTreeSecrets struct {
@@ -45,32 +45,34 @@ type PalmTreeSecrets struct {
 	client *http.Client
 }
 
-func NewPalmTreeSecrets() (*PalmTreeSecrets, error) {
-	cfg, err := newPalmTreeSecretsConfig()
-	if err != nil {
-		return nil, err
-	}
-	return newPalmTreeSecrets(cfg)
-}
-
-func newPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
+func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
 	cfg := &PalmTreeSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
 	}
+	if err := structValidator.New().Validate(cfg); err != nil {
+		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
+	}
+	fullPath, err := url.JoinPath(cfg.BaseURL, fmt.Sprintf("v1/certificate-authorities/%s/enrollments", url.PathEscape(cfg.CalID)))
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse PalmTree API certificate path: %w", err)
+	}
+	uri, err := url.ParseRequestURI(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse PalmTree API certificate URI: %w", err)
+	}
+	cfg.certificateURL = uri.String()
+
 	return cfg, nil
 }
 
-func newPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
-	if c == nil {
-		return nil, fmt.Errorf("PalmTree: %w", ErrEmptySecretsConfig)
+func NewPalmTreeSecrets(cfg PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
+	if err := structValidator.New().Validate(&cfg); err != nil {
+		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
-	cert, err := tls.X509KeyPair(c.CertData, c.KeyData)
+	cert, err := tls.X509KeyPair(cfg.CertData, cfg.KeyData)
 	if err != nil {
-		return &PalmTreeSecrets{
-			Config: *c,
-			client: http.DefaultClient,
-		}, errors.Join(ErrInvalidPartnerCredentials, err)
+		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 
 	tr := &http.Transport{
@@ -80,7 +82,7 @@ func newPalmTreeSecrets(c *PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
 	}
 
 	return &PalmTreeSecrets{
-		Config: *c,
+		Config: cfg,
 		client: &http.Client{Transport: tr},
 	}, nil
 }
@@ -133,13 +135,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 		return nil, err
 	}
 
-	u, err := url.Parse(pt.Config.BaseURL)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse PalmTree API baseURL: %w", err)
-	}
-	u.Path = path.Join(u.Path, fmt.Sprintf("v1/certificate-authorities/%s/enrollments", url.PathEscape(pt.Config.CalID)))
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u.String(), &buf)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, pt.Config.certificateURL, &buf)
 	if err != nil {
 		return nil, err
 	}
@@ -178,4 +174,12 @@ func newPalmtreePayload(profileID string) *PalmTreePayload {
 			Format: "PEM",
 		},
 	}
+}
+
+func (cfg *PalmTreeSecretsConfig) Validate(v structure.Validator) {
+	v.String("BaseURL", &cfg.BaseURL).NotEmpty()
+	v.String("CalID", &cfg.CalID).NotEmpty()
+	v.String("ProfileID", &cfg.ProfileID).NotEmpty()
+	v.Bytes("CertData", cfg.CertData).NotEmpty()
+	v.Bytes("KeyData", cfg.KeyData).NotEmpty()
 }
