@@ -1,7 +1,6 @@
 package v1_test
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -38,7 +37,6 @@ var _ = Describe("V1", func() {
 			Expect(filter.StartTime.Equal(startDate)).To(BeTrue())
 
 			Expect(filter.EndTime).ToNot(BeNil())
-			fmt.Println(filter.EndTime.Sub(endDate))
 			Expect(filter.EndTime.Equal(endDate)).To(BeTrue())
 
 			Expect(filter.PatientFilters).ToNot(BeNil())

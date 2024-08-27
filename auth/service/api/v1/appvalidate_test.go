@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
 	v1 "github.com/tidepool-org/platform/auth/service/api/v1"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -37,7 +38,7 @@ var _ = Describe("App Validation", func() {
 	var service *v1.MockAuthService
 	var repo *appvalidate.MockRepository
 	var generator *appvalidate.MockChallengeGenerator
-	var authClient *auth.MockAuthClient
+	var authClient *authTest.MockClient
 	var handler http.Handler
 
 	challenge := "challenge"
@@ -100,7 +101,7 @@ var _ = Describe("App Validation", func() {
 		service = v1.NewMockAuthService(ctrl)
 		repo = newRepository(ctrl, initialValidations)
 		generator = appvalidate.NewMockChallengeGenerator(ctrl)
-		authClient = auth.NewMockAuthClient(ctrl)
+		authClient = authTest.NewMockClient(ctrl)
 
 		service.EXPECT().
 			Logger().
@@ -138,7 +139,6 @@ var _ = Describe("App Validation", func() {
 			AnyTimes()
 
 		api := rest.NewApi()
-		api.Use(rest.DefaultDevStack...)
 
 		router, err := v1.NewRouter(service)
 		Expect(err).ToNot(HaveOccurred())
