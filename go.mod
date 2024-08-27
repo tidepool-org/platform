@@ -35,7 +35,7 @@ require (
 	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.22.0
 	gonum.org/v1/gonum v0.15.0
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.64.1
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.3
 )
