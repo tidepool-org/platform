@@ -972,6 +972,12 @@ var _ = Describe("Base", func() {
 			})
 		})
 
+		Context("GetTimeZoneOffset", func() {
+			It("gets the time zone offset", func() {
+				Expect(datum.GetTimeZoneOffset()).To(Equal(datum.TimeZoneOffset))
+			})
+		})
+
 		Context("SetUserID", func() {
 			It("sets the user id", func() {
 				userID := pointer.FromString(userTest.RandomID())
