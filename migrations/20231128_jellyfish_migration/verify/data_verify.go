@@ -62,8 +62,6 @@ func NewDataVerify(ctx context.Context, dataC *mongo.Collection) (*DataVerify, e
 
 var DatasetTypes = []string{"cbg", "smbg", "basal", "bolus", "deviceEvent", "wizard", "pumpSettings"}
 
-//archivedDatasetId
-
 func (m *DataVerify) fetchDataSetNotDeduped(uploadID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
 		return nil, errors.New("missing data collection")
@@ -99,6 +97,45 @@ func (m *DataVerify) fetchDataSetNotDeduped(uploadID string, dataTypes []string)
 			return nil, err
 		}
 		log.Printf("got dataset [%s][%s][%d] results", uploadID, dType, len(dset))
+		typeSet[dType] = dset
+	}
+	return typeSet, nil
+}
+
+func (m *DataVerify) fetchDeviceData(deviceID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
+	if m.dataC == nil {
+		return nil, errors.New("missing data collection")
+	}
+
+	typeSet := map[string][]map[string]interface{}{}
+
+	for _, dType := range dataTypes {
+
+		dset := []map[string]interface{}{}
+
+		filter := bson.M{
+			"deviceId": deviceID,
+			"type":     dType,
+		}
+
+		sort := bson.D{{Key: "time", Value: 1}}
+
+		if dType == "deviceEvent" || dType == "bolus" {
+			sort = bson.D{{Key: "time", Value: 1}, {Key: "subType", Value: 1}}
+		}
+
+		dDataCursor, err := m.dataC.Find(m.ctx, filter, &options.FindOptions{
+			Sort: sort,
+		})
+		if err != nil {
+			return nil, err
+		}
+		defer dDataCursor.Close(m.ctx)
+
+		if err := dDataCursor.All(m.ctx, &dset); err != nil {
+			return nil, err
+		}
+		log.Printf("got device datasets [%s][%s][%d] results", deviceID, dType, len(dset))
 		typeSet[dType] = dset
 	}
 	return typeSet, nil
@@ -357,6 +394,27 @@ func (m *DataVerify) VerifyDeduped(uploadID string, dataTyes []string) error {
 		for dType, dTypeItems := range dataset {
 			if len(dTypeItems) > 0 {
 				writeFileData(dTypeItems, notDedupedPath, fmt.Sprintf("%s_not_deduped_datums.json", dType), true)
+			}
+		}
+	}
+	return nil
+}
+
+func (m *DataVerify) VerifyDeviceUploads(deviceID string, dataTyes []string) error {
+
+	if len(dataTyes) == 0 {
+		dataTyes = DatasetTypes
+	}
+	datasets, err := m.fetchDeviceData(deviceID, dataTyes)
+	if err != nil {
+		return err
+	}
+
+	if len(datasets) != 0 {
+		notDedupedPath := filepath.Join(".", "_device_data", deviceID)
+		for dType, dTypeItems := range datasets {
+			if len(dTypeItems) > 0 {
+				writeFileData(dTypeItems, notDedupedPath, fmt.Sprintf("%s_data.json", dType), true)
 			}
 		}
 	}

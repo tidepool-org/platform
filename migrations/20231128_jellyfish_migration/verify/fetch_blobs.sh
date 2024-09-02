@@ -1,7 +1,7 @@
 #!/bin/bash
 JSON_FILE=$1
 OUTPUT_DIR=$2
-LOG_PREFIX=prod_blob
+LOG_PREFIX=prod_blob_series
 
 check_val() {
     if [[ -z "$1" ]]; then
@@ -30,13 +30,13 @@ check_val $SESSION_TOKEN "SESSION_TOKEN"
 ## enbale downloading o
 counter=0
 
-jq -c '.[]' $JSON_FILE | while read i; do
+jq -c ' reverse .[]' $JSON_FILE | while read i; do
 
-    counter=$((counter+1))
+    # counter=$((counter+1))
 
-    if [[ "$counter" == 12 ]]; then
-        # reset counter
-        counter=0
+    # # if [[ "$counter" == 2 ]]; then
+    # #     # reset counter
+    # #     counter=0
 
         DEVICE_ID=$(jq -r '.deviceId' <<<"$i")
         check_val $DEVICE_ID "DEVICE_ID"
@@ -77,5 +77,5 @@ jq -c '.[]' $JSON_FILE | while read i; do
                 fi
             fi
         fi
-    fi
+    # fi
 done

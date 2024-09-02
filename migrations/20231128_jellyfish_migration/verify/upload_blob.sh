@@ -16,7 +16,7 @@ check_val() {
 }
 
 cd $UPLOADER_DIR
-
+# config file exists in the uploader repo
 source ./config/qa3.sh
 
 check_val $BLOB_FILE "BLOB_FILE"
@@ -58,15 +58,19 @@ if [ "$SUCCESS" = true ]; then
     echo "$records"
 else
     echo 'upload failed!'
-   
-    error_details=$(echo "$output" | grep -A100000 'add data to dataset failed' | grep -B100000 'Offending record for error')
-    
+
+    error_details=$(echo "$output" | grep -A100000 'add data to dataset failed' | grep -B100000 'Offending record for error 0')
+
+    if [[ -z "$error_details" ]]; then
+        error_details=$(echo "$output" | grep -A100000 'add data to dataset failed' | grep -B100000 'upload.toPlatform: failed')
+    fi
+
     if [[ -z "$error_details" ]]; then
         error_details=$(echo "$output" | grep -A100000 'Error' | grep -B100000 '')
     fi
 
-    echo "{"blob":"$BLOB_FILE", "details":{$error_details}}" >>"$ERROR_LOG"
+    error_details=$(echo $error_details | tr -d '\n\t\r')
+
+    echo "{"blob":"$BLOB_FILE", "details":{ "$error_details" }" >>"$ERROR_LOG"
     echo "$output"
 fi
-
-

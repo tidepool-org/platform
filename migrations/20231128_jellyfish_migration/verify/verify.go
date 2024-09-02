@@ -24,10 +24,12 @@ type config struct {
 	mongoURI          string
 	findBlobs         bool
 	verifyDeduped     bool
+	verifyDevice      bool
 	sameAccount       bool
 	platformUploadID  string
 	jellyfishUploadID string
 	uploadIdDeduped   string
+	deviceID          string
 	dataTypes         string
 }
 
@@ -37,7 +39,9 @@ const JellyfishUploadIDFlag = "upload-id-jellyfish"
 const SameAccountFlag = "same-account"
 const FindBlobFlag = "find-blobs"
 const VerifyDedupedFlag = "verify-deduped"
+const VerifyDeviceFlag = "verify-device"
 const UploadIdDedupedFlag = "upload-id"
+const DeviceIdFlag = "device-id"
 const DataTypesFlag = "data-types"
 const UseSubsetFlag = "use-subset"
 
@@ -94,6 +98,18 @@ func (m *Verify) RunAndExit() {
 				return fmt.Errorf("unable to create verification utils : %w", err)
 			}
 			return m.verificationUtil.VerifyDeduped(m.config.uploadIdDeduped, strings.Split(m.config.dataTypes, ","))
+		}
+
+		if m.config.verifyDevice {
+			m.verificationUtil, err = NewDataVerify(
+				m.ctx,
+				m.client.Database("data").Collection("deviceData"),
+			)
+
+			if err != nil {
+				return fmt.Errorf("unable to create verification utils : %w", err)
+			}
+			return m.verificationUtil.VerifyDeviceUploads(m.config.deviceID, strings.Split(m.config.dataTypes, ","))
 		}
 
 		m.verificationUtil, err = NewDataVerify(
@@ -155,6 +171,12 @@ func (m *Verify) Initialize() error {
 			Required:    false,
 		},
 		cli.StringFlag{
+			Name:        DeviceIdFlag,
+			Usage:       "deviceID of the datasets to check",
+			Destination: &m.config.deviceID,
+			Required:    false,
+		},
+		cli.StringFlag{
 			Name:        DataTypesFlag,
 			Usage:       "comma seperated list of data types to compare",
 			Destination: &m.config.dataTypes,
@@ -171,6 +193,12 @@ func (m *Verify) Initialize() error {
 			Name:        VerifyDedupedFlag,
 			Usage:       "verify that a dataset has been deduplicated",
 			Destination: &m.config.verifyDeduped,
+			Required:    false,
+		},
+		cli.BoolFlag{
+			Name:        VerifyDeviceFlag,
+			Usage:       "verify a device datasets",
+			Destination: &m.config.verifyDevice,
 			Required:    false,
 		},
 		cli.StringFlag{
