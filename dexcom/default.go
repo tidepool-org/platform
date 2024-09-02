@@ -17,15 +17,8 @@ func StringOrDefault(parser structure.ObjectParser, reference string, defaultVal
 	}
 	strDefault := fmt.Sprintf("%v", defaultValue)
 	if defaultValue != nil && strDefault != "" {
-		fmt.Printf("No value found for [%s] so falling back to default [%s]",
-			reference,
-			strDefault,
-		)
 		return pointer.FromString(strDefault)
 	}
 
-	fmt.Printf("Neither value found for [%s] or the default has been set",
-		reference,
-	)
 	return nil
 }

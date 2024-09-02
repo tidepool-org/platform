@@ -258,3 +258,19 @@ func MatchBlobArray(datum blob.BlobArray) gomegaTypes.GomegaMatcher {
 	}
 	return test.MatchArray(matchers)
 }
+
+func RandomDeviceLogsArray(minimumLength int, maximumLength int) blob.DeviceLogsBlobArray {
+	datum := make(blob.DeviceLogsBlobArray, test.RandomIntFromRange(minimumLength, maximumLength))
+	for index := range datum {
+		datum[index] = RandomDeviceLogsBlob()
+	}
+	return datum
+}
+
+func MatchDeviceLogsArray(datum blob.DeviceLogsBlobArray) gomegaTypes.GomegaMatcher {
+	matchers := []gomegaTypes.GomegaMatcher{}
+	for _, d := range datum {
+		matchers = append(matchers, MatchDeviceLogsBlob(d))
+	}
+	return test.MatchArray(matchers)
+}

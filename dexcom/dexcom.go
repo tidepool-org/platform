@@ -10,34 +10,9 @@ import (
 )
 
 const (
-	TimeFormatMilli    = "2006-01-02T15:04:05.999"
-	TimeFormatMilliUTC = "2006-01-02T15:04:05.999Z"
-	TimeFormatMilliZ   = "2006-01-02T15:04:05.999-07:00"
-
-	TimeMinimalFormat = "2006-01-02T15:04"
-	TimeFormat        = "2006-01-02T15:04:05"
-	TimeFormatZ       = "2006-01-02T15:04:05-07:00"
-	TimeFormatUTC     = "2006-01-02T15:04:05Z"
-
+	DateRangeTimeFormat    = "2006-01-02T15:04:05"
 	SystemTimeNowThreshold = 24 * time.Hour
 )
-
-func timeFormats() map[int]string {
-	// NOTE: we are optimistically matching the incoming date string length to the date format length.
-	return map[int]string{
-		len(TimeMinimalFormat):  TimeMinimalFormat,
-		len(TimeFormat):         TimeFormat,
-		len(TimeFormatMilli):    TimeFormatMilli,
-		len(TimeFormatZ):        TimeFormatZ,
-		len(TimeFormatMilliZ):   TimeFormatMilliZ,
-		len(TimeFormatMilliUTC): TimeFormatMilliUTC,
-		len(TimeFormatUTC):      TimeFormatUTC,
-	}
-}
-
-func GetTimeFormat(timeStr string) string {
-	return timeFormats()[len(timeStr)]
-}
 
 func IsValidTransmitterID(value string) bool {
 	return ValidateTransmitterID(value) == nil

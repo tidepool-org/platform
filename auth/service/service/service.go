@@ -6,15 +6,13 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
-
-	"github.com/tidepool-org/platform/apple"
-	"github.com/tidepool-org/platform/auth"
-
 	eventsCommon "github.com/tidepool-org/go-common/events"
-
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/appvalidate"
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/auth/client"
 	authEvents "github.com/tidepool-org/platform/auth/events"
 	"github.com/tidepool-org/platform/auth/service"
@@ -56,6 +54,8 @@ type Service struct {
 	authClient         *Client
 	userEventsHandler  events.Runner
 	deviceCheck        apple.DeviceCheck
+	appValidator       *appvalidate.Validator
+	partnerSecrets     *appvalidate.PartnerSecrets
 }
 
 func New() *Service {
@@ -108,6 +108,12 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDeviceCheck(); err != nil {
 		return err
 	}
+	if err := s.initializeAppValidate(); err != nil {
+		return err
+	}
+	if err := s.initializePartnerSecrets(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -129,6 +135,9 @@ func (s *Service) Domain() string {
 }
 
 func (s *Service) AuthStore() store.Store {
+	if s.authStore == nil {
+		return nil
+	}
 	return s.authStore
 }
 
@@ -150,6 +159,14 @@ func (s *Service) ProviderFactory() provider.Factory {
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
+}
+
+func (s *Service) AppValidator() *appvalidate.Validator {
+	return s.appValidator
+}
+
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return s.partnerSecrets
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -430,6 +447,55 @@ func (s *Service) initializeDeviceCheck() error {
 	}
 	s.deviceCheck = apple.NewDeviceCheck(cfg, httpClient)
 
+	return nil
+}
+
+func (s *Service) initializeAppValidate() error {
+	s.Logger().Debug("Initializing app validate")
+	cfg, err := appvalidate.NewValidatorConfig()
+	if err != nil {
+		return err
+	}
+	s.Logger().Infof("Initialized AppValidate with: %#v", *cfg)
+	authStore := s.AuthStore()
+	if authStore == nil {
+		return errors.New("auth store should be initialized before app validate")
+	}
+	validator, err := appvalidate.NewValidator(authStore.NewAppValidateRepository(), appvalidate.NewChallengeGenerator(), *cfg)
+	if err != nil {
+		return err
+	}
+	s.appValidator = validator
+	return nil
+}
+
+func (s *Service) initializePartnerSecrets() error {
+	s.Logger().Debug("Initializing partner secrets")
+	var err error
+	var coastalSecrets *appvalidate.CoastalSecrets
+	var palmtreeSecrets *appvalidate.PalmTreeSecrets
+
+	// We are OK with partner secrets being missing so we only log any errors.
+	coastalCfg, err := appvalidate.NewCoastalSecretsConfig()
+	if err != nil {
+		s.Logger().Warnf("error initializing Coastal config: %v", err)
+	} else {
+		coastalSecrets, err = appvalidate.NewCoastalSecrets(*coastalCfg)
+		if err != nil {
+			s.Logger().Warnf("error initializing Coastal secrets: %v", err)
+		}
+	}
+
+	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig()
+	if err != nil {
+		s.Logger().Warnf("error initializing Palmtree config: %v", err)
+	} else {
+		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(*palmtreeCfg)
+		if err != nil {
+			s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
+		}
+	}
+	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
 	return nil
 }
 
