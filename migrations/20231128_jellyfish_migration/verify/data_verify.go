@@ -102,7 +102,7 @@ func (m *DataVerify) fetchDataSetNotDeduped(uploadID string, dataTypes []string)
 	return typeSet, nil
 }
 
-func (m *DataVerify) fetchDeviceData(deviceID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
+func (m *DataVerify) fetchDeviceData(userID string, deviceID string, dataTypes []string) (map[string][]map[string]interface{}, error) {
 	if m.dataC == nil {
 		return nil, errors.New("missing data collection")
 	}
@@ -114,6 +114,7 @@ func (m *DataVerify) fetchDeviceData(deviceID string, dataTypes []string) (map[s
 		dset := []map[string]interface{}{}
 
 		filter := bson.M{
+			"_userId":  userID,
 			"deviceId": deviceID,
 			"type":     dType,
 		}
@@ -378,12 +379,12 @@ func (m *DataVerify) VerifyUploadDifferences(platformUploadID string, jellyfishU
 	return nil
 }
 
-func (m *DataVerify) VerifyDeduped(uploadID string, dataTyes []string) error {
+func (m *DataVerify) VerifyDeduped(uploadID string, dataTypes []string) error {
 
-	if len(dataTyes) == 0 {
-		dataTyes = DatasetTypes
+	if len(dataTypes) == 0 {
+		dataTypes = DatasetTypes
 	}
-	dataset, err := m.fetchDataSetNotDeduped(uploadID, dataTyes)
+	dataset, err := m.fetchDataSetNotDeduped(uploadID, dataTypes)
 	if err != nil {
 		return err
 	}
@@ -400,21 +401,21 @@ func (m *DataVerify) VerifyDeduped(uploadID string, dataTyes []string) error {
 	return nil
 }
 
-func (m *DataVerify) VerifyDeviceUploads(deviceID string, dataTyes []string) error {
+func (m *DataVerify) VerifyDeviceUploads(userID string, deviceID string, dataTypes []string) error {
 
-	if len(dataTyes) == 0 {
-		dataTyes = DatasetTypes
+	if len(dataTypes) == 0 {
+		dataTypes = DatasetTypes
 	}
-	datasets, err := m.fetchDeviceData(deviceID, dataTyes)
+	datasets, err := m.fetchDeviceData(userID, deviceID, dataTypes)
 	if err != nil {
 		return err
 	}
 
 	if len(datasets) != 0 {
-		notDedupedPath := filepath.Join(".", "_device_data", deviceID)
+		deviceDataPath := filepath.Join(".", "_device_data", deviceID)
 		for dType, dTypeItems := range datasets {
 			if len(dTypeItems) > 0 {
-				writeFileData(dTypeItems, notDedupedPath, fmt.Sprintf("%s_data.json", dType), true)
+				writeFileData(dTypeItems, deviceDataPath, fmt.Sprintf("%s_data.json", dType), true)
 			}
 		}
 	}

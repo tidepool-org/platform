@@ -30,6 +30,7 @@ type config struct {
 	jellyfishUploadID string
 	uploadIdDeduped   string
 	deviceID          string
+	userID            string
 	dataTypes         string
 }
 
@@ -40,8 +41,9 @@ const SameAccountFlag = "same-account"
 const FindBlobFlag = "find-blobs"
 const VerifyDedupedFlag = "verify-deduped"
 const VerifyDeviceFlag = "verify-device"
-const UploadIdDedupedFlag = "upload-id"
-const DeviceIdFlag = "device-id"
+const UploadIDFlag = "upload-id"
+const DeviceIDFlag = "device-id"
+const UserIDFlag = "user-id"
 const DataTypesFlag = "data-types"
 const UseSubsetFlag = "use-subset"
 
@@ -75,6 +77,7 @@ func (m *Verify) RunAndExit() {
 			return fmt.Errorf("unable to connect to MongoDB: %w", err)
 		}
 		defer m.client.Disconnect(m.ctx)
+		log.Printf("using config %#v", m.config)
 
 		if m.config.findBlobs {
 			m.verificationUtil, err = NewDataVerify(
@@ -109,7 +112,7 @@ func (m *Verify) RunAndExit() {
 			if err != nil {
 				return fmt.Errorf("unable to create verification utils : %w", err)
 			}
-			return m.verificationUtil.VerifyDeviceUploads(m.config.deviceID, strings.Split(m.config.dataTypes, ","))
+			return m.verificationUtil.VerifyDeviceUploads(m.config.userID, m.config.deviceID, strings.Split(m.config.dataTypes, ","))
 		}
 
 		m.verificationUtil, err = NewDataVerify(
@@ -165,15 +168,21 @@ func (m *Verify) Initialize() error {
 			Required:    false,
 		},
 		cli.StringFlag{
-			Name:        UploadIdDedupedFlag,
+			Name:        UploadIDFlag,
 			Usage:       "uploadID of the dataset to check deduping of",
 			Destination: &m.config.uploadIdDeduped,
 			Required:    false,
 		},
 		cli.StringFlag{
-			Name:        DeviceIdFlag,
+			Name:        DeviceIDFlag,
 			Usage:       "deviceID of the datasets to check",
 			Destination: &m.config.deviceID,
+			Required:    false,
+		},
+		cli.StringFlag{
+			Name:        UserIDFlag,
+			Usage:       "userID of the device to check",
+			Destination: &m.config.userID,
 			Required:    false,
 		},
 		cli.StringFlag{
