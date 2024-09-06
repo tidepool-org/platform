@@ -161,6 +161,10 @@ func (s *Store) DeleteAll(ctx context.Context, userID string) error {
 	panic("DeleteAll has no output")
 }
 
+func (s *Store) GetMany(ctx context.Context, userID string, ids ...string) ([]io.ReadCloser, error) {
+	return nil, nil
+}
+
 func (s *Store) AssertOutputsEmpty() {
 	if len(s.ExistsOutputs) > 0 {
 		panic("ExistsOutputs is not empty")

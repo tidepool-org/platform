@@ -5,10 +5,13 @@ import (
 	"net/http"
 	"strings"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/data/summary/reporters"
+
+	"github.com/tidepool-org/platform/clinics"
 
 	"github.com/ant0ine/go-json-rest/rest"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
@@ -210,6 +213,14 @@ func (c *mockDataServiceContext) DataClient() dataClient.Client {
 	panic("not implemented") // TODO: Implement
 }
 
+func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
+	panic("not implemented") // TODO: Implement
+}
+
 func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
 }

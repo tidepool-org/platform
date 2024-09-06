@@ -165,8 +165,41 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	return repository.Update(ctx, *result.ID, nil, update)
 }
 
-func (c *Client) ListDeviceLogs(ctx context.Context, userID string, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
-	return nil, errors.New("not implemented")
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+	return repository.List(ctx, userID, filter, pagination)
+}
+
+func (c *Client) GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	repository := c.BlobStructuredStore().NewDeviceLogsRepository()
+	return repository.Get(ctx, deviceLogID)
+}
+
+func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*blob.DeviceLogsContent, error) {
+	store := c.DeviceLogsUnstructuredStore()
+
+	logMetadata, err := c.GetDeviceLogsBlob(ctx, deviceLogID)
+	if err != nil {
+		return nil, err
+	} else if logMetadata == nil {
+		return nil, nil
+	}
+
+	reader, err := store.Get(ctx, *logMetadata.UserID, *logMetadata.ID)
+	if err != nil {
+		return nil, err
+	}
+	if reader == nil {
+		return nil, request.ErrorResourceNotFoundWithID(*logMetadata.ID)
+	}
+
+	return &blob.DeviceLogsContent{
+		Body:      reader,
+		DigestMD5: logMetadata.DigestMD5,
+		MediaType: logMetadata.MediaType,
+		StartAt:   logMetadata.StartAtTime,
+		EndAt:     logMetadata.EndAtTime,
+	}, nil
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {

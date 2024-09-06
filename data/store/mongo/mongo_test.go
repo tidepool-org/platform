@@ -6,29 +6,25 @@ import (
 	"math/rand"
 	"time"
 
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-
-	"github.com/tidepool-org/platform/data/types/bolus"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
-
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	summaryTypes "github.com/tidepool-org/platform/data/summary/types"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/bolus"
+	"github.com/tidepool-org/platform/data/types/insulin"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -275,234 +271,6 @@ var _ = Describe("Mongo", func() {
 		})
 	})
 
-	Context("Utility Functions", func() {
-		Context("MergeSortedUploads", func() {
-			prevUpload1 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid1"),
-					ID:              pointer.FromString("id1"),
-					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload1"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 0,
-				},
-			}
-			prevUpload2 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid2"),
-					ID:              pointer.FromString("id2"),
-					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload2"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 0,
-				},
-			}
-			newUpload1 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid1"),
-					ID:              pointer.FromString("id1"),
-					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload1"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 1,
-				},
-			}
-			newUpload2 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid2"),
-					ID:              pointer.FromString("id2"),
-					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload2"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 1,
-				},
-			}
-			It("works with more previous Uploads than new Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload1,
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-
-			It("works with more new Uploads than previous Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-					newUpload2,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(newUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-
-			It("works with equal new Uploads and previous Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload1,
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-					newUpload2,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-		})
-
-		Context("MergeSortedDataSets", func() {
-			prevDataSet1 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("1"),
-				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("1"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("0"),
-				VersionInternal: 0,
-			}
-			prevDataSet2 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("2"),
-				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("2"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("0"),
-				VersionInternal: 0,
-			}
-			newDataSet1 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("1"),
-				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("1"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("1"),
-				VersionInternal: 1,
-			}
-			newDataSet2 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("2"),
-				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("2"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("1"),
-				VersionInternal: 1,
-			}
-
-			It("works with more previous DataSets than new DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-					prevDataSet2,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(prevDataSet2))
-			})
-
-			It("works with more new DataSets than previous DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-					newDataSet2,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(newDataSet2))
-			})
-
-			It("works with equal new DataSets and previous DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-					prevDataSet2,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-					newDataSet2,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(prevDataSet2))
-			})
-		})
-	})
 	Context("with a new store", func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
@@ -531,7 +299,7 @@ var _ = Describe("Mongo", func() {
 		})
 
 		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
+			It("deviceData indexes return successfully", func() {
 				cursor, err := collection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
@@ -546,9 +314,8 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
-						"Background": Equal(true),
-						"Name":       Equal("UserIdTypeWeighted_v2"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
@@ -558,19 +325,16 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("UploadId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
-						"Background": Equal(true),
-						"Name":       Equal("DeduplicatorHash"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+						"Name": Equal("DeduplicatorHash"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -580,7 +344,53 @@ var _ = Describe("Mongo", func() {
 				))
 			})
 
-			It("returns successfully", func() {
+			It("deviceDataSets indexes return successfully", func() {
+				cursor, err := dataSetCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
+						"Unique": Equal(true),
+						"Name":   Equal("UniqueUploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "client.name", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSets"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSetsDeviceId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+				))
+			})
+
+			It("summary indexes return successfully", func() {
 				cursor, err := summaryCollection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
@@ -1184,7 +994,7 @@ var _ = Describe("Mongo", func() {
 
 					Context("GetDataRange", func() {
 						It("returns an error if context is missing", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1192,14 +1002,14 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := repository.GetDataRange(nil,
 								*dataSet.UserID,
-								dataSetData[0].GetType(),
+								[]string{dataSetData[0].GetType()},
 								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if the userId is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1207,14 +1017,14 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := repository.GetDataRange(ctx,
 								"",
-								dataSetData[0].GetType(),
+								[]string{dataSetData[0].GetType()},
 								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("userId is empty"))
 						})
 
 						It("returns an error if the typ is empty", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1222,14 +1032,14 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := repository.GetDataRange(ctx,
 								*dataSet.UserID,
-								"",
+								[]string{},
 								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
 						It("returns error if the data times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[len(dataSetData)-1].GetTime(),
 								LastData:        *dataSetData[0].GetTime(),
 								LastUpdated:     time.Time{},
@@ -1237,14 +1047,14 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := repository.GetDataRange(ctx,
 								*dataSet.UserID,
-								continuous.Type,
+								[]string{continuous.Type},
 								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError(MatchRegexp("^FirstData.*after LastData")))
 						})
 
 						It("returns error if the LastUpdated times are inverted", func() {
-							status := &summaryTypes.UserLastUpdated{
+							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 								LastUpdated:     time.Now(),
@@ -1252,7 +1062,7 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := repository.GetDataRange(ctx,
 								*dataSet.UserID,
-								continuous.Type,
+								[]string{continuous.Type},
 								status)
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError(MatchRegexp("^LastUpdated.*after NextLastUpdated")))
@@ -1269,7 +1079,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly returns data within range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserDataStatus{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},
@@ -1277,7 +1087,7 @@ var _ = Describe("Mongo", func() {
 								}
 								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
-									dataSetData[0].GetType(),
+									[]string{dataSetData[0].GetType()},
 									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
@@ -1297,7 +1107,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data outside range", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserDataStatus{
 									FirstData:       dataSetData[0].GetTime().AddDate(-1, 0, 0),
 									LastData:        dataSetData[len(dataSetData)-1].GetTime().AddDate(-1, 0, 0),
 									LastUpdated:     time.Time{},
@@ -1305,7 +1115,7 @@ var _ = Describe("Mongo", func() {
 								}
 								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
-									dataSetData[0].GetType(),
+									[]string{dataSetData[0].GetType()},
 									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
@@ -1319,7 +1129,7 @@ var _ = Describe("Mongo", func() {
 
 							It("correctly misses data of wrong type", func() {
 								var userData []*glucoseDatum.Glucose
-								status := &summaryTypes.UserLastUpdated{
+								status := &data.UserDataStatus{
 									FirstData:       *dataSetData[0].GetTime(),
 									LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
 									LastUpdated:     time.Time{},
@@ -1327,7 +1137,7 @@ var _ = Describe("Mongo", func() {
 								}
 								cursor, err := repository.GetDataRange(ctx,
 									*dataSet.UserID,
-									selfmonitored.Type,
+									[]string{selfmonitored.Type},
 									status,
 								)
 								Expect(err).ToNot(HaveOccurred())
@@ -1341,92 +1151,27 @@ var _ = Describe("Mongo", func() {
 						})
 					})
 
-					Context("CheckDataSetContainsType", func() {
-						twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-						oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(nil, *dataSet.UploadID, "1234", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("context is missing"))
-						})
-
-						It("returns an error if dataSetId is empty", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, "", "1234", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("dataSetId is empty"))
-						})
-
-						It("returns an error if context is missing", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "", twoYearsPast, oneDayFuture)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError("typ is empty"))
-						})
-
-						It("returns error if the times are inverted", func() {
-							status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, "1234", oneDayFuture, twoYearsPast)
-							Expect(err).To(HaveOccurred())
-							Expect(status).To(BeFalse())
-							Expect(err).To(MatchError(MatchRegexp("^startTime.*after endTime")))
-						})
-
-						Context("with database access", func() {
-							BeforeEach(func() {
-								dataSetData[0].SetType(selfmonitored.Type)
-								dataSetData[0].SetActive(false)
-
-								for i := 1; i < len(dataSetData); i++ {
-									dataSetData[i].SetType(continuous.Type)
-									dataSetData[i].SetActive(true)
-								}
-								Expect(repository.CreateDataSetData(ctx, dataSet, dataSetData)).To(Succeed())
-							})
-
-							It("correctly finds type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, continuous.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeTrue())
-							})
-
-							It("correctly does not find type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, bolus.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeFalse())
-							})
-
-							It("correctly does not find inactive type in dataset", func() {
-								status, err := repository.CheckDataSetContainsTypeInRange(ctx, *dataSet.UploadID, selfmonitored.Type, twoYearsPast, oneDayFuture)
-								Expect(err).ToNot(HaveOccurred())
-								Expect(status).To(BeFalse())
-							})
-
-						})
-					})
-
 					Context("GetLastUpdatedForUser", func() {
 						It("returns an error if context is missing", func() {
-							_, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, dataSetData[2].GetType(), time.Time{})
+							_, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, []string{dataSetData[2].GetType()}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if userId is empty", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, "", dataSetData[2].GetType(), time.Time{})
+							_, err := repository.GetLastUpdatedForUser(ctx, "", []string{dataSetData[2].GetType()}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("userId is empty"))
 						})
 
 						It("returns an error if typ is empty", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, "", time.Time{})
+							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
 						It("returns an error if typ is upload", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, upload.Type, time.Time{})
+							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{upload.Type}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
 						})
@@ -1450,24 +1195,22 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("correctly finds the LastUpload and LastData for a matching set", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, continuous.Type, time.Time{})
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{continuous.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
 								Expect(status.LastUpload).To(BeTemporally("~", createdTime, time.Second))
 							})
 
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, selfmonitored.Type, time.Time{})
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{selfmonitored.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, bolus.Type, time.Time{})
+								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{bolus.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
-								Expect(status.LastData.IsZero()).To(BeTrue())
-								Expect(status.LastUpload.IsZero()).To(BeTrue())
+								Expect(status).To(BeNil())
 							})
 
 						})
@@ -1475,21 +1218,21 @@ var _ = Describe("Mongo", func() {
 
 					Context("DistinctUserIDs", func() {
 						It("returns an error if context is missing", func() {
-							userIds, err := repository.DistinctUserIDs(nil, continuous.Type)
+							userIds, err := repository.DistinctUserIDs(nil, []string{continuous.Type})
 							Expect(userIds).To(BeNil())
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if typ is empty", func() {
-							userIds, err := repository.DistinctUserIDs(ctx, "")
+							userIds, err := repository.DistinctUserIDs(ctx, []string{})
 							Expect(userIds).To(BeNil())
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
 
 						It("returns an error if typ is upload", func() {
-							userIds, err := repository.DistinctUserIDs(ctx, upload.Type)
+							userIds, err := repository.DistinctUserIDs(ctx, []string{upload.Type})
 							Expect(userIds).To(BeNil())
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
@@ -1498,6 +1241,7 @@ var _ = Describe("Mongo", func() {
 						Context("with database access", func() {
 							var userIdOne string
 							var userIdTwo string
+							var userIdThree string
 
 							BeforeEach(func() {
 								userIdOne = userTest.RandomID()
@@ -1507,6 +1251,10 @@ var _ = Describe("Mongo", func() {
 								userIdTwo = userTest.RandomID()
 								dataSetTwo := NewDataSet(userIdTwo, deviceID)
 								dataSetDataTwo := NewDataSetData(deviceID)
+
+								userIdThree = userTest.RandomID()
+								dataSetThree := NewDataSet(userIdThree, deviceID)
+								dataSetDataThree := NewDataSetData(deviceID)
 
 								dataSetDataOne[0].SetType(selfmonitored.Type)
 								dataSetDataOne[0].SetActive(false)
@@ -1522,12 +1270,18 @@ var _ = Describe("Mongo", func() {
 									dataSetDataTwo[i].SetActive(true)
 								}
 
+								for i := 0; i < len(dataSetDataThree); i++ {
+									dataSetDataThree[i].SetType(insulin.Type)
+									dataSetDataThree[i].SetActive(true)
+								}
+
 								Expect(repository.CreateDataSetData(ctx, dataSetOne, dataSetDataOne)).To(Succeed())
 								Expect(repository.CreateDataSetData(ctx, dataSetTwo, dataSetDataTwo)).To(Succeed())
+								Expect(repository.CreateDataSetData(ctx, dataSetThree, dataSetDataThree)).To(Succeed())
 							})
 
 							It("correctly identifies distinct users", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, continuous.Type)
+								userIds, err := repository.DistinctUserIDs(ctx, []string{continuous.Type})
 								Expect(userIds).ToNot(BeNil())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(userIds).To(HaveLen(2))
@@ -1535,7 +1289,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("correctly identifies distinct users with inactive data", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, selfmonitored.Type)
+								userIds, err := repository.DistinctUserIDs(ctx, []string{selfmonitored.Type})
 								Expect(userIds).ToNot(BeNil())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(userIds).To(HaveLen(1))
@@ -1543,10 +1297,18 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("correctly identifies distinct users with different-type data", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, bolus.Type)
+								userIds, err := repository.DistinctUserIDs(ctx, []string{bolus.Type})
 								Expect(userIds).ToNot(BeNil())
 								Expect(err).ToNot(HaveOccurred())
 								Expect(userIds).To(HaveLen(0))
+							})
+
+							It("correctly identifies distinct users with multiple types", func() {
+								userIds, err := repository.DistinctUserIDs(ctx, []string{selfmonitored.Type, insulin.Type})
+								Expect(userIds).ToNot(BeNil())
+								Expect(err).ToNot(HaveOccurred())
+								Expect(userIds).To(HaveLen(2))
+								Expect(userIds).To(ConsistOf([]string{userIdThree, userIdTwo}))
 							})
 						})
 					})
@@ -2596,6 +2358,75 @@ var _ = Describe("Mongo", func() {
 				})
 
 			})
+		})
+
+		Context("GetAlertableData", func() {
+			testDataSet := func(userID, deviceID string) *upload.Upload {
+				GinkgoHelper()
+				collection = store.GetCollection("deviceData")
+				dataSetCollection = store.GetCollection("deviceDataSets")
+				upload := NewDataSet(userID, deviceID)
+				creationTime := time.Now().Add(-24 * time.Hour)
+				upload.Active = true
+				upload.CreatedTime = pointer.FromTime(creationTime)
+				upload.ModifiedTime = pointer.FromTime(creationTime)
+				return upload
+			}
+
+			testDataSetData := func(upload *upload.Upload) []data.Datum {
+				requiredRecords := test.RandomIntFromRange(6, 8)
+				recordInterval := 5 * time.Minute
+				t := time.Now().UTC().Add(-time.Duration(requiredRecords) * recordInterval)
+				var dataSetData = make([]data.Datum, 0, 2*requiredRecords)
+				for count := 0; count < requiredRecords; count++ {
+					datum := dataTypesTest.RandomBase()
+					datum.Type = "cbg"
+					datumTime := t.Add(time.Duration(count) * recordInterval)
+					datum.Time = pointer.FromAny(datumTime)
+					datum.Active = true
+					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
+					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					dataSetData = append(dataSetData, datum)
+
+					datum = dataTypesTest.RandomBase()
+					datum.Type = "dosingDecision"
+					datum.Time = pointer.FromAny(datumTime)
+					datum.Active = true
+					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
+					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					dataSetData = append(dataSetData, datum)
+				}
+				return dataSetData
+			}
+
+			It("retrieves both cbg and dosing data", func() {
+				var err error
+				ctx := context.Background()
+				ctx = log.NewContextWithLogger(ctx, logTest.NewLogger())
+				repository = store.NewDataRepository()
+				Expect(repository).ToNot(BeNil())
+				testUserID := userTest.RandomID()
+				testDeviceID := dataTest.NewDeviceID()
+				testSet := testDataSet(testUserID, testDeviceID)
+				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
+				testSetData := testDataSetData(testSet)
+				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
+				store, err = dataStoreMongo.NewStore(config)
+				Expect(err).To(Succeed())
+
+				params := dataStore.AlertableParams{
+					Start:    time.Now().Add(-time.Hour),
+					UserID:   testUserID,
+					UploadID: *testSet.UploadID,
+				}
+				resp, err := store.NewDataRepository().GetAlertableData(ctx, params)
+
+				Expect(err).To(Succeed())
+				Expect(resp).ToNot(BeNil())
+				Expect(resp.Glucose).ToNot(BeEmpty())
+				Expect(resp.DosingDecisions).ToNot(BeEmpty())
+			})
+
 		})
 
 		Context("alerts", func() {

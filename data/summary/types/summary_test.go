@@ -7,69 +7,78 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
-	veryLowBloodGlucose  = 3.0
-	lowBloodGlucose      = 3.9
-	highBloodGlucose     = 10.0
-	veryHighBloodGlucose = 13.9
-	inTargetBloodGlucose = 5.0
-	units                = "mmol/L"
+	veryLowBloodGlucose     = 3.0
+	lowBloodGlucose         = 3.9
+	highBloodGlucose        = 10.0
+	veryHighBloodGlucose    = 13.9
+	extremeHighBloodGlucose = 19.4
+	inTargetBloodGlucose    = 5.0
 )
 
+var units = "mmol/L"
+
 type DataRanges struct {
-	Min      float64
-	Max      float64
-	Padding  float64
-	VeryLow  float64
-	Low      float64
-	High     float64
-	VeryHigh float64
+	Min         float64
+	Max         float64
+	Padding     float64
+	VeryLow     float64
+	Low         float64
+	High        float64
+	VeryHigh    float64
+	ExtremeHigh float64
 }
 
 func NewDataRanges() DataRanges {
 	return DataRanges{
-		Min:      1,
-		Max:      20,
-		Padding:  0.01,
-		VeryLow:  veryLowBloodGlucose,
-		Low:      lowBloodGlucose,
-		High:     highBloodGlucose,
-		VeryHigh: veryHighBloodGlucose,
+		Min:         1,
+		Max:         25,
+		Padding:     0.01,
+		VeryLow:     veryLowBloodGlucose,
+		Low:         lowBloodGlucose,
+		High:        highBloodGlucose,
+		VeryHigh:    veryHighBloodGlucose,
+		ExtremeHigh: extremeHighBloodGlucose,
 	}
 }
 
 func NewDataRangesSingle(value float64) DataRanges {
 	return DataRanges{
-		Min:      value,
-		Max:      value,
-		Padding:  0,
-		VeryLow:  value,
-		Low:      value,
-		High:     value,
-		VeryHigh: value,
+		Min:         value,
+		Max:         value,
+		Padding:     0,
+		VeryLow:     value,
+		Low:         value,
+		High:        value,
+		VeryHigh:    value,
+		ExtremeHigh: value,
 	}
 }
 
-func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string) *glucose.Glucose {
+func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	datum := glucose.New(*typ)
 	datum.Units = units
 
 	datum.Active = true
 	datum.ArchivedDataSetID = nil
 	datum.ArchivedTime = nil
-	datum.CreatedTime = nil
+	datum.CreatedTime = &timestamp
 	datum.CreatedUserID = nil
 	datum.DeletedTime = nil
 	datum.DeletedUserID = nil
 	datum.DeviceID = deviceID
-	datum.ModifiedTime = nil
+	datum.ModifiedTime = &timestamp
 	datum.ModifiedUserID = nil
 	datum.Time = datumTime
+	datum.UploadID = uploadId
 
 	return &datum
 }
@@ -82,7 +91,7 @@ func ExpectedAverage(windowSize int, hoursAdded int, newAvg float64, oldAvg floa
 	return (oldAvgTotal + newAvgTotal) / float64(windowSize)
 }
 
-func ConvertToIntArray[T types.RecordTypes](arr []*T) []interface{} {
+func ConvertToIntArray[T data.Datum](arr []T) []interface{} {
 	s := make([]interface{}, len(arr))
 	for i, v := range arr {
 		s[i] = v
@@ -94,9 +103,11 @@ func ConvertToIntArray[T types.RecordTypes](arr []*T) []interface{} {
 var _ = Describe("Summary", func() {
 	var datumTime time.Time
 	var deviceID string
+	var uploadId string
 
 	BeforeEach(func() {
 		deviceID = "SummaryTestDevice"
+		uploadId = test.RandomSetID()
 		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	})
 
@@ -106,7 +117,7 @@ var _ = Describe("Summary", func() {
 		typ := pointer.FromString("cbg")
 
 		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			libreDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID, &uploadId)
 			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
 
 			duration := types.GetDuration(libreDatum)
@@ -114,7 +125,7 @@ var _ = Describe("Summary", func() {
 		})
 
 		It("Returns correct duration for other devices", func() {
-			otherDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID)
+			otherDatum = NewGlucose(typ, pointer.FromString(units), &datumTime, &deviceID, &uploadId)
 
 			duration := types.GetDuration(otherDatum)
 			Expect(duration).To(Equal(5))

@@ -1,4 +1,7 @@
 TIMESTAMP ?= $(shell date +%s)
+# ensure that we use the same timestamps in sub-makes. We've seen cases where
+# these can vary by 1 second
+export TIMESTAMP
 
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
@@ -10,8 +13,8 @@ BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
 
 VERSION_BASE:=platform
-VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
-VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
+VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD || echo "dev")
+VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD || echo "dev")
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
 GO_BUILD_FLAGS:=-buildvcs=false
@@ -107,7 +110,7 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '*mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
@@ -123,8 +126,8 @@ imports-write-changed: goimports
 vet: tmp
 	@echo "go vet"
 	cd $(ROOT_DIRECTORY) && \
-    		go vet ./... > _tmp/govet.out 2>&1 || \
-    		(diff .govetignore _tmp/govet.out && exit 1)
+		go vet ./... > _tmp/govet.out 2>&1 || \
+		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
@@ -287,7 +290,7 @@ ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
 	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
- 	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
 	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest

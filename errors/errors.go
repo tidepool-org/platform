@@ -449,7 +449,7 @@ func (s *Serializable) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 		}
 		s.Error = errObject
 	default:
-		return errors.New(fmt.Sprintf("invalid bson type %v", t))
+		return fmt.Errorf("invalid bson type %v", t)
 	}
 
 	return nil
@@ -664,6 +664,10 @@ func (o *object) Sanitize() error {
 	}
 }
 
+func (o *object) Is(target error) bool {
+	return o.Cause != nil && o.Cause.Error == target
+}
+
 type contextKey string
 
 const errorContextKey contextKey = "error"
@@ -677,6 +681,13 @@ func ErrorFromContext(ctx context.Context) error {
 		if err, ok := ctx.Value(errorContextKey).(error); ok {
 			return err
 		}
+	}
+	return nil
+}
+
+func Meta(err error) interface{} {
+	if objectErr, objectOK := err.(*object); objectOK {
+		return objectErr.Meta
 	}
 	return nil
 }

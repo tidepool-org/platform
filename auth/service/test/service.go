@@ -3,19 +3,19 @@ package test
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/apple"
-
 	"github.com/onsi/gomega"
-
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
-	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	"github.com/tidepool-org/platform/provider"
+	"github.com/tidepool-org/platform/task"
+
+	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
-	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
@@ -75,6 +75,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 	return s.confirmationClient
 }
 
+func (s *Service) AppValidator() *appvalidate.Validator {
+	return &appvalidate.Validator{}
+}
+
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return nil
 }
@@ -87,6 +91,10 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	output := s.StatusOutputs[0]
 	s.StatusOutputs = s.StatusOutputs[1:]
 	return output
+}
+
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return nil
 }
 
 func (s *Service) Expectations() {
