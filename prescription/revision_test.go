@@ -332,6 +332,11 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
+				It("doesn't fail when phone number is not set", func() {
+					attr.PhoneNumber = nil
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
 				It("fails with invalid initial settings", func() {
 					attr.InitialSettings.BasalRateMaximum.Value = pointer.FromFloat64(10000.0)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
@@ -364,6 +369,11 @@ var _ = Describe("Revision", func() {
 					attr.Training = pointer.FromString(prescription.TrainingInModule)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 					attr.Training = pointer.FromString(prescription.TrainingInPerson)
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
+				It("doesn't fail when training is not set", func() {
+					attr.Training = nil
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 

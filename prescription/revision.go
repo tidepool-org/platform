@@ -238,16 +238,8 @@ func (d *DataAttributes) ValidateSubmittedPrescription(validator structure.Valid
 	validator.String("birthday", d.Birthday).Exists()
 	validator.String("email", d.Email).Exists()
 	validator.String("sex", d.Sex).Exists()
-	validator.String("training", d.Training).Exists()
 	validator.String("therapySettings", d.TherapySettings).Exists()
 	validator.Bool("prescriberTermsAccepted", d.PrescriberTermsAccepted).Exists().True()
-
-	phoneValidator := validator.WithReference("phoneNumber")
-	if d.PhoneNumber != nil {
-		d.PhoneNumber.Validate(phoneValidator)
-	} else {
-		phoneValidator.ReportError(structureValidator.ErrorValueEmpty())
-	}
 
 	weightValidator := validator.WithReference("weight")
 	if d.Weight != nil {

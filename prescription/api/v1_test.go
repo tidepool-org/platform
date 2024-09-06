@@ -198,7 +198,7 @@ var _ = Describe("V1", func() {
 
 							Context("with missing required attribute when state is 'submitted'", func() {
 								BeforeEach(func() {
-									create.PhoneNumber = nil
+									create.FirstName = nil
 									integrityHash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevisionCreate(*create))
 									create.RevisionHash = integrityHash.Hash
 									body, err := json.Marshal(create)
@@ -208,7 +208,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("returns bad request with validation error", func() {
-									expectedErrorBody := "{\"code\":\"value-empty\",\"title\":\"value is empty\",\"detail\":\"value is empty\",\"source\":{\"pointer\":\"/phoneNumber\"}}\n"
+									expectedErrorBody := "{\"code\":\"value-not-exists\",\"title\":\"value does not exist\",\"detail\":\"value does not exist\",\"source\":{\"pointer\":\"/firstName\"}}\n"
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
