@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.27.2 - 2024-09-05
+### Engineering
+- YLP-3222 align mapping with orca and tidev2
+
 ## 0.27.1 - 2024-07-29
 ### Fixed
 - YLP-2956 Bolus with subType pen are no longer saved in database

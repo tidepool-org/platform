@@ -26,7 +26,7 @@ type (
 		CarbInput      float64      `bson:"carbInput,omitempty"`
 		InputMeal      *InputMeal   `bson:"inputMeal"`
 		Recommended    *Recommended `bson:"recommended,omitempty"`
-		Units          string       `bson:"units,omitempty"`
+		Units          string       `bson:"carbUnit,omitempty"`
 		InputTimestamp string       `bson:"inputTimestamp,omitempty"`
 	}
 
