@@ -69,7 +69,11 @@ func (r *UpdateRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(UpdateTaskDurationMaximum * 3)
 }
 
-func (r *UpdateRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *UpdateRunner) GetRunnerTimeout() time.Duration {
+	return UpdateTaskDurationMaximum * 2
+}
+
+func (r *UpdateRunner) GetRunnerDurationMaximum() time.Duration {
 	return UpdateTaskDurationMaximum
 }
 
@@ -112,36 +116,23 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
-		}
+	if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
 	}
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type UpdateTaskRunner struct {
@@ -171,7 +162,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 
 	pagination := page.NewPagination()

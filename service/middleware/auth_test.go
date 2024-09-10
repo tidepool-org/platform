@@ -112,30 +112,116 @@ var _ = Describe("Auth", func() {
 				Expect(res.WriteHeaderInputs).To(BeEmpty())
 			})
 
-			Context("with server session token", func() {
-				var serverSessionToken string
+			It("sets the server session token provider successfully", func() {
+				handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+					Expect(auth.ServerSessionTokenProviderFromContext(req.Context())).To(Equal(authClient))
+				}
+				middlewareFunc(res, req)
+			})
+
+			It("returns successfully with no details", func() {
+				handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+					details := request.GetAuthDetails(req.Context())
+					Expect(details).To(BeNil())
+					Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+					Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+					Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+				}
+				middlewareFunc(res, req)
+			})
+
+			Context("with service secret", func() {
+				BeforeEach(func() {
+					req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
+				})
+
+				It("returns unauthorized if multiple values", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
+
+				It("returns unauthorized if the server secret does not match", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Set("X-Tidepool-Service-Secret", authTest.NewServiceSecret())
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
+
+				It("returns successfully", func() {
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).ToNot(BeNil())
+						Expect(details.Method()).To(Equal(request.MethodServiceSecret))
+						Expect(details.IsService()).To(BeTrue())
+						Expect(details.HasToken()).To(BeFalse())
+						Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+				})
+			})
+
+			Context("with access token", func() {
+				var accessToken string
 
 				BeforeEach(func() {
-					serverSessionToken = authTest.NewSessionToken()
-					authClient.ServerSessionTokenOutputs = []authTest.ServerSessionTokenOutput{{Token: serverSessionToken, Error: nil}}
+					accessToken = authTest.NewAccessToken()
+					req.Header.Add("Authorization", fmt.Sprintf("bEaReR %s", accessToken))
 				})
 
-				It("does not set the server session token if error", func() {
-					authClient.ServerSessionTokenOutputs = []authTest.ServerSessionTokenOutput{{Token: serverSessionToken, Error: errorsTest.RandomError()}}
+				It("returns unauthorized if multiple values", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
+
+				It("returns unauthorized if not valid header", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Set("Authorization", accessToken)
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
+
+				It("returns unauthorized if not Bearer token", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Set("Authorization", fmt.Sprintf("NotBearer %s", accessToken))
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
+
+				It("returns successfully", func() {
+					userID := serviceTest.NewUserID()
+					authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
+						{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
+					}
 					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-						Expect(auth.ServerSessionTokenFromContext(req.Context())).To(BeEmpty())
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).ToNot(BeNil())
+						Expect(details.Method()).To(Equal(request.MethodAccessToken))
+						Expect(details.IsUser()).To(BeTrue())
+						Expect(details.UserID()).To(Equal(userID))
+						Expect(details.Token()).To(Equal(accessToken))
+						Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
+						Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).ToNot(BeNil())
+						Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
 					}
 					middlewareFunc(res, req)
+					Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
 				})
 
-				It("sets the server session token successfully", func() {
-					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-						Expect(auth.ServerSessionTokenFromContext(req.Context())).To(Equal(serverSessionToken))
-					}
-					middlewareFunc(res, req)
-				})
-
-				It("returns successfully with no details", func() {
+				It("returns successfully with no details if access token is not valid", func() {
+					authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
 					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
 						details := request.GetAuthDetails(req.Context())
 						Expect(details).To(BeNil())
@@ -144,277 +230,174 @@ var _ = Describe("Auth", func() {
 						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
 					}
 					middlewareFunc(res, req)
+					Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
+				})
+			})
+
+			Context("with session token", func() {
+				var sessionToken string
+
+				BeforeEach(func() {
+					sessionToken = authTest.NewSessionToken()
+					req.Header.Add("X-Tidepool-Session-Token", sessionToken)
 				})
 
-				Context("with service secret", func() {
-					BeforeEach(func() {
-						req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
-					})
-
-					It("returns unauthorized if multiple values", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Add("X-Tidepool-Service-Secret", serviceSecret)
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns unauthorized if the server secret does not match", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Set("X-Tidepool-Service-Secret", authTest.NewServiceSecret())
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns successfully", func() {
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodServiceSecret))
-							Expect(details.IsService()).To(BeTrue())
-							Expect(details.HasToken()).To(BeFalse())
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-					})
+				It("returns unauthorized if multiple values", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					req.Header.Add("X-Tidepool-Session-Token", sessionToken)
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 				})
 
-				Context("with access token", func() {
-					var accessToken string
-
-					BeforeEach(func() {
-						accessToken = authTest.NewAccessToken()
-						req.Header.Add("Authorization", fmt.Sprintf("bEaReR %s", accessToken))
-					})
-
-					It("returns unauthorized if multiple values", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns unauthorized if not valid header", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Set("Authorization", accessToken)
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns unauthorized if not Bearer token", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Set("Authorization", fmt.Sprintf("NotBearer %s", accessToken))
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns successfully", func() {
-						userID := serviceTest.NewUserID()
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, accessToken), Error: nil},
-						}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodAccessToken))
-							Expect(details.IsUser()).To(BeTrue())
-							Expect(details.UserID()).To(Equal(userID))
-							Expect(details.Token()).To(Equal(accessToken))
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).ToNot(BeNil())
-							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
-					})
-
-					It("returns successfully with no details if access token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{accessToken}))
-					})
+				It("returns successfully", func() {
+					userID := serviceTest.NewUserID()
+					authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
+						{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
+					}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).ToNot(BeNil())
+						Expect(details.Method()).To(Equal(request.MethodSessionToken))
+						Expect(details.IsUser()).To(BeTrue())
+						Expect(details.UserID()).To(Equal(userID))
+						Expect(details.Token()).To(Equal(sessionToken))
+						Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
+						Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).ToNot(BeNil())
+						Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
 				})
 
-				Context("with session token", func() {
-					var sessionToken string
-
-					BeforeEach(func() {
-						sessionToken = authTest.NewSessionToken()
-						req.Header.Add("X-Tidepool-Session-Token", sessionToken)
-					})
-
-					It("returns unauthorized if multiple values", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						req.Header.Add("X-Tidepool-Session-Token", sessionToken)
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
-
-					It("returns successfully", func() {
-						userID := serviceTest.NewUserID()
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, userID, sessionToken), Error: nil},
-						}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodSessionToken))
-							Expect(details.IsUser()).To(BeTrue())
-							Expect(details.UserID()).To(Equal(userID))
-							Expect(details.Token()).To(Equal(sessionToken))
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).ToNot(BeNil())
-							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
-					})
-
-					It("returns successfully as service", func() {
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
-							{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, "", sessionToken), Error: nil},
-						}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodSessionToken))
-							Expect(details.IsService()).To(BeTrue())
-							Expect(details.Token()).To(Equal(sessionToken))
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).ToNot(BeNil())
-							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
-					})
-
-					It("returns successfully with no details if session token is not valid", func() {
-						authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
-					})
+				It("returns successfully as service", func() {
+					authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{
+						{AuthDetails: request.NewAuthDetails(request.MethodSessionToken, "", sessionToken), Error: nil},
+					}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).ToNot(BeNil())
+						Expect(details.Method()).To(Equal(request.MethodSessionToken))
+						Expect(details.IsService()).To(BeTrue())
+						Expect(details.Token()).To(Equal(sessionToken))
+						Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
+						Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).ToNot(BeNil())
+						Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
 				})
 
-				Context("with restricted token", func() {
-					var restrictedToken string
+				It("returns successfully with no details if session token is not valid", func() {
+					authClient.ValidateSessionTokenOutputs = []authTest.ValidateSessionTokenOutput{{AuthDetails: nil, Error: errorsTest.RandomError()}}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).To(BeNil())
+						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.ValidateSessionTokenInputs).To(Equal([]string{sessionToken}))
+				})
+			})
 
-					BeforeEach(func() {
-						restrictedToken = authTest.NewRestrictedToken()
-						query := req.URL.Query()
-						query.Add("restricted_token", restrictedToken)
-						req.URL.RawQuery = query.Encode()
-					})
+			Context("with restricted token", func() {
+				var restrictedToken string
 
-					It("returns unauthorized if multiple values", func() {
-						res.HeaderOutput = &http.Header{}
-						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						query := req.URL.Query()
-						query.Add("restricted_token", restrictedToken)
-						req.URL.RawQuery = query.Encode()
-						middlewareFunc(res, req)
-						Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
-					})
+				BeforeEach(func() {
+					restrictedToken = authTest.NewRestrictedToken()
+					query := req.URL.Query()
+					query.Add("restricted_token", restrictedToken)
+					req.URL.RawQuery = query.Encode()
+				})
 
-					It("returns successfully", func() {
-						userID := serviceTest.NewUserID()
-						restrictedTokenObject := &auth.RestrictedToken{
-							ID:             restrictedToken,
-							UserID:         userID,
-							ExpirationTime: time.Now().Add(time.Hour),
-						}
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).ToNot(BeNil())
-							Expect(details.Method()).To(Equal(request.MethodRestrictedToken))
-							Expect(details.IsUser()).To(BeTrue())
-							Expect(details.UserID()).To(Equal(userID))
-							Expect(details.Token()).To(Equal(restrictedToken))
-							Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
-							Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).ToNot(BeNil())
-							Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
+				It("returns unauthorized if multiple values", func() {
+					res.HeaderOutput = &http.Header{}
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					query := req.URL.Query()
+					query.Add("restricted_token", restrictedToken)
+					req.URL.RawQuery = query.Encode()
+					middlewareFunc(res, req)
+					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
+				})
 
-					It("returns successfully with no details if restricted token is not valid", func() {
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: errorsTest.RandomError()}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
+				It("returns successfully", func() {
+					userID := serviceTest.NewUserID()
+					restrictedTokenObject := &auth.RestrictedToken{
+						ID:             restrictedToken,
+						UserID:         userID,
+						ExpirationTime: time.Now().Add(time.Hour),
+					}
+					authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).ToNot(BeNil())
+						Expect(details.Method()).To(Equal(request.MethodRestrictedToken))
+						Expect(details.IsUser()).To(BeTrue())
+						Expect(details.UserID()).To(Equal(userID))
+						Expect(details.Token()).To(Equal(restrictedToken))
+						Expect(service.GetRequestAuthDetails(req)).To(Equal(details))
+						Expect(log.LoggerFromContext(req.Context())).ToNot(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).ToNot(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).ToNot(BeNil())
+						Expect(service.GetRequestLogger(req)).ToNot(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
+					Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
+				})
 
-					It("returns successfully with no details if restricted token is missing", func() {
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
+				It("returns successfully with no details if restricted token is not valid", func() {
+					authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: errorsTest.RandomError()}}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).To(BeNil())
+						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
+					Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
+				})
 
-					It("returns successfully with no details if restricted token does not authenticate request", func() {
-						userID := serviceTest.NewUserID()
-						restrictedTokenObject := &auth.RestrictedToken{
-							ID:             restrictedToken,
-							UserID:         userID,
-							ExpirationTime: time.Now().Add(-time.Hour),
-						}
-						authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
-						handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
-							details := request.GetAuthDetails(req.Context())
-							Expect(details).To(BeNil())
-							Expect(service.GetRequestAuthDetails(req)).To(BeNil())
-							Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
-							Expect(service.GetRequestLogger(req)).To(Equal(lgr))
-						}
-						middlewareFunc(res, req)
-						Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
-						Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
-					})
+				It("returns successfully with no details if restricted token is missing", func() {
+					authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: nil, Error: nil}}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).To(BeNil())
+						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
+					Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
+				})
+
+				It("returns successfully with no details if restricted token does not authenticate request", func() {
+					userID := serviceTest.NewUserID()
+					restrictedTokenObject := &auth.RestrictedToken{
+						ID:             restrictedToken,
+						UserID:         userID,
+						ExpirationTime: time.Now().Add(-time.Hour),
+					}
+					authClient.GetRestrictedTokenOutputs = []authTest.GetRestrictedTokenOutput{{RestrictedToken: restrictedTokenObject, Error: nil}}
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).To(BeNil())
+						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
+					middlewareFunc(res, req)
+					Expect(authClient.GetRestrictedTokenInputs).To(HaveLen(1))
+					Expect(authClient.GetRestrictedTokenInputs[0].ID).To(Equal(restrictedToken))
 				})
 			})
 		})

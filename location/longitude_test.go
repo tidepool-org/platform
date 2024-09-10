@@ -9,6 +9,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/location"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -58,13 +59,13 @@ var _ = Describe("Longitude", func() {
 
 		Context("ParseLongitude", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(location.ParseLongitude(structureParser.NewObject(nil))).To(BeNil())
+				Expect(location.ParseLongitude(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := locationTest.RandomLongitude()
 				object := locationTest.NewObjectFromLongitude(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(location.ParseLongitude(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -83,7 +84,7 @@ var _ = Describe("Longitude", func() {
 					object := locationTest.NewObjectFromLongitude(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &location.Longitude{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -107,7 +108,7 @@ var _ = Describe("Longitude", func() {
 				func(mutator func(datum *location.Longitude), expectedErrors ...error) {
 					datum := locationTest.RandomLongitude()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.Longitude) {},

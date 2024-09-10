@@ -81,12 +81,12 @@ func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, fi
 	}
 	if filter == nil {
 		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -108,7 +108,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -162,7 +162,7 @@ func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *a
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -199,12 +199,12 @@ func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, fi
 	}
 	if filter == nil {
 		filter = auth.NewRestrictedTokenFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -238,7 +238,7 @@ func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, c
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -280,7 +280,7 @@ func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *a
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 

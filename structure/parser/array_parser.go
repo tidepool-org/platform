@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -15,8 +16,8 @@ type Array struct {
 	parsed []bool
 }
 
-func NewArray(array *[]interface{}) *Array {
-	return NewArrayParser(structureBase.New().WithSource(structure.NewPointerSource()), array)
+func NewArray(logger log.Logger, array *[]interface{}) *Array {
+	return NewArrayParser(structureBase.New(logger).WithSource(structure.NewPointerSource()), array)
 }
 
 func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {
@@ -30,6 +31,10 @@ func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {
 		array:  array,
 		parsed: parsed,
 	}
+}
+
+func (a *Array) Logger() log.Logger {
+	return a.base.Logger()
 }
 
 func (a *Array) Origin() structure.Origin {

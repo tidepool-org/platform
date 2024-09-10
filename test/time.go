@@ -49,11 +49,19 @@ func RandomTimeFromRange(minimum time.Time, maximum time.Time) time.Time {
 	}
 	if minimum.Before(RandomTimeMinimum()) {
 		minimum = RandomTimeMinimum()
+	} else if minimum.After(RandomTimeMaximum()) {
+		minimum = RandomTimeMaximum()
 	}
-	if maximum.After(RandomTimeMaximum()) {
+	if maximum.Before(RandomTimeMinimum()) {
+		maximum = RandomTimeMinimum()
+	} else if maximum.After(RandomTimeMaximum()) {
 		maximum = RandomTimeMaximum()
 	}
-	return minimum.Add(time.Duration(rand.Int63n(int64(maximum.Sub(minimum))))).Truncate(time.Millisecond)
+	if duration := maximum.Sub(minimum); duration != 0 {
+		return minimum.Add(time.Duration(rand.Int63n(int64(duration)))).Truncate(time.Millisecond)
+	} else {
+		return minimum.Truncate(time.Millisecond)
+	}
 }
 
 func RandomTimeMaximum() time.Time {

@@ -124,7 +124,7 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	clnt, err := platform.NewClient(cfg.Config, authorizeAs)
+	clnt, err := platform.NewLegacyClient(cfg.Config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}

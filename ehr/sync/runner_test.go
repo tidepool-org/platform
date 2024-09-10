@@ -1,6 +1,8 @@
 package sync
 
 import (
+	"context"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,7 +42,7 @@ var _ = Describe("Runner", func() {
 
 		BeforeEach(func() {
 			clinic = clinicsTest.NewRandomClinic()
-			t, err := task.NewTask(NewTaskCreate(*clinic.Id))
+			t, err := task.NewTask(context.Background(), NewTaskCreate(*clinic.Id))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(t).ToNot(BeNil())
 			tsk = *t
@@ -53,7 +55,7 @@ var _ = Describe("Runner", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runner).ToNot(BeNil())
-			Expect(runner.Run(nil, &tsk)).To(BeTrue())
+			runner.Run(context.Background(), &tsk)
 		})
 	})
 })

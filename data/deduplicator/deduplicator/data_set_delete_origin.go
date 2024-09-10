@@ -27,12 +27,12 @@ func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
 	}, nil
 }
 
-func (d *DataSetDeleteOrigin) New(dataSet *dataTypesUpload.Upload) (bool, error) {
-	return d.Get(dataSet)
+func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	return d.Get(ctx, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := d.Base.Get(dataSet); err != nil || found {
+func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 

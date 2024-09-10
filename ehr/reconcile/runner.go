@@ -47,32 +47,23 @@ func (r *Runner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(TaskDurationMaximum * 3)
 }
 
-func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+func (r *Runner) GetRunnerTimeout() time.Duration {
+	return TaskDurationMaximum * 2
+}
+
+func (r *Runner) GetRunnerDurationMaximum() time.Duration {
 	return TaskDurationMaximum
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
+func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	tsk.ClearError()
 
 	r.doRun(ctx, tsk)
 	tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
-
-	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
-	serverSessionToken, err := r.authClient.ServerSessionToken()
-	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get server session token"))
-		return
-	}
-
-	ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	// Get the list of all existing EHR sync tasks
 	syncTasks, err := r.getSyncTasks(ctx)

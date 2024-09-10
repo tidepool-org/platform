@@ -67,7 +67,11 @@ func (r *MigrationRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(MigrationTaskDurationMaximum * 3)
 }
 
-func (r *MigrationRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *MigrationRunner) GetRunnerTimeout() time.Duration {
+	return MigrationTaskDurationMaximum * 2
+}
+
+func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 	return MigrationTaskDurationMaximum
 }
 
@@ -110,36 +114,23 @@ func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
-		}
+	if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
 	}
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type MigrationTaskRunner struct {
@@ -169,7 +160,7 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
 	pagination := page.NewPagination()
 	pagination.Size = batch
