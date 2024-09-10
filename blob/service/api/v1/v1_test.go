@@ -544,6 +544,29 @@ var _ = Describe("V1", func() {
 										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
 									}))
 								})
+								It("responds successfully with headers for text/plain", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlobMediaType("text/plain; charset=utf-8")
+									content := blob.NewDeviceLogsContent()
+									body := test.RandomBytes()
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString("text/plain; charset=utf-8")
+									content.StartAt = pointer.FromTime(test.RandomTime())
+									content.EndAt = pointer.FromTime(test.RandomTime())
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Content: content}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{"text/plain; charset=utf-8"},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+										"Start-At":     []string{content.StartAt.Format(time.RFC3339Nano)},
+										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
+									}))
+								})
 							})
 
 							When("with user details", func() {
@@ -584,7 +607,7 @@ var _ = Describe("V1", func() {
 									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
 								})
 
-								It("responds successfully with headers for user's own logs", func() {
+								It("responds successfully with headers for user's own logs content", func() {
 									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
 									deviceLogsBlob.UserID = pointer.FromString(userID)
 									content := blob.NewDeviceLogsContent()
@@ -592,6 +615,30 @@ var _ = Describe("V1", func() {
 									content.Body = io.NopCloser(bytes.NewReader(body))
 									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
+									content.StartAt = pointer.FromTime(test.RandomTime())
+									content.EndAt = pointer.FromTime(test.RandomTime())
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Content: content}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+									Expect(res.WriteInputs).To(Equal([][]byte{body}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{
+										"Content-Type": []string{*content.MediaType},
+										"Digest":       []string{fmt.Sprintf("MD5=%s", *content.DigestMD5)},
+										"Start-At":     []string{content.StartAt.Format(time.RFC3339Nano)},
+										"End-At":       []string{content.EndAt.Format(time.RFC3339Nano)},
+									}))
+								})
+								It("responds successfully with headers for user's own logs content of type text/plain", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									deviceLogsBlob.UserID = pointer.FromString(userID)
+									content := blob.NewDeviceLogsContent()
+									body := test.RandomBytes()
+									content.Body = io.NopCloser(bytes.NewReader(body))
+									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.MediaType = pointer.FromString("text/plain; charset=utf-8")
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
 									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
@@ -999,20 +1046,7 @@ var _ = Describe("V1", func() {
 
 							When("the content type header is invalid", func() {
 								BeforeEach(func() {
-									content.MediaType = pointer.FromString("/")
-								})
-
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
-								})
-							})
-
-							When("the content type header is not json", func() {
-								BeforeEach(func() {
-									content.MediaType = pointer.FromString("text/html; charset=utf-8")
+									content.MediaType = pointer.FromString("invalid type")
 								})
 
 								It("responds with bad request and expected error in body", func() {

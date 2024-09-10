@@ -3,7 +3,6 @@ package v1
 import (
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/permission"
@@ -158,9 +157,6 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 		return
 	} else if mediaType == nil {
 		responder.Error(http.StatusBadRequest, request.ErrorHeaderMissing("Content-Type"))
-		return
-	} else if !strings.Contains(*mediaType, "application/json") {
-		responder.Error(http.StatusBadRequest, request.ErrorHeaderInvalid("Content-Type"))
 		return
 	}
 
