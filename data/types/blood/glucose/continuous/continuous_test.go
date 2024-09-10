@@ -11,6 +11,8 @@ import (
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -265,6 +267,7 @@ var _ = Describe("Continuous", func() {
 	Context("Normalize", func() {
 		DescribeTable("normalizes the datum",
 			func(units *string, mutator func(datum *continuous.Continuous, units *string), expectator func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string)) {
+
 				for _, origin := range structure.Origins() {
 					datum := NewContinuous(units)
 					mutator(datum, units)
@@ -274,6 +277,7 @@ var _ = Describe("Continuous", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.Raw = metadataTest.CloneMetadata(datum.Raw)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units)
 					}
@@ -313,17 +317,19 @@ var _ = Describe("Continuous", func() {
 		)
 
 		DescribeTable("normalizes the datum with origin external",
-			func(units *string, mutator func(datum *continuous.Continuous, units *string), expectator func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string)) {
+			func(units *string, mutator func(datum *continuous.Continuous, units *string), expectator func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64)) {
 				datum := NewContinuous(units)
 				mutator(datum, units)
+				originalValue := pointer.CloneFloat64(datum.Value)
 				expectedDatum := CloneContinuous(datum)
 				normalizer := dataNormalizer.New()
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				expectedDatum.Raw = metadataTest.CloneMetadata(datum.Raw)
 				if expectator != nil {
-					expectator(datum, expectedDatum, units)
+					expectator(datum, expectedDatum, units, originalValue)
 				}
 				Expect(datum).To(Equal(expectedDatum))
 			},
@@ -345,45 +351,51 @@ var _ = Describe("Continuous", func() {
 			Entry("modifies the datum; units mmol/l",
 				pointer.FromString("mmol/l"),
 				func(datum *continuous.Continuous, units *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",
 				pointer.FromString("mmol/l"),
 				func(datum *continuous.Continuous, units *string) { datum.Value = nil },
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 			Entry("modifies the datum; units mg/dL",
 				pointer.FromString("mg/dL"),
 				func(datum *continuous.Continuous, units *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mg/dL; value missing",
 				pointer.FromString("mg/dL"),
 				func(datum *continuous.Continuous, units *string) { datum.Value = nil },
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 			Entry("modifies the datum; units mg/dl",
 				pointer.FromString("mg/dl"),
 				func(datum *continuous.Continuous, units *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mg/dl; value missing",
 				pointer.FromString("mg/dl"),
 				func(datum *continuous.Continuous, units *string) { datum.Value = nil },
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 		)

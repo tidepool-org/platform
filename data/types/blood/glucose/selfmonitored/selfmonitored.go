@@ -66,11 +66,7 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 		normalizer = normalizer.WithMeta(s.Meta())
 	}
 
-	if normalizer.Origin() == structure.OriginExternal {
-		s.SetRawValueAndUnits(s.Value, s.Units)
-		s.Value = dataBloodGlucose.NormalizeValueForUnits(s.Value, s.Units)
-		s.Units = dataBloodGlucose.NormalizeUnits(s.Units)
-	}
+	s.Glucose.Normalize(normalizer)
 }
 
 func (s *SelfMonitored) LegacyIdentityFields() ([]string, error) {
