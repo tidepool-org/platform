@@ -1,8 +1,10 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -110,24 +112,32 @@ var _ = DescribeTable("CappedExponentialBinaryDelay",
 	Entry("cap: 1m; tries: 20", time.Minute, 20, time.Minute),
 )
 
-var _ = Describe("DelayingConsumer", func() {
+var _ = Describe("NotBeforeConsumer", func() {
 	Describe("Consume", func() {
-		var testMsg = &sarama.ConsumerMessage{
-			Topic: "test.topic",
+		var newTestMsg = func(notBefore time.Time) *sarama.ConsumerMessage {
+			headers := []*sarama.RecordHeader{}
+			if !notBefore.IsZero() {
+				headers = append(headers, &sarama.RecordHeader{
+					Key:   HeaderNotBefore,
+					Value: []byte(notBefore.Format(NotBeforeTimeFormat)),
+				})
+			}
+			return &sarama.ConsumerMessage{Topic: "test.topic", Headers: headers}
 		}
 
-		It("delays by the configured duration", func() {
+		It("delays based on the x-tidepool-not-before header", func() {
 			logger := newTestDevlog()
 			testDelay := 10 * time.Millisecond
 			ctx := context.Background()
 			start := time.Now()
-			dc := &DelayingConsumer{
+			notBefore := start.Add(testDelay)
+			msg := newTestMsg(notBefore)
+			dc := &NotBeforeConsumer{
 				Consumer: &mockSaramaMessageConsumer{Logger: logger},
-				Delay:    testDelay,
 				Logger:   logger,
 			}
 
-			err := dc.Consume(ctx, nil, testMsg)
+			err := dc.Consume(ctx, nil, msg)
 
 			Expect(err).To(BeNil())
 			Expect(time.Since(start)).To(BeNumerically(">", testDelay))
@@ -137,9 +147,10 @@ var _ = Describe("DelayingConsumer", func() {
 			logger := newTestDevlog()
 			testDelay := 10 * time.Millisecond
 			abortAfter := 1 * time.Millisecond
-			dc := &DelayingConsumer{
+			notBefore := time.Now().Add(testDelay)
+			msg := newTestMsg(notBefore)
+			dc := &NotBeforeConsumer{
 				Consumer: &mockSaramaMessageConsumer{Delay: time.Minute, Logger: logger},
-				Delay:    testDelay,
 				Logger:   logger,
 			}
 			ctx, cancel := context.WithCancel(context.Background())
@@ -149,7 +160,7 @@ var _ = Describe("DelayingConsumer", func() {
 			}()
 			start := time.Now()
 
-			err := dc.Consume(ctx, nil, testMsg)
+			err := dc.Consume(ctx, nil, msg)
 
 			Expect(err).To(BeNil())
 			Expect(time.Since(start)).To(BeNumerically(">", abortAfter))
@@ -158,14 +169,14 @@ var _ = Describe("DelayingConsumer", func() {
 	})
 })
 
-var _ = Describe("ShiftingConsumer", func() {
+var _ = Describe("CascadingConsumer", func() {
 	Describe("Consume", func() {
 		var testMsg = &sarama.ConsumerMessage{
 			Topic: "test.topic",
 		}
 
 		Context("on failure", func() {
-			It("shifts topics", func() {
+			It("cascades topics", func() {
 				t := GinkgoT()
 				logger := newTestDevlog()
 				ctx := context.Background()
@@ -188,6 +199,102 @@ var _ = Describe("ShiftingConsumer", func() {
 						return fmt.Errorf("expected topic to be %q, got %q", nextTopic, msg.Topic)
 					}
 					return nil
+				}
+				mockProducer.ExpectInputWithMessageCheckerFunctionAndSucceed(cf)
+
+				err := sc.Consume(ctx, nil, msg)
+				Expect(mockProducer.Close()).To(Succeed())
+				Expect(err).To(BeNil())
+			})
+
+			It("increments the failures header", func() {
+				t := GinkgoT()
+				logger := newTestDevlog()
+				ctx := context.Background()
+				testConfig := mocks.NewTestConfig()
+				mockProducer := mocks.NewAsyncProducer(t, testConfig)
+				msg := &sarama.ConsumerMessage{
+					Headers: []*sarama.RecordHeader{
+						{
+							Key: HeaderFailures, Value: []byte("3"),
+						},
+					},
+				}
+				nextTopic := "text-next"
+				sc := &CascadingConsumer{
+					Consumer: &mockSaramaMessageConsumer{
+						Err:    fmt.Errorf("test error"),
+						Logger: logger,
+					},
+					NextTopic: nextTopic,
+					Producer:  mockProducer,
+					Logger:    logger,
+				}
+
+				cf := func(msg *sarama.ProducerMessage) error {
+					failures := 0
+					for _, header := range msg.Headers {
+						if !bytes.Equal(header.Key, HeaderFailures) {
+							continue
+						}
+						parsed, err := strconv.ParseInt(string(header.Value), 10, 32)
+						Expect(err).To(Succeed())
+						failures = int(parsed)
+						if failures != 4 {
+							return fmt.Errorf("expected failures == 4, got %d", failures)
+						}
+						return nil
+					}
+					return fmt.Errorf("expected failures header wasn't found")
+				}
+				mockProducer.ExpectInputWithMessageCheckerFunctionAndSucceed(cf)
+
+				err := sc.Consume(ctx, nil, msg)
+				Expect(mockProducer.Close()).To(Succeed())
+				Expect(err).To(BeNil())
+			})
+
+			It("updates the not before header", func() {
+				t := GinkgoT()
+				logger := newTestDevlog()
+				ctx := context.Background()
+				testConfig := mocks.NewTestConfig()
+				mockProducer := mocks.NewAsyncProducer(t, testConfig)
+				msg := &sarama.ConsumerMessage{
+					Headers: []*sarama.RecordHeader{
+						{
+							Key: HeaderFailures, Value: []byte("2"),
+						},
+					},
+				}
+				nextTopic := "text-next"
+				sc := &CascadingConsumer{
+					Consumer: &mockSaramaMessageConsumer{
+						Err:    fmt.Errorf("test error"),
+						Logger: logger,
+					},
+					NextTopic: nextTopic,
+					Producer:  mockProducer,
+					Logger:    logger,
+				}
+
+				cf := func(msg *sarama.ProducerMessage) error {
+					for _, header := range msg.Headers {
+						if !bytes.Equal(header.Key, HeaderNotBefore) {
+							continue
+						}
+						parsed, err := time.Parse(NotBeforeTimeFormat, string(header.Value))
+						if err != nil {
+							return err
+						}
+						until := time.Until(parsed)
+						delta := 10 * time.Millisecond
+						if until < 2*time.Second-delta || until > 2*time.Second+delta {
+							return fmt.Errorf("expected 2 seconds' delay, got: %s", until)
+						}
+						return nil
+					}
+					return fmt.Errorf("expected failures header wasn't found")
 				}
 				mockProducer.ExpectInputWithMessageCheckerFunctionAndSucceed(cf)
 
@@ -244,8 +351,8 @@ var _ = Describe("ShiftingConsumer", func() {
 	})
 })
 
-var _ = Describe("ShiftingSaramaEventsRunner", func() {
-	It("shifts through configured delays", func() {
+var _ = Describe("CascadingSaramaEventsRunner", func() {
+	It("cascades through configured delays", func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
 		testDelays := []time.Duration{0, 1, 2, 3, 5}
@@ -256,7 +363,7 @@ var _ = Describe("ShiftingSaramaEventsRunner", func() {
 			Logger: testLogger,
 		}
 		testConfig := SaramaRunnerConfig{
-			Topics:          []string{"test.shifting"},
+			Topics:          []string{"test.cascading"},
 			MessageConsumer: testMessageConsumer,
 			Sarama:          mocks.NewTestConfig(),
 		}
@@ -338,7 +445,7 @@ var _ = Describe("ShiftingSaramaEventsRunner", func() {
 	})
 })
 
-// testSaramaBuilders injects mocks into the ShiftingSaramaEventsRunner
+// testSaramaBuilders injects mocks into the CascadingSaramaEventsRunner
 type testSaramaBuilders struct {
 	consumerGroup func([]string, string, *sarama.Config) (sarama.ConsumerGroup, error)
 	producer      func([]string, *sarama.Config) (sarama.AsyncProducer, error)

@@ -1,9 +1,11 @@
 package events
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -341,9 +343,8 @@ func (r *CascadingSaramaEventsRunner) buildConsumer(ctx context.Context, idx int
 		}
 	}
 	if delay > 0 {
-		consumer = &DelayingConsumer{
+		consumer = &NotBeforeConsumer{
 			Consumer: consumer,
-			Delay:    delay,
 			Logger:   r.Logger,
 		}
 	}
@@ -370,15 +371,20 @@ func (r *CascadingSaramaEventsRunner) logger(ctx context.Context) log.Logger {
 	return r.Logger
 }
 
-// DelayingConsumer injects a delay before consuming a message.
-type DelayingConsumer struct {
+// NotBeforeConsumer delays consumption until a specified time.
+type NotBeforeConsumer struct {
 	Consumer asyncevents.SaramaMessageConsumer
-	Delay    time.Duration
 	Logger   log.Logger
 }
 
-func (c *DelayingConsumer) Consume(ctx context.Context, session sarama.ConsumerGroupSession,
+func (c *NotBeforeConsumer) Consume(ctx context.Context, session sarama.ConsumerGroupSession,
 	msg *sarama.ConsumerMessage) error {
+
+	notBefore, err := c.notBeforeFromMsgHeaders(msg)
+	if err != nil {
+		c.Logger.WithError(err).Info("Unable to parse kafka header not-before value")
+	}
+	delay := time.Until(notBefore)
 
 	select {
 	case <-ctx.Done():
@@ -386,10 +392,50 @@ func (c *DelayingConsumer) Consume(ctx context.Context, session sarama.ConsumerG
 			return ctxErr
 		}
 		return nil
-	case <-time.After(c.Delay):
-		c.Logger.WithFields(log.Fields{"topic": msg.Topic, "delay": c.Delay}).Debugf("delayed")
+	case <-time.After(time.Until(notBefore)):
+		if !notBefore.IsZero() {
+			fields := log.Fields{"topic": msg.Topic, "not-before": notBefore, "delay": delay}
+			c.Logger.WithFields(fields).Debugf("delayed")
+		}
 		return c.Consumer.Consume(ctx, session, msg)
 	}
+}
+
+// HeaderNotBefore tells consumers not to consume a message before a certain time.
+var HeaderNotBefore = []byte("x-tidepool-not-before")
+
+// NotBeforeTimeFormat specifies the [time.Parse] format to use for HeaderNotBefore.
+var NotBeforeTimeFormat = time.RFC3339Nano
+
+// HeaderFailures counts the number of failures encountered trying to consume the message.
+var HeaderFailures = []byte("x-tidepool-failures")
+
+// FailuresToDelay maps the number of consumption failures to the next delay.
+//
+// Rather than using a failures header, the name of the topic could be used as a lookup, if
+// so desired.
+var FailuresToDelay = map[int]time.Duration{
+	0: 0,
+	1: 1 * time.Second,
+	2: 2 * time.Second,
+	3: 3 * time.Second,
+	4: 5 * time.Second,
+}
+
+func (c *NotBeforeConsumer) notBeforeFromMsgHeaders(msg *sarama.ConsumerMessage) (
+	time.Time, error) {
+
+	for _, header := range msg.Headers {
+		if bytes.Equal(header.Key, HeaderNotBefore) {
+			notBefore, err := time.Parse(NotBeforeTimeFormat, string(header.Value))
+			if err != nil {
+				return time.Time{}, fmt.Errorf("parsing not before header: %s", err)
+			} else {
+				return notBefore, nil
+			}
+		}
+	}
+	return time.Time{}, fmt.Errorf("header not found: x-tidepool-not-before")
 }
 
 // CascadingConsumer cascades messages that failed to be consumed to another topic.
@@ -444,6 +490,7 @@ func (c *CascadingConsumer) withTxn(f func() error) (err error) {
 	return f()
 }
 
+// cascadeMessage to the next topic.
 func (c *CascadingConsumer) cascadeMessage(msg *sarama.ConsumerMessage) *sarama.ProducerMessage {
 	pHeaders := make([]sarama.RecordHeader, len(msg.Headers))
 	for idx, header := range msg.Headers {
@@ -453,6 +500,43 @@ func (c *CascadingConsumer) cascadeMessage(msg *sarama.ConsumerMessage) *sarama.
 		Key:     sarama.ByteEncoder(msg.Key),
 		Value:   sarama.ByteEncoder(msg.Value),
 		Topic:   c.NextTopic,
-		Headers: pHeaders,
+		Headers: c.updateCascadeHeaders(pHeaders),
 	}
+}
+
+// updateCascadeHeaders calculates not before and failures header values.
+//
+// Existing not before and failures headers will be dropped in place of the new ones.
+func (c *CascadingConsumer) updateCascadeHeaders(headers []sarama.RecordHeader) []sarama.RecordHeader {
+	failures := 0
+	notBefore := time.Now()
+
+	keep := make([]sarama.RecordHeader, 0, len(headers))
+	for _, header := range headers {
+		switch {
+		case bytes.Equal(header.Key, HeaderNotBefore):
+			continue // Drop this header, we'll add a new version below.
+		case bytes.Equal(header.Key, HeaderFailures):
+			parsed, err := strconv.ParseInt(string(header.Value), 10, 32)
+			if err != nil {
+				c.Logger.WithError(err).Info("Unable to parse consumption failures count")
+			} else {
+				failures = int(parsed)
+				notBefore = notBefore.Add(FailuresToDelay[failures])
+			}
+			continue // Drop this header, we'll add a new version below.
+		}
+		keep = append(keep, header)
+	}
+
+	keep = append(keep, sarama.RecordHeader{
+		Key:   HeaderNotBefore,
+		Value: []byte(notBefore.Format(NotBeforeTimeFormat)),
+	})
+	keep = append(keep, sarama.RecordHeader{
+		Key:   HeaderFailures,
+		Value: []byte(strconv.Itoa(failures + 1)),
+	})
+
+	return keep
 }
