@@ -325,8 +325,11 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Name": Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "origin.id", "-deletedTime", "_active")),
+						"Name": Equal("UserIdOriginId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
