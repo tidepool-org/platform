@@ -15,7 +15,7 @@ import (
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-var _ = Describe("Store", func() {
+var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
 	var mongoConfig *storeStructuredMongo.Config
 	var store *prescriptionStoreMongo.PrescriptionStore
 
