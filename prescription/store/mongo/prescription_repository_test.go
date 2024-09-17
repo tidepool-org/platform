@@ -36,7 +36,7 @@ import (
 	"github.com/tidepool-org/platform/prescription/test"
 )
 
-var _ = Describe("PrescriptionRepository", func() {
+var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration"), func() {
 	var mongoConfig *structuredMongo.Config
 	var store *prescriptionStoreMongo.PrescriptionStore
 	var logger *logTest.Logger

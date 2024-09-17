@@ -74,7 +74,7 @@ func AsInterfaceArray(blobs blob.BlobArray) []interface{} {
 	return array
 }
 
-var _ = Describe("Mongo", func() {
+var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var config *storeStructuredMongo.Config
 	var logger *logTest.Logger
 	var store *blobStoreStructuredMongo.Store
