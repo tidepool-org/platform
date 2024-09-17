@@ -236,7 +236,7 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 	return dataSetDatumAsInterface
 }
 
-var _ = Describe("Mongo", func() {
+var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var logger *logTest.Logger
 	var config *storeStructuredMongo.Config
 	var store *dataStoreMongo.Store
