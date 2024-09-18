@@ -35,7 +35,7 @@ func CloneRecommended(datum *calculator.Recommended) *calculator.Recommended {
 
 var _ = Describe("Recommended", func() {
 	It("CarbohydrateMaximum is expected", func() {
-		Expect(calculator.CarbohydrateMaximum).To(Equal(250.0))
+		Expect(calculator.CarbohydrateMaximum).To(Equal(500.0))
 	})
 
 	It("CarbohydrateMinimum is expected", func() {
@@ -88,7 +88,7 @@ var _ = Describe("Recommended", func() {
 				),
 				Entry("carbohydrate out of range (lower)",
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(-0.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, calculator.InsulinCarbohydrateRatioMaximum), "/carb"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, calculator.CarbohydrateMaximum), "/carb"),
 				),
 				Entry("carbohydrate in range (lower)",
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(0.0) },
@@ -97,8 +97,10 @@ var _ = Describe("Recommended", func() {
 					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(100.0) },
 				),
 				Entry("carbohydrate out of range (upper)",
-					func(datum *calculator.Recommended) { datum.Carbohydrate = pointer.FromFloat64(250.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, calculator.InsulinCarbohydrateRatioMaximum), "/carb"),
+					func(datum *calculator.Recommended) {
+						datum.Carbohydrate = pointer.FromFloat64(calculator.CarbohydrateMaximum + 0.1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(calculator.CarbohydrateMaximum+0.1, 0, calculator.CarbohydrateMaximum), "/carb"),
 				),
 				Entry("correction missing",
 					func(datum *calculator.Recommended) { datum.Correction = nil },
