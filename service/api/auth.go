@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/user"
 )
 
 // RequireAuth aborts with an error if a request isn't authenticated.
@@ -73,8 +74,11 @@ func RequireUser(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 func RequireMembership(permissionsClient func() permission.Client, targetParamUserID string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
-			targetUserID := req.PathParam(targetParamUserID)
 			responder := request.MustNewResponder(res, req)
+			targetUserID, handledError := handledInvalidUserId(req, responder, targetParamUserID)
+			if handledError {
+				return
+			}
 			ctx := req.Context()
 			details := request.GetAuthDetails(ctx)
 			if details == nil {
@@ -82,8 +86,7 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 				return
 			}
 			hasMembership, err := CheckMembership(req, permissionsClient(), targetUserID)
-			if err != nil {
-				responder.InternalServerError(err)
+			if responder.RespondIfError(err) {
 				return
 			}
 			if !hasMembership {
@@ -95,6 +98,54 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 	}
 }
 
+// respondedWithInvalidUserId returns a valid user id in userID and false for
+// handledError if the path parameter in userIDParamName is a valid otherwise it
+// will return true for handledError indicating no further middleware /
+// handlers / action should be taken
+func handledInvalidUserId(req *rest.Request, responder *request.Responder, userIDParamName string) (userID string, handledError bool) {
+	userID, err := request.DecodeRequestPathParameter(req, userIDParamName, user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return "", true
+	}
+	return userID, false
+}
+
+func RequireWritePermissions(permissionsClient func() permission.Client, userIDParam string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handlerFunc != nil && res != nil && req != nil {
+			responder := request.MustNewResponder(res, req)
+			targetUserID, handledError := handledInvalidUserId(req, responder, userIDParam)
+			if handledError {
+				return
+			}
+			ctx := req.Context()
+			details := request.GetAuthDetails(ctx)
+			if details == nil {
+				responder.Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
+				return
+			}
+			if !details.IsService() && details.UserID() != targetUserID {
+				hasPerms, err := permission.HasExplicitWritePermissions(ctx, permissionsClient(), details.UserID(), targetUserID)
+				if responder.RespondIfError(err) {
+					return
+				}
+				if !hasPerms {
+					responder.Empty(http.StatusForbidden)
+					return
+				}
+			}
+			handlerFunc(res, req)
+		}
+	}
+}
+
+// CheckMembership returns whether the user or service associated with the
+// request has a relationship with the user whose id is targetUserID It is not
+// a middleware, but is used by some, because there are certain cases where we
+// do not know the actual user id - for example if we have to retrieve an
+// object and that object contains the user's id in the case of device logs for
+// example.
 func CheckMembership(req *rest.Request, client permission.Client, targetUserID string) (allowed bool, err error) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
@@ -104,7 +155,7 @@ func CheckMembership(req *rest.Request, client permission.Client, targetUserID s
 	if details.IsService() || details.UserID() == targetUserID {
 		return true, nil
 	}
-	hasPerms, err := permission.HasMembershipRelationship(ctx, client, details.UserID(), targetUserID)
+	hasPerms, err := permission.HasExplicitMembershipRelationship(ctx, client, details.UserID(), targetUserID)
 	if err != nil {
 		return false, err
 	}
