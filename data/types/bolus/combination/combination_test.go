@@ -631,7 +631,7 @@ var _ = Describe("Combination", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(combination.DurationMaximum+1, combination.DurationMinimum, combination.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
-				Entry("normal expected exists; duration out of range (upper); duration expected missing",
+				Entry("normal expected exists; duration in range (upper); duration expected missing",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = nil
@@ -640,7 +640,7 @@ var _ = Describe("Combination", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
-				Entry("normal expected exists; duration out of range (upper); duration expected out of range (lower)",
+				Entry("normal expected exists; duration in range (upper); duration expected out of range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = pointer.FromInt(-1)
@@ -649,7 +649,7 @@ var _ = Describe("Combination", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, combination.DurationMinimum, combination.DurationMaximum), "/expectedDuration", NewMeta()),
 				),
-				Entry("normal expected exists; duration out of range (upper); duration expected in range (lower)",
+				Entry("normal expected exists; duration in range (upper); duration expected in range (lower)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = pointer.FromInt(0)
@@ -665,7 +665,7 @@ var _ = Describe("Combination", func() {
 						datum.NormalExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Normal, combination.NormalMaximum))
 					},
 				),
-				Entry("normal expected exists; duration out of range (upper); duration expected out of range (upper)",
+				Entry("normal expected exists; duration in range (upper); duration expected out of range (upper)",
 					func(datum *combination.Combination) {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = pointer.FromInt(combination.DurationMaximum + 1)
