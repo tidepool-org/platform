@@ -31,7 +31,7 @@ const (
 	AvailableAfterDurationJitter = 15 * time.Minute
 	DataSetSize                  = 2000
 	TaskDurationMaximum          = 15 * time.Minute
-	TaskRetryCountMaximum        = 6  // Last retry after a total of 63 hours after first failure
+	TaskRetryCountMaximum        = 4  // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
 	DataRangeDaysMaximum         = 30 // Per Dexcom documentation
 )
 
