@@ -61,7 +61,7 @@ func (c *Combination) Validate(validator structure.Validator) {
 	}
 
 	if c.NormalExpected != nil {
-		validator.Int("duration", c.Duration).Exists().EqualTo(DurationMinimum)
+		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
 		validator.Int("expectedDuration", c.DurationExpected).Exists().InRange(DurationMinimum, DurationMaximum)
 		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
 		extendedExpectedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
