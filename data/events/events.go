@@ -439,6 +439,10 @@ func (c *NotBeforeConsumer) notBeforeFromMsgHeaders(msg *sarama.ConsumerMessage)
 }
 
 // CascadingConsumer cascades messages that failed to be consumed to another topic.
+//
+// It also sets an adjustable delay via the "not-before" and "failures" headers so that as
+// the message moves from topic to topic, the time between processing is increased according
+// to [FailuresToDelay].
 type CascadingConsumer struct {
 	Consumer  asyncevents.SaramaMessageConsumer
 	NextTopic string
