@@ -21,11 +21,12 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109
+	github.com/tidepool-org/clinic/client v0.0.0-20240920140144-8d9c437bb18b
 	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
+	github.com/xhit/go-str2duration/v2 v2.1.0
 	go.mongodb.org/mongo-driver v1.16.0
 	go.uber.org/fx v1.22.1
 	golang.org/x/crypto v0.24.0

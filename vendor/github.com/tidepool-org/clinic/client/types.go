@@ -667,6 +667,14 @@ const (
 	RUNNING   MigrationStatus = "RUNNING"
 )
 
+// Defines values for ScheduledReportsCadence.
+const (
+	N0d  ScheduledReportsCadence = "0d"
+	N14d ScheduledReportsCadence = "14d"
+	N30d ScheduledReportsCadence = "30d"
+	N7d  ScheduledReportsCadence = "7d"
+)
+
 // Defines values for ScheduledReportsOnUploadNoteEventType.
 const (
 	ScheduledReportsOnUploadNoteEventTypeNew     ScheduledReportsOnUploadNoteEventType = "New"
@@ -1552,10 +1560,16 @@ type PhoneNumber struct {
 
 // ScheduledReports Scheduled Report Settings
 type ScheduledReports struct {
+	// Cadence The cadence of the scheduled reports. Set to '0d' to disable all scheduled reports except the ones which are sent after an upload is finished
+	Cadence ScheduledReportsCadence `json:"cadence"`
+
 	// OnUploadEnabled Send a PDF Report and a Flowsheet to Redox after a dataset is uploaded.
 	OnUploadEnabled       bool                                   `json:"onUploadEnabled"`
 	OnUploadNoteEventType *ScheduledReportsOnUploadNoteEventType `json:"onUploadNoteEventType,omitempty"`
 }
+
+// ScheduledReportsCadence The cadence of the scheduled reports. Set to '0d' to disable all scheduled reports except the ones which are sent after an upload is finished
+type ScheduledReportsCadence string
 
 // ScheduledReportsOnUploadNoteEventType defines model for ScheduledReports.OnUploadNoteEventType.
 type ScheduledReportsOnUploadNoteEventType string

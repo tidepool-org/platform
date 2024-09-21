@@ -30,3 +30,28 @@ func NewRandomClinic() api.Clinic {
 		Website:          pointer.FromAny(faker.Internet().Url()),
 	}
 }
+
+func NewRandomEHRSettings() *api.EHRSettings {
+	return &api.EHRSettings{
+		DestinationIds: &api.EHRDestinationIds{
+			Flowsheet: faker.RandomString(16),
+			Notes:     faker.RandomString(16),
+			Results:   faker.RandomString(16),
+		},
+		Enabled:   true,
+		MrnIdType: "MRN",
+		ProcedureCodes: api.EHRProcedureCodes{
+			CreateAccount:                 pointer.FromAny(faker.RandomString(5)),
+			CreateAccountAndEnableReports: pointer.FromAny(faker.RandomString(5)),
+			DisableSummaryReports:         pointer.FromAny(faker.RandomString(5)),
+			EnableSummaryReports:          pointer.FromAny(faker.RandomString(5)),
+		},
+		Provider: "redox",
+		ScheduledReports: api.ScheduledReports{
+			Cadence:               api.N14d,
+			OnUploadEnabled:       true,
+			OnUploadNoteEventType: pointer.FromAny(api.ScheduledReportsOnUploadNoteEventTypeNew),
+		},
+		SourceId: faker.RandomString(16),
+	}
+}

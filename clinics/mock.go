@@ -50,6 +50,21 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicID, clinicianID)
 }
 
+// GetEHRSettings mocks base method.
+func (m *MockClient) GetEHRSettings(ctx context.Context, clinicId string) (*client.EHRSettings, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEHRSettings", ctx, clinicId)
+	ret0, _ := ret[0].(*client.EHRSettings)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEHRSettings indicates an expected call of GetEHRSettings.
+func (mr *MockClientMockRecorder) GetEHRSettings(ctx, clinicId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEHRSettings", reflect.TypeOf((*MockClient)(nil).GetEHRSettings), ctx, clinicId)
+}
+
 // GetPatients mocks base method.
 func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams) ([]client.Patient, error) {
 	m.ctrl.T.Helper()

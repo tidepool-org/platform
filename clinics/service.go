@@ -27,6 +27,7 @@ var ClientModule = fx.Provide(NewClient)
 
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
+	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
@@ -119,6 +120,17 @@ func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Cli
 	}
 
 	return clinics, nil
+}
+
+func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error) {
+	response, err := d.httpClient.GetEHRSettingsWithResponse(ctx, clinicId)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode() != http.StatusOK || response.StatusCode() != http.StatusOK {
+		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+	}
+	return response.JSON200, nil
 }
 
 func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {

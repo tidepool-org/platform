@@ -360,7 +360,7 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109
+# github.com/tidepool-org/clinic/client v0.0.0-20240920140144-8d9c437bb18b
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
@@ -401,6 +401,9 @@ github.com/xdg/scram
 # github.com/xdg/stringprep v1.0.3
 ## explicit
 github.com/xdg/stringprep
+# github.com/xhit/go-str2duration/v2 v2.1.0
+## explicit; go 1.13
+github.com/xhit/go-str2duration/v2
 # github.com/youmark/pkcs8 v0.0.0-20240424034433-3c2c7870ae76
 ## explicit; go 1.22
 github.com/youmark/pkcs8
