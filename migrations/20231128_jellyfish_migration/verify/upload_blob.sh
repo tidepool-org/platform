@@ -58,7 +58,6 @@ if [ "$SUCCESS" = true ]; then
     echo "$records"
 else
     echo 'upload failed!'
-
     error_details=$(echo "$output" | grep -A100000 'add data to dataset failed' | grep -B100000 'Offending record for error 0')
 
     if [[ -z "$error_details" ]]; then
@@ -66,11 +65,10 @@ else
     fi
 
     if [[ -z "$error_details" ]]; then
-        error_details=$(echo "$output" | grep -A100000 'Error' | grep -B100000 '')
+        error_details=$(echo "$output")
     fi
 
     error_details=$(echo $error_details | tr -d '\n\t\r')
 
-    echo "{"blob":"$BLOB_FILE", "details":{ "$error_details" }" >>"$ERROR_LOG"
-    echo "$output"
+    echo "{"blob":"$BLOB_FILE", "details": {"$error_details"}" >>"$ERROR_LOG"
 fi

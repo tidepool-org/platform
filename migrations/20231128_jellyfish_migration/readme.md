@@ -42,3 +42,22 @@ GLOBAL OPTIONS:
   { "$group": { "_id": "$_userId", "detail": { "$push": "$$ROOT" }}}
 ]
 ```
+
+- finding error types
+
+grep -c "InsOmn.*Checksum" prod_blob_error.log
+grep -c "InsOmn.*rawdata" prod_blob_error.log
+grep -c "InsOmn.*value-not-exists" prod_blob_error.log
+grep -c "InsOmn.*value-out-of-range" prod_blob_error.log
+
+grep -c "tandem" prod_blob_error.log
+
+
+cat prod_blob_upload.log | grep "InsOmn" | sed -n 's/.*records: \([0-9]*\).*/\1/p' | awk '{sum+=$1} END {print sum}'
+cat prod_blob_upload.log | grep "InsOmn" | sed -n 's/.*upload \([0-9]*\).*/\1/p' | awk '{sum+=$1} END {print sum}'
+
+cat prod_blob_upload.log | grep "tandem" | sed -n 's/.*records: \([0-9]*\).*/\1/p' | awk '{sum+=$1} END {print sum}'
+cat prod_blob_upload.log | grep "tandem" | sed -n 's/.*upload \([0-9]*\).*/\1/p' | awk '{sum+=$1} END {print sum}'
+
+
+

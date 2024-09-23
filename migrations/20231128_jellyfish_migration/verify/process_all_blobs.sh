@@ -3,11 +3,11 @@
 USER_ID=6a452338-5064-4795-81ca-84957bad2280
 USER_EMAIL=jamie+platform_upload@tidepool.org
 USER_PW=$1
-LOG_PREFIX=prod_blob
+LOG_PREFIX=qa_blob
 
 DEVICE_TYPE=$2
 if [[ -z "$DEVICE_TYPE" ]]; then
-    DEVICE_TYPE=InsOmn
+    DEVICE_TYPE=tandem
     USER_ID=04afa5f8-9cb4-4824-9d76-67fa8740da2b
     USER_EMAIL=jamie+jellyfish_upload@tidepool.org
 fi
