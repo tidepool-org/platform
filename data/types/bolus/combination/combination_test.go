@@ -100,7 +100,7 @@ var _ = Describe("Combination", func() {
 					func(datum *combination.Combination) { datum.SubType = "invalidSubType" },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", combination.SubType), "/subType", &bolus.Meta{Type: "bolus", SubType: "invalidSubType"}),
 				),
-				Entry("sub type normal",
+				Entry("sub type dual/square",
 					func(datum *combination.Combination) { datum.SubType = combination.SubType },
 				),
 				Entry("normal missing; normal expected missing",
