@@ -11,15 +11,15 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	taskService "github.com/tidepool-org/platform/task/service"
 	taskServiceApi "github.com/tidepool-org/platform/task/service/api"
-	taskServiceTest "github.com/tidepool-org/platform/task/service/test"
+	"github.com/tidepool-org/platform/task/service/taskservicetest"
 	testRest "github.com/tidepool-org/platform/test/rest"
 )
 
 var _ = Describe("API", func() {
-	var service *taskServiceTest.Service
+	var service *taskservicetest.Service
 
 	BeforeEach(func() {
-		service = taskServiceTest.NewService()
+		service = taskservicetest.NewService()
 	})
 
 	Context("NewRouter", func() {
@@ -60,7 +60,7 @@ var _ = Describe("API", func() {
 				response = testRest.NewResponseWriter()
 				request = testRest.NewRequest()
 				request.Request = request.WithContext(log.NewContextWithLogger(request.Context(), logTest.NewLogger()))
-				service = taskServiceTest.NewService()
+				service = taskservicetest.NewService()
 				var err error
 				router, err = taskServiceApi.NewRouter(service)
 				Expect(err).ToNot(HaveOccurred())
