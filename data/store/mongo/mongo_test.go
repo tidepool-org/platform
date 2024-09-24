@@ -325,11 +325,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "origin.id", "-deletedTime", "_active")),
-						"Name": Equal("UserIdOriginId"),
-						"PartialFilterExpression": Equal(bson.D{
-							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
-						}),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),

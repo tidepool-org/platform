@@ -73,16 +73,13 @@ func (d *DatumRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "_userId", Value: 1},
 				{Key: "origin.id", Value: 1},
+				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetPartialFilterExpression(bson.D{
-					{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
-				}).
-				SetName("UserIdOriginId"),
+				SetName("OriginId"),
 		},
 		{
 			Keys: bson.D{
@@ -213,6 +210,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
 	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -226,7 +224,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	}
 	opts := options.Update()
 	if hasOriginID {
-		opts.SetHint("UserIdOriginId")
+		opts.SetHint("OriginId")
 	}
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
@@ -256,6 +254,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
@@ -270,7 +269,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	}
 	opts := options.Update()
 	if hasOriginID {
-		opts.SetHint("UserIdOriginId")
+		opts.SetHint("OriginId")
 	}
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
@@ -299,10 +298,11 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
 	opts := options.Delete()
 	if hasOriginID {
-		opts.SetHint("UserIdOriginId")
+		opts.SetHint("OriginId")
 	}
 	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
