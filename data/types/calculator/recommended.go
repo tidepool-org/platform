@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	CarbohydrateMaximum = 250.0
+	CarbohydrateMaximum = 500.0
 	CarbohydrateMinimum = 0.0
 	CorrectionMaximum   = 250.0
 	CorrectionMinimum   = -250.0

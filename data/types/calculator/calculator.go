@@ -17,7 +17,7 @@ const (
 
 	CarbohydrateInputMaximum        = 1000.0
 	CarbohydrateInputMinimum        = 0.0
-	InsulinCarbohydrateRatioMaximum = 250.0
+	InsulinCarbohydrateRatioMaximum = 500.0
 	InsulinCarbohydrateRatioMinimum = 0.0
 	InsulinOnBoardMaximum           = 250.0
 	InsulinOnBoardMinimum           = 0.0

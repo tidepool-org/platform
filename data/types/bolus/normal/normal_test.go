@@ -96,7 +96,7 @@ var _ = Describe("Normal", func() {
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal missing; normal expected in range (lower)",
 					func(datum *normal.Normal) {
@@ -118,58 +118,51 @@ var _ = Describe("Normal", func() {
 						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected missing",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (upper)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(normal.NormalMaximum)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (upper)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
-				),
-				Entry("normal in range (lower); normal expected missing",
-					func(datum *normal.Normal) {
-						datum.Normal = pointer.FromFloat64(0.0)
-						datum.NormalExpected = nil
-					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected out of range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected in range (lower)",
 					func(datum *normal.Normal) {
@@ -188,7 +181,7 @@ var _ = Describe("Normal", func() {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (upper); normal expected missing",
 					func(datum *normal.Normal) {
@@ -227,37 +220,37 @@ var _ = Describe("Normal", func() {
 						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (lower)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (upper)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(normal.NormalMaximum)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (upper)",
 					func(datum *normal.Normal) {
 						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *normal.Normal) {
@@ -269,7 +262,7 @@ var _ = Describe("Normal", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "normal"), "/subType", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, normal.NormalMaximum), "/expectedNormal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, normal.NormalMinimum, normal.NormalMaximum), "/expectedNormal", &bolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
