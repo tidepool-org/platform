@@ -69,9 +69,6 @@ func (e *Extended) Validate(validator structure.Validator) {
 	validator.Float64("extended", e.Extended).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
 	extendedExpectedValidator := validator.Float64("expectedExtended", e.ExtendedExpected)
 	if e.Extended != nil && *e.Extended >= ExtendedMinimum && *e.Extended <= ExtendedMaximum {
-		if *e.Extended == ExtendedMinimum {
-			extendedExpectedValidator.Exists()
-		}
 		extendedExpectedValidator.InRange(*e.Extended, ExtendedMaximum)
 	} else {
 		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
