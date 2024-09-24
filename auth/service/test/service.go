@@ -16,7 +16,7 @@ import (
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
-	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/task/tasktest"
 )
 
 type Service struct {
@@ -28,7 +28,7 @@ type Service struct {
 	ProviderFactoryInvocations int
 	ProviderFactoryImpl        *providerTest.Factory
 	TaskClientInvocations      int
-	TaskClientImpl             *taskTest.Client
+	TaskClientImpl             *tasktest.Client
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
 	confirmationClient         confirmationClient.ClientWithResponsesInterface
@@ -39,7 +39,7 @@ func NewService() *Service {
 		Service:             serviceTest.NewService(),
 		AuthStoreImpl:       authStoreTest.NewStore(),
 		ProviderFactoryImpl: providerTest.NewFactory(),
-		TaskClientImpl:      taskTest.NewClient(),
+		TaskClientImpl:      tasktest.NewClient(),
 	}
 }
 

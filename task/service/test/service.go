@@ -8,7 +8,7 @@ import (
 	taskService "github.com/tidepool-org/platform/task/service"
 	taskStore "github.com/tidepool-org/platform/task/store"
 	taskStoreTest "github.com/tidepool-org/platform/task/store/test"
-	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/task/tasktest"
 )
 
 type Service struct {
@@ -16,7 +16,7 @@ type Service struct {
 	TaskStoreInvocations  int
 	TaskStoreImpl         *taskStoreTest.Store
 	TaskClientInvocations int
-	TaskClientImpl        *taskTest.Client
+	TaskClientImpl        *tasktest.Client
 	StatusInvocations     int
 	StatusOutputs         []*taskService.Status
 }
@@ -25,7 +25,7 @@ func NewService() *Service {
 	return &Service{
 		Service:        serviceTest.NewService(),
 		TaskStoreImpl:  taskStoreTest.NewStore(),
-		TaskClientImpl: taskTest.NewClient(),
+		TaskClientImpl: tasktest.NewClient(),
 	}
 }
 

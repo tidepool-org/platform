@@ -1,4 +1,4 @@
-package test
+package tasktest
 
 type Client struct {
 	*TaskAccessor
