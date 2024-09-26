@@ -128,6 +128,7 @@ func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*c
 		return nil, err
 	}
 	if response.StatusCode() != http.StatusOK || response.StatusCode() != http.StatusOK {
+
 		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
 	}
 	return response.JSON200, nil

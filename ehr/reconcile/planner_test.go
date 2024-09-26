@@ -52,7 +52,6 @@ var _ = Describe("Planner", func() {
 			clinics = test.RandomArrayWithLength(3, clinicsTest.NewRandomClinic)
 			tasks = make(map[string]task.Task)
 			for _, clinic := range clinics {
-				clinic := clinic
 				tsk, err := task.NewTask(sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
@@ -136,7 +135,7 @@ var _ = Describe("Planner", func() {
 
 			It("returns a task for deletion when the report settings are disabled", func() {
 				settings := clinicsTest.NewRandomEHRSettings()
-				settings.ScheduledReports.Cadence = api.N0d
+				settings.ScheduledReports.Cadence = api.DISABLED
 
 				clinics = clinics[0:1]
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)

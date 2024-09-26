@@ -669,10 +669,10 @@ const (
 
 // Defines values for ScheduledReportsCadence.
 const (
-	N0d  ScheduledReportsCadence = "0d"
-	N14d ScheduledReportsCadence = "14d"
-	N30d ScheduledReportsCadence = "30d"
-	N7d  ScheduledReportsCadence = "7d"
+	DISABLED ScheduledReportsCadence = "DISABLED"
+	N14d     ScheduledReportsCadence = "14d"
+	N30d     ScheduledReportsCadence = "30d"
+	N7d      ScheduledReportsCadence = "7d"
 )
 
 // Defines values for ScheduledReportsOnUploadNoteEventType.
@@ -909,10 +909,22 @@ type EHRSettings struct {
 	// ScheduledReports Scheduled Report Settings
 	ScheduledReports ScheduledReports `json:"scheduledReports"`
 	SourceId         string           `json:"sourceId"`
+
+	// Tags This configuration only applies to integrations using Redox Data Model
+	Tags EHRTagsSettings `json:"tags"`
 }
 
 // EHRSettingsProvider defines model for EHRSettings.Provider.
 type EHRSettingsProvider string
+
+// EHRTagsSettings This configuration only applies to integrations using Redox Data Model
+type EHRTagsSettings struct {
+	// Codes The code of the additional clinical info item of the order which will be used to select which tags to associate to the patient
+	Codes *[]string `json:"codes,omitempty"`
+
+	// Separator If set to a non-empty string, the tag values will be split using this separator
+	Separator *string `json:"separator,omitempty"`
+}
 
 // Error defines model for Error.
 type Error struct {
@@ -1560,7 +1572,7 @@ type PhoneNumber struct {
 
 // ScheduledReports Scheduled Report Settings
 type ScheduledReports struct {
-	// Cadence The cadence of the scheduled reports. Set to '0d' to disable all scheduled reports except the ones which are sent after an upload is finished
+	// Cadence The cadence of the scheduled reports. Disabling the scheduled reports does not affect reports which are generated after a dataset is uploaded.
 	Cadence ScheduledReportsCadence `json:"cadence"`
 
 	// OnUploadEnabled Send a PDF Report and a Flowsheet to Redox after a dataset is uploaded.
@@ -1568,7 +1580,7 @@ type ScheduledReports struct {
 	OnUploadNoteEventType *ScheduledReportsOnUploadNoteEventType `json:"onUploadNoteEventType,omitempty"`
 }
 
-// ScheduledReportsCadence The cadence of the scheduled reports. Set to '0d' to disable all scheduled reports except the ones which are sent after an upload is finished
+// ScheduledReportsCadence The cadence of the scheduled reports. Disabling the scheduled reports does not affect reports which are generated after a dataset is uploaded.
 type ScheduledReportsCadence string
 
 // ScheduledReportsOnUploadNoteEventType defines model for ScheduledReports.OnUploadNoteEventType.

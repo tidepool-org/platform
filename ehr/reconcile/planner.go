@@ -2,13 +2,23 @@ package reconcile
 
 import (
 	"context"
+	"regexp"
+	"strconv"
+	"strings"
+	"time"
 
-	duration "github.com/xhit/go-str2duration/v2"
+	api "github.com/tidepool-org/clinic/client"
+
+	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/ehr/sync"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/task"
+)
+
+var (
+	cadenceRegexp = regexp.MustCompile("(\\d{1,3})d")
 )
 
 type Planner struct {
@@ -47,22 +57,43 @@ func (p *Planner) GetReconciliationPlan(ctx context.Context, syncTasks map[strin
 
 		// Use the default value for all clinics which don't have a cadence
 		cadenceFromSettings := sync.DefaultCadence
-		parsed, err := duration.ParseDuration(string(settings.ScheduledReports.Cadence))
-		if err != nil {
-			p.logger.WithField("clinicId", clinicId).WithError(err).Error("unable to parse scheduled report cadence")
-			continue
+		scheduledReportsDisabled := false
+
+		if settings.ScheduledReports.Cadence == api.DISABLED {
+			scheduledReportsDisabled = true
 		}
-		cadenceFromSettings = parsed
 
-		tsk, exists := syncTasks[clinicId]
-		if exists {
-
-			delete(syncTasks, clinicId)
-			if cadenceFromSettings == 0 {
-				toDelete = append(toDelete, tsk)
+		if !scheduledReportsDisabled {
+			cadence := string(settings.ScheduledReports.Cadence)
+			if !cadenceRegexp.MatchString(string(settings.ScheduledReports.Cadence)) {
+				err = errors.New("invalid scheduled report cadence format")
+			} else {
+				var days int
+				cadence = strings.TrimSuffix(cadence, "d")
+				days, err = strconv.Atoi(cadence)
+				cadenceFromSettings = time.Duration(days) * time.Hour * 24
+				if cadenceFromSettings == 0 {
+					scheduledReportsDisabled = true
+				}
+			}
+			if err != nil {
+				p.logger.WithField("clinicId", clinicId).WithError(err).Error("unable to parse scheduled report cadence")
 				continue
 			}
+		}
 
+		tsk, exists := syncTasks[clinicId]
+		if !exists && !scheduledReportsDisabled {
+			// Create the tasks for the clinic if reports are not disabled and we don't have a task already
+			create := sync.NewTaskCreate(clinicId, cadenceFromSettings)
+			toCreate = append(toCreate, *create)
+		} else if exists && scheduledReportsDisabled {
+			// Delete the task if it tasks exists but reports are now disabled
+			delete(syncTasks, clinicId)
+			toDelete = append(toDelete, tsk)
+		} else if exists && !scheduledReportsDisabled {
+			delete(syncTasks, clinicId)
+			// Update the task if the configured cadence has been changed
 			cadenceFromTask := sync.GetCadence(tsk.Data)
 			if cadenceFromTask == nil || *cadenceFromTask != cadenceFromSettings {
 				sync.SetCadence(tsk.Data, cadenceFromSettings)
@@ -70,12 +101,9 @@ func (p *Planner) GetReconciliationPlan(ctx context.Context, syncTasks map[strin
 				update.Data = &tsk.Data
 				toUpdate[tsk.ID] = update
 			}
-		} else if cadenceFromSettings != 0 {
-			// The task doesn't exist yet and scheduled reports are not disabled
-			create := sync.NewTaskCreate(clinicId, cadenceFromSettings)
-			toCreate = append(toCreate, *create)
 		}
 	}
+
 	for _, tsk := range syncTasks {
 		toDelete = append(toDelete, tsk)
 	}
