@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -18,6 +19,9 @@ import (
 var database string
 var address string
 
+var cleanupHandlers []func()
+var cleanupHandlersMu sync.Mutex
+
 var _ = ginkgo.BeforeSuite(func() {
 	database = generateUniqueName("database")
 	address = os.Getenv("TIDEPOOL_STORE_ADDRESSES")
@@ -30,7 +34,31 @@ var _ = ginkgo.AfterSuite(func() {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	err = client.Database(database).Drop(context.Background())
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	runDeferredCleanups()
 })
+
+// DeferredCleanup provides a way to have something run during AfterSuite.
+//
+// Ginkgo only allows a single AfterSuite to be instantiated, and it's here in this file, so
+// give other tests a chance to make use of it.
+func DeferredCleanup(f func()) {
+	cleanupHandlersMu.Lock()
+	defer cleanupHandlersMu.Unlock()
+	if cleanupHandlers == nil {
+		cleanupHandlers = []func(){}
+	}
+	cleanupHandlers = append(cleanupHandlers, f)
+}
+
+func runDeferredCleanups() {
+	cleanupHandlersMu.Lock()
+	defer cleanupHandlersMu.Unlock()
+	for _, handler := range cleanupHandlers {
+		if handler != nil {
+			handler()
+		}
+	}
+}
 
 func Address() string {
 	return address
