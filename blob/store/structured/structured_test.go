@@ -1,6 +1,8 @@
 package structured_test
 
 import (
+	"sync"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -9,10 +11,12 @@ import (
 	blobStoreStructuredTest "github.com/tidepool-org/platform/blob/store/structured/test"
 	"github.com/tidepool-org/platform/crypto"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
+	"github.com/tidepool-org/platform/data/store/mongo"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
+	mongotest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
@@ -187,3 +191,16 @@ var _ = Describe("Structured", func() {
 		})
 	})
 })
+
+var suiteStore *mongo.Store
+var suiteStoreOnce sync.Once
+
+func GetSuiteStore() *mongo.Store {
+	GinkgoHelper()
+	suiteStoreOnce.Do(func() {
+		base := mongotest.GetSuiteStore()
+		suiteStore = mongo.NewStoreFromBase(base)
+		Expect(suiteStore.EnsureIndexes()).To(Succeed())
+	})
+	return suiteStore
+}
