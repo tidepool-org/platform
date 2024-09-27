@@ -27,18 +27,18 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			"203.0.113.2", "203.0.113.3",
 		}
 
-		BeforeEach(func() {
-			config = storeStructuredMongoTest.NewConfig()
-		})
-
-		AfterEach(func() {
-			if store != nil {
-				err := store.Terminate(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-			}
-		})
-
 		Context("NewStore", func() {
+			BeforeEach(func() {
+				config = storeStructuredMongoTest.NewConfig()
+			})
+
+			AfterEach(func() {
+				if store != nil {
+					err := store.Terminate(context.Background())
+					Expect(err).ToNot(HaveOccurred())
+				}
+			})
+
 			It("returns an error if the config is missing", func() {
 				var err error
 				store, err = storeStructuredMongo.NewStore(nil)
@@ -97,10 +97,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 		Context("with a new store", func() {
 			BeforeEach(func() {
-				var err error
-				store, err = storeStructuredMongo.NewStore(config)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(store).ToNot(BeNil())
+				store = storeStructuredMongoTest.GetSuiteStore()
 			})
 
 			Context("Status", func() {

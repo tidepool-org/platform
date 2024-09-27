@@ -12,9 +12,13 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 		return nil, err
 	}
 
+	return NewStoreFromBase(baseStore), nil
+}
+
+func NewStoreFromBase(base *storeStructuredMongo.Store) *Store {
 	return &Store{
-		Store: baseStore,
-	}, nil
+		Store: base,
+	}
 }
 
 type Store struct {
