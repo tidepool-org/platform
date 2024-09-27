@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -55,9 +56,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			})
 
 			It("returns an error if the addresses are not reachable", func() {
-				config.Addresses = unusedIPs
 				var err error
-				store, err = storeStructuredMongo.NewStore(config)
+				clientOptions := options.Client()
+				clientOptions.SetTimeout(time.Millisecond)
+				clientOptions.SetSocketTimeout(time.Millisecond)
+				clientOptions.SetServerSelectionTimeout(time.Millisecond)
+				clientOptions.SetConnectTimeout(time.Millisecond)
+				config.Addresses = unusedIPs
+				store, err = storeStructuredMongo.NewStoreFromClient(config, clientOptions)
 				Expect(store).ToNot(BeNil())
 				Expect(err).ToNot(HaveOccurred())
 				// We can't compare the exact error here, since different OSes display slightly different errors
@@ -66,9 +72,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			})
 
 			It("returns the correct status if the addresses are not reachable", func() {
-				config.Addresses = unusedIPs
 				var err error
-				store, err = storeStructuredMongo.NewStore(config)
+				clientOptions := options.Client()
+				clientOptions.SetTimeout(time.Millisecond)
+				clientOptions.SetSocketTimeout(time.Millisecond)
+				clientOptions.SetServerSelectionTimeout(time.Millisecond)
+				clientOptions.SetConnectTimeout(time.Millisecond)
+				config.Addresses = unusedIPs
+				store, err = storeStructuredMongo.NewStoreFromClient(config, clientOptions)
 				Expect(store).ToNot(BeNil())
 				Expect(err).ToNot(HaveOccurred())
 				status := store.Status(context.Background())
