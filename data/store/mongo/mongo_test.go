@@ -241,26 +241,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
 	var logger = logTest.NewLogger()
-	var initOnce, cleanupOnce sync.Once
 	var store *dataStoreMongo.Store
+	var ensureIndexesOnce sync.Once
 
 	BeforeEach(func() {
-		initOnce.Do(func() {
-			config := storeStructuredMongoTest.NewConfig()
-			testStore, err := dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(testStore).ToNot(BeNil())
-			Expect(testStore.EnsureIndexes()).To(Succeed())
-			store = testStore
-		})
-	})
-
-	AfterEach(func() {
-		cleanupOnce.Do(func() {
-			storeStructuredMongoTest.DeferredCleanup(func() {
-				err := store.Terminate(context.Background())
-				Expect(err).To(Succeed())
-			})
+		store = dataStoreMongo.NewStoreFromBase(storeStructuredMongoTest.GetSuiteStore())
+		ensureIndexesOnce.Do(func() {
+			// EnsureIndexes is slow, but only needs to be executed once.
+			Expect(store.EnsureIndexes()).To(Succeed())
 		})
 	})
 

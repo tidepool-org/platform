@@ -13,51 +13,50 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/test"
 )
 
 var database string
 var address string
 
-var cleanupHandlers []func()
-var cleanupHandlersMu sync.Mutex
-
 var _ = ginkgo.BeforeSuite(func() {
 	database = generateUniqueName("database")
 	address = os.Getenv("TIDEPOOL_STORE_ADDRESSES")
 })
 
-var _ = ginkgo.AfterSuite(func() {
-	cfg := NewConfig()
-	clientOptions := options.Client().ApplyURI(cfg.AsConnectionString())
-	client, err := mongo.Connect(context.Background(), clientOptions)
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	err = client.Database(database).Drop(context.Background())
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	runDeferredCleanups()
-})
+var suiteStoreOnce sync.Once
+var suiteStore *storeStructuredMongo.Store
 
-// DeferredCleanup provides a way to have something run during AfterSuite.
-//
-// Ginkgo only allows a single AfterSuite to be instantiated, and it's here in this file, so
-// give other tests a chance to make use of it.
-func DeferredCleanup(f func()) {
-	cleanupHandlersMu.Lock()
-	defer cleanupHandlersMu.Unlock()
-	if cleanupHandlers == nil {
-		cleanupHandlers = []func(){}
-	}
-	cleanupHandlers = append(cleanupHandlers, f)
+func GetSuiteStore() *storeStructuredMongo.Store {
+	ginkgo.GinkgoHelper()
+	suiteStoreOnce.Do(func() {
+		var err error
+		config := NewConfig()
+		store, err := storeStructuredMongo.NewStore(config)
+		gomega.Expect(err).To(gomega.Succeed())
+		gomega.Expect(store).ToNot(gomega.BeNil())
+		suiteStore = store
+	})
+	return suiteStore
 }
 
-func runDeferredCleanups() {
-	cleanupHandlersMu.Lock()
-	defer cleanupHandlersMu.Unlock()
-	for _, handler := range cleanupHandlers {
-		if handler != nil {
-			handler()
-		}
+var _ = ginkgo.AfterSuite(func() {
+	ctx := context.Background()
+	dropTestDatabase(ctx)
+	if suiteStore != nil {
+		gomega.Expect(suiteStore.Terminate(ctx)).To(gomega.Succeed())
 	}
+})
+
+func dropTestDatabase(ctx context.Context) {
+	ginkgo.GinkgoHelper()
+	cfg := NewConfig()
+	clientOptions := options.Client().ApplyURI(cfg.AsConnectionString())
+	client, err := mongo.Connect(ctx, clientOptions)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	err = client.Database(database).Drop(ctx)
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 }
 
 func Address() string {
