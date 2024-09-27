@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"sync"
 
 	"go.uber.org/fx"
 
@@ -9,24 +10,17 @@ import (
 	. "github.com/onsi/gomega"
 
 	logNull "github.com/tidepool-org/platform/log/null"
+	logtest "github.com/tidepool-org/platform/log/test"
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
 var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
-	var mongoConfig *storeStructuredMongo.Config
 	var store *prescriptionStoreMongo.PrescriptionStore
 
 	BeforeEach(func() {
-		mongoConfig = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil && store.Store != nil {
-			store.Store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("New", func() {
@@ -42,13 +36,8 @@ var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
 		It("returns successfully", func() {
 			err := fx.New(
 				fx.NopLogger,
-				fx.Supply(mongoConfig),
+				fx.Supply(store),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(storeStructuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
 			).Start(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
@@ -59,24 +48,14 @@ var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
 		BeforeEach(func() {
 			err := fx.New(
 				fx.NopLogger,
-				fx.Supply(mongoConfig),
+				fx.Supply(store),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(storeStructuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
 			).Start(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
 
 		Context("With initialized store", func() {
-			BeforeEach(func() {
-				err := store.CreateIndexes(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-			})
-
 			Context("GetPrescriptionRepository", func() {
 				var repo prescriptionStore.PrescriptionRepository
 
@@ -88,3 +67,16 @@ var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
 		})
 	})
 })
+
+var suiteStore *prescriptionStoreMongo.PrescriptionStore
+var suiteStoreOnce sync.Once
+
+func GetSuiteStore() *prescriptionStoreMongo.PrescriptionStore {
+	GinkgoHelper()
+	suiteStoreOnce.Do(func() {
+		base := storeStructuredMongoTest.GetSuiteStore()
+		suiteStore = prescriptionStoreMongo.NewStoreFromBase(base, logtest.NewLogger())
+		Expect(suiteStore.CreateIndexes(context.Background())).To(Succeed())
+	})
+	return suiteStore
+}
