@@ -728,7 +728,6 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = nil
 						datum.ExtendedExpected = pointer.FromFloat64(combination.ExtendedMaximum)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration exists; extended expected missing",
 					func(datum *combination.Combination) {
@@ -737,7 +736,6 @@ var _ = Describe("Combination", func() {
 						datum.DurationExpected = pointer.FromInt(combination.DurationMaximum)
 						datum.ExtendedExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration exists; extended expected exists",
 					func(datum *combination.Combination) {
