@@ -225,6 +225,10 @@ ci-test-watch: ginkgo
 go-test:
 	. ./env.test.sh && go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
 
+go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+go-ci-test: GOTEST_PKGS = ./...
+go-ci-test: go-test
+
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
 deploy-services:
