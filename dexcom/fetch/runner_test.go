@@ -275,7 +275,9 @@ var _ = Describe("Runner", func() {
 
 				BeforeEach(func() {
 					dataSrc = &dataSource.Source{
-						ID: pointer.FromString("test-data-source-id"),
+						ID:                pointer.FromString("test-data-source-id"),
+						ProviderSessionID: pointer.FromString("test-provider-session-id"),
+						State:             pointer.FromString(dataSource.StateConnected),
 					}
 					dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(dataSrc, nil).Times(1)
 				})
@@ -490,7 +492,6 @@ var _ = Describe("Runner", func() {
 
 						It("is successful if the Dexcom data ranges is not valid", func() {
 							dataRangeResponse.Calibrations.Start = nil
-							dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -500,7 +501,6 @@ var _ = Describe("Runner", func() {
 
 						It("is successful if the Dexcom data ranges start is not before end", func() {
 							dataRangeResponse.Calibrations.Start = &dexcom.Moment{SystemTime: &dexcom.Time{Time: time.Now().Add(-2 * Day)}}
-							dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -606,7 +606,7 @@ var _ = Describe("Runner", func() {
 									ID:       pointer.FromString("test-data-set-id"),
 									UploadID: pointer.FromString("test-data-set-upload-id"),
 								}
-								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(4)
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(3)
 								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil)).Times(1)
 								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil)).Times(1)
 								taskRunner.Run(ctx)

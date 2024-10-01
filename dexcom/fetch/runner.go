@@ -297,16 +297,10 @@ func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 }
 
 func (t *TaskRunner) updateDataSourceWithTaskState() error {
-	var state string
-
-	if t.task.IsFailed() {
-		state = dataSource.StateError
-	} else {
-		state = dataSource.StateConnected
-	}
-
 	update := dataSource.NewUpdate()
-	update.State = pointer.FromString(state)
+	if t.task.IsFailed() {
+		update.State = pointer.FromString(dataSource.StateError)
+	}
 	update.Error = errors.NewSerializable(t.task.GetError())
 	return t.updateDataSource(update)
 }
