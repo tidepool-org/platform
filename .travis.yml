@@ -41,3 +41,8 @@ addons:
 
 script:
   - make ci-generate ci-build ci-test ci-deploy ci-docker
+  # Testing to see if go-ci-test catches the same failures as ci-test. If I
+  # understand how travis works, this means that go-ci-test will run even if
+  # ci-test fails, so we can see if they're catching the same
+  # things. Likewise, if go-ci-test fails, we can compare that to ci-test.
+  - make go-ci-test
