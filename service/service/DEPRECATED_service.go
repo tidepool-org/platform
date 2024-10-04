@@ -14,6 +14,10 @@ type DEPRECATEDService struct {
 	authClient *authClient.Client
 }
 
+// NewDEPRECATEDService is only used by the data service. Let's see if we can figure out how
+// to finally deprecate it. What replaces it? Well, the platform/service/service.Service of
+// course, which you can find in service/service/service.go. There's a YO DAWG meme in there
+// somewhere.
 func NewDEPRECATEDService() *DEPRECATEDService {
 	return &DEPRECATEDService{
 		Application: application.New(),
