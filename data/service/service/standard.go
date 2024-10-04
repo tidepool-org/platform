@@ -35,7 +35,6 @@ import (
 
 type Standard struct {
 	*service.Service
-	deprecatedService         *service.DEPRECATEDService
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
@@ -52,15 +51,11 @@ type Standard struct {
 
 func NewStandard() *Standard {
 	return &Standard{
-		deprecatedService: service.NewDEPRECATEDService(),
-		Service:           service.New(),
+		Service: service.New(),
 	}
 }
 
 func (s *Standard) Initialize(provider application.Provider) error {
-	if err := s.deprecatedService.Initialize(provider); err != nil {
-		return err
-	}
 	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
@@ -133,8 +128,7 @@ func (s *Standard) Terminate() {
 	s.permissionClient = nil
 	s.metricClient = nil
 
-	s.Service.Terminate()
-	s.deprecatedService.Terminate()
+	s.Terminate()
 }
 
 func (s *Standard) Run() error {
