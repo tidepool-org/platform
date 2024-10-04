@@ -13,7 +13,7 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
-	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/task/tasktest"
 
 	clinicsTest "github.com/tidepool-org/platform/clinics/test"
 	"github.com/tidepool-org/platform/ehr/reconcile"
@@ -29,7 +29,7 @@ var _ = Describe("Runner", func() {
 
 	var authClient *authTest.MockClient
 	var clinicsClient *clinics.MockClient
-	var taskClient *taskTest.MockClient
+	var taskClient *tasktest.MockClient
 	var logger log.Logger
 
 	BeforeEach(func() {
@@ -38,7 +38,7 @@ var _ = Describe("Runner", func() {
 		taskCtrl = gomock.NewController(GinkgoT())
 		authClient = authTest.NewMockClient(authCtrl)
 		clinicsClient = clinics.NewMockClient(clinicsCtrl)
-		taskClient = taskTest.NewMockClient(taskCtrl)
+		taskClient = tasktest.NewMockClient(taskCtrl)
 		logger = null.NewLogger()
 	})
 

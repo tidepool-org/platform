@@ -1,4 +1,4 @@
-package test
+package taskservicetest
 
 import (
 	"context"
@@ -7,16 +7,16 @@ import (
 	"github.com/tidepool-org/platform/task"
 	taskService "github.com/tidepool-org/platform/task/service"
 	taskStore "github.com/tidepool-org/platform/task/store"
-	taskStoreTest "github.com/tidepool-org/platform/task/store/test"
-	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/task/store/taskstoretest"
+	"github.com/tidepool-org/platform/task/tasktest"
 )
 
 type Service struct {
 	*serviceTest.Service
 	TaskStoreInvocations  int
-	TaskStoreImpl         *taskStoreTest.Store
+	TaskStoreImpl         *taskstoretest.Store
 	TaskClientInvocations int
-	TaskClientImpl        *taskTest.Client
+	TaskClientImpl        *tasktest.Client
 	StatusInvocations     int
 	StatusOutputs         []*taskService.Status
 }
@@ -24,8 +24,8 @@ type Service struct {
 func NewService() *Service {
 	return &Service{
 		Service:        serviceTest.NewService(),
-		TaskStoreImpl:  taskStoreTest.NewStore(),
-		TaskClientImpl: taskTest.NewClient(),
+		TaskStoreImpl:  taskstoretest.NewStore(),
+		TaskClientImpl: tasktest.NewClient(),
 	}
 }
 

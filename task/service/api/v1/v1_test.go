@@ -8,14 +8,14 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 
 	taskServiceApiV1 "github.com/tidepool-org/platform/task/service/api/v1"
-	taskServiceTest "github.com/tidepool-org/platform/task/service/test"
+	"github.com/tidepool-org/platform/task/service/taskservicetest"
 )
 
 var _ = Describe("V1", func() {
-	var service *taskServiceTest.Service
+	var service *taskservicetest.Service
 
 	BeforeEach(func() {
-		service = taskServiceTest.NewService()
+		service = taskservicetest.NewService()
 	})
 
 	Context("NewRouter", func() {
