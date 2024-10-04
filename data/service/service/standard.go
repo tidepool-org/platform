@@ -5,12 +5,12 @@ import (
 	"log"
 	"os"
 
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/IBM/sarama"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -34,7 +34,8 @@ import (
 )
 
 type Standard struct {
-	*service.DEPRECATEDService
+	*service.Service
+	deprecatedService         *service.DEPRECATEDService
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
@@ -51,12 +52,16 @@ type Standard struct {
 
 func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: service.NewDEPRECATEDService(),
+		deprecatedService: service.NewDEPRECATEDService(),
+		Service:           service.New(),
 	}
 }
 
 func (s *Standard) Initialize(provider application.Provider) error {
-	if err := s.DEPRECATEDService.Initialize(provider); err != nil {
+	if err := s.deprecatedService.Initialize(provider); err != nil {
+		return err
+	}
+	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
 
@@ -128,7 +133,8 @@ func (s *Standard) Terminate() {
 	s.permissionClient = nil
 	s.metricClient = nil
 
-	s.DEPRECATEDService.Terminate()
+	s.Service.Terminate()
+	s.deprecatedService.Terminate()
 }
 
 func (s *Standard) Run() error {
