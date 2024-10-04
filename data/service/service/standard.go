@@ -34,7 +34,7 @@ import (
 )
 
 type Standard struct {
-	*service.Service
+	*service.Authenticated
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
@@ -51,7 +51,7 @@ type Standard struct {
 
 func NewStandard() *Standard {
 	return &Standard{
-		Service: service.New(),
+		Authenticated: service.NewAuthenticated(),
 	}
 }
 
@@ -128,7 +128,7 @@ func (s *Standard) Terminate() {
 	s.permissionClient = nil
 	s.metricClient = nil
 
-	s.Terminate()
+	s.Authenticated.Terminate()
 }
 
 func (s *Standard) Run() error {
