@@ -11,23 +11,26 @@ import (
 	authTest "github.com/tidepool-org/platform/auth/test"
 	configTest "github.com/tidepool-org/platform/config/test"
 	serviceService "github.com/tidepool-org/platform/service/service"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 var _ = Describe("DEPRECATEDService", func() {
 	Context("NewDEPRECATEDService", func() {
 		It("returns successfully", func() {
-			Expect(serviceService.NewDEPRECATEDService()).ToNot(BeNil())
+			Expect(serviceService.New()).ToNot(BeNil())
 		})
 	})
 
 	Context("with started server, config reporter, and new service", func() {
 		var provider *applicationTest.Provider
-		var svc *serviceService.DEPRECATEDService
+		//var svc *serviceService.DEPRECATEDService
+		var svc *serviceService.Service
 		var serverSecret string
 		var sessionToken string
 		var server *Server
 		var authClientConfig map[string]interface{}
 		var serviceConfig map[string]interface{}
+		var serverConfig map[string]interface{}
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -54,15 +57,20 @@ var _ = Describe("DEPRECATEDService", func() {
 					"server_session_token_secret": serverSecret,
 				},
 			}
+			serverConfig = map[string]interface{}{
+				"address": testHttp.NewAddress(),
+				"tls":     "false",
+			}
 			serviceConfig = map[string]interface{}{
 				"secret": authTest.NewServiceSecret(),
+				"server": serverConfig,
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = serviceConfig
 
-			svc = serviceService.NewDEPRECATEDService()
+			svc = serviceService.New()
 			Expect(svc).ToNot(BeNil())
 		})
 
@@ -88,9 +96,9 @@ var _ = Describe("DEPRECATEDService", func() {
 					Expect(svc.Initialize(provider)).To(MatchError("secret is missing"))
 				})
 
-				It("returns an error when the auth client cannot be initialized", func() {
-					delete(authClientConfig, "address")
-					Expect(svc.Initialize(provider)).To(MatchError("unable to create auth client; config is invalid; address is missing"))
+				It("returns an error when the server cannot be initialized", func() {
+					delete(serverConfig, "address")
+					Expect(svc.Initialize(provider)).To(MatchError("unable to create server; config is invalid; address is missing"))
 				})
 
 				It("returns successfully", func() {
@@ -112,14 +120,6 @@ var _ = Describe("DEPRECATEDService", func() {
 				Context("Secret", func() {
 					It("returns the secret", func() {
 						Expect(svc.Secret()).To(Equal(serviceConfig["secret"]))
-					})
-				})
-
-				Context("AuthClient", func() {
-					It("returns successfully with server token", func() {
-						authClient := svc.AuthClient()
-						Expect(authClient).ToNot(BeNil())
-						Eventually(authClient.ServerSessionToken).Should(Equal(sessionToken))
 					})
 				})
 			})
