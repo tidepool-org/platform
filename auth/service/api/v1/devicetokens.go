@@ -13,6 +13,7 @@ import (
 func (r *Router) DeviceTokensRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Post("/v1/users/:userId/device_tokens", api.RequireUser(r.UpsertDeviceToken)),
+		rest.Get("/v1/users/:userId/device_tokens", api.RequireAuth(r.GetDeviceTokens)),
 	}
 }
 
@@ -38,4 +39,28 @@ func (r *Router) UpsertDeviceToken(res rest.ResponseWriter, req *rest.Request) {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
+}
+
+func (r *Router) GetDeviceTokens(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	ctx := req.Request.Context()
+	authDetails := request.GetAuthDetails(ctx)
+	repo := r.AuthStore().NewDeviceTokenRepository()
+	userID := req.PathParam("userId")
+
+	if userID != authDetails.UserID() && !authDetails.IsService() {
+		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+
+	docs, err := repo.GetAllByUserID(ctx, userID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+	tokens := make([]devicetokens.DeviceToken, 0, len(docs))
+	for _, doc := range docs {
+		tokens = append(tokens, doc.DeviceToken)
+	}
+	responder.Data(http.StatusOK, tokens)
 }

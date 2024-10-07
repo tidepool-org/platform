@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
@@ -21,6 +22,7 @@ type Client interface {
 	RestrictedTokenAccessor
 	ExternalAccessor
 	permission.Client
+	DeviceTokensClient
 }
 
 type ExternalAccessor interface {
@@ -49,4 +51,10 @@ func ServerSessionTokenFromContext(ctx context.Context) string {
 		}
 	}
 	return ""
+}
+
+// DeviceTokensClient provides access to the tokens used to authenticate
+// mobile device push notifications.
+type DeviceTokensClient interface {
+	GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error)
 }
