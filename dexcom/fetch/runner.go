@@ -853,8 +853,8 @@ func (t *TaskRunner) failTaskWithError(err error) error {
 func (t *TaskRunner) incrementTaskRetryCount() int {
 	retryCount := 1
 	if valueRaw, ok := t.task.Data[dexcom.DataKeyRetryCount]; ok && valueRaw != nil {
-		if value, ok := valueRaw.(int); ok {
-			retryCount = value
+		if value, ok := valueRaw.(int32); ok {
+			retryCount = int(value) + 1
 		}
 	}
 	t.task.Data[dexcom.DataKeyRetryCount] = retryCount
