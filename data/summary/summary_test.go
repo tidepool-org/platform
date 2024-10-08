@@ -29,7 +29,6 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -144,12 +143,10 @@ func NewGlucose(typ string, units string, datumTime *time.Time, deviceID string,
 
 var _ = Describe("Summary", func() {
 	Context("MaybeUpdateSummary", func() {
-		var err error
 		var empty struct{}
 		var logger log.Logger
 		var ctx context.Context
 		var registry *summary.SummarizerRegistry
-		var config *storeStructuredMongo.Config
 		var store *dataStoreMongo.Store
 		var summaryRepository *storeStructuredMongo.Repository
 		var dataStore dataStore.DataRepository
@@ -161,11 +158,8 @@ var _ = Describe("Summary", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
 
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
+			store = GetSuiteStore()
 
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			dataStore = store.NewDataRepository()
@@ -347,7 +341,6 @@ var _ = Describe("Summary", func() {
 		var err error
 		var logger log.Logger
 		var ctx context.Context
-		var config *storeStructuredMongo.Config
 		var store *dataStoreMongo.Store
 		var dataCollection *mongo.Collection
 		var datumTime time.Time
@@ -361,10 +354,8 @@ var _ = Describe("Summary", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
-			store, err = dataStoreMongo.NewStore(config)
+			store = GetSuiteStore()
 			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
 
 			dataCollection = store.GetCollection("deviceData")
 			datumTime = time.Now().UTC().Truncate(time.Hour)
@@ -416,7 +407,6 @@ var _ = Describe("Summary", func() {
 		var logger log.Logger
 		var ctx context.Context
 		var registry *summary.SummarizerRegistry
-		var config *storeStructuredMongo.Config
 		var store *dataStoreMongo.Store
 		var summaryRepository *storeStructuredMongo.Repository
 		var dataStore dataStore.DataRepository
@@ -433,11 +423,8 @@ var _ = Describe("Summary", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
 
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
+			store = GetSuiteStore()
 
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			dataCollection = store.GetCollection("deviceData")
@@ -832,7 +819,6 @@ var _ = Describe("Summary", func() {
 		var logger log.Logger
 		var ctx context.Context
 		var registry *summary.SummarizerRegistry
-		var config *storeStructuredMongo.Config
 		var store *dataStoreMongo.Store
 		var summaryRepository *storeStructuredMongo.Repository
 		var dataStore dataStore.DataRepository
@@ -845,11 +831,8 @@ var _ = Describe("Summary", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
 
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
+			store = GetSuiteStore()
 
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			dataCollection = store.GetCollection("deviceData")
