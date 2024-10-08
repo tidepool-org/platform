@@ -98,12 +98,14 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 	}
 }
 
-// respondedWithInvalidUserId returns a valid user id in userID and false for
-// handledError if the path parameter in userIDParamName is a valid otherwise it
-// will return true for handledError indicating no further middleware /
-// handlers / action should be taken
-func handledInvalidUserId(req *rest.Request, responder *request.Responder, userIDParamName string) (userID string, handledError bool) {
-	userID, err := request.DecodeRequestPathParameter(req, userIDParamName, user.IsValidID)
+// handledInvalidUser returns a an empty string for userID and true for
+// handledError if it the userID defined in the URL param userIDParam is not a
+// valid user id. If this is the case any further middleware should be aborted
+// and not be ran (return early). Otherwise, if the user id is valid, it will
+// return a valid user id in userID and false for handledError and subsequent
+// middlewares can be ran.
+func handledInvalidUserId(req *rest.Request, responder *request.Responder, userIDParam string) (userID string, handledError bool) {
+	userID, err := request.DecodeRequestPathParameter(req, userIDParam, user.IsValidID)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return "", true
@@ -111,6 +113,16 @@ func handledInvalidUserId(req *rest.Request, responder *request.Responder, userI
 	return userID, false
 }
 
+// RequireWritePermissions will proceed with the provided handlerFunc if the authenticated user has write permisisons to the userID defined in the URL param userIDParam.
+//
+// This will be true if the userID is one of:
+//   - the same as authenticated user in AuthDetails
+//   - the authenticated entity is a Service
+//   - the authenticated user in AuthDetails has explicit (permissions actually defined in gatekeeper) write permissions to the userID
+//
+// For example:
+//
+//	rest.Post("/v1/myroute/:userId/action", api.RequireWritePermissions(permissionsClient, "userId", handlerFunc))
 func RequireWritePermissions(permissionsClient func() permission.Client, userIDParam string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
@@ -141,11 +153,11 @@ func RequireWritePermissions(permissionsClient func() permission.Client, userIDP
 }
 
 // CheckMembership returns whether the user or service associated with the
-// request has a relationship with the user whose id is targetUserID It is not
+// request has a relationship with the user whose id is targetUserID. It is not
 // a middleware, but is used by some, because there are certain cases where we
-// do not know the actual user id - for example if we have to retrieve an
-// object and that object contains the user's id in the case of device logs for
-// example.
+// do not know the actual user id - for example, in the case of device logs, we
+// have to retrieve an object and that object contains the user's id. Only
+// after getting this user id do we know if a user has permissions to it.
 func CheckMembership(req *rest.Request, client permission.Client, targetUserID string) (allowed bool, err error) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
