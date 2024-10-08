@@ -72,3 +72,7 @@ func (i *Insulin) Normalize(normalizer data.Normalizer) {
 		i.Formulation.Normalize(normalizer.WithReference("formulation"))
 	}
 }
+
+func (i *Insulin) LegacyIdentityFields() ([]string, error) {
+	return i.Base.LegacyIdentityFields()
+}

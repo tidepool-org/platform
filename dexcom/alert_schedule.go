@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -17,13 +18,13 @@ const (
 	AlertScheduleSettingsStartTimeDefault = "00:00"
 	AlertScheduleSettingsEndTimeDefault   = "00:00"
 
-	AlertScheduleSettingsDaySunday    = "sunday"
-	AlertScheduleSettingsDayMonday    = "monday"
-	AlertScheduleSettingsDayTuesday   = "tuesday"
-	AlertScheduleSettingsDayWednesday = "wednesday"
-	AlertScheduleSettingsDayThursday  = "thursday"
-	AlertScheduleSettingsDayFriday    = "friday"
-	AlertScheduleSettingsDaySaturday  = "saturday"
+	AlertScheduleSettingsDaySunday    = dataTypesCommon.DaySunday
+	AlertScheduleSettingsDayMonday    = dataTypesCommon.DayMonday
+	AlertScheduleSettingsDayTuesday   = dataTypesCommon.DayTuesday
+	AlertScheduleSettingsDayWednesday = dataTypesCommon.DayWednesday
+	AlertScheduleSettingsDayThursday  = dataTypesCommon.DayThursday
+	AlertScheduleSettingsDayFriday    = dataTypesCommon.DayFriday
+	AlertScheduleSettingsDaySaturday  = dataTypesCommon.DaySaturday
 
 	AlertScheduleSettingsOverrideModeUnknown = "unknown"
 	AlertScheduleSettingsOverrideModeQuiet   = "quiet"
@@ -92,27 +93,6 @@ func AlertScheduleSettingsOverrideModes() []string {
 		AlertScheduleSettingsOverrideModeUnknown,
 		AlertScheduleSettingsOverrideModeQuiet,
 		AlertScheduleSettingsOverrideModeVibrate,
-	}
-}
-
-func AlertScheduleSettingsDayIndex(day string) int {
-	switch day {
-	case AlertScheduleSettingsDaySunday:
-		return 1
-	case AlertScheduleSettingsDayMonday:
-		return 2
-	case AlertScheduleSettingsDayTuesday:
-		return 3
-	case AlertScheduleSettingsDayWednesday:
-		return 4
-	case AlertScheduleSettingsDayThursday:
-		return 5
-	case AlertScheduleSettingsDayFriday:
-		return 6
-	case AlertScheduleSettingsDaySaturday:
-		return 7
-	default:
-		return 0
 	}
 }
 
@@ -410,25 +390,12 @@ func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
 
 func (a *AlertScheduleSettings) Normalize(normalizer structure.Normalizer) {
 	if a.DaysOfWeek != nil {
-		sort.Sort(DaysOfWeekByAlertScheduleSettingsDayIndex(*a.DaysOfWeek))
+		sort.Sort(dataTypesCommon.DaysOfWeekByDayIndex(*a.DaysOfWeek))
 	}
 }
 
 func (a *AlertScheduleSettings) IsDefault() bool {
 	return a.Default != nil && *a.Default
-}
-
-type DaysOfWeekByAlertScheduleSettingsDayIndex []string
-
-func (d DaysOfWeekByAlertScheduleSettingsDayIndex) Len() int {
-	return len(d)
-}
-func (d DaysOfWeekByAlertScheduleSettingsDayIndex) Swap(i int, j int) {
-	d[i], d[j] = d[j], d[i]
-}
-
-func (d DaysOfWeekByAlertScheduleSettingsDayIndex) Less(i int, j int) bool {
-	return AlertScheduleSettingsDayIndex(d[i]) < AlertScheduleSettingsDayIndex(d[j])
 }
 
 type AlertSettings []*AlertSetting

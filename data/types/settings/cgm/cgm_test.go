@@ -2,12 +2,14 @@ package cgm_test
 
 import (
 	"sort"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
@@ -593,6 +595,19 @@ var _ = Describe("CGM", func() {
 					nil,
 				),
 			)
+		})
+
+		Context("LegacyIdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := dataTypesSettingsCgmTest.RandomCGM(pointer.FromString("mmol/l"))
+				datum.DeviceID = pointer.FromString("some-cgm-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"cgmSettings", "2023-05-13T15:51:58.000Z", "some-cgm-device"}))
+			})
 		})
 	})
 

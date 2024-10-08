@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -123,6 +124,31 @@ var _ = Describe("Basal", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.DeliveryType}))
+			})
+		})
+		Context("LegacyIdentityFields", func() {
+			var datum *basal.Basal
+
+			BeforeEach(func() {
+				datum = dataTypesBasalTest.RandomBasal()
+			})
+
+			It("returns error if delivery type is empty", func() {
+				datum.DeliveryType = ""
+				identityFields, err := datum.LegacyIdentityFields()
+				Expect(err).To(MatchError("delivery type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				datum.DeliveryType = "some-delivery"
+				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"basal", "some-delivery", "some-device", "2023-05-13T15:51:58.000Z"}))
 			})
 		})
 	})

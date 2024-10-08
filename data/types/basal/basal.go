@@ -63,6 +63,15 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	return append(identityFields, b.DeliveryType), nil
 }
 
+func (b *Basal) LegacyIdentityFields() ([]string, error) {
+	return types.GetLegacyIDFields(
+		types.LegacyIDField{Name: "type", Value: &b.Type},
+		types.LegacyIDField{Name: "delivery type", Value: &b.DeliveryType},
+		types.LegacyIDField{Name: "device id", Value: b.DeviceID},
+		types.GetLegacyTimeField(b.Time),
+	)
+}
+
 func ParseDeliveryType(parser structure.ObjectParser) *string {
 	if !parser.Exists() {
 		return nil
