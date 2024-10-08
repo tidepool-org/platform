@@ -31,10 +31,12 @@ func FixOwnerPermissions(permissions Permissions) Permissions {
 	return permissions
 }
 
-// HasExplicitMembershipRelationship return whether a grantor has given given a
+// HasExplicitMembershipRelationship return whether a grantor has given a
 // grantee explicit rights. This is need in some places where we want to test a
-// user's permission. It is called explicit because in most middleware, a
-// service call already has implicit rights.
+// user's permission. It is called "Explicit" because in most middleware, a
+// service call already has implicit rights and this would then only be called
+// to check if a user has explicit writes if the AuthDetails were not from a
+// service.
 func HasExplicitMembershipRelationship(ctx context.Context, client Client, granteeUserID, grantorUserID string) (has bool, err error) {
 	fromTo, err := client.GetUserPermissions(ctx, granteeUserID, grantorUserID)
 	if err != nil {
