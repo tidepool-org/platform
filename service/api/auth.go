@@ -75,8 +75,9 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
 			responder := request.MustNewResponder(res, req)
-			targetUserID, handledError := handledInvalidUserId(req, responder, targetParamUserID)
-			if handledError {
+			targetUserID, err := request.DecodeRequestPathParameter(req, targetParamUserID, user.IsValidID)
+			if err != nil {
+				responder.Error(http.StatusBadRequest, err)
 				return
 			}
 			ctx := req.Context()
@@ -98,21 +99,6 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 	}
 }
 
-// handledInvalidUser returns a an empty string for userID and true for
-// handledError if it the userID defined in the URL param userIDParam is not a
-// valid user id. If this is the case any further middleware should be aborted
-// and not be ran (return early). Otherwise, if the user id is valid, it will
-// return a valid user id in userID and false for handledError and subsequent
-// middlewares can be ran.
-func handledInvalidUserId(req *rest.Request, responder *request.Responder, userIDParam string) (userID string, handledError bool) {
-	userID, err := request.DecodeRequestPathParameter(req, userIDParam, user.IsValidID)
-	if err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return "", true
-	}
-	return userID, false
-}
-
 // RequireWritePermissions will proceed with the provided handlerFunc if the authenticated user has write permisisons to the userID defined in the URL param userIDParam.
 //
 // This will be true if the userID is one of:
@@ -127,8 +113,9 @@ func RequireWritePermissions(permissionsClient func() permission.Client, userIDP
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
 			responder := request.MustNewResponder(res, req)
-			targetUserID, handledError := handledInvalidUserId(req, responder, userIDParam)
-			if handledError {
+			targetUserID, err := request.DecodeRequestPathParameter(req, userIDParam, user.IsValidID)
+			if err != nil {
+				responder.Error(http.StatusBadRequest, err)
 				return
 			}
 			ctx := req.Context()
