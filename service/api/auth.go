@@ -144,7 +144,8 @@ func RequireWritePermissions(permissionsClient func() permission.Client, userIDP
 // a middleware, but is used by some, because there are certain cases where we
 // do not know the actual user id - for example, in the case of device logs, we
 // have to retrieve an object and that object contains the user's id. Only
-// after getting this user id do we know if a user has permissions to it.
+// after getting this user id we are able to check if user has permissions to
+// that user.
 func CheckMembership(req *rest.Request, client permission.Client, targetUserID string) (allowed bool, err error) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
