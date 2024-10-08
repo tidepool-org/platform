@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+
 	auth "github.com/tidepool-org/platform/auth"
 	page "github.com/tidepool-org/platform/page"
 	permission "github.com/tidepool-org/platform/permission"

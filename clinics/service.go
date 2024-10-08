@@ -2,7 +2,6 @@ package clinics
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
@@ -27,6 +26,7 @@ var ClientModule = fx.Provide(NewClient)
 
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
+	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
@@ -84,7 +84,11 @@ func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID 
 		return nil, nil
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return nil, err
 	}
 	return response.JSON200, nil
 }
@@ -104,7 +108,11 @@ func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Cli
 			return nil, err
 		}
 		if response.StatusCode() != http.StatusOK {
-			return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+			err = errors.Preparedf(ErrorCodeClinicClientFailure,
+				"Unexpected status code from clinic service",
+				"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+			err = errors.WithMeta(err, response.HTTPResponse)
+			return nil, err
 		}
 		if response.JSON200 == nil {
 			break
@@ -119,6 +127,21 @@ func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Cli
 	}
 
 	return clinics, nil
+}
+
+func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error) {
+	response, err := d.httpClient.GetEHRSettingsWithResponse(ctx, clinicId)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode() != http.StatusOK || response.StatusCode() != http.StatusOK {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return nil, err
+	}
+	return response.JSON200, nil
 }
 
 func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
@@ -138,7 +161,11 @@ func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patie
 		return d.getPatient(ctx, clinicID, patientID)
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return nil, err
 	}
 	return response.JSON200, nil
 }
@@ -149,7 +176,11 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 		return err
 	}
 	if response.StatusCode() != http.StatusAccepted {
-		return fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
 	}
 	return nil
 }
@@ -160,7 +191,11 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 		return nil, err
 	}
 	if response.StatusCode() != http.StatusOK {
-		return nil, fmt.Errorf("unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return nil, err
 	}
 	return response.JSON200, nil
 }

@@ -1,10 +1,14 @@
-package sync
+package sync_test
 
 import (
+	"fmt"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/tidepool-org/clinic/client"
+
+	"github.com/tidepool-org/platform/ehr/sync"
 
 	"github.com/tidepool-org/platform/clinics"
 	clinicsTest "github.com/tidepool-org/platform/clinics/test"
@@ -30,7 +34,7 @@ var _ = Describe("Runner", func() {
 
 	Describe("NewRunner", func() {
 		It("returns successfully", func() {
-			Expect(NewRunner(clinicsClient, logger)).ToNot(BeNil())
+			Expect(sync.NewRunner(clinicsClient, logger)).ToNot(BeNil())
 		})
 	})
 
@@ -40,7 +44,7 @@ var _ = Describe("Runner", func() {
 
 		BeforeEach(func() {
 			clinic = clinicsTest.NewRandomClinic()
-			t, err := task.NewTask(NewTaskCreate(*clinic.Id))
+			t, err := task.NewTask(sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(t).ToNot(BeNil())
 			tsk = *t
@@ -49,11 +53,13 @@ var _ = Describe("Runner", func() {
 		It("calls sync for the clinics service", func() {
 			clinicsClient.EXPECT().SyncEHRData(gomock.Any(), *clinic.Id).Return(nil)
 
-			runner, err := NewRunner(clinicsClient, logger)
+			runner, err := sync.NewRunner(clinicsClient, logger)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runner).ToNot(BeNil())
-			Expect(runner.Run(nil, &tsk)).To(BeTrue())
+			res := runner.Run(nil, &tsk)
+			fmt.Println(tsk.Error)
+			Expect(res).To(BeTrue())
 		})
 	})
 })
