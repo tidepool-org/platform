@@ -113,7 +113,7 @@ func IsRefreshTokenError(err error) bool {
 		return false
 	} else if err = errors.Cause(err); err == nil {
 		return false
-	} else if errString := err.Error(); !strings.Contains(errString, "oauth2: cannot fetch token:") && !strings.Contains(errString, `oauth2: "invalid_grant"`) {
+	} else if errString := err.Error(); !strings.Contains(errString, `oauth2: "invalid_grant"`) {
 		return false
 	} else {
 		return true

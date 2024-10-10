@@ -125,10 +125,10 @@ var _ = Describe("Client", func() {
 			})
 
 			It("returns error when http client source returns that indicates an oauth token failure", func() {
-				responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+				responseErr := errors.New(`oauth2: "invalid_grant"`)
 				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
-				Expect(err).To(MatchError("unable to get data range; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+				Expect(err).To(MatchError(`unable to get data range; oauth2: "invalid_grant"; authentication token is invalid`))
 				Expect(dataRangeResponse).To(BeNil())
 				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -381,10 +381,10 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns error when http client source returns that indicates an oauth token failure", func() {
-					responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
-					Expect(err).To(MatchError("unable to get alerts; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+					Expect(err).To(MatchError(`unable to get alerts; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(alertsResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -610,10 +610,10 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns error when http client source returns that indicates an oauth token failure", func() {
-					responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
-					Expect(err).To(MatchError("unable to get calibrations; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+					Expect(err).To(MatchError(`unable to get calibrations; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(calibrationsResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -840,10 +840,10 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns error when http client source returns that indicates an oauth token failure", func() {
-					responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
-					Expect(err).To(MatchError("unable to get devices; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+					Expect(err).To(MatchError(`unable to get devices; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(devicesResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -1070,10 +1070,10 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns error when http client source returns that indicates an oauth token failure", func() {
-					responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
-					Expect(err).To(MatchError("unable to get egvs; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+					Expect(err).To(MatchError(`unable to get egvs; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(egvsResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
@@ -1300,10 +1300,10 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns error when http client source returns that indicates an oauth token failure", func() {
-					responseErr := errors.New("oauth2: cannot fetch token: 400 Bad Request")
+					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
-					Expect(err).To(MatchError("unable to get events; oauth2: cannot fetch token: 400 Bad Request; authentication token is invalid"))
+					Expect(err).To(MatchError(`unable to get events; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(eventsResponse).To(BeNil())
 					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
