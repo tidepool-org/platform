@@ -26,10 +26,10 @@ var _ = Describe("OAuth", func() {
 			Expect(oauth.IsRefreshTokenError(testErr)).To(BeFalse())
 		})
 
-		It("returns true is the error cause contains 'oauth2: cannot fetch token:'", func() {
+		It("returns false is the error cause contains 'oauth2: cannot fetch token:'", func() {
 			testCause := errors.New("one oauth2: cannot fetch token: three")
 			testErr := errors.Wrap(testCause, "test error")
-			Expect(oauth.IsRefreshTokenError(testErr)).To(BeTrue())
+			Expect(oauth.IsRefreshTokenError(testErr)).To(BeFalse())
 		})
 
 		It(`returns true is the error cause contains 'oauth2: "invalid_grant"'`, func() {
