@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/onsi/ginkgo/v2"
@@ -12,6 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -23,14 +25,39 @@ var _ = ginkgo.BeforeSuite(func() {
 	address = os.Getenv("TIDEPOOL_STORE_ADDRESSES")
 })
 
+var suiteStoreOnce sync.Once
+var suiteStore *storeStructuredMongo.Store
+
+func GetSuiteStore() *storeStructuredMongo.Store {
+	ginkgo.GinkgoHelper()
+	suiteStoreOnce.Do(func() {
+		var err error
+		config := NewConfig()
+		store, err := storeStructuredMongo.NewStore(config)
+		gomega.Expect(err).To(gomega.Succeed())
+		gomega.Expect(store).ToNot(gomega.BeNil())
+		suiteStore = store
+	})
+	return suiteStore
+}
+
 var _ = ginkgo.AfterSuite(func() {
+	ctx := context.Background()
+	dropTestDatabase(ctx)
+	if suiteStore != nil {
+		gomega.Expect(suiteStore.Terminate(ctx)).To(gomega.Succeed())
+	}
+})
+
+func dropTestDatabase(ctx context.Context) {
+	ginkgo.GinkgoHelper()
 	cfg := NewConfig()
 	clientOptions := options.Client().ApplyURI(cfg.AsConnectionString())
-	client, err := mongo.Connect(context.Background(), clientOptions)
+	client, err := mongo.Connect(ctx, clientOptions)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-	err = client.Database(database).Drop(context.Background())
+	err = client.Database(database).Drop(ctx)
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
-})
+}
 
 func Address() string {
 	return address

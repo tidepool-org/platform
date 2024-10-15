@@ -42,10 +42,7 @@ func NewStore(p Params) (store.Store, error) {
 		return nil, errors.New("store is missing")
 	}
 
-	prescriptionStore := &PrescriptionStore{
-		logger: p.Logger,
-		Store:  p.Store,
-	}
+	prescriptionStore := NewStoreFromBase(p.Store, p.Logger)
 
 	p.Lifestyle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -54,6 +51,13 @@ func NewStore(p Params) (store.Store, error) {
 	})
 
 	return prescriptionStore, nil
+}
+
+func NewStoreFromBase(base *structuredMongo.Store, logger log.Logger) *PrescriptionStore {
+	return &PrescriptionStore{
+		logger: logger,
+		Store:  base,
+	}
 }
 
 func (p *PrescriptionStore) CreateIndexes(ctx context.Context) error {

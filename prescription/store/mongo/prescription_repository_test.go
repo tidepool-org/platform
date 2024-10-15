@@ -5,26 +5,13 @@ import (
 	"sort"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/fx"
-
-	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-
-	logNull "github.com/tidepool-org/platform/log/null"
-
-	"github.com/tidepool-org/platform/user"
-
-	"syreclabs.com/go/faker"
-
-	userTest "github.com/tidepool-org/platform/user/test"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"syreclabs.com/go/faker"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -34,48 +21,29 @@ import (
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 	"github.com/tidepool-org/platform/prescription/test"
+	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var _ = Describe("PrescriptionRepository", func() {
-	var mongoConfig *structuredMongo.Config
+var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration"), func() {
 	var store *prescriptionStoreMongo.PrescriptionStore
 	var logger *logTest.Logger
 	var repository prescriptionStore.PrescriptionRepository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
-		mongoConfig = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil {
-			store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("with a new store", func() {
 		var collection *mongo.Collection
 
 		BeforeEach(func() {
-			err := fx.New(
-				fx.NopLogger,
-				fx.Supply(mongoConfig),
-				fx.Provide(logNull.NewLogger),
-				fx.Provide(structuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
-			).Start(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			collection = store.GetCollection("prescriptions")
+		})
 
-			clientOptions := options.Client().ApplyURI(mongoConfig.AsConnectionString())
-			client, err := mongo.Connect(context.Background(), clientOptions)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(client).ToNot(BeNil())
-
-			collection = client.Database(mongoConfig.Database).Collection(mongoConfig.CollectionPrefix + "prescriptions")
+		AfterEach(func() {
+			collection.DeleteMany(context.Background(), bson.D{})
 		})
 
 		Context("CreateIndexes", func() {
