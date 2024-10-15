@@ -27,7 +27,7 @@ func NewDeviceTruncateDataSet() (*DeviceTruncateDataSet, error) {
 	}, nil
 }
 
-func (t *DeviceTruncateDataSet) New(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -40,7 +40,7 @@ func (t *DeviceTruncateDataSet) New(dataSet *dataTypesUpload.Upload) (bool, erro
 	}
 
 	if dataSet.HasDeduplicatorName() {
-		return t.Get(dataSet)
+		return t.Get(ctx, dataSet)
 	}
 
 	if dataSet.DeviceManufacturers == nil {
@@ -58,8 +58,8 @@ func (t *DeviceTruncateDataSet) New(dataSet *dataTypesUpload.Upload) (bool, erro
 	return false, nil
 }
 
-func (t *DeviceTruncateDataSet) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := t.Base.Get(dataSet); err != nil || found {
+func (t *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	if found, err := t.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 

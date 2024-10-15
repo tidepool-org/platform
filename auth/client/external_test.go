@@ -8,6 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -76,6 +78,8 @@ var _ = Describe("External", func() {
 	})
 
 	Context("with server and new client", func() {
+		var serverSessionTokenProviderController *gomock.Controller
+		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var server *Server
 		var requestHandlers []http.HandlerFunc
 		var responseHeaders http.Header
@@ -85,14 +89,17 @@ var _ = Describe("External", func() {
 		var ctx context.Context
 
 		BeforeEach(func() {
+			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
 			server = NewServer()
 			requestHandlers = nil
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			sessionToken = authTest.NewSessionToken()
+			serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 			details = request.NewAuthDetails(request.MethodSessionToken, "", sessionToken)
 			ctx = context.Background()
 			ctx = log.NewContextWithLogger(ctx, logger)
-			ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
+			ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)
 		})
 
 		JustBeforeEach(func() {
@@ -109,6 +116,7 @@ var _ = Describe("External", func() {
 			if server != nil {
 				server.Close()
 			}
+			serverSessionTokenProviderController.Finish()
 		})
 
 		Context("EnsureAuthorized", func() {

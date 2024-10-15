@@ -10,13 +10,14 @@ import (
 )
 
 const NoneName = "org.tidepool.deduplicator.none"
+const NoneVersion = "1.0.0"
 
 type None struct {
 	*Base
 }
 
 func NewNone() (*None, error) {
-	base, err := NewBase(NoneName, "1.0.0")
+	base, err := NewBase(NoneName, NoneVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -26,12 +27,12 @@ func NewNone() (*None, error) {
 	}, nil
 }
 
-func (n *None) New(dataSet *dataTypesUpload.Upload) (bool, error) {
-	return n.Get(dataSet)
+func (n *None) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	return n.Get(ctx, dataSet)
 }
 
-func (n *None) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := n.Base.Get(dataSet); err != nil || found {
+func (n *None) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	if found, err := n.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 

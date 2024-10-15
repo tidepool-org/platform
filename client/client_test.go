@@ -1,7 +1,9 @@
 package client_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -34,9 +36,11 @@ type ResponseBody struct {
 
 var _ = Describe("Client", func() {
 	var config *client.Config
+	var errorResponseParser client.ErrorResponseParser
 
 	BeforeEach(func() {
 		config = client.NewConfig()
+		errorResponseParser = client.NewSerializableErrorResponseParser()
 	})
 
 	Context("New", func() {
@@ -62,6 +66,33 @@ var _ = Describe("Client", func() {
 		})
 	})
 
+	Context("NewWithErrorParser", func() {
+		BeforeEach(func() {
+			config.Address = testHttp.NewAddress()
+		})
+
+		It("returns an error if config is missing", func() {
+			clnt, err := client.NewWithErrorParser(nil, errorResponseParser)
+			Expect(err).To(MatchError("config is missing"))
+			Expect(clnt).To(BeNil())
+		})
+
+		It("returns an error if config is invalid", func() {
+			config.Address = ""
+			clnt, err := client.NewWithErrorParser(config, errorResponseParser)
+			Expect(err).To(MatchError("config is invalid; address is missing"))
+			Expect(clnt).To(BeNil())
+		})
+
+		It("returns successfully", func() {
+			Expect(client.NewWithErrorParser(config, errorResponseParser)).ToNot(BeNil())
+		})
+
+		It("returns successfully without an error response parser", func() {
+			Expect(client.NewWithErrorParser(config, nil)).ToNot(BeNil())
+		})
+	})
+
 	Context("with new client", func() {
 		var address string
 		var clnt *client.Client
@@ -73,7 +104,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			clnt, err = client.New(config)
+			clnt, err = client.NewWithErrorParser(config, errorResponseParser)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -201,7 +232,7 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			config.Address = server.URL()
 			var err error
-			clnt, err = client.New(config)
+			clnt, err = client.NewWithErrorParser(config, errorResponseParser)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -223,11 +254,11 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("with a user agent", func() {
-				var userAgent = testHttp.NewUserAgent()
-				JustBeforeEach(func() {
+				var userAgent string
+
+				BeforeEach(func() {
+					userAgent = testHttp.NewUserAgent()
 					config.UserAgent = userAgent
-					clnt, err = client.New(config)
-					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("sets the User-Agent header in requests", func() {
@@ -243,10 +274,8 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("without a user agent", func() {
-				JustBeforeEach(func() {
+				BeforeEach(func() {
 					config.UserAgent = ""
-					clnt, err = client.New(config)
-					Expect(err).ToNot(HaveOccurred())
 				})
 
 				It("doesn't set one (and the Go default is used)", func() {
@@ -293,6 +322,13 @@ var _ = Describe("Client", func() {
 				invalidRequestBody := struct{ Func interface{} }{func() {}}
 				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, invalidRequestBody, inspectors, httpClient)
 				Expect(err.Error()).To(MatchRegexp("unable to serialize request to .*; json: unsupported type: func()"))
+				Expect(reader).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
+			It("returns error if method is invalid", func() {
+				reader, err = clnt.RequestStreamWithHTTPClient(ctx, "/", url, mutators, requestBody, inspectors, httpClient)
+				Expect(err.Error()).To(MatchRegexp("unable to create request to / .*; net/http: invalid method \"/\""))
 				Expect(reader).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
@@ -377,6 +413,31 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, responseErr)
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an bad request 400 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorBadRequest())
 					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -469,7 +530,32 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with a too many requests response 413", func() {
+			Context("with an resource not found 404 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with a request entity too large response 413", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -551,6 +637,31 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, responseErr)
+					Expect(reader).To(BeNil())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = errorsTest.RandomError()
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
 					Expect(reader).To(BeNil())
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
@@ -795,6 +906,30 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with an bad request 400 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorBadRequest())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with an unauthorized response 401", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -878,6 +1013,30 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("with an resource not found 404 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
 			Context("with a resource too large response 413", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
@@ -940,6 +1099,7 @@ var _ = Describe("Client", func() {
 
 			Context("with an unexpected response 500 with deserializable error body", func() {
 				var responseErr error
+
 				BeforeEach(func() {
 					responseErr = errorsTest.RandomError()
 					server.AppendHandlers(
@@ -956,6 +1116,30 @@ var _ = Describe("Client", func() {
 				It("returns an error", func() {
 					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 					errorsTest.ExpectEqual(err, responseErr)
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+				})
+			})
+
+			Context("with an unexpected response 500 with deserializable error body without deserializing", func() {
+				var responseErr error
+
+				BeforeEach(func() {
+					errorResponseParser = nil
+					responseErr = errorsTest.RandomError()
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWithJSONEncoded(http.StatusInternalServerError, errors.NewSerializable(responseErr), responseHeaders),
+						),
+					)
+				})
+
+				It("returns an error", func() {
+					err := clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+					Expect(err).To(MatchError(fmt.Sprintf(`unexpected response status code 500 from %s "%s?%s=%s"`, method, url, parameterMutator.Key, parameterMutator.Value)))
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
@@ -1101,6 +1285,30 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 			})
+		})
+	})
+
+	Context("NewSerializableErrorResponseParser", func() {
+		It("returns success", func() {
+			Expect(client.NewSerializableErrorResponseParser()).ToNot(BeNil())
+		})
+	})
+
+	Context("SerializableErrorResponseParser", func() {
+		It("returns nil if response body is not parseable", func() {
+			serializableErrorResponseParser := client.NewSerializableErrorResponseParser()
+			err := serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader([]byte("NOT JSON")))}, testHttp.NewRequest())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns deserialized error if response body is parseable", func() {
+			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+			body, err := json.Marshal(errors.Serializable{Error: responseErr})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(body).ToNot(BeNil())
+			serializableErrorResponseParser := client.NewSerializableErrorResponseParser()
+			err = serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader(body))}, testHttp.NewRequest())
+			Expect(err).To(Equal(responseErr))
 		})
 	})
 })

@@ -10,6 +10,7 @@ import (
 	dataTypesBolusAutomatedTest "github.com/tidepool-org/platform/data/types/bolus/automated/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -79,7 +80,7 @@ var _ = Describe("Automated", func() {
 					object := dataTypesBolusAutomatedTest.NewObjectFromAutomated(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesBolusAutomated.New()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -328,7 +329,7 @@ var _ = Describe("Automated", func() {
 						datum := dataTypesBolusAutomatedTest.RandomAutomated()
 						mutator(datum)
 						expectedDatum := dataTypesBolusAutomatedTest.CloneAutomated(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/crypto"
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -30,7 +31,7 @@ var _ = Describe("Structured", func() {
 				func(mutator func(datum *blobStoreStructured.Create), expectedErrors ...error) {
 					datum := blobStoreStructuredTest.RandomCreate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blobStoreStructured.Create) {},
@@ -67,7 +68,7 @@ var _ = Describe("Structured", func() {
 				func(mutator func(datum *blobStoreStructured.Update), expectedErrors ...error) {
 					datum := blobStoreStructuredTest.RandomUpdate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blobStoreStructured.Update) {},

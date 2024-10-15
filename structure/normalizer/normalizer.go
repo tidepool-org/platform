@@ -1,6 +1,7 @@
 package normalizer
 
 import (
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -9,14 +10,18 @@ type Normalizer struct {
 	base *structureBase.Base
 }
 
-func New() *Normalizer {
-	return NewNormalizer(structureBase.New().WithSource(structure.NewPointerSource()))
+func New(logger log.Logger) *Normalizer {
+	return NewNormalizer(structureBase.New(logger).WithSource(structure.NewPointerSource()))
 }
 
 func NewNormalizer(base *structureBase.Base) *Normalizer {
 	return &Normalizer{
 		base: base,
 	}
+}
+
+func (n *Normalizer) Logger() log.Logger {
+	return n.base.Logger()
 }
 
 func (n *Normalizer) Origin() structure.Origin {

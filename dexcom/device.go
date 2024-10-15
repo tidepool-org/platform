@@ -3,7 +3,6 @@ package dexcom
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"strconv"
 
 	yaml "gopkg.in/yaml.v2"
 
@@ -13,30 +12,52 @@ import (
 )
 
 const (
+	DevicesResponseRecordType    = "device"
+	DevicesResponseRecordVersion = "3.0"
+
+	DeviceDisplayDeviceUnknown             = "unknown"
 	DeviceDisplayDeviceAndroid             = "android"
 	DeviceDisplayDeviceIOS                 = "iOS"
 	DeviceDisplayDeviceReceiver            = "receiver"
 	DeviceDisplayDeviceShareReceiver       = "shareReceiver"
 	DeviceDisplayDeviceTouchscreenReceiver = "touchscreenReceiver"
 
+	DeviceDisplayAppUnknown  = "unknown"
+	DeviceDisplayAppG5       = "G5"
+	DeviceDisplayAppG6       = "G6"
+	DeviceDisplayAppG7       = "G7"
+	DeviceDisplayAppReceiver = "receiver"
+	DeviceDisplayAppWatch    = "Watch"
+
 	DeviceTransmitterGenerationUnknown = "unknown"
 	DeviceTransmitterGenerationG4      = "g4"
 	DeviceTransmitterGenerationG5      = "g5"
 	DeviceTransmitterGenerationG6      = "g6"
-	//note: 'g6 pro' not specfied in API specs but found during actual usage
-	DeviceTransmitterGenerationG6Pro  = "g6 pro"
-	DeviceTransmitterGenerationG6Plus = "g6+"
-	DeviceTransmitterGenerationPro    = "dexcomPro"
-	DeviceTransmitterGenerationG7     = "g7"
+	DeviceTransmitterGenerationG6Pro   = "g6 pro" // NOTE: Not specfied in API specs but found during actual usage
+	DeviceTransmitterGenerationG6Plus  = "g6+"
+	DeviceTransmitterGenerationPro     = "dexcomPro"
+	DeviceTransmitterGenerationG7      = "g7"
 )
 
 func DeviceDisplayDevices() []string {
 	return []string{
+		DeviceDisplayDeviceUnknown,
 		DeviceDisplayDeviceAndroid,
 		DeviceDisplayDeviceIOS,
 		DeviceDisplayDeviceReceiver,
 		DeviceDisplayDeviceShareReceiver,
 		DeviceDisplayDeviceTouchscreenReceiver,
+	}
+}
+
+func DeviceDisplayApps() []string {
+	return []string{
+		DeviceDisplayAppUnknown,
+		DeviceDisplayAppG5,
+		DeviceDisplayAppG6,
+		DeviceDisplayAppG7,
+		DeviceDisplayAppReceiver,
+		DeviceDisplayAppWatch,
 	}
 }
 
@@ -57,8 +78,7 @@ type DevicesResponse struct {
 	RecordType    *string  `json:"recordType,omitempty"`
 	RecordVersion *string  `json:"recordVersion,omitempty"`
 	UserID        *string  `json:"userId,omitempty"`
-	Devices       *Devices `json:"records,omitempty"`
-	IsSandboxData bool     `json:"isSandboxData,omitempty"`
+	Records       *Devices `json:"records,omitempty"`
 }
 
 func ParseDevicesResponse(parser structure.ObjectParser) *DevicesResponse {
@@ -75,25 +95,24 @@ func NewDevicesResponse() *DevicesResponse {
 }
 
 func (d *DevicesResponse) Parse(parser structure.ObjectParser) {
-	d.UserID = parser.String("userId")
+	parser = parser.WithMeta(d)
+
 	d.RecordType = parser.String("recordType")
 	d.RecordVersion = parser.String("recordVersion")
-	d.Devices = ParseDevices(parser.WithReferenceArrayParser("records"))
+	d.UserID = parser.String("userId")
+	d.Records = ParseDevices(parser.WithReferenceArrayParser("records"))
 }
 
 func (d *DevicesResponse) Validate(validator structure.Validator) {
-	if devicesValidator := validator.WithReference("records"); d.Devices != nil {
-		if !d.IsSandboxData {
-			d.Devices.Validate(devicesValidator)
-		}
-	} else {
-		devicesValidator.ReportError(structureValidator.ErrorValueNotExists())
-	}
-}
+	validator = validator.WithMeta(d)
 
-func (d *DevicesResponse) Normalize(normalizer structure.Normalizer) {
-	if d.Devices != nil {
-		d.Devices.Normalize(normalizer.WithReference("records"))
+	validator.String("recordType", d.RecordType).Exists().EqualTo(DevicesResponseRecordType)
+	validator.String("recordVersion", d.RecordVersion).Exists().EqualTo(DevicesResponseRecordVersion)
+	validator.String("userId", d.UserID).Exists().NotEmpty()
+
+	// Only validate that the records exist, remaining validation will occur later on a per-record basis
+	if d.Records == nil {
+		validator.WithReference("records").ReportError(structureValidator.ErrorValueNotExists())
 	}
 }
 
@@ -118,27 +137,11 @@ func (d *Devices) Parse(parser structure.ArrayParser) {
 	}
 }
 
-func (d *Devices) Validate(validator structure.Validator) {
-	for index, device := range *d {
-		if deviceValidator := validator.WithReference(strconv.Itoa(index)); device != nil {
-			device.Validate(deviceValidator)
-		} else {
-			deviceValidator.ReportError(structureValidator.ErrorValueNotExists())
-		}
-	}
-}
-
-func (d *Devices) Normalize(normalizer structure.Normalizer) {
-	for index, device := range *d {
-		device.Normalize(normalizer.WithReference(strconv.Itoa(index)))
-	}
-}
-
 type Device struct {
 	LastUploadDate        *Time           `json:"lastUploadDate,omitempty" yaml:"-"`
-	AlertScheduleList     *AlertSchedules `json:"alertSchedules,omitempty" yaml:"alertSchedules,omitempty"`
-	TransmitterID         *string         `json:"transmitterId,omitempty" yaml:"transmitterId,omitempty"`
+	AlertSchedules        *AlertSchedules `json:"alertSchedules,omitempty" yaml:"alertSchedules,omitempty"`
 	TransmitterGeneration *string         `json:"transmitterGeneration,omitempty" yaml:"transmitterGeneration,omitempty"`
+	TransmitterID         *string         `json:"transmitterId,omitempty" yaml:"transmitterId,omitempty"`
 	DisplayDevice         *string         `json:"displayDevice,omitempty" yaml:"displayDevice,omitempty"`
 	DisplayApp            *string         `json:"displayApp,omitempty" yaml:"displayApp,omitempty"`
 }
@@ -157,30 +160,44 @@ func NewDevice() *Device {
 }
 
 func (d *Device) Parse(parser structure.ObjectParser) {
+	parser = parser.WithMeta(d)
+
 	d.LastUploadDate = ParseTime(parser, "lastUploadDate")
-	d.AlertScheduleList = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
-	d.TransmitterID = parser.String("transmitterId")
+	d.AlertSchedules = ParseAlertSchedules(parser.WithReferenceArrayParser("alertSchedules"))
 	d.TransmitterGeneration = parser.String("transmitterGeneration")
+	d.TransmitterID = parser.String("transmitterId")
 	d.DisplayDevice = parser.String("displayDevice")
 	d.DisplayApp = parser.String("displayApp")
 }
 
 func (d *Device) Validate(validator structure.Validator) {
 	validator = validator.WithMeta(d)
-	validator.Time("lastUploadDate", d.LastUploadDate.Raw()).Exists().NotZero()
-	if alertScheduleListValidator := validator.WithReference("alertSchedules"); d.AlertScheduleList != nil {
-		d.AlertScheduleList.Validate(alertScheduleListValidator)
+
+	validator.Time("lastUploadDate", d.LastUploadDate.Raw()).NotZero() // Dexcom - May not exist
+	if alertScheduleListValidator := validator.WithReference("alertSchedules"); d.AlertSchedules != nil {
+		d.AlertSchedules.Validate(alertScheduleListValidator)
 	} else {
 		alertScheduleListValidator.ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("transmitterId", d.TransmitterID).Using(TransmitterIDValidator)
 	validator.String("transmitterGeneration", d.TransmitterGeneration).Exists().OneOf(DeviceTransmitterGenerations()...)
+	validator.String("transmitterId", d.TransmitterID).Exists().Using(TransmitterIDValidator)
 	validator.String("displayDevice", d.DisplayDevice).Exists().OneOf(DeviceDisplayDevices()...)
+	validator.String("displayApp", d.DisplayApp).Exists().OneOf(DeviceDisplayApps()...)
 }
 
 func (d *Device) Normalize(normalizer structure.Normalizer) {
-	if d.AlertScheduleList != nil {
-		d.AlertScheduleList.Normalize(normalizer.WithReference("alertSchedules"))
+	normalizer = normalizer.WithMeta(d)
+
+	if d.AlertSchedules != nil {
+		d.AlertSchedules.Normalize(normalizer.WithReference("alertSchedules"))
+	}
+}
+
+func (d *Device) ID() string {
+	if d.TransmitterID != nil && *d.TransmitterID != "" {
+		return *d.TransmitterID
+	} else {
+		return *d.TransmitterGeneration
 	}
 }
 

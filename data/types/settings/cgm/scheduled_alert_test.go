@@ -7,6 +7,7 @@ import (
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -58,7 +59,7 @@ var _ = Describe("ScheduledAlert", func() {
 	})
 
 	It("ScheduledAlertEndMaximum is expected", func() {
-		Expect(dataTypesSettingsCgm.ScheduledAlertEndMaximum).To(Equal(86400000))
+		Expect(dataTypesSettingsCgm.ScheduledAlertEndMaximum).To(Equal(172800000))
 	})
 
 	It("ScheduledAlertEndMinimum is expected", func() {
@@ -91,7 +92,7 @@ var _ = Describe("ScheduledAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.ScheduledAlerts), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomScheduledAlerts(1, 3)
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.ScheduledAlerts) {},
@@ -175,7 +176,7 @@ var _ = Describe("ScheduledAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.ScheduledAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomScheduledAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) {},
@@ -244,17 +245,17 @@ var _ = Describe("ScheduledAlert", func() {
 				),
 				Entry("end out of range (lower)",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(-1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/end"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 172800000), "/end"),
 				),
 				Entry("end in range (lower)",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(0) },
 				),
 				Entry("end in range (upper)",
-					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(86400000) },
+					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(172800000) },
 				),
 				Entry("end out of range (upper)",
-					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(86400001) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/end"),
+					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.End = pointer.FromInt(172800001) },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(172800001, 0, 172800000), "/end"),
 				),
 				Entry("alerts missing",
 					func(datum *dataTypesSettingsCgm.ScheduledAlert) { datum.Alerts = nil },
