@@ -12,7 +12,6 @@ import (
 
 	raw "github.com/tidepool-org/platform/data/raw"
 	page "github.com/tidepool-org/platform/page"
-	request "github.com/tidepool-org/platform/request"
 )
 
 // MockClient is a mock of Client interface.
@@ -51,50 +50,6 @@ func (m *MockClient) Create(ctx context.Context, userID, dataSetID string, conte
 func (mr *MockClientMockRecorder) Create(ctx, userID, dataSetID, content interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockClient)(nil).Create), ctx, userID, dataSetID, content)
-}
-
-// Delete mocks base method.
-func (m *MockClient) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, id, condition)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Delete indicates an expected call of Delete.
-func (mr *MockClientMockRecorder) Delete(ctx, id, condition interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClient)(nil).Delete), ctx, id, condition)
-}
-
-// DeleteAll mocks base method.
-func (m *MockClient) DeleteAll(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAll", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAll indicates an expected call of DeleteAll.
-func (mr *MockClientMockRecorder) DeleteAll(ctx, userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockClient)(nil).DeleteAll), ctx, userID)
-}
-
-// Get mocks base method.
-func (m *MockClient) Get(ctx context.Context, id string) (*raw.Raw, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, id)
-	ret0, _ := ret[0].(*raw.Raw)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockClientMockRecorder) Get(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockClient)(nil).Get), ctx, id)
 }
 
 // GetContent mocks base method.

@@ -52,32 +52,18 @@ func (mr *MockClientMockRecorder) Create(ctx, create interface{}) *gomock.Call {
 }
 
 // Delete mocks base method.
-func (m *MockClient) Delete(ctx context.Context, id string) error {
+func (m *MockClient) Delete(ctx context.Context, id string) (*work.Work, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Delete", ctx, id)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*work.Work)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // Delete indicates an expected call of Delete.
 func (mr *MockClientMockRecorder) Delete(ctx, id interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClient)(nil).Delete), ctx, id)
-}
-
-// Get mocks base method.
-func (m *MockClient) Get(ctx context.Context, id string) (*work.Work, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Get", ctx, id)
-	ret0, _ := ret[0].(*work.Work)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Get indicates an expected call of Get.
-func (mr *MockClientMockRecorder) Get(ctx, id interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockClient)(nil).Get), ctx, id)
 }
 
 // Process mocks base method.

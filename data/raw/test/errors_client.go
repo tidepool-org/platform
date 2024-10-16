@@ -11,7 +11,6 @@ import (
 	gomock "github.com/golang/mock/gomock"
 
 	raw "github.com/tidepool-org/platform/data/raw"
-	page "github.com/tidepool-org/platform/page"
 )
 
 // MockErrorsClient is a mock of ErrorsClient interface.
@@ -49,33 +48,4 @@ func (m *MockErrorsClient) AppendErrors(ctx context.Context, userID, dataSetID s
 func (mr *MockErrorsClientMockRecorder) AppendErrors(ctx, userID, dataSetID, sourceErrors interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AppendErrors", reflect.TypeOf((*MockErrorsClient)(nil).AppendErrors), ctx, userID, dataSetID, sourceErrors)
-}
-
-// DeleteAll mocks base method.
-func (m *MockErrorsClient) DeleteAll(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAll", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAll indicates an expected call of DeleteAll.
-func (mr *MockErrorsClientMockRecorder) DeleteAll(ctx, userID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockErrorsClient)(nil).DeleteAll), ctx, userID)
-}
-
-// ListErrors mocks base method.
-func (m *MockErrorsClient) ListErrors(ctx context.Context, userID, dataSetID string, filter *raw.ErrorsFilter, pagination *page.Pagination) (raw.DataSetErrorsArray, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListErrors", ctx, userID, dataSetID, filter, pagination)
-	ret0, _ := ret[0].(raw.DataSetErrorsArray)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListErrors indicates an expected call of ListErrors.
-func (mr *MockErrorsClientMockRecorder) ListErrors(ctx, userID, dataSetID, filter, pagination interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListErrors", reflect.TypeOf((*MockErrorsClient)(nil).ListErrors), ctx, userID, dataSetID, filter, pagination)
 }
