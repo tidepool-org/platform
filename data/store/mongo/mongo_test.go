@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +33,6 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -236,298 +236,63 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 	return dataSetDatumAsInterface
 }
 
-var _ = Describe("Mongo", func() {
-	var logger *logTest.Logger
-	var config *storeStructuredMongo.Config
-	var store *dataStoreMongo.Store
+var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
+	var logger = logTest.NewLogger()
+	var store *dataStoreMongo.Store
 
 	BeforeEach(func() {
-		logger = logTest.NewLogger()
-		config = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil {
-			_ = store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(nil)
+			testStore, err := dataStoreMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
-			Expect(store).To(BeNil())
+			Expect(testStore).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(config)
+			testStore, err := dataStoreMongo.NewStore(storeStructuredMongoTest.NewConfig())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			Expect(testStore).ToNot(BeNil())
 		})
 	})
 
-	Context("Utility Functions", func() {
-		Context("MergeSortedUploads", func() {
-			prevUpload1 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid1"),
-					ID:              pointer.FromString("id1"),
-					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload1"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 0,
-				},
-			}
-			prevUpload2 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid2"),
-					ID:              pointer.FromString("id2"),
-					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload2"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 0,
-				},
-			}
-			newUpload1 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2016-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid1"),
-					ID:              pointer.FromString("id1"),
-					ModifiedTime:    pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload1"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 1,
-				},
-			}
-			newUpload2 := &upload.Upload{
-				Base: types.Base{
-					Active:          true,
-					CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					CreatedUserID:   pointer.FromString("user1"),
-					DeviceID:        pointer.FromString("deviceId"),
-					DeviceTime:      pointer.FromString("2017-12-01T20:21:23"),
-					GUID:            pointer.FromString("guid2"),
-					ID:              pointer.FromString("id2"),
-					ModifiedTime:    pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Source:          pointer.FromString("source"),
-					Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-					Type:            "upload",
-					UploadID:        pointer.FromString("upload2"),
-					UserID:          pointer.FromString("user1"),
-					VersionInternal: 1,
-				},
-			}
-			It("works with more previous Uploads than new Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload1,
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-
-			It("works with more new Uploads than previous Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-					newUpload2,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(newUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-
-			It("works with equal new Uploads and previous Uploads", func() {
-				prevSets := []*upload.Upload{
-					prevUpload1,
-					prevUpload2,
-				}
-				newSets := []*upload.Upload{
-					newUpload1,
-					newUpload2,
-				}
-				sets := dataStoreMongo.MergeSortedUploads(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevUpload1))
-				Expect(sets[1]).To(Equal(prevUpload2))
-			})
-		})
-
-		Context("MergeSortedDataSets", func() {
-			prevDataSet1 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("1"),
-				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("1"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("0"),
-				VersionInternal: 0,
-			}
-			prevDataSet2 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("2"),
-				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("2"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("0"),
-				VersionInternal: 0,
-			}
-			newDataSet1 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2016-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("1"),
-				Time:            pointer.FromTime(time.Date(2016, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("1"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("1"),
-				VersionInternal: 1,
-			}
-			newDataSet2 := &data.DataSet{
-				Active:          true,
-				ByUser:          pointer.FromString("abcdef"),
-				ComputerTime:    pointer.FromString("2017-12-01T20:21:23"),
-				CreatedTime:     pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				DataSetType:     pointer.FromString("upload"),
-				DeviceID:        pointer.FromString("my-device"),
-				DeviceModel:     pointer.FromString("device-model"),
-				ID:              pointer.FromString("2"),
-				Time:            pointer.FromTime(time.Date(2017, time.December, 1, 20, 21, 23, 0, time.UTC)),
-				Type:            "upload",
-				UploadID:        pointer.FromString("2"),
-				UserID:          pointer.FromString("User1"),
-				Version:         pointer.FromString("1"),
-				VersionInternal: 1,
-			}
-
-			It("works with more previous DataSets than new DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-					prevDataSet2,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(prevDataSet2))
-			})
-
-			It("works with more new DataSets than previous DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-					newDataSet2,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(newDataSet2))
-			})
-
-			It("works with equal new DataSets and previous DataSets", func() {
-				prevSets := data.DataSets{
-					prevDataSet1,
-					prevDataSet2,
-				}
-				newSets := data.DataSets{
-					newDataSet1,
-					newDataSet2,
-				}
-				sets := dataStoreMongo.MergeSortedDataSets(newSets, prevSets)
-				Expect(len(sets)).To(Equal(2))
-				Expect(sets[0]).To(Equal(prevDataSet1))
-				Expect(sets[1]).To(Equal(prevDataSet2))
-			})
-		})
-	})
 	Context("with a new store", func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
 		var alertsCollection *mongo.Collection
+		var collectionsOnce sync.Once
 
 		BeforeEach(func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
-			collection = store.GetCollection("deviceData")
-			dataSetCollection = store.GetCollection("deviceDataSets")
-			summaryCollection = store.GetCollection("summary")
-			alertsCollection = store.GetCollection("alerts")
-			Expect(store.EnsureIndexes()).To(Succeed())
+			collectionsOnce.Do(func() {
+				collection = store.GetCollection("deviceData")
+				dataSetCollection = store.GetCollection("deviceDataSets")
+				summaryCollection = store.GetCollection("summary")
+				alertsCollection = store.GetCollection("alerts")
+			})
 		})
 
 		AfterEach(func() {
-			if collection != nil {
-				collection.Database().Drop(context.Background())
-				dataSetCollection.Database().Drop(context.Background())
-				summaryCollection.Database().Drop(context.Background())
-				alertsCollection.Database().Drop(context.Background())
-			}
+			var err error
+			ctx := context.Background()
+			all := bson.D{}
+			_, err = collection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = dataSetCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = summaryCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = alertsCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
 		})
 
 		Context("EnsureIndexes", func() {
-			It("returns successfully", func() {
+			It("deviceData indexes return successfully", func() {
 				cursor, err := collection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
@@ -542,9 +307,8 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
-						"Background": Equal(true),
-						"Name":       Equal("UserIdTypeWeighted_v2"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
@@ -554,19 +318,19 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "origin.id", "-deletedTime", "_active")),
+						"Name": Equal("UserIdOriginId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
-						"Background": Equal(true),
-						"Name":       Equal("UploadId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
-						"Background": Equal(true),
-						"Name":       Equal("DeduplicatorHash"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+						"Name": Equal("DeduplicatorHash"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -576,7 +340,53 @@ var _ = Describe("Mongo", func() {
 				))
 			})
 
-			It("returns successfully", func() {
+			It("deviceDataSets indexes return successfully", func() {
+				cursor, err := dataSetCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
+						"Name": Equal("UserIdTypeWeighted_v2"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
+						"Name": Equal("OriginId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
+						"Name": Equal("UploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("uploadId")),
+						"Unique": Equal(true),
+						"Name":   Equal("UniqueUploadId"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "client.name", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSets"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "-createdTime")),
+						"Name": Equal("ListUserDataSetsDeviceId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "_active", Value: true},
+						}),
+					}),
+				))
+			})
+
+			It("summary indexes return successfully", func() {
 				cursor, err := summaryCollection.Indexes().List(context.Background())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(cursor).ToNot(BeNil())
@@ -632,14 +442,6 @@ var _ = Describe("Mongo", func() {
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
 				Expect(alertsRepository).ToNot(BeNil())
-			})
-
-			AfterEach(func() {
-				if repository != nil {
-					_, _ = collection.DeleteMany(context.Background(), bson.D{})
-					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
-					_, _ = alertsCollection.DeleteMany(context.Background(), bson.D{})
-				}
 			})
 
 			Context("with persisted data sets", func() {
@@ -2586,7 +2388,6 @@ var _ = Describe("Mongo", func() {
 			}
 
 			It("retrieves both cbg and dosing data", func() {
-				var err error
 				ctx := context.Background()
 				ctx = log.NewContextWithLogger(ctx, logTest.NewLogger())
 				repository = store.NewDataRepository()
@@ -2597,15 +2398,13 @@ var _ = Describe("Mongo", func() {
 				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
 				testSetData := testDataSetData(testSet)
 				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
-				store, err = dataStoreMongo.NewStore(config)
-				Expect(err).To(Succeed())
 
 				params := dataStore.AlertableParams{
 					Start:    time.Now().Add(-time.Hour),
 					UserID:   testUserID,
 					UploadID: *testSet.UploadID,
 				}
-				resp, err := store.NewDataRepository().GetAlertableData(ctx, params)
+				resp, err := repository.GetAlertableData(ctx, params)
 
 				Expect(err).To(Succeed())
 				Expect(resp).ToNot(BeNil())
@@ -2617,12 +2416,6 @@ var _ = Describe("Mongo", func() {
 
 		Context("alerts", func() {
 			BeforeEach(func() {
-				var err error
-				store, err = dataStoreMongo.NewStore(config)
-				Expect(err).To(Succeed())
-				_, err = store.GetCollection("alerts").DeleteMany(context.Background(), bson.D{})
-				Expect(err).To(Succeed())
-
 				alertsRepository = store.NewAlertsRepository()
 				Expect(alertsRepository).ToNot(BeNil())
 			})
@@ -2706,7 +2499,6 @@ var _ = Describe("Mongo", func() {
 					Expect(got.UserID).To(Equal(cfg.UserID))
 					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
 				})
-
 			})
 
 			Describe("Delete", func() {

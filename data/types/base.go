@@ -275,6 +275,10 @@ func (b *Base) GetTime() *time.Time {
 	return b.Time
 }
 
+func (b *Base) GetTimeZoneOffset() *int {
+	return b.TimeZoneOffset
+}
+
 func (b *Base) GetUploadID() *string {
 	return b.UploadID
 }

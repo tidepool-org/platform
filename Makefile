@@ -18,8 +18,8 @@ else
 	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
 endif
 VERSION_BASE:=$(VERSION_BASE:v%=%)
-VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD)
-VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD)
+VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD || echo "dev")
+VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD || echo "dev")
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 
 GO_BUILD_FLAGS:=-buildvcs=false
@@ -29,6 +29,13 @@ FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -not -path
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
+
+GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
+GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
+GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
+
+GOTEST_PKGS ?= ./...
+GOTEST_FLAGS ?=
 
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
@@ -115,7 +122,7 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '*mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
@@ -192,28 +199,35 @@ service-restart-all:
 	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
 
 test: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
+	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(TEST)
 
 test-until-failure: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r -untilItFails $(TEST)
+	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)
 
 test-watch: ginkgo
-	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r $(TEST)
+	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(TEST)
 
 ci-test: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going $(TEST)
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)
 
 ci-test-until-failure: ginkgo
-	@echo "ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-suites --randomize-all --succinct --fail-on-pending --cover --trace --race --keep-going -untilItFails $(TEST)
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)
 
 ci-test-watch: ginkgo
-	@echo "ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r --randomize-all --succinct --fail-on-pending --cover --trace --race $(TEST)
+	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)
+
+go-test:
+	. ./env.test.sh && go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
+
+go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+go-ci-test: GOTEST_PKGS = ./...
+go-ci-test: go-test
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
@@ -340,4 +354,4 @@ gopath-implode:
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode
+	gopath-implode go-test

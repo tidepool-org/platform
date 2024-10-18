@@ -11,7 +11,7 @@ github.com/apapsch/go-jsonmerge/v2
 # github.com/avast/retry-go v3.0.0+incompatible
 ## explicit
 github.com/avast/retry-go
-# github.com/aws/aws-sdk-go v1.54.11
+# github.com/aws/aws-sdk-go v1.50.6
 ## explicit; go 1.19
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/aws/arn
@@ -67,6 +67,12 @@ github.com/aws/aws-sdk-go/service/sso/ssoiface
 github.com/aws/aws-sdk-go/service/ssooidc
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/service/sts/stsiface
+# github.com/bas-d/appattest v0.1.0
+## explicit; go 1.15
+github.com/bas-d/appattest/assertion
+github.com/bas-d/appattest/attestation
+github.com/bas-d/appattest/authenticator
+github.com/bas-d/appattest/utils
 # github.com/beorn7/perks v1.0.1
 ## explicit; go 1.11
 github.com/beorn7/perks/quantile
@@ -354,7 +360,7 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/tidepool-org/clinic/client v0.0.0-20240629034458-1365c8963143
+# github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
@@ -374,6 +380,9 @@ github.com/tidepool-org/go-common/jepson
 # github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 ## explicit; go 1.22
 github.com/tidepool-org/hydrophone/client
+# github.com/ugorji/go/codec v1.2.11
+## explicit; go 1.11
+github.com/ugorji/go/codec
 # github.com/urfave/cli v1.22.15
 ## explicit; go 1.11
 github.com/urfave/cli
@@ -483,6 +492,7 @@ golang.org/x/crypto/ssh/terminal
 # golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 ## explicit; go 1.20
 golang.org/x/exp/constraints
+golang.org/x/exp/slices
 # golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 ## explicit; go 1.11
 golang.org/x/lint

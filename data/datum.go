@@ -23,6 +23,7 @@ type Datum interface {
 	GetType() string
 	IsActive() bool
 	GetTime() *time.Time
+	GetTimeZoneOffset() *int
 	GetUploadID() *string
 
 	SetUserID(userID *string)
