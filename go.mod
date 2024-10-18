@@ -22,7 +22,7 @@ require (
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109
-	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
+	github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
@@ -35,7 +35,7 @@ require (
 	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.22.0
 	gonum.org/v1/gonum v0.15.0
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.65.0
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.3
 )

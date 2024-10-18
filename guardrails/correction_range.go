@@ -4,6 +4,8 @@ import (
 	"math"
 	"strconv"
 
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+
 	devices "github.com/tidepool-org/devices/api"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -12,6 +14,9 @@ import (
 )
 
 func ValidateBloodGlucoseTargetSchedule(bloodGlucoseTargetSchedule pump.BloodGlucoseTargetStartArray, glucoseSafetyLimit *float64, guardRail *devices.CorrectionRangeGuardRail, validator structure.Validator) {
+	if guardRail.MaxSegments != nil && len(bloodGlucoseTargetSchedule) > int(*guardRail.MaxSegments) {
+		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(len(bloodGlucoseTargetSchedule), int(*guardRail.MaxSegments)))
+	}
 	for i, bloodGlucoseTargetStart := range bloodGlucoseTargetSchedule {
 		ValidateBloodGlucoseTarget(bloodGlucoseTargetStart.Target, glucoseSafetyLimit, guardRail, validator.WithReference(strconv.Itoa(i)))
 	}

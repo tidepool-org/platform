@@ -95,6 +95,19 @@ var _ = Describe("Correction Range", func() {
 					guardrails.ValidateBloodGlucoseTargetSchedule(schedule, glucoseSafetyLimit, guardRail, validator)
 					errorsTest.ExpectEqual(validator.Error(), expected...)
 				})
+
+				It("returns an error when the number of segments is higher than the guardrail", func() {
+					maxSegments := int32(2)
+					guardRail.MaxSegments = &maxSegments
+					var schedule pump.BloodGlucoseTargetStartArray = []*pump.BloodGlucoseTargetStart{
+						{Target: glucose.Target{Low: pointer.FromFloat64(90), High: pointer.FromFloat64(91)}},
+						{Target: glucose.Target{Low: pointer.FromFloat64(100), High: pointer.FromFloat64(105)}},
+						{Target: glucose.Target{Low: pointer.FromFloat64(101), High: pointer.FromFloat64(104)}},
+					}
+					expected := errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(3, 2), "")
+					guardrails.ValidateBloodGlucoseTargetSchedule(schedule, glucoseSafetyLimit, guardRail, validator)
+					errorsTest.ExpectEqual(validator.Error(), expected)
+				})
 			})
 
 			Context("With Target values", func() {
