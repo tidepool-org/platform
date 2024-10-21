@@ -912,6 +912,7 @@ var _ = Describe("Base", func() {
 
 	Context("with new, initialized datum", func() {
 		var datum *types.Base
+		const currentVersion = "1.1.0"
 
 		BeforeEach(func() {
 			datum = dataTypesTest.RandomBase()
@@ -920,62 +921,61 @@ var _ = Describe("Base", func() {
 		Context("IdentityFields", func() {
 			It("returns error if user id is missing", func() {
 				datum.UserID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
 				datum.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is missing", func() {
 				datum.DeviceID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
 				datum.DeviceID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
 				datum.Time = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
 				datum.Time = pointer.FromTime(time.Time{})
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if type is empty", func() {
 				datum.Type = ""
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type}))
 			})
 		})
 
-		Context("LegacyIdentityFields", func() {
-
+		Context("Legacy IdentityFields", func() {
 			var datum *types.Base
 
 			BeforeEach(func() {
@@ -983,7 +983,7 @@ var _ = Describe("Base", func() {
 			})
 
 			It("returns the expected empty identity fields", func() {
-				legacyIDFields, err := datum.LegacyIdentityFields()
+				legacyIDFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(BeNil())
 				Expect(legacyIDFields).ToNot(BeEmpty())
 				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyTimeFormat)}))

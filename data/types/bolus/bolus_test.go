@@ -163,33 +163,33 @@ var _ = Describe("Bolus", func() {
 
 			It("returns error if user id is missing", func() {
 				datum.UserID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
 				datum.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if sub type is empty", func() {
 				datum.SubType = ""
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
 			})
 		})
 
-		Context("LegacyIdentityFields", func() {
+		Context("Legacy IdentityFields", func() {
 			var datum *bolus.Bolus
 
 			BeforeEach(func() {
@@ -198,7 +198,7 @@ var _ = Describe("Bolus", func() {
 
 			It("returns error if sub type is empty", func() {
 				datum.SubType = ""
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
@@ -209,7 +209,7 @@ var _ = Describe("Bolus", func() {
 				Expect(err).ToNot(HaveOccurred())
 				datum.Time = pointer.FromTime(t)
 				datum.SubType = "some-sub-type"
-				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(legacyIdentityFields).To(Equal([]string{"bolus", "some-sub-type", "some-device", "2023-05-13T15:51:58.000Z"}))
 			})

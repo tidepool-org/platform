@@ -15,8 +15,7 @@ type Datum interface {
 	Validate(validator structure.Validator)
 	Normalize(normalizer Normalizer)
 
-	IdentityFields() ([]string, error)
-	LegacyIdentityFields() ([]string, error)
+	IdentityFields(version string) ([]string, error)
 
 	GetOrigin() *origin.Origin
 	GetPayload() *metadata.Metadata

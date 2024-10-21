@@ -155,7 +155,7 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.CarbUnits).To(BeNil())
 		})
 	})
-	Context("LegacyIdentityFields", func() {
+	Context("Legacy IdentityFields", func() {
 		var datum *calculator.Calculator
 
 		BeforeEach(func() {
@@ -164,7 +164,7 @@ var _ = Describe("Calculator", func() {
 
 		It("returns error if delivery type is empty", func() {
 			datum.Type = ""
-			identityFields, err := datum.LegacyIdentityFields()
+			identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 			Expect(err).To(MatchError("type is empty"))
 			Expect(identityFields).To(BeEmpty())
 		})
@@ -174,7 +174,7 @@ var _ = Describe("Calculator", func() {
 			t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
 			Expect(err).ToNot(HaveOccurred())
 			datum.Time = pointer.FromTime(t)
-			legacyIdentityFields, err := datum.LegacyIdentityFields()
+			legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(legacyIdentityFields).To(Equal([]string{"wizard", "some-device", "2023-05-13T15:51:58.000Z"}))
 		})

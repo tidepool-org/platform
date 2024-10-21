@@ -118,8 +118,8 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	}
 }
 
-func (c *Calculator) LegacyIdentityFields() ([]string, error) {
-	return c.Base.LegacyIdentityFields()
+func (c *Calculator) IdentityFields(version string) ([]string, error) {
+	return c.Base.IdentityFields(version)
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {

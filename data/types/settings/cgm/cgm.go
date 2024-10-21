@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -156,12 +157,15 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (c *CGM) LegacyIdentityFields() ([]string, error) {
-	return dataTypes.GetLegacyIDFields(
-		dataTypes.LegacyIDField{Name: "type", Value: &c.Type},
-		dataTypes.GetLegacyTimeField(c.Time),
-		dataTypes.LegacyIDField{Name: "device id", Value: c.DeviceID},
-	)
+func (c *CGM) IdentityFields(version string) ([]string, error) {
+	if version == types.LegacyIdentityFieldsVersion {
+		return dataTypes.GetLegacyIDFields(
+			dataTypes.LegacyIDField{Name: "type", Value: &c.Type},
+			dataTypes.GetLegacyTimeField(c.Time),
+			dataTypes.LegacyIDField{Name: "device id", Value: c.DeviceID},
+		)
+	}
+	return c.Base.IdentityFields(version)
 }
 
 func IsValidTransmitterID(value string) bool {

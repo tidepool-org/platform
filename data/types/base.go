@@ -30,6 +30,9 @@ const (
 	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
 	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
 	VersionInternalMinimum  = 0
+
+	LegacyIdentityFieldsVersion = "0.0.0"
+	IdentityFieldsVersion       = "1.1.0"
 )
 
 type Base struct {
@@ -239,7 +242,7 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Base) IdentityFields() ([]string, error) {
+func currentIdentityFields(b *Base) ([]string, error) {
 	if b.UserID == nil {
 		return nil, errors.New("user id is missing")
 	}
@@ -263,6 +266,13 @@ func (b *Base) IdentityFields() ([]string, error) {
 	}
 
 	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+}
+
+func (b *Base) IdentityFields(version string) ([]string, error) {
+	if version == LegacyIdentityFieldsVersion {
+		return legacyIdentityFields(b)
+	}
+	return currentIdentityFields(b)
 }
 
 type LegacyIDField struct {
@@ -297,7 +307,7 @@ func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
 	return identityFields, nil
 }
 
-func (b *Base) LegacyIdentityFields() ([]string, error) {
+func legacyIdentityFields(b *Base) ([]string, error) {
 	if b.Type == "" {
 		return nil, errors.New("type is empty")
 	}

@@ -45,24 +45,22 @@ func (d *Device) Validate(validator structure.Validator) {
 	validator.String("subType", &d.SubType).Exists().NotEmpty()
 }
 
-func (d *Device) IdentityFields() ([]string, error) {
-	identityFields, err := d.Base.IdentityFields()
+func (d *Device) IdentityFields(version string) ([]string, error) {
+	if version == types.LegacyIdentityFieldsVersion {
+		return types.GetLegacyIDFields(
+			types.LegacyIDField{Name: "type", Value: &d.Type},
+			types.LegacyIDField{Name: "sub type", Value: &d.SubType},
+			types.GetLegacyTimeField(d.Time),
+			types.LegacyIDField{Name: "device id", Value: d.DeviceID},
+		)
+	}
+
+	identityFields, err := d.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
-
 	if d.SubType == "" {
 		return nil, errors.New("sub type is empty")
 	}
-
 	return append(identityFields, d.SubType), nil
-}
-
-func (d *Device) LegacyIdentityFields() ([]string, error) {
-	return types.GetLegacyIDFields(
-		types.LegacyIDField{Name: "type", Value: &d.Type},
-		types.LegacyIDField{Name: "sub type", Value: &d.SubType},
-		types.GetLegacyTimeField(d.Time),
-		types.LegacyIDField{Name: "device id", Value: d.DeviceID},
-	)
 }

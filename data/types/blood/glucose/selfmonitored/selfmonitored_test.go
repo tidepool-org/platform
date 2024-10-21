@@ -501,7 +501,7 @@ var _ = Describe("SelfMonitored", func() {
 			)
 		})
 
-		Context("LegacyIdentityFields", func() {
+		Context("Legacy IdentityFields", func() {
 			var datum *selfmonitored.SelfMonitored
 
 			BeforeEach(func() {
@@ -513,49 +513,49 @@ var _ = Describe("SelfMonitored", func() {
 
 			It("returns error if device id is missing", func() {
 				datum.DeviceID = nil
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
 				datum.DeviceID = pointer.FromString("")
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
 				datum.Time = nil
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
 				datum.Time = &time.Time{}
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if raw is missing", func() {
 				datum.Raw = nil
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err.Error()).To(Equal("raw data is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if raw value is missing", func() {
 				datum.Raw.Delete("value")
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err.Error()).To(Equal("raw value is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if raw units are missing", func() {
 				datum.Raw.Delete("units")
-				identityFields, err := datum.LegacyIdentityFields()
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err.Error()).To(Equal("raw units are missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
@@ -569,7 +569,7 @@ var _ = Describe("SelfMonitored", func() {
 				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
 				Expect(err).ToNot(HaveOccurred())
 				datum.Time = pointer.FromTime(t)
-				legacyIdentityFields, err := datum.LegacyIdentityFields()
+				legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(legacyIdentityFields).To(Equal([]string{"smbg", "some-device", "2023-05-13T15:51:58.000Z", "12.211645580300173"}))
 			})

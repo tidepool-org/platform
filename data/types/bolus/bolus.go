@@ -81,8 +81,18 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Bolus) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Bolus) IdentityFields(version string) ([]string, error) {
+
+	if version == types.LegacyIdentityFieldsVersion {
+		return types.GetLegacyIDFields(
+			types.LegacyIDField{Name: "type", Value: &b.Type},
+			types.LegacyIDField{Name: "sub type", Value: &b.SubType},
+			types.LegacyIDField{Name: "device id", Value: b.DeviceID},
+			types.GetLegacyTimeField(b.Time),
+		)
+	}
+
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
@@ -92,13 +102,4 @@ func (b *Bolus) IdentityFields() ([]string, error) {
 	}
 
 	return append(identityFields, b.SubType), nil
-}
-
-func (b *Bolus) LegacyIdentityFields() ([]string, error) {
-	return types.GetLegacyIDFields(
-		types.LegacyIDField{Name: "type", Value: &b.Type},
-		types.LegacyIDField{Name: "sub type", Value: &b.SubType},
-		types.LegacyIDField{Name: "device id", Value: b.DeviceID},
-		types.GetLegacyTimeField(b.Time),
-	)
 }

@@ -6,6 +6,7 @@ import (
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/structure"
@@ -14,11 +15,6 @@ import (
 type IdentityFieldsOutput struct {
 	IdentityFields []string
 	Error          error
-}
-
-type LegacyIdentityFieldsOutput struct {
-	LegacyIdentityFields []string
-	Error                error
 }
 
 type Datum struct {
@@ -31,9 +27,8 @@ type Datum struct {
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
 	IdentityFieldsInvocations            int
+	IdentityFieldsInputs                 []string
 	IdentityFieldsOutputs                []IdentityFieldsOutput
-	LegacyIdentityFieldsInvocations      int
-	LegacyIdentityFieldsOutputs          []LegacyIdentityFieldsOutput
 	GetPayloadInvocations                int
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
@@ -109,24 +104,16 @@ func (d *Datum) Normalize(normalizer data.Normalizer) {
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
 }
 
-func (d *Datum) IdentityFields() ([]string, error) {
+func (d *Datum) IdentityFields(version string) ([]string, error) {
 	d.IdentityFieldsInvocations++
+	d.IdentityFieldsInputs = append(d.IdentityFieldsInputs, version)
 
 	gomega.Expect(d.IdentityFieldsOutputs).ToNot(gomega.BeEmpty())
 
 	output := d.IdentityFieldsOutputs[0]
 	d.IdentityFieldsOutputs = d.IdentityFieldsOutputs[1:]
+
 	return output.IdentityFields, output.Error
-}
-
-func (d *Datum) LegacyIdentityFields() ([]string, error) {
-	d.LegacyIdentityFieldsInvocations++
-
-	gomega.Expect(d.LegacyIdentityFieldsOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.LegacyIdentityFieldsOutputs[0]
-	d.LegacyIdentityFieldsOutputs = d.LegacyIdentityFieldsOutputs[1:]
-	return output.LegacyIdentityFields, output.Error
 }
 
 func (d *Datum) GetPayload() *metadata.Metadata {

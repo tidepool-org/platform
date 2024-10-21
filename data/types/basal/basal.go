@@ -50,8 +50,17 @@ func (b *Basal) Validate(validator structure.Validator) {
 	validator.String("deliveryType", &b.DeliveryType).Exists().NotEmpty()
 }
 
-func (b *Basal) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Basal) IdentityFields(version string) ([]string, error) {
+	if version == types.LegacyIdentityFieldsVersion {
+		return types.GetLegacyIDFields(
+			types.LegacyIDField{Name: "type", Value: &b.Type},
+			types.LegacyIDField{Name: "delivery type", Value: &b.DeliveryType},
+			types.LegacyIDField{Name: "device id", Value: b.DeviceID},
+			types.GetLegacyTimeField(b.Time),
+		)
+	}
+
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
@@ -61,15 +70,6 @@ func (b *Basal) IdentityFields() ([]string, error) {
 	}
 
 	return append(identityFields, b.DeliveryType), nil
-}
-
-func (b *Basal) LegacyIdentityFields() ([]string, error) {
-	return types.GetLegacyIDFields(
-		types.LegacyIDField{Name: "type", Value: &b.Type},
-		types.LegacyIDField{Name: "delivery type", Value: &b.DeliveryType},
-		types.LegacyIDField{Name: "device id", Value: b.DeviceID},
-		types.GetLegacyTimeField(b.Time),
-	)
 }
 
 func ParseDeliveryType(parser structure.ObjectParser) *string {

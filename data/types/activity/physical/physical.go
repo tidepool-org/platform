@@ -297,6 +297,6 @@ func (p *Physical) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (p *Physical) LegacyIdentityFields() ([]string, error) {
-	return p.Base.LegacyIdentityFields()
+func (p *Physical) IdentityFields(version string) ([]string, error) {
+	return p.Base.IdentityFields(version)
 }

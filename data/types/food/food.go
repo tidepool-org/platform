@@ -105,6 +105,6 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 	f.Base.Normalize(normalizer)
 }
 
-func (f *Food) LegacyIdentityFields() ([]string, error) {
-	return f.Base.LegacyIdentityFields()
+func (f *Food) IdentityFields(version string) ([]string, error) {
+	return f.Base.IdentityFields(version)
 }

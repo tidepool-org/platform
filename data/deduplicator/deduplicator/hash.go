@@ -52,13 +52,13 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, options HashOptions)
 	}
 	for _, dataSetDatum := range dataSetData {
 		var hash string
+
+		fields, err := dataSetDatum.IdentityFields(options.Version)
+		if err != nil {
+			return errors.Wrap(err, "unable to gather identity fields for datum")
+		}
+
 		if options.Version == DeviceDeactivateHashVersionLegacy {
-
-			fields, err := dataSetDatum.LegacyIdentityFields()
-			if err != nil {
-				return errors.Wrapf(err, "unable to gather legacy identity fields for datum %T", dataSetDatum)
-			}
-
 			hash, err = GenerateLegacyIdentityHash(fields)
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
@@ -68,10 +68,6 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, options HashOptions)
 				return errors.Wrapf(err, "unable to generate legacy identity hash with legacy groupID for datum %T", dataSetDatum)
 			}
 		} else {
-			fields, err := dataSetDatum.IdentityFields()
-			if err != nil {
-				return errors.Wrap(err, "unable to gather identity fields for datum")
-			}
 			hash, err = GenerateIdentityHash(fields)
 			if err != nil {
 				return errors.Wrap(err, "unable to generate identity hash for datum")

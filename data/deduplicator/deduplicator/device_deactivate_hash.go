@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
@@ -13,8 +14,8 @@ import (
 
 const (
 	DeviceDeactivateHashVersionUnknown string = ""
-	DeviceDeactivateHashVersionCurrent string = "1.1.0"
-	DeviceDeactivateHashVersionLegacy  string = "0.0.0"
+	DeviceDeactivateHashVersionCurrent string = types.IdentityFieldsVersion
+	DeviceDeactivateHashVersionLegacy  string = types.LegacyIdentityFieldsVersion
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
