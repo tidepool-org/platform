@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/user"
 )
 
 // RequireAuth aborts with an error if a request isn't authenticated.
@@ -73,8 +74,12 @@ func RequireUser(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 func RequireMembership(permissionsClient func() permission.Client, targetParamUserID string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
-			targetUserID := req.PathParam(targetParamUserID)
 			responder := request.MustNewResponder(res, req)
+			targetUserID, err := request.DecodeRequestPathParameter(req, targetParamUserID, user.IsValidID)
+			if err != nil {
+				responder.Error(http.StatusBadRequest, err)
+				return
+			}
 			ctx := req.Context()
 			details := request.GetAuthDetails(ctx)
 			if details == nil {
@@ -82,8 +87,7 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 				return
 			}
 			hasMembership, err := CheckMembership(req, permissionsClient(), targetUserID)
-			if err != nil {
-				responder.InternalServerError(err)
+			if responder.RespondIfError(err) {
 				return
 			}
 			if !hasMembership {
@@ -95,6 +99,53 @@ func RequireMembership(permissionsClient func() permission.Client, targetParamUs
 	}
 }
 
+// RequireWritePermissions will proceed with the provided handlerFunc if the authenticated user has write permisisons to the userID defined in the URL param userIDParam.
+//
+// This will be true if the userID is one of:
+//   - the same as authenticated user in AuthDetails
+//   - the authenticated entity is a Service
+//   - the authenticated user in AuthDetails has explicit (permissions actually defined in gatekeeper) write permissions to the userID
+//
+// For example:
+//
+//	rest.Post("/v1/myroute/:userId/action", api.RequireWritePermissions(permissionsClient, "userId", handlerFunc))
+func RequireWritePermissions(permissionsClient func() permission.Client, userIDParam string, handlerFunc rest.HandlerFunc) rest.HandlerFunc {
+	return func(res rest.ResponseWriter, req *rest.Request) {
+		if handlerFunc != nil && res != nil && req != nil {
+			responder := request.MustNewResponder(res, req)
+			targetUserID, err := request.DecodeRequestPathParameter(req, userIDParam, user.IsValidID)
+			if err != nil {
+				responder.Error(http.StatusBadRequest, err)
+				return
+			}
+			ctx := req.Context()
+			details := request.GetAuthDetails(ctx)
+			if details == nil {
+				responder.Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
+				return
+			}
+			if !details.IsService() && details.UserID() != targetUserID {
+				hasPerms, err := permission.HasExplicitWritePermissions(ctx, permissionsClient(), details.UserID(), targetUserID)
+				if responder.RespondIfError(err) {
+					return
+				}
+				if !hasPerms {
+					responder.Empty(http.StatusForbidden)
+					return
+				}
+			}
+			handlerFunc(res, req)
+		}
+	}
+}
+
+// CheckMembership returns whether the user or service associated with the
+// request has a relationship with the user whose id is targetUserID. It is not
+// a middleware, but is used by some, because there are certain cases where we
+// do not know the actual user id - for example, in the case of device logs, we
+// have to retrieve an object and that object contains the user's id. Only
+// after getting this user id we are able to check if user has permissions to
+// that user.
 func CheckMembership(req *rest.Request, client permission.Client, targetUserID string) (allowed bool, err error) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
@@ -104,7 +155,7 @@ func CheckMembership(req *rest.Request, client permission.Client, targetUserID s
 	if details.IsService() || details.UserID() == targetUserID {
 		return true, nil
 	}
-	hasPerms, err := permission.HasMembershipRelationship(ctx, client, details.UserID(), targetUserID)
+	hasPerms, err := permission.HasExplicitMembershipRelationship(ctx, client, details.UserID(), targetUserID)
 	if err != nil {
 		return false, err
 	}
