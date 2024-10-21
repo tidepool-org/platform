@@ -33,6 +33,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
 )
 
 type confirmationClientConfig struct {
@@ -363,6 +364,12 @@ func (s *Service) initializeProviderFactory() error {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
+	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add twiist provider")
 	}
 
 	return nil

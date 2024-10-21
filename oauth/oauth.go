@@ -40,6 +40,7 @@ type TokenSource interface {
 
 type Token struct {
 	AccessToken    string    `json:"accessToken" bson:"accessToken"`
+	IdToken        string    `json:"idToken,omitempty" bson:"idToken,omitempty"`
 	TokenType      string    `json:"tokenType,omitempty" bson:"tokenType,omitempty"`
 	RefreshToken   string    `json:"refreshToken,omitempty" bson:"refreshToken,omitempty"`
 	ExpirationTime time.Time `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
@@ -53,9 +54,9 @@ func NewTokenFromRawToken(rawToken *oauth2.Token) (*Token, error) {
 	if rawToken == nil {
 		return nil, errors.New("raw token is missing")
 	}
-
 	return &Token{
 		AccessToken:    rawToken.AccessToken,
+		IdToken:        GetIdToken(rawToken),
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
 		ExpirationTime: rawToken.Expiry,
@@ -65,6 +66,9 @@ func NewTokenFromRawToken(rawToken *oauth2.Token) (*Token, error) {
 func (t *Token) Parse(parser structure.ObjectParser) {
 	if accessToken := parser.String("accessToken"); accessToken != nil {
 		t.AccessToken = *accessToken
+	}
+	if idToken := parser.String("idToken"); idToken != nil {
+		t.IdToken = *idToken
 	}
 	if tokenType := parser.String("tokenType"); tokenType != nil {
 		t.TokenType = *tokenType
@@ -88,17 +92,24 @@ func (t *Token) Expire() {
 }
 
 func (t *Token) RawToken() *oauth2.Token {
-	return &oauth2.Token{
+	token := &oauth2.Token{
 		AccessToken:  t.AccessToken,
 		TokenType:    t.TokenType,
 		RefreshToken: t.RefreshToken,
 		Expiry:       t.ExpirationTime,
 	}
+	if t.IdToken != "" {
+		token.WithExtra(map[string]any{
+			"id_token": t.IdToken,
+		})
+	}
+	return token
 }
 
 func (t *Token) MatchesRawToken(rawToken *oauth2.Token) bool {
 	return rawToken != nil &&
 		rawToken.AccessToken == t.AccessToken &&
+		GetIdToken(rawToken) == t.IdToken &&
 		rawToken.TokenType == t.TokenType &&
 		rawToken.RefreshToken == t.RefreshToken &&
 		rawToken.Expiry.Equal(t.ExpirationTime)
@@ -110,6 +121,11 @@ func IsAccessTokenError(err error) bool {
 
 func IsRefreshTokenError(err error) bool {
 	return err != nil && strings.Contains(errors.Cause(err).Error(), "oauth2: cannot fetch token: 400 Bad Request")
+}
+
+func GetIdToken(rawToken *oauth2.Token) string {
+	idToken, _ := rawToken.Extra("id_token").(string)
+	return idToken
 }
 
 const ErrorAccessDenied = "access_denied"
