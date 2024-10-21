@@ -178,8 +178,8 @@ github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsT
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109 h1:AKup7wHFkLcWv13GaKfKQcWjYSvUYilUPcbloP0JXX4=
 github.com/tidepool-org/clinic/client v0.0.0-20240802193352-3f912afe2109/go.mod h1:7BpAdFdGJNB3aw/xvCz5XnWjSWRoUtWIX4xcMc4Bsko=
-github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0 h1:SnIsHwaJE2kltz9xMfjC+L9SWhQS3w6t+mSIIoFiwag=
-github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0/go.mod h1:pu8FmuhxtBbOyswB94Mr15l2heCxY357lVHOVVAEZq8=
+github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5 h1:1kiZtHhs++yXayRD/Mh/3POLwtmxV99YR2bSCle1Q74=
+github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5/go.mod h1:xuQ8k0mLR1ZyEmwe/m0v2BuXctqQuCZeR43urSQpTUM=
 github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c h1:hJZyiHNGeqyLA/5p60/0H9CZtJi4fAuzOuyQF0TpF7E=
 github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c/go.mod h1:mIzYteUyPf//fhee4e2KEZhmcm2iE4IQ/2dyQr5pRKA=
 github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace h1:L0UiCj2eL/NOpLa19Tf5IgoK6feILmdA+zK3nCTIhqU=
@@ -296,8 +296,8 @@ google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d h1:
 google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d/go.mod h1:Od4k8V1LQSizPRUK4OzZ7TBE/20k+jPczUDAEyvn69Y=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d h1:k3zyW3BYYR30e8v3x0bTDdE9vpYFjZHK+HcyqkrppWk=
 google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d/go.mod h1:Ue6ibwXGpU+dqIcODieyLOcgj7z8+IcskoNIgZxtrFY=
-google.golang.org/grpc v1.64.0 h1:KH3VH9y/MgNQg1dE7b3XfVK0GsPSIzJwdF617gUSbvY=
-google.golang.org/grpc v1.64.0/go.mod h1:oxjF8E3FBnjp+/gVFYdWacaLDx9na1aqy9oovLpxQYg=
+google.golang.org/grpc v1.65.0 h1:bs/cUb4lp1G5iImFFd3u5ixQzweKizoZJAwBNLR42lc=
+google.golang.org/grpc v1.65.0/go.mod h1:WgYC2ypjlB0EiQi6wdKixMqukr6lBc0Vo+oOgjrM5ZQ=
 google.golang.org/protobuf v1.34.2 h1:6xV6lTsCfpGD21XK49h7MhtcApnLqkfYgPcdHftf6hg=
 google.golang.org/protobuf v1.34.2/go.mod h1:qYOHts0dSfpeUzUFpOMr/WGzszTmLH+DiWniOlNbLDw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
