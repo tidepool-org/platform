@@ -11,12 +11,10 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-type DeviceDeactivateHashVersion string
-
 const (
-	DeviceDeactivateHashVersionUnkown  DeviceDeactivateHashVersion = ""
-	DeviceDeactivateHashVersionCurrent DeviceDeactivateHashVersion = "1.1.0"
-	DeviceDeactivateHashVersionLegacy  DeviceDeactivateHashVersion = "0.0.0"
+	DeviceDeactivateHashVersionUnknown string = ""
+	DeviceDeactivateHashVersionCurrent string = "1.1.0"
+	DeviceDeactivateHashVersionLegacy  string = "0.0.0"
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
@@ -67,14 +65,12 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeactivateHashVersion {
+func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
 	if dataSet.Deduplicator != nil {
 		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
 			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
-				if *dataSet.Deduplicator.Version == string(DeviceDeactivateHashVersionLegacy) {
-					return DeviceDeactivateHashVersionLegacy
-				} else if *dataSet.Deduplicator.Version == string(DeviceDeactivateHashVersionCurrent) {
-					return DeviceDeactivateHashVersionCurrent
+				if *dataSet.Deduplicator.Version != "" {
+					return *dataSet.Deduplicator.Version
 				}
 			}
 		}
@@ -99,7 +95,7 @@ func getDeviceDeactivateHashVersion(dataSet *dataTypesUpload.Upload) DeviceDeact
 			}
 		}
 	}
-	return DeviceDeactivateHashVersionUnkown
+	return DeviceDeactivateHashVersionUnknown
 }
 
 func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -115,7 +111,8 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	if dataSet.HasDeduplicatorName() {
 		return d.Get(dataSet)
 	}
-	return getDeviceDeactivateHashVersion(dataSet) != DeviceDeactivateHashVersionUnkown, nil
+	//if hash version is set retur true
+	return getDeduplicatorVersion(dataSet) != DeviceDeactivateHashVersionUnknown, nil
 }
 
 func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -124,7 +121,7 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 		return false, errors.New("data set is missing")
 	}
 
-	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
+	if getDeduplicatorVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
 		return true, nil
 	}
 
@@ -150,7 +147,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 
 	options := NewDefaultDeviceDeactivateHashOptions()
 
-	if getDeviceDeactivateHashVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
+	if getDeduplicatorVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
 		filter := &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
 		pagination := &page.Pagination{Page: 1, Size: 1}
 
@@ -160,7 +157,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		}
 		if len(uploads) != 0 {
 			if uploads[0].LegacyGroupID != nil {
-				options = NewLegacyDeviceDeactivateHashOptions(*uploads[0].LegacyGroupID)
+				options = NewLegacyHashOptions(*uploads[0].LegacyGroupID)
 			}
 		}
 	}

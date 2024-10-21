@@ -15,15 +15,15 @@ func RandomUnits() string {
 func ExpectRaw(raw *metadata.Metadata, expectedRaw *metadata.Metadata) {
 	if expectedRaw != nil {
 		gomega.Expect(raw).ToNot(gomega.BeNil())
-		if expectedRaw.Get("units") == nil {
+		if units := expectedRaw.Get("units"); units == nil {
 			gomega.Expect(raw.Get("units")).To(gomega.BeNil())
 		} else {
-			gomega.Expect(raw.Get("units")).To(gomega.Equal(expectedRaw.Get("units")))
+			gomega.Expect(raw.Get("units")).To(gomega.Equal(units))
 		}
-		if expectedRaw.Get("value") == nil {
+		if value := expectedRaw.Get("value"); value == nil {
 			gomega.Expect(raw.Get("value")).To(gomega.BeNil())
 		} else {
-			gomega.Expect(raw.Get("value")).To(gomega.Equal(expectedRaw.Get("value")))
+			gomega.Expect(raw.Get("value")).To(gomega.Equal(value))
 		}
 	} else {
 		gomega.Expect(raw).To(gomega.BeNil())

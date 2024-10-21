@@ -22,7 +22,7 @@ var _ = Describe("Hash", func() {
 	Context("AssignDataSetDataIdentityHashes", func() {
 		var dataSetDataTest []*dataTest.Datum
 		var dataSetData data.Data
-		legacyOpts := dataDeduplicatorDeduplicator.NewLegacyDeviceDeactivateHashOptions("legacy-group-id")
+		legacyOpts := dataDeduplicatorDeduplicator.NewLegacyHashOptions("legacy-group-id")
 		defaultOpts := dataDeduplicatorDeduplicator.NewDefaultDeviceDeactivateHashOptions()
 
 		BeforeEach(func() {

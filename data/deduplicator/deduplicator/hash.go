@@ -13,40 +13,47 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-type deviceDeactivateHashOptions struct {
-	version       DeviceDeactivateHashVersion
-	legacyGroupID *string
+type HashOptions struct {
+	Version       string
+	LegacyGroupID *string
 }
 
-func NewLegacyDeviceDeactivateHashOptions(legacyGroupID string) deviceDeactivateHashOptions {
-	return deviceDeactivateHashOptions{
-		version:       DeviceDeactivateHashVersionLegacy,
-		legacyGroupID: &legacyGroupID,
+func NewLegacyHashOptions(legacyGroupID string) HashOptions {
+	return HashOptions{
+		Version:       DeviceDeactivateHashVersionLegacy,
+		LegacyGroupID: &legacyGroupID,
 	}
 }
 
-func NewDefaultDeviceDeactivateHashOptions() deviceDeactivateHashOptions {
-	return deviceDeactivateHashOptions{
-		version: DeviceDeactivateHashVersionCurrent,
+func NewDefaultDeviceDeactivateHashOptions() HashOptions {
+	return HashOptions{
+		Version: DeviceDeactivateHashVersionCurrent,
 	}
 }
 
-func (d deviceDeactivateHashOptions) ValidateLegacy() error {
-	if d.version == DeviceDeactivateHashVersionLegacy {
-		if d.legacyGroupID == nil || *d.legacyGroupID == "" {
+func (d HashOptions) Validate() error {
+
+	switch d.Version {
+	case DeviceDeactivateHashVersionLegacy:
+		if d.LegacyGroupID == nil || *d.LegacyGroupID == "" {
 			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
 		}
+	case DeviceDeactivateHashVersionCurrent:
+		break
+	default:
+		return errors.Newf("missing valid version %s", d.Version)
 	}
 	return nil
 }
 
-func AssignDataSetDataIdentityHashes(dataSetData data.Data, options deviceDeactivateHashOptions) error {
+func AssignDataSetDataIdentityHashes(dataSetData data.Data, options HashOptions) error {
+	if err := options.Validate(); err != nil {
+		return err
+	}
 	for _, dataSetDatum := range dataSetData {
 		var hash string
-		if options.version == DeviceDeactivateHashVersionLegacy {
-			if err := options.ValidateLegacy(); err != nil {
-				return err
-			}
+		if options.Version == DeviceDeactivateHashVersionLegacy {
+
 			fields, err := dataSetDatum.LegacyIdentityFields()
 			if err != nil {
 				return errors.Wrapf(err, "unable to gather legacy identity fields for datum %T", dataSetDatum)
@@ -56,7 +63,7 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, options deviceDeacti
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)
 			}
-			hash, err = GenerateLegacyIdentityHash([]string{hash, *options.legacyGroupID})
+			hash, err = GenerateLegacyIdentityHash([]string{hash, *options.LegacyGroupID})
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash with legacy groupID for datum %T", dataSetDatum)
 			}
