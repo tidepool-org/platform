@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"sort"
 	"time"
 
@@ -243,29 +242,33 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 }
 
 func currentIdentityFields(b *Base) ([]string, error) {
-	if b.UserID == nil {
-		return nil, errors.New("user id is missing")
+
+	vals := []string{}
+	var err error
+	vals, err = AppendIdentityFieldVal(vals, b.UserID, "user id")
+	if err != nil {
+		return nil, err
 	}
-	if *b.UserID == "" {
-		return nil, errors.New("user id is empty")
+
+	vals, err = AppendIdentityFieldVal(vals, b.DeviceID, "device id")
+	if err != nil {
+		return nil, err
 	}
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
+
 	if b.Time == nil {
 		return nil, errors.New("time is missing")
 	}
 	if (*b.Time).IsZero() {
 		return nil, errors.New("time is empty")
 	}
-	if b.Type == "" {
-		return nil, errors.New("type is empty")
+	vals = append(vals, (*b.Time).Format(TimeFormat))
+
+	vals, err = AppendIdentityFieldVal(vals, &b.Type, "type")
+	if err != nil {
+		return nil, err
 	}
 
-	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	return vals, nil
 }
 
 func (b *Base) IdentityFields(version string) ([]string, error) {
@@ -275,55 +278,43 @@ func (b *Base) IdentityFields(version string) ([]string, error) {
 	return currentIdentityFields(b)
 }
 
-type LegacyIDField struct {
-	Value *string
-	Name  string
-}
-
-func GetLegacyTimeField(t *time.Time) LegacyIDField {
+func AppendLegacyTimeVal(vals []string, t *time.Time) ([]string, error) {
 	if t == nil {
-		return LegacyIDField{Name: "time", Value: nil}
+		return nil, errors.New("time is missing")
 	}
-	tVal := ""
 	if (*t).IsZero() {
-		return LegacyIDField{Name: "time", Value: &tVal}
+		return nil, errors.New("time is empty")
 	}
-
-	tVal = (*t).Format(LegacyTimeFormat)
-	return LegacyIDField{Name: "time", Value: &tVal}
+	return append(vals, (*t).Format(LegacyTimeFormat)), nil
 }
 
-func GetLegacyIDFields(fields ...LegacyIDField) ([]string, error) {
-	identityFields := []string{}
-	for _, opt := range fields {
-		if opt.Value == nil {
-			return nil, fmt.Errorf("%s is missing", opt.Name)
-		}
-		if *opt.Value == "" {
-			return nil, fmt.Errorf("%s is empty", opt.Name)
-		}
-		identityFields = append(identityFields, *opt.Value)
+func AppendIdentityFieldVal(vals []string, val *string, errDetail string) ([]string, error) {
+	if val == nil {
+		return nil, errors.Newf("%s is missing", errDetail)
 	}
-	return identityFields, nil
+	if *val == "" {
+		return nil, errors.Newf("%s is empty", errDetail)
+	}
+	vals = append(vals, *val)
+	return vals, nil
 }
 
 func legacyIdentityFields(b *Base) ([]string, error) {
-	if b.Type == "" {
-		return nil, errors.New("type is empty")
+	vals := []string{}
+	var err error
+	vals, err = AppendIdentityFieldVal(vals, &b.Type, "type")
+	if err != nil {
+		return nil, err
 	}
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
+	vals, err = AppendIdentityFieldVal(vals, b.DeviceID, "device id")
+	if err != nil {
+		return nil, err
 	}
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
+	vals, err = AppendLegacyTimeVal(vals, b.Time)
+	if err != nil {
+		return nil, err
 	}
-	if b.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-	if (*b.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-	return []string{b.Type, *b.DeviceID, (*b.Time).Format(LegacyTimeFormat)}, nil
+	return vals, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {

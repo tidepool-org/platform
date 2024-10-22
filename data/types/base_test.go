@@ -989,36 +989,38 @@ var _ = Describe("Base", func() {
 				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyTimeFormat)}))
 			})
 
-			Context("GetLegacyIDFields", func() {
-				It("returns error if value is empty", func() {
-					legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("")})
-					Expect(err).To(MatchError("first field is empty"))
-					Expect(legacyIDFields).To(BeEmpty())
-				})
+			// Context("GetLegacyIDFields", func() {
+			// 	It("returns error if value is empty", func() {
+			// 		legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("")})
+			// 		Expect(err).To(MatchError("first field is empty"))
+			// 		Expect(legacyIDFields).To(BeEmpty())
+			// 	})
 
-				It("returns legacy id fields if valid", func() {
-					legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("some-thing")})
-					Expect(err).To(BeNil())
-					Expect(legacyIDFields).To(Equal([]string{"some-thing"}))
-				})
+			// 	It("returns legacy id fields if valid", func() {
+			// 		legacyIDFields, err := types.GetLegacyIDFields(types.LegacyIDField{Name: "first field", Value: pointer.FromString("some-thing")})
+			// 		Expect(err).To(BeNil())
+			// 		Expect(legacyIDFields).To(Equal([]string{"some-thing"}))
+			// 	})
 
-				It("returns legacy id with all fields if valid", func() {
-					legacyIDFields, err := types.GetLegacyIDFields(
-						types.LegacyIDField{Name: "first field", Value: pointer.FromString("one")},
-						types.LegacyIDField{Name: "second field", Value: pointer.FromString("two")},
-						types.LegacyIDField{Name: "third field", Value: pointer.FromString("three")},
-					)
-					Expect(err).To(BeNil())
-					Expect(legacyIDFields).To(Equal([]string{"one", "two", "three"}))
-				})
-			})
+			// 	It("returns legacy id with all fields if valid", func() {
+			// 		legacyIDFields, err := types.GetLegacyIDFields(
+			// 			types.LegacyIDField{Name: "first field", Value: pointer.FromString("one")},
+			// 			types.LegacyIDField{Name: "second field", Value: pointer.FromString("two")},
+			// 			types.LegacyIDField{Name: "third field", Value: pointer.FromString("three")},
+			// 		)
+			// 		Expect(err).To(BeNil())
+			// 		Expect(legacyIDFields).To(Equal([]string{"one", "two", "three"}))
+			// 	})
+			// })
 
 			Context("GetLegacyTimeField", func() {
 				It("returns expected legacy field details", func() {
 					t, _ := time.Parse(time.RFC3339Nano, "2015-07-31T23:59:59.999Z")
-					legacyTimeField := types.GetLegacyTimeField(&t)
-					Expect(legacyTimeField.Name).To(Equal("time"))
-					Expect(*legacyTimeField.Value).To(Equal("2015-07-31T23:59:59.999Z"))
+					vals := []string{}
+					var err error
+					vals, err = types.AppendLegacyTimeVal(vals, &t)
+					Expect(err).To(BeNil())
+					Expect(vals).To(ContainElement("2015-07-31T23:59:59.999Z"))
 				})
 			})
 		})

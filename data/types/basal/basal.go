@@ -2,7 +2,6 @@ package basal
 
 import (
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -51,25 +50,39 @@ func (b *Basal) Validate(validator structure.Validator) {
 }
 
 func (b *Basal) IdentityFields(version string) ([]string, error) {
+	identityFields := []string{}
+	var err error
 	if version == types.LegacyIdentityFieldsVersion {
-		return types.GetLegacyIDFields(
-			types.LegacyIDField{Name: "type", Value: &b.Type},
-			types.LegacyIDField{Name: "delivery type", Value: &b.DeliveryType},
-			types.LegacyIDField{Name: "device id", Value: b.DeviceID},
-			types.GetLegacyTimeField(b.Time),
-		)
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.Type, "type")
+		if err != nil {
+			return nil, err
+		}
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.DeliveryType, "delivery type")
+		if err != nil {
+			return nil, err
+		}
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, b.DeviceID, "device id")
+		if err != nil {
+			return nil, err
+		}
+		identityFields, err = types.AppendLegacyTimeVal(identityFields, b.Time)
+		if err != nil {
+			return nil, err
+		}
+		return identityFields, nil
 	}
 
-	identityFields, err := b.Base.IdentityFields(version)
+	identityFields, err = b.Base.IdentityFields(version)
+	if err != nil {
+		return nil, err
+	}
+	identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.DeliveryType, "delivery type")
 	if err != nil {
 		return nil, err
 	}
 
-	if b.DeliveryType == "" {
-		return nil, errors.New("delivery type is empty")
-	}
-
-	return append(identityFields, b.DeliveryType), nil
+	return identityFields, nil
 }
 
 func ParseDeliveryType(parser structure.ObjectParser) *string {

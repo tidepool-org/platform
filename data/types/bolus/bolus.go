@@ -4,7 +4,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/insulin"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -83,23 +82,41 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 
 func (b *Bolus) IdentityFields(version string) ([]string, error) {
 
+	identityFields := []string{}
+	var err error
 	if version == types.LegacyIdentityFieldsVersion {
-		return types.GetLegacyIDFields(
-			types.LegacyIDField{Name: "type", Value: &b.Type},
-			types.LegacyIDField{Name: "sub type", Value: &b.SubType},
-			types.LegacyIDField{Name: "device id", Value: b.DeviceID},
-			types.GetLegacyTimeField(b.Time),
-		)
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.Type, "type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.SubType, "sub type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, b.DeviceID, "device id")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendLegacyTimeVal(identityFields, b.Time)
+		if err != nil {
+			return nil, err
+		}
+		return identityFields, nil
 	}
 
-	identityFields, err := b.Base.IdentityFields(version)
+	identityFields, err = b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
 
-	if b.SubType == "" {
-		return nil, errors.New("sub type is empty")
+	identityFields, err = types.AppendIdentityFieldVal(identityFields, &b.SubType, "sub type")
+	if err != nil {
+		return nil, err
 	}
 
-	return append(identityFields, b.SubType), nil
+	return identityFields, nil
 }

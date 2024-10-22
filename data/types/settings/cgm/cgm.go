@@ -158,12 +158,25 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 }
 
 func (c *CGM) IdentityFields(version string) ([]string, error) {
+	identityFields := []string{}
+	var err error
 	if version == types.LegacyIdentityFieldsVersion {
-		return dataTypes.GetLegacyIDFields(
-			dataTypes.LegacyIDField{Name: "type", Value: &c.Type},
-			dataTypes.GetLegacyTimeField(c.Time),
-			dataTypes.LegacyIDField{Name: "device id", Value: c.DeviceID},
-		)
+
+		identityFields, err = dataTypes.AppendIdentityFieldVal(identityFields, &c.Type, "type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = dataTypes.AppendLegacyTimeVal(identityFields, c.Time)
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = dataTypes.AppendIdentityFieldVal(identityFields, c.DeviceID, "device id")
+		if err != nil {
+			return nil, err
+		}
+		return identityFields, nil
 	}
 	return c.Base.IdentityFields(version)
 }

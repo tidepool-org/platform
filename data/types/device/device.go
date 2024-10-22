@@ -2,7 +2,6 @@ package device
 
 import (
 	"github.com/tidepool-org/platform/data/types"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -46,21 +45,40 @@ func (d *Device) Validate(validator structure.Validator) {
 }
 
 func (d *Device) IdentityFields(version string) ([]string, error) {
+	identityFields := []string{}
+	var err error
 	if version == types.LegacyIdentityFieldsVersion {
-		return types.GetLegacyIDFields(
-			types.LegacyIDField{Name: "type", Value: &d.Type},
-			types.LegacyIDField{Name: "sub type", Value: &d.SubType},
-			types.GetLegacyTimeField(d.Time),
-			types.LegacyIDField{Name: "device id", Value: d.DeviceID},
-		)
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &d.Type, "type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, &d.SubType, "sub type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendLegacyTimeVal(identityFields, d.Time)
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = types.AppendIdentityFieldVal(identityFields, d.DeviceID, "device id")
+		if err != nil {
+			return nil, err
+		}
+
+		return identityFields, nil
 	}
 
-	identityFields, err := d.Base.IdentityFields(version)
+	identityFields, err = d.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
-	if d.SubType == "" {
-		return nil, errors.New("sub type is empty")
+	identityFields, err = types.AppendIdentityFieldVal(identityFields, &d.SubType, "sub type")
+	if err != nil {
+		return nil, err
 	}
-	return append(identityFields, d.SubType), nil
+	return identityFields, nil
 }
