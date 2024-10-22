@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/data/types/blood"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
+	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -15,6 +16,7 @@ func NewBlood() *blood.Blood {
 	datum.Base = *dataTypesTest.RandomBase()
 	datum.Units = pointer.FromString(dataTypesTest.NewType())
 	datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(-math.MaxFloat64, math.MaxFloat64))
+	datum.Raw = &metadata.Metadata{"units": datum.Units, "value": datum.Value}
 	return datum
 }
 

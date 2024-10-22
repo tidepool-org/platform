@@ -156,9 +156,10 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 			return errors.Wrap(err, "error getting datasets for user")
 		}
 		if len(uploads) != 0 {
-			if uploads[0].LegacyGroupID != nil {
-				options = NewLegacyHashOptions(*uploads[0].LegacyGroupID)
+			if uploads[0].LegacyGroupID == nil {
+				return missingLegacyGroupIdErr
 			}
+			options = NewLegacyHashOptions(*uploads[0].LegacyGroupID)
 		}
 	}
 

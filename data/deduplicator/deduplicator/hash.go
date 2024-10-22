@@ -31,12 +31,14 @@ func NewDefaultDeviceDeactivateHashOptions() HashOptions {
 	}
 }
 
+var missingLegacyGroupIdErr = errors.New("missing required legacy groupId for the device deactive hash legacy version")
+
 func (d HashOptions) Validate() error {
 
 	switch d.Version {
 	case DeviceDeactivateHashVersionLegacy:
 		if d.LegacyGroupID == nil || *d.LegacyGroupID == "" {
-			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
+			return missingLegacyGroupIdErr
 		}
 	case DeviceDeactivateHashVersionCurrent:
 		break
