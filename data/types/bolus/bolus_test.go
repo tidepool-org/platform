@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
@@ -31,6 +32,7 @@ var _ = Describe("Bolus", func() {
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
 			Expect(datum.InsulinFormulation).To(BeNil())
+			Expect(datum.DeliveryContext).To(BeNil())
 		})
 	})
 
@@ -82,6 +84,16 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("sub type valid",
 					func(datum *bolus.Bolus) { datum.SubType = dataTypesTest.NewType() },
+				),
+				Entry("delivery context missing",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = nil },
+				),
+				Entry("delivery context invalid",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", bolus.DeliveryContext()), "/deliveryContext"),
+				),
+				Entry("delivery context valid",
+					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString(bolus.DeliveryContextAlgorithm) },
 				),
 				Entry("insulin formulation missing",
 					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
@@ -151,29 +163,55 @@ var _ = Describe("Bolus", func() {
 
 			It("returns error if user id is missing", func() {
 				datum.UserID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
 				datum.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if sub type is empty", func() {
 				datum.SubType = ""
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
+			})
+		})
+
+		Context("Legacy IdentityFields", func() {
+			var datum *bolus.Bolus
+
+			BeforeEach(func() {
+				datum = dataTypesBolusTest.RandomBolus()
+			})
+
+			It("returns error if sub type is empty", func() {
+				datum.SubType = ""
+				identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+				Expect(err).To(MatchError("sub type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				datum.SubType = "some-sub-type"
+				legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"bolus", "some-sub-type", "some-device", "2023-05-13T15:51:58.000Z"}))
 			})
 		})
 	})

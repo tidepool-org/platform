@@ -75,6 +75,7 @@ type Upload struct {
 	State               *string   `json:"-" bson:"_state,omitempty"` // TODO: Should this be returned in JSON? I think so.
 	TimeProcessing      *string   `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	Version             *string   `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
+	LegacyGroupID       *string   `json:"-" bson:"_groupId,omitempty"`
 }
 
 func NewUpload(parser structure.ObjectParser) *Upload {
