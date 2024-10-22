@@ -214,5 +214,5 @@ func (u *Upload) HasDeduplicatorName() bool {
 }
 
 func (u *Upload) HasDeduplicatorNameMatch(name string) bool {
-	return u.HasDeduplicatorName() && u.Deduplicator.HasNameMatch(name)
+	return u.Deduplicator != nil && u.Deduplicator.HasNameMatch(name)
 }

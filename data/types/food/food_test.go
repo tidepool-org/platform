@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
@@ -439,10 +438,10 @@ var _ = Describe("Food", func() {
 			It("returns the expected legacy identity fields", func() {
 				datum := dataTypesFoodTest.RandomFood(3)
 				datum.DeviceID = pointer.FromString("some-device")
-				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				t, err := time.Parse(dataTypes.TimeFormat, "2023-05-13T15:51:58Z")
 				Expect(err).ToNot(HaveOccurred())
 				datum.Time = pointer.FromTime(t)
-				legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+				legacyIdentityFields, err := datum.IdentityFields(dataTypes.LegacyIdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(legacyIdentityFields).To(Equal([]string{"food", "some-device", "2023-05-13T15:51:58.000Z"}))
 			})

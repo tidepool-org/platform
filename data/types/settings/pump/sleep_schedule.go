@@ -104,11 +104,14 @@ func (s *SleepSchedule) Parse(parser structure.ObjectParser) {
 
 func (s *SleepSchedule) Validate(validator structure.Validator) {
 	validator.Bool("enabled", s.Enabled).Exists()
-	if s.Enabled != nil {
-		if *s.Enabled {
-			validator.StringArray("days", s.Days).Exists().EachUsing(dataTypesCommon.DayOfWeekValidator).EachUnique()
-			validator.Int("start", s.Start).Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
-			validator.Int("end", s.End).Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
+	if s.Enabled != nil && *s.Enabled {
+		validator.StringArray("days", s.Days).Exists().EachUsing(dataTypesCommon.DayOfWeekValidator).EachUnique()
+		validator.Int("start", s.Start).Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
+
+		if endValidator := validator.Int("end", s.End); s.Start != nil {
+			endValidator.Exists().InRange(*s.Start, SleepSchedulesMidnightOffsetMaximum)
+		} else {
+			endValidator.Exists().InRange(SleepSchedulesMidnightOffsetMinimum, SleepSchedulesMidnightOffsetMaximum)
 		}
 	}
 }

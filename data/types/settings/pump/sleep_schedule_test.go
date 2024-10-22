@@ -30,7 +30,7 @@ var _ = Describe("SleepSchedule", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataTypesSettingsPump.SleepScheduleMap), expectedErrors ...error) {
-					datum := dataTypesSettingsPumpTest.RandomSleepSchedules(3)
+					datum := dataTypesSettingsPumpTest.RandomSleepScheduleMap(3)
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
 				},
@@ -44,12 +44,12 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("has one",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(1)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepScheduleMap(1)
 					},
 				),
 				Entry("has many",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepScheduleMap(3)
 					},
 				),
 				Entry("entry missing",
@@ -60,7 +60,7 @@ var _ = Describe("SleepSchedule", func() {
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {
-						*datum = *dataTypesSettingsPumpTest.RandomSleepSchedules(3)
+						*datum = *dataTypesSettingsPumpTest.RandomSleepScheduleMap(3)
 						(*datum)[dataTypesSettingsPumpTest.SleepScheduleName(1)] = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), fmt.Sprintf("/%s", dataTypesSettingsPumpTest.SleepScheduleName(1))),
@@ -98,119 +98,141 @@ var _ = Describe("SleepSchedule", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *dataTypesSettingsPump.SleepSchedule), expectedErrors ...error) {
+				func(mutator func(datum *dataTypesSettingsPump.SleepSchedule) []error) {
 					datum := dataTypesSettingsPumpTest.RandomSleepSchedule()
-					mutator(datum)
+					expectedErrors := mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {},
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error { return nil },
 				),
 				Entry("enabled missing",
-					func(datum *dataTypesSettingsPump.SleepSchedule) { datum.Enabled = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled"),
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
+						datum.Enabled = nil
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/enabled")}
+					},
 				),
 				Entry("days missing",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Days = nil
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/days")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/days"),
 				),
 				Entry("days contains invalid",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Days = pointer.FromStringArray(append([]string{"invalid"}, test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(0, len(dataTypesCommon.DaysOfWeek())-1, dataTypesCommon.DaysOfWeek())...))
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}), "/days/0")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}), "/days/0"),
 				),
 				Entry("days contains duplicate",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						duplicate := test.RandomStringFromArray(dataTypesCommon.DaysOfWeek())
 						datum.Days = pointer.FromStringArray([]string{duplicate, duplicate})
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/days/1")}
+
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/days/1"),
 				),
 				Entry("days valid",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
+						return nil
 					},
 				),
 				Entry("start missing",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Start = nil
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
 				),
 				Entry("start out of range (lower)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Start = pointer.FromInt(-1)
+						return []error{
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/start"),
+						}
+
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/start"),
 				),
 				Entry("start in range (lower)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Start = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum)
+						return nil
 					},
 				),
 				Entry("start in range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
-						datum.Start = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum)
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
+						datum.Start = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum - 1)
+						datum.End = pointer.FromInt(*datum.Start + 1)
+						return nil
 					},
 				),
 				Entry("start out of range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Start = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum + 1)
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+							dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum+1,
+							dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
+							dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/start"),
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+								*datum.End,
+								*datum.Start,
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end"),
+						}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum+1,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/start"),
 				),
 				Entry("end missing",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.End = nil
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/end")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/end"),
 				),
 				Entry("end out of range (lower)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.End = pointer.FromInt(-1)
+						return []error{errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+							dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
+							*datum.Start,
+							dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum-1,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end"),
 				),
 				Entry("end in range (lower)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
-						datum.End = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum)
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
+						datum.End = pointer.FromInt(*datum.Start)
+						return nil
 					},
 				),
 				Entry("end in range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.End = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum)
+						return nil
 					},
 				),
 				Entry("end out of range (upper)",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.End = pointer.FromInt(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum + 1)
+						return []error{
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum+1,
+								*datum.Start,
+								dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end"),
+						}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum+1,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum,
-						dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum), "/end"),
 				),
 				Entry("multiple errors",
-					func(datum *dataTypesSettingsPump.SleepSchedule) {
+					func(datum *dataTypesSettingsPump.SleepSchedule) []error {
 						datum.Days = nil
 						datum.Start = nil
 						datum.End = nil
+
+						return []error{
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/days"),
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
+							errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/end"),
+						}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/days"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/start"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/end"),
 				),
 			)
 		})

@@ -670,18 +670,20 @@ var _ = Describe("Pump", func() {
 				Entry("sleep schedules invalid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(2)
+						datum.SleepSchedules = pumpTest.RandomSleepScheduleMap(2)
+						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(1)].Start = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum / 2)
 						(*datum.SleepSchedules)[pumpTest.SleepScheduleName(1)].End = pointer.FromInt(pump.SleepSchedulesMidnightOffsetMaximum + 1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(
-						pump.SleepSchedulesMidnightOffsetMaximum+1, 0,
+						pump.SleepSchedulesMidnightOffsetMaximum+1,
+						pump.SleepSchedulesMidnightOffsetMaximum/2,
 						pump.SleepSchedulesMidnightOffsetMaximum),
 						fmt.Sprintf("/sleepSchedules/%s/end", pumpTest.SleepScheduleName(1)), pumpTest.NewMeta()),
 				),
 				Entry("sleep schedules valid",
 					pointer.FromString("mmol/L"),
 					func(datum *pump.Pump, unitsBloodGlucose *string) {
-						datum.SleepSchedules = pumpTest.RandomSleepSchedules(3)
+						datum.SleepSchedules = pumpTest.RandomSleepScheduleMap(3)
 					},
 				),
 				Entry("software version missing",

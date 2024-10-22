@@ -34,7 +34,7 @@ func NewRandomBolusMap(minimumLength int, maximumLength int) *dataTypesSettingsP
 	datum := dataTypesSettingsPump.NewBolusMap()
 	count := test.RandomIntFromRange(minimumLength, maximumLength)
 	if count == 0 {
-		return nil
+		return datum
 	}
 
 	for i := 0; i < count; i++ {

@@ -142,7 +142,7 @@ var _ = Describe("Suspend", func() {
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/duration", NewMeta()),
 				),
-				Entry("duration missing;",
+				Entry("duration missing",
 					func(datum *suspend.Suspend) {
 						datum.Duration = nil
 						datum.DurationExpected = pointer.FromInt(604800001)

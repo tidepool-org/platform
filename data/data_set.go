@@ -111,7 +111,7 @@ func (d *DataSetClient) Validate(validator structure.Validator) {
 
 type DataSetFilter struct {
 	ClientName *string
-	IsLegacy   *bool
+	LegacyOnly *bool
 	Deleted    *bool
 	DeviceID   *string
 }

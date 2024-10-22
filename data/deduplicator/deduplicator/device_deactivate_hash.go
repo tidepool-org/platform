@@ -149,7 +149,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	options := NewDefaultDeviceDeactivateHashOptions()
 
 	if getDeduplicatorVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
-		filter := &data.DataSetFilter{IsLegacy: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
+		filter := &data.DataSetFilter{LegacyOnly: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
 		pagination := &page.Pagination{Page: 1, Size: 1}
 
 		uploads, err := repository.ListUserDataSets(ctx, *dataSet.UserID, filter, pagination)

@@ -83,9 +83,13 @@ func (b *Blood) SetRawValueAndUnits(value *float64, units *string) {
 
 	if units != nil {
 		b.Raw.Set("units", *units)
+	} else {
+		b.Raw.Delete("units")
 	}
 
 	if value != nil {
 		b.Raw.Set("value", *value)
+	} else {
+		b.Raw.Delete("value")
 	}
 }

@@ -207,7 +207,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
 	}
 
-	s.Logger().Debug("Creating device truncate data set deduplicator")
+	s.Logger().Debug("Creating device deactivate legacy hash deduplicator")
 
 	deviceDeactivateLegacyHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateLegacyHash()
 	if err != nil {

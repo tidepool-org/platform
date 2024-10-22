@@ -414,7 +414,6 @@ var _ = Describe("Glucose", func() {
 				func(datum *glucose.Glucose, units *string) { datum.Value = nil },
 				func(datum *glucose.Glucose, expectedDatum *glucose.Glucose, units *string, value *float64) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
-
 					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),

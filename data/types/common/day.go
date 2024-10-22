@@ -1,10 +1,10 @@
 package common
 
 import (
-	"errors"
 	"slices"
 	"strings"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 )
@@ -41,15 +41,21 @@ func (d DaysOfWeekByDayIndex) Swap(i int, j int) {
 }
 
 func (d DaysOfWeekByDayIndex) Less(i int, j int) bool {
-	a, errA := DayIndex(d[i])
-	if errA != nil {
-		return false
+	iDay := d[i]
+	jDay := d[j]
+	iDayIndex, iErr := DayIndex(iDay)
+	jDayIndex, jErr := DayIndex(jDay)
+	if iErr != nil {
+		if jErr != nil {
+			return iDay < jDay
+		} else {
+			return false
+		}
+	} else if jErr != nil {
+		return true
+	} else {
+		return iDayIndex < jDayIndex
 	}
-	b, errB := DayIndex(d[j])
-	if errB != nil {
-		return false
-	}
-	return a < b
 }
 
 func DayIndex(day string) (int, error) {

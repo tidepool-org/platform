@@ -13,7 +13,7 @@ func SleepScheduleName(index int) string {
 	return fmt.Sprintf("schedule-%d", index)
 }
 
-func RandomSleepSchedules(count int) *dataTypesSettingsPump.SleepScheduleMap {
+func RandomSleepScheduleMap(count int) *dataTypesSettingsPump.SleepScheduleMap {
 	datum := dataTypesSettingsPump.NewSleepScheduleMap()
 	for i := 0; i < count; i++ {
 		(*datum)[SleepScheduleName(i)] = RandomSleepSchedule()
@@ -21,26 +21,26 @@ func RandomSleepSchedules(count int) *dataTypesSettingsPump.SleepScheduleMap {
 	return datum
 }
 
-func CloneSleepSchedules(datum *dataTypesSettingsPump.SleepScheduleMap) *dataTypesSettingsPump.SleepScheduleMap {
+func CloneSleepScheduleMap(datum *dataTypesSettingsPump.SleepScheduleMap) *dataTypesSettingsPump.SleepScheduleMap {
 	if datum == nil {
 		return nil
 	}
 	clone := make(dataTypesSettingsPump.SleepScheduleMap, len(*datum))
-	for index, d := range *datum {
-		clone[index] = CloneSleepSchedule(d)
+	for k, v := range *datum {
+		clone[k] = CloneSleepSchedule(v)
 	}
 	return &clone
 }
 
-func NewArrayFromSleepSchedules(datum *dataTypesSettingsPump.SleepScheduleMap, objectFormat test.ObjectFormat) []interface{} {
+func NewObjectFromSleepScheduleMap(datum *dataTypesSettingsPump.SleepScheduleMap, objectFormat test.ObjectFormat) map[string]interface{} {
 	if datum == nil {
 		return nil
 	}
-	array := []interface{}{}
-	for _, d := range *datum {
-		array = append(array, NewObjectFromSleepSchedule(d, objectFormat))
+	object := map[string]interface{}{}
+	for k, v := range *datum {
+		object[k] = NewObjectFromSleepSchedule(v, objectFormat)
 	}
-	return array
+	return object
 }
 
 func RandomSleepSchedule() *dataTypesSettingsPump.SleepSchedule {
@@ -49,7 +49,7 @@ func RandomSleepSchedule() *dataTypesSettingsPump.SleepSchedule {
 	datum.Enabled = pointer.FromBool(true)
 	datum.Days = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataTypesCommon.DaysOfWeek()), dataTypesCommon.DaysOfWeek()))
 	datum.Start = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))
-	datum.End = pointer.FromInt(test.RandomIntFromRange(dataTypesSettingsPump.SleepSchedulesMidnightOffsetMinimum, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))
+	datum.End = pointer.FromInt(test.RandomIntFromRange(*datum.Start, dataTypesSettingsPump.SleepSchedulesMidnightOffsetMaximum))
 	return datum
 }
 

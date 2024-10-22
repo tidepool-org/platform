@@ -12,7 +12,6 @@ func RandomBolus() *dataTypesBolus.Bolus {
 	datum := randomBolus()
 	datum.Base = *dataTypesTest.RandomBase()
 	datum.Type = "bolus"
-
 	return datum
 }
 
@@ -27,12 +26,8 @@ func randomBolus() *dataTypesBolus.Bolus {
 	datum := &dataTypesBolus.Bolus{}
 	datum.SubType = dataTypesTest.NewType()
 	datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
-	datum.DeliveryContext = randomDeliveryContext()
+	datum.DeliveryContext = pointer.FromString(test.RandomStringFromArray(dataTypesBolus.DeliveryContext()))
 	return datum
-}
-
-func randomDeliveryContext() *string {
-	return pointer.FromString(test.RandomStringFromArray(dataTypesBolus.DeliveryContext()))
 }
 
 func CloneBolus(datum *dataTypesBolus.Bolus) *dataTypesBolus.Bolus {

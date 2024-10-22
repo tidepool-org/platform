@@ -1,12 +1,11 @@
 package common_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/types/common"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -61,7 +60,7 @@ var _ = Describe("Day", func() {
 				if expectedErr == nil {
 					Expect(actualError).To(BeNil())
 				} else {
-					Expect(actualError).To(Equal(expectedErr))
+					Expect(actualError.Error()).To(Equal(expectedErr.Error()))
 				}
 			},
 			Entry("is an empty string", "", 0, errors.New("invalid day of the week")),

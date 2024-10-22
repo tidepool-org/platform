@@ -99,8 +99,7 @@ var _ = Describe("Bolus", func() {
 		})
 	})
 
-	Context("Boluses", func() {
-
+	Context("BolusMap", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *pump.BolusMap), expectedErrors ...error) {
