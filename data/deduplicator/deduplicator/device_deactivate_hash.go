@@ -45,7 +45,7 @@ type DeviceDeactivateHash struct {
 }
 
 func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, string(DeviceDeactivateHashVersionLegacy))
+	base, err := NewBase(DeviceDeactivateHashName, DeviceDeactivateHashVersionLegacy)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
 }
 
 func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, string(DeviceDeactivateHashVersionCurrent))
+	base, err := NewBase(DeviceDeactivateHashName, DeviceDeactivateHashVersionCurrent)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,6 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	if dataSet.HasDeduplicatorName() {
 		return d.Get(dataSet)
 	}
-	//if hash version is set retur true
 	return getDeduplicatorVersion(dataSet) != DeviceDeactivateHashVersionUnknown, nil
 }
 
