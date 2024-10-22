@@ -162,6 +162,11 @@ type ClientInterface interface {
 
 	UpdateMembershipRestrictions(ctx context.Context, clinicId ClinicId, body UpdateMembershipRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// MergeClinicWithBody request with any body
+	MergeClinicWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	MergeClinic(ctx context.Context, clinicId ClinicId, body MergeClinicJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// TriggerInitialMigrationWithBody request with any body
 	TriggerInitialMigrationWithBody(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -658,6 +663,30 @@ func (c *Client) UpdateMembershipRestrictionsWithBody(ctx context.Context, clini
 
 func (c *Client) UpdateMembershipRestrictions(ctx context.Context, clinicId ClinicId, body UpdateMembershipRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateMembershipRestrictionsRequest(c.Server, clinicId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MergeClinicWithBody(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMergeClinicRequestWithBody(c.Server, clinicId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) MergeClinic(ctx context.Context, clinicId ClinicId, body MergeClinicJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewMergeClinicRequest(c.Server, clinicId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -2598,6 +2627,53 @@ func NewUpdateMembershipRestrictionsRequestWithBody(server string, clinicId Clin
 	}
 
 	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewMergeClinicRequest calls the generic MergeClinic builder with application/json body
+func NewMergeClinicRequest(server string, clinicId ClinicId, body MergeClinicJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewMergeClinicRequestWithBody(server, clinicId, "application/json", bodyReader)
+}
+
+// NewMergeClinicRequestWithBody generates requests for MergeClinic with any type of body
+func NewMergeClinicRequestWithBody(server string, clinicId ClinicId, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "clinicId", runtime.ParamLocationPath, clinicId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v1/clinics/%s/merge", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
 	if err != nil {
 		return nil, err
 	}
@@ -6873,6 +6949,11 @@ type ClientWithResponsesInterface interface {
 
 	UpdateMembershipRestrictionsWithResponse(ctx context.Context, clinicId ClinicId, body UpdateMembershipRestrictionsJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateMembershipRestrictionsResponse, error)
 
+	// MergeClinicWithBodyWithResponse request with any body
+	MergeClinicWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MergeClinicResponse, error)
+
+	MergeClinicWithResponse(ctx context.Context, clinicId ClinicId, body MergeClinicJSONRequestBody, reqEditors ...RequestEditorFn) (*MergeClinicResponse, error)
+
 	// TriggerInitialMigrationWithBodyWithResponse request with any body
 	TriggerInitialMigrationWithBodyWithResponse(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error)
 
@@ -7499,6 +7580,27 @@ func (r UpdateMembershipRestrictionsResponse) Status() string {
 
 // StatusCode returns HTTPResponse.StatusCode
 func (r UpdateMembershipRestrictionsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type MergeClinicResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r MergeClinicResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r MergeClinicResponse) StatusCode() int {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.StatusCode
 	}
@@ -8784,6 +8886,23 @@ func (c *ClientWithResponses) UpdateMembershipRestrictionsWithResponse(ctx conte
 	return ParseUpdateMembershipRestrictionsResponse(rsp)
 }
 
+// MergeClinicWithBodyWithResponse request with arbitrary body returning *MergeClinicResponse
+func (c *ClientWithResponses) MergeClinicWithBodyWithResponse(ctx context.Context, clinicId ClinicId, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*MergeClinicResponse, error) {
+	rsp, err := c.MergeClinicWithBody(ctx, clinicId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMergeClinicResponse(rsp)
+}
+
+func (c *ClientWithResponses) MergeClinicWithResponse(ctx context.Context, clinicId ClinicId, body MergeClinicJSONRequestBody, reqEditors ...RequestEditorFn) (*MergeClinicResponse, error) {
+	rsp, err := c.MergeClinic(ctx, clinicId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseMergeClinicResponse(rsp)
+}
+
 // TriggerInitialMigrationWithBodyWithResponse request with arbitrary body returning *TriggerInitialMigrationResponse
 func (c *ClientWithResponses) TriggerInitialMigrationWithBodyWithResponse(ctx context.Context, clinicId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*TriggerInitialMigrationResponse, error) {
 	rsp, err := c.TriggerInitialMigrationWithBody(ctx, clinicId, contentType, body, reqEditors...)
@@ -9892,6 +10011,22 @@ func ParseUpdateMembershipRestrictionsResponse(rsp *http.Response) (*UpdateMembe
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParseMergeClinicResponse parses an HTTP response from a MergeClinicWithResponse call
+func ParseMergeClinicResponse(rsp *http.Response) (*MergeClinicResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &MergeClinicResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil

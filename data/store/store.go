@@ -22,6 +22,7 @@ type Store interface {
 
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
+	NewBucketsRepository() BucketsRepository
 	NewAlertsRepository() alerts.Repository
 }
 
@@ -94,6 +95,12 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 func (f *Filter) Validate(validator structure.Validator) {}
 
 type SummaryRepository interface {
+	EnsureIndexes() error
+
+	GetStore() *storeStructuredMongo.Repository
+}
+
+type BucketsRepository interface {
 	EnsureIndexes() error
 
 	GetStore() *storeStructuredMongo.Repository
