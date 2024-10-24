@@ -1,0 +1,216 @@
+package alerts
+
+import (
+	"context"
+	"slices"
+	"time"
+
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/devicetokens"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
+	"github.com/tidepool-org/platform/push"
+	"github.com/tidepool-org/platform/task"
+)
+
+type CarePartnerRunner struct {
+	logger log.Logger
+
+	alerts       AlertsClient
+	authClient   auth.ServerSessionTokenProvider
+	deviceTokens auth.DeviceTokensClient
+	permissions  permission.Client
+	pusher       Pusher
+}
+
+// AlertsClient abstracts the alerts collection for the CarePartnerRunner.
+//
+// One implementation is [Client].
+type AlertsClient interface {
+	List(_ context.Context, followedUserID string) ([]*Config, error)
+	Upsert(context.Context, *Config) error
+	// UsersWithoutCommunication returns a slice of user ids for those users that haven't
+	// uploaded data recently.
+	UsersWithoutCommunication(context.Context) ([]LastCommunication, error)
+}
+
+func NewCarePartnerRunner(logger log.Logger, alerts AlertsClient,
+	deviceTokens auth.DeviceTokensClient, pusher Pusher, permissions permission.Client,
+	authClient auth.ServerSessionTokenProvider) (*CarePartnerRunner, error) {
+
+	return &CarePartnerRunner{
+		logger:       logger,
+		alerts:       alerts,
+		authClient:   authClient,
+		deviceTokens: deviceTokens,
+		pusher:       pusher,
+		permissions:  permissions,
+	}, nil
+}
+
+func (r *CarePartnerRunner) GetRunnerType() string {
+	return task.CarePartnerType
+}
+
+func (r *CarePartnerRunner) GetRunnerTimeout() time.Duration {
+	return 30 * time.Second
+}
+
+func (r *CarePartnerRunner) GetRunnerDeadline() time.Time {
+	return time.Now().Add(30 * time.Second)
+}
+
+func (r *CarePartnerRunner) GetRunnerDurationMaximum() time.Duration {
+	return 30 * time.Second
+}
+
+func (r *CarePartnerRunner) Run(ctx context.Context, tsk *task.Task) {
+	r.logger.Info("care partner no communication check")
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
+	start := time.Now()
+	if err := r.evaluateLastComms(ctx); err != nil {
+		r.logger.WithError(err).Warn("running care partner no communication check")
+	}
+	r.scheduleNextRun(tsk, start)
+}
+
+func (r *CarePartnerRunner) evaluateLastComms(ctx context.Context) error {
+	lastComms, err := r.alerts.UsersWithoutCommunication(ctx)
+	if err != nil {
+		return errors.Wrap(err, "listing users without communication")
+	}
+
+	for _, lastComm := range lastComms {
+		if err := r.evaluateLastComm(ctx, lastComm); err != nil {
+			r.logger.WithError(err).
+				WithField("followedUserID", lastComm.UserID).
+				Info("unable to evaluate no communication")
+			continue
+		}
+	}
+
+	return nil
+}
+
+func (r *CarePartnerRunner) evaluateLastComm(ctx context.Context,
+	lastComm LastCommunication) error {
+
+	alertsConfigs, err := r.alerts.List(ctx, lastComm.UserID)
+	if err != nil {
+		return errors.Wrap(err, "listing follower alerts configs")
+	}
+	alertsConfigs = slices.DeleteFunc(alertsConfigs, func(config *Config) bool {
+		return config.UploadID != lastComm.DataSetID
+	})
+	alertsConfigs = slices.DeleteFunc(alertsConfigs, r.authDenied(ctx))
+	notifications := []*NotificationWithHook{}
+	toUpdate := map[*Config]struct{}{}
+	for _, alertsConfig := range alertsConfigs {
+		lastData := lastComm.LastReceivedDeviceData
+		notification, changed := alertsConfig.EvaluateNoCommunication(ctx, lastData)
+		if notification != nil {
+			notifications = append(notifications, notification)
+		}
+		if changed || notification != nil {
+			toUpdate[alertsConfig] = struct{}{}
+		}
+	}
+	r.pushNotifications(ctx, notifications)
+	// Only after notifications have been pushed should they be saved. The alerts configs
+	// could change during evaluation or in response to their notification being pushed.
+	for alertConfig := range toUpdate {
+		if err := r.alerts.Upsert(ctx, alertConfig); err != nil {
+			r.logger.WithError(err).
+				WithField("UserID", alertConfig.UserID).
+				WithField("FollowedUserID", alertConfig.FollowedUserID).
+				Info("Unable to upsert alerts config")
+		}
+	}
+
+	return nil
+}
+
+func (r *CarePartnerRunner) authDenied(ctx context.Context) func(*Config) bool {
+	return func(c *Config) bool {
+		if c == nil {
+			return true
+		}
+		logger := r.logger.WithFields(log.Fields{
+			"userID":         c.UserID,
+			"followedUserID": c.FollowedUserID,
+		})
+		perms, err := r.permissions.GetUserPermissions(ctx, c.UserID, c.FollowedUserID)
+		if err != nil {
+			logger.WithError(err).Warn("Unable to confirm permissions; skipping")
+			return true
+		}
+		if _, found := perms[permission.Follow]; !found {
+			logger.Debug("permission denied: skipping")
+			return true
+		}
+		return false
+	}
+}
+
+func (r *CarePartnerRunner) pushNotifications(ctx context.Context,
+	notifications []*NotificationWithHook) {
+
+	for _, notification := range notifications {
+		lgr := r.logger.WithField("recipientUserID", notification.RecipientUserID)
+		tokens, err := r.deviceTokens.GetDeviceTokens(ctx, notification.RecipientUserID)
+		if err != nil {
+			lgr.WithError(err).Info("unable to retrieve device tokens")
+		}
+		if len(tokens) == 0 {
+			lgr.Debug("no device tokens found, won't push any notifications")
+		}
+		pushNote := ToPushNotification(notification.Notification)
+		for _, token := range tokens {
+			err := r.pusher.Push(ctx, token, pushNote)
+			if err != nil {
+				lgr.WithError(err).Info("unable to push notification")
+			} else {
+				notification.Sent(time.Now())
+			}
+		}
+	}
+}
+
+func (r *CarePartnerRunner) scheduleNextRun(tsk *task.Task, lastStart time.Time) {
+	// Ideally, we would start the next run 1 second after this run...
+	nextDesiredRun := lastStart.Add(time.Second)
+	now := time.Now()
+	if nextDesiredRun.Before(now) {
+		r.logger.Info("care partner is bumping nextDesiredRun")
+		// nextDesiredRun, when added to time.Now in tsk.RepeatAvailableAfter, must
+		// result in a time in the future or the task will be marked failed (and not run
+		// again).
+		//
+		// One workaround is to take a guess at how long it will take Run() to return
+		// and the task queue to evaluate the task's AvailableAfter time. Maybe the task
+		// queue could be re-worked to accept a value that indicates "as soon as
+		// possible"? Or if it accepted a time.Duration, then one could pass it
+		// time.Nanosecond to get closer to "ASAP", and then the Zero value might mean
+		// don't repeat. Or the Zero value could mean repeat ASAP. Or a negative value
+		// could mean repeat now. Whatever. It would prevent the task from being marked
+		// a failure for not being able to guess when the value would be read. Which
+		// wasn't its intent I'm sure, it just wasn't designed for tasks with the level
+		// of resolution and repetition expected for this purpose.
+		nextDesiredRun = now.Add(25 * time.Millisecond)
+	}
+	tsk.RepeatAvailableAfter(time.Until(nextDesiredRun))
+}
+
+// Pusher is a service-agnostic interface for sending push notifications.
+type Pusher interface {
+	// Push a notification to a device.
+	Push(context.Context, *devicetokens.DeviceToken, *push.Notification) error
+}
+
+// ToPushNotification converts Notification to push.Notification.
+func ToPushNotification(notification *Notification) *push.Notification {
+	return &push.Notification{
+		Message: notification.Message,
+	}
+}
