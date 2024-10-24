@@ -3,12 +3,16 @@ package mongo
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/alerts"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/errors"
 	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -17,9 +21,21 @@ import (
 type alertsRepo structuredmongo.Repository
 
 // Upsert will create or update the given Config.
+//
+// Once set, UploadID, UserID, and FollowedUserID cannot be changed. This is to prevent a
+// user from granting themselves access to another data set.
 func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 	opts := options.Update().SetUpsert(true)
-	_, err := r.UpdateOne(ctx, r.filter(conf), bson.M{"$set": conf}, opts)
+	filter := bson.D{
+		{Key: "userId", Value: conf.UserID},
+		{Key: "followedUserId", Value: conf.FollowedUserID},
+		{Key: "uploadId", Value: conf.UploadID},
+	}
+	doc := bson.M{
+		"$set":         conf.Alerts,
+		"$setOnInsert": filter,
+	}
+	_, err := r.UpdateOne(ctx, filter, doc, opts)
 	if err != nil {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
@@ -85,8 +101,60 @@ func (r *alertsRepo) EnsureIndexes() error {
 }
 
 func (r *alertsRepo) filter(cfg *alerts.Config) interface{} {
-	return &alerts.Config{
-		UserID:         cfg.UserID,
-		FollowedUserID: cfg.FollowedUserID,
+	return bson.D{
+		{Key: "userId", Value: cfg.UserID},
+		{Key: "followedUserId", Value: cfg.FollowedUserID},
 	}
+}
+
+type alertsDataRepo structuredmongo.Repository
+
+func (d *alertsDataRepo) GetAlertableData(ctx context.Context,
+	params alerts.GetAlertableDataParams) (*alerts.GetAlertableDataResponse, error) {
+
+	if params.End.IsZero() {
+		params.End = time.Now()
+	}
+
+	cursor, err := d.getAlertableData(ctx, params, dosingdecision.Type)
+	if err != nil {
+		return nil, err
+	}
+	dosingDecisions := []*dosingdecision.DosingDecision{}
+	if err := cursor.All(ctx, &dosingDecisions); err != nil {
+		return nil, errors.Wrap(err, "Unable to load alertable dosing documents")
+	}
+	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
+	if err != nil {
+		return nil, err
+	}
+	glucoseData := []*glucose.Glucose{}
+	if err := cursor.All(ctx, &glucoseData); err != nil {
+		return nil, errors.Wrap(err, "Unable to load alertable glucose documents")
+	}
+	response := &alerts.GetAlertableDataResponse{
+		DosingDecisions: dosingDecisions,
+		Glucose:         glucoseData,
+	}
+
+	return response, nil
+}
+
+func (d *alertsDataRepo) getAlertableData(ctx context.Context,
+	params alerts.GetAlertableDataParams, typ string) (*mongo.Cursor, error) {
+
+	selector := bson.M{
+		"_active":  true,
+		"uploadId": params.UploadID,
+		"type":     typ,
+		"_userId":  params.UserID,
+		"time":     bson.M{"$gte": params.Start, "$lte": params.End},
+	}
+	findOptions := options.Find().SetSort(bson.D{{Key: "time", Value: -1}})
+	cursor, err := d.Find(ctx, selector, findOptions)
+	if err != nil {
+		format := "Unable to find alertable %s data in dataset %s"
+		return nil, errors.Wrapf(err, format, typ, params.UploadID)
+	}
+	return cursor, nil
 }

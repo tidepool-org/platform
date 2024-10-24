@@ -14,8 +14,14 @@ import (
 	"github.com/tidepool-org/platform/platform"
 )
 
+const testToken = "auth-me"
+const testUserID = "test-user-id"
+const testFollowedUserID = "test-followed-user-id"
+const testDataSetID = "upid_000000000000"
+
 var _ = Describe("Client", func() {
-	var test404Server, test200Server *httptest.Server
+	var test404Server *httptest.Server
+	var test200Server func(string) *httptest.Server
 
 	BeforeEach(func() {
 		t := GinkgoT()
@@ -24,38 +30,91 @@ var _ = Describe("Client", func() {
 		test404Server = testServer(t, func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		})
-		test200Server = testServer(t, func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
+		test200Server = func(resp string) *httptest.Server {
+			return testServer(t, func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(resp))
+			})
+		}
 	})
 
-	Context("Delete", func() {
-		It("returns an error on non-200 responses", func() {
+	ItReturnsAnErrorOnNon200Responses := func(f func(context.Context, *Client) error) {
+		GinkgoHelper()
+		It("returns an error on non-200 respnoses", func() {
 			client, ctx := newAlertsClientTest(test404Server)
-			err := client.Delete(ctx, &Config{})
+			err := f(ctx, client)
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("resource not found")))
 		})
+	}
 
-		It("returns nil on success", func() {
-			client, ctx := newAlertsClientTest(test200Server)
-			err := client.Delete(ctx, &Config{})
-			Expect(err).ShouldNot(HaveOccurred())
+	ItReturnsANilErrorOnSuccess := func(resp string, f func(context.Context, *Client) error) {
+		GinkgoHelper()
+		It("returns a nil error on success", func() {
+			client, ctx := newAlertsClientTest(test200Server(resp))
+			err := f(ctx, client)
+			Expect(err).To(Succeed())
+		})
+	}
+
+	Context("Delete", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			return client.Delete(ctx, &Config{})
+		})
+
+		ItReturnsANilErrorOnSuccess("", func(ctx context.Context, client *Client) error {
+			return client.Delete(ctx, &Config{})
 		})
 	})
 
 	Context("Upsert", func() {
-		It("returns an error on non-200 responses", func() {
-			client, ctx := newAlertsClientTest(test404Server)
-			err := client.Upsert(ctx, &Config{})
-			Expect(err).Should(HaveOccurred())
-			Expect(err).To(MatchError(ContainSubstring("resource not found")))
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			return client.Upsert(ctx, &Config{})
 		})
 
-		It("returns nil on success", func() {
-			client, ctx := newAlertsClientTest(test200Server)
-			err := client.Upsert(ctx, &Config{})
-			Expect(err).ShouldNot(HaveOccurred())
+		ItReturnsANilErrorOnSuccess("", func(ctx context.Context, client *Client) error {
+			return client.Upsert(ctx, &Config{})
+		})
+	})
+
+	Context("Get", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.Get(ctx, testFollowedUserID, testUserID)
+			return err
+		})
+
+		ret := `{
+                  "userId": "14ee703f-ca9b-4a6b-9ce3-41d886514e7f",
+                  "followedUserId": "ce5863bc-cc0b-4177-97d7-e8de0c558820",
+                  "uploadId": "upid_00000000000000000000000000000000"
+                }`
+		ItReturnsANilErrorOnSuccess(ret, func(ctx context.Context, client *Client) error {
+			_, err := client.Get(ctx, testFollowedUserID, testUserID)
+			return err
+		})
+	})
+
+	Context("List", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.List(ctx, "")
+			return err
+		})
+
+		ItReturnsANilErrorOnSuccess("[]", func(ctx context.Context, client *Client) error {
+			_, err := client.List(ctx, "")
+			return err
+		})
+	})
+
+	Context("UsersWithoutCommunication", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.UsersWithoutCommunication(ctx)
+			return err
+		})
+
+		ItReturnsANilErrorOnSuccess("[]", func(ctx context.Context, client *Client) error {
+			_, err := client.UsersWithoutCommunication(ctx)
+			return err
 		})
 	})
 })
@@ -75,8 +134,14 @@ func newAlertsClientTest(server *httptest.Server) (*Client, context.Context) {
 	return buildTestClient(server), contextWithNullLogger()
 }
 
+func contextWithNullLoggerDeluxe() (context.Context, log.Logger) {
+	lgr := null.NewLogger()
+	return log.NewContextWithLogger(context.Background(), lgr), lgr
+}
+
 func contextWithNullLogger() context.Context {
-	return log.NewContextWithLogger(context.Background(), null.NewLogger())
+	ctx, _ := contextWithNullLoggerDeluxe()
+	return ctx
 }
 
 func testServer(t GinkgoTInterface, handler http.HandlerFunc) *httptest.Server {

@@ -25,6 +25,7 @@ func AlertsRoutes() []service.Route {
 		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
 		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
 		service.Get("/v1/users/:userId/followers/alerts", ListAlerts, api.RequireServer),
+		service.Get("/v1/users/without_communication", GetUsersWithoutCommunication, api.RequireServer),
 	}
 }
 
@@ -115,13 +116,8 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	incomingCfg := &alerts.Config{}
-	var bodyReceiver interface{} = &incomingCfg.Alerts
-	if authDetails.IsService() && authDetails.UserID() == "" {
-		// Accept upload id only from services.
-		bodyReceiver = incomingCfg
-	}
-	if err := request.DecodeRequestBody(r.Request, bodyReceiver); err != nil {
+	cfg := &alerts.Config{}
+	if err := request.DecodeRequestBody(r.Request, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 		return
 	}
@@ -132,12 +128,6 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	cfg := &alerts.Config{
-		UserID:         path.UserID,
-		FollowedUserID: path.FollowedUserID,
-		UploadID:       incomingCfg.UploadID,
-		Alerts:         incomingCfg.Alerts,
-	}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		lgr.WithError(err).Error("upserting alerts config")
@@ -181,6 +171,30 @@ func ListAlerts(dCtx service.Context) {
 	responder.Data(http.StatusOK, alerts)
 }
 
+func GetUsersWithoutCommunication(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
+
+	authDetails := request.GetAuthDetails(ctx)
+	lgr := log.LoggerFromContext(ctx)
+	if err := checkAuthentication(authDetails); err != nil {
+		lgr.Debug("authentication failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+	lastComms, err := dCtx.RecordsRepository().UsersWithoutCommunication(ctx)
+	if err != nil {
+		lgr.WithError(err).Debug("unable to list users without communication")
+		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		return
+	}
+
+	lgr.WithField("found", len(lastComms)).WithField("lastComms", lastComms).Debug("/v1/users/without_communication")
+
+	responder := request.MustNewResponder(dCtx.Response(), r)
+	responder.Data(http.StatusOK, lastComms)
+}
+
 // checkUserIDConsistency verifies the userIDs in a request.
 //
 // For safety reasons, if these values don't agree, return an error.
@@ -197,7 +211,7 @@ func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) 
 
 // checkAuthentication ensures that the request has an authentication token.
 func checkAuthentication(details request.AuthDetails) error {
-	if details.Token() == "" {
+	if details.HasToken() && details.Token() == "" {
 		return platformerrors.New("unauthorized")
 	}
 	if details.IsUser() {

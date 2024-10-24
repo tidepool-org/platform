@@ -41,6 +41,7 @@ type Standard struct {
 	clinicsClient           clinics.Client
 	dataSourceClient        dataSource.Client
 	alertsRepository        alerts.Repository
+	recordsRepository       alerts.RecordsRepository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
@@ -129,6 +130,9 @@ func (s *Standard) Close() {
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
+	if s.recordsRepository != nil {
+		s.recordsRepository = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -207,4 +211,11 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
+}
+
+func (s *Standard) RecordsRepository() alerts.RecordsRepository {
+	if s.recordsRepository == nil {
+		s.recordsRepository = s.dataStore.NewRecorderRepository()
+	}
+	return s.recordsRepository
 }

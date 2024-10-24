@@ -11,7 +11,6 @@ import (
 	"github.com/sideshow/apns2/payload"
 	"github.com/sideshow/apns2/token"
 
-	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -25,12 +24,6 @@ type Notification struct {
 // String implements fmt.Stringer.
 func (n Notification) String() string {
 	return n.Message
-}
-
-func FromAlertsNotification(notification *alerts.Notification) *Notification {
-	return &Notification{
-		Message: notification.Message,
-	}
 }
 
 // APNSPusher implements push notifications via Apple APNs.

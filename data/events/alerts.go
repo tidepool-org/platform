@@ -1,10 +1,8 @@
 package events
 
 import (
-	"cmp"
 	"context"
 	"os"
-	"slices"
 	"strings"
 	"time"
 
@@ -13,7 +11,6 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/devicetokens"
@@ -27,11 +24,12 @@ import (
 
 type Consumer struct {
 	Alerts       AlertsClient
-	Data         store.DataRepository
+	Data         alerts.DataRepository
 	DeviceTokens auth.DeviceTokensClient
 	Evaluator    AlertsEvaluator
 	Permissions  permission.Client
 	Pusher       Pusher
+	Recorder     EventsRecorder
 
 	Logger log.Logger
 }
@@ -76,7 +74,7 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	ctxLog := c.logger(ctx).WithField("followedUserID", cfg.FollowedUserID)
 	ctx = log.NewContextWithLogger(ctx, ctxLog)
 
-	notes, err := c.Evaluator.Evaluate(ctx, cfg.FollowedUserID, cfg.UploadID)
+	notes, err := c.Evaluator.EvaluateData(ctx, cfg.FollowedUserID, cfg.UploadID)
 	if err != nil {
 		format := "Unable to evalaute alerts configs triggered event for user %s"
 		return errors.Wrapf(err, format, cfg.UserID)
@@ -91,7 +89,7 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 }
 
 func (c *Consumer) consumeDeviceData(ctx context.Context,
-	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) (err error) {
+	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
 
 	datum := &Glucose{}
 	if err := unmarshalMessageValue(msg.Value, datum); err != nil {
@@ -104,10 +102,19 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 		return errors.New("Unable to retrieve alerts configs: userID is nil")
 	}
 	if datum.UploadID == nil {
-		return errors.New("Unable to retrieve alerts configs: uploadID is nil")
+		return errors.New("Unable to retrieve alerts configs: DataSetID is nil")
 	}
 	ctx = log.NewContextWithLogger(ctx, lgr.WithField("followedUserID", *datum.UserID))
-	notes, err := c.Evaluator.Evaluate(ctx, *datum.UserID, *datum.UploadID)
+	lastComm := alerts.LastCommunication{
+		UserID:                 *datum.UserID,
+		LastReceivedDeviceData: time.Now(),
+		DataSetID:              *datum.UploadID,
+	}
+	err := c.Recorder.RecordReceivedDeviceData(ctx, lastComm)
+	if err != nil {
+		lgr.WithError(err).Info("Unable to record device data received")
+	}
+	notes, err := c.Evaluator.EvaluateData(ctx, *datum.UserID, *datum.UploadID)
 	if err != nil {
 		format := "Unable to evalaute device data triggered event for user %s"
 		return errors.Wrapf(err, format, *datum.UserID)
@@ -123,7 +130,7 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 	return nil
 }
 
-func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.Notification) {
+func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.NotificationWithHook) {
 	lgr := c.logger(ctx)
 
 	// Notes could be pushed into a Kafka topic to have a more durable retry,
@@ -137,10 +144,13 @@ func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.Notifi
 		if len(tokens) == 0 {
 			lgr.Debug("no device tokens found, won't push any notifications")
 		}
-		pushNote := push.FromAlertsNotification(notification)
+		pushNote := alerts.ToPushNotification(notification.Notification)
 		for _, token := range tokens {
-			if err := c.Pusher.Push(ctx, token, pushNote); err != nil {
+			err := c.Pusher.Push(ctx, token, pushNote)
+			if err != nil {
 				lgr.WithError(err).Info("Unable to push notification")
+			} else {
+				notification.Sent(time.Now())
 			}
 		}
 	}
@@ -165,164 +175,8 @@ func (c *Consumer) logger(ctx context.Context) log.Logger {
 }
 
 type AlertsEvaluator interface {
-	Evaluate(ctx context.Context, followedUserID, dataSetID string) ([]*alerts.Notification, error)
-}
-
-func NewAlertsEvaluator(alerts AlertsClient, data store.DataRepository,
-	perms permission.Client) *evaluator {
-
-	return &evaluator{
-		Alerts:      alerts,
-		Data:        data,
-		Permissions: perms,
-	}
-}
-
-// evaluator implements AlertsEvaluator.
-type evaluator struct {
-	Alerts      AlertsClient
-	Data        store.DataRepository
-	Permissions permission.Client
-}
-
-// logger produces a log.Logger.
-//
-// It tries a number of options before falling back to a null Logger.
-func (e *evaluator) logger(ctx context.Context) log.Logger {
-	// A context's Logger is preferred, as it has the most... context.
-	if ctxLgr := log.LoggerFromContext(ctx); ctxLgr != nil {
-		return ctxLgr
-	}
-	fallback, err := logjson.NewLogger(os.Stderr, log.DefaultLevelRanks(), log.DefaultLevel())
-	if err != nil {
-		fallback = lognull.NewLogger()
-	}
-	return fallback
-}
-
-// Evaluate followers' alerts.Configs to generate alert notifications.
-func (e *evaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
-	[]*alerts.Notification, error) {
-
-	alertsConfigs, err := e.gatherAlertsConfigs(ctx, followedUserID, dataSetID)
-	if err != nil {
-		return nil, err
-	}
-
-	alertsConfigsByUploadID := e.mapAlertsConfigsByUploadID(alertsConfigs)
-
-	notifications := []*alerts.Notification{}
-	for uploadID, cfgs := range alertsConfigsByUploadID {
-		resp, err := e.gatherData(ctx, followedUserID, uploadID, cfgs)
-		if err != nil {
-			return nil, err
-		}
-		notifications = slices.Concat(notifications, e.generateNotes(ctx, cfgs, resp))
-	}
-
-	return notifications, nil
-}
-
-func (e *evaluator) mapAlertsConfigsByUploadID(cfgs []*alerts.Config) map[string][]*alerts.Config {
-	mapped := map[string][]*alerts.Config{}
-	for _, cfg := range cfgs {
-		if _, found := mapped[cfg.UploadID]; !found {
-			mapped[cfg.UploadID] = []*alerts.Config{}
-		}
-		mapped[cfg.UploadID] = append(mapped[cfg.UploadID], cfg)
-	}
-	return mapped
-}
-
-// gatherAlertsConfigs for the given followed user and data set.
-//
-// Those configs which don't match the data set or whose owners don't have permission are
-// removed.
-func (e *evaluator) gatherAlertsConfigs(ctx context.Context,
-	followedUserID, dataSetID string) ([]*alerts.Config, error) {
-
-	alertsConfigs, err := e.Alerts.List(ctx, followedUserID)
-	if err != nil {
-		return nil, err
-	}
-	alertsConfigs = slices.DeleteFunc(alertsConfigs, e.authDenied(ctx))
-	alertsConfigs = slices.DeleteFunc(alertsConfigs, func(c *alerts.Config) bool {
-		return c.UploadID != dataSetID
-	})
-	return alertsConfigs, nil
-}
-
-// authDenied builds functions that enable slices.DeleteFunc to remove
-// unauthorized users' alerts.Configs.
-//
-// Via a closure it's able to inject information from the Context and the
-// evaluator itself into the resulting function.
-func (e *evaluator) authDenied(ctx context.Context) func(ac *alerts.Config) bool {
-	lgr := e.logger(ctx)
-	return func(ac *alerts.Config) bool {
-		if ac == nil {
-			return true
-		}
-		lgr = lgr.WithFields(log.Fields{
-			"userID":         ac.UserID,
-			"followedUserID": ac.FollowedUserID,
-		})
-		perms, err := e.Permissions.GetUserPermissions(ctx, ac.UserID, ac.FollowedUserID)
-		if err != nil {
-			lgr.WithError(err).Warn("Unable to confirm permissions; skipping")
-			return true
-		}
-		if _, found := perms[permission.Follow]; !found {
-			lgr.Debug("permission denied: skipping")
-			return true
-		}
-		return false
-	}
-}
-
-func (e *evaluator) gatherData(ctx context.Context, followedUserID, uploadID string,
-	alertsConfigs []*alerts.Config) (*store.AlertableResponse, error) {
-
-	if len(alertsConfigs) == 0 {
-		return nil, nil
-	}
-
-	longestDelay := slices.MaxFunc(alertsConfigs, func(i, j *alerts.Config) int {
-		return cmp.Compare(i.LongestDelay(), j.LongestDelay())
-	}).LongestDelay()
-	longestDelay = max(5*time.Minute, longestDelay)
-	params := store.AlertableParams{
-		UserID:   followedUserID,
-		UploadID: uploadID,
-		Start:    time.Now().Add(-longestDelay),
-	}
-	resp, err := e.Data.GetAlertableData(ctx, params)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-func (e *evaluator) generateNotes(ctx context.Context,
-	alertsConfigs []*alerts.Config, resp *store.AlertableResponse) []*alerts.Notification {
-
-	lgr := e.logger(ctx)
-	notifications := []*alerts.Notification{}
-	for _, alertsConfig := range alertsConfigs {
-		l := lgr.WithFields(log.Fields{
-			"userID":         alertsConfig.UserID,
-			"followedUserID": alertsConfig.FollowedUserID,
-			"uploadID":       alertsConfig.UploadID,
-		})
-		c := log.NewContextWithLogger(ctx, l)
-		note := alertsConfig.Evaluate(c, resp.Glucose, resp.DosingDecisions)
-		if note != nil {
-			notifications = append(notifications, note)
-		}
-	}
-
-	return notifications
+	// EvaluateData to check if notifications should be sent in response to new data.
+	EvaluateData(ctx context.Context, followedUserID, dataSetID string) ([]*alerts.NotificationWithHook, error)
 }
 
 func unmarshalMessageValue[A any](b []byte, payload *A) error {

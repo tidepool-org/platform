@@ -38,7 +38,7 @@ func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document
 		return errors.New("UserID is empty")
 	}
 	if doc.TokenKey == "" {
-		return errors.New("TokenID is empty")
+		return errors.New("TokenKey is empty")
 	}
 
 	opts := options.Update().SetUpsert(true)

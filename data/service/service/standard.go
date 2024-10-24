@@ -10,6 +10,7 @@ import (
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
@@ -493,16 +494,21 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		prefixedTopics = append(prefixedTopics, topicPrefix+topic)
 	}
 
-	alerts := s.dataStore.NewAlertsRepository()
-	dataRepo := s.dataStore.NewDataRepository()
+	alertsRepo := s.dataStore.NewAlertsRepository()
+	dataRepo := s.dataStore.NewAlertsDataRepository()
+	recorderRepo := s.dataStore.NewRecorderRepository()
+
+	alertsEvaluator := alerts.NewEvaluator(alertsRepo, dataRepo, s.permissionClient, s.Logger())
+
 	ec := &dataEvents.Consumer{
-		Alerts:       alerts,
+		Alerts:       alertsRepo,
+		Evaluator:    alertsEvaluator,
 		Data:         dataRepo,
 		DeviceTokens: s.AuthClient(),
-		Evaluator:    dataEvents.NewAlertsEvaluator(alerts, dataRepo, s.permissionClient),
+		Logger:       s.Logger(),
 		Permissions:  s.permissionClient,
 		Pusher:       s.pusher,
-		Logger:       s.Logger(),
+		Recorder:     dataEvents.NewRecorder(recorderRepo),
 	}
 
 	runnerCfg := dataEvents.SaramaRunnerConfig{
