@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-
 	"github.com/tidepool-org/go-common/asyncevents"
 	ev "github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/alerts"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	summaryStore "github.com/tidepool-org/platform/data/summary/store"
@@ -543,4 +543,13 @@ func (c *CascadingConsumer) updateCascadeHeaders(headers []sarama.RecordHeader) 
 	})
 
 	return keep
+}
+
+type EventsRecorder interface {
+	// RecordReceivedDeviceData to support sending care partner alerts.
+	//
+	// Metadata about when we last received data for any given user is
+	// used to determine if alerts should be sent to the care partners
+	// of a given user.
+	RecordReceivedDeviceData(context.Context, alerts.LastCommunication) error
 }

@@ -10,6 +10,8 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data/service/context"
+	log "github.com/tidepool-org/platform/log"
+	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	servicecontext "github.com/tidepool-org/platform/service/context"
@@ -22,17 +24,20 @@ type Context struct {
 
 	T likeT
 	// authDetails should be updated via the WithAuthDetails method.
-	authDetails          *test.MockAuthDetails
-	RESTRequest          *rest.Request
-	ResponseWriter       rest.ResponseWriter
-	recorder             *httptest.ResponseRecorder
-	MockAlertsRepository alerts.Repository
-	MockPermissionClient permission.Client
+	authDetails           *test.MockAuthDetails
+	RESTRequest           *rest.Request
+	ResponseWriter        rest.ResponseWriter
+	recorder              *httptest.ResponseRecorder
+	MockAlertsRepository  alerts.Repository
+	MockPermissionClient  permission.Client
+	MockRecordsRepository alerts.RecordsRepository
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
 	details := DefaultAuthDetails()
 	ctx := request.NewContextWithAuthDetails(stdcontext.Background(), details)
+	lgr := logtest.NewLogger()
+	ctx = log.NewContextWithLogger(ctx, lgr)
 	r, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		t.Fatalf("error creating request: %s", err)
@@ -98,4 +103,8 @@ func (c *Context) AlertsRepository() alerts.Repository {
 
 func (c *Context) PermissionClient() permission.Client {
 	return c.MockPermissionClient
+}
+
+func (c *Context) RecordsRepository() alerts.RecordsRepository {
+	return c.MockRecordsRepository
 }

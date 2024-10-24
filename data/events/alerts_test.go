@@ -2,6 +2,7 @@ package events
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/IBM/sarama"
@@ -12,7 +13,6 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/store"
 	storetest "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
@@ -30,14 +30,7 @@ const (
 	testUserID         = "test-user-id"
 	testFollowedUserID = "test-followed-user-id"
 	testUserNoPermsID  = "test-user-no-perms"
-	testUploadID       = "test-upload-id"
-)
-
-var (
-	testMongoUrgentLowResponse = &store.AlertableResponse{
-		Glucose: []*glucose.Glucose{
-			newTestStaticDatumMmolL(1.0)},
-	}
+	testDataSetID      = "test-data-set-id"
 )
 
 var _ = Describe("Consumer", func() {
@@ -54,12 +47,14 @@ var _ = Describe("Consumer", func() {
 				UserID:         testUserID,
 				FollowedUserID: testFollowedUserID,
 				Alerts: alerts.Alerts{
-					Low: &alerts.LowAlert{
-						Base: alerts.Base{
-							Enabled: true},
-						Threshold: alerts.Threshold{
-							Value: 101.1,
-							Units: "mg/dL",
+					DataAlerts: alerts.DataAlerts{
+						Low: &alerts.LowAlert{
+							Base: alerts.Base{
+								Enabled: true},
+							Threshold: alerts.Threshold{
+								Value: 101.1,
+								Units: "mg/dL",
+							},
 						},
 					},
 				},
@@ -70,6 +65,16 @@ var _ = Describe("Consumer", func() {
 
 			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).To(Succeed())
 			Expect(deps.Session.MarkCalls).To(Equal(1))
+		})
+
+		It("records device data events", func() {
+			blood := newTestStaticDatumMmolL(7.2)
+			kafkaMsg := newAlertsMockConsumerMessage(".data.deviceData.alerts", blood)
+			docs := []interface{}{bson.M{}}
+			c, deps := newConsumerTestDeps(docs)
+
+			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).To(Succeed())
+			Expect(deps.Recorder.NumCallsFor(testFollowedUserID)).To(Equal(1))
 		})
 
 		It("consumes device data events", func() {
@@ -102,7 +107,7 @@ var _ = Describe("Consumer", func() {
 			c, deps := newConsumerTestDeps(docs)
 
 			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).
-				To(MatchError(ContainSubstring("uploadID is nil")))
+				To(MatchError(ContainSubstring("DataSetID is nil")))
 			Expect(deps.Session.MarkCalls).To(Equal(0))
 		})
 
@@ -112,13 +117,16 @@ var _ = Describe("Consumer", func() {
 			docs := []interface{}{bson.M{}}
 			c, deps := newConsumerTestDeps(docs)
 			eval := newMockEvaluator()
-			eval.Evaluations[testFollowedUserID+testUploadID] = []mockEvaluatorResponse{
+			eval.Evaluations[testFollowedUserID+testDataSetID] = []mockEvaluatorResponse{
 				{
-					Notifications: []*alerts.Notification{
+					Notifications: []*alerts.NotificationWithHook{
 						{
-							Message:         "something",
-							RecipientUserID: testUserID,
-							FollowedUserID:  testFollowedUserID,
+							Notification: &alerts.Notification{
+								Message:         "something",
+								RecipientUserID: testUserID,
+								FollowedUserID:  testFollowedUserID,
+							},
+							Sent: func(time.Time) {},
 						},
 					},
 				},
@@ -126,67 +134,26 @@ var _ = Describe("Consumer", func() {
 			c.Evaluator = eval
 
 			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).To(Succeed())
-
-			deps.Logger.AssertInfo("logging push notification")
 		})
 	})
 
-	Describe("Evaluator", func() {
-		Describe("Evaluate", func() {
-			It("checks that alerts config owners have permission", func() {
+	Describe("Reporter", func() {
+		Describe("Record", func() {
+			It("records the metadata for the user id", func() {
 				testLogger := logtest.NewLogger()
 				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
-				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
-				deps.Permissions.DenyAll(testUserNoPermsID, testFollowedUserID)
-				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserNoPermsID))
-				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserID))
-
-				notes, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
-
-				Expect(err).To(Succeed())
-				Expect(notes).To(ConsistOf(HaveField("RecipientUserID", testUserID)))
-			})
-
-			It("checks that alerts configs match the data set id", func() {
-				testLogger := logtest.NewLogger()
-				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
-				deps.Permissions.Allow(testUserID+"2", permission.Follow, testFollowedUserID)
-				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserID+"2"))
-				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
-				wrongDataSetID := testAlertsConfigUrgentLow(testUserID)
-				wrongDataSetID.UploadID = "wrong"
-				deps.Alerts.Configs = append(deps.Alerts.Configs, wrongDataSetID)
-
-				notes, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
-
-				Expect(err).To(Succeed())
-				Expect(notes).To(ConsistOf(HaveField("RecipientUserID", testUserID+"2")))
-			})
-
-			It("uses the longest delay", func() {
-				testLogger := logtest.NewLogger()
-				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
-				cfgWithShorterDelay := testAlertsConfigLow(testUserID)
-				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithShorterDelay)
-				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
-				cfgWithLongerDelay := testAlertsConfigLow(testUserID + "2")
-				cfgWithLongerDelay.Alerts.Low.Delay = alerts.DurationMinutes(10 * time.Minute)
-				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithLongerDelay)
-				deps.Permissions.Allow(testUserID+"2", permission.Follow, testFollowedUserID)
-
-				_, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
-
-				Expect(err).To(Succeed())
-				if Expect(len(deps.Data.GetAlertableDataInputs)).To(Equal(1)) {
-					Expect(deps.Data.GetAlertableDataInputs[0].Params.Start).
-						To(BeTemporally("~", time.Now().Add(-10*time.Minute), time.Second))
+				mockRepo := newMockRecorderRepository()
+				rec := NewRecorder(mockRepo)
+				lastComm := alerts.LastCommunication{
+					UserID:                 testFollowedUserID,
+					LastReceivedDeviceData: time.Now(),
+					DataSetID:              "test",
 				}
+				err := rec.RecordReceivedDeviceData(ctx, lastComm)
+				Expect(err).To(Succeed())
+				Expect(mockRepo.NumCallsFor(testFollowedUserID)).To(Equal(1))
 			})
 		})
-
 	})
 })
 
@@ -199,6 +166,7 @@ type consumerTestDeps struct {
 	Logger       *logtest.Logger
 	Permissions  *mockPermissionsClient
 	Pusher       Pusher
+	Recorder     *mockRecorder
 	Repo         *storetest.DataRepository
 	Session      *mockConsumerGroupSession
 }
@@ -210,7 +178,9 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 		{
 			UserID:         testUserID,
 			FollowedUserID: testFollowedUserID,
-			Alerts:         alerts.Alerts{},
+			Alerts: alerts.Alerts{
+				DataAlerts: alerts.DataAlerts{},
+			},
 		},
 	}, nil)
 	dataRepo := storetest.NewDataRepository()
@@ -224,9 +194,7 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 	evaluator := newMockStaticEvaluator()
 	pusher := push.NewLogPusher(logger)
 	deviceTokens := newMockDeviceTokens()
-	deviceTokens.Tokens = append(deviceTokens.Tokens, []*devicetokens.DeviceToken{
-		{Apple: &devicetokens.AppleDeviceToken{}},
-	})
+	recorder := newMockRecorder()
 
 	return &Consumer{
 			Alerts:       alertsClient,
@@ -235,6 +203,7 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 			DeviceTokens: deviceTokens,
 			Permissions:  permissions,
 			Pusher:       pusher,
+			Recorder:     recorder,
 		}, &consumerTestDeps{
 			Alerts:       alertsClient,
 			Context:      ctx,
@@ -245,35 +214,9 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 			Repo:         dataRepo,
 			Session:      &mockConsumerGroupSession{},
 			Logger:       logger,
-			//Tokens:      tokens,
-			Permissions: permissions,
+			Recorder:     recorder,
+			Permissions:  permissions,
 		}
-}
-
-func newEvaluatorTestDeps(responses []*store.AlertableResponse) (*evaluator, *evaluatorTestDeps) {
-	alertsClient := newMockAlertsConfigClient(nil, nil)
-	dataRepo := storetest.NewDataRepository()
-	dataRepo.GetLastUpdatedForUserOutputs = []storetest.GetLastUpdatedForUserOutput{}
-	for _, r := range responses {
-		out := storetest.GetAlertableDataOutput{Response: r}
-		dataRepo.GetAlertableDataOutputs = append(dataRepo.GetAlertableDataOutputs, out)
-	}
-	permissions := newMockPermissionsClient()
-	return &evaluator{
-			Alerts:      alertsClient,
-			Data:        dataRepo,
-			Permissions: permissions,
-		}, &evaluatorTestDeps{
-			Alerts:      alertsClient,
-			Permissions: permissions,
-			Data:        dataRepo,
-		}
-}
-
-type evaluatorTestDeps struct {
-	Alerts      *mockAlertsConfigClient
-	Permissions *mockPermissionsClient
-	Data        *storetest.DataRepository
 }
 
 // mockEvaluator implements Evaluator.
@@ -283,7 +226,7 @@ type mockEvaluator struct {
 }
 
 type mockEvaluatorResponse struct {
-	Notifications []*alerts.Notification
+	Notifications []*alerts.NotificationWithHook
 	Error         error
 }
 
@@ -294,8 +237,8 @@ func newMockEvaluator() *mockEvaluator {
 	}
 }
 
-func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
-	[]*alerts.Notification, error) {
+func (e *mockEvaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID string) (
+	[]*alerts.NotificationWithHook, error) {
 
 	key := followedUserID + dataSetID
 	if _, found := e.Evaluations[key]; !found {
@@ -332,8 +275,8 @@ func newMockStaticEvaluator() *mockStaticEvaluator {
 	return &mockStaticEvaluator{newMockEvaluator()}
 }
 
-func (e *mockStaticEvaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
-	[]*alerts.Notification, error) {
+func (e *mockStaticEvaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID string) (
+	[]*alerts.NotificationWithHook, error) {
 
 	e.EvaluateCalls[followedUserID] += 1
 	return nil, nil
@@ -392,18 +335,20 @@ func newMockMongoCursor(docs []interface{}) *mongo.Cursor {
 	return cur
 }
 
-func newTestStaticDatumMmolL(value float64) *glucose.Glucose {
-	return &glucose.Glucose{
-		Blood: blood.Blood{
-			Base: types.Base{
-				UserID:   pointer.FromAny(testFollowedUserID),
-				Time:     pointer.FromTime(time.Now()),
-				UploadID: pointer.FromAny(testUploadID),
-			},
-			Units: pointer.FromString(nontypesglucose.MmolL),
-			Value: pointer.FromFloat64(value),
-		},
+type mockPusher struct {
+	Pushes []string
+}
+
+func newMockPusher() *mockPusher {
+	return &mockPusher{
+		Pushes: []string{},
 	}
+}
+
+func (p *mockPusher) Push(ctx context.Context,
+	deviceToken *devicetokens.DeviceToken, notification *push.Notification) error {
+	p.Pushes = append(p.Pushes, notification.Message)
+	return nil
 }
 
 type mockAlertsConfigClient struct {
@@ -522,65 +467,93 @@ func (c *mockPermissionsClient) GetUserPermissions(ctx context.Context, requestU
 	}
 }
 
-func testAlertsConfigUrgentLow(userID string) *alerts.Config {
-	return &alerts.Config{
-		UserID:         userID,
-		FollowedUserID: testFollowedUserID,
-		UploadID:       testUploadID,
-		Alerts: alerts.Alerts{
-			UrgentLow: &alerts.UrgentLowAlert{
-				Base: alerts.Base{
-					Enabled:  true,
-					Activity: alerts.Activity{},
-				},
-				Threshold: alerts.Threshold{
-					Value: 10.0,
-					Units: nontypesglucose.MgdL,
-				},
-			},
-		},
+type mockRecorder struct {
+	recordCalls   map[string]int
+	recordCallsMu sync.Mutex
+}
+
+func newMockRecorder() *mockRecorder {
+	return &mockRecorder{
+		recordCalls: map[string]int{},
 	}
 }
 
-func testAlertsConfigLow(userID string) *alerts.Config {
-	return &alerts.Config{
-		UserID:         userID,
-		FollowedUserID: testFollowedUserID,
-		UploadID:       testUploadID,
-		Alerts: alerts.Alerts{
-			Low: &alerts.LowAlert{
-				Base: alerts.Base{
-					Enabled:  true,
-					Activity: alerts.Activity{},
-				},
-				Threshold: alerts.Threshold{
-					Value: 10.0,
-					Units: nontypesglucose.MgdL,
-				},
-			},
-		},
+func (r *mockRecorder) RecordReceivedDeviceData(ctx context.Context,
+	lastComm alerts.LastCommunication) error {
+
+	r.recordCallsMu.Lock()
+	defer r.recordCallsMu.Unlock()
+	r.recordCalls[lastComm.UserID]++
+	return nil
+}
+
+func (r *mockRecorder) NumCallsFor(userID string) int {
+	r.recordCallsMu.Lock()
+	defer r.recordCallsMu.Unlock()
+	return r.recordCalls[userID]
+}
+
+type mockRecorderRepository struct {
+	recordCalls   map[string]int
+	recordCallsMu sync.Mutex
+}
+
+func newMockRecorderRepository() *mockRecorderRepository {
+	return &mockRecorderRepository{
+		recordCalls: map[string]int{},
 	}
 }
+
+func (r *mockRecorderRepository) RecordReceivedDeviceData(ctx context.Context,
+	lastComm alerts.LastCommunication) error {
+
+	r.recordCallsMu.Lock()
+	defer r.recordCallsMu.Unlock()
+	r.recordCalls[lastComm.UserID]++
+	return nil
+}
+
+func (r *mockRecorderRepository) UsersWithoutCommunication(ctx context.Context) (
+	[]alerts.LastCommunication, error) {
+
+	return nil, nil
+}
+
+func (r *mockRecorderRepository) NumCallsFor(userID string) int {
+	r.recordCallsMu.Lock()
+	defer r.recordCallsMu.Unlock()
+	return r.recordCalls[userID]
+}
+
+func (r *mockRecorderRepository) EnsureIndexes() error { return nil }
 
 type mockDeviceTokens struct {
-	Error  error
-	Tokens [][]*devicetokens.DeviceToken
+	Tokens map[string][]*devicetokens.DeviceToken
 }
 
 func newMockDeviceTokens() *mockDeviceTokens {
 	return &mockDeviceTokens{
-		Tokens: [][]*devicetokens.DeviceToken{},
+		Tokens: map[string][]*devicetokens.DeviceToken{},
 	}
 }
 
 func (t *mockDeviceTokens) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
-	if t.Error != nil {
-		return nil, t.Error
-	}
-	if len(t.Tokens) > 0 {
-		ret := t.Tokens[0]
-		t.Tokens = t.Tokens[1:]
-		return ret, nil
+	if tokens, found := t.Tokens[userID]; found {
+		return tokens, nil
 	}
 	return nil, nil
+}
+
+func newTestStaticDatumMmolL(value float64) *glucose.Glucose {
+	return &glucose.Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				UserID:   pointer.FromAny(testFollowedUserID),
+				Time:     pointer.FromTime(time.Now()),
+				UploadID: pointer.FromAny(testDataSetID),
+			},
+			Units: pointer.FromString(nontypesglucose.MmolL),
+			Value: pointer.FromFloat64(value),
+		},
+	}
 }

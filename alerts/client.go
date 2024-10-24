@@ -3,6 +3,7 @@ package alerts
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -64,12 +65,12 @@ func (c *Client) Delete(ctx context.Context, cfg *Config) error {
 // Get a user's alerts configuration for the followed user.
 func (c *Client) Get(ctx context.Context, followedUserID, userID string) (*Config, error) {
 	url := c.client.ConstructURL("v1", "users", followedUserID, "followers", userID, "alerts")
-	cfg := &Config{}
-	err := c.request(ctx, http.MethodGet, url, nil, cfg)
+	config := &Config{}
+	err := c.request(ctx, http.MethodGet, url, nil, config)
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to request alerts config")
 	}
-	return cfg, nil
+	return config, nil
 }
 
 // List the alerts configurations that follow the given user.
@@ -80,9 +81,31 @@ func (c *Client) List(ctx context.Context, followedUserID string) ([]*Config, er
 	configs := []*Config{}
 	err := c.request(ctx, http.MethodGet, url, nil, &configs)
 	if err != nil {
+		c.logger.Debugf("unable to request alerts configs list: %+v %T", err, err)
 		return nil, errors.Wrap(err, "Unable to request alerts configs list")
 	}
 	return configs, nil
+}
+
+// UsersWithoutCommunication are those that haven't communicated in some time.
+//
+// This method should only be called via an authenticated service session.
+func (c *Client) UsersWithoutCommunication(ctx context.Context) ([]LastCommunication, error) {
+	url := c.client.ConstructURL("v1", "users", "without_communication")
+	lastComms := []LastCommunication{}
+	err := c.request(ctx, http.MethodGet, url, nil, &lastComms)
+	if err != nil {
+		c.logger.Debugf("getting users without communication: \"%+v\" %T", err, err)
+		return nil, errors.Wrap(err, "Unable to list users without communication")
+	}
+	return lastComms, nil
+}
+
+// LastCommunication records the last time data was received from a user.
+type LastCommunication struct {
+	UserID                 string    `bson:"userId" json:"userId"`
+	DataSetID              string    `bson:"dataSetId" json:"dataSetId"`
+	LastReceivedDeviceData time.Time `bson:"lastReceivedDeviceData" json:"lastReceivedDeviceData"`
 }
 
 // ConfigLoader abstracts the method by which config values are loaded.
