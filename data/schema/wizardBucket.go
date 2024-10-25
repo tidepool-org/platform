@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/data/types/calculator"
@@ -52,8 +53,19 @@ func (w Wizard) GetTimestamp() time.Time {
 
 func (w *Wizard) MapForWizard(event *calculator.Calculator) error {
 	var err error
+	w.Timezone = *event.TimeZoneName
+	w.TimezoneOffset = *event.TimeZoneOffset
+	// what is this mess ???
+	strTime := *event.Time
+	w.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
+	if err != nil {
+		return errors.Wrap(err, ErrEventTime)
+	}
+
 	if event.GUID != nil {
 		w.Guid = *event.GUID
+	} else {
+		w.Guid = *event.UserID + "_" + "meal" + "_" + strconv.FormatInt(w.Timestamp.Unix(), 10)
 	}
 	if event.DeviceID != nil {
 		w.DeviceId = *event.DeviceID
@@ -94,14 +106,6 @@ func (w *Wizard) MapForWizard(event *calculator.Calculator) error {
 		w.InputMeal = i
 	}
 	// time infos mapping
-	w.Timezone = *event.TimeZoneName
-	w.TimezoneOffset = *event.TimeZoneOffset
-	// what is this mess ???
-	strTime := *event.Time
-	w.Timestamp, err = time.Parse(time.RFC3339Nano, strTime)
-	if err != nil {
-		return errors.Wrap(err, ErrEventTime)
-	}
 
 	return nil
 }

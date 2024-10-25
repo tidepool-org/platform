@@ -1,8 +1,12 @@
 # Platform 
 The data platform API
 
+## 0.27.3 - 2024-09-05
+### Fixed
+- YLP-3296 Fix data duplication (meals and physical activities)
+
 ## 0.27.2 - 2024-09-05
-### Engineering
+### Changed
 - YLP-3222 align mapping with orca and tidev2
 
 ## 0.27.1 - 2024-07-29

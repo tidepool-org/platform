@@ -48,7 +48,7 @@ type (
 		DeviceId   string  `bson:"deviceId,omitempty"`
 		Guid       string  `bson:"guid,omitempty"`
 		Status     string  `bson:"status,omitempty"`
-		StatusCode *int    `bson:"statusCode,omitempt"`
+		StatusCode *int    `bson:"statusCode,omitempty"`
 		Volume     float64 `bson:"volume,omitempty"`
 	}
 
