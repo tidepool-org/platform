@@ -63,13 +63,27 @@ var _ = Describe("ValidateBasalRateSchedule", func() {
 		errorsTest.ExpectEqual(validator.Error(), expected)
 	})
 
-	It("returns an error with a value low than the pump min supported value", func() {
+	It("returns an error with a value lower than the pump min supported value", func() {
 		var schedule pump.BasalRateStartArray = []*pump.BasalRateStart{
 			{Rate: pointer.FromFloat64(0.55)},
 			{Rate: pointer.FromFloat64(0.0)},
 			{Rate: pointer.FromFloat64(15.55)},
 		}
 		expected := errorsTest.WithPointerSource(structureValidator.ErrorValueNotValid(), "/1/rate")
+		guardrails.ValidateBasalRateSchedule(schedule, guardRail, validator)
+		errorsTest.ExpectEqual(validator.Error(), expected)
+	})
+
+	It("returns an error when the number of segments is higher than the guardrail", func() {
+		maxSegments := int32(2)
+		guardRail.MaxSegments = &maxSegments
+		var schedule pump.BasalRateStartArray = []*pump.BasalRateStart{
+			{Rate: pointer.FromFloat64(0.55)},
+			{Rate: pointer.FromFloat64(15.55)},
+			{Rate: pointer.FromFloat64(16.55)},
+		}
+
+		expected := errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(3, 2), "")
 		guardrails.ValidateBasalRateSchedule(schedule, guardRail, validator)
 		errorsTest.ExpectEqual(validator.Error(), expected)
 	})

@@ -51,4 +51,18 @@ var _ = Describe("ValidateInsulinSensitivitySchedule", func() {
 		guardrails.ValidateInsulinSensitivitySchedule(schedule, guardRail, validator)
 		errorsTest.ExpectEqual(validator.Error(), expected)
 	})
+
+	It("returns an error when the number of segments is higher than the guardrail", func() {
+		maxSegments := int32(2)
+		guardRail.MaxSegments = &maxSegments
+		var schedule pump.InsulinSensitivityStartArray = []*pump.InsulinSensitivityStart{
+			{Amount: pointer.FromFloat64(120.00)},
+			{Amount: pointer.FromFloat64(110.00)},
+			{Amount: pointer.FromFloat64(10.00)},
+		}
+
+		expected := errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(3, 2), "")
+		guardrails.ValidateInsulinSensitivitySchedule(schedule, guardRail, validator)
+		errorsTest.ExpectEqual(validator.Error(), expected)
+	})
 })

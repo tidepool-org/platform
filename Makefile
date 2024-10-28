@@ -32,6 +32,8 @@ GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 GOTEST_PKGS ?= ./...
 GOTEST_FLAGS ?=
 
+TIMING_CMD ?=
+
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
     DOCKER:=true
@@ -207,7 +209,7 @@ test-watch: ginkgo
 
 ci-test: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
-	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)
+	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)
 
 ci-test-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
@@ -218,7 +220,7 @@ ci-test-watch: ginkgo
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)
 
 go-test:
-	. ./env.test.sh && go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
+	. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
 
 go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 go-ci-test: GOTEST_PKGS = ./...
