@@ -12,12 +12,7 @@ REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
 
-ifdef TRAVIS_TAG
-	VERSION_BASE:=$(TRAVIS_TAG)
-else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
-endif
-VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_BASE:=platform
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD || echo "dev")
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD || echo "dev")
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
@@ -119,7 +114,7 @@ format-write:
 
 format-write-changed:
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} gofmt -e -s -w {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} gofmt -e -s -w {}
 
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
@@ -135,7 +130,7 @@ imports-write: goimports
 
 imports-write-changed: goimports
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"
@@ -327,20 +322,23 @@ endif
 
 ci-docker: docker
 
-clean: clean-bin clean-cover clean-debug clean-deploy
+clean: clean-bin clean-cover clean-debug clean-deploy clean-test
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log
 
 clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
 
 clean-debug:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
+
+clean-test:
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
 
 clean-all: clean
 

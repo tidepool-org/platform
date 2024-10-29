@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -257,7 +258,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -295,7 +296,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 					mutator(datum, units)
 					expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -337,7 +338,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStart(units, pump.InsulinSensitivityStartStartMinimum+1)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStart(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -465,7 +466,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStartArray(units)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -503,7 +504,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					datum := pumpTest.NewInsulinSensitivityStartArray(units)
 					mutator(datum, units)
 					expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -549,7 +550,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStartArray(units)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStartArray(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -683,7 +684,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -725,7 +726,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 					datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 					mutator(datum, units)
 					expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -775,7 +776,7 @@ var _ = Describe("InsulinSensitivityStart", func() {
 						datum := pumpTest.NewInsulinSensitivityStartArrayMap(units)
 						mutator(datum, units)
 						expectedDatum := pumpTest.CloneInsulinSensitivityStartArrayMap(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())

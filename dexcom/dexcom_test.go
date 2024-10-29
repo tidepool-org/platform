@@ -21,6 +21,22 @@ var _ = Describe("Dexcom", func() {
 		Expect(dexcom.SystemTimeNowThreshold).To(Equal(24 * time.Hour))
 	})
 
+	It("DataKeyDataSourceID is expected", func() {
+		Expect(dexcom.DataKeyDataSourceID).To(Equal("dataSourceId"))
+	})
+
+	It("DataKeyDeviceHashes is expected", func() {
+		Expect(dexcom.DataKeyDeviceHashes).To(Equal("deviceHashes"))
+	})
+
+	It("DataKeyProviderSessionID is expected", func() {
+		Expect(dexcom.DataKeyProviderSessionID).To(Equal("providerSessionId"))
+	})
+
+	It("DataKeyRetryCount is expected", func() {
+		Expect(dexcom.DataKeyRetryCount).To(Equal("retryCount"))
+	})
+
 	Context("IsValidTransmitterID, TransmitterIDValidator, and ValidateTransmitterID", func() {
 
 		const validTransmitterId = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"

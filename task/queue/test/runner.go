@@ -30,17 +30,20 @@ func (c *CountingRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(time.Second * 10)
 }
 
-func (c *CountingRunner) GetRunnerMaximumDuration() time.Duration {
+func (c *CountingRunner) GetRunnerTimeout() time.Duration {
+	return time.Second * 5
+}
+
+func (c *CountingRunner) GetRunnerDurationMaximum() time.Duration {
 	return time.Second
 }
 
-func (c *CountingRunner) Run(ctx context.Context, tsk *task.Task) bool {
+func (c *CountingRunner) Run(ctx context.Context, tsk *task.Task) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.count += 1
 	tsk.SetCompleted()
-	return true
 }
 
 func (c *CountingRunner) GetCount() int {

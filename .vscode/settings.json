@@ -1,3 +1,11 @@
 {
-    "go.formatFlags": ["-local", "github.com/tidepool-org/platform"]
+    "go.formatFlags": [
+        "-local",
+        "github.com/tidepool-org/platform"
+    ],
+    "files.exclude": {
+        "**/*.coverprofile": true,
+        "**/*.test": true,
+        "**/coverprofile.out": true
+    },
 }

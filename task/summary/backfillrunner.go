@@ -62,7 +62,11 @@ func (r *BackfillRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(BackfillTaskDurationMaximum * 3)
 }
 
-func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *BackfillRunner) GetRunnerTimeout() time.Duration {
+	return BackfillTaskDurationMaximum * 2
+}
+
+func (r *BackfillRunner) GetRunnerDurationMaximum() time.Duration {
 	return BackfillTaskDurationMaximum
 }
 
@@ -105,36 +109,23 @@ func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 
 	return config
 }
-func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx); tErr != nil {
-			tsk.AppendError(tErr)
-		}
+	if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx); tErr != nil {
+		tsk.AppendError(tErr)
 	}
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > BackfillTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type BackfillTaskRunner struct {
@@ -164,7 +155,7 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
 	for _, typ := range []string{"continuous"} {
 		t.logger.Debugf("Starting User %s Summary Backfill", typ)
