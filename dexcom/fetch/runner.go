@@ -387,7 +387,7 @@ func (t *TaskRunner) updateDataSet(update *data.DataSetUpdate) error {
 	}
 
 	// Without cancel to ensure data set is updated in the database
-	dataSet, err := t.DataClient().UpdateDataSet(context.WithoutCancel(t.context), *t.dataSet.ID, update)
+	dataSet, err := t.DataClient().UpdateDataSet(context.WithoutCancel(t.context), *t.dataSet.UploadID, update)
 	if err != nil {
 		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update data set"), update))
 	} else if dataSet == nil {
