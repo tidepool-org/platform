@@ -161,7 +161,7 @@ var _ = Describe("Bolus", func() {
 						datum := pumpTest.NewRandomBolusMap(1, 4)
 						mutator(datum)
 						expectedDatum := pumpTest.CloneBolusMap(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/errors"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
@@ -162,7 +163,7 @@ var _ = Describe("Hash", func() {
 					datum.Value = pointer.FromFloat64(150)
 					datum.SubType = pointer.FromString(test.RandomStringFromArray(selfmonitored.SubTypes()))
 
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					return datum

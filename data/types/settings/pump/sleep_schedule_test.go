@@ -10,6 +10,7 @@ import (
 	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -32,7 +33,7 @@ var _ = Describe("SleepSchedule", func() {
 				func(mutator func(datum *dataTypesSettingsPump.SleepScheduleMap), expectedErrors ...error) {
 					datum := dataTypesSettingsPumpTest.RandomSleepScheduleMap(3)
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsPump.SleepScheduleMap) {},
@@ -101,7 +102,7 @@ var _ = Describe("SleepSchedule", func() {
 				func(mutator func(datum *dataTypesSettingsPump.SleepSchedule) []error) {
 					datum := dataTypesSettingsPumpTest.RandomSleepSchedule()
 					expectedErrors := mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsPump.SleepSchedule) []error { return nil },

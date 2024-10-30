@@ -66,14 +66,14 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			DescribeTable("returns true when",
 				func(deviceManufacturer string, deviceModel string) {
 					dataSet.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
 					dataSet.DeviceModel = pointer.FromString(deviceModel)
-					Expect(deduplicator.New(dataSet)).To(BeTrue())
+					Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 				},
 				Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 				Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
@@ -264,7 +264,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.DeviceDeactivateHashName)
 				dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Tandem"})
 				dataSet.DeviceModel = pointer.FromString("1002717")
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 		})
 
