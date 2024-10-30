@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"errors"
 	"maps"
 	"net/http"
@@ -34,7 +35,7 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
-	if decodeValidateBodyFailed(responder, req.Request, challengeCreate) {
+	if decodeValidateBodyFailed(ctx, responder, req.Request, challengeCreate) {
 		return
 	}
 
@@ -61,7 +62,7 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 	ctx := req.Context()
 
 	challengeCreate := appvalidate.NewChallengeCreate(details.UserID())
-	if decodeValidateBodyFailed(responder, req.Request, challengeCreate) {
+	if decodeValidateBodyFailed(ctx, responder, req.Request, challengeCreate) {
 		return
 	}
 
@@ -88,7 +89,7 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 
 	attestVerify := appvalidate.NewAttestationVerify(details.UserID())
-	if decodeValidateBodyFailed(responder, req.Request, attestVerify) {
+	if decodeValidateBodyFailed(ctx, responder, req.Request, attestVerify) {
 		return
 	}
 
@@ -120,7 +121,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 
 	assertVerify := appvalidate.NewAssertionVerify(details.UserID())
-	if decodeValidateBodyFailed(responder, req.Request, assertVerify) {
+	if decodeValidateBodyFailed(ctx, responder, req.Request, assertVerify) {
 		return
 	}
 
@@ -174,12 +175,12 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	})
 }
 
-func decodeValidateBodyFailed(responder *request.Responder, req *http.Request, body structure.Validatable) bool {
+func decodeValidateBodyFailed(ctx context.Context, responder *request.Responder, req *http.Request, body structure.Validatable) bool {
 	if err := request.DecodeRequestBody(req, body); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return true
 	}
-	if err := structValidator.New().Validate(body); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(body); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return true
 	}

@@ -10,6 +10,7 @@ import (
 	dataTypesBloodTest "github.com/tidepool-org/platform/data/types/blood/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
@@ -253,7 +254,7 @@ var _ = Describe("Ketone", func() {
 						datum := NewKetone(units)
 						mutator(datum, units)
 						expectedDatum := CloneKetone(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -291,7 +292,7 @@ var _ = Describe("Ketone", func() {
 					datum := NewKetone(units)
 					mutator(datum, units)
 					expectedDatum := CloneKetone(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -337,7 +338,7 @@ var _ = Describe("Ketone", func() {
 						datum := NewKetone(units)
 						mutator(datum, units)
 						expectedDatum := CloneKetone(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

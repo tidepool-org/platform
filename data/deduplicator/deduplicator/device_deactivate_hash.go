@@ -99,7 +99,7 @@ func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
 	return DeviceDeactivateHashVersionUnknown
 }
 
-func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -110,12 +110,12 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 		return false, nil
 	}
 	if dataSet.HasDeduplicatorName() {
-		return d.Get(dataSet)
+		return d.Get(ctx, dataSet)
 	}
 	return getDeduplicatorVersion(dataSet) != DeviceDeactivateHashVersionUnknown, nil
 }
 
-func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	// NOTE: check legacy first then fallback to other matches
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
@@ -125,7 +125,7 @@ func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error
 		return true, nil
 	}
 
-	if found, err := d.Base.Get(dataSet); err != nil || found {
+	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED

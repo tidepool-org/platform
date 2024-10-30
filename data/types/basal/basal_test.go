@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
@@ -93,28 +94,30 @@ var _ = Describe("Basal", func() {
 		})
 
 		Context("IdentityFields", func() {
-			var datum *basal.Basal
+			var datumBasal *basal.Basal
+			var datum data.Datum
 
 			BeforeEach(func() {
-				datum = dataTypesBasalTest.RandomBasal()
+				datumBasal = dataTypesBasalTest.RandomBasal()
+				datum = datumBasal
 			})
 
 			It("returns error if user id is missing", func() {
-				datum.UserID = nil
+				datumBasal.UserID = nil
 				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.FromString("")
+				datumBasal.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if delivery type is empty", func() {
-				datum.DeliveryType = ""
+				datumBasal.DeliveryType = ""
 				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).To(MatchError("delivery type is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -123,7 +126,7 @@ var _ = Describe("Basal", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields(types.IdentityFieldsVersion)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.DeliveryType}))
+				Expect(identityFields).To(Equal([]string{*datumBasal.UserID, *datumBasal.DeviceID, (*datumBasal.Time).Format(ExpectedTimeFormat), datumBasal.Type, datumBasal.DeliveryType}))
 			})
 		})
 		Context("Legacy IdentityFields", func() {

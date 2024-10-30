@@ -11,6 +11,7 @@ import (
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -50,14 +51,14 @@ var _ = Describe("BloodGlucose", func() {
 
 		Context("ParseBloodGlucose", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesDosingDecision.ParseBloodGlucose(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseBloodGlucose(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				units := pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.Units()))
 				datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
 				object := dataTypesDosingDecisionTest.NewObjectFromBloodGlucose(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesDosingDecision.ParseBloodGlucose(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -80,7 +81,7 @@ var _ = Describe("BloodGlucose", func() {
 					object := dataTypesDosingDecisionTest.NewObjectFromBloodGlucose(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesDosingDecision.NewBloodGlucose()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -248,7 +249,7 @@ var _ = Describe("BloodGlucose", func() {
 					datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucose(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -300,7 +301,7 @@ var _ = Describe("BloodGlucose", func() {
 						datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucose(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -366,14 +367,14 @@ var _ = Describe("BloodGlucose", func() {
 
 		Context("ParseBloodGlucoseArray", func() {
 			It("returns nil when the array is missing", func() {
-				Expect(dataTypesDosingDecision.ParseBloodGlucoseArray(structureParser.NewArray(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseBloodGlucoseArray(structureParser.NewArray(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the array is valid", func() {
 				units := pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.Units()))
 				datum := dataTypesDosingDecisionTest.RandomBloodGlucoseArray(units)
 				array := dataTypesDosingDecisionTest.NewArrayFromBloodGlucoseArray(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				Expect(dataTypesDosingDecision.ParseBloodGlucoseArray(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -395,7 +396,7 @@ var _ = Describe("BloodGlucose", func() {
 					array := dataTypesDosingDecisionTest.NewArrayFromBloodGlucoseArray(expectedDatum, test.ObjectFormatJSON)
 					mutator(array, expectedDatum)
 					datum := dataTypesDosingDecision.NewBloodGlucoseArray()
-					errorsTest.ExpectEqual(structureParser.NewArray(&array).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewArray(logTest.NewLogger(), &array).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -494,7 +495,7 @@ var _ = Describe("BloodGlucose", func() {
 					datum := dataTypesDosingDecisionTest.RandomBloodGlucoseArray(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucoseArray(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -550,7 +551,7 @@ var _ = Describe("BloodGlucose", func() {
 						datum := dataTypesDosingDecisionTest.RandomBloodGlucoseArray(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucoseArray(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())

@@ -3,12 +3,13 @@
 package appvalidate
 
 import (
+	"context"
 	"regexp"
 	"time"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
-
-	structValidator "github.com/tidepool-org/platform/structure/validator"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 //go:generate mockgen -build_flags=--mod=mod -destination=./mock.go -package=appvalidate github.com/tidepool-org/platform/appvalidate Repository,ChallengeGenerator
@@ -38,8 +39,8 @@ type AppValidation struct {
 // person starts the attestation process by requesting an attestation
 // challenge, a new AppValidation needs to be persisted to keep track of the
 // progress and state of the attestation and future assertions.
-func NewAppValidation(attestChallenge string, create *ChallengeCreate) (*AppValidation, error) {
-	if err := structValidator.New().Validate(create); err != nil {
+func NewAppValidation(ctx context.Context, attestChallenge string, create *ChallengeCreate) (*AppValidation, error) {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, err
 	}
 	validation := AppValidation{
@@ -47,7 +48,7 @@ func NewAppValidation(attestChallenge string, create *ChallengeCreate) (*AppVali
 		KeyID:                create.KeyID,
 		AttestationChallenge: attestChallenge,
 	}
-	if err := structValidator.New().Validate(&validation); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&validation); err != nil {
 		return nil, err
 	}
 	return &validation, nil

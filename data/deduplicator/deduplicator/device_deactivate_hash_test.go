@@ -49,19 +49,19 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 		Context("New", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.New(nil)
+				found, err := deduplicator.New(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the data set type is not normal", func() {
 				dataSet.DataSetType = pointer.FromString("continuous")
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the device id is missing", func() {
 				dataSet.DeviceID = nil
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
@@ -113,16 +113,16 @@ var _ = Describe("DeviceDeactivateHash", func() {
 			dataSetTypeAssertions := func() {
 				It("returns false when the deduplicator name does not match", func() {
 					dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-					Expect(deduplicator.New(dataSet)).To(BeFalse())
+					Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 				})
 
 				It("returns true when the deduplicator name matches", func() {
-					Expect(deduplicator.New(dataSet)).To(BeTrue())
+					Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 				})
 
 				It("returns true when the deduplicator name matches deprecated", func() {
 					dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.hash-deactivate-old")
-					Expect(deduplicator.New(dataSet)).To(BeTrue())
+					Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 				})
 
 				When("the deduplicator is missing", func() {
@@ -132,41 +132,41 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 					It("returns false when the device manufacturers is missing", func() {
 						dataSet.DeviceManufacturers = nil
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns false when the device manufacturers is empty", func() {
 						dataSet.DeviceManufacturers = pointer.FromStringArray([]string{})
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns false when the device manufacturers does not match", func() {
 						dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Alpha", "Bravo"})
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns false when the device model is missing", func() {
 						dataSet.DeviceModel = nil
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns false when the device model is empty", func() {
 						dataSet.DeviceModel = pointer.FromString("")
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns false when the device model does not match", func() {
 						dataSet.DeviceModel = pointer.FromString("Alpha")
-						Expect(deduplicator.New(dataSet)).To(BeFalse())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 					})
 
 					It("returns true when the device manufacturers and device model matches", func() {
-						Expect(deduplicator.New(dataSet)).To(BeTrue())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 					})
 
 					It("returns true when the device manufacturers and device model matches with multiple", func() {
 						dataSet.DeviceManufacturers = pointer.FromStringArray([]string{"Alpha", "Abbott", "Bravo"})
-						Expect(deduplicator.New(dataSet)).To(BeTrue())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 					})
 				})
 
@@ -174,7 +174,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 					func(deviceManufacturer string, deviceModel string) {
 						dataSet.DeviceManufacturers = pointer.FromStringArray([]string{deviceManufacturer})
 						dataSet.DeviceModel = pointer.FromString(deviceModel)
-						Expect(deduplicator.New(dataSet)).To(BeTrue())
+						Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 					},
 					Entry("is Abbott FreeStyle Libre", "Abbott", "FreeStyle Libre"),
 					Entry("is LifeScan OneTouch Ultra 2", "LifeScan", "OneTouch Ultra 2"),
@@ -231,33 +231,33 @@ var _ = Describe("DeviceDeactivateHash", func() {
 
 		Context("Get", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.Get(nil)
+				found, err := deduplicator.Get(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator is missing", func() {
 				dataSet.Deduplicator = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name is missing", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns true when the deduplicator name matches", func() {
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 
 			It("returns true when the deduplicator name matches deprecated", func() {
 				dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.hash-deactivate-old")
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 
 			It("returns true when the deduplicator name matches and legacy id device and model", func() {

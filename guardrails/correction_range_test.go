@@ -3,6 +3,7 @@ package guardrails_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/devices/api"
 
 	"github.com/tidepool-org/platform/data/blood/glucose"
@@ -10,6 +11,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/guardrails"
 	"github.com/tidepool-org/platform/guardrails/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -30,7 +32,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("doesn't return error with a single valid value", func() {
@@ -114,7 +116,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("doesn't return error with a single valid value", func() {
@@ -180,7 +182,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("doesn't return error with a single valid value", func() {
@@ -247,7 +249,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("doesn't return error with a single valid value", func() {
@@ -322,7 +324,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 					guardRail = test.NewPremealCorrectionRangeGuardRail()
 				})
 
@@ -396,7 +398,7 @@ var _ = Describe("Correction Range", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 					guardRail = test.NewWorkoutCorrectionRangeGuardRail()
 				})
 

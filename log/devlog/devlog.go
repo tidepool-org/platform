@@ -21,6 +21,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/logger"
 )
 
 // New provides a plain-text log.Logger suitable for development or testing.
@@ -29,7 +30,7 @@ func New(writer io.Writer, levelRanks log.LevelRanks, level log.Level) (log.Logg
 		return nil, errors.New("writer is missing")
 	}
 	logLogger := stdlog.New(writer, "", 0)
-	return log.NewLogger(&serializer{logLogger}, levelRanks, level)
+	return logger.New(&serializer{logLogger}, levelRanks, level)
 }
 
 func NewWithDefaults(writer io.Writer) (log.Logger, error) {

@@ -57,7 +57,7 @@ var _ = Describe("Runner", func() {
 			tasks = make(map[string]task.Task)
 			for _, clinic := range clinics {
 				clinic := clinic
-				tsk, err := task.NewTask(sync.NewTaskCreate(*clinic.Id))
+				tsk, err := task.NewTask(context.Background(), sync.NewTaskCreate(*clinic.Id))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
 				tasks[*clinic.Id] = *tsk
@@ -132,7 +132,7 @@ var _ = Describe("Runner", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(runner).ToNot(BeNil())
 
-				t, err := task.NewTask(reconcile.NewTaskCreate())
+				t, err := task.NewTask(context.Background(), reconcile.NewTaskCreate())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(t).ToNot(BeNil())
 
@@ -148,7 +148,6 @@ var _ = Describe("Runner", func() {
 					tasksList = append(tasksList, &t)
 				}
 
-				authClient.EXPECT().ServerSessionToken().Return("token", nil)
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)
 				taskClient.EXPECT().ListTasks(gomock.Any(), gomock.Any(), gomock.Any()).Return(tasksList, nil)
 				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID)).Return(nil)

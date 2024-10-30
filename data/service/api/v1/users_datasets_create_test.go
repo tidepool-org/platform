@@ -52,8 +52,8 @@ var _ = Describe("UsersDataSetsCreate", func() {
 
 			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs).To(HaveLen(1))
 			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0]).ToNot(BeNil())
-			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).ToNot(BeNil())
-			Expect(*dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).To(Equal("test-auth-details-user-id"))
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].DataSet.CreatedUserID).ToNot(BeNil())
+			Expect(*dataServiceContext.dataDeduplicatorFactory.NewInputs[0].DataSet.CreatedUserID).To(Equal("test-auth-details-user-id"))
 
 			dataServiceContext.dataDeduplicator.AssertOutputsEmpty()
 			dataServiceContext.dataDeduplicatorFactory.AssertOutputsEmpty()
@@ -71,7 +71,7 @@ var _ = Describe("UsersDataSetsCreate", func() {
 
 			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs).To(HaveLen(1))
 			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0]).ToNot(BeNil())
-			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].CreatedUserID).To(BeNil())
+			Expect(dataServiceContext.dataDeduplicatorFactory.NewInputs[0].DataSet.CreatedUserID).To(BeNil())
 
 			dataServiceContext.dataDeduplicator.AssertOutputsEmpty()
 			dataServiceContext.dataDeduplicatorFactory.AssertOutputsEmpty()

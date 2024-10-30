@@ -18,12 +18,30 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	ResponseBodyLimit = 1 << 20
+)
+
+// If specified, allows a client or derived class to parse any response that has
+// a non-200 status code. The function should parse the response and return a
+// corresponding error. If the response body cannot be parsed for any reason,
+// then it should nil to indicate that no error was parsed. In such a case, an
+// generalized error representing the status code will be used.
+type ErrorResponseParser interface {
+	ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error
+}
+
 type Client struct {
-	address   string
-	userAgent string
+	address             string
+	userAgent           string
+	errorResponseParser ErrorResponseParser
 }
 
 func New(cfg *Config) (*Client, error) {
+	return NewWithErrorParser(cfg, nil)
+}
+
+func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	} else if err := cfg.Validate(); err != nil {
@@ -31,8 +49,9 @@ func New(cfg *Config) (*Client, error) {
 	}
 
 	return &Client{
-		address:   cfg.Address,
-		userAgent: cfg.UserAgent,
+		address:             cfg.Address,
+		userAgent:           cfg.UserAgent,
+		errorResponseParser: errorResponseParser,
 	}, nil
 }
 
@@ -86,8 +105,7 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 }
 
 func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
-	headerInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
-	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, append(inspectors, headerInspector), httpClient)
+	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 	if err != nil {
 		return err
 	} else if body == nil {
@@ -100,7 +118,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	return request.DecodeObject(structure.NewPointerSource(), body, responseBody)
+	return request.DecodeObject(ctx, structure.NewPointerSource(), body, responseBody)
 }
 
 func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
@@ -169,25 +187,31 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 
 	defer drainAndClose(res.Body)
 
-	serializable := &errors.Serializable{}
-
-	if bites, err := io.ReadAll(io.LimitReader(res.Body, 1<<20)); err != nil {
+	bites, err := io.ReadAll(io.LimitReader(res.Body, ResponseBodyLimit))
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to read response body")
-	} else if len(bites) == 0 {
-		logger.Error("Response body is empty, using defacto error for status code")
-	} else if unmarshalErr := json.Unmarshal(bites, serializable); unmarshalErr != nil {
-		logger.WithError(unmarshalErr).WithField("responseBody", responseBodyFromBytes(bites)).Error("Unable to deserialize response body, using defacto error for status code")
-	} else if serializable.Error == nil {
-		logger.WithField("responseBody", responseBodyFromBytes(bites)).Error("Response body does not contain an error, using defacto error for status code")
 	}
 
-	if serializable.Error == nil {
-		serializable.Error = errorFromStatusCode(res, req)
+	var responseErr error
+
+	// If we fully consume the response body, then allow error response parser to parse
+	if len(bites) < ResponseBodyLimit {
+		if c.errorResponseParser != nil {
+			res.Body = io.NopCloser(bytes.NewBuffer(bites))
+			responseErr = c.errorResponseParser.ParseErrorResponse(ctx, res, req)
+		}
 	}
 
-	logger = logger.WithError(serializable.Error)
+	// If no error yet, then generate generic error
+	if responseErr == nil {
+		res.Body = io.NopCloser(bytes.NewBuffer(bites))
+		responseErr = errorFromStatusCode(res, req)
+		logger = logger.WithField("responseBody", responseBodyFromBytes(bites))
+	}
 
-	switch errors.Code(serializable.Error) {
+	logger = logger.WithError(responseErr)
+
+	switch errors.Code(responseErr) {
 	case request.ErrorCodeBadRequest:
 		logger.Error("Bad request")
 	case request.ErrorCodeTooManyRequests:
@@ -196,7 +220,7 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 		logger.Error("Unexpected response")
 	}
 
-	return nil, serializable.Error
+	return nil, responseErr
 }
 
 func errorFromStatusCode(res *http.Response, req *http.Request) error {
@@ -228,4 +252,18 @@ func responseBodyFromBytes(bites []byte) interface{} {
 func drainAndClose(reader io.ReadCloser) {
 	io.Copy(io.Discard, reader)
 	reader.Close()
+}
+
+func NewSerializableErrorResponseParser() *SerializableErrorResponseParser {
+	return &SerializableErrorResponseParser{}
+}
+
+type SerializableErrorResponseParser struct{}
+
+func (s *SerializableErrorResponseParser) ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error {
+	serializable := &errors.Serializable{}
+	if err := json.NewDecoder(res.Body).Decode(serializable); err != nil {
+		return nil
+	}
+	return serializable.Error
 }

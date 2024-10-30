@@ -13,6 +13,7 @@ import (
 	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -301,7 +302,7 @@ var _ = Describe("SelfMonitored", func() {
 						datum := NewSelfMonitored(units)
 						mutator(datum, units)
 						expectedDatum := CloneSelfMonitored(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -366,7 +367,7 @@ var _ = Describe("SelfMonitored", func() {
 					originalValue := pointer.CloneFloat64(datum.Value)
 					mutator(datum, units)
 					expectedDatum := CloneSelfMonitored(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -446,7 +447,7 @@ var _ = Describe("SelfMonitored", func() {
 						datum := NewSelfMonitored(units)
 						mutator(datum, units)
 						expectedDatum := CloneSelfMonitored(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -505,7 +506,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			BeforeEach(func() {
 				datum = NewSelfMonitoredWithValue(pointer.FromString("mg/dl"), pointer.FromFloat64(144))
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 			})
@@ -561,7 +562,7 @@ var _ = Describe("SelfMonitored", func() {
 
 			It("returns the expected legacy identity fields", func() {
 				datum = NewSelfMonitoredWithValue(pointer.FromString("mg/dl"), pointer.FromFloat64(220))
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				datum.DeviceID = pointer.FromString("some-device")

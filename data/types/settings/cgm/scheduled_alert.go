@@ -16,7 +16,7 @@ const (
 	ScheduledAlertStartMaximum = 86400000
 	ScheduledAlertStartMinimum = 0
 
-	ScheduledAlertEndMaximum = 86400000
+	ScheduledAlertEndMaximum = 172800000
 	ScheduledAlertEndMinimum = 0
 )
 

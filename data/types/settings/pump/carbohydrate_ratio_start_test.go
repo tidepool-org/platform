@@ -9,6 +9,7 @@ import (
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -141,7 +142,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						datum := pumpTest.NewCarbohydrateRatioStart(pump.CarbohydrateRatioStartStartMinimum + 1)
 						mutator(datum)
 						expectedDatum := pumpTest.CloneCarbohydrateRatioStart(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -245,7 +246,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						datum := pumpTest.NewCarbohydrateRatioStartArray()
 						mutator(datum)
 						expectedDatum := pumpTest.CloneCarbohydrateRatioStartArray(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -402,7 +403,7 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 						datum := pumpTest.NewCarbohydrateRatioStartArrayMap()
 						mutator(datum)
 						expectedDatum := pumpTest.CloneCarbohydrateRatioStartArrayMap(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
