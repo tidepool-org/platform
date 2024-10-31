@@ -599,7 +599,7 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).ToNot(BeNil())
-						Expect(result.ModifiedTime).To(BeTemporally("~", time.Now(), time.Second))
+						Expect(result.ModifiedTime).To(BeTemporally(">", prescr.ModifiedTime, time.Microsecond))
 					})
 
 					It("adds a revision to the list of revisions", func() {
