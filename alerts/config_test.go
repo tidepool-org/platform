@@ -11,8 +11,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/blood/glucose"
+	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -45,7 +50,6 @@ var _ = Describe("Config", func() {
   },
   "urgentLow": {
     "enabled": false,
-    "repeat": 30,
     "threshold": {
       "units": "mg/dL",
       "value": 47.5
@@ -62,12 +66,10 @@ var _ = Describe("Config", func() {
   },
   "notLooping": {
     "enabled": true,
-    "repeat": 32,
     "delay": 4
   },
   "noCommunication": {
     "enabled": true,
-    "repeat": 33,
     "delay": 6
   }
 }`, mockUserID1, mockUserID2, mockUploadID)
@@ -81,21 +83,18 @@ var _ = Describe("Config", func() {
 		Expect(conf.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
 		Expect(conf.High.Threshold.Value).To(Equal(10.0))
-		Expect(conf.High.Threshold.Units).To(Equal(glucose.MmolL))
+		Expect(conf.High.Threshold.Units).To(Equal(nontypesglucose.MmolL))
 		Expect(conf.Low.Enabled).To(Equal(true))
 		Expect(conf.Low.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.Low.Delay).To(Equal(DurationMinutes(10 * time.Minute)))
 		Expect(conf.Low.Threshold.Value).To(Equal(80.0))
-		Expect(conf.Low.Threshold.Units).To(Equal(glucose.MgdL))
+		Expect(conf.Low.Threshold.Units).To(Equal(nontypesglucose.MgdL))
 		Expect(conf.UrgentLow.Enabled).To(Equal(false))
-		Expect(conf.UrgentLow.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(conf.UrgentLow.Threshold.Value).To(Equal(47.5))
-		Expect(conf.UrgentLow.Threshold.Units).To(Equal(glucose.MgdL))
+		Expect(conf.UrgentLow.Threshold.Units).To(Equal(nontypesglucose.MgdL))
 		Expect(conf.NotLooping.Enabled).To(Equal(true))
-		Expect(conf.NotLooping.Repeat).To(Equal(DurationMinutes(32 * time.Minute)))
 		Expect(conf.NotLooping.Delay).To(Equal(DurationMinutes(4 * time.Minute)))
 		Expect(conf.NoCommunication.Enabled).To(Equal(true))
-		Expect(conf.NoCommunication.Repeat).To(Equal(DurationMinutes(33 * time.Minute)))
 		Expect(conf.NoCommunication.Delay).To(Equal(DurationMinutes(6 * time.Minute)))
 	})
 
@@ -133,6 +132,104 @@ var _ = Describe("Config", func() {
 		})
 	})
 
+	Describe("Evaluate", func() {
+		Context("when a notification is returned", func() {
+			It("injects the userIDs", func() {
+				ctx := contextWithTestLogger()
+				mockGlucoseData := []*glucose.Glucose{
+					{
+						Blood: blood.Blood{
+							Base: types.Base{
+								Time: pointer.FromAny(time.Now()),
+							},
+							Units: pointer.FromAny(nontypesglucose.MmolL),
+							Value: pointer.FromAny(0.0),
+						},
+					},
+				}
+				conf := Config{
+					UserID:         mockUserID1,
+					FollowedUserID: mockUserID2,
+					Alerts: Alerts{
+						UrgentLow: &UrgentLowAlert{
+							Base: Base{Enabled: true},
+							Threshold: Threshold{
+								Value: 10,
+								Units: nontypesglucose.MmolL,
+							},
+						},
+					},
+				}
+
+				notification := conf.Evaluate(ctx, mockGlucoseData, nil)
+
+				Expect(notification).ToNot(BeNil())
+				Expect(notification.RecipientUserID).To(Equal(mockUserID1))
+				Expect(notification.FollowedUserID).To(Equal(mockUserID2))
+			})
+		})
+	})
+
+	Context("Base", func() {
+		Context("Activity", func() {
+			Context("IsActive()", func() {
+				It("is true", func() {
+					triggered := time.Now()
+					resolved := triggered.Add(-time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Resolved:  resolved,
+					}
+					Expect(a.IsActive()).To(BeTrue())
+				})
+
+				It("is false", func() {
+					triggered := time.Now()
+					resolved := triggered.Add(time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Resolved:  resolved,
+					}
+					Expect(a.IsActive()).To(BeFalse())
+				})
+			})
+
+			Context("IsSent()", func() {
+				It("is true", func() {
+					triggered := time.Now()
+					sent := triggered.Add(time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Sent:      sent,
+					}
+					Expect(a.IsSent()).To(BeTrue())
+				})
+
+				It("is false", func() {
+					triggered := time.Now()
+					notified := triggered.Add(-time.Nanosecond)
+					a := Activity{
+						Triggered: triggered,
+						Sent:      notified,
+					}
+					Expect(a.IsSent()).To(BeFalse())
+				})
+			})
+		})
+	})
+
+	var testGlucoseDatum = func(v float64) *glucose.Glucose {
+		return &glucose.Glucose{
+			Blood: blood.Blood{
+				Base: types.Base{
+					Time: pointer.FromAny(time.Now()),
+				},
+				Units: pointer.FromAny(nontypesglucose.MmolL),
+				Value: pointer.FromAny(v),
+			},
+		}
+	}
+
 	Context("UrgentLowAlert", func() {
 		Context("Threshold", func() {
 			It("accepts values between 0 and 1000 mg/dL", func() {
@@ -155,6 +252,138 @@ var _ = Describe("Config", func() {
 				b = UrgentLowAlert{Threshold: Threshold{Value: -1, Units: "mg/dL"}}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value -1 is not between 0 and 1000"))
+			})
+		})
+
+		Context("Evaluate", func() {
+			testUrgentLow := func() *UrgentLowAlert {
+				return &UrgentLowAlert{
+					Threshold: Threshold{
+						Value: 4.0,
+						Units: nontypesglucose.MmolL,
+					},
+				}
+			}
+
+			It("handles being passed empty data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				alert := testUrgentLow()
+
+				Expect(func() {
+					notification = alert.Evaluate(ctx, []*glucose.Glucose{})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+				Expect(func() {
+					notification = alert.Evaluate(ctx, nil)
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+			})
+
+			It("logs evaluation results", func() {
+				ctx := contextWithTestLogger()
+				data := []*glucose.Glucose{testGlucoseDatum(1.1)}
+
+				alert := testUrgentLow()
+
+				Expect(func() {
+					alert.Evaluate(ctx, data)
+				}).ToNot(Panic())
+				Expect(func() {
+					lgr := log.LoggerFromContext(ctx).(*logTest.Logger)
+					lgr.AssertLog(log.InfoLevel, "urgent low", log.Fields{
+						"threshold":   4.0,
+						"value":       1.1,
+						"isAlerting?": true,
+					})
+				}).ToNot(Panic())
+			})
+
+			Context("when currently active", func() {
+				It("marks itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testUrgentLow()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+				})
+			})
+
+			Context("when currently INactive", func() {
+				It("doesn't re-mark itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testUrgentLow()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+					was := alert.Resolved
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(Equal(was))
+				})
+			})
+
+			It("marks itself triggered", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testUrgentLow()
+
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).To(BeZero())
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).ToNot(BeZero())
+			})
+
+			It("validates glucose data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				Expect(func() {
+					notification = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1)})
+				}).ToNot(Panic())
+				Expect(notification).ToNot(BeNil())
+
+				badUnits := testGlucoseDatum(1)
+				badUnits.Units = nil
+				Expect(func() {
+					notification = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badUnits})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badValue := testGlucoseDatum(1)
+				badValue.Value = nil
+				Expect(func() {
+					notification = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badValue})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badTime := testGlucoseDatum(1)
+				badTime.Time = nil
+				Expect(func() {
+					notification = testUrgentLow().Evaluate(ctx, []*glucose.Glucose{badTime})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
 			})
 		})
 	})
@@ -216,6 +445,137 @@ var _ = Describe("Config", func() {
 				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
 			})
 		})
+
+		Context("Evaluate", func() {
+			testLow := func() *LowAlert {
+				return &LowAlert{
+					Threshold: Threshold{
+						Value: 4.0,
+						Units: nontypesglucose.MmolL,
+					},
+				}
+			}
+
+			It("handles being passed empty data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				alert := testLow()
+
+				Expect(func() {
+					notification = alert.Evaluate(ctx, []*glucose.Glucose{})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+				Expect(func() {
+					notification = alert.Evaluate(ctx, nil)
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+			})
+
+			It("logs evaluation results", func() {
+				ctx := contextWithTestLogger()
+				data := []*glucose.Glucose{testGlucoseDatum(1.1)}
+
+				alert := testLow()
+
+				Expect(func() {
+					alert.Evaluate(ctx, data)
+				}).ToNot(Panic())
+				Expect(func() {
+					lgr := log.LoggerFromContext(ctx).(*logTest.Logger)
+					lgr.AssertLog(log.InfoLevel, "low", log.Fields{
+						"threshold":   4.0,
+						"value":       1.1,
+						"isAlerting?": true,
+					})
+				}).ToNot(Panic())
+			})
+
+			Context("when currently active", func() {
+				It("marks itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testLow()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+				})
+			})
+
+			Context("when currently INactive", func() {
+				It("doesn't re-mark itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testLow()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+					was := alert.Resolved
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(Equal(was))
+				})
+			})
+
+			It("marks itself triggered", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testLow()
+
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).To(BeZero())
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).ToNot(BeZero())
+			})
+
+			It("validates glucose data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				Expect(func() {
+					notification = testLow().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(1)})
+				}).ToNot(Panic())
+				Expect(notification).ToNot(BeNil())
+
+				badUnits := testGlucoseDatum(1)
+				badUnits.Units = nil
+				Expect(func() {
+					notification = testLow().Evaluate(ctx, []*glucose.Glucose{badUnits})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badValue := testGlucoseDatum(1)
+				badValue.Value = nil
+				Expect(func() {
+					notification = testLow().Evaluate(ctx, []*glucose.Glucose{badValue})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badTime := testGlucoseDatum(1)
+				badTime.Time = nil
+				Expect(func() {
+					notification = testLow().Evaluate(ctx, []*glucose.Glucose{badTime})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+			})
+		})
 	})
 
 	Context("HighAlert", func() {
@@ -266,6 +626,137 @@ var _ = Describe("Config", func() {
 				b = HighAlert{Delay: DurationMinutes(time.Hour*6 + time.Minute), Threshold: okThresh}
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 6h1m0s is not between 0s and 6h0m0s"))
+			})
+		})
+
+		Context("Evaluate", func() {
+			testHigh := func() *HighAlert {
+				return &HighAlert{
+					Threshold: Threshold{
+						Value: 20.0,
+						Units: nontypesglucose.MmolL,
+					},
+				}
+			}
+
+			It("handles being passed empty data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				alert := testHigh()
+
+				Expect(func() {
+					notification = alert.Evaluate(ctx, []*glucose.Glucose{})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+				Expect(func() {
+					notification = alert.Evaluate(ctx, nil)
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+			})
+
+			It("logs evaluation results", func() {
+				ctx := contextWithTestLogger()
+				data := []*glucose.Glucose{testGlucoseDatum(21.1)}
+
+				alert := testHigh()
+
+				Expect(func() {
+					alert.Evaluate(ctx, data)
+				}).ToNot(Panic())
+				Expect(func() {
+					lgr := log.LoggerFromContext(ctx).(*logTest.Logger)
+					lgr.AssertLog(log.InfoLevel, "high", log.Fields{
+						"threshold":   20.0,
+						"value":       21.1,
+						"isAlerting?": true,
+					})
+				}).ToNot(Panic())
+			})
+
+			Context("when currently active", func() {
+				It("marks itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testHigh()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+				})
+			})
+
+			Context("when currently INactive", func() {
+				It("doesn't re-mark itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testHigh()
+
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+					was := alert.Resolved
+					Expect(func() {
+						alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(Equal(was))
+				})
+			})
+
+			It("marks itself triggered", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testHigh()
+
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(5.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).To(BeZero())
+				Expect(func() {
+					alert.Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21.0)})
+				}).ToNot(Panic())
+				Expect(alert.Triggered).ToNot(BeZero())
+			})
+
+			It("validates glucose data", func() {
+				ctx := contextWithTestLogger()
+				var notification *Notification
+
+				Expect(func() {
+					notification = testHigh().Evaluate(ctx, []*glucose.Glucose{testGlucoseDatum(21)})
+				}).ToNot(Panic())
+				Expect(notification).ToNot(BeNil())
+
+				badUnits := testGlucoseDatum(1)
+				badUnits.Units = nil
+				Expect(func() {
+					notification = testHigh().Evaluate(ctx, []*glucose.Glucose{badUnits})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badValue := testGlucoseDatum(1)
+				badValue.Value = nil
+				Expect(func() {
+					notification = testHigh().Evaluate(ctx, []*glucose.Glucose{badValue})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
+
+				badTime := testGlucoseDatum(1)
+				badTime.Time = nil
+				Expect(func() {
+					notification = testHigh().Evaluate(ctx, []*glucose.Glucose{badTime})
+				}).ToNot(Panic())
+				Expect(notification).To(BeNil())
 			})
 		})
 	})
@@ -324,32 +815,41 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("repeat", func() {
+		var defaultAlert = LowAlert{
+			Threshold: Threshold{Value: 11, Units: nontypesglucose.MmolL},
+		}
+
 		It("accepts values of 0 (indicating disabled)", func() {
 			val := validator.New(logTest.NewLogger())
-			b := Base{Repeat: 0}
-			b.Validate(val)
+			l := defaultAlert
+			l.Repeat = 0
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 		})
 
 		It("accepts values of 15 minutes to 4 hours (inclusive)", func() {
 			val := validator.New(logTest.NewLogger())
-			b := Base{Repeat: DurationMinutes(15 * time.Minute)}
-			b.Validate(val)
+			l := defaultAlert
+			l.Repeat = DurationMinutes(15 * time.Minute)
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
 			val = validator.New(logTest.NewLogger())
-			b = Base{Repeat: DurationMinutes(4 * time.Hour)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(4 * time.Hour)
+			l.Validate(val)
 			Expect(val.Error()).To(Succeed())
 
 			val = validator.New(logTest.NewLogger())
-			b = Base{Repeat: DurationMinutes(4*time.Hour + 1)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(4*time.Hour + 1)
+			l.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 
 			val = validator.New(logTest.NewLogger())
-			b = Base{Repeat: DurationMinutes(15*time.Minute - 1)}
-			b.Validate(val)
+			l = defaultAlert
+			l.Repeat = DurationMinutes(15*time.Minute - 1)
+			l.Validate(val)
 			Expect(val.Error()).NotTo(Succeed())
 		})
 	})
@@ -359,41 +859,6 @@ var _ = Describe("Config", func() {
 			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
 			threshold := &Threshold{}
 			err := request.DecodeObject(context.Background(), nil, buf, threshold)
-			Expect(err).To(MatchError("json is malformed"))
-		})
-		It("validates repeat minutes (negative)", func() {
-			buf := buff(`{
-  "userId": "%s",
-  "followedUserId": "%s",
-  "uploadId": "%s",
-  "urgentLow": {
-    "enabled": false,
-    "repeat": -11,
-    "threshold": {
-      "units": "%s",
-      "value": 47.5
-    }
-  }
-}`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
-			cfg := &Config{}
-			err := request.DecodeObject(context.Background(), nil, buf, cfg)
-			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
-		})
-		It("validates repeat minutes (string)", func() {
-			buf := buff(`{
-  "userId": "%s",
-  "followedUserId": "%s",
-  "urgentLow": {
-    "enabled": false,
-    "repeat": "a",
-    "threshold": {
-      "units": "%s",
-      "value": 1
-    }
-  }
-}`, mockUserID1, mockUserID2, glucose.MgdL)
-			cfg := &Config{}
-			err := request.DecodeObject(context.Background(), nil, buf, cfg)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 	})
@@ -419,9 +884,249 @@ var _ = Describe("Config", func() {
 			Expect(conf.Low.Repeat).To(Equal(DurationMinutes(0)))
 		})
 	})
+	It("validates repeat minutes (negative)", func() {
+		buf := buff(`{
+  "userId": "%s",
+  "followedUserId": "%s",
+  "uploadId": "%s",
+  "low": {
+    "enabled": false,
+    "repeat": -11,
+    "threshold": {
+      "units": "%s",
+      "value": 47.5
+    }
+  }
+}`, mockUserID1, mockUserID2, mockUploadID, nontypesglucose.MgdL)
+		cfg := &Config{}
+		err := request.DecodeObject(context.Background(), nil, buf, cfg)
+		Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
+	})
+	It("validates repeat minutes (string)", func() {
+		buf := buff(`{
+  "userId": "%s",
+  "followedUserId": "%s",
+  "uploadId": "%s",
+  "low": {
+    "enabled": false,
+    "repeat": "a",
+    "threshold": {
+      "units": "%s",
+      "value": 1
+    }
+  }
+}`, mockUserID1, mockUserID2, mockUploadID, nontypesglucose.MgdL)
+		cfg := &Config{}
+		err := request.DecodeObject(context.Background(), nil, buf, cfg)
+		Expect(err).To(MatchError("json is malformed"))
+	})
 })
 
-var _ = Describe("Duration", func() {
+var (
+	testNoCommunicationAlert = func() *NoCommunicationAlert {
+		return &NoCommunicationAlert{
+			Base: Base{Enabled: true},
+		}
+	}
+	testLowAlert = func() *LowAlert {
+		return &LowAlert{
+			Base: Base{Enabled: true},
+			Threshold: Threshold{
+				Value: 4,
+				Units: nontypesglucose.MmolL,
+			},
+		}
+	}
+	testHighAlert = func() *HighAlert {
+		return &HighAlert{
+			Base: Base{Enabled: true},
+			Threshold: Threshold{
+				Value: 10,
+				Units: nontypesglucose.MmolL,
+			},
+		}
+	}
+	testUrgentLowAlert = func() *UrgentLowAlert {
+		return &UrgentLowAlert{
+			Base: Base{Enabled: true},
+			Threshold: Threshold{
+				Value: 3,
+				Units: nontypesglucose.MmolL,
+			},
+		}
+	}
+	testNotLoopingAlert = func() *NotLoopingAlert {
+		return &NotLoopingAlert{
+			Base: Base{Enabled: true},
+		}
+	}
+	testNoCommunicationDatum = &glucose.Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now()),
+			},
+			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Value: pointer.FromAny(11.0),
+		},
+	}
+	testHighDatum = &glucose.Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now()),
+			},
+			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Value: pointer.FromAny(11.0),
+		},
+	}
+	testLowDatum = &glucose.Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now()),
+			},
+			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Value: pointer.FromAny(3.9),
+		},
+	}
+	testUrgentLowDatum = &glucose.Glucose{
+		Blood: blood.Blood{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now()),
+			},
+			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Value: pointer.FromAny(2.9),
+		},
+	}
+)
+
+var _ = Describe("Alerts", func() {
+	Describe("LongestDelay", func() {
+		It("does what it says", func() {
+			noComm := testNoCommunicationAlert()
+			noComm.Delay = DurationMinutes(10 * time.Minute)
+			low := testLowAlert()
+			low.Delay = DurationMinutes(5 * time.Minute)
+			high := testHighAlert()
+			high.Delay = DurationMinutes(5 * time.Minute)
+			notLooping := testNotLoopingAlert()
+			notLooping.Delay = DurationMinutes(5 * time.Minute)
+
+			a := Alerts{
+				NoCommunication: noComm,
+				Low:             low,
+				High:            high,
+				NotLooping:      notLooping,
+			}
+
+			delay := a.LongestDelay()
+
+			Expect(delay).To(Equal(10 * time.Minute))
+		})
+
+		It("ignores disabled alerts", func() {
+			noComm := testNoCommunicationAlert()
+			noComm.Delay = DurationMinutes(10 * time.Minute)
+			noComm.Enabled = false
+			low := testLowAlert()
+			low.Delay = DurationMinutes(7 * time.Minute)
+			high := testHighAlert()
+			high.Delay = DurationMinutes(5 * time.Minute)
+			notLooping := testNotLoopingAlert()
+			notLooping.Delay = DurationMinutes(5 * time.Minute)
+
+			a := Alerts{
+				NoCommunication: noComm,
+				Low:             low,
+				High:            high,
+				NotLooping:      notLooping,
+			}
+
+			delay := a.LongestDelay()
+
+			Expect(delay).To(Equal(7 * time.Minute))
+		})
+
+		It("returns a Zero Duration when no alerts are set", func() {
+			a := Alerts{
+				NoCommunication: nil,
+				Low:             nil,
+				High:            nil,
+				NotLooping:      nil,
+			}
+
+			delay := a.LongestDelay()
+
+			Expect(delay).To(Equal(time.Duration(0)))
+		})
+	})
+
+	Describe("Evaluate", func() {
+		Context("when not communicating", func() {
+			It("returns only NoCommunication alerts", func() {
+				ctx := contextWithTestLogger()
+				data := []*glucose.Glucose{testNoCommunicationDatum}
+				data[0].Value = pointer.FromAny(0.0)
+				a := Alerts{
+					NoCommunication: testNoCommunicationAlert(),
+					UrgentLow:       testUrgentLowAlert(),
+					Low:             testLowAlert(),
+					High:            testHighAlert(),
+				}
+
+				notification := a.Evaluate(ctx, data, nil)
+
+				Expect(notification).To(HaveField("Message", ContainSubstring(NoCommunicationMessage)))
+			})
+		})
+
+		It("logs decisions", func() {
+			Skip("TODO logAlertEvaluation")
+		})
+
+		It("detects low data", func() {
+			ctx := contextWithTestLogger()
+			data := []*glucose.Glucose{testLowDatum}
+			a := Alerts{
+				Low: testLowAlert(),
+			}
+
+			notification := a.Evaluate(ctx, data, nil)
+
+			Expect(notification).ToNot(BeNil())
+			Expect(notification.Message).To(ContainSubstring("below low threshold"))
+		})
+
+		It("detects high data", func() {
+			ctx := contextWithTestLogger()
+			data := []*glucose.Glucose{testHighDatum}
+			a := Alerts{
+				High: testHighAlert(),
+			}
+
+			notification := a.Evaluate(ctx, data, nil)
+
+			Expect(notification).ToNot(BeNil())
+			Expect(notification.Message).To(ContainSubstring("above high threshold"))
+		})
+
+		Context("with both low and urgent low alerts detected", func() {
+			It("prefers urgent low", func() {
+				ctx := contextWithTestLogger()
+				data := []*glucose.Glucose{testUrgentLowDatum}
+				a := Alerts{
+					Low:       testLowAlert(),
+					UrgentLow: testUrgentLowAlert(),
+				}
+
+				notification := a.Evaluate(ctx, data, nil)
+
+				Expect(notification).ToNot(BeNil())
+				Expect(notification.Message).To(ContainSubstring("below urgent low threshold"))
+			})
+		})
+	})
+})
+
+var _ = Describe("DurationMinutes", func() {
 	It("parses 42", func() {
 		d := DurationMinutes(0)
 		err := d.UnmarshalJSON([]byte(`42`))
@@ -456,20 +1161,20 @@ var _ = Describe("Duration", func() {
 
 var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
-		buf := buff(`{"units":"%s","value":42}`, glucose.MgdL)
+		buf := buff(`{"units":"%s","value":42}`, nontypesglucose.MgdL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(glucose.MgdL))
+		Expect(threshold.Units).To(Equal(nontypesglucose.MgdL))
 	})
 	It("accepts mmol/L", func() {
-		buf := buff(`{"units":"%s","value":42}`, glucose.MmolL)
+		buf := buff(`{"units":"%s","value":42}`, nontypesglucose.MmolL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(glucose.MmolL))
+		Expect(threshold.Units).To(Equal(nontypesglucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
 		buf := buff(`{"units":"%s","value":42}`, "lb/gal")
@@ -482,7 +1187,7 @@ var _ = Describe("Threshold", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 	It("is case-sensitive with respect to Units", func() {
-		badUnits := strings.ToUpper(glucose.MmolL)
+		badUnits := strings.ToUpper(nontypesglucose.MmolL)
 		buf := buff(`{"units":"%s","value":42}`, badUnits)
 		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
@@ -493,4 +1198,9 @@ var _ = Describe("Threshold", func() {
 // buff is a helper for generating a JSON []byte representation.
 func buff(format string, args ...interface{}) *bytes.Buffer {
 	return bytes.NewBufferString(fmt.Sprintf(format, args...))
+}
+
+func contextWithTestLogger() context.Context {
+	lgr := logTest.NewLogger()
+	return log.NewContextWithLogger(context.Background(), lgr)
 }
