@@ -114,7 +114,12 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	selector := newMongoSelectorFromFilter(filter)
 	selector["deletedTime"] = nil
 
-	opts := structuredMongo.FindWithPagination(pagination)
+	opts := structuredMongo.
+		FindWithPagination(pagination).
+		SetSort(bson.M{
+			"modifiedTime": -1,
+		})
+
 	cursor, err := p.Find(ctx, selector, opts)
 
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListPrescriptions")
@@ -413,6 +418,7 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 
 	set["state"] = prescrUpdate.State
 	set["expirationTime"] = prescrUpdate.ExpirationTime
+	set["modifiedTime"] = time.Now()
 
 	if prescrUpdate.Revision != nil {
 		set["latestRevision"] = prescrUpdate.Revision
