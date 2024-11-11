@@ -39,7 +39,7 @@ func (d HashOptions) Validate() error {
 			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
 		}
 	case DeviceDeactivateHashVersionCurrent:
-		if d.LegacyGroupID != nil || *d.LegacyGroupID != "" {
+		if d.LegacyGroupID != nil {
 			return errors.New("groupId is not required for the device deactive hash current version")
 		}
 	default:

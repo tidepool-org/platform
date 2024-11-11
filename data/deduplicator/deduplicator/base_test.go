@@ -25,7 +25,10 @@ var _ = Describe("Base", func() {
 
 	BeforeEach(func() {
 		name = netTest.RandomReverseDomain()
-		version = netTest.RandomSemanticVersion()
+		version = test.RandomStringFromArray([]string{
+			dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent,
+			dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionLegacy,
+		})
 	})
 
 	Context("NewBase", func() {
@@ -47,13 +50,6 @@ var _ = Describe("Base", func() {
 			version = ""
 			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
 			Expect(err).To(MatchError("version is missing"))
-			Expect(deduplicator).To(BeNil())
-		})
-
-		It("returns an error when version is invalid", func() {
-			version = "invalid"
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
-			Expect(err).To(MatchError("version is invalid"))
 			Expect(deduplicator).To(BeNil())
 		})
 

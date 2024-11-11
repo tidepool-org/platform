@@ -25,6 +25,18 @@ var _ = Describe("DeviceDeactivateHash", func() {
 		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashName).To(Equal("org.tidepool.deduplicator.device.deactivate.hash"))
 	})
 
+	It("DeviceDeactivateHashVersionCurrent is current-hash", func() {
+		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent).To(Equal("current-hash"))
+	})
+
+	It("DeviceDeactivateHashVersionLegacy is legacy-hash", func() {
+		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionLegacy).To(Equal("legacy-hash"))
+	})
+
+	It("DeviceDeactivateHashVersionUnknown is unkown-hash", func() {
+		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionUnknown).To(Equal("unknown-hash"))
+	})
+
 	Context("NewDeviceDeactivateHash", func() {
 		It("returns succesfully", func() {
 			Expect(dataDeduplicatorDeduplicator.NewDeviceDeactivateHash()).ToNot(BeNil())
@@ -308,7 +320,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 						update.Active = pointer.FromBool(false)
 						update.Deduplicator = &data.DeduplicatorDescriptor{
 							Name:    pointer.FromString("org.tidepool.deduplicator.device.deactivate.hash"),
-							Version: pointer.FromString("1.1.0"),
+							Version: pointer.FromString(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent),
 						}
 					})
 
