@@ -26,7 +26,7 @@ func randomBolus() *dataTypesBolus.Bolus {
 	datum := &dataTypesBolus.Bolus{}
 	datum.SubType = dataTypesTest.NewType()
 	datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
-	datum.DeliveryContext = pointer.FromString(test.RandomStringFromArray(dataTypesBolus.DeliveryContext()))
+	datum.DeliveryContext = pointer.FromString(test.RandomStringFromArray(dataTypesBolus.DeliveryContexts()))
 	return datum
 }
 

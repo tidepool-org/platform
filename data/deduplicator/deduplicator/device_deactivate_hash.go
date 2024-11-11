@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	DeviceDeactivateHashVersionUnknown string = ""
-	DeviceDeactivateHashVersionCurrent string = types.IdentityFieldsVersion
-	DeviceDeactivateHashVersionLegacy  string = types.LegacyIdentityFieldsVersion
+	DeviceDeactivateHashVersionUnknown = "unknown-hash"
+	DeviceDeactivateHashVersionLegacy  = "legacy-hash"
+	DeviceDeactivateHashVersionCurrent = "current-hash"
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
@@ -70,8 +70,10 @@ func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
 	if dataSet.Deduplicator != nil {
 		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
 			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
-				if *dataSet.Deduplicator.Version != "" {
-					return *dataSet.Deduplicator.Version
+				if types.LegacyIdentityFieldsVersion == *dataSet.Deduplicator.Version {
+					return DeviceDeactivateHashVersionLegacy
+				} else if types.IdentityFieldsVersion == *dataSet.Deduplicator.Version {
+					return DeviceDeactivateHashVersionCurrent
 				}
 			}
 		}
@@ -157,7 +159,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		}
 		if len(uploads) != 0 {
 			if uploads[0].LegacyGroupID == nil {
-				return missingLegacyGroupIdErr
+				return errors.New("missing required legacy groupId for the device deactive hash legacy version")
 			}
 			options = NewLegacyHashOptions(*uploads[0].LegacyGroupID)
 		}

@@ -24,8 +24,6 @@ func NewBase(name string, version string) (*Base, error) {
 	}
 	if version == "" {
 		return nil, errors.New("version is missing")
-	} else if !net.IsValidSemanticVersion(version) {
-		return nil, errors.New("version is invalid")
 	}
 
 	return &Base{

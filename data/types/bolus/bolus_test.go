@@ -92,7 +92,7 @@ var _ = Describe("Bolus", func() {
 				),
 				Entry("delivery context invalid",
 					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString("invalid") },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", bolus.DeliveryContext()), "/deliveryContext"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", bolus.DeliveryContexts()), "/deliveryContext"),
 				),
 				Entry("delivery context valid",
 					func(datum *bolus.Bolus) { datum.DeliveryContext = pointer.FromString(bolus.DeliveryContextAlgorithm) },

@@ -30,7 +30,7 @@ type Meta struct {
 	SubType string `json:"subType,omitempty"`
 }
 
-func DeliveryContext() []string {
+func DeliveryContexts() []string {
 	return []string{DeliveryContextDevice, DeliveryContextAlgorithm, DeliveryContextRemote, DeliveryContextUndetermined}
 }
 
@@ -67,9 +67,7 @@ func (b *Bolus) Validate(validator structure.Validator) {
 		b.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
 
-	if b.DeliveryContext != nil {
-		validator.String("deliveryContext", b.DeliveryContext).Exists().OneOf(DeliveryContext()...)
-	}
+	validator.String("deliveryContext", b.DeliveryContext).OneOf(DeliveryContexts()...)
 }
 
 func (b *Bolus) Normalize(normalizer data.Normalizer) {
