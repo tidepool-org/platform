@@ -12,32 +12,21 @@ const (
 	algorithmJCSSha512 = "JCSSHA512" // SHA512 of Canonicalized JSON Document (RFC8785)
 )
 
-type IntegrityAttributes struct {
-	DataAttributes
-	CreatedUserID string `json:"createdUserId,omitempty"`
-}
-
 type IntegrityHash struct {
 	Algorithm string `json:"algorithm"`
 	Hash      string `json:"hash"`
 }
 
-func NewIntegrityAttributesFromRevisionCreate(create RevisionCreate) IntegrityAttributes {
-	return IntegrityAttributes{
-		DataAttributes: create.DataAttributes,
-		CreatedUserID:  create.CreatedUserID,
-	}
+func NewIntegrityAttributesFromRevisionCreate(create RevisionCreate) DataAttributes {
+	return create.DataAttributes
 }
 
-func NewIntegrityAttributesFromRevision(revision Revision) IntegrityAttributes {
-	return IntegrityAttributes{
-		DataAttributes: revision.Attributes.DataAttributes,
-		CreatedUserID:  revision.Attributes.CreatedUserID,
-	}
+func NewIntegrityAttributesFromRevision(revision Revision) DataAttributes {
+	return revision.Attributes.DataAttributes
 }
 
 // generateJCSSha512 computes the hex encoded sha512 hash of the canonicalized json of prescription attributes
-func generateJCSSha512(attributes IntegrityAttributes) (string, error) {
+func generateJCSSha512(attributes DataAttributes) (string, error) {
 	// marshal the relevant attributes to json
 	payload, err := json.Marshal(attributes)
 	if err != nil {
@@ -58,7 +47,7 @@ func generateJCSSha512(attributes IntegrityAttributes) (string, error) {
 	return fmt.Sprintf("%x", hash), nil
 }
 
-func MustGenerateIntegrityHash(attributes IntegrityAttributes) IntegrityHash {
+func MustGenerateIntegrityHash(attributes DataAttributes) IntegrityHash {
 	hash, err := generateJCSSha512(attributes)
 	if err != nil {
 		panic(err)
