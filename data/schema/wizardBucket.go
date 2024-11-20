@@ -25,9 +25,10 @@ type (
 		BolusId        string       `bson:"bolus,omitempty"`
 		BolusIds       []string     `bson:"bolusIds,omitempty"`
 		CarbInput      float64      `bson:"carbInput,omitempty"`
+		CarbUnits      string       `bson:"carbUnit,omitempty"` // name align with orca
 		InputMeal      *InputMeal   `bson:"inputMeal"`
 		Recommended    *Recommended `bson:"recommended,omitempty"`
-		Units          string       `bson:"carbUnit,omitempty"`
+		Units          string       `bson:"units,omitempty"`
 		InputTimestamp string       `bson:"inputTimestamp,omitempty"`
 	}
 
@@ -77,6 +78,10 @@ func (w *Wizard) MapForWizard(event *calculator.Calculator) error {
 
 	if event.CarbohydrateInput != nil {
 		w.CarbInput = *event.CarbohydrateInput
+	}
+
+	if event.CarbUnits != nil {
+		w.CarbUnits = *event.CarbUnits
 	}
 
 	if event.Recommended != nil {

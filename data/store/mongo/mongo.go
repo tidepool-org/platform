@@ -29,6 +29,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/device/prime"
 	"github.com/tidepool-org/platform/data/types/device/reservoirchange"
 	"github.com/tidepool-org/platform/data/types/food"
+	"github.com/tidepool-org/platform/data/types/settings/basalsecurity"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/schema"
@@ -546,6 +547,12 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 				s.MapForPhysical(event)
 				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add PhysicalActivity in bucket")
 				allSamples["PhysicalActivity"] = append(allSamples["PhysicalActivity"], *s)
+			case *basalsecurity.BasalSecurity:
+				log.LoggerFromContext(ctx).WithFields(loggerFields).Debug("add a SecurityBasal entry")
+				var s = &schema.SecurityBasals{}
+				s.MapForBasalSecurity(event)
+				log.LoggerFromContext(ctx).WithFields(log.Fields{"sample": s}).Debug("add SecurityBasal in bucket")
+				allSamples["SecurityBasal"] = append(allSamples["SecurityBasal"], *s)
 			default:
 				d.BucketStore.log.Infof("object ignored %+v", event)
 			}

@@ -116,6 +116,9 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 		case "PhysicalActivity":
 			ops, _ := buildPhysicalActivitiesUpdateOneModel(sample, userId, ts, creationTimestamp)
 			operations = append(operations, ops...)
+		case "SecurityBasal":
+			ops, _ := buildSecurityBasalUpdateOneModel(sample, userId, ts, creationTimestamp)
+			operations = append(operations, ops...)
 		}
 	}
 
@@ -123,13 +126,20 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 	bulkOption := options.BulkWriteOptions{}
 	bulkOption.SetOrdered(false)
 
-	if dataType == "loopMode" {
+	switch dataType {
+	case "SecurityBasal":
+		// SecurityBasal event is recorded without hot/cold collection
+		_, err := c.Collection("currentSettings").BulkWrite(ctx, operations, &bulkOption)
+		if err != nil {
+			return err
+		}
+	case "loopMode":
 		// loop mode event is recorded without hot/cold collection
 		_, err := c.Collection("loopMode").BulkWrite(ctx, operations, &bulkOption)
 		if err != nil {
 			return err
 		}
-	} else {
+	default:
 		// update or insert in Hot Daily and Cold Daily
 		for _, collectionPrefix := range dailyPrefixCollections {
 			// by default
@@ -152,8 +162,26 @@ func (c *MongoBucketStoreClient) UpsertMany(ctx context.Context, userId *string,
 			}
 		}
 	}
-
 	return nil
+}
+
+func buildSecurityBasalUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
+
+	strUserId := *userId
+	var updates []mongo.WriteModel
+
+	op := mongo.NewUpdateOneModel()
+	op.SetFilter(bson.D{{Key: "_id", Value: strUserId}})
+	op.SetUpdate(bson.D{ // update
+		{Key: "$set", Value: bson.D{
+			{Key: "securityBasals", Value: sample}}},
+		{Key: "$setOnInsert", Value: bson.D{
+			{Key: "creationTimestamp", Value: creationTimestamp}}},
+	})
+	op.SetUpsert(true)
+	updates = append(updates, op)
+
+	return updates, nil
 }
 
 func buildCbgUpdateOneModel(sample schema.ISample, userId *string, date string, creationTimestamp time.Time) ([]mongo.WriteModel, error) {
