@@ -950,6 +950,12 @@ type MembershipRestrictions struct {
 	Restrictions *[]MembershipRestriction `json:"restrictions,omitempty"`
 }
 
+// MergeClinic defines model for MergeClinic.
+type MergeClinic struct {
+	// SourceId Clinic identifier.
+	SourceId *Id `json:"sourceId,omitempty"`
+}
+
 // Meta defines model for Meta.
 type Meta struct {
 	Count *int `json:"count,omitempty"`
@@ -2198,6 +2204,9 @@ type AssociateClinicianToUserJSONRequestBody = AssociateClinicianToUser
 
 // UpdateMembershipRestrictionsJSONRequestBody defines body for UpdateMembershipRestrictions for application/json ContentType.
 type UpdateMembershipRestrictionsJSONRequestBody = MembershipRestrictions
+
+// MergeClinicJSONRequestBody defines body for MergeClinic for application/json ContentType.
+type MergeClinicJSONRequestBody = MergeClinic
 
 // TriggerInitialMigrationJSONRequestBody defines body for TriggerInitialMigration for application/json ContentType.
 type TriggerInitialMigrationJSONRequestBody = TriggerMigration

@@ -62,6 +62,12 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 	}
 }
 
+func (s *Store) NewBucketsRepository() store.BucketsRepository {
+	return &BucketsRepository{
+		s.Store.GetRepository("buckets"),
+	}
+}
+
 func (s *Store) NewAlertsRepository() alerts.Repository {
 	r := alertsRepo(*s.Store.GetRepository("alerts"))
 	return &r
