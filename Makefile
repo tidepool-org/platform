@@ -3,10 +3,6 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
-ifeq ($(PRIVATE),true)
-  REPOSITORY_SUFFIX:=-private
-endif
-
 SERVICES_SEPARATOR=,
 BUILD_SERVICES?=auth,blob,data,migrations,prescription,task,tools
 BUILD_SERVICES:=$(subst $(SERVICES_SEPARATOR), ,$(BUILD_SERVICES))
@@ -14,8 +10,11 @@ BUILD_SERVICES:=$(subst $(SERVICES_SEPARATOR), ,$(BUILD_SERVICES))
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
-REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
-REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))$(REPOSITORY_SUFFIX)
+PACKAGE_NAME := platform
+ifneq ($(PRIVATE),)
+PACKAGE_NAME := $(PACKAGE_NAME)-private
+endif
+REPOSITORY_PACKAGE:=github.com/tidepool-org/$(PACKAGE_NAME)
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
@@ -60,7 +59,7 @@ ifdef DOCKER_FILE
 	ifneq ($(filter $(SERVICE_NAME),$(BUILD_SERVICES)),)
 		BUILD_SERVICE:=true
 	endif
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(SERVICE_NAME)
+    DOCKER_REPOSITORY:=tidepool/$(PACKAGE_NAME)-$(SERVICE_NAME)
 endif
 
 default: test
