@@ -3,11 +3,15 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
+ifeq ($(PRIVATE),true)
+  REPOSITORY_SUFFIX:=-private
+endif
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
 REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
-REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
+REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))$(REPOSITORY_SUFFIX)
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
