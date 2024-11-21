@@ -3,13 +3,13 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
-ifeq ($(PRIVATE),true)
+ifneq ($(PRIVATE),)
   REPOSITORY_SUFFIX:=-private
 endif
 
 SERVICES_SEPARATOR=,
-BUILD_SERVICES?=auth,blob,data,migrations,prescription,task,tools
-BUILD_SERVICES:=$(subst $(SERVICES_SEPARATOR), ,$(BUILD_SERVICES))
+SERVICES_TO_BUILD?=auth,blob,data,migrations,prescription,task,tools
+SERVICES_TO_BUILD:=$(subst $(SERVICES_SEPARATOR), ,$(SERVICES_TO_BUILD))
 
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
@@ -57,7 +57,7 @@ else ifdef TRAVIS_TAG
 endif
 ifdef DOCKER_FILE
 	SERVICE_NAME:=$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
-	ifneq ($(filter $(SERVICE_NAME),$(BUILD_SERVICES)),)
+	ifneq ($(filter $(SERVICE_NAME),$(SERVICES_TO_BUILD)),)
 		BUILD_SERVICE:=true
 	endif
 	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(SERVICE_NAME)
@@ -307,7 +307,7 @@ endif
 
 docker-push:
 ifdef DOCKER
-ifdef BUILD_SERVICE:
+ifdef BUILD_SERVICE
 	@echo "DOCKER_REPOSITORY = $(DOCKER_REPOSITORY)"
 	@echo "TRAVIS_BRANCH = $(TRAVIS_BRANCH)"
 	@echo "TRAVIS_PULL_REQUEST_BRANCH = $(TRAVIS_PULL_REQUEST_BRANCH)"
