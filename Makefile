@@ -3,11 +3,19 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
+ifneq ($(PRIVATE),)
+  REPOSITORY_SUFFIX:=-private
+endif
+
+SERVICES_SEPARATOR=,
+SERVICES_TO_BUILD?=auth,blob,data,migrations,prescription,task,tools
+SERVICES_TO_BUILD:=$(subst $(SERVICES_SEPARATOR), ,$(SERVICES_TO_BUILD))
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
 REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
-REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
+REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))$(REPOSITORY_SUFFIX)
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
@@ -48,7 +56,11 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+	SERVICE_NAME:=$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+	ifneq ($(filter $(SERVICE_NAME),$(SERVICES_TO_BUILD)),)
+		BUILD_SERVICE:=true
+	endif
+	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(SERVICE_NAME)
 endif
 
 default: test
@@ -269,6 +281,7 @@ endif
 docker-build:
 ifdef DOCKER
 ifdef DOCKER_FILE
+ifdef BUILD_SERVICE
 	docker build --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
 	docker build --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_BRANCH
@@ -286,11 +299,15 @@ endif
 ifdef TRAVIS_TAG
 	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
 endif
+else
+	@echo skipping $(DOCKER_FILE)
+endif
 endif
 endif
 
 docker-push:
 ifdef DOCKER
+ifdef BUILD_SERVICE
 	@echo "DOCKER_REPOSITORY = $(DOCKER_REPOSITORY)"
 	@echo "TRAVIS_BRANCH = $(TRAVIS_BRANCH)"
 	@echo "TRAVIS_PULL_REQUEST_BRANCH = $(TRAVIS_PULL_REQUEST_BRANCH)"
@@ -316,6 +333,7 @@ endif
 endif
 ifdef TRAVIS_TAG
 	docker push $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
+endif
 endif
 endif
 endif
