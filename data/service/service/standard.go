@@ -59,6 +59,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.Service.Initialize(provider); err != nil {
 		return err
 	}
+	if err := s.Authenticated.Initialize(provider); err != nil {
+		return err
+	}
 
 	if err := s.initializeMetricClient(); err != nil {
 		return err
