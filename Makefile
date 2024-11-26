@@ -372,4 +372,4 @@ gopath-implode:
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode go-test
+	gopath-implode go-test go-ci-test
