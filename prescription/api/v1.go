@@ -7,6 +7,7 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 
 	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/log"
 
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 
@@ -36,7 +37,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	validator := structureValidator.New().WithReference("initialSettings")
+	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -147,7 +148,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -181,7 +182,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -236,7 +237,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	validator := structureValidator.New().WithReference("initialSettings")
+	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

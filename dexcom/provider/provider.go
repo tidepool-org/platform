@@ -5,6 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/dexcom/fetch"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -68,25 +69,26 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 			logger.WithField("count", count).Warn("unexpected number of data sources found")
 		}
 
+		for _, source := range sources {
+			if *source.State != dataSource.StateDisconnected {
+				logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
+
+				update := dataSource.NewUpdate()
+				update.State = pointer.FromString(dataSource.StateDisconnected)
+
+				_, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
+				if err != nil {
+					return errors.Wrap(err, "unable to update data source")
+				}
+			}
+		}
+
 		source = sources[0]
-		if *source.State != dataSource.StateDisconnected {
-			logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
-		}
-
-		update := dataSource.NewUpdate()
-		update.ProviderSessionID = pointer.FromString(providerSessionID)
-		update.State = pointer.FromString(dataSource.StateConnected)
-
-		source, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
-		if err != nil {
-			return errors.Wrap(err, "unable to update data source")
-		}
 	} else {
 		create := dataSource.NewCreate()
 		create.ProviderType = pointer.FromString(p.Type())
 		create.ProviderName = pointer.FromString(p.Name())
-		create.ProviderSessionID = pointer.FromString(providerSessionID)
-		create.State = pointer.FromString(dataSource.StateConnected)
+		create.State = pointer.FromString(dataSource.StateDisconnected)
 
 		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {
@@ -99,10 +101,23 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		return errors.Wrap(err, "unable to create task create")
 	}
 
-	_, err = p.taskClient.CreateTask(ctx, taskCreate)
+	task, err := p.taskClient.CreateTask(ctx, taskCreate)
 	if err != nil {
-		p.dataSourceClient.Delete(ctx, *source.ID, nil)
 		return errors.Wrap(err, "unable to create task")
+	}
+
+	// Update data source to connected after task successfully created
+	update := dataSource.NewUpdate()
+	update.ProviderSessionID = pointer.FromString(providerSessionID)
+	update.State = pointer.FromString(dataSource.StateConnected)
+	if _, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update); err != nil {
+
+		// Attempt to delete task if data source not marked as connected
+		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID); taskErr != nil {
+			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
+		}
+
+		return errors.Wrap(err, "unable to update data source")
 	}
 
 	return nil
@@ -122,21 +137,21 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSessionID))
 	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
-		logger.WithError(err).Error("unable to list tasks after deleting provider session")
+		logger.WithError(err).Error("unable to list tasks while deleting provider session")
 		return nil
 	}
 
 	for _, task := range tasks {
-		if err = p.taskClient.DeleteTask(ctx, task.ID); err != nil {
-			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task after deleting provider session")
-		}
-		if dataSourceID, ok := task.Data["dataSourceId"].(string); ok && dataSourceID != "" {
+		if dataSourceID, ok := task.Data[dexcom.DataKeyDataSourceID].(string); ok && dataSourceID != "" {
 			update := dataSource.NewUpdate()
 			update.State = pointer.FromString(dataSource.StateDisconnected)
 			_, err = p.dataSourceClient.Update(ctx, dataSourceID, nil, update)
 			if err != nil {
-				logger.WithError(err).WithField("dataSourceId", dataSourceID).Error("unable to update data source after deleting provider session")
+				logger.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
 			}
+		}
+		if err = p.taskClient.DeleteTask(ctx, task.ID); err != nil {
+			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
 		}
 	}
 	return nil

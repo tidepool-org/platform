@@ -2,7 +2,7 @@ package test
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -51,18 +51,22 @@ func NewObjectFromFilter(datum *blob.Filter, objectFormat test.ObjectFormat) map
 func RandomContent() *blob.Content {
 	content := test.RandomBytes()
 	datum := &blob.Content{}
-	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
+	datum.Body = io.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	return datum
 }
 
 func RandomDeviceLogsContent() *blob.DeviceLogsContent {
+	return RandomDeviceLogsContentMediaType("application/json; charset=utf-8")
+}
+
+func RandomDeviceLogsContentMediaType(mediaType string) *blob.DeviceLogsContent {
 	content := test.RandomBytes()
 	datum := &blob.DeviceLogsContent{}
-	datum.Body = ioutil.NopCloser(bytes.NewReader(content))
+	datum.Body = io.NopCloser(bytes.NewReader(content))
 	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
-	datum.MediaType = pointer.FromString("application/json; charset=utf-8")
+	datum.MediaType = pointer.FromString(mediaType)
 	now := time.Now()
 	datum.StartAt = pointer.FromTime(now.UTC())
 	datum.EndAt = pointer.FromTime(now.Add(5 * time.Minute).UTC())
@@ -70,12 +74,16 @@ func RandomDeviceLogsContent() *blob.DeviceLogsContent {
 }
 
 func RandomDeviceLogsBlob() *blob.DeviceLogsBlob {
+	return RandomDeviceLogsBlobMediaType("application/json; charset=utf-8")
+}
+
+func RandomDeviceLogsBlobMediaType(mediaType string) *blob.DeviceLogsBlob {
 	datum := &blob.DeviceLogsBlob{}
 	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.ID = pointer.FromString(RandomID())
 	datum.UserID = pointer.FromString(userTest.RandomID())
 	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
-	datum.MediaType = pointer.FromString("application/json; charset=utf-8")
+	datum.MediaType = pointer.FromString(mediaType)
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	datum.StartAtTime = datum.CreatedTime
@@ -255,6 +263,22 @@ func MatchBlobArray(datum blob.BlobArray) gomegaTypes.GomegaMatcher {
 	matchers := []gomegaTypes.GomegaMatcher{}
 	for _, d := range datum {
 		matchers = append(matchers, MatchBlob(d))
+	}
+	return test.MatchArray(matchers)
+}
+
+func RandomDeviceLogsArray(minimumLength int, maximumLength int) blob.DeviceLogsBlobArray {
+	datum := make(blob.DeviceLogsBlobArray, test.RandomIntFromRange(minimumLength, maximumLength))
+	for index := range datum {
+		datum[index] = RandomDeviceLogsBlob()
+	}
+	return datum
+}
+
+func MatchDeviceLogsArray(datum blob.DeviceLogsBlobArray) gomegaTypes.GomegaMatcher {
+	matchers := []gomegaTypes.GomegaMatcher{}
+	for _, d := range datum {
+		matchers = append(matchers, MatchDeviceLogsBlob(d))
 	}
 	return test.MatchArray(matchers)
 }

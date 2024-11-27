@@ -51,12 +51,12 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 	}
 	if filter == nil {
 		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -96,10 +96,10 @@ func (p *ProviderSessionRepository) CreateUserProviderSession(ctx context.Contex
 		return nil, errors.New("context is missing")
 	}
 
-	providerSession, err := auth.NewProviderSession(userID, create)
+	providerSession, err := auth.NewProviderSession(ctx, userID, create)
 	if err != nil {
 		return nil, err
-	} else if err = structureValidator.New().Validate(providerSession); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(providerSession); err != nil {
 		return nil, errors.Wrap(err, "provider session is invalid")
 	}
 
@@ -165,7 +165,7 @@ func (p *ProviderSessionRepository) UpdateProviderSession(ctx context.Context, i
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 

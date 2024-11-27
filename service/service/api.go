@@ -65,7 +65,7 @@ type Params struct {
 //
 // ).Run()
 func NewAPIService(p Params) (*APIService, error) {
-	if p.Routers == nil || len(p.Routers) == 0 {
+	if len(p.Routers) == 0 {
 		return nil, errors.New("application routers are missing")
 	}
 

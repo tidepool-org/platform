@@ -33,15 +33,26 @@ type ResponseBody struct {
 }
 
 var _ = Describe("Client", func() {
+	var address string
 	var userAgent string
-	var config *client.Config
+	var baseConfig *client.Config
+	var baseClient *client.Client
 	var tokenSourceSource *oauthTest.TokenSourceSource
 
 	BeforeEach(func() {
+		address = testHttp.NewAddress()
 		userAgent = testHttp.NewUserAgent()
-		config = client.NewConfig()
-		config.UserAgent = userAgent
+		baseConfig = client.NewConfig()
+		baseConfig.Address = address
+		baseConfig.UserAgent = userAgent
 		tokenSourceSource = oauthTest.NewTokenSourceSource()
+	})
+
+	JustBeforeEach(func() {
+		var err error
+		baseClient, err = client.New(baseConfig)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(baseClient).ToNot(BeNil())
 	})
 
 	AfterEach(func() {
@@ -49,46 +60,29 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("New", func() {
-		BeforeEach(func() {
-			config.Address = testHttp.NewAddress()
-		})
-
-		It("returns an error when config is missing", func() {
+		It("returns an error when base client is missing", func() {
 			clnt, err := oauthClient.New(nil, tokenSourceSource)
-			Expect(err).To(MatchError("config is missing"))
+			Expect(err).To(MatchError("base client is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error when token source source is missing", func() {
-			clnt, err := oauthClient.New(config, nil)
+			clnt, err := oauthClient.New(baseClient, nil)
 			Expect(err).To(MatchError("token source source is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
-		It("returns an error when config is invalid", func() {
-			config.Address = ""
-			clnt, err := oauthClient.New(config, tokenSourceSource)
-			Expect(err).To(MatchError("config is invalid; address is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
 		It("returns successfully", func() {
-			Expect(oauthClient.New(config, tokenSourceSource)).ToNot(BeNil())
+			Expect(oauthClient.New(baseClient, tokenSourceSource)).ToNot(BeNil())
 		})
 	})
 
 	Context("with new client", func() {
-		var address string
 		var clnt *oauthClient.Client
-
-		BeforeEach(func() {
-			address = testHttp.NewAddress()
-			config.Address = address
-		})
 
 		JustBeforeEach(func() {
 			var err error
-			clnt, err = oauthClient.New(config, tokenSourceSource)
+			clnt, err = oauthClient.New(baseClient, tokenSourceSource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -130,7 +124,7 @@ var _ = Describe("Client", func() {
 
 			Context("with trailing slashes on address", func() {
 				BeforeEach(func() {
-					config.Address += "///"
+					baseConfig.Address += "///"
 				})
 
 				constructURLAssertions()
@@ -209,12 +203,12 @@ var _ = Describe("Client", func() {
 			requestBody = &RequestBody{Request: requestString}
 			responseString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			httpClientSource = oauthTest.NewHTTPClientSource()
+			baseConfig.Address = server.URL()
 		})
 
 		JustBeforeEach(func() {
-			config.Address = server.URL()
 			var err error
-			clnt, err = oauthClient.New(config, tokenSourceSource)
+			clnt, err = oauthClient.New(baseClient, tokenSourceSource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -354,7 +348,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
-							errorsTest.ExpectEqual(err, responseErr)
+							errorsTest.ExpectEqual(err, request.ErrorBadRequest())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -441,7 +435,7 @@ var _ = Describe("Client", func() {
 
 						It("returns an error", func() {
 							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
-							errorsTest.ExpectEqual(err, responseErr)
+							errorsTest.ExpectEqual(err, request.ErrorResourceNotFound())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -506,8 +500,12 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
-							errorsTest.ExpectEqual(err, responseErr)
+							req, err := http.NewRequest(method, fmt.Sprintf("%s?%s=%s", url, parameterMutator.Key, parameterMutator.Value), nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(req).ToNot(BeNil())
+							res := &http.Response{StatusCode: http.StatusInternalServerError}
+							err = clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, httpClientSource)
+							errorsTest.ExpectEqual(err, request.ErrorUnexpectedResponse(res, req))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})

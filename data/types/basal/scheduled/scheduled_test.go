@@ -15,6 +15,7 @@ import (
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -371,7 +372,7 @@ var _ = Describe("Scheduled", func() {
 						datum := NewScheduled()
 						mutator(datum)
 						expectedDatum := CloneScheduled(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -536,7 +537,7 @@ var _ = Describe("Scheduled", func() {
 						datum := dataTypesBasalScheduledTest.RandomSuppressedScheduled()
 						mutator(datum)
 						expectedDatum := dataTypesBasalScheduledTest.CloneSuppressedScheduled(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

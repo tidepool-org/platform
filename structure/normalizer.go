@@ -5,6 +5,7 @@ type Normalizable interface {
 }
 
 type Normalizer interface {
+	LoggerReporter
 	OriginReporter
 	SourceReporter
 	MetaReporter

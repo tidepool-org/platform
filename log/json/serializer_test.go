@@ -1,11 +1,10 @@
 package json_test
 
 import (
-	"errors"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logJson "github.com/tidepool-org/platform/log/json"
 )

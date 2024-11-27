@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -32,7 +33,6 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -236,38 +236,28 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 	return dataSetDatumAsInterface
 }
 
-var _ = Describe("Mongo", func() {
-	var logger *logTest.Logger
-	var config *storeStructuredMongo.Config
-	var store *dataStoreMongo.Store
+var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
+	var logger = logTest.NewLogger()
+	var store *dataStoreMongo.Store
 
 	BeforeEach(func() {
-		logger = logTest.NewLogger()
-		config = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil {
-			_ = store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("New", func() {
 		It("returns an error if unsuccessful", func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(nil)
+			testStore, err := dataStoreMongo.NewStore(nil)
 			Expect(err).To(HaveOccurred())
-			Expect(store).To(BeNil())
+			Expect(testStore).To(BeNil())
 		})
 
 		It("returns a new store and no error if successful", func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(config)
+			testStore, err := dataStoreMongo.NewStore(storeStructuredMongoTest.NewConfig())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			Expect(testStore).ToNot(BeNil())
 		})
 	})
 
@@ -276,26 +266,29 @@ var _ = Describe("Mongo", func() {
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
 		var alertsCollection *mongo.Collection
+		var collectionsOnce sync.Once
 
 		BeforeEach(func() {
-			var err error
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
-			collection = store.GetCollection("deviceData")
-			dataSetCollection = store.GetCollection("deviceDataSets")
-			summaryCollection = store.GetCollection("summary")
-			alertsCollection = store.GetCollection("alerts")
-			Expect(store.EnsureIndexes()).To(Succeed())
+			collectionsOnce.Do(func() {
+				collection = store.GetCollection("deviceData")
+				dataSetCollection = store.GetCollection("deviceDataSets")
+				summaryCollection = store.GetCollection("summary")
+				alertsCollection = store.GetCollection("alerts")
+			})
 		})
 
 		AfterEach(func() {
-			if collection != nil {
-				collection.Database().Drop(context.Background())
-				dataSetCollection.Database().Drop(context.Background())
-				summaryCollection.Database().Drop(context.Background())
-				alertsCollection.Database().Drop(context.Background())
-			}
+			var err error
+			ctx := context.Background()
+			all := bson.D{}
+			_, err = collection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = dataSetCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = summaryCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = alertsCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
 		})
 
 		Context("EnsureIndexes", func() {
@@ -325,8 +318,11 @@ var _ = Describe("Mongo", func() {
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Name": Equal("OriginId"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "origin.id", "-deletedTime", "_active")),
+						"Name": Equal("UserIdOriginId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
@@ -446,14 +442,6 @@ var _ = Describe("Mongo", func() {
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
 				Expect(alertsRepository).ToNot(BeNil())
-			})
-
-			AfterEach(func() {
-				if repository != nil {
-					_, _ = collection.DeleteMany(context.Background(), bson.D{})
-					_, _ = summaryCollection.DeleteMany(context.Background(), bson.D{})
-					_, _ = alertsCollection.DeleteMany(context.Background(), bson.D{})
-				}
 			})
 
 			Context("with persisted data sets", func() {
@@ -2400,7 +2388,6 @@ var _ = Describe("Mongo", func() {
 			}
 
 			It("retrieves both cbg and dosing data", func() {
-				var err error
 				ctx := context.Background()
 				ctx = log.NewContextWithLogger(ctx, logTest.NewLogger())
 				repository = store.NewDataRepository()
@@ -2411,15 +2398,13 @@ var _ = Describe("Mongo", func() {
 				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
 				testSetData := testDataSetData(testSet)
 				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
-				store, err = dataStoreMongo.NewStore(config)
-				Expect(err).To(Succeed())
 
 				params := dataStore.AlertableParams{
 					Start:    time.Now().Add(-time.Hour),
 					UserID:   testUserID,
 					UploadID: *testSet.UploadID,
 				}
-				resp, err := store.NewDataRepository().GetAlertableData(ctx, params)
+				resp, err := repository.GetAlertableData(ctx, params)
 
 				Expect(err).To(Succeed())
 				Expect(resp).ToNot(BeNil())
@@ -2431,12 +2416,6 @@ var _ = Describe("Mongo", func() {
 
 		Context("alerts", func() {
 			BeforeEach(func() {
-				var err error
-				store, err = dataStoreMongo.NewStore(config)
-				Expect(err).To(Succeed())
-				_, err = store.GetCollection("alerts").DeleteMany(context.Background(), bson.D{})
-				Expect(err).To(Succeed())
-
 				alertsRepository = store.NewAlertsRepository()
 				Expect(alertsRepository).ToNot(BeNil())
 			})
@@ -2520,7 +2499,6 @@ var _ = Describe("Mongo", func() {
 					Expect(got.UserID).To(Equal(cfg.UserID))
 					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
 				})
-
 			})
 
 			Describe("Delete", func() {

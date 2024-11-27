@@ -73,13 +73,16 @@ func (d *DatumRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
+				{Key: "_userId", Value: 1},
 				{Key: "origin.id", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetName("OriginId"),
+				SetPartialFilterExpression(bson.D{
+					{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("UserIdOriginId"),
 		},
 		{
 			Keys: bson.D{
@@ -159,7 +162,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -199,7 +202,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -210,7 +213,6 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -224,7 +226,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	}
 	opts := options.Update()
 	if hasOriginID {
-		opts.SetHint("OriginId")
+		opts.SetHint("UserIdOriginId")
 	}
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
@@ -243,7 +245,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -254,7 +256,6 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
@@ -269,7 +270,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	}
 	opts := options.Update()
 	if hasOriginID {
-		opts.SetHint("OriginId")
+		opts.SetHint("UserIdOriginId")
 	}
 	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
@@ -288,7 +289,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -298,11 +299,10 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
 	opts := options.Delete()
 	if hasOriginID {
-		opts.SetHint("OriginId")
+		opts.SetHint("UserIdOriginId")
 	}
 	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
@@ -321,7 +321,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -494,10 +494,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
-	} else if err := structureValidator.New().Validate(selectors); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
 		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 

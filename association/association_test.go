@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -76,13 +77,13 @@ var _ = Describe("Association", func() {
 
 		Context("ParseAssociation", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(association.ParseAssociation(structureParser.NewObject(nil))).To(BeNil())
+				Expect(association.ParseAssociation(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := associationTest.RandomAssociation()
 				object := associationTest.NewObjectFromAssociation(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(association.ParseAssociation(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -101,7 +102,7 @@ var _ = Describe("Association", func() {
 					object := associationTest.NewObjectFromAssociation(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &association.Association{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -131,7 +132,7 @@ var _ = Describe("Association", func() {
 				func(mutator func(datum *association.Association), expectedErrors ...error) {
 					datum := associationTest.RandomAssociation()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *association.Association) {},
@@ -527,13 +528,13 @@ var _ = Describe("Association", func() {
 	Context("AssociationArray", func() {
 		Context("ParseAssociationArray", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(association.ParseAssociationArray(structureParser.NewArray(nil))).To(BeNil())
+				Expect(association.ParseAssociationArray(structureParser.NewArray(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := associationTest.RandomAssociationArray()
 				array := associationTest.NewArrayFromAssociationArray(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				Expect(association.ParseAssociationArray(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -547,7 +548,7 @@ var _ = Describe("Association", func() {
 
 		Context("Parse", func() {
 			It("successfully parses a nil array", func() {
-				parser := structureParser.NewArray(nil)
+				parser := structureParser.NewArray(logTest.NewLogger(), nil)
 				datum := association.NewAssociationArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(association.NewAssociationArray()))
@@ -555,7 +556,7 @@ var _ = Describe("Association", func() {
 			})
 
 			It("successfully parses an empty array", func() {
-				parser := structureParser.NewArray(&[]interface{}{})
+				parser := structureParser.NewArray(logTest.NewLogger(), &[]interface{}{})
 				datum := association.NewAssociationArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(association.NewAssociationArray()))
@@ -565,7 +566,7 @@ var _ = Describe("Association", func() {
 			It("successfully parses a non-empty array", func() {
 				expectedDatum := associationTest.RandomAssociationArray()
 				array := associationTest.NewArrayFromAssociationArray(expectedDatum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				datum := association.NewAssociationArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(expectedDatum))
@@ -578,7 +579,7 @@ var _ = Describe("Association", func() {
 				func(mutator func(datum *association.AssociationArray), expectedErrors ...error) {
 					datum := associationTest.RandomAssociationArray()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *association.AssociationArray) {},
