@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/tidepool-org/platform/errors"
 
@@ -170,6 +171,15 @@ func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userTo
 		if len(injectedParams) != 0 {
 			q := req.URL.Query()
 			for p, v := range injectedParams {
+				// handle tags array specifically, as it doesn't convert direct from json
+				if p == "tags" {
+					tagsInt := v.([]any)
+					tags := make([]string, len(tagsInt))
+					for i := range tagsInt {
+						tags[i] = tagsInt[i].(string)
+					}
+					v = strings.Join(tags, ",")
+				}
 				q.Add(p, fmt.Sprintf("%v", v))
 			}
 
