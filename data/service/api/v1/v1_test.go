@@ -42,7 +42,7 @@ var _ = Describe("V1", func() {
 			Expect(filter.EndTime.Equal(endDate)).To(BeTrue())
 
 			Expect(filter.PatientFilters).ToNot(BeNil())
-			Expect(*filter.PatientFilters.CgmTimeInLowPercent).To(Equal(">=0.04"))
+			Expect(filter.PatientFilters["cgm.timeInLowPercent"].(string)).To(Equal(">=0.04"))
 		})
 	})
 

@@ -9,7 +9,6 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -31,7 +30,7 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 }
 
 func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
-	patientFilters["limit"] = pointer.FromAny(realtimePatientsLengthLimit + 1)
+	patientFilters["limit"] = fmt.Sprintf("%d", realtimePatientsLengthLimit+1)
 
 	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, patientFilters)
 	if err != nil {
@@ -172,7 +171,7 @@ func (d *PatientRealtimeDaysFilter) Parse(parser structure.ObjectParser) {
 	d.EndTime = parser.Time("endDate", time.RFC3339)
 
 	d.PatientFilters = map[string]any{}
-	parser.JSON("patientFilters", d.PatientFilters)
+	parser.JSON("patientFilters", &d.PatientFilters)
 }
 
 func (d *PatientRealtimeDaysFilter) Validate(validator structure.Validator) {
