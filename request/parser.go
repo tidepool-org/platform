@@ -149,7 +149,7 @@ func DecodeRequestQuery(req *http.Request, objectParsables ...structure.ObjectPa
 		return errors.New("unable to parse request query")
 	}
 
-	return DecodeValues((map[string][]string)(values), objectParsables...)
+	return DecodeValues(values, objectParsables...)
 }
 
 func DecodeValues(values map[string][]string, objectParsables ...structure.ObjectParsable) error {

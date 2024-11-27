@@ -51,18 +51,18 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 }
 
 // GetPatients mocks base method.
-func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams) ([]client.Patient, error) {
+func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams, injectedParams map[string]any) ([]client.Patient, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params)
+	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params, injectedParams)
 	ret0, _ := ret[0].([]client.Patient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPatients indicates an expected call of GetPatients.
-func (mr *MockClientMockRecorder) GetPatients(ctx, clinicId, userToken, params interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetPatients(ctx, clinicId, userToken, params, injectedParams interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatients", reflect.TypeOf((*MockClient)(nil).GetPatients), ctx, clinicId, userToken, params)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatients", reflect.TypeOf((*MockClient)(nil).GetPatients), ctx, clinicId, userToken, params, injectedParams)
 }
 
 // ListEHREnabledClinics mocks base method.

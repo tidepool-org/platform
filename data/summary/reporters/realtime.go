@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	clinic "github.com/tidepool-org/clinic/client"
-
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/types"
@@ -32,10 +30,10 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 	}
 }
 
-func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters *clinic.ListPatientsParams) (*PatientsRealtimeDaysResponse, error) {
-	patientFilters.Limit = pointer.FromAny(realtimePatientsLengthLimit + 1)
+func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
+	patientFilters["limit"] = pointer.FromAny(realtimePatientsLengthLimit + 1)
 
-	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, patientFilters)
+	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, patientFilters)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +160,7 @@ type PatientRealtimeDaysResponse struct {
 type PatientRealtimeDaysFilter struct {
 	StartTime      *time.Time
 	EndTime        *time.Time
-	PatientFilters *clinic.ListPatientsParams
+	PatientFilters map[string]any
 }
 
 func NewPatientRealtimeDaysFilter() *PatientRealtimeDaysFilter {
@@ -173,7 +171,7 @@ func (d *PatientRealtimeDaysFilter) Parse(parser structure.ObjectParser) {
 	d.StartTime = parser.Time("startDate", time.RFC3339)
 	d.EndTime = parser.Time("endDate", time.RFC3339)
 
-	d.PatientFilters = &clinic.ListPatientsParams{}
+	d.PatientFilters = map[string]any{}
 	parser.JSON("patientFilters", d.PatientFilters)
 }
 
