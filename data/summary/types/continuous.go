@@ -178,6 +178,11 @@ func (s *ContinuousStats) GetNumberOfDaysWithRealtimeData(startTime time.Time, e
 	loc1 := startTime.Location()
 	loc2 := endTime.Location()
 
+	// user has not had their data calculated yet, or deleted their data
+	if s.Buckets == nil {
+		return 0
+	}
+
 	startOffset := int(startTime.Sub(s.Buckets[0].Date.In(loc1)).Hours())
 	// cap to start of list
 	if startOffset < 0 {
