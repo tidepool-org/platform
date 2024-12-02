@@ -179,7 +179,7 @@ func (s *ContinuousStats) GetNumberOfDaysWithRealtimeData(startTime time.Time, e
 	loc2 := endTime.Location()
 
 	// user has not had their data calculated yet, or deleted their data
-	if s.Buckets == nil {
+	if len(s.Buckets) == 0 {
 		return 0
 	}
 
