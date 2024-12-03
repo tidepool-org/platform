@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tidepool-org/platform/structure/validator"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
