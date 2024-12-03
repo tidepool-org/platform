@@ -32,6 +32,7 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 
 func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
 	injectedParams := map[string][]string{}
+	fmt.Println("original params: ", patientFilters)
 	for p, v := range patientFilters {
 		var finalParam []string
 

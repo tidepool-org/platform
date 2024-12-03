@@ -169,6 +169,7 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error) {
 	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
 		if len(injectedParams) != 0 {
+			fmt.Println("injected params: ", injectedParams)
 			q := req.URL.Query()
 			for p, v := range injectedParams {
 				for _, item := range v {
@@ -177,6 +178,7 @@ func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userTo
 			}
 
 			req.URL.RawQuery = q.Encode()
+			fmt.Println("raw query: ", req.URL.RawQuery)
 		}
 
 		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, userToken)
