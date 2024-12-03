@@ -31,7 +31,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
-	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams map[string]any) ([]clinic.Patient, error)
+	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams map[string][]string) ([]clinic.Patient, error)
 }
 
 type config struct {
@@ -166,21 +166,25 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams map[string]any) ([]clinic.Patient, error) {
+func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams map[string][]string) ([]clinic.Patient, error) {
 	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
 		if len(injectedParams) != 0 {
 			q := req.URL.Query()
 			for p, v := range injectedParams {
-				// handle tags array specifically, as it doesn't convert direct from json
-				if p == "tags" {
-					tagsInt := v.([]any)
-					tags := make([]string, len(tagsInt))
-					for i := range tagsInt {
-						tags[i] = tagsInt[i].(string)
-					}
-					v = strings.Join(tags, ",")
+				var finalParam string
+
+				// skip records with no value
+				if len(v) == 0 {
+					continue
 				}
-				q.Add(p, fmt.Sprintf("%v", v))
+
+				if len(v) > 1 {
+					finalParam = strings.Join(v, ",")
+				} else {
+					finalParam = v[0]
+				}
+				
+				q.Add(p, finalParam)
 			}
 
 			req.URL.RawQuery = q.Encode()

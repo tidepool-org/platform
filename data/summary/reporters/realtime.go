@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/tidepool-org/platform/structure/validator"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -30,9 +31,27 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 }
 
 func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
-	patientFilters["limit"] = fmt.Sprintf("%d", realtimePatientsLengthLimit+1)
+	injectedParams := map[string][]string{}
+	for p, v := range patientFilters {
+		var finalParam []string
 
-	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, patientFilters)
+		// handle tags array specifically, as it doesn't convert direct from json
+		if p == "tags" {
+			tagsInt := v.([]any)
+			finalParam = make([]string, len(tagsInt))
+			for i := range tagsInt {
+				finalParam = append(finalParam, fmt.Sprintf("%v", tagsInt[i].(string)))
+			}
+		} else {
+			finalParam = []string{fmt.Sprintf("%v", v)}
+		}
+
+		injectedParams[p] = finalParam
+	}
+
+	injectedParams["limit"] = []string{fmt.Sprintf("%d", realtimePatientsLengthLimit+1)}
+
+	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, injectedParams)
 	if err != nil {
 		return nil, err
 	}
