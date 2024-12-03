@@ -27,7 +27,6 @@ var _ = Describe("V1", func() {
 
 			filter := reporters.NewPatientRealtimeDaysFilter()
 			url := "https://qa2.development.tidepool.org/v1/clinics/12345asdf/reports/realtime?startDate=2024-04-25T00%3A00%3A00.000-04%3A00&endDate=2024-05-24T23%3A59%3A59.999-04%3A00&patientFilters=%7B%22cgm.lastUploadDateTo%22%3A%222024-05-25T04%3A00%3A00.000Z%22%2C%22cgm.lastUploadDateFrom%22%3A%222024-04-25T04%3A00%3A00.000Z%22%2C%22tags%22%3A%5B%226577551586650af25e519385%22%2C%22657754bc86650af25e519372%22%5D%2C%22cgm.timeInLowPercent%22%3A%22%3E%3D0.04%22%2C%22cgm.timeInVeryLowPercent%22%3A%22%3E%3D0.01%22%2C%22cgm.timeInTargetPercent%22%3A%22%3C%3D0.7%22%2C%22cgm.timeInHighPercent%22%3A%22%3E%3D0.25%22%2C%22cgm.timeInVeryHighPercent%22%3A%22%3E%3D0.05%22%2C%22cgm.timeCGMUsePercent%22%3A%22%3E%3D0.7%22%7D"
-			url = "https://qa2.development.tidepool.org/v1/clinics/62419f38f85189a39ac4b68d/reports/realtime?startDate=2024-11-04T00%3A00%3A00.000-04%3A00&endDate=2024-12-03T23%3A59%3A59.999-05%3A00&patientFilters=%7B%22period%22%3A%2214d%22%2C%22tags%22%3A%5B%22672bdce4ac8cdca950a1aa10%22%5D%7D"
 			req, err := http.NewRequest(http.MethodGet, url, nil)
 			Expect(err).ToNot(HaveOccurred())
 
