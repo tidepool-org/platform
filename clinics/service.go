@@ -178,12 +178,9 @@ func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userTo
 					continue
 				}
 
-				if len(v) > 1 {
-					finalParam = strings.Join(v, ",")
-				} else {
-					finalParam = v[0]
-				}
-				
+				// join is no-op with single element
+				finalParam = strings.Join(v, ",")
+
 				q.Add(p, finalParam)
 			}
 
