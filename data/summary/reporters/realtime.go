@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -41,6 +42,8 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 			for i := range tagsInt {
 				finalParam = append(finalParam, fmt.Sprintf("%v", tagsInt[i].(string)))
 			}
+
+			finalParam = []string{strings.Join(finalParam, ",")}
 		} else {
 			finalParam = []string{fmt.Sprintf("%v", v)}
 		}
