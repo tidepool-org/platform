@@ -3,9 +3,10 @@ package clinics
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/errors"
 	"net/http"
 	"net/url"
+
+	"github.com/tidepool-org/platform/errors"
 
 	"github.com/tidepool-org/platform/pointer"
 
