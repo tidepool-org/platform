@@ -171,17 +171,13 @@ func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userTo
 		if len(injectedParams) != 0 {
 			q := req.URL.Query()
 			for p, v := range injectedParams {
-				var finalParam string
-
 				// skip records with no value
 				if len(v) == 0 {
 					continue
 				}
 
 				// join is no-op with single element
-				finalParam = strings.Join(v, ",")
-
-				q.Add(p, finalParam)
+				q.Add(p, strings.Join(v, ","))
 			}
 
 			req.URL.RawQuery = q.Encode()
