@@ -51,7 +51,7 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 }
 
 // GetPatients mocks base method.
-func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams, injectedParams map[string]any) ([]client.Patient, error) {
+func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams, injectedParams map[string][]string) ([]client.Patient, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params, injectedParams)
 	ret0, _ := ret[0].([]client.Patient)
