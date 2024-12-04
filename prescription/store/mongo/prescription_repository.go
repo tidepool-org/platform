@@ -76,7 +76,7 @@ func (p *PrescriptionRepository) CreatePrescription(ctx context.Context, create 
 	}
 
 	model := prescription.NewPrescription(create)
-	if err := structureValidator.New().Validate(model); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(model); err != nil {
 		return nil, errors.Wrap(err, "prescription is invalid")
 	}
 
@@ -98,13 +98,13 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	}
 	if filter == nil {
 		return nil, errors.New("filter is missing")
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -114,7 +114,12 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	selector := newMongoSelectorFromFilter(filter)
 	selector["deletedTime"] = nil
 
-	opts := structuredMongo.FindWithPagination(pagination)
+	opts := structuredMongo.
+		FindWithPagination(pagination).
+		SetSort(bson.M{
+			"modifiedTime": -1,
+		})
+
 	cursor, err := p.Find(ctx, selector, opts)
 
 	logger.WithFields(log.Fields{"duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListPrescriptions")
@@ -204,7 +209,7 @@ func (p *PrescriptionRepository) AddRevision(ctx context.Context, prescriptionID
 	}
 
 	prescriptionUpdate := prescription.NewPrescriptionAddRevisionUpdate(prescr, create)
-	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
 
@@ -251,7 +256,7 @@ func (p *PrescriptionRepository) ClaimPrescription(ctx context.Context, claim *p
 
 	id := prescr.ID
 	prescriptionUpdate := prescription.NewPrescriptionClaimUpdate(claim.PatientID, prescr)
-	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
 
@@ -318,7 +323,7 @@ func (p *PrescriptionRepository) UpdatePrescriptionState(ctx context.Context, pr
 	}
 
 	prescriptionUpdate := prescription.NewPrescriptionStateUpdate(prescr, update)
-	if err := structureValidator.New().Validate(prescriptionUpdate); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(prescriptionUpdate); err != nil {
 		return nil, errors.Wrap(err, "the prescription update is invalid")
 	}
 	mongoUpdate := newMongoUpdateFromPrescriptionUpdate(prescriptionUpdate)
@@ -413,6 +418,7 @@ func newMongoUpdateFromPrescriptionUpdate(prescrUpdate *prescription.Update) bso
 
 	set["state"] = prescrUpdate.State
 	set["expirationTime"] = prescrUpdate.ExpirationTime
+	set["modifiedTime"] = time.Now()
 
 	if prescrUpdate.Revision != nil {
 		set["latestRevision"] = prescrUpdate.Revision

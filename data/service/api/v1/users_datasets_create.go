@@ -49,9 +49,10 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	parser := structureParser.NewObject(&rawDatum)
-	validator := structureValidator.New()
-	normalizer := dataNormalizer.New()
+	logger := log.LoggerFromContext(ctx)
+	parser := structureParser.NewObject(logger, &rawDatum)
+	validator := structureValidator.New(logger)
+	normalizer := dataNormalizer.New(logger)
 
 	dataSet := upload.ParseUpload(parser)
 	if dataSet != nil {
@@ -90,7 +91,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if deduplicator, err := dataServiceContext.DataDeduplicatorFactory().New(dataSet); err != nil {
+	if deduplicator, err := dataServiceContext.DataDeduplicatorFactory().New(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", err)
 		return
 	} else if deduplicator == nil {

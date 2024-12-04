@@ -52,7 +52,7 @@ var _ = Describe("Planner", func() {
 			clinics = test.RandomArrayWithLength(3, clinicsTest.NewRandomClinic)
 			tasks = make(map[string]task.Task)
 			for _, clinic := range clinics {
-				tsk, err := task.NewTask(sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
+				tsk, err := task.NewTask(context.Background(), sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
 				tasks[*clinic.Id] = *tsk

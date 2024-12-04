@@ -306,7 +306,7 @@ var _ = Describe("Mongo", func() {
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
 							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
-									return *s.UserID == userID && *s.ProviderSessionID == providerSessionID
+									return *s.UserID == userID && s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID
 								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 6})
@@ -385,7 +385,7 @@ var _ = Describe("Mongo", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
 							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
-									return *s.UserID == userID && *s.ProviderName == providerName && *s.ProviderSessionID == providerSessionID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
+									return *s.UserID == userID && *s.ProviderName == providerName && s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
 							)))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})

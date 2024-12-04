@@ -1,6 +1,10 @@
 package structure
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/tidepool-org/platform/log"
+)
 
 type Origin int
 
@@ -16,6 +20,10 @@ func Origins() []Origin {
 		OriginInternal,
 		OriginExternal,
 	}
+}
+
+type LoggerReporter interface {
+	Logger() log.Logger
 }
 
 type OriginReporter interface {

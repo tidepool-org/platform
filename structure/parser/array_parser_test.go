@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -15,15 +16,17 @@ import (
 )
 
 var _ = Describe("Array", func() {
+	var logger *logTest.Logger
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New().WithSource(structure.NewPointerSource())
+		logger = logTest.NewLogger()
+		base = structureBase.New(logger).WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewArray", func() {
 		It("returns successfully", func() {
-			Expect(structureParser.NewArray(nil)).ToNot(BeNil())
+			Expect(structureParser.NewArray(logTest.NewLogger(), nil)).ToNot(BeNil())
 		})
 	})
 
@@ -39,6 +42,12 @@ var _ = Describe("Array", func() {
 		BeforeEach(func() {
 			parser = structureParser.NewArrayParser(base, nil)
 			Expect(parser).ToNot(BeNil())
+		})
+
+		Context("Logger", func() {
+			It("returns the logger", func() {
+				Expect(parser.Logger()).To(BeIdenticalTo(logger))
+			})
 		})
 
 		Context("Origin", func() {

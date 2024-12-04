@@ -2,43 +2,44 @@ package client
 
 import (
 	"context"
+	"net/http"
 
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/request"
 )
 
+type BaseClient interface {
+	ConstructURL(paths ...string) string
+	AppendURLQuery(urlString string, query map[string]string) string
+	RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error
+}
+
 type Client struct {
-	client            *client.Client
+	baseClient        BaseClient
 	tokenSourceSource oauth.TokenSourceSource
 }
 
-func New(config *client.Config, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
-	if config == nil {
-		return nil, errors.New("config is missing")
+func New(baseClient BaseClient, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
+	if baseClient == nil {
+		return nil, errors.New("base client is missing")
 	}
 	if tokenSourceSource == nil {
 		return nil, errors.New("token source source is missing")
 	}
 
-	clnt, err := client.New(config)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Client{
-		client:            clnt,
+		baseClient:        baseClient,
 		tokenSourceSource: tokenSourceSource,
 	}, nil
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	return c.client.ConstructURL(paths...)
+	return c.baseClient.ConstructURL(paths...)
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
-	return c.client.AppendURLQuery(urlString, query)
+	return c.baseClient.AppendURLQuery(urlString, query)
 }
 
 func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClientSource oauth.HTTPClientSource) error {
@@ -51,5 +52,5 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 		return err
 	}
 
-	return c.client.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+	return c.baseClient.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 }

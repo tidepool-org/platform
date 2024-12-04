@@ -1,10 +1,13 @@
 package null
 
-import "github.com/tidepool-org/platform/log"
+import (
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/logger"
+)
 
 // CONCURRENCY: SAFE
 
 func NewLogger() log.Logger {
-	logger, _ := log.NewLogger(NewSerializer(), log.DefaultLevelRanks(), log.DefaultLevel()) // Safely ignore error; cannot fail
-	return logger
+	lgr, _ := logger.New(NewSerializer(), log.DefaultLevelRanks(), log.DefaultLevel()) // Safely ignore error; cannot fail
+	return lgr
 }

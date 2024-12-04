@@ -162,7 +162,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -202,7 +202,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -245,7 +245,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -289,7 +289,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -321,7 +321,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -494,10 +494,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
-	} else if err := structureValidator.New().Validate(selectors); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
 		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 

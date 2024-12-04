@@ -195,6 +195,19 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 						Expect(err).ToNot(HaveOccurred())
 					})
 
+					It("returns prescriptions sorted by modified time in descending order", func() {
+						lastModifiedTime := time.Now().AddDate(10000, 0, 0)
+
+						filter, err := prescription.NewClinicFilter(clinicID)
+						Expect(err).ToNot(HaveOccurred())
+						result, err := repository.ListPrescriptions(ctx, filter, nil)
+						Expect(err).ToNot(HaveOccurred())
+						for _, prescr := range result {
+							Expect(prescr.ModifiedTime).To(BeTemporally("<=", lastModifiedTime))
+							lastModifiedTime = prescr.ModifiedTime
+						}
+					})
+
 					It("returns the correct prescriptions by clinic id", func() {
 						_, err := collection.UpdateMany(nil, bson.M{}, bson.M{"$set": bson.M{"clinicId": faker.Number().Hexadecimal(24)}})
 						Expect(err).ToNot(HaveOccurred())
@@ -582,6 +595,13 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 						Expect(result).ToNot(BeNil())
 					})
 
+					It("resets modified time", func() {
+						result, err := repository.AddRevision(ctx, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.ModifiedTime).To(BeTemporally(">", prescr.ModifiedTime, time.Microsecond))
+					})
+
 					It("adds a revision to the list of revisions", func() {
 						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -831,8 +851,9 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 
 func ExpectPrescriptionIdsToMatch(actual prescription.Prescriptions, expected []primitive.ObjectID) {
 	Expect(actual).To(HaveLen(len(expected)))
-
+	var actualIds []primitive.ObjectID
 	for i := 0; i < len(expected); i++ {
-		Expect(actual[i].ID).To(Equal(expected[i]))
+		actualIds = append(actualIds, actual[i].ID)
 	}
+	Expect(actualIds).To(ConsistOf(expected))
 }

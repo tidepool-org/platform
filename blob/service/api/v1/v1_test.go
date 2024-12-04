@@ -936,176 +936,231 @@ var _ = Describe("V1", func() {
 					})
 
 					Context("responds with JSON", func() {
-						BeforeEach(func() {
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-						})
 
-						AfterEach(func() {
-							Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
-						})
-
-						When("the path does not contain a user id", func() {
+						Context("with clients", func() {
+							var details request.AuthDetails
+							var authClient *authTest.Client
+							var client *blobTest.Client
+							var originalUnauthHTTPReq *http.Request
+							var originalUnauthContext context.Context
 							BeforeEach(func() {
-								req.URL.Path = "/v1/users//device_logs"
-							})
+								authClient = authTest.NewClient()
+								client = blobTest.NewClient()
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+								provider.BlobClientOutputs = []blob.Client{client}
+								provider.AuthClientOutputs = nil
+								// Because this using the newer authentication
+								// paradigm, see note in package
+								// api.RequireAuth for reason why
+								// provider.AuthClientOutputs is not set. the
+								// presence of AuthDetails in the context notes
+								// the user / server has already authenticated.
+								// The AuthClientOutputs would be non empty if
+								// an ADDITIONAL call to use the auth client -
+								// for example to get permissions from user A
+								// to user B were required
 
-							It("responds with bad request and expected error in body", func() {
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("userId"), res.WriteInputs[0])
-							})
-						})
-
-						When("the path contains an invalid user id", func() {
-							BeforeEach(func() {
-								req.URL.Path = "/v1/users/invalid/device_logs"
-							})
-
-							It("responds with bad request and expected error in body", func() {
-								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-								Expect(res.WriteInputs).To(HaveLen(1))
-								errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("userId"), res.WriteInputs[0])
-							})
-						})
-
-						Context("with content", func() {
-							var content *blob.DeviceLogsContent
-
-							BeforeEach(func() {
-								content = blobTest.RandomDeviceLogsContent()
-							})
-
-							JustBeforeEach(func() {
-								req.Body = io.NopCloser(content.Body)
-								if content.DigestMD5 != nil {
-									req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
-								}
-								if content.MediaType != nil {
-									req.Header.Set("Content-Type", *content.MediaType)
-								}
-								if content.EndAt != nil {
-									req.Header.Set("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339Nano))
-								}
-								if content.StartAt != nil {
-									req.Header.Set("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339Nano))
+								originalUnauthHTTPReq = req.Request
+								originalUnauthContext = req.Context()
+								details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(originalUnauthContext, details))
+								authClient.GetUserPermissionsStub = func(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+									authDetails := request.GetAuthDetails(ctx)
+									if authDetails == nil {
+										return nil, request.ErrorUnauthenticated()
+									}
+									if authDetails.IsService() || requestUserID == targetUserID {
+										return permission.Permissions{
+											permission.Owner: permission.Permission{},
+										}, nil
+									}
+									return nil, request.ErrorUnauthorized()
 								}
 							})
 
-							When("the digest header is invalid", func() {
+							AfterEach(func() {
+								Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+							})
+
+							When("the path does not contain a user id", func() {
 								BeforeEach(func() {
-									content.DigestMD5 = pointer.FromString("invalid")
+									req.URL.Path = "/v1/users//device_logs"
 								})
 
 								It("responds with bad request and expected error in body", func() {
+									provider.BlobClientOutputs = nil
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+									errorsTest.ExpectErrorJSON(request.ErrorParameterMissing("userId"), res.WriteInputs[0])
 								})
 							})
 
-							When("the digest header is invalid with multiple values", func() {
+							When("the path contains an invalid user id", func() {
+								BeforeEach(func() {
+									req.URL.Path = "/v1/users/invalid/device_logs"
+								})
+
+								It("responds with bad request and expected error in body", func() {
+									provider.BlobClientOutputs = nil
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorParameterInvalid("userId"), res.WriteInputs[0])
+								})
+							})
+
+							Context("with content", func() {
+								var content *blob.DeviceLogsContent
+
+								BeforeEach(func() {
+									content = blobTest.RandomDeviceLogsContent()
+								})
+
 								JustBeforeEach(func() {
-									req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
+									req.Body = io.NopCloser(content.Body)
+									if content.DigestMD5 != nil {
+										req.Header.Set("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
+									}
+									if content.MediaType != nil {
+										req.Header.Set("Content-Type", *content.MediaType)
+									}
+									if content.EndAt != nil {
+										req.Header.Set("X-Logs-End-At-Time", content.EndAt.Format(time.RFC3339Nano))
+									}
+									if content.StartAt != nil {
+										req.Header.Set("X-Logs-Start-At-Time", content.StartAt.Format(time.RFC3339Nano))
+									}
 								})
 
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
-								})
-							})
-							When("the digest header is missing", func() {
-								BeforeEach(func() {
-									content.DigestMD5 = nil
-								})
+								When("the digest header is invalid", func() {
+									BeforeEach(func() {
+										content.DigestMD5 = pointer.FromString("invalid")
+									})
 
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Digest"), res.WriteInputs[0])
-								})
-							})
-
-							When("the content type header is missing", func() {
-								BeforeEach(func() {
-									content.MediaType = nil
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+									})
 								})
 
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Content-Type"), res.WriteInputs[0])
+								When("the digest header is invalid with multiple values", func() {
+									JustBeforeEach(func() {
+										req.Header.Add("Digest", fmt.Sprintf("md5=%s", *content.DigestMD5))
+									})
+
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Digest"), res.WriteInputs[0])
+									})
 								})
-							})
+								When("the digest header is missing", func() {
+									BeforeEach(func() {
+										content.DigestMD5 = nil
+									})
 
-							When("the content type header is invalid", func() {
-								BeforeEach(func() {
-									content.MediaType = pointer.FromString("invalid type")
-								})
-
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
-								})
-							})
-
-							When("the content type header is invalid with multiple values", func() {
-								JustBeforeEach(func() {
-									req.Header.Add("Content-Type", *content.MediaType)
-								})
-
-								It("responds with bad request and expected error in body", func() {
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
-									Expect(res.WriteInputs).To(HaveLen(1))
-									errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
-								})
-							})
-
-							Context("with clients", func() {
-								var authClient *authTest.Client
-								var client *blobTest.Client
-
-								BeforeEach(func() {
-									authClient = authTest.NewClient()
-									client = blobTest.NewClient()
-									provider.BlobClientOutputs = []blob.Client{client}
-									provider.AuthClientOutputs = []auth.Client{authClient}
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Digest"), res.WriteInputs[0])
+									})
 								})
 
-								BeforeEach(func() {
-									authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
-										AuthorizedUserID: userID,
-										Error:            nil,
-									}}
+								When("the content type header is missing", func() {
+									BeforeEach(func() {
+										content.MediaType = nil
+									})
+
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderMissing("Content-Type"), res.WriteInputs[0])
+									})
+								})
+
+								When("the content type header is invalid", func() {
+									BeforeEach(func() {
+										content.MediaType = pointer.FromString("invalid type")
+									})
+
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
+									})
+								})
+
+								When("the content type header is invalid with multiple values", func() {
+									JustBeforeEach(func() {
+										req.Header.Add("Content-Type", *content.MediaType)
+									})
+
+									It("responds with bad request and expected error in body", func() {
+										provider.BlobClientOutputs = nil
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorHeaderInvalid("Content-Type"), res.WriteInputs[0])
+									})
 								})
 
 								AfterEach(func() {
-									Expect(authClient.EnsureAuthorizedUserInputs[0].TargetUserID).To(Equal(userID))
-									Expect(authClient.EnsureAuthorizedUserInputs[0].AuthorizedPermission).To(Equal(permission.Write))
 									authClient.AssertOutputsEmpty()
 									client.AssertOutputsEmpty()
 								})
 
-								When("the client returns an unauthorized error", func() {
-									It("responds with an unauthorized error", func() {
+								When("unauthenticated", func() {
+									It("responds with an unauthenticated error", func() {
 										provider.BlobClientOutputs = nil
-										authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{
-											AuthorizedUserID: "",
-											Error:            request.ErrorUnauthorized(),
-										}}
+										provider.AuthClientOutputs = nil
+										req.Request = originalUnauthHTTPReq
+
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusUnauthorized}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										errorsTest.ExpectErrorJSON(request.ErrorUnauthenticated(), res.WriteInputs[0])
+									})
+								})
+								When("the client uploads for another user", func() {
+									var otherUserID string
+									BeforeEach(func() {
+										provider.AuthClientOutputs = []auth.Client{authClient}
+										otherUserID = userTest.RandomID()
+									})
+
+									It("returns an unauthorized error for a user uploading for another user", func() {
+										req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", otherUserID)
+										provider.BlobClientOutputs = nil
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 										Expect(res.WriteInputs).To(HaveLen(1))
 										errorsTest.ExpectErrorJSON(request.ErrorUnauthorized(), res.WriteInputs[0])
+									})
+
+									It("services responds successfully", func() {
+										provider.AuthClientOutputs = nil // AuthClient not invoked if already determined to be a service
+										details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+										req.Request = req.WithContext(request.NewContextWithAuthDetails(originalUnauthContext, details))
+										req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", otherUserID)
+
+										responseResult := blobTest.RandomDeviceLogsBlob()
+										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: responseResult, Error: nil}}
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusCreated}))
+										Expect(res.WriteInputs).To(HaveLen(1))
+										Expect(json.Marshal(responseResult)).To(MatchJSON(res.WriteInputs[0]))
 									})
 								})
 
@@ -1125,6 +1180,7 @@ var _ = Describe("V1", func() {
 									It("responds with a bad request error when the client returns a digests not equal error", func() {
 										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
+										provider.BlobClientOutputs = []blob.Client{client}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 										Expect(res.WriteInputs).To(HaveLen(1))
@@ -1133,6 +1189,7 @@ var _ = Describe("V1", func() {
 
 									It("responds with an internal server error when the client returns an unknown error", func() {
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: errorsTest.RandomError()}}
+										provider.BlobClientOutputs = []blob.Client{client}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusInternalServerError}))
 										Expect(res.WriteInputs).To(HaveLen(1))

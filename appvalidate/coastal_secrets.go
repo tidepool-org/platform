@@ -16,6 +16,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -40,12 +41,12 @@ type CoastalSecrets struct {
 	pk     ed25519.PrivateKey
 }
 
-func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
+func NewCoastalSecretsConfig(logger log.Logger) (*CoastalSecretsConfig, error) {
 	cfg := &CoastalSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
 	}
-	if err := structValidator.New().Validate(cfg); err != nil {
+	if err := structValidator.New(logger).Validate(cfg); err != nil {
 		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 	fullPath, err := url.JoinPath(cfg.BaseURL, "devices/api/v1/certificates")
@@ -61,8 +62,8 @@ func NewCoastalSecretsConfig() (*CoastalSecretsConfig, error) {
 	return cfg, nil
 }
 
-func NewCoastalSecrets(cfg CoastalSecretsConfig) (*CoastalSecrets, error) {
-	if err := structValidator.New().Validate(&cfg); err != nil {
+func NewCoastalSecrets(logger log.Logger, cfg CoastalSecretsConfig) (*CoastalSecrets, error) {
+	if err := structValidator.New(logger).Validate(&cfg); err != nil {
 		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 	keyBlock, _ := pem.Decode(cfg.KeyData)
@@ -141,7 +142,7 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 		return nil, fmt.Errorf("unable to unmarshal Coastal payload: %w", err)
 	}
 
-	if err := structValidator.New().Validate(payload); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(payload); err != nil {
 		return nil, fmt.Errorf("Coastal: %w: %w", ErrInvalidPartnerPayload, err)
 	}
 

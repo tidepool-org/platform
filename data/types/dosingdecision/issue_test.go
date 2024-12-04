@@ -8,6 +8,7 @@ import (
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -52,13 +53,13 @@ var _ = Describe("Issue", func() {
 
 		Context("ParseIssue", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesDosingDecision.ParseIssue(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseIssue(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesDosingDecisionTest.RandomIssue()
 				object := dataTypesDosingDecisionTest.NewObjectFromIssue(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesDosingDecision.ParseIssue(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -80,7 +81,7 @@ var _ = Describe("Issue", func() {
 					object := dataTypesDosingDecisionTest.NewObjectFromIssue(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesDosingDecision.NewIssue()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -170,13 +171,13 @@ var _ = Describe("Issue", func() {
 
 		Context("ParseIssueArray", func() {
 			It("returns nil when the array is missing", func() {
-				Expect(dataTypesDosingDecision.ParseIssueArray(structureParser.NewArray(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseIssueArray(structureParser.NewArray(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the array is valid", func() {
 				datum := dataTypesDosingDecisionTest.RandomIssueArray()
 				array := dataTypesDosingDecisionTest.NewArrayFromIssueArray(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				Expect(dataTypesDosingDecision.ParseIssueArray(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -197,7 +198,7 @@ var _ = Describe("Issue", func() {
 					array := dataTypesDosingDecisionTest.NewArrayFromIssueArray(expectedDatum, test.ObjectFormatJSON)
 					mutator(array, expectedDatum)
 					datum := dataTypesDosingDecision.NewIssueArray()
-					errorsTest.ExpectEqual(structureParser.NewArray(&array).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewArray(logTest.NewLogger(), &array).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",

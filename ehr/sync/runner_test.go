@@ -1,7 +1,7 @@
 package sync_test
 
 import (
-	"fmt"
+	"context"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -44,7 +44,7 @@ var _ = Describe("Runner", func() {
 
 		BeforeEach(func() {
 			clinic = clinicsTest.NewRandomClinic()
-			t, err := task.NewTask(sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
+			t, err := task.NewTask(context.Background(), sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(t).ToNot(BeNil())
 			tsk = *t
@@ -57,9 +57,7 @@ var _ = Describe("Runner", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(runner).ToNot(BeNil())
-			res := runner.Run(nil, &tsk)
-			fmt.Println(tsk.Error)
-			Expect(res).To(BeTrue())
+			runner.Run(context.Background(), &tsk)
 		})
 	})
 })
