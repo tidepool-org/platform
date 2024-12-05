@@ -3,6 +3,7 @@ package clinics
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/tidepool-org/platform/errors"
 
@@ -30,7 +31,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
-	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams) ([]clinic.Patient, error)
+	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error)
 }
 
 type config struct {
@@ -200,8 +201,19 @@ func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID stri
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams) ([]clinic.Patient, error) {
+func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error) {
 	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
+		if len(injectedParams) != 0 {
+			q := req.URL.Query()
+			for p, v := range injectedParams {
+				for _, item := range v {
+					q.Add(p, item)
+				}
+			}
+
+			req.URL.RawQuery = q.Encode()
+		}
+
 		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, userToken)
 		return nil
 	})
