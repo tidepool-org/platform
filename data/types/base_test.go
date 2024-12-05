@@ -912,7 +912,7 @@ var _ = Describe("Base", func() {
 	})
 
 	Context("with new, initialized datum", func() {
-		const currentVersion = "1.1.0"
+		const currentVersion = types.IdentityFieldsVersion
 		var datumBase *types.Base
 		var datum data.Datum
 

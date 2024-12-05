@@ -17,21 +17,20 @@ import (
 )
 
 const (
-	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
-	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	LegacyTimeFormat        = "2006-01-02T15:04:05.000Z"
-	NoteLengthMaximum       = 1000
-	NotesLengthMaximum      = 100
-	TagLengthMaximum        = 100
-	TagsLengthMaximum       = 100
-	TimeFormat              = time.RFC3339Nano
-	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionInternalMinimum  = 0
-
-	LegacyIdentityFieldsVersion = "0.0.0"
-	IdentityFieldsVersion       = "1.1.0"
+	ClockDriftOffsetMaximum     = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
+	ClockDriftOffsetMinimum     = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
+	DeviceTimeFormat            = "2006-01-02T15:04:05"
+	LegacyTimeFormat            = "2006-01-02T15:04:05.000Z"
+	NoteLengthMaximum           = 1000
+	NotesLengthMaximum          = 100
+	TagLengthMaximum            = 100
+	TagsLengthMaximum           = 100
+	TimeFormat                  = time.RFC3339Nano
+	TimeZoneOffsetMaximum       = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMinimum       = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
+	VersionInternalMinimum      = 0
+	LegacyIdentityFieldsVersion = 0
+	IdentityFieldsVersion       = 1
 )
 
 type Base struct {
@@ -271,7 +270,7 @@ func currentIdentityFields(b *Base) ([]string, error) {
 	return vals, nil
 }
 
-func (b *Base) IdentityFields(version string) ([]string, error) {
+func (b *Base) IdentityFields(version int) ([]string, error) {
 	if version == LegacyIdentityFieldsVersion {
 		return legacyIdentityFields(b)
 	}

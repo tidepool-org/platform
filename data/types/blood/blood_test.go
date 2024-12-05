@@ -89,7 +89,7 @@ var _ = Describe("Blood", func() {
 		})
 
 		Context("IdentityFields", func() {
-			const currentVersion = "1.1.0"
+			const currentVersion = types.IdentityFieldsVersion
 			var datumBlood *blood.Blood
 			var datum data.Datum
 

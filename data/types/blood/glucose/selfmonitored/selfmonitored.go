@@ -70,7 +70,7 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 	s.Glucose.Normalize(normalizer)
 }
 
-func (s *SelfMonitored) IdentityFields(version string) ([]string, error) {
+func (s *SelfMonitored) IdentityFields(version int) ([]string, error) {
 	if version == types.LegacyIdentityFieldsVersion {
 		identityFields, err := s.Blood.IdentityFields(version)
 		if err != nil {

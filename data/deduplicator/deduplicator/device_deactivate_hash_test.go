@@ -25,16 +25,12 @@ var _ = Describe("DeviceDeactivateHash", func() {
 		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashName).To(Equal("org.tidepool.deduplicator.device.deactivate.hash"))
 	})
 
-	It("DeviceDeactivateHashVersionCurrent is current-hash", func() {
-		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent).To(Equal("current-hash"))
+	It("DeviceDeactivateHashVersionCurrent is 1.1.0", func() {
+		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent).To(Equal("1.1.0"))
 	})
 
-	It("DeviceDeactivateHashVersionLegacy is legacy-hash", func() {
-		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionLegacy).To(Equal("legacy-hash"))
-	})
-
-	It("DeviceDeactivateHashVersionUnknown is unkown-hash", func() {
-		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionUnknown).To(Equal("unknown-hash"))
+	It("DeviceDeactivateHashVersionLegacy is 0.0.0", func() {
+		Expect(dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionLegacy).To(Equal("0.0.0"))
 	})
 
 	Context("NewDeviceDeactivateHash", func() {

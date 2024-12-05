@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
@@ -13,9 +12,11 @@ import (
 )
 
 const (
-	DeviceDeactivateHashVersionUnknown = "unknown-hash"
-	DeviceDeactivateHashVersionLegacy  = "legacy-hash"
-	DeviceDeactivateHashVersionCurrent = "current-hash"
+
+	// LegacyIdentityFieldsVersion = "0.0.0"
+	// IdentityFieldsVersion       = "1.1.0"
+	DeviceDeactivateHashVersionLegacy  = "0.0.0"
+	DeviceDeactivateHashVersionCurrent = "1.1.0"
 )
 
 const DeviceDeactivateHashName = "org.tidepool.deduplicator.device.deactivate.hash"
@@ -66,14 +67,14 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
+func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) (string, error) {
 	if dataSet.Deduplicator != nil {
 		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
 			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
-				if types.LegacyIdentityFieldsVersion == *dataSet.Deduplicator.Version {
-					return DeviceDeactivateHashVersionLegacy
-				} else if types.IdentityFieldsVersion == *dataSet.Deduplicator.Version {
-					return DeviceDeactivateHashVersionCurrent
+				if *dataSet.Deduplicator.Version == DeviceDeactivateHashVersionLegacy {
+					return DeviceDeactivateHashVersionLegacy, nil
+				} else if *dataSet.Deduplicator.Version == DeviceDeactivateHashVersionCurrent {
+					return DeviceDeactivateHashVersionCurrent, nil
 				}
 			}
 		}
@@ -83,7 +84,7 @@ func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
 			if allowedDeviceModels, found := DeviceDeactivateLegacyHashManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return DeviceDeactivateHashVersionLegacy
+						return DeviceDeactivateHashVersionLegacy, nil
 					}
 				}
 			}
@@ -92,13 +93,13 @@ func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) string {
 			if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
 				for _, allowedDeviceModel := range allowedDeviceModels {
 					if allowedDeviceModel == *dataSet.DeviceModel {
-						return DeviceDeactivateHashVersionCurrent
+						return DeviceDeactivateHashVersionCurrent, nil
 					}
 				}
 			}
 		}
 	}
-	return DeviceDeactivateHashVersionUnknown
+	return "", errors.New("no valid device deactivate hash version")
 }
 
 func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -114,7 +115,9 @@ func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload
 	if dataSet.HasDeduplicatorName() {
 		return d.Get(ctx, dataSet)
 	}
-	return getDeduplicatorVersion(dataSet) != DeviceDeactivateHashVersionUnknown, nil
+
+	_, err := getDeduplicatorVersion(dataSet)
+	return err == nil, nil
 }
 
 func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -123,7 +126,12 @@ func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload
 		return false, errors.New("data set is missing")
 	}
 
-	if getDeduplicatorVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
+	version, err := getDeduplicatorVersion(dataSet)
+	if err != nil {
+		return false, err
+	}
+
+	if version == DeviceDeactivateHashVersionLegacy {
 		return true, nil
 	}
 
@@ -149,7 +157,12 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 
 	options := NewDefaultDeviceDeactivateHashOptions()
 
-	if getDeduplicatorVersion(dataSet) == DeviceDeactivateHashVersionLegacy {
+	version, err := getDeduplicatorVersion(dataSet)
+	if err != nil {
+		return err
+	}
+
+	if version == DeviceDeactivateHashVersionLegacy {
 		filter := &data.DataSetFilter{LegacyOnly: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
 		pagination := &page.Pagination{Page: 1, Size: 1}
 

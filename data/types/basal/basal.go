@@ -49,7 +49,7 @@ func (b *Basal) Validate(validator structure.Validator) {
 	validator.String("deliveryType", &b.DeliveryType).Exists().NotEmpty()
 }
 
-func (b *Basal) IdentityFields(version string) ([]string, error) {
+func (b *Basal) IdentityFields(version int) ([]string, error) {
 	identityFields := []string{}
 	var err error
 	if version == types.LegacyIdentityFieldsVersion {

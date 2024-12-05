@@ -118,7 +118,7 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	}
 }
 
-func (c *Calculator) IdentityFields(version string) ([]string, error) {
+func (c *Calculator) IdentityFields(version int) ([]string, error) {
 	return c.Base.IdentityFields(version)
 }
 

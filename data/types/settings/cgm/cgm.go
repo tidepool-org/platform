@@ -157,7 +157,7 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (c *CGM) IdentityFields(version string) ([]string, error) {
+func (c *CGM) IdentityFields(version int) ([]string, error) {
 	identityFields := []string{}
 	var err error
 	if version == types.LegacyIdentityFieldsVersion {

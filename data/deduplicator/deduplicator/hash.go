@@ -9,41 +9,42 @@ import (
 	"strings"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
 type HashOptions struct {
-	Version       string
+	Version       int
 	LegacyGroupID *string
 }
 
 func NewLegacyHashOptions(legacyGroupID string) HashOptions {
 	return HashOptions{
-		Version:       DeviceDeactivateHashVersionLegacy,
+		Version:       types.LegacyIdentityFieldsVersion,
 		LegacyGroupID: &legacyGroupID,
 	}
 }
 
 func NewDefaultDeviceDeactivateHashOptions() HashOptions {
 	return HashOptions{
-		Version: DeviceDeactivateHashVersionCurrent,
+		Version: types.IdentityFieldsVersion,
 	}
 }
 
 func (d HashOptions) Validate() error {
 
 	switch d.Version {
-	case DeviceDeactivateHashVersionLegacy:
+	case types.LegacyIdentityFieldsVersion:
 		if d.LegacyGroupID == nil || *d.LegacyGroupID == "" {
 			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
 		}
-	case DeviceDeactivateHashVersionCurrent:
+	case types.IdentityFieldsVersion:
 		if d.LegacyGroupID != nil {
 			return errors.New("groupId is not required for the device deactive hash current version")
 		}
 	default:
-		return errors.Newf("missing valid version %s", d.Version)
+		return errors.Newf("missing valid version %d", d.Version)
 	}
 	return nil
 }
@@ -60,7 +61,7 @@ func AssignDataSetDataIdentityHashes(dataSetData data.Data, options HashOptions)
 			return errors.Wrap(err, "unable to gather identity fields for datum")
 		}
 
-		if options.Version == DeviceDeactivateHashVersionLegacy {
+		if options.Version == types.LegacyIdentityFieldsVersion {
 			hash, err = GenerateLegacyIdentityHash(fields)
 			if err != nil {
 				return errors.Wrapf(err, "unable to generate legacy identity hash for datum %T", dataSetDatum)

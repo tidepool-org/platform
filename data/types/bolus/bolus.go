@@ -78,7 +78,7 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Bolus) IdentityFields(version string) ([]string, error) {
+func (b *Bolus) IdentityFields(version int) ([]string, error) {
 
 	identityFields := []string{}
 	var err error

@@ -73,6 +73,6 @@ func (i *Insulin) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (i *Insulin) IdentityFields(version string) ([]string, error) {
+func (i *Insulin) IdentityFields(version int) ([]string, error) {
 	return i.Base.IdentityFields(version)
 }

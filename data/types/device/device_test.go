@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
@@ -94,7 +95,7 @@ var _ = Describe("Device", func() {
 		})
 
 		Context("IdentityFields", func() {
-			const currentVersion = "1.1.0"
+			const currentVersion = types.IdentityFieldsVersion
 			var datumDevice *device.Device
 			var datum data.Datum
 

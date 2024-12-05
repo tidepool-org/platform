@@ -44,7 +44,7 @@ func (d *Device) Validate(validator structure.Validator) {
 	validator.String("subType", &d.SubType).Exists().NotEmpty()
 }
 
-func (d *Device) IdentityFields(version string) ([]string, error) {
+func (d *Device) IdentityFields(version int) ([]string, error) {
 	identityFields := []string{}
 	var err error
 	if version == types.LegacyIdentityFieldsVersion {

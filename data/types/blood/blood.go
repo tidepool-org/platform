@@ -30,7 +30,7 @@ func (b *Blood) Parse(parser structure.ObjectParser) {
 	b.Value = parser.Float64("value")
 }
 
-func (b *Blood) IdentityFields(version string) ([]string, error) {
+func (b *Blood) IdentityFields(version int) ([]string, error) {
 	if version == types.LegacyIdentityFieldsVersion {
 		return b.Base.IdentityFields(version)
 	}
