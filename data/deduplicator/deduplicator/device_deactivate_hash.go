@@ -12,9 +12,6 @@ import (
 )
 
 const (
-
-	// LegacyIdentityFieldsVersion = "0.0.0"
-	// IdentityFieldsVersion       = "1.1.0"
 	DeviceDeactivateHashVersionLegacy  = "0.0.0"
 	DeviceDeactivateHashVersionCurrent = "1.1.0"
 )

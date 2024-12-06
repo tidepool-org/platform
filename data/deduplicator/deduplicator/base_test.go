@@ -25,10 +25,7 @@ var _ = Describe("Base", func() {
 
 	BeforeEach(func() {
 		name = netTest.RandomReverseDomain()
-		version = test.RandomStringFromArray([]string{
-			dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionCurrent,
-			dataDeduplicatorDeduplicator.DeviceDeactivateHashVersionLegacy,
-		})
+		version = netTest.RandomSemanticVersion()
 	})
 
 	Context("NewBase", func() {
