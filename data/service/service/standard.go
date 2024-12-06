@@ -207,6 +207,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
 	}
 
+	s.Logger().Debug("Creating device deactivate legacy hash deduplicator")
+
+	deviceDeactivateLegacyHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateLegacyHash()
+	if err != nil {
+		return errors.Wrap(err, "unable to create device deactivate legacy hash deduplicator")
+	}
+
 	s.Logger().Debug("Creating device truncate data set deduplicator")
 
 	deviceTruncateDataSetDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet()
@@ -231,10 +238,11 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 	s.Logger().Debug("Creating data deduplicator factory")
 
 	deduplicators := []dataDeduplicatorFactory.Deduplicator{
-		deviceDeactivateHashDeduplicator,
+		deviceDeactivateLegacyHashDeduplicator,
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
 		noneDeduplicator,
+		deviceDeactivateHashDeduplicator,
 	}
 
 	factory, err := dataDeduplicatorFactory.New(deduplicators)

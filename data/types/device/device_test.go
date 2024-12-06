@@ -7,6 +7,8 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -93,6 +95,7 @@ var _ = Describe("Device", func() {
 		})
 
 		Context("IdentityFields", func() {
+			const currentVersion = types.IdentityFieldsVersion
 			var datumDevice *device.Device
 			var datum data.Datum
 
@@ -103,29 +106,55 @@ var _ = Describe("Device", func() {
 
 			It("returns error if user id is missing", func() {
 				datumDevice.UserID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
 				datumDevice.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if sub type is empty", func() {
 				datumDevice.SubType = ""
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datumDevice.UserID, *datumDevice.DeviceID, (*datumDevice.Time).Format(ExpectedTimeFormat), datumDevice.Type, datumDevice.SubType}))
+			})
+		})
+
+		Context("Legacy IdentityFields", func() {
+			var datum *device.Device
+
+			BeforeEach(func() {
+				datum = dataTypesDeviceTest.RandomDevice()
+			})
+
+			It("returns error if sub type is empty", func() {
+				datum.SubType = ""
+				identityFields, err := datum.IdentityFields(dataTypes.LegacyIdentityFieldsVersion)
+				Expect(err).To(MatchError("sub type is empty"))
+				Expect(identityFields).To(BeEmpty())
+			})
+
+			It("returns the expected legacy identity fields", func() {
+				datum.DeviceID = pointer.FromString("some-device")
+				t, err := time.Parse(dataTypes.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				datum.SubType = "some-sub-type"
+				legacyIdentityFields, err := datum.IdentityFields(dataTypes.LegacyIdentityFieldsVersion)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"deviceEvent", "some-sub-type", "2023-05-13T15:51:58.000Z", "some-device"}))
 			})
 		})
 	})

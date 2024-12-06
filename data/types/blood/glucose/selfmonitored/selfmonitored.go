@@ -1,7 +1,11 @@
 package selfmonitored
 
 import (
+	"strconv"
+
 	"github.com/tidepool-org/platform/data"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -64,4 +68,21 @@ func (s *SelfMonitored) Normalize(normalizer data.Normalizer) {
 	}
 
 	s.Glucose.Normalize(normalizer)
+}
+
+func (s *SelfMonitored) IdentityFields(version int) ([]string, error) {
+	if version == types.LegacyIdentityFieldsVersion {
+		identityFields, err := s.Blood.IdentityFields(version)
+		if err != nil {
+			return nil, err
+		}
+		value, units, err := s.GetRawValueAndUnits()
+		if err != nil {
+			return nil, err
+		}
+		fullPrecisionValue := dataBloodGlucose.NormalizeValueForUnitsWithFullPrecision(value, units)
+		identityFields = append(identityFields, strconv.FormatFloat(*fullPrecisionValue, 'f', -1, 64))
+		return identityFields, nil
+	}
+	return s.Blood.IdentityFields(version)
 }

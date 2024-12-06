@@ -28,8 +28,8 @@ func (g *Glucose) Normalize(normalizer data.Normalizer) {
 	g.Blood.Normalize(normalizer)
 
 	if normalizer.Origin() == structure.OriginExternal {
-		units := g.Units
-		g.Units = dataBloodGlucose.NormalizeUnits(units)
-		g.Value = dataBloodGlucose.NormalizeValueForUnits(g.Value, units)
+		g.SetRawValueAndUnits(g.Value, g.Units)
+		g.Value = dataBloodGlucose.NormalizeValueForUnits(g.Value, g.Units)
+		g.Units = dataBloodGlucose.NormalizeUnits(g.Units)
 	}
 }

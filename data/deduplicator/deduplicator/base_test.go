@@ -50,13 +50,6 @@ var _ = Describe("Base", func() {
 			Expect(deduplicator).To(BeNil())
 		})
 
-		It("returns an error when version is invalid", func() {
-			version = "invalid"
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
-			Expect(err).To(MatchError("version is invalid"))
-			Expect(deduplicator).To(BeNil())
-		})
-
 		It("returns successfully", func() {
 			Expect(dataDeduplicatorDeduplicator.NewBase(name, version)).ToNot(BeNil())
 		})
