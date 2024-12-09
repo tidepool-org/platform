@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
+
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/structure"
-	"strings"
-	"time"
 )
 
 const (
