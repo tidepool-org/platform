@@ -12,6 +12,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -45,12 +46,12 @@ type PalmTreeSecrets struct {
 	client *http.Client
 }
 
-func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
+func NewPalmTreeSecretsConfig(logger log.Logger) (*PalmTreeSecretsConfig, error) {
 	cfg := &PalmTreeSecretsConfig{}
 	if err := envconfig.Process("", cfg); err != nil {
 		return nil, err
 	}
-	if err := structValidator.New().Validate(cfg); err != nil {
+	if err := structValidator.New(logger).Validate(cfg); err != nil {
 		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 	fullPath, err := url.JoinPath(cfg.BaseURL, fmt.Sprintf("v1/certificate-authorities/%s/enrollments", url.PathEscape(cfg.CalID)))
@@ -66,8 +67,8 @@ func NewPalmTreeSecretsConfig() (*PalmTreeSecretsConfig, error) {
 	return cfg, nil
 }
 
-func NewPalmTreeSecrets(cfg PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
-	if err := structValidator.New().Validate(&cfg); err != nil {
+func NewPalmTreeSecrets(logger log.Logger, cfg PalmTreeSecretsConfig) (*PalmTreeSecrets, error) {
+	if err := structValidator.New(logger).Validate(&cfg); err != nil {
 		return nil, errors.Join(ErrInvalidPartnerCredentials, err)
 	}
 	cert, err := tls.X509KeyPair(cfg.CertData, cfg.KeyData)
@@ -126,7 +127,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 		return nil, fmt.Errorf("unable to unmarshal PalmTree payload: %w", err)
 	}
 
-	if err := structValidator.New().Validate(payload); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(payload); err != nil {
 		return nil, fmt.Errorf("PalmTree: %w: %w", ErrInvalidPartnerPayload, err)
 	}
 

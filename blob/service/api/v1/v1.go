@@ -44,7 +44,7 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Post("/v1/users/:userId/blobs", r.Create),
 		rest.Delete("/v1/users/:userId/blobs", r.DeleteAll),
 
-		rest.Post("/v1/users/:userId/device_logs", r.CreateDeviceLogs),
+		rest.Post("/v1/users/:userId/device_logs", api.RequireWritePermissions(r.permissionsClient, "userId", r.CreateDeviceLogs)),
 		rest.Get("/v1/users/:userId/device_logs", api.RequireMembership(r.permissionsClient, "userId", r.ListDeviceLogs)),
 
 		rest.Get("/v1/blobs/:id", r.Get),
@@ -183,11 +183,6 @@ func (r *Router) CreateDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	content.MediaType = mediaType
 	content.StartAt = startAtTime
 	content.EndAt = endAtTime
-
-	_, err = r.AuthClient().EnsureAuthorizedUser(req.Context(), userID, permission.Write)
-	if responder.RespondIfError(err) {
-		return
-	}
 
 	result, err := r.Provider.BlobClient().CreateDeviceLogs(req.Context(), userID, content)
 	if err != nil {

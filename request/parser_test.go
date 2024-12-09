@@ -16,6 +16,18 @@ import (
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
+func generateNewUniqueKey[A any](f func() string, existingKeys map[string]A) string {
+	maxLoops := 1000
+	for loops := 0; loops < maxLoops; loops++ {
+		gen := f()
+		if _, found := existingKeys[gen]; !found {
+			return gen
+		}
+	}
+	Fail(fmt.Sprintf("unable to generate a unique key after %d tries", maxLoops), 1)
+	return ""
+}
+
 var _ = Describe("Parser", func() {
 	Context("with header", func() {
 		var header http.Header
@@ -23,7 +35,7 @@ var _ = Describe("Parser", func() {
 
 		BeforeEach(func() {
 			header = testHttp.RandomHeader()
-			key = testHttp.NewHeaderKey()
+			key = generateNewUniqueKey(testHttp.NewHeaderKey, header)
 		})
 
 		Context("ParseSingletonHeader", func() {

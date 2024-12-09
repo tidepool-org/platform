@@ -8,6 +8,7 @@ import (
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -58,13 +59,13 @@ var _ = Describe("Protein", func() {
 
 		Context("ParseProtein", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesFood.ParseProtein(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesFood.ParseProtein(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesFoodTest.RandomProtein()
 				object := dataTypesFoodTest.NewObjectFromProtein(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesFood.ParseProtein(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -86,7 +87,7 @@ var _ = Describe("Protein", func() {
 					object := dataTypesFoodTest.NewObjectFromProtein(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesFood.NewProtein()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",

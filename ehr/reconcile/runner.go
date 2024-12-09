@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"time"
 
-	api "github.com/tidepool-org/clinic/client"
-
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/ehr/sync"
@@ -47,32 +45,23 @@ func (r *Runner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(TaskDurationMaximum * 3)
 }
 
-func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+func (r *Runner) GetRunnerTimeout() time.Duration {
+	return TaskDurationMaximum * 2
+}
+
+func (r *Runner) GetRunnerDurationMaximum() time.Duration {
 	return TaskDurationMaximum
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
+func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	tsk.ClearError()
 
 	r.doRun(ctx, tsk)
 	tsk.RepeatAvailableAfter(AvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(AvailableAfterDurationMaximum-AvailableAfterDurationMinimum+1))))
-
-	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
-	serverSessionToken, err := r.authClient.ServerSessionToken()
-	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get server session token"))
-		return
-	}
-
-	ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	// Get the list of all existing EHR sync tasks
 	syncTasks, err := r.getSyncTasks(ctx)
@@ -81,15 +70,14 @@ func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
 		return
 	}
 
-	// Get the list of all EHR enabled clinics
-	clinicsList, err := r.clinicsClient.ListEHREnabledClinics(ctx)
+	planner := NewPlanner(r.clinicsClient, r.logger)
+	plan, err := planner.GetReconciliationPlan(ctx, syncTasks)
 	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to list clinics"))
+		tsk.AppendError(errors.Wrap(err, "unable to create reconciliation plan"))
 		return
 	}
 
-	plan := GetReconciliationPlan(syncTasks, clinicsList)
-	r.reconcileTasks(ctx, tsk, plan)
+	r.reconcileTasks(ctx, tsk, *plan)
 }
 
 func (r *Runner) getSyncTasks(ctx context.Context) (map[string]task.Task, error) {
@@ -127,15 +115,20 @@ func (r *Runner) getSyncTasks(ctx context.Context) (map[string]task.Task, error)
 	return tasksByClinicId, nil
 }
 
-func (r *Runner) reconcileTasks(ctx context.Context, task *task.Task, plan ReconciliationPlan) {
+func (r *Runner) reconcileTasks(ctx context.Context, tsk *task.Task, plan ReconciliationPlan) {
 	for _, t := range plan.ToDelete {
 		if err := r.taskClient.DeleteTask(ctx, t.ID); err != nil {
-			task.AppendError(errors.Wrap(err, "unable to delete task"))
+			tsk.AppendError(errors.Wrap(err, "unable to delete task"))
 		}
 	}
 	for _, t := range plan.ToCreate {
 		if _, err := r.taskClient.CreateTask(ctx, &t); err != nil {
-			task.AppendError(errors.Wrap(err, "unable to create task"))
+			tsk.AppendError(errors.Wrap(err, "unable to create task"))
+		}
+	}
+	for id, update := range plan.ToUpdate {
+		if _, err := r.taskClient.UpdateTask(ctx, id, update); err != nil {
+			tsk.AppendError(errors.Wrap(err, "unable to update task"))
 		}
 	}
 }
@@ -143,30 +136,5 @@ func (r *Runner) reconcileTasks(ctx context.Context, task *task.Task, plan Recon
 type ReconciliationPlan struct {
 	ToCreate []task.TaskCreate
 	ToDelete []task.Task
-}
-
-func GetReconciliationPlan(syncTasks map[string]task.Task, clinics []api.Clinic) ReconciliationPlan {
-	toDelete := make([]task.Task, 0)
-	toCreate := make([]task.TaskCreate, 0)
-
-	// At the end of the loop syncTasks will contain only the tasks that need to be deleted,
-	// and toCreate will contain tasks for new clinics that need to be synced.
-	for _, clinic := range clinics {
-		clinicId := *clinic.Id
-		_, exists := syncTasks[clinicId]
-
-		if exists {
-			delete(syncTasks, clinicId)
-		} else {
-			create := sync.NewTaskCreate(clinicId)
-			toCreate = append(toCreate, *create)
-		}
-	}
-	for _, tsk := range syncTasks {
-		toDelete = append(toDelete, tsk)
-	}
-	return ReconciliationPlan{
-		ToCreate: toCreate,
-		ToDelete: toDelete,
-	}
+	ToUpdate map[string]*task.TaskUpdate
 }

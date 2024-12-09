@@ -33,7 +33,7 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -46,7 +46,7 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	}
 
 	if dataSet.HasDeduplicatorName() {
-		return d.Get(dataSet)
+		return d.Get(ctx, dataSet)
 	}
 
 	if dataSet.DeviceManufacturers == nil || dataSet.DeviceModel == nil {
@@ -66,8 +66,8 @@ func (d *DeviceDeactivateHash) New(dataSet *dataTypesUpload.Upload) (bool, error
 	return false, nil
 }
 
-func (d *DeviceDeactivateHash) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := d.Base.Get(dataSet); err != nil || found {
+func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 

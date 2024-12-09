@@ -4,17 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
-
-	"github.com/tidepool-org/platform/data/summary/fetcher"
-
-	clinic "github.com/tidepool-org/clinic/client"
-
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/types"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"strings"
+	"time"
 )
 
 const (
@@ -34,10 +30,30 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 	}
 }
 
-func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters *clinic.ListPatientsParams) (*PatientsRealtimeDaysResponse, error) {
-	patientFilters.Limit = pointer.FromAny(realtimePatientsLengthLimit + 1)
+func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
+	injectedParams := map[string][]string{}
+	for p, v := range patientFilters {
+		var finalParam []string
 
-	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, patientFilters)
+		// handle tags array specifically, as it doesn't convert direct from json
+		if p == "tags" {
+			tagsAny := v.([]any)
+			finalParam = make([]string, len(tagsAny))
+			for i := range tagsAny {
+				finalParam[i] = fmt.Sprintf("%v", tagsAny[i].(string))
+			}
+
+			finalParam = []string{strings.Join(finalParam, ",")}
+		} else {
+			finalParam = []string{fmt.Sprintf("%v", v)}
+		}
+
+		injectedParams[p] = finalParam
+	}
+
+	injectedParams["limit"] = []string{fmt.Sprintf("%d", realtimePatientsLengthLimit+1)}
+
+	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, injectedParams)
 	if err != nil {
 		return nil, err
 	}
@@ -190,7 +206,7 @@ type PatientRealtimeDaysResponse struct {
 type PatientRealtimeDaysFilter struct {
 	StartTime      *time.Time
 	EndTime        *time.Time
-	PatientFilters *clinic.ListPatientsParams
+	PatientFilters map[string]any
 }
 
 func NewPatientRealtimeDaysFilter() *PatientRealtimeDaysFilter {
@@ -201,8 +217,8 @@ func (d *PatientRealtimeDaysFilter) Parse(parser structure.ObjectParser) {
 	d.StartTime = parser.Time("startDate", time.RFC3339)
 	d.EndTime = parser.Time("endDate", time.RFC3339)
 
-	d.PatientFilters = &clinic.ListPatientsParams{}
-	parser.JSON("patientFilters", d.PatientFilters)
+	d.PatientFilters = map[string]any{}
+	parser.JSON("patientFilters", &d.PatientFilters)
 }
 
 func (d *PatientRealtimeDaysFilter) Validate(validator structure.Validator) {

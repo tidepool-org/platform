@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
@@ -18,22 +19,30 @@ import (
 var _ = Describe("Normalizer", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
-			Expect(structureNormalizer.New()).ToNot(BeNil())
+			Expect(structureNormalizer.New(logTest.NewLogger())).ToNot(BeNil())
 		})
 	})
 
 	Context("NewNormalizer", func() {
 		It("returns successfully", func() {
-			Expect(structureNormalizer.NewNormalizer(structureBase.New())).ToNot(BeNil())
+			Expect(structureNormalizer.NewNormalizer(structureBase.New(logTest.NewLogger()))).ToNot(BeNil())
 		})
 	})
 
 	Context("with new normalizer", func() {
+		var logger *logTest.Logger
 		var normalizer *structureNormalizer.Normalizer
 
 		BeforeEach(func() {
-			normalizer = structureNormalizer.New()
+			logger = logTest.NewLogger()
+			normalizer = structureNormalizer.New(logger)
 			Expect(normalizer).ToNot(BeNil())
+		})
+
+		Context("Logger", func() {
+			It("returns the logger", func() {
+				Expect(normalizer.Logger()).To(BeIdenticalTo(logger))
+			})
 		})
 
 		Context("Origin", func() {

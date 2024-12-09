@@ -9,6 +9,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -66,7 +67,7 @@ func NewValidator(r Repository, g ChallengeGenerator, cfg ValidatorConfig) (*Val
 }
 
 func (v *Validator) CreateAttestChallenge(ctx context.Context, c *ChallengeCreate) (*ChallengeResult, error) {
-	if err := structValidator.New().Validate(c); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(c); err != nil {
 		return nil, err
 	}
 
@@ -81,7 +82,7 @@ func (v *Validator) CreateAttestChallenge(ctx context.Context, c *ChallengeCreat
 		return nil, errors.New("empty challenge generated")
 	}
 
-	validation, err := NewAppValidation(challenge, c)
+	validation, err := NewAppValidation(ctx, challenge, c)
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +93,7 @@ func (v *Validator) CreateAttestChallenge(ctx context.Context, c *ChallengeCreat
 }
 
 func (v *Validator) CreateAssertChallenge(ctx context.Context, c *ChallengeCreate) (*ChallengeResult, error) {
-	if err := structValidator.New().Validate(c); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(c); err != nil {
 		return nil, err
 	}
 
@@ -126,7 +127,7 @@ func (v *Validator) CreateAssertChallenge(ctx context.Context, c *ChallengeCreat
 }
 
 func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify) error {
-	if err := structValidator.New().Validate(av); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(av); err != nil {
 		return err
 	}
 
@@ -169,7 +170,7 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 		Verified:               true,
 		VerifiedTime:           time.Now(),
 	}
-	if err := structValidator.New().Validate(&update); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(&update); err != nil {
 		return err
 	}
 
@@ -177,7 +178,7 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 }
 
 func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) error {
-	if err := structValidator.New().Validate(av); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(av); err != nil {
 		return err
 	}
 

@@ -13,7 +13,7 @@ var _ = Describe("Task", func() {
 	Describe("NewTaskCreate", func() {
 		It("returns a task create", func() {
 			clinic := clinicsTest.NewRandomClinic()
-			create := sync.NewTaskCreate(*clinic.Id)
+			create := sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence)
 			Expect(create).ToNot(BeNil())
 			Expect(create.Name).To(PointTo(Equal(sync.TaskName(*clinic.Id))))
 			Expect(create.Type).To(Equal(sync.Type))
@@ -22,7 +22,7 @@ var _ = Describe("Task", func() {
 
 		It("stores the clinic id in the data", func() {
 			clinic := clinicsTest.NewRandomClinic()
-			create := sync.NewTaskCreate(*clinic.Id)
+			create := sync.NewTaskCreate(*clinic.Id, sync.DefaultCadence)
 			Expect(create).ToNot(BeNil())
 
 			extracted, err := sync.GetClinicId(create.Data)

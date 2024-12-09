@@ -12,6 +12,7 @@ import (
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -442,7 +443,7 @@ var _ = Describe("Upload", func() {
 					datum := dataTypesUploadTest.RandomUpload()
 					mutator(datum)
 					expectedDatum := dataTypesUploadTest.CloneUpload(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -499,7 +500,7 @@ var _ = Describe("Upload", func() {
 						datum := dataTypesUploadTest.RandomUpload()
 						mutator(datum)
 						expectedDatum := dataTypesUploadTest.CloneUpload(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

@@ -2,7 +2,6 @@ package sync
 
 import (
 	"context"
-	"math/rand"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -12,11 +11,8 @@ import (
 )
 
 const (
-	OnSuccessAvailableAfterDurationMaximum = OnSuccessAvailableAfterDurationMinimum + 1*time.Hour
-	OnSuccessAvailableAfterDurationMinimum = 14*24*time.Hour - 30*time.Minute
-	OnErrorAvailableAfterDurationMaximum   = OnErrorAvailableAfterDurationMinimum + 5*time.Minute
-	OnErrorAvailableAfterDurationMinimum   = 1*time.Hour - 5*time.Minute
-	TaskDurationMaximum                    = 5 * time.Minute
+	OnErrorAvailableAfterDuration = 1 * time.Hour
+	TaskDurationMaximum           = 5 * time.Minute
 )
 
 type Runner struct {
@@ -39,29 +35,24 @@ func (r *Runner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(TaskDurationMaximum * 3)
 }
 
-func (r *Runner) GetRunnerMaximumDuration() time.Duration {
+func (r *Runner) GetRunnerTimeout() time.Duration {
+	return TaskDurationMaximum * 2
+}
+
+func (r *Runner) GetRunnerDurationMaximum() time.Duration {
 	return TaskDurationMaximum
 }
 
-func (r *Runner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
+func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	tsk.ClearError()
 
 	r.doRun(ctx, tsk)
 
-	if !tsk.IsFailed() {
-		if tsk.HasError() {
-			tsk.RepeatAvailableAfter(OnErrorAvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(OnErrorAvailableAfterDurationMaximum-OnErrorAvailableAfterDurationMinimum+1))))
-		} else {
-			tsk.RepeatAvailableAfter(OnSuccessAvailableAfterDurationMinimum + time.Duration(rand.Int63n(int64(OnSuccessAvailableAfterDurationMaximum-OnSuccessAvailableAfterDurationMinimum+1))))
-		}
+	if tsk.IsFailed() {
+		return
 	}
 
-	if taskDuration := time.Since(now); taskDuration > TaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
+	ScheduleNextExecution(tsk)
 }
 
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {

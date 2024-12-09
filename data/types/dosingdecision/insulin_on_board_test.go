@@ -8,6 +8,7 @@ import (
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -50,13 +51,13 @@ var _ = Describe("InsulinOnBoard", func() {
 
 		Context("ParseInsulinOnBoard", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesDosingDecision.ParseInsulinOnBoard(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseInsulinOnBoard(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesDosingDecisionTest.RandomInsulinOnBoard()
 				object := dataTypesDosingDecisionTest.NewObjectFromInsulinOnBoard(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesDosingDecision.ParseInsulinOnBoard(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -78,7 +79,7 @@ var _ = Describe("InsulinOnBoard", func() {
 					object := dataTypesDosingDecisionTest.NewObjectFromInsulinOnBoard(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesDosingDecision.NewInsulinOnBoard()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",

@@ -59,7 +59,7 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 		}
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet); getErr != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
 	} else if deduplicator == nil {

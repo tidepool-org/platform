@@ -14,7 +14,7 @@ type Client struct {
 }
 
 func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
-	clnt, err := platform.NewClient(config, authorizeAs)
+	clnt, err := platform.NewLegacyClient(config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}

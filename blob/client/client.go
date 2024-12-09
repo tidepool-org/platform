@@ -42,12 +42,12 @@ func (c *Client) List(ctx context.Context, userID string, filter *blob.Filter, p
 	}
 	if filter == nil {
 		filter = blob.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -71,7 +71,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	}
 	if content == nil {
 		return nil, errors.New("content is missing")
-	} else if err := structureValidator.New().Validate(content); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(content); err != nil {
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
@@ -101,12 +101,12 @@ func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob
 	}
 	if filter == nil {
 		filter = blob.NewDeviceLogsFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -130,7 +130,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	}
 	if content == nil {
 		return nil, errors.New("content is missing")
-	} else if err := structureValidator.New().Validate(content); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(content); err != nil {
 		return nil, errors.Wrap(err, "content is invalid")
 	}
 
@@ -309,7 +309,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 

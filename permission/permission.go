@@ -31,7 +31,13 @@ func FixOwnerPermissions(permissions Permissions) Permissions {
 	return permissions
 }
 
-func HasMembershipRelationship(ctx context.Context, client Client, granteeUserID, grantorUserID string) (has bool, err error) {
+// HasExplicitMembershipRelationship return whether a grantor has given a
+// grantee explicit rights. This is need in some places where we want to test a
+// user's permission. It is called "Explicit" because in most middleware, a
+// service call already has implicit rights and this would then only be called
+// to check if a user has explicit writes if the AuthDetails were not from a
+// service.
+func HasExplicitMembershipRelationship(ctx context.Context, client Client, granteeUserID, grantorUserID string) (has bool, err error) {
 	fromTo, err := client.GetUserPermissions(ctx, granteeUserID, grantorUserID)
 	if err != nil {
 		return false, err
@@ -44,6 +50,26 @@ func HasMembershipRelationship(ctx context.Context, client Client, granteeUserID
 		return false, err
 	}
 	if len(toFrom) > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func HasExplicitWritePermissions(ctx context.Context, c Client, granteeUserID, grantorUserID string) (has bool, err error) {
+	if granteeUserID != "" && granteeUserID == grantorUserID {
+		return true, nil
+	}
+	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := perms[Custodian]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Write]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Owner]; ok {
 		return true, nil
 	}
 	return false, nil

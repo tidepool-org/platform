@@ -51,7 +51,7 @@ func NewDefaultClient(p Params) (user.Client, error) {
 }
 
 func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
-	client, err := platform.NewClient(config, authorizeAs)
+	client, err := platform.NewLegacyClient(config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}

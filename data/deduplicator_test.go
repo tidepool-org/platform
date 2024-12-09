@@ -8,6 +8,7 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -60,7 +61,7 @@ var _ = Describe("Deduplicator", func() {
 				func(mutator func(datum *data.DeduplicatorDescriptor), expectedErrors ...error) {
 					datum := dataTest.RandomDeduplicatorDescriptor()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *data.DeduplicatorDescriptor) {},
@@ -126,7 +127,7 @@ var _ = Describe("Deduplicator", func() {
 					datum := dataTest.RandomDeduplicatorDescriptor()
 					mutator(datum)
 					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
-					Expect(structureNormalizer.New().Normalize(datum)).ToNot(HaveOccurred())
+					Expect(structureNormalizer.New(logTest.NewLogger()).Normalize(datum)).ToNot(HaveOccurred())
 					if expectator != nil {
 						expectator(datum, expectedDatum)
 					}
@@ -157,7 +158,7 @@ var _ = Describe("Deduplicator", func() {
 					datum := dataTest.RandomDeduplicatorDescriptor()
 					mutator(datum)
 					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.NormalizeDEPRECATED(normalizer)
 					Expect(normalizer.Error()).ToNot(HaveOccurred())

@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -16,8 +17,8 @@ type Object struct {
 	parsed map[string]bool
 }
 
-func NewObject(object *map[string]interface{}) *Object {
-	return NewObjectParser(structureBase.New().WithSource(structure.NewPointerSource()), object)
+func NewObject(logger log.Logger, object *map[string]interface{}) *Object {
+	return NewObjectParser(structureBase.New(logger).WithSource(structure.NewPointerSource()), object)
 }
 
 func NewObjectParser(base *structureBase.Base, object *map[string]interface{}) *Object {
@@ -31,6 +32,10 @@ func NewObjectParser(base *structureBase.Base, object *map[string]interface{}) *
 		object: object,
 		parsed: parsed,
 	}
+}
+
+func (o *Object) Logger() log.Logger {
+	return o.base.Logger()
 }
 
 func (o *Object) Origin() structure.Origin {
@@ -220,30 +225,6 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 			return nil
 		}
-	}
-
-	return &timeValue
-}
-
-// ForgivingTime is a parser added specifically to handle https://tidepool.atlassian.net/browse/BACK-1161
-// It should be deprecated once Dexcom fixes their API.
-func (o *Object) ForgivingTime(reference string, layout string) *time.Time {
-	rawValue, ok := o.raw(reference)
-	if !ok {
-		return nil
-	}
-
-	stringValue, ok := rawValue.(string)
-	if !ok {
-		o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-		return nil
-	}
-
-	forgivingTime := structure.ForgivingTimeString(stringValue)
-	timeValue, err := time.Parse(layout, forgivingTime)
-	if err != nil {
-		o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-		return nil
 	}
 
 	return &timeValue

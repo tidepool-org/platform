@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -56,7 +57,7 @@ var _ = Describe("Target", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(datum *glucose.Target, sourceUnits string, expectedErrors ...error) {
-					validator := structureValidator.New()
+					validator := structureValidator.New(logTest.NewLogger())
 					Expect(validator).ToNot(BeNil())
 					datum.Validate(validator, &sourceUnits)
 					errorsTest.ExpectEqual(validator.Error(), expectedErrors...)
@@ -403,7 +404,7 @@ var _ = Describe("Target", func() {
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
 				func(datum *glucose.Target, sourceUnits interface{}, expectedDatum *glucose.Target) {
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer, AsStringPointer(sourceUnits))
 					Expect(normalizer.Error()).ToNot(HaveOccurred())

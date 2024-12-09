@@ -3,21 +3,24 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
+ifneq ($(PRIVATE),)
+  REPOSITORY_SUFFIX:=-private
+endif
+
+SERVICES_SEPARATOR=,
+SERVICES_TO_BUILD?=auth,blob,data,migrations,prescription,task,tools
+SERVICES_TO_BUILD:=$(subst $(SERVICES_SEPARATOR), ,$(SERVICES_TO_BUILD))
+
 ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
 REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
-REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
+REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))$(REPOSITORY_SUFFIX)
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
 
-ifdef TRAVIS_TAG
-	VERSION_BASE:=$(TRAVIS_TAG)
-else
-	VERSION_BASE:=$(shell git describe --abbrev=0 --tags 2> /dev/null || echo 'v0.0.0')
-endif
-VERSION_BASE:=$(VERSION_BASE:v%=%)
+VERSION_BASE:=platform
 VERSION_SHORT_COMMIT:=$(shell git rev-parse --short HEAD || echo "dev")
 VERSION_FULL_COMMIT:=$(shell git rev-parse HEAD || echo "dev")
 VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
@@ -53,7 +56,11 @@ else ifdef TRAVIS_TAG
 	DOCKER:=true
 endif
 ifdef DOCKER_FILE
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+	SERVICE_NAME:=$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+	ifneq ($(filter $(SERVICE_NAME),$(SERVICES_TO_BUILD)),)
+		BUILD_SERVICE:=true
+	endif
+	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(SERVICE_NAME)
 endif
 
 default: test
@@ -119,7 +126,7 @@ format-write:
 
 format-write-changed:
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} gofmt -e -s -w {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} gofmt -e -s -w {}
 
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
@@ -135,7 +142,7 @@ imports-write: goimports
 
 imports-write-changed: goimports
 	@cd $(ROOT_DIRECTORY) && \
-		git diff --name-only | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
+		git diff --name-only | grep '\.go$$' | xargs -I{} goimports -e -w -local 'github.com/tidepool-org/platform' {}
 
 vet: tmp
 	@echo "go vet"
@@ -274,6 +281,7 @@ endif
 docker-build:
 ifdef DOCKER
 ifdef DOCKER_FILE
+ifdef BUILD_SERVICE
 	docker build --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
 	docker build --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_BRANCH
@@ -291,11 +299,15 @@ endif
 ifdef TRAVIS_TAG
 	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
 endif
+else
+	@echo skipping $(DOCKER_FILE)
+endif
 endif
 endif
 
 docker-push:
 ifdef DOCKER
+ifdef BUILD_SERVICE
 	@echo "DOCKER_REPOSITORY = $(DOCKER_REPOSITORY)"
 	@echo "TRAVIS_BRANCH = $(TRAVIS_BRANCH)"
 	@echo "TRAVIS_PULL_REQUEST_BRANCH = $(TRAVIS_PULL_REQUEST_BRANCH)"
@@ -324,23 +336,27 @@ ifdef TRAVIS_TAG
 endif
 endif
 endif
+endif
 
 ci-docker: docker
 
-clean: clean-bin clean-cover clean-debug clean-deploy
+clean: clean-bin clean-cover clean-debug clean-deploy clean-test
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
-	@cd $(ROOT_DIRECTORY) && rm -rf _bin
+	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log
 
 clean-cover:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
 
 clean-debug:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -delete
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
+
+clean-test:
+	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
 
 clean-all: clean
 
@@ -356,4 +372,4 @@ gopath-implode:
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
 	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode go-test
+	gopath-implode go-test go-ci-test

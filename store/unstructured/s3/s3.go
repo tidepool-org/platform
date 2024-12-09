@@ -89,7 +89,7 @@ func (s *Store) Put(ctx context.Context, key string, reader io.Reader, options *
 	}
 	if options == nil {
 		options = storeUnstructured.NewOptions()
-	} else if err := structureValidator.New().Validate(options); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(options); err != nil {
 		return errors.Wrap(err, "options is invalid")
 	}
 
