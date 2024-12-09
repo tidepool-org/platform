@@ -1,5 +1,5 @@
 # Development
-FROM golang:1.22.2-alpine AS development
+FROM golang:1.23-alpine AS development
 WORKDIR /go/src/github.com/tidepool-org/platform
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
