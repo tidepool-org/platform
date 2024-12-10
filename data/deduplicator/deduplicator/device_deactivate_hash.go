@@ -25,7 +25,7 @@ var DeviceDeactivateHashDeviceManufacturerDeviceModels = map[string][]string{
 	"Trividia Health": {"TRUE METRIX", "TRUE METRIX AIR", "TRUE METRIX GO"},
 }
 
-var DeviceDeactivateLegacyHashManufacturerDeviceModels = map[string][]string{
+var DeviceDeactivateLegacyHashDeviceManufacturerDeviceModels = map[string][]string{
 	"Arkray":    {"GlucocardExpression"},
 	"Bayer":     {"Contour Next Link", "Contour Next Link 2.4", "Contour Next", "Contour USB", "Contour Next USB", "Contour Next One", "Contour", "Contour Next EZ", "Contour Plus", "Contour Plus Blue"},
 	"Dexcom":    {"G5 touchscreen receiver", "G6 touchscreen receiver"},
@@ -42,17 +42,6 @@ type DeviceDeactivateHash struct {
 	*Base
 }
 
-func NewDeviceDeactivateLegacyHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, DeviceDeactivateHashVersionLegacy)
-	if err != nil {
-		return nil, err
-	}
-
-	return &DeviceDeactivateHash{
-		Base: base,
-	}, nil
-}
-
 func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	base, err := NewBase(DeviceDeactivateHashName, DeviceDeactivateHashVersionCurrent)
 	if err != nil {
@@ -64,39 +53,30 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) (string, error) {
-	if dataSet.Deduplicator != nil {
-		if dataSet.Deduplicator.Name != nil && dataSet.Deduplicator.Version != nil {
-			if *dataSet.Deduplicator.Name == DeviceDeactivateHashName {
-				if *dataSet.Deduplicator.Version == DeviceDeactivateHashVersionLegacy {
-					return DeviceDeactivateHashVersionLegacy, nil
-				} else if *dataSet.Deduplicator.Version == DeviceDeactivateHashVersionCurrent {
-					return DeviceDeactivateHashVersionCurrent, nil
+func getDeduplicatorVersion(dataSet *dataTypesUpload.Upload) (string, bool) {
+	if dataSet.DeviceManufacturers == nil || dataSet.DeviceModel == nil {
+		return "", false
+	}
+
+	for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
+		if allowedDeviceModels, found := DeviceDeactivateLegacyHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
+			for _, allowedDeviceModel := range allowedDeviceModels {
+				if allowedDeviceModel == *dataSet.DeviceModel {
+					return DeviceDeactivateHashVersionLegacy, true
+				}
+			}
+		}
+
+		if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
+			for _, allowedDeviceModel := range allowedDeviceModels {
+				if allowedDeviceModel == *dataSet.DeviceModel {
+					return DeviceDeactivateHashVersionCurrent, true
 				}
 			}
 		}
 	}
-	if dataSet.DeviceManufacturers != nil && dataSet.DeviceModel != nil {
-		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
-			if allowedDeviceModels, found := DeviceDeactivateLegacyHashManufacturerDeviceModels[deviceManufacturer]; found {
-				for _, allowedDeviceModel := range allowedDeviceModels {
-					if allowedDeviceModel == *dataSet.DeviceModel {
-						return DeviceDeactivateHashVersionLegacy, nil
-					}
-				}
-			}
-		}
-		for _, deviceManufacturer := range *dataSet.DeviceManufacturers {
-			if allowedDeviceModels, found := DeviceDeactivateHashDeviceManufacturerDeviceModels[deviceManufacturer]; found {
-				for _, allowedDeviceModel := range allowedDeviceModels {
-					if allowedDeviceModel == *dataSet.DeviceModel {
-						return DeviceDeactivateHashVersionCurrent, nil
-					}
-				}
-			}
-		}
-	}
-	return "", errors.New("no valid device deactivate hash version")
+
+	return "", false
 }
 
 func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
@@ -113,29 +93,39 @@ func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload
 		return d.Get(ctx, dataSet)
 	}
 
-	_, err := getDeduplicatorVersion(dataSet)
-	return err == nil, nil
+	_, found := getDeduplicatorVersion(dataSet)
+	return found, nil
 }
 
 func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
-	// NOTE: check legacy first then fallback to other matches
-	if dataSet == nil {
-		return false, errors.New("data set is missing")
-	}
-
-	version, err := getDeduplicatorVersion(dataSet)
-	if err != nil {
-		return false, err
-	}
-
-	if version == DeviceDeactivateHashVersionLegacy {
-		return true, nil
-	}
-
 	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
+
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
+}
+
+func (d *DeviceDeactivateHash) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if repository == nil {
+		return nil, errors.New("repository is missing")
+	}
+	if dataSet == nil {
+		return nil, errors.New("data set is missing")
+	}
+
+	version, found := getDeduplicatorVersion(dataSet)
+	if !found {
+		return nil, errors.New("deduplicator version not found")
+	}
+
+	dataSet.Deduplicator = data.NewDeduplicatorDescriptor()
+	dataSet.Deduplicator.Name = pointer.FromString(DeviceDeactivateHashName)
+	dataSet.Deduplicator.Version = pointer.FromString(version)
+
+	return d.Base.Open(ctx, repository, dataSet)
 }
 
 func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
@@ -153,13 +143,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	}
 
 	options := NewDefaultDeviceDeactivateHashOptions()
-
-	version, err := getDeduplicatorVersion(dataSet)
-	if err != nil {
-		return err
-	}
-
-	if version == DeviceDeactivateHashVersionLegacy {
+	if *dataSet.Deduplicator.Version == DeviceDeactivateHashVersionLegacy {
 		filter := &data.DataSetFilter{LegacyOnly: pointer.FromBool(true), DeviceID: dataSet.DeviceID}
 		pagination := &page.Pagination{Page: 1, Size: 1}
 
@@ -169,7 +153,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		}
 		if len(uploads) != 0 {
 			if uploads[0].LegacyGroupID == nil {
-				return errors.New("missing required legacy groupId for the device deactive hash legacy version")
+				return errors.New("missing required legacy groupId for the device deactivate hash legacy version")
 			}
 			options = NewLegacyHashOptions(*uploads[0].LegacyGroupID)
 		}

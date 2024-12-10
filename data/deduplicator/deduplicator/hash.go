@@ -37,11 +37,11 @@ func (d HashOptions) Validate() error {
 	switch d.Version {
 	case types.LegacyIdentityFieldsVersion:
 		if d.LegacyGroupID == nil || *d.LegacyGroupID == "" {
-			return errors.New("missing required legacy groupId for the device deactive hash legacy version")
+			return errors.New("missing required legacy groupId for the device deactivate hash legacy version")
 		}
 	case types.IdentityFieldsVersion:
 		if d.LegacyGroupID != nil {
-			return errors.New("groupId is not required for the device deactive hash current version")
+			return errors.New("groupId is not required for the device deactivate hash current version")
 		}
 	default:
 		return errors.Newf("missing valid version %d", d.Version)
