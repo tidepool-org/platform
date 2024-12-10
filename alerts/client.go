@@ -6,7 +6,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	platformlog "github.com/tidepool-org/platform/log"
@@ -17,22 +16,20 @@ import (
 
 // Client for managing alerts configs.
 type Client struct {
-	client        PlatformClient
-	logger        platformlog.Logger
-	tokenProvider auth.ServerSessionTokenProvider
+	client PlatformClient
+	logger platformlog.Logger
 }
 
 // NewClient builds a client for interacting with alerts API endpoints.
 //
 // If no logger is provided, a null logger is used.
-func NewClient(client PlatformClient, tokenProvider auth.ServerSessionTokenProvider, logger platformlog.Logger) *Client {
+func NewClient(client PlatformClient, logger platformlog.Logger) *Client {
 	if logger == nil {
 		logger = null.NewLogger()
 	}
 	return &Client{
-		client:        client,
-		logger:        logger,
-		tokenProvider: tokenProvider,
+		client: client,
+		logger: logger,
 	}
 }
 
@@ -43,32 +40,13 @@ type PlatformClient interface {
 		requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error
 }
 
-// TokenProvider retrieves session tokens needed for calling the alerts API.
-//
-// client.External is one implementation
-type TokenProvider interface {
-	// ServerSessionToken provides a server-to-server API authentication token.
-	ServerSessionToken() (string, error)
-}
-
 // request performs common operations before passing a request off to the
 // underlying platform.Client.
 func (c *Client) request(ctx context.Context, method, url string, reqBody, resBody any) error {
 	// Platform's client.Client expects a logger to exist in the request's
 	// context. If it doesn't exist, request processing will panic.
 	loggingCtx := platformlog.NewContextWithLogger(ctx, c.logger)
-	// Make sure the auth token is injected into the request's headers.
-	return c.requestWithAuth(loggingCtx, method, url, reqBody, resBody)
-}
-
-// requestWithAuth injects an auth token before calling platform.Client.RequestData.
-//
-// At time of writing, this is the only way to inject credentials into
-// platform.Client. It might be nice to be able to use a mutator, but the auth
-// is specifically handled by the platform.Client via the context field, and
-// if left blank, platform.Client errors.
-func (c *Client) requestWithAuth(ctx context.Context, method, url string, reqBody, resBody any) error {
-	return c.client.RequestData(auth.NewContextWithServerSessionTokenProvider(ctx, c.tokenProvider), method, url, nil, reqBody, resBody)
+	return c.client.RequestData(loggingCtx, method, url, nil, reqBody, resBody)
 }
 
 // Upsert updates cfg if it exists or creates it if it doesn't.

@@ -228,7 +228,6 @@ type consumerTestDeps struct {
 	Permissions *mockPermissionsClient
 	Repo        *storetest.DataRepository
 	Session     *mockConsumerGroupSession
-	Tokens      alerts.TokenProvider
 }
 
 func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
@@ -248,14 +247,12 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 	dataRepo.GetDataRangeOutputs = []storetest.GetDataRangeOutput{
 		{Error: nil, Cursor: cur},
 	}
-	tokens := &mockAlertsTokenProvider{Token: "test-token"}
 	permissions := newMockPermissionsClient()
 	evaluator := newMockStaticEvaluator()
 
 	return &Consumer{
 			Alerts:      alertsClient,
 			Evaluator:   evaluator,
-			Tokens:      tokens,
 			Data:        dataRepo,
 			Permissions: permissions,
 		}, &consumerTestDeps{
@@ -266,7 +263,6 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 			Repo:        dataRepo,
 			Session:     &mockConsumerGroupSession{},
 			Logger:      logger,
-			Tokens:      tokens,
 			Permissions: permissions,
 		}
 }
@@ -280,12 +276,10 @@ func newEvaluatorTestDeps(responses []*store.AlertableResponse) (*evaluator, *ev
 		dataRepo.GetAlertableDataOutputs = append(dataRepo.GetAlertableDataOutputs, out)
 	}
 	permissions := newMockPermissionsClient()
-	tokens := newMockTokensProvider()
 	return &evaluator{
 			Alerts:      alertsClient,
 			Data:        dataRepo,
 			Permissions: permissions,
-			Tokens:      tokens,
 		}, &evaluatorTestDeps{
 			Alerts:      alertsClient,
 			Permissions: permissions,
@@ -561,18 +555,6 @@ func (s *mockConsumerGroupSession) Context() context.Context {
 	panic("not implemented") // TODO: Implement
 }
 
-type mockAlertsTokenProvider struct {
-	Token string
-	Error error
-}
-
-func (p *mockAlertsTokenProvider) ServerSessionToken() (string, error) {
-	if p.Error != nil {
-		return "", p.Error
-	}
-	return p.Token, nil
-}
-
 type mockPermissionsClient struct {
 	Error error
 	Perms map[string]permission.Permissions
@@ -610,16 +592,6 @@ func (c *mockPermissionsClient) GetUserPermissions(ctx context.Context, requestU
 	} else {
 		return nil, errors.New("test error NOT FOUND")
 	}
-}
-
-type mockTokensProvider struct{}
-
-func newMockTokensProvider() *mockTokensProvider {
-	return &mockTokensProvider{}
-}
-
-func (p *mockTokensProvider) ServerSessionToken() (string, error) {
-	return "test-server-session-token", nil
 }
 
 func testAlertsConfigUrgentLow(userID string) *alerts.Config {
