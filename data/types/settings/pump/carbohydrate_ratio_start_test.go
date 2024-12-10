@@ -17,7 +17,7 @@ import (
 
 var _ = Describe("CarbohydrateRatioStart", func() {
 	It("CarbohydrateRatioStartAmountMaximum is expected", func() {
-		Expect(pump.CarbohydrateRatioStartAmountMaximum).To(Equal(250.0))
+		Expect(pump.CarbohydrateRatioStartAmountMaximum).To(Equal(500.0))
 	})
 
 	It("CarbohydrateRatioStartAmountMinimum is expected", func() {
@@ -63,17 +63,21 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 				),
 				Entry("amount out of range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(-0.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 250), "/amount"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, pump.CarbohydrateRatioStartAmountMaximum), "/amount"),
 				),
 				Entry("amount in range (lower)",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(0.0) },
 				),
 				Entry("amount in range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(250.0) },
+					func(datum *pump.CarbohydrateRatioStart) {
+						datum.Amount = pointer.FromFloat64(pump.CarbohydrateRatioStartAmountMaximum)
+					},
 				),
 				Entry("amount out of range (upper)",
-					func(datum *pump.CarbohydrateRatioStart) { datum.Amount = pointer.FromFloat64(250.1) },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(250.1, 0, 250), "/amount"),
+					func(datum *pump.CarbohydrateRatioStart) {
+						datum.Amount = pointer.FromFloat64(pump.CarbohydrateRatioStartAmountMaximum + 0.1)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(pump.CarbohydrateRatioStartAmountMaximum+0.1, 0, pump.CarbohydrateRatioStartAmountMaximum), "/amount"),
 				),
 				Entry("start missing",
 					func(datum *pump.CarbohydrateRatioStart) { datum.Start = nil },
