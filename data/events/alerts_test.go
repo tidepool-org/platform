@@ -17,13 +17,11 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/push"
 )
 
 const (
@@ -41,7 +39,6 @@ var (
 )
 
 var _ = Describe("Consumer", func() {
-
 	Describe("Consume", func() {
 		It("ignores nil messages", func() {
 			ctx, _ := addLogger(context.Background())
@@ -117,106 +114,6 @@ var _ = Describe("Consumer", func() {
 		})
 
 	})
-
-	// Describe("evaluateUrgentLow", func() {
-	// 	It("can't function without datum units", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		alert := newTestUrgentLowAlert()
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		datum.Blood.Units = nil
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		_, err := c.evaluateUrgentLow(ctx, datum, testUserID, alert)
-
-	// 		Expect(err).To(MatchError("Unable to evaluate datum: Units, Value, or Time is nil"))
-	// 	})
-
-	// 	It("can't function without datum value", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		alert := newTestUrgentLowAlert()
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		datum.Blood.Value = nil
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		_, err := c.evaluateUrgentLow(ctx, datum, testUserID, alert)
-
-	// 		Expect(err).To(MatchError("Unable to evaluate datum: Units, Value, or Time is nil"))
-	// 	})
-
-	// 	It("can't function without datum time", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		alert := newTestUrgentLowAlert()
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		datum.Blood.Time = nil
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		_, err := c.evaluateUrgentLow(ctx, datum, testUserID, alert)
-	// 		Expect(err).To(MatchError("Unable to evaluate datum: Units, Value, or Time is nil"))
-	// 	})
-
-	// 	It("is marked resolved", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		alert := newTestUrgentLowAlert()
-	// 		alert.Threshold.Value = *datum.Blood.Value - 1
-	// 		userID := "test-user-id"
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		updated, err := c.evaluateUrgentLow(ctx, datum, userID, alert)
-	// 		Expect(err).To(Succeed())
-	// 		Expect(updated).To(BeTrue())
-	// 		Expect(alert.Resolved).To(BeTemporally("~", time.Now(), time.Second))
-	// 	})
-
-	// 	It("is marked both notified and triggered", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		alert := newTestUrgentLowAlert()
-	// 		alert.Threshold.Value = *datum.Blood.Value + 1
-	// 		userID := "test-user-id"
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		updated, err := c.evaluateUrgentLow(ctx, datum, userID, alert)
-	// 		Expect(err).To(Succeed())
-	// 		Expect(updated).To(BeTrue())
-	// 		Expect(alert.Sent).To(BeTemporally("~", time.Now(), time.Second))
-	// 		Expect(alert.Triggered).To(BeTemporally("~", time.Now(), time.Second))
-	// 	})
-
-	// 	It("sends notifications regardless of previous notification time", func() {
-	// 		ctx, _ := addLogger(context.Background())
-	// 		datum := newTestStaticDatumMmolL(11)
-	// 		alert := newTestUrgentLowAlert()
-	// 		lastTime := time.Now().Add(-10 * time.Second)
-	// 		alert.Activity.Sent = lastTime
-	// 		alert.Threshold.Value = *datum.Blood.Value + 1
-	// 		userID := "test-user-id"
-	// 		c := &Consumer{
-	// 			Pusher:       newMockPusher(),
-	// 			DeviceTokens: newMockDeviceTokensClient(),
-	// 		}
-
-	// 		updated, err := c.evaluateUrgentLow(ctx, datum, userID, alert)
-	// 		Expect(err).To(Succeed())
-	// 		Expect(updated).To(BeTrue())
-	// 		Expect(alert.Sent).To(BeTemporally("~", time.Now(), time.Second))
-	// 	})
-	// })
 })
 
 type consumerTestDeps struct {
@@ -422,60 +319,6 @@ func newTestStaticDatumMmolL(value float64) *glucose.Glucose {
 			Value: pointer.FromFloat64(value),
 		},
 	}
-}
-
-func newTestUrgentLowAlert() *alerts.UrgentLowAlert {
-	return &alerts.UrgentLowAlert{
-		Base: alerts.Base{
-			Enabled:  true,
-			Activity: alerts.Activity{},
-		},
-		Threshold: alerts.Threshold{
-			Units: nontypesglucose.MmolL,
-		},
-	}
-}
-
-type mockDeviceTokensClient struct {
-	Error  error
-	Tokens []*devicetokens.DeviceToken
-}
-
-func newMockDeviceTokensClient() *mockDeviceTokensClient {
-	return &mockDeviceTokensClient{
-		Tokens: []*devicetokens.DeviceToken{},
-	}
-}
-
-// // testingT is a subset of testing.TB
-// type testingT interface {
-// 	Errorf(format string, args ...any)
-// 	Fatalf(format string, args ...any)
-// }
-
-func (m *mockDeviceTokensClient) GetDeviceTokens(ctx context.Context,
-	userID string) ([]*devicetokens.DeviceToken, error) {
-
-	if m.Error != nil {
-		return nil, m.Error
-	}
-	return m.Tokens, nil
-}
-
-type mockPusher struct {
-	Pushes []string
-}
-
-func newMockPusher() *mockPusher {
-	return &mockPusher{
-		Pushes: []string{},
-	}
-}
-
-func (p *mockPusher) Push(ctx context.Context,
-	deviceToken *devicetokens.DeviceToken, notification *push.Notification) error {
-	p.Pushes = append(p.Pushes, notification.Message)
-	return nil
 }
 
 type mockAlertsConfigClient struct {
