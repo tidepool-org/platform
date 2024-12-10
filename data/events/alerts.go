@@ -32,7 +32,6 @@ type Consumer struct {
 	Evaluator    AlertsEvaluator
 	Permissions  permission.Client
 	Pusher       Pusher
-	Tokens       alerts.TokenProvider
 
 	Logger log.Logger
 }
@@ -167,13 +166,12 @@ type AlertsEvaluator interface {
 }
 
 func NewAlertsEvaluator(alerts AlertsClient, data store.DataRepository,
-	perms permission.Client, tokens alerts.TokenProvider) *evaluator {
+	perms permission.Client) *evaluator {
 
 	return &evaluator{
 		Alerts:      alerts,
 		Data:        data,
 		Permissions: perms,
-		Tokens:      tokens,
 	}
 }
 
@@ -182,7 +180,6 @@ type evaluator struct {
 	Alerts      AlertsClient
 	Data        store.DataRepository
 	Permissions permission.Client
-	Tokens      alerts.TokenProvider
 }
 
 // logger produces a log.Logger.
@@ -260,12 +257,6 @@ func (e *evaluator) authDenied(ctx context.Context) func(ac *alerts.Config) bool
 			"userID":         ac.UserID,
 			"followedUserID": ac.FollowedUserID,
 		})
-		token, err := e.Tokens.ServerSessionToken()
-		if err != nil {
-			lgr.WithError(err).Warn("Unable to confirm permissions; skipping")
-			return false
-		}
-		ctx = auth.NewContextWithServerSessionToken(ctx, token)
 		perms, err := e.Permissions.GetUserPermissions(ctx, ac.UserID, ac.FollowedUserID)
 		if err != nil {
 			lgr.WithError(err).Warn("Unable to confirm permissions; skipping")

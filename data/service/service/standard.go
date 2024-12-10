@@ -499,10 +499,9 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		Alerts:       alerts,
 		Data:         dataRepo,
 		DeviceTokens: s.AuthClient(),
-		Evaluator:    dataEvents.NewAlertsEvaluator(alerts, dataRepo, s.permissionClient, s.AuthClient()),
+		Evaluator:    dataEvents.NewAlertsEvaluator(alerts, dataRepo, s.permissionClient),
 		Permissions:  s.permissionClient,
 		Pusher:       s.pusher,
-		Tokens:       s.AuthClient(),
 		Logger:       s.Logger(),
 	}
 

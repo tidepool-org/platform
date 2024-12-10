@@ -8,18 +8,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/platform"
 )
 
-const testToken = "auth-me"
-
 var _ = Describe("Client", func() {
 	var test404Server, test200Server *httptest.Server
-	var testAuthServer func(*string) *httptest.Server
 
 	BeforeEach(func() {
 		t := GinkgoT()
@@ -31,12 +27,6 @@ var _ = Describe("Client", func() {
 		test200Server = testServer(t, func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		})
-		testAuthServer = func(token *string) *httptest.Server {
-			return testServer(t, func(w http.ResponseWriter, r *http.Request) {
-				*token = r.Header.Get(auth.TidepoolSessionTokenHeaderKey)
-				w.WriteHeader(http.StatusOK)
-			})
-		}
 	})
 
 	Context("Delete", func() {
@@ -51,13 +41,6 @@ var _ = Describe("Client", func() {
 			client, ctx := newAlertsClientTest(test200Server)
 			err := client.Delete(ctx, &Config{})
 			Expect(err).ShouldNot(HaveOccurred())
-		})
-
-		It("injects an auth token", func() {
-			token := ""
-			client, ctx := newAlertsClientTest(testAuthServer(&token))
-			_ = client.Delete(ctx, &Config{})
-			Expect(token).To(Equal(testToken))
 		})
 	})
 
@@ -74,26 +57,17 @@ var _ = Describe("Client", func() {
 			err := client.Upsert(ctx, &Config{})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
-
-		It("injects an auth token", func() {
-			token := ""
-			client, ctx := newAlertsClientTest(testAuthServer(&token))
-			_ = client.Upsert(ctx, &Config{})
-			Expect(token).To(Equal(testToken))
-		})
 	})
 })
 
 func buildTestClient(s *httptest.Server) *Client {
 	pCfg := &platform.Config{
-		Config: &client.Config{
-			Address: s.URL,
-		},
+		Config:        &client.Config{Address: s.URL},
+		ServiceSecret: "auth-me",
 	}
-	token := mockTokenProvider(testToken)
 	pc, err := platform.NewClient(pCfg, platform.AuthorizeAsService)
 	Expect(err).ToNot(HaveOccurred())
-	client := NewClient(pc, token, null.NewLogger())
+	client := NewClient(pc, null.NewLogger())
 	return client
 }
 
@@ -103,12 +77,6 @@ func newAlertsClientTest(server *httptest.Server) (*Client, context.Context) {
 
 func contextWithNullLogger() context.Context {
 	return log.NewContextWithLogger(context.Background(), null.NewLogger())
-}
-
-type mockTokenProvider string
-
-func (p mockTokenProvider) ServerSessionToken() (string, error) {
-	return string(p), nil
 }
 
 func testServer(t GinkgoTInterface, handler http.HandlerFunc) *httptest.Server {
