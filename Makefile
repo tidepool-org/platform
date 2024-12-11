@@ -207,7 +207,9 @@ service-restart-all:
 	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart SERVICE="services/$${SERVICE}"; done
 	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
 
-test: ginkgo
+test: go-test
+
+ginkgo-test: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && . ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(TEST)
 
