@@ -67,6 +67,7 @@ func (B *ContinuousBucket) Update(r data.Datum, shared *BucketShared) error {
 
 	// TODO validate record type matches bucket type
 
+	// NOTE we do not call range.update here, as we only require a single field of a range
 	if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
 		B.Realtime.Records++
 	} else {

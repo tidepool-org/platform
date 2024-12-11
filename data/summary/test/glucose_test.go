@@ -30,7 +30,7 @@ var _ = Describe("Glucose", func() {
 		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	})
 
-	Context("Ranges", func() {
+	Context("Range", func() {
 		It("range.Update", func() {
 			glucoseRange := types.Range{}
 
@@ -91,10 +91,425 @@ var _ = Describe("Glucose", func() {
 			Expect(firstRange.Records).To(Equal(15))
 			Expect(firstRange.Variance).To(Equal(15.0))
 
-			// expect percent untouched, we don't handle percent on add
-			Expect(firstRange.Percent).To(Equal(5.0))
+			// expect percent cleared, we don't handle percent on add
+			Expect(firstRange.Percent).To(BeZero())
+		})
+	})
+
+	Context("Ranges", func() {
+		It("ranges.Add", func() {
+			firstRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Glucose:  10,
+					Minutes:  11,
+					Records:  12,
+					Percent:  13,
+					Variance: 14,
+				},
+				VeryLow: types.Range{
+					Glucose:  20,
+					Minutes:  21,
+					Records:  22,
+					Percent:  23,
+					Variance: 24,
+				},
+				Low: types.Range{
+					Glucose:  30,
+					Minutes:  31,
+					Records:  32,
+					Percent:  33,
+					Variance: 34,
+				},
+				Target: types.Range{
+					Glucose:  40,
+					Minutes:  41,
+					Records:  42,
+					Percent:  43,
+					Variance: 44,
+				},
+				High: types.Range{
+					Glucose:  50,
+					Minutes:  51,
+					Records:  52,
+					Percent:  53,
+					Variance: 54,
+				},
+				VeryHigh: types.Range{
+					Glucose:  60,
+					Minutes:  61,
+					Records:  62,
+					Percent:  63,
+					Variance: 64,
+				},
+				ExtremeHigh: types.Range{
+					Glucose:  70,
+					Minutes:  71,
+					Records:  72,
+					Percent:  73,
+					Variance: 74,
+				},
+				AnyLow: types.Range{
+					Glucose:  80,
+					Minutes:  81,
+					Records:  82,
+					Percent:  83,
+					Variance: 84,
+				},
+				AnyHigh: types.Range{
+					Glucose:  90,
+					Minutes:  91,
+					Records:  92,
+					Percent:  93,
+					Variance: 94,
+				},
+			}
+
+			secondRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Glucose:  15,
+					Minutes:  16,
+					Records:  17,
+					Percent:  18,
+					Variance: 19,
+				},
+				VeryLow: types.Range{
+					Glucose:  25,
+					Minutes:  26,
+					Records:  27,
+					Percent:  28,
+					Variance: 29,
+				},
+				Low: types.Range{
+					Glucose:  35,
+					Minutes:  36,
+					Records:  37,
+					Percent:  38,
+					Variance: 39,
+				},
+				Target: types.Range{
+					Glucose:  45,
+					Minutes:  46,
+					Records:  47,
+					Percent:  48,
+					Variance: 49,
+				},
+				High: types.Range{
+					Glucose:  55,
+					Minutes:  56,
+					Records:  57,
+					Percent:  58,
+					Variance: 59,
+				},
+				VeryHigh: types.Range{
+					Glucose:  65,
+					Minutes:  66,
+					Records:  67,
+					Percent:  68,
+					Variance: 69,
+				},
+				ExtremeHigh: types.Range{
+					Glucose:  75,
+					Minutes:  76,
+					Records:  77,
+					Percent:  78,
+					Variance: 79,
+				},
+				AnyLow: types.Range{
+					Glucose:  85,
+					Minutes:  86,
+					Records:  87,
+					Percent:  88,
+					Variance: 89,
+				},
+				AnyHigh: types.Range{
+					Glucose:  95,
+					Minutes:  96,
+					Records:  97,
+					Percent:  98,
+					Variance: 99,
+				},
+			}
+
+			firstRanges.Add(&secondRanges)
+
+			expectedRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Glucose:  25,
+					Minutes:  27,
+					Records:  29,
+					Percent:  0,
+					Variance: 33.00526094276094,
+				},
+				VeryLow: types.Range{
+					Glucose:  45,
+					Minutes:  47,
+					Records:  49,
+					Percent:  0,
+					Variance: 53.00097420310186,
+				},
+				Low: types.Range{
+					Glucose:  65,
+					Minutes:  67,
+					Records:  69,
+					Percent:  0,
+					Variance: 73.0003343497566,
+				},
+				Target: types.Range{
+					Glucose:  85,
+					Minutes:  87,
+					Records:  89,
+					Percent:  0,
+					Variance: 93.00015236284297,
+				},
+				High: types.Range{
+					Glucose:  105,
+					Minutes:  107,
+					Records:  109,
+					Percent:  0,
+					Variance: 113.0000818084243,
+				},
+				VeryHigh: types.Range{
+					Glucose:  125,
+					Minutes:  127,
+					Records:  129,
+					Percent:  0,
+					Variance: 133.00004889478234,
+				},
+				ExtremeHigh: types.Range{
+					Glucose:  145,
+					Minutes:  147,
+					Records:  149,
+					Percent:  0,
+					Variance: 153.00003151742536,
+				},
+				AnyLow: types.Range{
+					Glucose:  165,
+					Minutes:  167,
+					Records:  169,
+					Percent:  0,
+					Variance: 173.0000214901807,
+				},
+				AnyHigh: types.Range{
+					Glucose:  185,
+					Minutes:  187,
+					Records:  189,
+					Percent:  0,
+					Variance: 193.00001530332412,
+				},
+			}
+
+			Expect(firstRanges).To(BeComparableTo(expectedRanges))
 		})
 
+		It("ranges.Update", func() {
+			glucoseRanges := types.GlucoseRanges{}
+
+			By("adding a VeryLow value")
+			glucoseRecord := NewGlucoseWithValue(continuous.Type, bucketTime, VeryLowBloodGlucose-0.1)
+			Expect(glucoseRanges.Total.Records).To(Equal(0))
+			Expect(glucoseRanges.VeryLow.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.VeryLow.Records).To(Equal(1))
+			Expect(glucoseRanges.Total.Records).To(Equal(1))
+
+			By("adding a Low value")
+			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, LowBloodGlucose-0.1)
+			Expect(glucoseRanges.Low.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.Low.Records).To(Equal(1))
+			Expect(glucoseRanges.Total.Records).To(Equal(2))
+
+			By("adding a Target value")
+			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, InTargetBloodGlucose+0.1)
+			Expect(glucoseRanges.Target.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.Target.Records).To(Equal(1))
+			Expect(glucoseRanges.Total.Records).To(Equal(3))
+
+			By("adding a High value")
+			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, HighBloodGlucose+0.1)
+			Expect(glucoseRanges.High.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.High.Records).To(Equal(1))
+			Expect(glucoseRanges.Total.Records).To(Equal(4))
+
+			By("adding a VeryHigh value")
+			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, VeryHighBloodGlucose+0.1)
+			Expect(glucoseRanges.VeryHigh.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.VeryHigh.Records).To(Equal(1))
+			Expect(glucoseRanges.Total.Records).To(Equal(5))
+
+			By("adding a High value")
+			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, ExtremeHighBloodGlucose+0.1)
+			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(0))
+			glucoseRanges.Update(glucoseRecord, 5)
+			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(1))
+			Expect(glucoseRanges.VeryHigh.Records).To(Equal(2))
+			Expect(glucoseRanges.Total.Records).To(Equal(6))
+		})
+
+		It("ranges.Finalize with minutes >70% of a day", func() {
+			glucoseRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Minutes: 60 * 17,
+					Records: 100,
+				},
+				VeryLow: types.Range{
+					Minutes: 60 * 1,
+					Records: 10,
+				},
+				Low: types.Range{
+					Minutes: 60 * 2,
+					Records: 20,
+				},
+				Target: types.Range{
+					Minutes: 60 * 3,
+					Records: 30,
+				},
+				High: types.Range{
+					Minutes: 60 * 4,
+					Records: 40,
+				},
+				VeryHigh: types.Range{
+					Minutes: 60 * 5,
+					Records: 50,
+				},
+				ExtremeHigh: types.Range{
+					Minutes: 60 * 6,
+					Records: 60,
+				},
+				AnyLow: types.Range{
+					Minutes: 60 * 7,
+					Records: 70,
+				},
+				AnyHigh: types.Range{
+					Minutes: 60 * 8,
+					Records: 80,
+				},
+			}
+
+			ts := time.Now()
+			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts.Add(-time.Minute*5), 5, 1)
+
+			Expect(glucoseRanges.Total.Percent).To(Equal(17.0 / 24.0))
+			Expect(glucoseRanges.VeryLow.Percent).To(Equal(1.0 / 12.0))
+			Expect(glucoseRanges.Low.Percent).To(Equal(2.0 / 12.0))
+			Expect(glucoseRanges.Target.Percent).To(Equal(3.0 / 12.0))
+			Expect(glucoseRanges.High.Percent).To(Equal(4.0 / 12.0))
+			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(5.0 / 12.0))
+			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(6.0 / 12.0))
+			Expect(glucoseRanges.AnyLow.Percent).To(Equal(7.0 / 12.0))
+			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(8.0 / 12.0))
+		})
+
+		It("ranges.Finalize with minutes <70% of a day", func() {
+			glucoseRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Minutes: 60 * 16,
+					Records: 100,
+					Percent: 1.0,
+				},
+				VeryLow: types.Range{
+					Minutes: 60 * 1,
+					Records: 10,
+					Percent: 1.0,
+				},
+				Low: types.Range{
+					Minutes: 60 * 2,
+					Records: 20,
+					Percent: 1.0,
+				},
+				Target: types.Range{
+					Minutes: 60 * 3,
+					Records: 30,
+					Percent: 1.0,
+				},
+				High: types.Range{
+					Minutes: 60 * 4,
+					Records: 40,
+					Percent: 1.0,
+				},
+				VeryHigh: types.Range{
+					Minutes: 60 * 5,
+					Records: 50,
+					Percent: 1.0,
+				},
+				ExtremeHigh: types.Range{
+					Minutes: 60 * 6,
+					Records: 60,
+					Percent: 1.0,
+				},
+				AnyLow: types.Range{
+					Minutes: 60 * 7,
+					Records: 70,
+					Percent: 1.0,
+				},
+				AnyHigh: types.Range{
+					Minutes: 70 * 8,
+					Records: 80,
+					Percent: 1.0,
+				},
+			}
+
+			ts := time.Now()
+			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts, 5, 1)
+
+			Expect(glucoseRanges.Total.Percent).To(Equal(16.0 / 24.0))
+			Expect(glucoseRanges.VeryLow.Percent).To(BeZero())
+			Expect(glucoseRanges.Low.Percent).To(BeZero())
+			Expect(glucoseRanges.Target.Percent).To(BeZero())
+			Expect(glucoseRanges.High.Percent).To(BeZero())
+			Expect(glucoseRanges.VeryHigh.Percent).To(BeZero())
+			Expect(glucoseRanges.ExtremeHigh.Percent).To(BeZero())
+			Expect(glucoseRanges.AnyLow.Percent).To(BeZero())
+			Expect(glucoseRanges.AnyHigh.Percent).To(BeZero())
+		})
+
+		It("ranges.Finalize with no minutes", func() {
+			glucoseRanges := types.GlucoseRanges{
+				Total: types.Range{
+					Records: 100,
+				},
+				VeryLow: types.Range{
+					Records: 10,
+				},
+				Low: types.Range{
+					Records: 20,
+				},
+				Target: types.Range{
+					Records: 30,
+				},
+				High: types.Range{
+					Records: 40,
+				},
+				VeryHigh: types.Range{
+					Records: 50,
+				},
+				ExtremeHigh: types.Range{
+					Records: 60,
+				},
+				AnyLow: types.Range{
+					Records: 70,
+				},
+				AnyHigh: types.Range{
+					Records: 80,
+				},
+			}
+
+			ts := time.Now()
+			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts, 5, 1)
+
+			Expect(glucoseRanges.Total.Percent).To(Equal(100.0 / 100.0))
+			Expect(glucoseRanges.VeryLow.Percent).To(Equal(10.0 / 100.0))
+			Expect(glucoseRanges.Low.Percent).To(Equal(20.0 / 100.0))
+			Expect(glucoseRanges.Target.Percent).To(Equal(30.0 / 100.0))
+			Expect(glucoseRanges.High.Percent).To(Equal(40.0 / 100.0))
+			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(50.0 / 100.0))
+			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(60.0 / 100.0))
+			Expect(glucoseRanges.AnyLow.Percent).To(Equal(70.0 / 100.0))
+			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(80.0 / 100.0))
+		})
 	})
 
 	Context("bucket.Update", func() {
@@ -273,66 +688,6 @@ var _ = Describe("Glucose", func() {
 
 				// we should check that total gets variance
 			}
-		})
-	})
-
-	Context("bucketsByTime.Update", func() {
-		var userBuckets types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]
-		var cgmDatums []data.Datum
-
-		It("With no existing buckets", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBuckets = types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]{}
-			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)}
-
-			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userBuckets).To(HaveKey(bucketTime))
-		})
-
-		It("Adding to existing buckets", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBuckets = types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]{}
-			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)}
-
-			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userBuckets).To(HaveKey(bucketTime))
-			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(1))
-
-			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(2))
-		})
-
-		It("Adding to two different buckets at once", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBuckets = types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]{}
-			cgmDatums = []data.Datum{
-				NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose),
-				NewGlucoseWithValue(continuous.Type, datumTime.Add(time.Hour), LowBloodGlucose-0.1),
-			}
-
-			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userBuckets).To(HaveKey(bucketTime))
-			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(1))
-			Expect(userBuckets[bucketTime.Add(time.Hour)].Data.Low.Records).To(Equal(1))
-		})
-
-		It("Adding two records to the same bucket at once", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBuckets = types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]{}
-			cgmDatums = []data.Datum{
-				NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose),
-				NewGlucoseWithValue(continuous.Type, datumTime, LowBloodGlucose-0.1),
-			}
-
-			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userBuckets).To(HaveKey(bucketTime))
-			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(1))
-			Expect(userBuckets[bucketTime].Data.Low.Records).To(Equal(1))
 		})
 	})
 

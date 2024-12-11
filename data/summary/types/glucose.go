@@ -36,7 +36,8 @@ func (R *Range) Add(new *Range) {
 	R.Minutes += new.Minutes
 	R.Records += new.Records
 
-	// skip percent, they cannot be added here
+	// clear percent, we don't have required values at this stage
+	R.Percent = 0
 }
 
 func (R *Range) Update(value float64, duration int, total bool) {
@@ -130,10 +131,20 @@ func (R *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
 		R.ExtremeHigh.Percent = float64(R.ExtremeHigh.Minutes) / wallMinutes
 		R.AnyLow.Percent = float64(R.AnyLow.Minutes) / wallMinutes
 		R.AnyHigh.Percent = float64(R.AnyHigh.Minutes) / wallMinutes
+	} else {
+		R.VeryLow.Percent = 0
+		R.Low.Percent = 0
+		R.Target.Percent = 0
+		R.High.Percent = 0
+		R.VeryHigh.Percent = 0
+		R.ExtremeHigh.Percent = 0
+		R.AnyLow.Percent = 0
+		R.AnyHigh.Percent = 0
 	}
 }
 
 func (R *GlucoseRanges) finalizeRecords() {
+	R.Total.Percent = float64(R.Total.Records) / float64(R.Total.Records)
 	R.VeryLow.Percent = float64(R.VeryLow.Records) / float64(R.Total.Records)
 	R.Low.Percent = float64(R.Low.Records) / float64(R.Total.Records)
 	R.Target.Percent = float64(R.Target.Records) / float64(R.Total.Records)
@@ -155,7 +166,7 @@ func (R *GlucoseRanges) Finalize(firstData, lastData time.Time, lastDuration int
 	}
 }
 
-func (R *GlucoseRanges) Update(record glucoseDatum.Glucose, duration int) {
+func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose, duration int) {
 	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
 
 	if normalizedValue < veryLowBloodGlucose {
@@ -210,7 +221,7 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) error {
 		}
 	}
 
-	B.GlucoseRanges.Update(*record, duration)
+	B.GlucoseRanges.Update(record, duration)
 
 	B.LastRecordDuration = duration
 
@@ -319,6 +330,8 @@ func (P *GlucosePeriod) Finalize(days int) {
 	// we only add GMI if cgm use >70%
 	if P.Total.Percent > 0.7 {
 		P.GlucoseManagementIndicator = CalculateGMI(P.AverageGlucose)
+	} else {
+		P.GlucoseManagementIndicator = 0
 	}
 
 	P.StandardDeviation = math.Sqrt(P.Total.Variance / float64(P.Total.Minutes))
