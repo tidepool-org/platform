@@ -72,7 +72,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 
 	ctx = log.ContextWithField(ctx, "providerSessionId", providerSession.ID)
 
-	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession.ID); err != nil {
+	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
 		c.deleteProviderSession(ctx, repository, providerSession)
 		return nil, err
@@ -133,7 +133,7 @@ func (c *Client) deleteProviderSession(ctx context.Context, repository authStore
 	if err != nil {
 		logger.WithError(err).Warn("Unable to get provider")
 	} else if prvdr != nil {
-		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession.ID); err != nil {
+		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession); err != nil {
 			logger.WithError(err).Warn("Unable to finalize deletion of provider session")
 			return err
 		}

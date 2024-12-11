@@ -3,25 +3,25 @@ package context
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
-
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -182,6 +182,13 @@ func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
 	return s.syncTasksRepository
 }
 
+func (s *Standard) AlertsRepository() alerts.Repository {
+	if s.alertsRepository == nil {
+		s.alertsRepository = s.dataStore.NewAlertsRepository()
+	}
+	return s.alertsRepository
+}
+
 func (s *Standard) DataClient() dataClient.Client {
 	return s.dataClient
 }
@@ -202,9 +209,10 @@ func (s *Standard) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
 }
 
-func (s *Standard) AlertsRepository() alerts.Repository {
-	if s.alertsRepository == nil {
-		s.alertsRepository = s.dataStore.NewAlertsRepository()
-	}
-	return s.alertsRepository
+func (s *Standard) DataRawClient() dataRaw.Client {
+	return nil // TODO: Implement
+}
+
+func (s *Standard) WorkClient() work.Client {
+	return nil // TODO: Implement
 }

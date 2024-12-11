@@ -2,16 +2,20 @@ package raw
 
 import (
 	"context"
+	"io"
 
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 )
 
 //go:generate mockgen --build_flags=--mod=mod -source=./client.go -destination=./test/client.go -package test Client
 type Client interface {
-	List(ctx context.Context, dataSetID string, pagination *page.Pagination) (RawArray, error)
-	Create(ctx context.Context, dataSetID string, create *Create, content *Content) (*Raw, error)
-	// Get(ctx context.Context, id string) (*Raw, error)
-	GetContent(ctx context.Context, id string) (*Content, error)
-	// Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	// DeleteAll(ctx context.Context, userID string) error
+	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*Raw, error)
+	Create(ctx context.Context, userID string, dataSetID string, create *Create, data io.Reader) (*Raw, error)
+	Get(ctx context.Context, id string, condition *request.Condition) (*Raw, error)
+	GetContent(ctx context.Context, id string, condition *request.Condition) (*Content, error)
+	Delete(ctx context.Context, id string, condition *request.Condition) (*Raw, error)
+	DeleteMultiple(ctx context.Context, ids []string) (int, error)
+	DeleteAllByDataSetID(ctx context.Context, dataSetID string) (int, error)
+	DeleteAllByUserID(ctx context.Context, userID string) (int, error)
 }

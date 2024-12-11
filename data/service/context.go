@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/summary"
@@ -14,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Context interface {
@@ -36,6 +38,9 @@ type Context interface {
 
 	ClinicsClient() clinics.Client
 	DataSourceClient() dataSource.Client
+
+	DataRawClient() dataRaw.Client
+	WorkClient() work.Client
 }
 
 type HandlerFunc func(context Context)

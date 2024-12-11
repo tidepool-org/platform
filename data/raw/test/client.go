@@ -6,12 +6,14 @@ package test
 
 import (
 	context "context"
+	io "io"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
 
 	raw "github.com/tidepool-org/platform/data/raw"
 	page "github.com/tidepool-org/platform/page"
+	request "github.com/tidepool-org/platform/request"
 )
 
 // MockClient is a mock of Client interface.
@@ -38,46 +40,121 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockClient) Create(ctx context.Context, dataSetID string, create *raw.Create, content *raw.Content) (*raw.Raw, error) {
+func (m *MockClient) Create(ctx context.Context, userID, dataSetID string, create *raw.Create, data io.Reader) (*raw.Raw, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", ctx, dataSetID, create, content)
+	ret := m.ctrl.Call(m, "Create", ctx, userID, dataSetID, create, data)
 	ret0, _ := ret[0].(*raw.Raw)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Create indicates an expected call of Create.
-func (mr *MockClientMockRecorder) Create(ctx, dataSetID, create, content interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) Create(ctx, userID, dataSetID, create, data interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockClient)(nil).Create), ctx, dataSetID, create, content)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockClient)(nil).Create), ctx, userID, dataSetID, create, data)
+}
+
+// Delete mocks base method.
+func (m *MockClient) Delete(ctx context.Context, id string, condition *request.Condition) (*raw.Raw, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", ctx, id, condition)
+	ret0, _ := ret[0].(*raw.Raw)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockClientMockRecorder) Delete(ctx, id, condition interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockClient)(nil).Delete), ctx, id, condition)
+}
+
+// DeleteAllByDataSetID mocks base method.
+func (m *MockClient) DeleteAllByDataSetID(ctx context.Context, dataSetID string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllByDataSetID", ctx, dataSetID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAllByDataSetID indicates an expected call of DeleteAllByDataSetID.
+func (mr *MockClientMockRecorder) DeleteAllByDataSetID(ctx, dataSetID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllByDataSetID", reflect.TypeOf((*MockClient)(nil).DeleteAllByDataSetID), ctx, dataSetID)
+}
+
+// DeleteAllByUserID mocks base method.
+func (m *MockClient) DeleteAllByUserID(ctx context.Context, userID string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllByUserID", ctx, userID)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAllByUserID indicates an expected call of DeleteAllByUserID.
+func (mr *MockClientMockRecorder) DeleteAllByUserID(ctx, userID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllByUserID", reflect.TypeOf((*MockClient)(nil).DeleteAllByUserID), ctx, userID)
+}
+
+// DeleteMultiple mocks base method.
+func (m *MockClient) DeleteMultiple(ctx context.Context, ids []string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteMultiple", ctx, ids)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteMultiple indicates an expected call of DeleteMultiple.
+func (mr *MockClientMockRecorder) DeleteMultiple(ctx, ids interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteMultiple", reflect.TypeOf((*MockClient)(nil).DeleteMultiple), ctx, ids)
+}
+
+// Get mocks base method.
+func (m *MockClient) Get(ctx context.Context, id string, condition *request.Condition) (*raw.Raw, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Get", ctx, id, condition)
+	ret0, _ := ret[0].(*raw.Raw)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Get indicates an expected call of Get.
+func (mr *MockClientMockRecorder) Get(ctx, id, condition interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockClient)(nil).Get), ctx, id, condition)
 }
 
 // GetContent mocks base method.
-func (m *MockClient) GetContent(ctx context.Context, id string) (*raw.Content, error) {
+func (m *MockClient) GetContent(ctx context.Context, id string, condition *request.Condition) (*raw.Content, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetContent", ctx, id)
+	ret := m.ctrl.Call(m, "GetContent", ctx, id, condition)
 	ret0, _ := ret[0].(*raw.Content)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetContent indicates an expected call of GetContent.
-func (mr *MockClientMockRecorder) GetContent(ctx, id interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) GetContent(ctx, id, condition interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContent", reflect.TypeOf((*MockClient)(nil).GetContent), ctx, id)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContent", reflect.TypeOf((*MockClient)(nil).GetContent), ctx, id, condition)
 }
 
 // List mocks base method.
-func (m *MockClient) List(ctx context.Context, dataSetID string, pagination *page.Pagination) (raw.RawArray, error) {
+func (m *MockClient) List(ctx context.Context, userID string, filter *raw.Filter, pagination *page.Pagination) ([]*raw.Raw, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", ctx, dataSetID, pagination)
-	ret0, _ := ret[0].(raw.RawArray)
+	ret := m.ctrl.Call(m, "List", ctx, userID, filter, pagination)
+	ret0, _ := ret[0].([]*raw.Raw)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockClientMockRecorder) List(ctx, dataSetID, pagination interface{}) *gomock.Call {
+func (mr *MockClientMockRecorder) List(ctx, userID, filter, pagination interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, dataSetID, pagination)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, userID, filter, pagination)
 }

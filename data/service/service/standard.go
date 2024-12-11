@@ -5,15 +5,18 @@ import (
 	"log"
 	"os"
 
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
+	dataRawService "github.com/tidepool-org/platform/data/raw/service"
+	dataRawStoreStructured "github.com/tidepool-org/platform/data/raw/store/structured"
+	dataRawStoreStructuredMongo "github.com/tidepool-org/platform/data/raw/store/structured/mongo"
 	"github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
@@ -31,6 +34,10 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	"github.com/tidepool-org/platform/work"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructured "github.com/tidepool-org/platform/work/store/structured"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type Standard struct {
@@ -45,6 +52,11 @@ type Standard struct {
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	userEventsHandler         events.Runner
+	dataRawStructuredStore    *dataRawStoreStructuredMongo.Store
+	dataRawClient             *dataRawService.Client
+	workStructuredStore       *workStoreStructuredMongo.Store
+	workClient                *workService.Client
+	workCoordinator           *workService.Coordinator
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -90,6 +102,21 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
+	if err := s.initializeDataRawStructuredStore(); err != nil {
+		return err
+	}
+	if err := s.initializeDataRawClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkCoordinator(); err != nil {
+		return err
+	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
@@ -102,6 +129,10 @@ func (s *Standard) Terminate() {
 			s.Logger().Errorf("Error while terminating the the server: %v", err)
 		}
 		s.server = nil
+	}
+	if s.workCoordinator != nil {
+		s.workCoordinator.Stop()
+		s.workCoordinator = nil
 	}
 	if s.userEventsHandler != nil {
 		s.Logger().Info("Terminating the userEventsHandler")
@@ -153,6 +184,22 @@ func (s *Standard) PermissionClient() permission.Client {
 
 func (s *Standard) DataSourceStructuredStore() dataSourceStoreStructured.Store {
 	return s.dataSourceStructuredStore
+}
+
+func (s *Standard) DataRawStructuredStore() dataRawStoreStructured.Store {
+	return s.dataRawStructuredStore
+}
+
+func (s *Standard) DataRawClient() dataRaw.Client {
+	return s.dataRawClient
+}
+
+func (s *Standard) WorkStructuredStore() workStoreStructured.Store {
+	return s.workStructuredStore
+}
+
+func (s *Standard) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Standard) initializeMetricClient() error {
@@ -355,6 +402,94 @@ func (s *Standard) initializeClinicsClient() error {
 		return errors.Wrap(err, "unable to create clinics client")
 	}
 	s.clinicsClient = &clnt
+
+	return nil
+}
+
+func (s *Standard) initializeDataRawStructuredStore() error {
+	s.Logger().Debug("Loading data raw structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load data raw structured store config")
+	}
+
+	s.Logger().Debug("Creating data raw structured store")
+
+	str, err := dataRawStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data raw structured store")
+	}
+	s.dataRawStructuredStore = str
+
+	s.Logger().Debug("Ensuring data raw structured store indexes")
+
+	err = s.dataRawStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure data raw structured store indexes")
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeDataRawClient() error {
+	s.Logger().Debug("Creating data raw client")
+
+	clnt, err := dataRawService.NewClient(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data raw client")
+	}
+	s.dataRawClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeWorkCoordinator() error {
+	s.Logger().Debug("Creating work coordinator")
+
+	coordinator, err := workService.NewCoordinator(s)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work coordinator")
+	}
+	s.workCoordinator = coordinator
 
 	return nil
 }

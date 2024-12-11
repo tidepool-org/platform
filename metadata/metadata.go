@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"strconv"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const MetadataArrayLengthMaximum = 100
 const MetadataSizeMaximum = 4 * 1024
 
-type Metadata map[string]interface{}
+type Metadata map[string]any
 
 func ParseMetadata(parser structure.ObjectParser) *Metadata {
 	if !parser.Exists() {
@@ -46,7 +48,7 @@ func (m *Metadata) Validate(validator structure.Validator) {
 	}
 }
 
-func (m *Metadata) Get(key string) interface{} {
+func (m *Metadata) Get(key string) any {
 	value, ok := (*m)[key]
 	if !ok {
 		return nil
@@ -54,12 +56,17 @@ func (m *Metadata) Get(key string) interface{} {
 	return value
 }
 
-func (m *Metadata) Set(key string, value interface{}) {
+func (m *Metadata) Set(key string, value any) {
 	(*m)[key] = value
 }
 
 func (m *Metadata) Delete(key string) {
 	delete(*m, key)
+}
+
+func (m *Metadata) Parser(logger log.Logger) structure.ObjectParser {
+	var object map[string]any = *m
+	return structureParser.NewObject(logger, &object)
 }
 
 type MetadataArray []*Metadata

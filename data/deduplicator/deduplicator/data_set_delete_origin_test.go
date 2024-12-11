@@ -12,8 +12,6 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -33,14 +31,14 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 
 	Context("with new deduplicator", func() {
 		var deduplicator *dataDeduplicatorDeduplicator.DataSetDeleteOrigin
-		var dataSet *dataTypesUpload.Upload
+		var dataSet *data.DataSet
 
 		BeforeEach(func() {
 			var err error
 			deduplicator, err = dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deduplicator).ToNot(BeNil())
-			dataSet = dataTypesUploadTest.RandomUpload()
+			dataSet = dataTest.RandomDataSet()
 			dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.deduplicator.dataset.delete.origin")
 		})
 
@@ -170,7 +168,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							})
 
 							It("returns successfully when update data set returns successfully", func() {
-								responseDataSet := dataTypesUploadTest.RandomUpload()
+								responseDataSet := dataTest.RandomDataSet()
 								repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
 							})
@@ -190,7 +188,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							})
 
 							It("returns successfully when update data set returns successfully", func() {
-								responseDataSet := dataTypesUploadTest.RandomUpload()
+								responseDataSet := dataTest.RandomDataSet()
 								repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
 							})
@@ -210,7 +208,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 							})
 
 							It("returns successfully when update data set returns successfully", func() {
-								responseDataSet := dataTypesUploadTest.RandomUpload()
+								responseDataSet := dataTest.RandomDataSet()
 								repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
 								Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
 							})

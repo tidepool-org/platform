@@ -3,12 +3,11 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/work"
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary/types"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
@@ -62,7 +61,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	update := data.NewDataSetUpdate()
-	if dataSet.DataSetType != nil && *dataSet.DataSetType == upload.DataSetTypeContinuous {
+	if dataSet.DataSetType != nil && *dataSet.DataSetType == data.DataSetTypeContinuous {
 		if !details.IsService() {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
@@ -82,25 +81,46 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet)
-		if getErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-			return
-		} else if deduplicator == nil {
-			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
-			return
+
+		// TODO: Fix this!
+		if dataSet.HasDataSetTypeNormal() {
+			workMetadata := metadata.NewMetadata()
+			workMetadata.Set("dataSetId", *dataSet.ID)
+
+			workCreate := work.NewCreate()
+			workCreate.Type = "org.tidepool.tidepool.v1"
+			workCreate.DeduplicationID = dataSet.ID
+			workCreate.GroupID = dataSet.ID
+			workCreate.Metadata = workMetadata
+			_, err := dataServiceContext.WorkClient().Create(ctx, workCreate)
+			if err != nil {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to create work", err)
+				return
+			}
+
+			// TODO: Do we want to mark data set is closed without actually performing work?
+			// TODO: Maybe add a "closing" state? Yes, that sounds about right
 		}
 
-		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
-		updatesSummary := make(map[string]struct{})
-		for _, typ := range types.AllSummaryTypes {
-			updatesSummary[typ] = struct{}{}
-		}
+		// deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet)
+		// if getErr != nil {
+		// 	dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
+		// 	return
+		// } else if deduplicator == nil {
+		// 	dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
+		// 	return
+		// } else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
+		// 	dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
+		// 	return
+		// }
 
-		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
+		// // create map of all types, this will create redundant summaries, but will be cleaned up upon processing
+		// updatesSummary := make(map[string]struct{})
+		// for _, typ := range types.AllSummaryTypes {
+		// 	updatesSummary[typ] = struct{}{}
+		// }
+
+		// summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

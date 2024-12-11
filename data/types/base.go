@@ -17,17 +17,17 @@ import (
 )
 
 const (
-	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
-	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
+	ClockDriftOffsetMaximum = data.ClockDriftOffsetMaximum
+	ClockDriftOffsetMinimum = data.ClockDriftOffsetMinimum
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100
 	TagsLengthMaximum       = 100
 	TimeFormat              = time.RFC3339Nano
-	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionInternalMinimum  = 0
+	TimeZoneOffsetMaximum   = data.TimeZoneOffsetMaximum
+	TimeZoneOffsetMinimum   = data.TimeZoneOffsetMinimum
+	VersionInternalMinimum  = data.VersionInternalMinimum
 )
 
 type Base struct {
@@ -203,10 +203,7 @@ func (b *Base) Validate(validator structure.Validator) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
 	}).EachUnique()
 
-	timeValidator := validator.Time("time", b.Time)
-	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
-		timeValidator.Exists().NotZero()
-	}
+	validator.Time("time", b.Time).Exists().NotZero()
 
 	validator.String("timezone", b.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
@@ -222,10 +219,6 @@ func (b *Base) Validate(validator structure.Validator) {
 }
 
 func (b *Base) Normalize(normalizer data.Normalizer) {
-	if b.Deduplicator != nil {
-		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
-	}
-
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())

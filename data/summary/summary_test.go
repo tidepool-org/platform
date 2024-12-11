@@ -18,13 +18,12 @@ import (
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/food"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -34,24 +33,20 @@ import (
 
 const units = "mmol/L"
 
-func NewDataSet(userID string, typ string) *upload.Upload {
+func NewDataSet(userID string, typ string) *data.DataSet {
 	var deviceId = "SummaryTestDevice"
 	var timestamp = time.Now().UTC().Truncate(time.Millisecond)
 
-	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet := dataTest.RandomDataSet()
 	dataSet.DataSetType = &typ
 	dataSet.Active = true
-	dataSet.ArchivedDataSetID = nil
-	dataSet.ArchivedTime = nil
 	dataSet.CreatedTime = &timestamp
 	dataSet.CreatedUserID = nil
 	dataSet.DeletedTime = nil
 	dataSet.DeletedUserID = nil
 	dataSet.DeviceID = &deviceId
-	dataSet.Location.GPS.Origin.Time = nil
 	dataSet.ModifiedTime = &timestamp
 	dataSet.ModifiedUserID = nil
-	dataSet.Origin.Time = nil
 	dataSet.UserID = &userID
 	return dataSet
 }

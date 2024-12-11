@@ -3,14 +3,14 @@ package v1
 import (
 	"net/http"
 
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -52,9 +52,9 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	logger := log.LoggerFromContext(ctx)
 	parser := structureParser.NewObject(logger, &rawDatum)
 	validator := structureValidator.New(logger)
-	normalizer := dataNormalizer.New(logger)
+	normalizer := structureNormalizer.New(logger)
 
-	dataSet := upload.ParseUpload(parser)
+	dataSet := data.ParseDataSet(parser)
 	if dataSet != nil {
 		parser.NotParsed()
 	}
@@ -70,9 +70,9 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet.SetUserID(&targetUserID)
+	dataSet.UserID = pointer.FromString(targetUserID)
 	if details.IsUser() {
-		dataSet.SetCreatedUserID(pointer.FromString(details.UserID()))
+		dataSet.CreatedUserID = pointer.FromString(details.UserID())
 	}
 
 	dataSet.Normalize(normalizer)

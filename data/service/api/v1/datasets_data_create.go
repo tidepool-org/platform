@@ -1,7 +1,10 @@
 package v1
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"strconv"
@@ -11,12 +14,13 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/tidepool-org/platform/data"
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/types"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	dataWorkApi "github.com/tidepool-org/platform/data/work/api"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -24,10 +28,16 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	bodyParseValidateLimit = 8 * 1024 * 1024
+)
+
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	req := dataServiceContext.Request()
+	res := dataServiceContext.Response()
 	ctx := req.Context()
 	lgr := log.LoggerFromContext(ctx)
+	responder := request.MustNewResponder(res, req)
 
 	dataSetID := dataServiceContext.Request().PathParam("dataSetId")
 	if dataSetID == "" {
@@ -35,12 +45,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
-	}
-	if dataSet == nil {
+	} else if dataSet == nil {
 		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
@@ -68,65 +77,80 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	var rawDatumArray []interface{}
-	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
-		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
+	digestMD5, err := request.ParseDigestMD5Header(req.Header, "Digest")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+	mediaType, err := request.ParseMediaTypeHeader(req.Header, "Content-Type")
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	logger := log.LoggerFromContext(ctx)
-	parser := structureParser.NewArray(logger, &rawDatumArray)
-	validator := structureValidator.New(logger)
-	normalizer := dataNormalizer.New(logger)
+	bodyBytes, err := io.ReadAll(io.LimitReader(req.Body, bodyParseValidateLimit+1))
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
 
-	datumArray := []data.Datum{}
-	for _, reference := range parser.References() {
-		if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
-			(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
-			(*datum).Normalize(normalizer.WithReference(strconv.Itoa(reference)))
-			datumArray = append(datumArray, *datum)
+	var body io.Reader = bytes.NewReader(bodyBytes)
+	if len(bodyBytes) <= bodyParseValidateLimit {
+		var array []any
+		if err = json.Unmarshal(bodyBytes, &array); err != nil {
+			dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
+			return
 		}
-	}
-	parser.NotParsed()
 
-	if err = parser.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
-	}
-	if err = validator.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
-	}
-	if err = normalizer.Error(); err != nil {
-		request.MustNewResponder(dataServiceContext.Response(), dataServiceContext.Request()).Error(http.StatusBadRequest, err)
-		return
-	}
+		parser := structureParser.NewArray(lgr, &array)
+		validator := structureValidator.New(lgr)
 
-	datumArray = append(datumArray, normalizer.Data()...)
-	for _, datum := range datumArray {
-		datum.SetUserID(dataSet.UserID)
-		datum.SetDataSetID(dataSet.UploadID)
-		datum.SetProvenance(CollectProvenanceInfo(ctx, req, authDetails))
+		for _, reference := range parser.References() {
+			if datum := dataTypesFactory.ParseDatum(parser.WithReferenceObjectParser(reference)); datum != nil && *datum != nil {
+				(*datum).Validate(validator.WithReference(strconv.Itoa(reference)))
+			}
+		}
+		parser.NotParsed()
+
+		if err = errors.Append(parser.Error(), validator.Error()); err != nil {
+			responder.Error(http.StatusBadRequest, err)
+			return
+		}
+	} else {
+		body = io.MultiReader(body, req.Body)
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet); getErr != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-		return
-	} else if deduplicator == nil {
-		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-		return
-	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataRepository(), dataSet, datumArray); err != nil {
-		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
+	create := dataRaw.NewCreate()
+	create.DigestMD5 = digestMD5
+	create.MediaType = mediaType
+	create.Metadata = metadata.NewMetadata()
+	create.Metadata.Set("provenance", CollectProvenanceInfo(ctx, req, authDetails))
+
+	if err := structureValidator.New(lgr).Validate(create); err != nil {
+		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	updatesSummary := make(map[string]struct{})
-	for _, datum := range datumArray {
-		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+	raw, err := dataServiceContext.DataRawClient().Create(ctx, *dataSet.UserID, *dataSet.ID, create, body)
+	if err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to create raw data", err)
+		return
 	}
-	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
+	req.Body.Close()
 
-	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
+	// TODO: How to detect DigestMD5 mismatch returned from client? Should send http.StatusBadRequest
+
+	if dataSet.HasDataSetTypeContinuous() {
+		work, err := dataServiceContext.WorkClient().Create(ctx, dataWorkApi.NewIngestCreate(dataSet, raw))
+		if err != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to create work", err)
+			return
+		}
+
+		lgr.WithFields(log.Fields{"rawId": raw.ID, "workId": work.ID}).Debug("Created work for raw")
+	}
+
+	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create"); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
 	}
 
