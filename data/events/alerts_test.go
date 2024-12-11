@@ -109,7 +109,25 @@ var _ = Describe("Consumer", func() {
 			})
 
 			It("uses the longest delay", func() {
+				testLogger := logtest.NewLogger()
+				ctx := log.NewContextWithLogger(context.Background(), testLogger)
 
+				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
+				cfgWithShorterDelay := testAlertsConfigLow(testUserID)
+				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithShorterDelay)
+				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
+				cfgWithLongerDelay := testAlertsConfigLow(testUserID + "2")
+				cfgWithLongerDelay.Alerts.Low.Delay = alerts.DurationMinutes(10 * time.Minute)
+				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithLongerDelay)
+				deps.Permissions.Allow(testUserID+"2", permission.Follow, testFollowedUserID)
+
+				_, err := eval.Evaluate(ctx, testFollowedUserID)
+
+				Expect(err).To(Succeed())
+				if Expect(len(deps.Data.GetAlertableDataInputs)).To(Equal(1)) {
+					Expect(deps.Data.GetAlertableDataInputs[0].Params.Start).
+						To(BeTemporally("~", time.Now().Add(-10*time.Minute), time.Second))
+				}
 			})
 		})
 
@@ -180,12 +198,14 @@ func newEvaluatorTestDeps(responses []*store.AlertableResponse) (*evaluator, *ev
 		}, &evaluatorTestDeps{
 			Alerts:      alertsClient,
 			Permissions: permissions,
+			Data:        dataRepo,
 		}
 }
 
 type evaluatorTestDeps struct {
 	Alerts      *mockAlertsConfigClient
 	Permissions *mockPermissionsClient
+	Data        *storetest.DataRepository
 }
 
 // mockEvaluator implements Evaluator.
@@ -444,6 +464,26 @@ func testAlertsConfigUrgentLow(userID string) *alerts.Config {
 		UploadID:       testUploadID,
 		Alerts: alerts.Alerts{
 			UrgentLow: &alerts.UrgentLowAlert{
+				Base: alerts.Base{
+					Enabled:  true,
+					Activity: alerts.Activity{},
+				},
+				Threshold: alerts.Threshold{
+					Value: 10.0,
+					Units: nontypesglucose.MgdL,
+				},
+			},
+		},
+	}
+}
+
+func testAlertsConfigLow(userID string) *alerts.Config {
+	return &alerts.Config{
+		UserID:         userID,
+		FollowedUserID: testFollowedUserID,
+		UploadID:       testUploadID,
+		Alerts: alerts.Alerts{
+			Low: &alerts.LowAlert{
 				Base: alerts.Base{
 					Enabled:  true,
 					Activity: alerts.Activity{},
