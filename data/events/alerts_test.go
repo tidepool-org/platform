@@ -17,11 +17,13 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/push"
 )
 
 const (
@@ -47,7 +49,7 @@ var _ = Describe("Consumer", func() {
 			Expect(c.Consume(ctx, nil, nil)).To(Succeed())
 		})
 
-		It("processes alerts config events", func() {
+		It("consumes alerts config events", func() {
 			cfg := &alerts.Config{
 				UserID:         testUserID,
 				FollowedUserID: testFollowedUserID,
@@ -70,16 +72,8 @@ var _ = Describe("Consumer", func() {
 			Expect(deps.Session.MarkCalls).To(Equal(1))
 		})
 
-		It("processes device data events", func() {
-			blood := &glucose.Glucose{
-				Blood: blood.Blood{
-					Units: pointer.FromAny("mmol/L"),
-					Value: pointer.FromAny(7.2),
-					Base: types.Base{
-						UserID: pointer.FromAny(testFollowedUserID),
-					},
-				},
-			}
+		It("consumes device data events", func() {
+			blood := newTestStaticDatumMmolL(7.2)
 			kafkaMsg := newAlertsMockConsumerMessage(".data.deviceData.alerts", blood)
 			docs := []interface{}{bson.M{}}
 			c, deps := newConsumerTestDeps(docs)
@@ -88,6 +82,53 @@ var _ = Describe("Consumer", func() {
 			Expect(deps.Session.MarkCalls).To(Equal(1))
 		})
 
+		It("errors out when the datum's UserID is nil", func() {
+			blood := newTestStaticDatumMmolL(7.2)
+			blood.UserID = nil
+			kafkaMsg := newAlertsMockConsumerMessage(".data.deviceData.alerts", blood)
+			docs := []interface{}{bson.M{}}
+			c, deps := newConsumerTestDeps(docs)
+
+			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).
+				To(MatchError(ContainSubstring("userID is nil")))
+			Expect(deps.Session.MarkCalls).To(Equal(0))
+		})
+
+		It("errors out when the datum's UploadID is nil", func() {
+			blood := newTestStaticDatumMmolL(7.2)
+			blood.UploadID = nil
+			kafkaMsg := newAlertsMockConsumerMessage(".data.deviceData.alerts", blood)
+			docs := []interface{}{bson.M{}}
+			c, deps := newConsumerTestDeps(docs)
+
+			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).
+				To(MatchError(ContainSubstring("uploadID is nil")))
+			Expect(deps.Session.MarkCalls).To(Equal(0))
+		})
+
+		It("pushes notifications", func() {
+			blood := newTestStaticDatumMmolL(1.0)
+			kafkaMsg := newAlertsMockConsumerMessage(".data.deviceData.alerts", blood)
+			docs := []interface{}{bson.M{}}
+			c, deps := newConsumerTestDeps(docs)
+			eval := newMockEvaluator()
+			eval.Evaluations[testFollowedUserID+testUploadID] = []mockEvaluatorResponse{
+				{
+					Notifications: []*alerts.Notification{
+						{
+							Message:         "something",
+							RecipientUserID: testUserID,
+							FollowedUserID:  testFollowedUserID,
+						},
+					},
+				},
+			}
+			c.Evaluator = eval
+
+			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).To(Succeed())
+
+			deps.Logger.AssertInfo("logging push notification")
+		})
 	})
 
 	Describe("Evaluator", func() {
@@ -95,23 +136,38 @@ var _ = Describe("Consumer", func() {
 			It("checks that alerts config owners have permission", func() {
 				testLogger := logtest.NewLogger()
 				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-
 				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
 				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
 				deps.Permissions.DenyAll(testUserNoPermsID, testFollowedUserID)
 				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserNoPermsID))
 				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserID))
 
-				notes, err := eval.Evaluate(ctx, testFollowedUserID)
+				notes, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
 
 				Expect(err).To(Succeed())
 				Expect(notes).To(ConsistOf(HaveField("RecipientUserID", testUserID)))
 			})
 
+			It("checks that alerts configs match the data set id", func() {
+				testLogger := logtest.NewLogger()
+				ctx := log.NewContextWithLogger(context.Background(), testLogger)
+				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
+				deps.Permissions.Allow(testUserID+"2", permission.Follow, testFollowedUserID)
+				deps.Alerts.Configs = append(deps.Alerts.Configs, testAlertsConfigUrgentLow(testUserID+"2"))
+				deps.Permissions.Allow(testUserID, permission.Follow, testFollowedUserID)
+				wrongDataSetID := testAlertsConfigUrgentLow(testUserID)
+				wrongDataSetID.UploadID = "wrong"
+				deps.Alerts.Configs = append(deps.Alerts.Configs, wrongDataSetID)
+
+				notes, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
+
+				Expect(err).To(Succeed())
+				Expect(notes).To(ConsistOf(HaveField("RecipientUserID", testUserID+"2")))
+			})
+
 			It("uses the longest delay", func() {
 				testLogger := logtest.NewLogger()
 				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-
 				eval, deps := newEvaluatorTestDeps([]*store.AlertableResponse{testMongoUrgentLowResponse})
 				cfgWithShorterDelay := testAlertsConfigLow(testUserID)
 				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithShorterDelay)
@@ -121,7 +177,7 @@ var _ = Describe("Consumer", func() {
 				deps.Alerts.Configs = append(deps.Alerts.Configs, cfgWithLongerDelay)
 				deps.Permissions.Allow(testUserID+"2", permission.Follow, testFollowedUserID)
 
-				_, err := eval.Evaluate(ctx, testFollowedUserID)
+				_, err := eval.Evaluate(ctx, testFollowedUserID, testUploadID)
 
 				Expect(err).To(Succeed())
 				if Expect(len(deps.Data.GetAlertableDataInputs)).To(Equal(1)) {
@@ -135,14 +191,16 @@ var _ = Describe("Consumer", func() {
 })
 
 type consumerTestDeps struct {
-	Alerts      *mockAlertsConfigClient
-	Context     context.Context
-	Cursor      *mongo.Cursor
-	Evaluator   *mockStaticEvaluator
-	Logger      log.Logger
-	Permissions *mockPermissionsClient
-	Repo        *storetest.DataRepository
-	Session     *mockConsumerGroupSession
+	Alerts       *mockAlertsConfigClient
+	Context      context.Context
+	Cursor       *mongo.Cursor
+	DeviceTokens *mockDeviceTokens
+	Evaluator    *mockStaticEvaluator
+	Logger       *logtest.Logger
+	Permissions  *mockPermissionsClient
+	Pusher       Pusher
+	Repo         *storetest.DataRepository
+	Session      *mockConsumerGroupSession
 }
 
 func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
@@ -164,20 +222,30 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 	}
 	permissions := newMockPermissionsClient()
 	evaluator := newMockStaticEvaluator()
+	pusher := push.NewLogPusher(logger)
+	deviceTokens := newMockDeviceTokens()
+	deviceTokens.Tokens = append(deviceTokens.Tokens, []*devicetokens.DeviceToken{
+		{Apple: &devicetokens.AppleDeviceToken{}},
+	})
 
 	return &Consumer{
-			Alerts:      alertsClient,
-			Evaluator:   evaluator,
-			Data:        dataRepo,
-			Permissions: permissions,
+			Alerts:       alertsClient,
+			Evaluator:    evaluator,
+			Data:         dataRepo,
+			DeviceTokens: deviceTokens,
+			Permissions:  permissions,
+			Pusher:       pusher,
 		}, &consumerTestDeps{
-			Alerts:      alertsClient,
-			Context:     ctx,
-			Cursor:      cur,
-			Evaluator:   evaluator,
-			Repo:        dataRepo,
-			Session:     &mockConsumerGroupSession{},
-			Logger:      logger,
+			Alerts:       alertsClient,
+			Context:      ctx,
+			Cursor:       cur,
+			DeviceTokens: deviceTokens,
+			Evaluator:    evaluator,
+			Pusher:       pusher,
+			Repo:         dataRepo,
+			Session:      &mockConsumerGroupSession{},
+			Logger:       logger,
+			//Tokens:      tokens,
 			Permissions: permissions,
 		}
 }
@@ -226,17 +294,18 @@ func newMockEvaluator() *mockEvaluator {
 	}
 }
 
-func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID string) (
+func (e *mockEvaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
 	[]*alerts.Notification, error) {
 
-	if _, found := e.Evaluations[followedUserID]; !found {
+	key := followedUserID + dataSetID
+	if _, found := e.Evaluations[key]; !found {
 		return nil, nil
 	}
-	resp := e.Evaluations[followedUserID][0]
-	if len(e.Evaluations[followedUserID]) > 1 {
-		e.Evaluations[followedUserID] = e.Evaluations[followedUserID][1:]
+	resp := e.Evaluations[key][0]
+	if len(e.Evaluations[key]) > 1 {
+		e.Evaluations[key] = e.Evaluations[key][1:]
 	}
-	e.EvaluateCalls[followedUserID] += 1
+	e.EvaluateCalls[key] += 1
 	if resp.Error != nil {
 		return nil, resp.Error
 	}
@@ -263,7 +332,7 @@ func newMockStaticEvaluator() *mockStaticEvaluator {
 	return &mockStaticEvaluator{newMockEvaluator()}
 }
 
-func (e *mockStaticEvaluator) Evaluate(ctx context.Context, followedUserID string) (
+func (e *mockStaticEvaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
 	[]*alerts.Notification, error) {
 
 	e.EvaluateCalls[followedUserID] += 1
@@ -283,20 +352,14 @@ func newAlertsMockConsumerMessage(topic string, v any) *sarama.ConsumerMessage {
 	}
 }
 
-func addLogger(ctx context.Context) (context.Context, log.Logger) {
+func addLogger(ctx context.Context) (context.Context, *logtest.Logger) {
 	GinkgoHelper()
 	if ctx == nil {
 		ctx = context.Background()
 	}
 
-	lgr := newTestLogger()
-	return log.NewContextWithLogger(ctx, lgr), lgr
-}
-
-func newTestLogger() log.Logger {
-	GinkgoHelper()
 	lgr := logtest.NewLogger()
-	return lgr
+	return log.NewContextWithLogger(ctx, lgr), lgr
 }
 
 func augmentMockMongoDocs(inDocs []interface{}) []interface{} {
@@ -333,7 +396,9 @@ func newTestStaticDatumMmolL(value float64) *glucose.Glucose {
 	return &glucose.Glucose{
 		Blood: blood.Blood{
 			Base: types.Base{
-				Time: pointer.FromTime(time.Now()),
+				UserID:   pointer.FromAny(testFollowedUserID),
+				Time:     pointer.FromTime(time.Now()),
+				UploadID: pointer.FromAny(testUploadID),
 			},
 			Units: pointer.FromString(nontypesglucose.MmolL),
 			Value: pointer.FromFloat64(value),
@@ -495,4 +560,27 @@ func testAlertsConfigLow(userID string) *alerts.Config {
 			},
 		},
 	}
+}
+
+type mockDeviceTokens struct {
+	Error  error
+	Tokens [][]*devicetokens.DeviceToken
+}
+
+func newMockDeviceTokens() *mockDeviceTokens {
+	return &mockDeviceTokens{
+		Tokens: [][]*devicetokens.DeviceToken{},
+	}
+}
+
+func (t *mockDeviceTokens) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	if t.Error != nil {
+		return nil, t.Error
+	}
+	if len(t.Tokens) > 0 {
+		ret := t.Tokens[0]
+		t.Tokens = t.Tokens[1:]
+		return ret, nil
+	}
+	return nil, nil
 }

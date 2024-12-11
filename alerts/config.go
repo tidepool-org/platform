@@ -57,10 +57,12 @@ func (c Config) Validate(validator structure.Validator) {
 
 // Evaluate alerts in the context of the provided data.
 //
-// While this method, or the methods it calls, can fail, there's no point in returning an
-// error. Instead errors are logged before continuing. This is to ensure that any possible alert
-// that should be triggered, will be triggered.
-func (c Config) Evaluate(ctx context.Context, gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Notification {
+// While this method or the methods it calls can fail, there's no point in returning an
+// error. Instead errors are logged before continuing. This is to ensure that any possible
+// alert that should be triggered, will be triggered.
+func (c Config) Evaluate(ctx context.Context,
+	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) *Notification {
+
 	notification := c.Alerts.Evaluate(ctx, gd, dd)
 	if notification != nil {
 		notification.FollowedUserID = c.FollowedUserID
