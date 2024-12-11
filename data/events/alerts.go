@@ -76,7 +76,7 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	ctxLog := c.logger(ctx).WithField("followedUserID", cfg.FollowedUserID)
 	ctx = log.NewContextWithLogger(ctx, ctxLog)
 
-	notes, err := c.Evaluator.Evaluate(ctx, cfg.FollowedUserID)
+	notes, err := c.Evaluator.Evaluate(ctx, cfg.FollowedUserID, cfg.UploadID)
 	if err != nil {
 		format := "Unable to evalaute alerts configs triggered event for user %s"
 		return errors.Wrapf(err, format, cfg.UserID)
@@ -103,8 +103,11 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 	if datum.UserID == nil {
 		return errors.New("Unable to retrieve alerts configs: userID is nil")
 	}
+	if datum.UploadID == nil {
+		return errors.New("Unable to retrieve alerts configs: uploadID is nil")
+	}
 	ctx = log.NewContextWithLogger(ctx, lgr.WithField("followedUserID", *datum.UserID))
-	notes, err := c.Evaluator.Evaluate(ctx, *datum.UserID)
+	notes, err := c.Evaluator.Evaluate(ctx, *datum.UserID, *datum.UploadID)
 	if err != nil {
 		format := "Unable to evalaute device data triggered event for user %s"
 		return errors.Wrapf(err, format, *datum.UserID)
@@ -162,7 +165,7 @@ func (c *Consumer) logger(ctx context.Context) log.Logger {
 }
 
 type AlertsEvaluator interface {
-	Evaluate(ctx context.Context, followedUserID string) ([]*alerts.Notification, error)
+	Evaluate(ctx context.Context, followedUserID, dataSetID string) ([]*alerts.Notification, error)
 }
 
 func NewAlertsEvaluator(alerts AlertsClient, data store.DataRepository,
@@ -198,10 +201,10 @@ func (e *evaluator) logger(ctx context.Context) log.Logger {
 }
 
 // Evaluate followers' alerts.Configs to generate alert notifications.
-func (e *evaluator) Evaluate(ctx context.Context, followedUserID string) (
+func (e *evaluator) Evaluate(ctx context.Context, followedUserID, dataSetID string) (
 	[]*alerts.Notification, error) {
 
-	alertsConfigs, err := e.gatherAlertsConfigs(ctx, followedUserID)
+	alertsConfigs, err := e.gatherAlertsConfigs(ctx, followedUserID, dataSetID)
 	if err != nil {
 		return nil, err
 	}
@@ -231,14 +234,21 @@ func (e *evaluator) mapAlertsConfigsByUploadID(cfgs []*alerts.Config) map[string
 	return mapped
 }
 
+// gatherAlertsConfigs for the given followed user and data set.
+//
+// Those configs which don't match the data set or whose owners don't have permission are
+// removed.
 func (e *evaluator) gatherAlertsConfigs(ctx context.Context,
-	followedUserID string) ([]*alerts.Config, error) {
+	followedUserID, dataSetID string) ([]*alerts.Config, error) {
 
 	alertsConfigs, err := e.Alerts.List(ctx, followedUserID)
 	if err != nil {
 		return nil, err
 	}
 	alertsConfigs = slices.DeleteFunc(alertsConfigs, e.authDenied(ctx))
+	alertsConfigs = slices.DeleteFunc(alertsConfigs, func(c *alerts.Config) bool {
+		return c.UploadID != dataSetID
+	})
 	return alertsConfigs, nil
 }
 
@@ -297,10 +307,6 @@ func (e *evaluator) gatherData(ctx context.Context, followedUserID, uploadID str
 func (e *evaluator) generateNotes(ctx context.Context,
 	alertsConfigs []*alerts.Config, resp *store.AlertableResponse) []*alerts.Notification {
 
-	if len(alertsConfigs) == 0 {
-		return nil
-	}
-
 	lgr := e.logger(ctx)
 	notifications := []*alerts.Notification{}
 	for _, alertsConfig := range alertsConfigs {
@@ -313,7 +319,6 @@ func (e *evaluator) generateNotes(ctx context.Context,
 		note := alertsConfig.Evaluate(c, resp.Glucose, resp.DosingDecisions)
 		if note != nil {
 			notifications = append(notifications, note)
-			continue
 		}
 	}
 
