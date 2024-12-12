@@ -335,17 +335,69 @@ func (a NotLoopingAlert) Validate(validator structure.Validator) {
 }
 
 // Evaluate if the device is looping.
-func (a NotLoopingAlert) Evaluate(ctx context.Context,
-	decisions []*dosingdecision.DosingDecision) (
-	notifcation *NotificationWithHook, _ bool) {
+func (a *NotLoopingAlert) Evaluate(ctx context.Context,
+	decisions []*dosingdecision.DosingDecision) (_ *NotificationWithHook, changed bool) {
 
-	// TODO will be implemented in the near future.
-	return nil, false
+	defer func() { logNotLoopingEvaluation(ctx, changed, a.IsActive()) }()
+
+	lastLooped := time.Time{}
+	for _, decision := range decisions {
+		if decision.Reason == nil || *decision.Reason != DosingDecisionReasonLoop {
+			continue
+		}
+		if decision.Time == nil {
+			continue
+		}
+		if decision.Time.After(lastLooped) {
+			lastLooped = *decision.Time
+		}
+	}
+
+	delay := DefaultNotLoopingDelay
+	if a.Delay.Duration() != 0 {
+		delay = a.Delay.Duration()
+	}
+	if time.Since(lastLooped) < delay {
+		if a.IsActive() {
+			a.Resolved = time.Now()
+			return nil, true
+		}
+		return nil, false
+	}
+
+	if a.IsActive() {
+		if time.Since(a.Sent) > NotLoopingRepeat {
+			notification := a.withHook(&Notification{Message: NotLoopingMessage})
+			return notification, false
+		}
+		return nil, false
+	} else {
+		a.Triggered = time.Now()
+		notification := a.withHook(&Notification{Message: NotLoopingMessage})
+		return notification, true
+	}
 }
+
+// DefaultNotLoopingDelay is used when the delay has a Zero value (its default).
+const DefaultNotLoopingDelay = 30 * time.Minute
+
+func logNotLoopingEvaluation(ctx context.Context, changed, isAlerting bool) {
+	fields := log.Fields{
+		"changed":     changed,
+		"isAlerting?": isAlerting,
+	}
+	lgr := log.LoggerFromContext(ctx)
+	lgr.WithFields(fields).Info("not looping")
+}
+
+const NotLoopingMessage = "Loop is not able to loop"
 
 // DosingDecisionReasonLoop is specified in a [dosingdecision.DosingDecision] to indicate
 // that the decision is part of a loop adjustment (as opposed to bolus or something else).
 const DosingDecisionReasonLoop string = "loop"
+
+// NotLoopingRepeat is the interval between sending notifications when not looping.
+const NotLoopingRepeat = 5 * time.Minute
 
 // NoCommunicationAlert is configured to send notifications when no data is received.
 //
