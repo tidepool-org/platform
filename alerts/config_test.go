@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -309,6 +310,14 @@ var _ = Describe("Config", func() {
 				Units: pointer.FromAny(nontypesglucose.MmolL),
 				Value: pointer.FromAny(v),
 			},
+		}
+	}
+	var testDosingDecision = func(d time.Duration) *dosingdecision.DosingDecision {
+		return &dosingdecision.DosingDecision{
+			Base: types.Base{
+				Time: pointer.FromAny(time.Now().Add(d)),
+			},
+			Reason: pointer.FromAny(DosingDecisionReasonLoop),
 		}
 	}
 
@@ -1016,6 +1025,14 @@ var _ = Describe("Config", func() {
 	})
 
 	Context("NotLoopingAlert", func() {
+
+		var decisionsOld = []*dosingdecision.DosingDecision{
+			testDosingDecision(-30 * time.Hour),
+		}
+		var decisionsRecent = []*dosingdecision.DosingDecision{
+			testDosingDecision(-15 * time.Second),
+		}
+
 		Context("Delay", func() {
 			It("accepts values between 0 and 2 hours (inclusive)", func() {
 				val := validator.New(logTest.NewLogger())
@@ -1038,7 +1055,189 @@ var _ = Describe("Config", func() {
 				b.Validate(val)
 				Expect(val.Error()).To(MatchError("value 2h0m1s is not between 0s and 2h0m0s"))
 			})
+		})
 
+		Context("Evaluate", func() {
+			testNotLooping := func() *NotLoopingAlert {
+				return &NotLoopingAlert{
+					Base:  Base{},
+					Delay: 0,
+				}
+			}
+
+			It("uses a default delay of 30 minutes", func() {
+				ctx := contextWithTestLogger()
+				decisionsNoAlert := []*dosingdecision.DosingDecision{
+					testDosingDecision(-29 * time.Minute),
+				}
+				decisionsWithAlert := []*dosingdecision.DosingDecision{
+					testDosingDecision(-30 * time.Minute),
+				}
+
+				alert := testNotLooping()
+
+				notification, _ := alert.Evaluate(ctx, decisionsNoAlert)
+				Expect(notification).To(BeNil())
+				notification, _ = alert.Evaluate(ctx, decisionsWithAlert)
+				Expect(notification).ToNot(BeNil())
+				Expect(notification.Message).To(ContainSubstring("not able to loop"))
+			})
+
+			It("respects custom delays", func() {
+				ctx := contextWithTestLogger()
+				decisionsNoAlert := []*dosingdecision.DosingDecision{
+					testDosingDecision(-14 * time.Minute),
+				}
+				decisionsWithAlert := []*dosingdecision.DosingDecision{
+					testDosingDecision(-15 * time.Minute),
+				}
+
+				alert := testNotLooping()
+				alert.Delay = DurationMinutes(15 * time.Minute)
+
+				notification, _ := alert.Evaluate(ctx, decisionsNoAlert)
+				Expect(notification).To(BeNil())
+				notification, _ = alert.Evaluate(ctx, decisionsWithAlert)
+				Expect(notification).ToNot(BeNil())
+				Expect(notification.Message).To(ContainSubstring("not able to loop"))
+			})
+
+			It("handles being passed empty data", func() {
+				ctx := contextWithTestLogger()
+				var notification *NotificationWithHook
+
+				alert := testNotLooping()
+
+				Expect(func() {
+					notification, _ = alert.Evaluate(ctx, []*dosingdecision.DosingDecision{})
+				}).ToNot(Panic())
+				Expect(notification.Message).To(ContainSubstring("Loop is not able to loop"))
+				Expect(func() {
+					notification, _ = alert.Evaluate(ctx, nil)
+				}).ToNot(Panic())
+				Expect(notification.Message).To(ContainSubstring("Loop is not able to loop"))
+			})
+
+			It("logs evaluation results", func() {
+				ctx := contextWithTestLogger()
+				decisions := []*dosingdecision.DosingDecision{
+					testDosingDecision(-30 * time.Second),
+				}
+
+				alert := testNotLooping()
+
+				Expect(func() {
+					alert.Evaluate(ctx, decisions)
+				}).ToNot(Panic())
+				Expect(func() {
+					lgr := log.LoggerFromContext(ctx).(*logTest.Logger)
+					lgr.AssertInfo("not looping", log.Fields{
+						"changed":     false,
+						"isAlerting?": false,
+					})
+				}).ToNot(Panic())
+			})
+
+			Context("when currently active", func() {
+				It("marks itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testNotLooping()
+
+					Expect(func() {
+						alert.Evaluate(ctx, decisionsOld)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, decisionsRecent)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+				})
+			})
+
+			Context("when currently INactive", func() {
+				It("doesn't re-mark itself resolved", func() {
+					ctx := contextWithTestLogger()
+
+					alert := testNotLooping()
+
+					Expect(func() {
+						alert.Evaluate(ctx, decisionsOld)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(BeZero())
+					Expect(func() {
+						alert.Evaluate(ctx, decisionsRecent)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).ToNot(BeZero())
+					was := alert.Resolved
+					Expect(func() {
+						alert.Evaluate(ctx, decisionsRecent)
+					}).ToNot(Panic())
+					Expect(alert.Resolved).To(Equal(was))
+				})
+			})
+
+			It("marks itself triggered", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testNotLooping()
+
+				Expect(func() {
+					alert.Evaluate(ctx, decisionsRecent)
+				}).ToNot(Panic())
+				Expect(alert.Triggered).To(BeZero())
+				Expect(func() {
+					alert.Evaluate(ctx, decisionsOld)
+				}).ToNot(Panic())
+				Expect(alert.Triggered).ToNot(BeZero())
+			})
+
+			It("observes NotLoopingRepeat between notifications", func() {
+				ctx := contextWithTestLogger()
+				noRepeat := time.Now().Add(-4 * time.Minute)
+				triggersRepeat := noRepeat.Add(-NotLoopingRepeat)
+
+				alert := testNotLooping()
+				alert.Sent = noRepeat
+				alert.Triggered = noRepeat
+
+				notification, _ := alert.Evaluate(ctx, decisionsOld)
+				Expect(notification).To(BeNil())
+
+				alert.Sent = triggersRepeat
+				notification, _ = alert.Evaluate(ctx, decisionsOld)
+				Expect(notification).ToNot(BeNil())
+			})
+
+			It("ignores decisions without a reason", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testNotLooping()
+				noReason := testDosingDecision(time.Second)
+				noReason.Reason = nil
+				decisions := []*dosingdecision.DosingDecision{
+					testDosingDecision(-time.Hour),
+					noReason,
+				}
+
+				notification, _ := alert.Evaluate(ctx, decisions)
+				Expect(notification).ToNot(BeNil())
+			})
+
+			It("ignores decisions without a time", func() {
+				ctx := contextWithTestLogger()
+
+				alert := testNotLooping()
+				noTime := testDosingDecision(time.Second)
+				noTime.Time = nil
+				decisions := []*dosingdecision.DosingDecision{
+					testDosingDecision(-time.Hour),
+					noTime,
+				}
+
+				notification, _ := alert.Evaluate(ctx, decisions)
+				Expect(notification).ToNot(BeNil())
+			})
 		})
 	})
 
