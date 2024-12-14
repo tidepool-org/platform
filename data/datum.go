@@ -39,7 +39,7 @@ type Datum interface {
 	SetDeletedUserID(deletedUserID *string)
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
-	SetProvenance(*Provenance)
+	SetProvenance(provenance *Provenance)
 }
 
 func DatumAsPointer(datum Datum) *Datum {
@@ -75,4 +75,29 @@ type Provenance struct {
 	ByUserID string `json:"byUserId,omitempty" bson:"byUserID,omitempty"`
 	// SourceIP address from the HTTP request submitting the data.
 	SourceIP string `json:"sourceIP" bson:"sourceIP"`
+}
+
+func ParseProvenance(parser structure.ObjectParser) *Provenance {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewProvenance()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewProvenance() *Provenance {
+	return &Provenance{}
+}
+
+func (p *Provenance) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clientId"); ptr != nil {
+		p.ClientID = *ptr
+	}
+	if ptr := parser.String("byUserId"); ptr != nil {
+		p.ByUserID = *ptr
+	}
+	if ptr := parser.String("sourceIP"); ptr != nil {
+		p.SourceIP = *ptr
+	}
 }

@@ -2,8 +2,6 @@ package mongo
 
 import (
 	"context"
-	"slices"
-	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,7 +9,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -32,7 +29,7 @@ func (d *DataRepository) EnsureIndexes() error {
 	return d.DataSetRepository.EnsureIndexes()
 }
 
-func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*data.DataSet, error) {
 	return d.DataSetRepository.GetDataSetsForUserByID(ctx, userID, filter, pagination)
 }
 
@@ -44,15 +41,15 @@ func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*dat
 	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }
 
-func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	return d.DataSetRepository.GetDataSetByID(ctx, dataSetID)
 }
 
-func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	return d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
 }
 
-func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
+func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -63,7 +60,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 // DeleteDataSet will actually delete all non upload data and not actually
 // delete the dataSet/upload but rather mark it as deleted by setting the
 // deletedTime field.
-func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -81,7 +78,6 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	selector := bson.M{
 		"_userId":  dataSet.UserID,
 		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
 	}
 	removeInfo, err = d.DatumRepository.DeleteMany(ctx, selector)
 	if err == nil {
@@ -108,12 +104,12 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 		return errors.Wrap(err, "unable to delete data set")
 	}
 
-	dataSet.SetDeletedTime(&timestamp)
-	dataSet.SetModifiedTime(&timestamp)
+	dataSet.DeletedTime = &timestamp
+	dataSet.ModifiedTime = &timestamp
 	return nil
 }
 
-func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -136,7 +132,6 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *up
 		"_userId":  dataSet.UserID,
 		"deviceId": *dataSet.DeviceID,
 		"uploadId": bson.M{"$ne": dataSet.UploadID},
-		"type":     bson.M{"$ne": "upload"},
 	}
 	removeInfo, err = d.DatumRepository.DeleteMany(ctx, selector)
 	if err == nil {
@@ -197,8 +192,4 @@ func (d *DataRepository) DestroyDataForUserByID(ctx context.Context, userID stri
 
 func (d *DataRepository) mongoClient() *mongo.Client {
 	return d.DatumRepository.Database().Client()
-}
-
-func isTypeUpload(typ []string) bool {
-	return slices.Contains(typ, strings.ToLower(upload.Type))
 }
