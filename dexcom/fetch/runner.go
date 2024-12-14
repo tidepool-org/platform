@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -732,7 +731,7 @@ func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM})
 	dataSetCreate.Time = pointer.FromTime(time.Now())
-	dataSetCreate.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingNone)
+	dataSetCreate.TimeProcessing = pointer.FromString(data.TimeProcessingNone)
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
 	if err != nil {

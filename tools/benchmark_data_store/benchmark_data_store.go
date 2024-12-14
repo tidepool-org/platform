@@ -20,7 +20,6 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTypes "github.com/tidepool-org/platform/data/types"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/origin"
@@ -567,21 +566,21 @@ func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, repository data
 }
 
 func (t *Tool) benchmarkPlatformDBActivateDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.ActivateDataSetData(ctx, dataSet, input.Selectors)
 }
 
 func (t *Tool) benchmarkPlatformDBArchiveDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.ArchiveDataSetData(ctx, dataSet, input.Selectors)
 }
 
 func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
@@ -589,7 +588,7 @@ func (t *Tool) benchmarkPlatformDBArchiveDeviceDataUsingHashesFromDataSet(ctx co
 }
 
 func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.ID = pointer.FromString(data.NewID())
@@ -599,28 +598,28 @@ func (t *Tool) benchmarkPlatformDBCreateDataSet(ctx context.Context, repository 
 }
 
 func (t *Tool) benchmarkPlatformDBCreateDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.CreateDataSetData(ctx, dataSet, t.generateRandomDataSetData(input.DeviceID))
 }
 
 func (t *Tool) benchmarkPlatformDBDeleteDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.DeleteDataSet(ctx, dataSet)
 }
 
 func (t *Tool) benchmarkPlatformDBDeleteDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.DeleteDataSetData(ctx, dataSet, input.Selectors)
 }
 
 func (t *Tool) benchmarkPlatformDBDeleteOtherDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
@@ -636,14 +635,14 @@ func (t *Tool) benchmarkPlatformDBDestroyDataForUserByID(ctx context.Context, re
 }
 
 func (t *Tool) benchmarkPlatformDBDestroyDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.DestroyDataSetData(ctx, dataSet, input.Selectors)
 }
 
 func (t *Tool) benchmarkPlatformDBDestroyDeletedDataSetData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
 	return repository.DestroyDeletedDataSetData(ctx, dataSet, input.Selectors)
@@ -686,7 +685,7 @@ func (t *Tool) benchmarkPlatformDBListUserDataSets(ctx context.Context, reposito
 }
 
 func (t *Tool) benchmarkPlatformDBUnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	dataSet := dataTypesUpload.New()
+	dataSet := data.NewDataSet()
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.UserID = pointer.CloneString(input.UserID)
 	dataSet.UploadID = pointer.CloneString(input.DataSetID)
@@ -802,8 +801,8 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, reposi
 	return nil
 }
 
-func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*dataTypesUpload.Upload, data.Data) {
-	dataSet := dataTypesUpload.New()
+func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*data.DataSet, data.Data) {
+	dataSet := data.NewDataSet()
 	dataSet.CreatedUserID = pointer.CloneString(input.UserID)
 	dataSet.DeviceID = pointer.CloneString(input.DeviceID)
 	dataSet.ID = pointer.FromString(data.NewID())
@@ -812,7 +811,7 @@ func (t *Tool) prepareDataSetWithData(input *BenchmarkInput) (*dataTypesUpload.U
 	return dataSet, t.generateRandomDataSetData(input.DeviceID)
 }
 
-func (t *Tool) createDataSetWithData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (*dataTypesUpload.Upload, error) {
+func (t *Tool) createDataSetWithData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (*data.DataSet, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
 	}
