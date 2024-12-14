@@ -128,6 +128,8 @@ type Tool struct {
 	metadataRepository    *storeStructuredMongo.Repository
 	dataStore             *storeStructuredMongo.Store
 	dataRepository        *storeStructuredMongo.Repository
+	dataSetStore          *storeStructuredMongo.Store
+	dataSetRepository     *storeStructuredMongo.Repository
 	dataSourcesStore      *storeStructuredMongo.Store
 	dataSourcesRepository *storeStructuredMongo.Repository
 	output                string
@@ -173,6 +175,9 @@ func (t *Tool) Initialize(provider application.Provider) error {
 	if err := t.initializeDataRepository(); err != nil {
 		return err
 	}
+	if err := t.initializeDataSetRepository(); err != nil {
+		return err
+	}
 	if err := t.initializeDataSourcesRepository(); err != nil {
 		return err
 	}
@@ -182,6 +187,7 @@ func (t *Tool) Initialize(provider application.Provider) error {
 
 func (t *Tool) Terminate() {
 	t.terminateDataSourcesRepository()
+	t.terminateDataSetRepository()
 	t.terminateDataRepository()
 	t.terminateMetadataRepository()
 	t.terminateUsersRepository()
@@ -283,6 +289,20 @@ func (t *Tool) terminateDataRepository() {
 		t.Logger().Debug("Destroying data store")
 		t.dataStore.Terminate(context.Background())
 		t.dataStore = nil
+	}
+}
+
+func (t *Tool) initializeDataSetRepository() error {
+	t.Logger().Debug("Creating data set repository")
+
+	t.dataSetRepository = t.dataStore.GetRepository("deviceDataSets")
+	return nil
+}
+
+func (t *Tool) terminateDataSetRepository() {
+	if t.dataSetRepository != nil {
+		t.Logger().Debug("Destroying data set repository")
+		t.dataSetRepository = nil
 	}
 }
 
@@ -537,7 +557,7 @@ func (t *Tool) getUserDataDevicesOther(userID string, user *User, logger log.Log
 			},
 		},
 	}
-	iter, err := t.dataRepository.Aggregate(context.Background(), pipeline)
+	iter, err := t.dataSetRepository.Aggregate(context.Background(), pipeline)
 	if err != nil {
 		return errors.Wrap(err, "unable to iterate user data devices other")
 	}
@@ -575,7 +595,7 @@ func (t *Tool) getUserDataDevice(query interface{}, logger log.Logger) (*Device,
 		CreatedTime string `bson:"createdTime"`
 	}
 	opts := options.Find().SetSort(bson.M{"createdTime": -1}).SetLimit(2)
-	cursor, err := t.dataRepository.Find(context.Background(), query, opts)
+	cursor, err := t.dataSetRepository.Find(context.Background(), query, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -585,7 +605,7 @@ func (t *Tool) getUserDataDevice(query interface{}, logger log.Logger) (*Device,
 		return nil, nil
 	}
 
-	uploadCount, err := t.dataRepository.CountDocuments(context.Background(), query)
+	uploadCount, err := t.dataSetRepository.CountDocuments(context.Background(), query)
 	if err != nil {
 		return nil, err
 	}

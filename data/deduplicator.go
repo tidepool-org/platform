@@ -34,10 +34,6 @@ func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {
 	validator.String("hash", d.Hash).NotEmpty()
 }
 
-func (d *DeduplicatorDescriptor) Normalize(normalizer structure.Normalizer) {}
-
-func (d *DeduplicatorDescriptor) NormalizeDEPRECATED(normalizer Normalizer) {}
-
 func (d *DeduplicatorDescriptor) HasName() bool {
 	return d.Name != nil
 }
