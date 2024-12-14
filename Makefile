@@ -349,16 +349,17 @@ clean-bin:
 	@cd $(ROOT_DIRECTORY) && rm -rf _bin _log
 
 clean-cover:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.coverprofile" -o -name "coverprofile.out" -delete
+	@cd $(ROOT_DIRECTORY) && find . -not -path './.gvm_local/*' -not -path './vendor/*' -type f \( -name "*.coverprofile" -o -name "coverprofile.out" \) -delete
+	@cd $(ROOT_DIRECTORY) && find . -not -path './.gvm_local/*' -not -path './vendor/*' -type d -name "coverage" -empty -delete
 
 clean-debug:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
+	@cd $(ROOT_DIRECTORY) && find . -not -path './.gvm_local/*' -not -path './vendor/*' -type f \( -name "debug" -o -name "__debug_bin*" \) -delete
 
 clean-deploy:
 	@cd $(ROOT_DIRECTORY) && rm -rf deploy
 
 clean-test:
-	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
+	@cd $(ROOT_DIRECTORY) && find . -not -path './.gvm_local/*' -not -path './vendor/*' -type f \( -name "*.test" -o -name "*.report" \) -delete
 
 clean-all: clean
 
