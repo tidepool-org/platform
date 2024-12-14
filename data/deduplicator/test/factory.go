@@ -3,13 +3,13 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/data"
 	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
 type NewInput struct {
 	Context context.Context
-	DataSet *dataTypesUpload.Upload
+	DataSet *data.DataSet
 }
 
 type NewOutput struct {
@@ -19,7 +19,7 @@ type NewOutput struct {
 
 type GetInput struct {
 	Context context.Context
-	DataSet *dataTypesUpload.Upload
+	DataSet *data.DataSet
 }
 
 type GetOutput struct {
@@ -30,12 +30,12 @@ type GetOutput struct {
 type Factory struct {
 	NewInvocations int
 	NewInputs      []NewInput
-	NewStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	NewStub        func(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error)
 	NewOutputs     []NewOutput
 	NewOutput      *NewOutput
 	GetInvocations int
 	GetInputs      []GetInput
-	GetStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	GetStub        func(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error)
 	GetOutputs     []GetOutput
 	GetOutput      *GetOutput
 }
@@ -44,7 +44,7 @@ func NewFactory() *Factory {
 	return &Factory{}
 }
 
-func (f *Factory) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) New(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	f.NewInvocations++
 	f.NewInputs = append(f.NewInputs, NewInput{Context: ctx, DataSet: dataSet})
 	if f.NewStub != nil {
@@ -61,7 +61,7 @@ func (f *Factory) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (dat
 	panic("New has no output")
 }
 
-func (f *Factory) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) Get(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	f.GetInvocations++
 	f.GetInputs = append(f.GetInputs, GetInput{Context: ctx, DataSet: dataSet})
 	if f.GetStub != nil {

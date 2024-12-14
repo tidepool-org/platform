@@ -3,8 +3,8 @@ package deduplicator
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -27,7 +27,7 @@ func NewDeviceTruncateDataSet() (*DeviceTruncateDataSet, error) {
 	}, nil
 }
 
-func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -58,7 +58,7 @@ func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUploa
 	return false, nil
 }
 
-func (t *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (t *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := t.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -66,7 +66,7 @@ func (t *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *dataTypesUploa
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (t *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (t *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
