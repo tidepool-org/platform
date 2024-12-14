@@ -39,7 +39,7 @@ type Datum interface {
 	SetDeletedUserID(deletedUserID *string)
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
-	SetProvenance(*Provenance)
+	SetProvenance(provenance *Provenance)
 }
 
 func DatumAsPointer(datum Datum) *Datum {
@@ -68,11 +68,36 @@ type Provenance struct {
 	// ClientID of the service making the request.
 	//
 	// Examples: "shoreline" or "tidepool-loop"
-	ClientID string `json:"clientId" bson:"clientID"`
+	ClientID string `json:"clientID" bson:"clientID"`
 	// ByUserID the userId of the user submitting the data.
 	//
 	// This is a std Tidepool user id.
-	ByUserID string `json:"byUserId,omitempty" bson:"byUserID,omitempty"`
+	ByUserID string `json:"byUserID,omitempty" bson:"byUserID,omitempty"`
 	// SourceIP address from the HTTP request submitting the data.
 	SourceIP string `json:"sourceIP" bson:"sourceIP"`
+}
+
+func ParseProvenance(parser structure.ObjectParser) *Provenance {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewProvenance()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewProvenance() *Provenance {
+	return &Provenance{}
+}
+
+func (p *Provenance) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clientID"); ptr != nil {
+		p.ClientID = *ptr
+	}
+	if ptr := parser.String("byUserID"); ptr != nil {
+		p.ByUserID = *ptr
+	}
+	if ptr := parser.String("sourceIP"); ptr != nil {
+		p.SourceIP = *ptr
+	}
 }

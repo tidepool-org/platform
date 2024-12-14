@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -27,11 +26,11 @@ func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
 	}, nil
 }
 
-func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	return d.Get(ctx, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -39,7 +38,7 @@ func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -51,13 +50,13 @@ func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.Dat
 	}
 
 	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.SetActive(true)
+		dataSet.Active = true
 	}
 
 	return d.Base.Open(ctx, repository, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -88,7 +87,7 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.
 	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -105,7 +104,7 @@ func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataSto
 	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

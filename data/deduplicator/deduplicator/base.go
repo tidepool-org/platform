@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
@@ -34,11 +33,11 @@ func NewBase(name string, version string) (*Base, error) {
 	}, nil
 }
 
-func (b *Base) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (b *Base) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	return b.Get(ctx, dataSet)
 }
 
-func (b *Base) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (b *Base) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -46,7 +45,7 @@ func (b *Base) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, 
 	return dataSet.HasDeduplicatorNameMatch(b.name), nil
 }
 
-func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -65,7 +64,7 @@ func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, da
 	return repository.UpdateDataSet(ctx, *dataSet.UploadID, update)
 }
 
-func (b *Base) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (b *Base) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -82,7 +81,7 @@ func (b *Base) AddData(ctx context.Context, repository dataStore.DataRepository,
 	return repository.CreateDataSetData(ctx, dataSet, dataSetData)
 }
 
-func (b *Base) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (b *Base) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -99,7 +98,7 @@ func (b *Base) DeleteData(ctx context.Context, repository dataStore.DataReposito
 	return repository.DestroyDataSetData(ctx, dataSet, selectors)
 }
 
-func (b *Base) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (b *Base) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -119,7 +118,7 @@ func (b *Base) Close(ctx context.Context, repository dataStore.DataRepository, d
 	return repository.ActivateDataSetData(ctx, dataSet, nil)
 }
 
-func (b *Base) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (b *Base) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
