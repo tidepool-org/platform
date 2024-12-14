@@ -5,70 +5,69 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
 type OpenInput struct {
 	Context    context.Context
 	Repository dataStore.DataRepository
-	DataSet    *dataTypesUpload.Upload
+	DataSet    *data.DataSet
 }
 
 type OpenOutput struct {
-	DataSet *dataTypesUpload.Upload
+	DataSet *data.DataSet
 	Error   error
 }
 
 type AddDataInput struct {
 	Context     context.Context
 	Repository  dataStore.DataRepository
-	DataSet     *dataTypesUpload.Upload
+	DataSet     *data.DataSet
 	DataSetData data.Data
 }
 
 type DeleteDataInput struct {
 	Context    context.Context
 	Repository dataStore.DataRepository
-	DataSet    *dataTypesUpload.Upload
+	DataSet    *data.DataSet
 	Selectors  *data.Selectors
 }
 
 type CloseInput struct {
 	Context    context.Context
 	Repository dataStore.DataRepository
-	DataSet    *dataTypesUpload.Upload
+	DataSet    *data.DataSet
 }
 
 type DeleteInput struct {
 	Context    context.Context
 	Repository dataStore.DataRepository
-	DataSet    *dataTypesUpload.Upload
+	DataSet    *data.DataSet
 }
 
 type Deduplicator struct {
 	OpenInvocations       int
 	OpenInputs            []OpenInput
-	OpenStub              func(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error)
+	OpenStub              func(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error)
 	OpenOutputs           []OpenOutput
 	OpenOutput            *OpenOutput
 	AddDataInvocations    int
 	AddDataInputs         []AddDataInput
-	AddDataStub           func(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error
+	AddDataStub           func(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error
 	AddDataOutputs        []error
 	AddDataOutput         *error
 	DeleteDataInvocations int
 	DeleteDataInputs      []DeleteDataInput
-	DeleteDataStub        func(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error
+	DeleteDataStub        func(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error
 	DeleteDataOutputs     []error
 	DeleteDataOutput      *error
 	CloseInvocations      int
 	CloseInputs           []CloseInput
-	CloseStub             func(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error
+	CloseStub             func(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
 	CloseOutputs          []error
 	CloseOutput           *error
 	DeleteInvocations     int
 	DeleteInputs          []DeleteInput
-	DeleteStub            func(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error
+	DeleteStub            func(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
 	DeleteOutputs         []error
 	DeleteOutput          *error
 }
@@ -77,7 +76,7 @@ func NewDeduplicator() *Deduplicator {
 	return &Deduplicator{}
 }
 
-func (d *Deduplicator) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (d *Deduplicator) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
 	d.OpenInvocations++
 	d.OpenInputs = append(d.OpenInputs, OpenInput{Context: ctx, Repository: repository, DataSet: dataSet})
 	if d.OpenStub != nil {
@@ -94,7 +93,7 @@ func (d *Deduplicator) Open(ctx context.Context, repository dataStore.DataReposi
 	panic("Open has no output")
 }
 
-func (d *Deduplicator) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *Deduplicator) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	d.AddDataInvocations++
 	d.AddDataInputs = append(d.AddDataInputs, AddDataInput{Context: ctx, Repository: repository, DataSet: dataSet, DataSetData: dataSetData})
 	if d.AddDataStub != nil {
@@ -111,7 +110,7 @@ func (d *Deduplicator) AddData(ctx context.Context, repository dataStore.DataRep
 	panic("AddData has no output")
 }
 
-func (d *Deduplicator) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *Deduplicator) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.DeleteDataInvocations++
 	d.DeleteDataInputs = append(d.DeleteDataInputs, DeleteDataInput{Context: ctx, Repository: repository, DataSet: dataSet, Selectors: selectors})
 	if d.DeleteDataStub != nil {
@@ -128,7 +127,7 @@ func (d *Deduplicator) DeleteData(ctx context.Context, repository dataStore.Data
 	panic("DeleteData has no output")
 }
 
-func (d *Deduplicator) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *Deduplicator) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	d.CloseInvocations++
 	d.CloseInputs = append(d.CloseInputs, CloseInput{Context: ctx, Repository: repository, DataSet: dataSet})
 	if d.CloseStub != nil {
@@ -145,7 +144,7 @@ func (d *Deduplicator) Close(ctx context.Context, repository dataStore.DataRepos
 	panic("Close has no output")
 }
 
-func (d *Deduplicator) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *Deduplicator) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	d.DeleteInvocations++
 	d.DeleteInputs = append(d.DeleteInputs, DeleteInput{Context: ctx, Repository: repository, DataSet: dataSet})
 	if d.DeleteStub != nil {

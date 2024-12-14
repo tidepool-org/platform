@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -16,6 +14,7 @@ import (
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"

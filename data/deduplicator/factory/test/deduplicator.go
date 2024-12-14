@@ -3,13 +3,13 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
 type NewInput struct {
 	Context context.Context
-	DataSet *dataTypesUpload.Upload
+	DataSet *data.DataSet
 }
 
 type NewOutput struct {
@@ -19,7 +19,7 @@ type NewOutput struct {
 
 type GetInput struct {
 	Context context.Context
-	DataSet *dataTypesUpload.Upload
+	DataSet *data.DataSet
 }
 
 type GetOutput struct {
@@ -31,12 +31,12 @@ type Deduplicator struct {
 	*dataDeduplicatorTest.Deduplicator
 	NewInvocations int
 	NewInputs      []NewInput
-	NewStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
+	NewStub        func(ctx context.Context, dataSet *data.DataSet) (bool, error)
 	NewOutputs     []NewOutput
 	NewOutput      *NewOutput
 	GetInvocations int
 	GetInputs      []GetInput
-	GetStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
+	GetStub        func(ctx context.Context, dataSet *data.DataSet) (bool, error)
 	GetOutputs     []GetOutput
 	GetOutput      *GetOutput
 }
@@ -47,7 +47,7 @@ func NewDeduplicator() *Deduplicator {
 	}
 }
 
-func (d *Deduplicator) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *Deduplicator) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	d.NewInvocations++
 	d.NewInputs = append(d.NewInputs, NewInput{Context: ctx, DataSet: dataSet})
 	if d.NewStub != nil {
@@ -64,7 +64,7 @@ func (d *Deduplicator) New(ctx context.Context, dataSet *dataTypesUpload.Upload)
 	panic("New has no output")
 }
 
-func (d *Deduplicator) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *Deduplicator) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	d.GetInvocations++
 	d.GetInputs = append(d.GetInputs, GetInput{Context: ctx, DataSet: dataSet})
 	if d.GetStub != nil {

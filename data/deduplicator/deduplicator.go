@@ -5,18 +5,17 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
 type Factory interface {
-	New(ctx context.Context, dataSet *dataTypesUpload.Upload) (Deduplicator, error)
-	Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (Deduplicator, error)
+	New(ctx context.Context, dataSet *data.DataSet) (Deduplicator, error)
+	Get(ctx context.Context, dataSet *data.DataSet) (Deduplicator, error)
 }
 
 type Deduplicator interface {
-	Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error)
-	AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error
-	DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error
-	Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error
-	Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error
+	Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error)
+	AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error
+	DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error
+	Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
+	Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
 }
