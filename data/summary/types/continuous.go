@@ -51,18 +51,18 @@ func (CR *ContinuousRanges) Finalize() {
 }
 
 type ContinuousBucket struct {
-	BucketShared     `json:",inline" bson:",inline"`
 	ContinuousRanges `json:",inline" bson:",inline"`
 }
 
+// Add Currently unused, useful for future compaction
 func (B *ContinuousBucket) Add(bucket *ContinuousBucket) {
-	B.Add(bucket)
+	panic("ContinuousBucket.Add Not Implemented")
 }
 
-func (B *ContinuousBucket) Update(r data.Datum, shared *BucketShared) error {
+func (B *ContinuousBucket) Update(r data.Datum, shared *BucketShared) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
-		return errors.New("cgm or bgm record for calculation is not compatible with Glucose type")
+		return false, errors.New("cgm or bgm record for calculation is not compatible with Glucose type")
 	}
 
 	// TODO validate record type matches bucket type
@@ -76,7 +76,7 @@ func (B *ContinuousBucket) Update(r data.Datum, shared *BucketShared) error {
 
 	B.Total.Records++
 
-	return nil
+	return true, nil
 }
 
 type ContinuousPeriod struct {

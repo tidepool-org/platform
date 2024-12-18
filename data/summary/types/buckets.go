@@ -66,7 +66,7 @@ type BucketData interface {
 type BucketDataPt[A BucketData] interface {
 	*A
 	Add(bucket *A)
-	Update(record data.Datum, shared *BucketShared) error
+	Update(record data.Datum, shared *BucketShared) (bool, error)
 }
 
 type Bucket[B BucketDataPt[A], A BucketData] struct {
@@ -86,14 +86,16 @@ func NewBucket[B BucketDataPt[A], A BucketData](userId string, date time.Time, t
 }
 
 func (BU *Bucket[B, A]) Update(record data.Datum) error {
-	err := BU.BucketShared.Update(record.GetTime())
+	updated, err := BU.Data.Update(record, &BU.BucketShared)
 	if err != nil {
 		return err
 	}
 
-	err = BU.Data.Update(record, &BU.BucketShared)
-	if err != nil {
-		return err
+	if updated {
+		err = BU.BucketShared.Update(record.GetTime())
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -265,3 +265,42 @@ func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, 
 
 	return buckets
 }
+
+func NewDeferredGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
+	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomSetID()))
+	g.CreatedTime = pointer.FromAny(datumTime.AddDate(0, 0, 1))
+	g.Value = &value
+	return g
+}
+
+func NewRealtimeGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
+	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomSetID()))
+	g.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+	g.Value = &value
+	return g
+}
+
+func NewDataSetDataRealtime(typ string, startTime time.Time, hours float64, realtime bool) []data.Datum {
+	requiredRecords := int(hours * 2)
+	dataSetData := make([]data.Datum, requiredRecords)
+	deviceId := "SummaryTestDevice"
+	uploadId := test.RandomSetID()
+
+	glucoseValue := pointer.FromAny(InTargetBloodGlucose)
+
+	// generate X hours of data
+	for count := 0; count < requiredRecords; count += 1 {
+		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
+
+		datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+		datum.Value = glucoseValue
+
+		if realtime {
+			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+		}
+
+		dataSetData[count] = datum
+	}
+
+	return dataSetData
+}

@@ -47,6 +47,8 @@ var _ = Describe("Buckets", func() {
 			Expect(userBuckets).To(HaveKey(bucketTime))
 			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(1))
 
+			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute), InTargetBloodGlucose)}
+
 			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(2))
@@ -72,7 +74,7 @@ var _ = Describe("Buckets", func() {
 			userBuckets = types.BucketsByTime[*types.GlucoseBucket, types.GlucoseBucket]{}
 			cgmDatums = []data.Datum{
 				NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose),
-				NewGlucoseWithValue(continuous.Type, datumTime, LowBloodGlucose-0.1),
+				NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute), LowBloodGlucose-0.1),
 			}
 
 			err = userBuckets.Update(userId, types.SummaryTypeCGM, cgmDatums)

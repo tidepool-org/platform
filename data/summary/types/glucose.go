@@ -116,7 +116,7 @@ func (R *GlucoseRanges) Add(new *GlucoseRanges) {
 }
 
 type GlucoseBucket struct {
-	GlucoseRanges
+	GlucoseRanges      `json:",inline" bson:",inline"`
 	LastRecordDuration int `json:"lastRecordDuration,omitempty" bson:"lastRecordDuration,omitempty"`
 }
 
@@ -193,31 +193,32 @@ func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose, duration int) {
 	R.Total.Update(normalizedValue, duration, true)
 }
 
+// Add Currently unused, useful for future compaction
 func (B *GlucoseBucket) Add(bucket *GlucoseBucket) {
-	B.Add(bucket)
+	panic("GlucoseBucket.Add Not Implemented")
 }
 
-func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) error {
+func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error) {
 	record, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
-		return errors.New("record for calculation is not compatible with Glucose type")
+		return false, errors.New("record for calculation is not compatible with Glucose type")
 	}
 
 	if DeviceDataToSummaryTypes[record.Type] != shared.Type {
-		return fmt.Errorf("record for %s calculation is of invald type %s", shared.Type, record.Type)
+		return false, fmt.Errorf("record for %s calculation is of invald type %s", shared.Type, record.Type)
 	}
 
 	// if this is bgm data, this will return 0
 	duration := GetDuration(record)
 
 	// if we have cgm data, we care about blackout periods
-	if shared.Type == SummaryTypeContinuous {
+	if shared.Type == SummaryTypeCGM {
 		// calculate blackoutWindow based on duration of previous value
 		blackoutWindow := time.Duration(B.LastRecordDuration)*time.Minute - 10*time.Second
 
 		// Skip record if we are within the blackout window
 		if record.Time.Sub(shared.LastData) < blackoutWindow {
-			return nil
+			return false, nil
 		}
 	}
 
@@ -225,7 +226,7 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) error {
 
 	B.LastRecordDuration = duration
 
-	return nil
+	return true, nil
 }
 
 type GlucosePeriod struct {

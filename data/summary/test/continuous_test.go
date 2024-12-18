@@ -1,79 +1,122 @@
 package test_test
 
-//import (
-//	"fmt"
-//	. "github.com/onsi/ginkgo/v2"
-//	. "github.com/onsi/gomega"
-//	"github.com/tidepool-org/platform/data"
-//	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-//	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-//	"time"
-//
-//	"github.com/tidepool-org/platform/data/summary/types"
-//)
-//
-//var _ = Describe("Glucose", func() {
-//
-//	BeforeEach(func() {
-//	})
-//
-//	Context("Ranges", func() {
-//		It("ranges.Add", func() {
-//			firstRange := types.ContinuousRanges{
-//				Realtime: types.Range{
-//					Records: 5,
-//				},
-//				Deferred: types.Range{
-//					Records: 10,
-//				},
-//				Total: types.Range{
-//					Records: 12,
-//				},
-//			}
-//
-//			secondRange := types.ContinuousRanges{
-//				Realtime: types.Range{
-//					Records: 3,
-//				},
-//				Deferred: types.Range{
-//					Records: 11,
-//				},
-//				Total: types.Range{
-//					Records: 13,
-//				},
-//			}
-//			firstRange.Add(&secondRange)
-//
-//			Expect(firstRange.Realtime.Records).To(Equal(8))
-//			Expect(firstRange.Deferred.Records).To(Equal(21))
-//			Expect(firstRange.Total.Records).To(Equal(25))
-//		})
-//	})
-//
-//	Context("bucket.Update", func() {
-//		var userBucket *types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]
-//		var cgmDatum data.Datum
-//
-//		It("With a fresh bucket", func() {
-//			datumTime := bucketTime.Add(5 * time.Minute)
-//			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
-//			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
-//
-//			err = userBucket.Update(cgmDatum)
-//			Expect(err).ToNot(HaveOccurred())
-//
-//			Expect(userBucket.LastData).To(Equal(datumTime))
-//			Expect(userBucket.FirstData).To(Equal(datumTime))
-//			Expect(userBucket.Time).To(Equal(bucketTime))
-//			Expect(userBucket.Data.Target.Records).To(Equal(1))
-//			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
-//			Expect(userBucket.IsModified()).To(BeTrue())
-//
-//			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
-//			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
-//		})
-//	})
-//})
+import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"github.com/tidepool-org/platform/data"
+	. "github.com/tidepool-org/platform/data/summary/test/generators"
+	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"time"
+)
+
+var _ = Describe("Glucose", func() {
+	var userId string
+	var bucketTime time.Time
+	var err error
+
+	BeforeEach(func() {
+		now := time.Now()
+		userId = "1234"
+		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC)
+	})
+
+	Context("Range", func() {
+		// range has no direct functions for continuous, but if it does, tests here.
+	})
+
+	Context("Ranges", func() {
+		It("ranges.Add", func() {
+			firstRange := types.ContinuousRanges{
+				Realtime: types.Range{
+					Records: 5,
+				},
+				Deferred: types.Range{
+					Records: 10,
+				},
+				Total: types.Range{
+					Records: 12,
+				},
+			}
+
+			secondRange := types.ContinuousRanges{
+				Realtime: types.Range{
+					Records: 3,
+				},
+				Deferred: types.Range{
+					Records: 11,
+				},
+				Total: types.Range{
+					Records: 13,
+				},
+			}
+			firstRange.Add(&secondRange)
+
+			Expect(firstRange.Realtime.Records).To(Equal(8))
+			Expect(firstRange.Deferred.Records).To(Equal(21))
+			Expect(firstRange.Total.Records).To(Equal(25))
+		})
+
+		It("ranges.Finalize", func() {
+			continuousRange := types.ContinuousRanges{
+				Realtime: types.Range{
+					Records: 5,
+				},
+				Deferred: types.Range{
+					Records: 10,
+				},
+				Total: types.Range{
+					Records: 10,
+				},
+			}
+
+			continuousRange.Finalize()
+
+			Expect(continuousRange.Realtime.Percent).To(Equal(0.5))
+			Expect(continuousRange.Deferred.Percent).To(Equal(1.0))
+
+		})
+	})
+
+	Context("bucket.Update", func() {
+		var userBucket *types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]
+		var continuousDatum data.Datum
+
+		It("With a realtime value", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			continuousDatum = NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
+
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.Time).To(Equal(bucketTime))
+			Expect(userBucket.Data.Total.Records).To(Equal(1))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(0))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(1))
+			Expect(userBucket.IsModified()).To(BeTrue())
+		})
+
+		It("With a deferred value", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			continuousDatum = NewDeferredGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
+
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.Time).To(Equal(bucketTime))
+			Expect(userBucket.Data.Total.Records).To(Equal(1))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(1))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(0))
+			Expect(userBucket.IsModified()).To(BeTrue())
+		})
+	})
+})
 
 //import (
 //	"fmt"

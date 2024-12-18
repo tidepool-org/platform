@@ -516,7 +516,7 @@ var _ = Describe("Glucose", func() {
 		var userBucket *types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]
 		var cgmDatum data.Datum
 
-		It("With a fresh bucket", func() {
+		It("With a cgm value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
 			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
@@ -524,8 +524,8 @@ var _ = Describe("Glucose", func() {
 			err = userBucket.Update(cgmDatum)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
@@ -543,8 +543,8 @@ var _ = Describe("Glucose", func() {
 			err = userBucket.Update(bgmDatum)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
@@ -552,6 +552,54 @@ var _ = Describe("Glucose", func() {
 
 			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
+		})
+
+		It("With two cgm values within 5 minutes", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
+
+			err = userBucket.Update(cgmDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.Data.Target.Records).To(Equal(1))
+			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+
+			newDatumTime := bucketTime.Add(9 * time.Minute)
+			cgmDatum = NewGlucoseWithValue(continuous.Type, newDatumTime, InTargetBloodGlucose)
+			err = userBucket.Update(cgmDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.Data.Target.Records).To(Equal(1))
+			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+		})
+
+		It("With two bgm values within 5 minutes", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeBGM)
+			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
+
+			err = userBucket.Update(bgmDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.Data.Target.Records).To(Equal(1))
+			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
+
+			newDatumTime := bucketTime.Add(9 * time.Minute)
+			bgmDatum = NewGlucoseWithValue(selfmonitored.Type, newDatumTime, InTargetBloodGlucose)
+			err = userBucket.Update(bgmDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.LastData).To(Equal(newDatumTime))
+			Expect(userBucket.Data.Target.Records).To(Equal(2))
+			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
 		})
 
 		It("With a smbg value in a cgm bucket", func() {
@@ -642,13 +690,14 @@ var _ = Describe("Glucose", func() {
 			expectedVeryHighMinutes := 0
 			expectedVeryHighRecords := 0
 
+			offset := 0
 			for k, v := range ranges {
 				By(fmt.Sprintf("Add a value of %f", k))
 				Expect(v.Records).To(BeZero())
 				Expect(v.Glucose).To(BeZero())
 				Expect(v.Minutes).To(BeZero())
 
-				cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, k)
+				cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute*time.Duration(offset)), k)
 				err = userBucket.Update(cgmDatum)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -687,6 +736,7 @@ var _ = Describe("Glucose", func() {
 				Expect(userBucket.Data.VeryHigh.Minutes).To(Equal(expectedVeryHighMinutes))
 
 				// we should check that total gets variance
+				offset++
 			}
 		})
 	})
