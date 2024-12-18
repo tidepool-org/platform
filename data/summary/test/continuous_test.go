@@ -1,13 +1,15 @@
 package test_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"github.com/tidepool-org/platform/data"
 	. "github.com/tidepool-org/platform/data/summary/test/generators"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"time"
 )
 
 var _ = Describe("Glucose", func() {
