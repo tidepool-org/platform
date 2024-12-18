@@ -54,19 +54,19 @@ func (c *Client) DestroyDataForUserByID(ctx context.Context, userID string) erro
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
@@ -82,10 +82,10 @@ func (c *Client) GetMigratableUserIDs(ctx context.Context, t string, pagination 
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }
