@@ -1,0 +1,4 @@
+[submodule "private/plugin/redwood"]
+	path = private/plugin/redwood
+	url = https://github.com/tidepool-org/platform-plugin-redwood
+	update = none

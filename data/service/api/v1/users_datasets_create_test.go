@@ -19,6 +19,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -36,6 +37,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
@@ -217,7 +219,15 @@ func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
 	panic("not implemented") // TODO: Implement
 }
 
+func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
+	panic("not implemented") // TODO: Implement
+}
+
 func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
+	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) WorkClient() work.Client {
 	panic("not implemented") // TODO: Implement
 }
 

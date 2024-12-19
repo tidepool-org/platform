@@ -225,7 +225,7 @@ var _ = Describe("Client", func() {
 			requestString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			requestBody = &RequestBody{Request: requestString}
 			responseString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
-			inspectors = []request.ResponseInspector{request.NewHeadersInspector(log.LoggerFromContext(ctx))}
+			inspectors = []request.ResponseInspector{request.NewHeadersInspector()}
 			httpClient = http.DefaultClient
 		})
 
