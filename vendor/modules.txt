@@ -260,10 +260,6 @@ github.com/mattn/go-isatty
 # github.com/mitchellh/go-homedir v1.1.0
 ## explicit
 github.com/mitchellh/go-homedir
-# github.com/mjibson/esc v0.2.0
-## explicit
-github.com/mjibson/esc
-github.com/mjibson/esc/embed
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -324,9 +320,6 @@ github.com/pierrec/lz4/v4/internal/lz4block
 github.com/pierrec/lz4/v4/internal/lz4errors
 github.com/pierrec/lz4/v4/internal/lz4stream
 github.com/pierrec/lz4/v4/internal/xxh32
-# github.com/pkg/errors v0.9.1
-## explicit
-github.com/pkg/errors
 # github.com/prometheus/client_golang v1.19.1
 ## explicit; go 1.20
 github.com/prometheus/client_golang/prometheus
@@ -380,6 +373,11 @@ github.com/tidepool-org/go-common/jepson
 # github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 ## explicit; go 1.22
 github.com/tidepool-org/hydrophone/client
+# github.com/tidepool-org/platform-plugin-redwood v0.0.0 => ./plugin/redwood
+## explicit; go 1.22
+github.com/tidepool-org/platform-plugin-redwood/redwood/client
+github.com/tidepool-org/platform-plugin-redwood/redwood/provider
+github.com/tidepool-org/platform-plugin-redwood/redwood/work
 # github.com/ugorji/go/codec v1.2.11
 ## explicit; go 1.11
 github.com/ugorji/go/codec
@@ -565,7 +563,6 @@ golang.org/x/tools/go/ast/astutil
 golang.org/x/tools/go/ast/inspector
 golang.org/x/tools/go/gcexportdata
 golang.org/x/tools/go/types/objectpath
-golang.org/x/tools/imports
 golang.org/x/tools/internal/aliases
 golang.org/x/tools/internal/event
 golang.org/x/tools/internal/event/core
@@ -710,3 +707,4 @@ gopkg.in/yaml.v3
 ## explicit; go 1.11
 syreclabs.com/go/faker
 syreclabs.com/go/faker/locales
+# github.com/tidepool-org/platform-plugin-redwood => ./plugin/redwood

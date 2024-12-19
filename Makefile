@@ -31,8 +31,6 @@ GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VE
 FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
-GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
-
 GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
@@ -41,6 +39,16 @@ GOTEST_PKGS ?= ./...
 GOTEST_FLAGS ?=
 
 TIMING_CMD ?=
+
+ifneq ($(shell go env GOWORK),off)
+	GOWORK_OFF := GOWORK=off
+	GO_VET_FLAGS += -mod=readonly
+	GO_BUILD_FLAGS += -mod=readonly
+	GINKGO_FLAGS += -mod=readonly
+	GOTEST_FLAGS += -mod=readonly
+endif
+
+GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
 
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
@@ -73,12 +81,7 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && go install -mod=vendor .
-endif
-
-esc:
-ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
+	cd vendor/github.com/githubnemo/CompileDaemon && $(GOWORK_OFF) go install -mod=vendor .
 endif
 
 mockgen:
@@ -88,25 +91,25 @@ endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && go install -mod=vendor .
+	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && $(GOWORK_OFF) go install -mod=vendor .
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install -mod=vendor .
+	cd vendor/golang.org/x/tools/cmd/goimports && $(GOWORK_OFF) go install -mod=vendor .
 endif
 
 golint:
 ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install -mod=vendor .
+	cd vendor/golang.org/x/lint/golint && $(GOWORK_OFF) go install -mod=vendor .
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
-buildable: bindir CompileDaemon esc ginkgo goimports golint
+buildable: bindir CompileDaemon ginkgo goimports golint
 
-generate: esc mockgen
+generate: mockgen
 	@echo "go generate ./..."
-	@cd $(ROOT_DIRECTORY) && go generate ./...
+	@cd $(ROOT_DIRECTORY) && $(GOWORK_OFF) go generate ./...
 
 ci-generate: generate format-write-changed imports-write-changed
 	@cd $(ROOT_DIRECTORY) && \
@@ -146,8 +149,8 @@ imports-write-changed: goimports
 
 vet: tmp
 	@echo "go vet"
-	cd $(ROOT_DIRECTORY) && \
-		go vet ./... > _tmp/govet.out 2>&1 || \
+	@cd $(ROOT_DIRECTORY) && \
+		go vet $(GO_VET_FLAGS) ./... > _tmp/govet.out 2>&1 || \
 		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
@@ -368,7 +371,7 @@ pre-commit: format imports vet
 gopath-implode:
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
-.PHONY: default tmp bindir CompileDaemon esc ginkgo goimports golint buildable \
+.PHONY: default tmp bindir CompileDaemon ginkgo goimports golint buildable \
 	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \

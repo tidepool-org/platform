@@ -1,6 +1,21 @@
 package test
 
-import "github.com/tidepool-org/platform/oauth"
+import (
+	"context"
+	"net/http"
+
+	"github.com/tidepool-org/platform/oauth"
+)
+
+type HTTPClientInput struct {
+	Context           context.Context
+	TokenSourceSource oauth.TokenSourceSource
+}
+
+type HTTPClientOutput struct {
+	HTTPClient *http.Client
+	Error      error
+}
 
 type RefreshedTokenOutput struct {
 	Token *oauth.Token
@@ -8,7 +23,11 @@ type RefreshedTokenOutput struct {
 }
 
 type TokenSource struct {
-	*HTTPClientSource
+	HTTPClientInvocations     int
+	HTTPClientInputs          []HTTPClientInput
+	HTTPClientStub            func(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error)
+	HTTPClientOutputs         []HTTPClientOutput
+	HTTPClientOutput          *HTTPClientOutput
 	RefreshedTokenInvocations int
 	RefreshedTokenStub        func() (*oauth.Token, error)
 	RefreshedTokenOutputs     []RefreshedTokenOutput
@@ -18,9 +37,24 @@ type TokenSource struct {
 }
 
 func NewTokenSource() *TokenSource {
-	return &TokenSource{
-		HTTPClientSource: NewHTTPClientSource(),
+	return &TokenSource{}
+}
+
+func (t *TokenSource) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+	t.HTTPClientInvocations++
+	t.HTTPClientInputs = append(t.HTTPClientInputs, HTTPClientInput{Context: ctx, TokenSourceSource: tokenSourceSource})
+	if t.HTTPClientStub != nil {
+		return t.HTTPClientStub(ctx, tokenSourceSource)
 	}
+	if len(t.HTTPClientOutputs) > 0 {
+		output := t.HTTPClientOutputs[0]
+		t.HTTPClientOutputs = t.HTTPClientOutputs[1:]
+		return output.HTTPClient, output.Error
+	}
+	if t.HTTPClientOutput != nil {
+		return t.HTTPClientOutput.HTTPClient, t.HTTPClientOutput.Error
+	}
+	panic("HTTPClient has no output")
 }
 
 func (t *TokenSource) RefreshedToken() (*oauth.Token, error) {
@@ -47,6 +81,9 @@ func (t *TokenSource) ExpireToken() {
 }
 
 func (t *TokenSource) AssertOutputsEmpty() {
+	if len(t.HTTPClientOutputs) > 0 {
+		panic("HTTPClientOutputs is not empty")
+	}
 	if len(t.RefreshedTokenOutputs) > 0 {
 		panic("RefreshedTokenOutputs is not empty")
 	}

@@ -2,12 +2,7 @@ package client
 
 import (
 	"context"
-	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -19,7 +14,8 @@ import (
 )
 
 type Client struct {
-	client *oauthClient.Client
+	client     *oauthClient.Client
+	inspectors []request.ResponseInspector
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
@@ -34,7 +30,8 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	}
 
 	return &Client{
-		client: clnt,
+		client:     clnt,
+		inspectors: []request.ResponseInspector{prometheusCodePathResponseInspector},
 	}, nil
 }
 
@@ -119,24 +116,11 @@ func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime t
 }
 
 func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	now := time.Now()
+	startTime := time.Now()
 
-	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, c.inspectors, tokenSource)
 
-	// If the first request results in an access token error, then mark the token as
-	// expired, send request again, and it will attempt to use the refresh token to
-	// generate a new access token
-	if oauth.IsAccessTokenError(err) {
-		tokenSource.ExpireToken()
-		err = c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
-	}
-
-	// If a request results in a refresh token error, then mark it as unauthenticated
-	if oauth.IsRefreshTokenError(err) {
-		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
-	}
-
-	if requestDuration := time.Since(now); requestDuration > requestDurationMaximum {
+	if requestDuration := time.Since(startTime); requestDuration > requestDurationMaximum {
 		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
 	}
 
@@ -145,29 +129,4 @@ func (c *Client) sendDexcomRequest(ctx context.Context, method string, url strin
 
 const requestDurationMaximum = 30 * time.Second
 
-// sendRequest adds instrumentation before calling oauth.Client.SendOAuthRequest.
-func (c *Client) sendRequest(ctx context.Context, method, url string, mutators []request.RequestMutator,
-	requestBody any, responseBody any, httpClientSource oauth.HTTPClientSource) error {
-
-	var inspectors = []request.ResponseInspector{
-		&promDexcomInstrumentor{},
-	}
-	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClientSource)
-}
-
-type promDexcomInstrumentor struct{}
-
-// InspectResponse implements request.ResponseInspector.
-func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) {
-	labels := prometheus.Labels{
-		"code": strconv.Itoa(r.StatusCode),
-		"path": r.Request.URL.Path,
-	}
-	promDexcomCounter.With(labels).Inc()
-}
-
-// promDexcomCounter instruments the Dexcom API paths and status codes called.
-var promDexcomCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-	Name: "tidepool_dexcom_api_client_requests",
-	Help: "Dexcom API client requests",
-}, []string{"code", "path"})
+var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspector("tidepool_dexcom_api_client_requests", "Dexcom API client requests")
