@@ -6,10 +6,12 @@ RUN apk --no-cache update && \
     apk --no-cache add make git ca-certificates tzdata && \
     go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
+    chmod -R go+w /go/pkg/mod && \
+    chown -R tidepool:tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
-COPY --chown=tidepool . .
+COPY --chown=tidepool:tidepool . .
 ENV SERVICE=services/prescription
+RUN ["make", "plugins-visibility"]
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
@@ -21,5 +23,5 @@ RUN apk --no-cache update && \
     adduser -D tidepool
 WORKDIR /home/tidepool
 USER tidepool
-COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/services/prescription/ .
+COPY --from=development --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/services/prescription/ .
 CMD ["./prescription"]

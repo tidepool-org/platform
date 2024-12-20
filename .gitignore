@@ -5,6 +5,10 @@
 *.env
 .envrc
 
+# Go
+go.work
+go.work.sum
+
 # Debug binaries
 debug
 __debug_bin*
@@ -25,4 +29,5 @@ coverprofile.out
 /deploy/
 
 # Development environments
+/.gvm_local
 /.idea

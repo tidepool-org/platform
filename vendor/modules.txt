@@ -376,6 +376,7 @@ github.com/tidepool-org/hydrophone/client
 # github.com/tidepool-org/platform-plugin-redwood v0.0.0 => ./plugin/redwood
 ## explicit; go 1.22
 github.com/tidepool-org/platform-plugin-redwood/redwood/client
+github.com/tidepool-org/platform-plugin-redwood/redwood/plugin
 github.com/tidepool-org/platform-plugin-redwood/redwood/provider
 github.com/tidepool-org/platform-plugin-redwood/redwood/work
 # github.com/ugorji/go/codec v1.2.11

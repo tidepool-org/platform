@@ -3,19 +3,16 @@ TIMESTAMP ?= $(shell date +%s)
 # these can vary by 1 second
 export TIMESTAMP
 
-ifneq ($(PRIVATE),)
-  REPOSITORY_SUFFIX:=-private
-endif
-
 SERVICES_SEPARATOR=,
 SERVICES_TO_BUILD?=auth,blob,data,migrations,prescription,task,tools
 SERVICES_TO_BUILD:=$(subst $(SERVICES_SEPARATOR), ,$(SERVICES_TO_BUILD))
 
-ROOT_DIRECTORY:=$(realpath $(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
+MAKEFILE:=$(realpath $(lastword $(MAKEFILE_LIST)))
+ROOT_DIRECTORY:=$(realpath $(dir $(MAKEFILE)))
 
 REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
 REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
-REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))$(REPOSITORY_SUFFIX)
+REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
@@ -38,14 +35,23 @@ GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 GOTEST_PKGS ?= ./...
 GOTEST_FLAGS ?=
 
+DOCKER_LOGIN_CMD ?= docker login
+DOCKER_BUILD_CMD ?= docker build
+DOCKER_PUSH_CMD ?= docker push
+DOCKER_TAG_CMD ?= docker tag
+
 TIMING_CMD ?=
 
+PLUGINS=redwood
+
+ifneq ($(shell go env GOWORK),)
 ifneq ($(shell go env GOWORK),off)
 	GOWORK_OFF := GOWORK=off
 	GO_VET_FLAGS += -mod=readonly
 	GO_BUILD_FLAGS += -mod=readonly
 	GINKGO_FLAGS += -mod=readonly
 	GOTEST_FLAGS += -mod=readonly
+endif
 endif
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
@@ -106,6 +112,55 @@ endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
 buildable: bindir CompileDaemon ginkgo goimports golint
+
+plugins-visibility:
+	@cd $(ROOT_DIRECTORY) && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) plugin/test/visibility.go`."
+endif
+
+plugins-visibility-public:
+	@cd $(ROOT_DIRECTORY) && \
+		{ rm go.work go.work.sum 2> /dev/null || true; } && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-public PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility-public:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		{ [ -z "`git status -s .gitmodules`" ] || { echo '.gitmodules currently modified' && exit 1; } } && \
+		{ [ ! -e private/plugin/$(PLUGIN)/go.mod ] || go mod edit -dropreplace github.com/tidepool-org/platform private/plugin/$(PLUGIN)/go.mod; } && \
+		git config set --local submodule.private/plugin/$(PLUGIN).update none && \
+		git config set --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
+		git update-index --assume-unchanged .gitmodules && \
+		$(MAKE) plugin-visibility
+endif
+
+plugins-visibility-private:
+	@cd $(ROOT_DIRECTORY) && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-private PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility-private:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		{ [ -z "`git status -s .gitmodules`" ] || { echo '.gitmodules currently modified' && exit 1; } } && \
+		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
+		git update-index --assume-unchanged .gitmodules && \
+		git submodule update --init private/plugin/$(PLUGIN) && \
+		{ [ -e go.work ] || go work init .; } && \
+		go work edit -go=`sed -n 's/^go //p' go.mod` && \
+		go work edit -replace github.com/tidepool-org/platform-plugin-$(PLUGIN)=./private/plugin/$(PLUGIN) && \
+		go mod edit -replace github.com/tidepool-org/platform=../../.. private/plugin/$(PLUGIN)/go.mod && \
+		$(MAKE) plugin-visibility
+endif
+
+ci-public: plugins-visibility-public ci-generate ci-build ci-go-test ci-docker
+
+ci-private: plugins-visibility-private ci-generate ci-build ci-go-test ci-docker
 
 generate: mockgen
 	@echo "go generate ./..."
@@ -239,9 +294,9 @@ ci-test-watch: ginkgo
 go-test:
 	. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
 
-go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
-go-ci-test: GOTEST_PKGS = ./...
-go-ci-test: go-test
+ci-go-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+ci-go-test: GOTEST_PKGS = ./...
+ci-go-test: go-test
 
 deploy: clean-deploy deploy-services deploy-migrations deploy-tools
 
@@ -278,7 +333,7 @@ endif
 
 docker:
 ifdef DOCKER
-	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
+	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
 endif
@@ -287,22 +342,22 @@ docker-build:
 ifdef DOCKER
 ifdef DOCKER_FILE
 ifdef BUILD_SERVICE
-	docker build --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
-	docker build --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
+	$(DOCKER_BUILD_CMD) --tag $(DOCKER_REPOSITORY):development --target=development --file "$(DOCKER_FILE)" .
+	$(DOCKER_BUILD_CMD) --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker tag $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
+	$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
 endif
 else
 	@echo skipping $(DOCKER_FILE)
@@ -321,23 +376,23 @@ ifdef BUILD_SERVICE
 ifdef DOCKER_REPOSITORY
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
-	docker push $(DOCKER_REPOSITORY)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY)
 endif
 endif
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_PULL_REQUEST_BRANCH
-	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker push $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):PR-$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 else
-	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
-	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
-	docker push $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-latest
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(subst /,-,$(TRAVIS_BRANCH))-$(TRAVIS_COMMIT)-$(TIMESTAMP)
 endif
 endif
 endif
 ifdef TRAVIS_TAG
-	docker push $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
+	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(TRAVIS_TAG:v%=%)
 endif
 endif
 endif
@@ -371,10 +426,18 @@ pre-commit: format imports vet
 gopath-implode:
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
-.PHONY: default tmp bindir CompileDaemon ginkgo goimports golint buildable \
-	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
-	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
-	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
-	docker docker-build docker-push ci-docker \
-	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode go-test go-ci-test
+phony:
+	egrep '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | grep -v '^.PHONY' | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g'
+
+.PHONY: CompileDaemon bindir blarg build build-list build-watch buildable \
+    bundle-deploy ci ci-build ci-build-watch ci-deploy ci-docker ci-generate \
+    ci-go-test ci-test ci-test-until-failure ci-test-watch clean clean-all \
+    clean-bin clean-cover clean-debug clean-deploy clean-test default deploy \
+    deploy-migrations deploy-services deploy-tools docker docker-build docker-push \
+    format format-write format-write-changed generate ginkgo ginkgo-test go-mod \
+    go-mod-debug go-test goimports golint gopath-implode imports imports-write \
+    imports-write-changed lint lint-ignore mockgen phony plugin-visibility \
+    plugin-visibility-private plugin-visibility-public plugins-visibility \
+    plugins-visibility-private plugins-visibility-public pre-build pre-commit \
+    service-build service-debug service-restart service-restart-all service-start \
+    test test-until-failure test-watch tmp vet vet-ignore

@@ -6,10 +6,12 @@ RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repos
     apk --no-cache add ca-certificates tzdata make git mongodb yaml-cpp=0.6.2-r2&& \
     go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
     adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
+    chmod -R go+w /go/pkg/mod && \
+    chown -R tidepool:tidepool /go/src/github.com/tidepool-org/platform
 USER tidepool
-COPY --chown=tidepool . .
+COPY --chown=tidepool:tidepool . .
 ENV SERVICE=tools
+RUN ["make", "plugins-visibility"]
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
@@ -22,6 +24,6 @@ RUN apt -y update && \
     adduser --disabled-password tidepool
 WORKDIR /home/tidepool
 USER tidepool
-COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
+COPY --from=development --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
 COPY ./tools/ashrc /home/tidepool/.bashrc
 CMD ["./tools"]

@@ -1,7 +1,0 @@
-go 1.22
-
-use (
-	.
-)
-
-replace github.com/tidepool-org/platform-plugin-redwood => ./private/plugin/redwood
