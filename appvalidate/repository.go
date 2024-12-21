@@ -16,6 +16,7 @@ type Filter struct {
 	KeyID  string
 }
 
+//go:generate mockgen -source=repository.go -destination=test/repository.go -package=test Repository
 type Repository interface {
 	IsVerified(ctx context.Context, f Filter) (bool, error)
 	Get(ctx context.Context, f Filter) (*AppValidation, error)

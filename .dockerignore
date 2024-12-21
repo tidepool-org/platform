@@ -25,4 +25,5 @@ coverprofile.out
 /deploy/
 
 # Development environments
+/.gvm_local
 /.idea

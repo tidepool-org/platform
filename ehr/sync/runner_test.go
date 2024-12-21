@@ -3,14 +3,13 @@ package sync_test
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/ehr/sync"
 
-	"github.com/tidepool-org/platform/clinics"
 	clinicsTest "github.com/tidepool-org/platform/clinics/test"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
@@ -19,12 +18,12 @@ import (
 
 var _ = Describe("Runner", func() {
 	var clinicsCtrl *gomock.Controller
-	var clinicsClient *clinics.MockClient
+	var clinicsClient *clinicsTest.MockClient
 	var logger log.Logger
 
 	BeforeEach(func() {
 		clinicsCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinics.NewMockClient(clinicsCtrl)
+		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
 		logger = null.NewLogger()
 	})
 

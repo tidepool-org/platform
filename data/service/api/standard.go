@@ -5,6 +5,7 @@ import (
 
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataContext "github.com/tidepool-org/platform/data/service/context"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -15,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -25,12 +27,15 @@ type Standard struct {
 	dataStore               dataStore.Store
 	syncTaskStore           syncTaskStore.Store
 	dataClient              dataClient.Client
+	dataRawClient           dataRaw.Client
 	dataSourceClient        dataSource.Client
+	workClient              work.Client
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -49,8 +54,14 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if dataRawClient == nil {
+		return nil, errors.New("data raw client is missing")
+	}
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
+	}
+	if workClient == nil {
+		return nil, errors.New("work client is missing")
 	}
 
 	a, err := api.New(svc)
@@ -66,7 +77,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
+		dataRawClient:           dataRawClient,
 		dataSourceClient:        dataSourceClient,
+		workClient:              workClient,
 	}, nil
 }
 
@@ -96,5 +109,6 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
+		s.dataStore, s.syncTaskStore, s.dataClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient, handler)
 }

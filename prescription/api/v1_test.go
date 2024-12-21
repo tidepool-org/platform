@@ -8,9 +8,9 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
-	"github.com/tidepool-org/platform/clinics"
+	clinicsTest "github.com/tidepool-org/platform/clinics/test"
 
 	"syreclabs.com/go/faker"
 
@@ -40,13 +40,13 @@ import (
 
 var _ = Describe("V1", func() {
 	var ctrl *gomock.Controller
-	var clinicsClient *clinics.MockClient
+	var clinicsClient *clinicsTest.MockClient
 	var deviceSettingsValidator prescriptionService.DeviceSettingsValidator
 	var prescriptionService *prescriptionTest.PrescriptionAccessor
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinics.NewMockClient(ctrl)
+		clinicsClient = clinicsTest.NewMockClient(ctrl)
 		deviceSettingsValidator = serviceTest.NewNoopSettingsValidator()
 		prescriptionService = prescriptionTest.NewPrescriptionAccessor()
 	})

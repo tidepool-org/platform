@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
@@ -22,6 +23,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -39,16 +41,19 @@ type Standard struct {
 	syncTasksRepository     syncTaskStore.SyncTaskRepository
 	dataClient              dataClient.Client
 	clinicsClient           clinics.Client
+	dataRawClient           dataRaw.Client
 	dataSourceClient        dataSource.Client
+	workClient              work.Client
 	alertsRepository        alerts.Repository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
-			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient)
+			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataRawClient, dataSourceClient, workClient)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -66,7 +71,8 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -88,8 +94,14 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if dataRawClient == nil {
+		return nil, errors.New("data raw client is missing")
+	}
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
+	}
+	if workClient == nil {
+		return nil, errors.New("work client is missing")
 	}
 
 	responder, err := serviceContext.NewResponder(response, request)
@@ -106,29 +118,30 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataStore:               store,
 		syncTaskStore:           syncTaskStore,
 		dataClient:              dataClient,
+		dataRawClient:           dataRawClient,
 		dataSourceClient:        dataSourceClient,
+		workClient:              workClient,
 	}, nil
 }
 
 func (s *Standard) Close() {
-	if s.syncTasksRepository != nil {
-		s.syncTasksRepository = nil
-	}
-	if s.dataRepository != nil {
-		s.dataRepository = nil
-	}
-	if s.summaryRepository != nil {
-		s.summaryRepository = nil
-	}
-	if s.summarizerRegistry != nil {
-		s.summarizerRegistry = nil
-	}
-	if s.summaryReporter != nil {
-		s.summaryReporter = nil
-	}
-	if s.alertsRepository != nil {
-		s.alertsRepository = nil
-	}
+	s.workClient = nil
+	s.dataSourceClient = nil
+	s.dataRawClient = nil
+	s.dataClient = nil
+	s.clinicsClient = nil
+	s.summaryReporter = nil
+	s.summarizerRegistry = nil
+	s.syncTasksRepository = nil
+	s.syncTaskStore = nil
+	s.summaryRepository = nil
+	s.dataRepository = nil
+	s.dataStore = nil
+	s.alertsRepository = nil
+	s.dataDeduplicatorFactory = nil
+	s.permissionClient = nil
+	s.metricClient = nil
+	s.authClient = nil
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -198,8 +211,16 @@ func (s *Standard) ClinicsClient() clinics.Client {
 	return s.clinicsClient
 }
 
+func (s *Standard) DataRawClient() dataRaw.Client {
+	return s.dataRawClient
+}
+
 func (s *Standard) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
+}
+
+func (s *Standard) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Standard) AlertsRepository() alerts.Repository {
