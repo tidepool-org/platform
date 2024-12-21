@@ -27,3 +27,6 @@ coverprofile.out
 # Development environments
 /.gvm_local
 /.idea
+
+# Travis CI
+mongod.log

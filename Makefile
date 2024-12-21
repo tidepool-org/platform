@@ -25,7 +25,7 @@ VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 GO_BUILD_FLAGS:=-buildvcs=false
 GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
-FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
+FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -name '*.go' -not -name '*_test.go' -type f -exec egrep -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
@@ -88,31 +88,34 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && $(GOWORK_OFF) go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install github.com/githubnemo/CompileDaemon@v1.4.0" && \
+		$(GOWORK_OFF) go install github.com/githubnemo/CompileDaemon@v1.4.0
 endif
 
 mockgen:
 ifeq ($(shell which mockgen),)
-	cd vendor/go.uber.org/mock/mockgen && $(GOWORK_OFF) go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install go.uber.org/mock/mockgen@v0.5.0" && \
+		$(GOWORK_OFF) go install go.uber.org/mock/mockgen@v0.5.0
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && $(GOWORK_OFF) go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "github.com/onsi/ginkgo/v2/ginkgo@v2.19.0" && \
+		$(GOWORK_OFF) go install github.com/onsi/ginkgo/v2/ginkgo@v2.19.0
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && $(GOWORK_OFF) go install -mod=vendor .
-endif
-
-golint:
-ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && $(GOWORK_OFF) go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "golang.org/x/tools/cmd/goimports@latest" && \
+		$(GOWORK_OFF) go install golang.org/x/tools/cmd/goimports@latest
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
-buildable: bindir CompileDaemon ginkgo goimports golint
+buildable: bindir CompileDaemon ginkgo goimports
 
 plugins-visibility:
 	@cd $(ROOT_DIRECTORY) && \
@@ -159,6 +162,17 @@ ifdef PLUGIN
 		$(MAKE) plugin-visibility
 endif
 
+ci: ci-init ci-generate ci-build ci-test ci-docker
+
+ci-init: go-mod-tidy mockgen goimports
+	@cd $(ROOT_DIRECTORY) && \
+		git update-index --assume-unchanged go.sum
+
+go-mod-tidy:
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go mod tidy" && \
+		$(GOWORK_OFF) go mod tidy
+
 fail-if-changed:
 	@cd $(ROOT_DIRECTORY) && \
 		O=`git status -s` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
@@ -174,13 +188,13 @@ ci-generate: generate fail-if-changed
 format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write-changed:
@@ -190,13 +204,13 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local github.com/tidepool-org/platform"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '*mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local github.com/tidepool-org/platform {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec goimports -d -e -local github.com/tidepool-org/platform {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
 	@echo "goimports -e -w -local github.com/tidepool-org/platform"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local github.com/tidepool-org/platform {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec goimports -e -w -local github.com/tidepool-org/platform {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write-changed: goimports
@@ -212,16 +226,6 @@ vet: tmp
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
 
-lint: golint tmp
-	@echo "golint"
-	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
-		diff .golintignore _tmp/golint.out || \
-		exit 0
-
-lint-ignore:
-	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
-
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
 
@@ -236,6 +240,10 @@ ci-build: build
 
 ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
+
+services-build-common:
+	@for SERVICE in auth blob data prescription task; do $(MAKE) service-build SERVICE=services/$${SERVICE}; done && \
+		$(MAKE) service-build SERVICE=migrations
 
 service-build:
 ifdef SERVICE
@@ -333,7 +341,6 @@ endif
 
 docker:
 ifdef DOCKER
-	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
 endif
@@ -374,6 +381,7 @@ ifdef BUILD_SERVICE
 	@echo "TRAVIS_COMMIT = $(TRAVIS_COMMIT)"
 	@echo "TRAVIS_TAG= $(TRAVIS_TAG)"
 ifdef DOCKER_REPOSITORY
+	@$(DOCKER_LOGIN_CMD) || {echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin}
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY)
@@ -429,15 +437,15 @@ phony:
 	@egrep '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | grep -v '^.PHONY' | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g'
 
 .PHONY: CompileDaemon bindir build build-list build-watch buildable \
-    bundle-deploy ci-build ci-build-watch ci-deploy ci-docker ci-generate \
+    bundle-deploy ci ci-build ci-build-watch ci-deploy ci-docker ci-generate \
     ci-ginkgo-test ci-ginkgo-test-until-failure ci-ginkgo-test-watch ci-go-test \
     ci-test clean clean-all clean-bin clean-cover clean-debug clean-deploy \
     clean-test default deploy deploy-migrations deploy-services deploy-tools docker \
-    docker-build docker-push format format-write format-write-changed generate \
-    ginkgo ginkgo-test ginkgo-test-until-failure ginkgo-test-watch go-generate \
-    go-test goimports golint gopath-implode imports imports-write \
-    imports-write-changed lint lint-ignore mockgen phony plugin-visibility \
+    docker-build docker-push fail-if-changed format format-write \
+    format-write-changed generate ginkgo ginkgo-test ginkgo-test-until-failure \
+    ginkgo-test-watch go-generate go-test goimports gopath-implode imports \
+    imports-write imports-write-changed mockgen phony plugin-visibility \
     plugin-visibility-private plugin-visibility-public plugins-visibility \
-    plugins-visibility-private plugins-visibility-public pre-build pre-commit \
-    service-build service-debug service-restart service-restart-all service-start \
-    test tmp vet vet-ignore
+    plugins-visibility-private plugins-visibility-public pre-commit service-build \
+    service-debug service-restart service-restart-all service-start \
+    services-build-common test tmp vet vet-ignore
