@@ -1,6 +1,8 @@
 module github.com/tidepool-org/platform-plugin-redwood
 
-go 1.22
+go 1.23
+
+toolchain go1.23.4
 
 require github.com/tidepool-org/platform v0.0.0
 
@@ -18,7 +20,7 @@ require (
 	github.com/prometheus/procfs v0.15.1 // indirect
 	go.mongodb.org/mongo-driver v1.16.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 
