@@ -55,6 +55,17 @@ func (d *DatumRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "time", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+			},
+			Options: options.Index().
+				SetName("ShardKeyIndex"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
 				{Key: "time", Value: 1},
@@ -62,6 +73,25 @@ func (d *DatumRepository) EnsureIndexes() error {
 			},
 			Options: options.Index().
 				SetName("UserIdActiveTypeTimeModifiedTime").
+				SetPartialFilterExpression(bson.D{
+					{
+						Key: "time",
+						Value: bson.D{
+							{Key: "$gt", Value: lowerTimeBound},
+						},
+					},
+				}),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+				{Key: "time", Value: 1},
+			},
+			Options: options.Index().
+				SetName("UserIdActiveTypeModifiedTimeTime").
 				SetPartialFilterExpression(bson.D{
 					{
 						Key: "time",
@@ -84,6 +114,10 @@ func (d *DatumRepository) EnsureIndexes() error {
 				}).
 				SetName("UserIdOriginId"),
 		},
+		// Future optimization after release.
+		// Rebuild index to to move _active
+		// before type for better compression and more
+		// closely follow ESR
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
@@ -94,6 +128,14 @@ func (d *DatumRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetName("UploadId"),
 		},
+
+		// Future optimization - remove the PFE on deviceId as the Base datum
+		// already makes sure it exists and prod DB has already been checked to
+		// ensure there are no datums w/ no deviceId. Other possible
+		// optimization remove the _active in the PFE to use this in the
+		// ArchiveDeviceDataUsingHashesFromDataSet > Distinct quiery. Can also
+		// remove "type" field w/ corresponding removal of "$ne": "upload" in
+		// queries where appropriate.
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
@@ -138,7 +180,6 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
 		datum.SetModifiedTime(&timestamp)
-		datum.SetModifiedTime(&timestamp)
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
@@ -173,7 +214,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
+	selector["type"] = bson.M{"$ne": "upload"} // Note we WILL keep the "type" field in the UploadId index as that's a query need in tide-whisperer
 	selector["_active"] = false
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -358,10 +399,12 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 
 	var updateInfo *mongo.UpdateResult
 
+	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
 	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+		"_userId":            dataSet.UserID,
+		"uploadId":           dataSet.UploadID,
+		"type":               bson.M{"$ne": "upload"},
+		"_deduplicator.hash": bson.M{"$ne": nil},
 	}
 
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
@@ -369,7 +412,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 		selector = bson.M{
 			"_userId":            dataSet.UserID,
 			"deviceId":           *dataSet.DeviceID,
-			"type":               bson.M{"$ne": "upload"},
+			"type":               bson.M{"$ne": "upload"}, // Until we update the indexes to NOT have type, the planner will sometimes not use the correct index w/o the type range so we are leaving $ne upload in some cases. The actual performance and size gains are minor (~5%) TODO: for a future update, create a version of the index WITHOUT the type
 			"_active":            true,
 			"_deduplicator.hash": bson.M{"$in": hashes},
 		}
@@ -675,6 +718,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	}
 
 	findOptions := options.Find()
+	findOptions.SetProjection(bson.M{"_id": 0, "time": 1})
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
@@ -715,8 +759,10 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 		selector["type"] = bson.M{"$in": typ}
 	}
 
-	findOptions := options.Find()
-	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
+	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
+		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
+	}
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
 
@@ -764,7 +810,8 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 
 	findOptions := options.Find()
 	findOptions.SetLimit(1)
-	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}}).
+		SetProjection(bson.M{"_id": 0, "time": 1})
 
 	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
 	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
@@ -773,7 +820,10 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		selector["modifiedTime"] = bson.M{
 			"$gt": status.LastUpdated,
 		}
-		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
+			// has blocking sort, but more selective so usually performs better.
+			findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
+		}
 	}
 
 	var cursor *mongo.Cursor

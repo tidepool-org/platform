@@ -311,8 +311,19 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "type", "time", "_active", "modifiedTime")),
+						"Name": Equal("ShardKeyIndex"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
 						"Name": Equal("UserIdActiveTypeTimeModifiedTime"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime", "time")),
+						"Name": Equal("UserIdActiveTypeModifiedTimeTime"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
 						}),
