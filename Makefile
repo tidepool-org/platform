@@ -153,8 +153,8 @@ ifdef PLUGIN
 		{ [ -z "`git status -s .gitmodules`" ] || { echo '.gitmodules currently modified' && exit 1; } } && \
 		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
 		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
-		git submodule update --init private/plugin/$(PLUGIN) && \
 		git update-index --assume-unchanged .gitmodules && \
+		git submodule update --init private/plugin/$(PLUGIN) && \
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
 		go work edit -go=`sed -n 's/^go //p' go.mod` && \

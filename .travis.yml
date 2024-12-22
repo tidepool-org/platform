@@ -34,7 +34,4 @@ addons:
         key_url: 'https://pgp.mongodb.com/server-6.0.asc'
 
 script:
-  - make plugins-visibility-public
-  - make ci
-  - make plugins-visibility-private
-  - make ci
+  - make plugins-visibility-public && make ci && make plugins-visibility-private && make ci
