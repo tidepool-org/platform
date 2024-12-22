@@ -306,39 +306,6 @@ ci-go-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-go-test: GOTEST_PKGS = ./...
 ci-go-test: go-test
 
-deploy: clean-deploy deploy-services deploy-migrations deploy-tools
-
-deploy-services:
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
-endif
-
-deploy-migrations:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
-endif
-
-deploy-tools:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
-endif
-
-ci-deploy: deploy
-
-bundle-deploy:
-ifdef DEPLOY
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && \
-		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
-		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
-		cp -R _bin/$(SOURCE)/* $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
-		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
-		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
-		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
-endif
-endif
-
 docker:
 ifdef DOCKER
 	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
@@ -381,7 +348,7 @@ ifdef BUILD_SERVICE
 	@echo "TRAVIS_COMMIT = $(TRAVIS_COMMIT)"
 	@echo "TRAVIS_TAG= $(TRAVIS_TAG)"
 ifdef DOCKER_REPOSITORY
-	@$(DOCKER_LOGIN_CMD) || {echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin}
+	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
 ifeq ($(TRAVIS_BRANCH),master)
 ifeq ($(TRAVIS_PULL_REQUEST_BRANCH),)
 	$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY)
@@ -408,7 +375,7 @@ endif
 
 ci-docker: docker
 
-clean: clean-bin clean-cover clean-debug clean-deploy clean-test
+clean: clean-bin clean-cover clean-debug clean-test
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
@@ -419,9 +386,6 @@ clean-cover:
 
 clean-debug:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
-
-clean-deploy:
-	@cd $(ROOT_DIRECTORY) && rm -rf deploy
 
 clean-test:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
@@ -436,11 +400,10 @@ gopath-implode:
 phony:
 	@egrep '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | grep -v '^.PHONY' | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g'
 
-.PHONY: CompileDaemon bindir build build-list build-watch buildable \
-    bundle-deploy ci ci-build ci-build-watch ci-deploy ci-docker ci-generate \
-    ci-ginkgo-test ci-ginkgo-test-until-failure ci-ginkgo-test-watch ci-go-test \
-    ci-init ci-test clean clean-all clean-bin clean-cover clean-debug clean-deploy \
-    clean-test default deploy deploy-migrations deploy-services deploy-tools docker \
+.PHONY: CompileDaemon bindir build build-list build-watch buildable ci ci-build \
+    ci-build-watch ci-docker ci-generate ci-ginkgo-test \
+    ci-ginkgo-test-until-failure ci-ginkgo-test-watch ci-go-test ci-init ci-test \
+    clean clean-all clean-bin clean-cover clean-debug clean-test default docker \
     docker-build docker-push fail-if-changed format format-write \
     format-write-changed generate ginkgo ginkgo-test ginkgo-test-until-failure \
     ginkgo-test-watch go-generate go-mod-tidy go-test goimports gopath-implode \

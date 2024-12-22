@@ -22,7 +22,6 @@ coverprofile.out
 /_data/
 /_log/
 /_tmp/
-/deploy/
 
 # Development environments
 /.gvm_local
