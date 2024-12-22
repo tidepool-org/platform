@@ -41,6 +41,6 @@ addons:
 
 script:
   - make plugins-visibility-public
-  - make ci-generate ci-build ci-test ci-docker
+  - make ci
   - make plugins-visibility-private
-  - make ci-generate ci-build ci-test
+  - make ci

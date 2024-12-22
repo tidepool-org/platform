@@ -439,12 +439,12 @@ phony:
 .PHONY: CompileDaemon bindir build build-list build-watch buildable \
     bundle-deploy ci ci-build ci-build-watch ci-deploy ci-docker ci-generate \
     ci-ginkgo-test ci-ginkgo-test-until-failure ci-ginkgo-test-watch ci-go-test \
-    ci-test clean clean-all clean-bin clean-cover clean-debug clean-deploy \
+    ci-init ci-test clean clean-all clean-bin clean-cover clean-debug clean-deploy \
     clean-test default deploy deploy-migrations deploy-services deploy-tools docker \
     docker-build docker-push fail-if-changed format format-write \
     format-write-changed generate ginkgo ginkgo-test ginkgo-test-until-failure \
-    ginkgo-test-watch go-generate go-test goimports gopath-implode imports \
-    imports-write imports-write-changed mockgen phony plugin-visibility \
+    ginkgo-test-watch go-generate go-mod-tidy go-test goimports gopath-implode \
+    imports imports-write imports-write-changed mockgen phony plugin-visibility \
     plugin-visibility-private plugin-visibility-public plugins-visibility \
     plugins-visibility-private plugins-visibility-public pre-commit service-build \
     service-debug service-restart service-restart-all service-start \
