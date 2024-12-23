@@ -22,7 +22,10 @@ coverprofile.out
 /_data/
 /_log/
 /_tmp/
-/deploy/
 
 # Development environments
-/.idea
+.gvm_local
+.idea
+
+# Project details
+vendor

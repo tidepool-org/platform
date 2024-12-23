@@ -2,13 +2,11 @@
 
 The Tidepool Platform API.
 
-[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg&branch=master)](https://app.travis-ci.com/tidepool-org/platform)
-[![Code Climate](https://codeclimate.com/github/tidepool-org/platform/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/platform)
-[![Issue Count](https://codeclimate.com/github/tidepool-org/platform/badges/issue_count.svg)](https://codeclimate.com/github/tidepool-org/platform)
+[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg?branch=master)](https://app.travis-ci.com/tidepool-org/platform)
 
 # Setup
 
-1. Install Go version 1.11.4 or later
+1. Install Go version 1.22.2 or later
 1. Install mongodb (if it is not already installed, or run it from Docker)
 
     The tests assume that mongodb is listening on 127.0.0.1:27017.
@@ -87,19 +85,7 @@ The environment variable `TEST` indicates which package hierarchy to test. If no
 TEST=user make test
 ```
 
-* To run all of the tests automatically after any changes are made, in a separate terminal window:
-
-```
-make test-watch
-```
-
-The environment variable `WATCH` indicates which package hierarchy to test. If not specified, then all packages are tested. For example,
-
-```
-WATCH=user make test-watch
-```
-
-* To run `gofmt`, `goimports`, `go vet`, and `golint`:
+* To run `gofmt`, `goimports`, and `go vet`:
 
 ```
 make pre-commit
@@ -109,24 +95,6 @@ make pre-commit
 
 ```
 make clean
-```
-
-# Sublime Text
-
-If you use the Sublime Text editor with the GoSublime plugin, open the `platform.sublime-project` project to ensure the `GOPATH` and `PATH` environment variables are set correctly within Sublime Text. In addition, the recommended user settings are:
-
-```
-{
-  "autocomplete_builtins": true,
-  "autocomplete_closures": true,
-  "autoinst": false,
-  "fmt_cmd": [
-    "goimports"
-  ],
-  "fmt_enabled": true,
-  "fmt_tab_width": 4,
-  "use_named_imports": true
-}
 ```
 
 # Upgrade Golang Version
@@ -139,15 +107,13 @@ If you use the Sublime Text editor with the GoSublime plugin, open the `platform
   - For major revisions, if any change described in the release notes could have a negative impact upon this repository, follow up and review any associated issues and the updated code. Make note of this change in order to explicitly test after upgrading.
   - For minor revisions, review all issues included in the associated GitHub milestone issue tracker. These can be found in the minor revision release notes. If any issue could have a negative impact upon this repository, review the updated code. Make note of this issue in order to explicitly test after upgrading.
 - Install `gimme`(https://github.com/travis-ci/gimme) via `brew`. Execute `gimme -k`. Ensure that the target Golang version is listed. The `gimme` tool is used by Travis CI to manage Golang versions. If the version is not listed, then the Travis CI build will not succeed.
-- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.11.4`, then ensure that the `1.11.4-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
+- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.22.2`, then ensure that the `1.22.2-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
 
 ## Upgrade
 
 Ensure you are using the target Golang version locally.
 
 Change the version in `.travis.yml` and all `Dockerfile.*` files.
-
-Add an entry in `CHANGELOG.md` and commit.
 
 ## Test
 
@@ -160,9 +126,8 @@ If you previously noted any changes or issues of concern, perform any explicit t
 ## Upgrade
 
 ```
-go get -u <dependacy>   # e.g. go get -u github.com/onsi/gomega
+go get -u <dependency> # e.g. go get -u github.com/onsi/gomega
 go mod tidy
-go mod vendor
 ```
 
 ## Review
