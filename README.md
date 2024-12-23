@@ -160,9 +160,8 @@ If you previously noted any changes or issues of concern, perform any explicit t
 ## Upgrade
 
 ```
-go get -u <dependacy>   # e.g. go get -u github.com/onsi/gomega
+go get -u <dependency> # e.g. go get -u github.com/onsi/gomega
 go mod tidy
-go mod vendor
 ```
 
 ## Review
