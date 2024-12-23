@@ -76,14 +76,9 @@ ifeq ($(shell which CompileDaemon),)
 	cd vendor/github.com/githubnemo/CompileDaemon && go install -mod=vendor .
 endif
 
-esc:
-ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
-endif
-
 mockgen:
 ifeq ($(shell which mockgen),)
-	go install github.com/golang/mock/mockgen@v1.6.0
+	go install go.uber.org/mock/mockgen@v0.5.0
 endif
 
 ginkgo:
@@ -102,9 +97,9 @@ ifeq ($(shell which golint),)
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
-buildable: bindir CompileDaemon esc ginkgo goimports golint
+buildable: bindir CompileDaemon ginkgo goimports golint
 
-generate: esc mockgen
+generate: mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
@@ -146,7 +141,7 @@ imports-write-changed: goimports
 
 vet: tmp
 	@echo "go vet"
-	cd $(ROOT_DIRECTORY) && \
+	@cd $(ROOT_DIRECTORY) && \
 		go vet ./... > _tmp/govet.out 2>&1 || \
 		(diff .govetignore _tmp/govet.out && exit 1)
 

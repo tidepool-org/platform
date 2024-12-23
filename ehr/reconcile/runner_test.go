@@ -3,13 +3,12 @@ package reconcile_test
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	api "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
-	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 	taskTest "github.com/tidepool-org/platform/task/test"
@@ -27,7 +26,7 @@ var _ = Describe("Runner", func() {
 	var taskCtrl *gomock.Controller
 
 	var authClient *authTest.MockClient
-	var clinicsClient *clinics.MockClient
+	var clinicsClient *clinicsTest.MockClient
 	var taskClient *taskTest.MockClient
 	var logger log.Logger
 
@@ -36,7 +35,7 @@ var _ = Describe("Runner", func() {
 		clinicsCtrl = gomock.NewController(GinkgoT())
 		taskCtrl = gomock.NewController(GinkgoT())
 		authClient = authTest.NewMockClient(authCtrl)
-		clinicsClient = clinics.NewMockClient(clinicsCtrl)
+		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
 		taskClient = taskTest.NewMockClient(taskCtrl)
 		logger = null.NewLogger()
 	})
