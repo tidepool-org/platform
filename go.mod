@@ -23,6 +23,7 @@ require (
 	github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
+	github.com/tidepool-org/platform-plugin-redwood v0.0.0
 	github.com/urfave/cli v1.22.15
 	go.mongodb.org/mongo-driver v1.16.0
 	go.uber.org/fx v1.22.1
@@ -98,7 +99,7 @@ require (
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
 	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d // indirect
@@ -106,3 +107,5 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/tidepool-org/platform-plugin-redwood => ./plugin/redwood

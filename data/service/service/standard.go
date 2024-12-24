@@ -10,10 +10,17 @@ import (
 	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	redwoodClient "github.com/tidepool-org/platform-plugin-redwood/redwood/client"
+	redwoodProvider "github.com/tidepool-org/platform-plugin-redwood/redwood/provider"
+	redwoodWork "github.com/tidepool-org/platform-plugin-redwood/redwood/work"
+
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/client"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
+	dataRawService "github.com/tidepool-org/platform/data/raw/service"
+	dataRawStoreStructuredMongo "github.com/tidepool-org/platform/data/raw/store/structured/mongo"
 	"github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
@@ -31,6 +38,8 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type Standard struct {
@@ -39,11 +48,17 @@ type Standard struct {
 	permissionClient          *permissionClient.Client
 	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
 	dataStore                 *dataStoreMongo.Store
+	dataRawStructuredStore    *dataRawStoreStructuredMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
+	workStructuredStore       *workStoreStructuredMongo.Store
 	dataClient                *Client
 	clinicsClient             *clinics.Client
+	dataRawClient             *dataRawService.Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	workClient                *workService.Client
+	redwoodClient             *redwoodClient.Client
+	workCoordinator           *workService.Coordinator
 	userEventsHandler         events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
@@ -72,10 +87,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
+	if err := s.initializeDataRawStructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceStructuredStore(); err != nil {
 		return err
 	}
 	if err := s.initializeSyncTaskStore(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
 		return err
 	}
 	if err := s.initializeDataClient(); err != nil {
@@ -84,7 +105,19 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeClinicsClient(); err != nil {
 		return err
 	}
+	if err := s.initializeDataRawClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkClient(); err != nil {
+		return err
+	}
+	if err := s.initializeRedwoodClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
@@ -111,7 +144,20 @@ func (s *Standard) Terminate() {
 		s.userEventsHandler = nil
 	}
 	s.api = nil
+	if s.workCoordinator != nil {
+		s.workCoordinator.Stop()
+		s.workCoordinator = nil
+	}
+	s.redwoodClient = nil
+	s.workClient = nil
+	s.dataSourceClient = nil
+	s.dataRawClient = nil
 	s.dataClient = nil
+	s.clinicsClient = nil
+	if s.workStructuredStore != nil {
+		s.workStructuredStore.Terminate(context.Background())
+		s.workStructuredStore = nil
+	}
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Terminate(context.Background())
 		s.syncTaskStore = nil
@@ -119,6 +165,10 @@ func (s *Standard) Terminate() {
 	if s.dataSourceStructuredStore != nil {
 		s.dataSourceStructuredStore.Terminate(context.Background())
 		s.dataSourceStructuredStore = nil
+	}
+	if s.dataRawStructuredStore != nil {
+		s.dataRawStructuredStore.Terminate(context.Background())
+		s.dataRawStructuredStore = nil
 	}
 	if s.dataStore != nil {
 		s.dataStore.Terminate(context.Background())
@@ -275,6 +325,32 @@ func (s *Standard) initializeDataStore() error {
 	return nil
 }
 
+func (s *Standard) initializeDataRawStructuredStore() error {
+	s.Logger().Debug("Loading data raw structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load data raw structured store config")
+	}
+
+	s.Logger().Debug("Creating data raw structured store")
+
+	str, err := dataRawStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data raw structured store")
+	}
+	s.dataRawStructuredStore = str
+
+	s.Logger().Debug("Ensuring data raw structured store indexes")
+
+	err = s.dataRawStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure data raw structured store indexes")
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeDataSourceStructuredStore() error {
 	s.Logger().Debug("Loading data source structured store config")
 
@@ -323,6 +399,32 @@ func (s *Standard) initializeSyncTaskStore() error {
 	return nil
 }
 
+func (s *Standard) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
@@ -335,6 +437,18 @@ func (s *Standard) initializeDataClient() error {
 	return nil
 }
 
+func (s *Standard) initializeDataRawClient() error {
+	s.Logger().Debug("Creating data raw client")
+
+	clnt, err := dataRawService.NewClient(s.dataRawStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data raw client")
+	}
+	s.dataRawClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeDataSourceClient() error {
 	s.Logger().Debug("Creating data client")
 
@@ -343,6 +457,94 @@ func (s *Standard) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to create source data client")
 	}
 	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s.workStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeRedwoodClient() error {
+	s.Logger().Debug("Loading redwood provider")
+
+	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
+		ConfigReporter:   s.ConfigReporter().WithScopes("provider"),
+		DataSourceClient: s.dataSourceClient,
+		WorkClient:       s.workClient,
+	}
+	if prvdr, err := redwoodProvider.NewProvider(redwoodProviderDependencies); err != nil {
+		s.Logger().Warn("Unable to create redwood provider")
+	} else {
+		s.Logger().Debug("Loading redwood client config")
+
+		cfg := client.NewConfig()
+		cfg.UserAgent = s.UserAgent()
+		reporter := s.ConfigReporter().WithScopes("redwood", "client")
+		loader := client.NewConfigReporterLoader(reporter)
+		if err = cfg.Load(loader); err != nil {
+			return errors.Wrap(err, "unable to load redwood client config")
+		}
+
+		s.Logger().Debug("Creating redwood client")
+
+		redwoodClientDependencies := redwoodClient.ClientDependencies{
+			Config:            cfg,
+			TokenSourceSource: prvdr,
+		}
+		clnt, clntErr := redwoodClient.NewClient(redwoodClientDependencies)
+		if clntErr != nil {
+			return errors.Wrap(clntErr, "unable to create redwood client")
+		}
+		s.redwoodClient = clnt
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeWorkCoordinator() error {
+	s.Logger().Debug("Creating work coordinator")
+
+	coordinator, err := workService.NewCoordinator(s.Logger(), s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work coordinator")
+	}
+	s.workCoordinator = coordinator
+
+	s.Logger().Debug("Creating redwood processors")
+
+	dataRepository := s.dataStore.NewDataRepository()
+	redwoodProcessorDependencies := redwoodWork.ProcessorDependencies{
+		DataClient:            dataRepository,
+		DataSetClient:         dataRepository,
+		DataSourceClient:      s.dataSourceClient,
+		ProviderSessionClient: s.AuthClient(),
+		DataRawClient:         s.dataRawClient,
+		RedwoodClient:         s.redwoodClient,
+		WorkClient:            s.workClient,
+	}
+	redwoodProcessors, err := redwoodWork.NewProcessors(redwoodProcessorDependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create redwood processors")
+	}
+
+	s.Logger().Debug("Registering redwood processors")
+
+	if err = s.workCoordinator.RegisterProcessors(redwoodProcessors); err != nil {
+		return errors.Wrap(err, "unable to register redwood processors")
+	}
+
+	s.Logger().Debug("Starting work coordinator")
+
+	s.workCoordinator.Start()
 
 	return nil
 }
@@ -364,7 +566,8 @@ func (s *Standard) initializeAPI() error {
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient)
+		s.dataStore, s.syncTaskStore, s.dataClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}
