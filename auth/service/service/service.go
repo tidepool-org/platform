@@ -9,6 +9,8 @@ import (
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	redwoodProvider "github.com/tidepool-org/platform-plugin-redwood/redwood/provider"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/appvalidate"
@@ -33,6 +35,9 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	"github.com/tidepool-org/platform/work"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type confirmationClientConfig struct {
@@ -45,17 +50,19 @@ func (c *confirmationClientConfig) Load() error {
 
 type Service struct {
 	*serviceService.Service
-	domain             string
-	authStore          *authMongo.Store
-	dataSourceClient   *dataSourceClient.Client
-	confirmationClient confirmationClient.ClientWithResponsesInterface
-	taskClient         task.Client
-	providerFactory    provider.Factory
-	authClient         *Client
-	userEventsHandler  events.Runner
-	deviceCheck        apple.DeviceCheck
-	appValidator       *appvalidate.Validator
-	partnerSecrets     *appvalidate.PartnerSecrets
+	domain              string
+	authStore           *authMongo.Store
+	workStructuredStore *workStoreStructuredMongo.Store
+	dataSourceClient    *dataSourceClient.Client
+	confirmationClient  confirmationClient.ClientWithResponsesInterface
+	taskClient          task.Client
+	workClient          *workService.Client
+	providerFactory     provider.Factory
+	authClient          *Client
+	userEventsHandler   events.Runner
+	deviceCheck         apple.DeviceCheck
+	appValidator        *appvalidate.Validator
+	partnerSecrets      *appvalidate.PartnerSecrets
 }
 
 func New() *Service {
@@ -90,6 +97,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
@@ -97,6 +107,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTaskClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkClient(); err != nil {
 		return err
 	}
 	if err := s.initializeProviderFactory(); err != nil {
@@ -122,9 +135,11 @@ func (s *Service) Terminate() {
 	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
+	s.terminateWorkClient()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
 	s.terminateConfirmationClient()
+	s.terminateWorkStructuredStore()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -151,6 +166,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
+}
+
+func (s *Service) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Service) ProviderFactory() provider.Factory {
@@ -257,6 +276,42 @@ func (s *Service) terminateAuthStore() {
 	}
 }
 
+func (s *Service) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
+func (s *Service) terminateWorkStructuredStore() {
+	if s.workStructuredStore != nil {
+		s.Logger().Debug("Closing work structured store")
+		s.workStructuredStore.Terminate(context.Background())
+
+		s.Logger().Debug("Destroying work structured store")
+		s.workStructuredStore = nil
+	}
+}
+
 func (s *Service) initializeDataSourceClient() error {
 	s.Logger().Debug("Loading data source client config")
 
@@ -283,6 +338,25 @@ func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
 		s.dataSourceClient = nil
+	}
+}
+
+func (s *Service) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s.workStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateWorkClient() {
+	if s.workClient != nil {
+		s.Logger().Debug("Destroying work client")
+		s.workClient = nil
 	}
 }
 
@@ -359,10 +433,21 @@ func (s *Service) initializeProviderFactory() error {
 
 	s.providerFactory = prvdrFctry
 
-	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
+	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
+		ConfigReporter:   s.ConfigReporter().WithScopes("provider"),
+		DataSourceClient: s.DataSourceClient(),
+		WorkClient:       s.WorkClient(),
+	}
+	if prvdr, prvdrErr := redwoodProvider.NewProvider(redwoodProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create redwood provider")
+	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add redwood provider")
 	}
 
 	return nil
