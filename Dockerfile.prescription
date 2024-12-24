@@ -1,26 +1,15 @@
-# Development
-FROM golang:1.22.2-alpine AS development
+# Build
+FROM golang:1.23.4-alpine AS build
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make
 WORKDIR /go/src/github.com/tidepool-org/platform
-RUN apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk --no-cache add make git ca-certificates tzdata && \
-    go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
-    adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
-RUN [ ! -d /go/pkg/mod ] || chmod -R go+w /go/pkg/mod
-USER tidepool
-COPY --chown=tidepool . .
-ENV SERVICE=services/prescription
-RUN ["make", "service-build"]
-CMD ["make", "service-start"]
+COPY . .
+RUN make init plugins-visibility build
 
 # Production
 FROM alpine:latest AS production
-RUN apk --no-cache update && \
-    apk --no-cache upgrade && \
-    apk add --no-cache ca-certificates tzdata && \
-    adduser -D tidepool
-WORKDIR /home/tidepool
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata
+RUN adduser --disabled-password tidepool
 USER tidepool
-COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/services/prescription/ .
+WORKDIR /home/tidepool
+COPY --from=build --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/services/prescription/ .
 CMD ["./prescription"]

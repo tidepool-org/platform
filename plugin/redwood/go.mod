@@ -1,6 +1,8 @@
 module github.com/tidepool-org/platform-plugin-redwood
 
-go 1.22
+go 1.23
+
+toolchain go1.23.4
 
 require github.com/tidepool-org/platform v0.0.0
 

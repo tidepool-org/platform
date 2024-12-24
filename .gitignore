@@ -5,27 +5,27 @@
 *.env
 .envrc
 
-# Debug binaries
+# Go
+go.work
+go.work.sum
+
+# Debug
 debug
 __debug_bin*
 
-# Test output
+# Test
+*.coverprofile
 *.test
+coverprofile.out
 ginkgo.report
 
-# Test coverage output
-*.coverprofile
-coverprofile.out
+# Project
+vendor
+_bin
+_data
+_log
+_tmp
 
-# Project directories
-/_bin/
-/_data/
-/_log/
-/_tmp/
-
-# Development environments
+# Development
 .gvm_local
 .idea
-
-# Project details
-vendor

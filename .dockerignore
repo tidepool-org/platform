@@ -4,28 +4,68 @@
 # Environment
 *.env
 .envrc
+env*.sh
+private/plugin/redwood/*.env
+!version.env
 
-# Debug binaries
+# Debug
 debug
 __debug_bin*
 
-# Test output
-*.test
-ginkgo.report
-
-# Test coverage output
+# Test
 *.coverprofile
+*.test
 coverprofile.out
+ginkgo.report
+test
+*_test.go
+*/test
+*/*_test.go
+*/*/test
+*/*/*_test.go
+*/*/*/test
+*/*/*/*_test.go
+*/*/*/*/test
+*/*/*/*/*_test.go
+*/*/*/*/*/test
+*/*/*/*/*/*_test.go
+*/*/*/*/*/*/test
+*/*/*/*/*/*/*_test.go
+*/*/*/*/*/*/*/test
+*/*/*/*/*/*/*/*_test.go
 
-# Project directories
-/_bin/
-/_data/
-/_log/
-/_tmp/
+# Project
+vendor
+_bin
+_data
+_log
+_tmp
 
-# Development environments
+# Development
 .gvm_local
 .idea
+.vscode
+.govetignore
+private/plugin/redwood/.govetignore
 
-# Project details
-vendor
+# Documentation
+CHANGELOG.md
+LICENSE
+README.md
+*/README.md
+*/*/README.md
+*/*/*/README.md
+
+# Git
+.git
+.gitignore
+.gitmodules
+private/plugin/redwood/.git
+private/plugin/redwood/.gitignore
+
+# Travis
+.travis.yml
+
+# Docker
+.dockerignore
+Dockerfile*

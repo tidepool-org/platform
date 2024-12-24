@@ -1,28 +1,18 @@
-# Development
-FROM golang:1.22.2-alpine AS development
+# Build
+FROM golang:1.23.4-alpine AS build
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make
 WORKDIR /go/src/github.com/tidepool-org/platform
-RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
-    echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
-    apk --no-cache add ca-certificates tzdata make git mongodb yaml-cpp=0.6.2-r2&& \
-    go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
-    adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
-RUN [ ! -d /go/pkg/mod ] || chmod -R go+w /go/pkg/mod
-USER tidepool
-COPY --chown=tidepool . .
-ENV SERVICE=tools
-RUN ["make", "service-build"]
-CMD ["make", "service-start"]
+COPY . .
+RUN make init plugins-visibility build
 
 # Production
-FROM mongo:6.0.14 AS production
+FROM mongo:6.0.19 AS production
 # this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
 ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
-RUN apt -y update && \
-    apt -y install ca-certificates tzdata && \
-    adduser --disabled-password tidepool
-WORKDIR /home/tidepool
+RUN apt -y update && apt -y install ca-certificates tzdata
+RUN adduser --disabled-password --gecos GECOS tidepool
 USER tidepool
-COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
+WORKDIR /home/tidepool
 COPY ./tools/ashrc /home/tidepool/.bashrc
+COPY --from=build --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
 CMD ["./tools"]
