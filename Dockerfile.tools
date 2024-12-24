@@ -1,28 +1,27 @@
 # Development
-FROM golang:1.22.2-alpine AS development
-WORKDIR /go/src/github.com/tidepool-org/platform
+FROM golang:1.23.4-alpine AS development
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make
 RUN echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/community' >> /etc/apk/repositories && \
     echo 'http://dl-cdn.alpinelinux.org/alpine/v3.9/main' >> /etc/apk/repositories && \
-    apk --no-cache add ca-certificates tzdata make git mongodb yaml-cpp=0.6.2-r2&& \
-    go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
-    adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
+    apk --no-cache add mongodb yaml-cpp=0.6.2-r2
 RUN [ ! -d /go/pkg/mod ] || chmod -R go+w /go/pkg/mod
+RUN adduser --disabled-password tidepool
 USER tidepool
-COPY --chown=tidepool . .
+WORKDIR /go/src/github.com/tidepool-org/platform
+COPY --chown=tidepool:tidepool . .
+RUN ["make", "init", "CompileDaemon", "plugins-visibility"]
 ENV SERVICE=tools
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
 
 # Production
-FROM mongo:6.0.14 AS production
+FROM mongo:6.0.19 AS production
 # this statically set $HOME is non-ideal, but is to combat it being hardcoded to /data/db upstream
 ENV HOME="/home/tidepool/" DEBIAN_FRONTEND="noninteractive"
-RUN apt -y update && \
-    apt -y install ca-certificates tzdata && \
-    adduser --disabled-password tidepool
-WORKDIR /home/tidepool
+RUN apt -y update && apt -y install ca-certificates tzdata
+RUN adduser --disabled-password tidepool
 USER tidepool
-COPY --from=development --chown=tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
+WORKDIR /home/tidepool
+COPY --from=development --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/tools/ .
 COPY ./tools/ashrc /home/tidepool/.bashrc
 CMD ["./tools"]

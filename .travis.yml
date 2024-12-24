@@ -1,17 +1,19 @@
+os: linux
+
 dist: jammy
 
 language: go
 
 go:
-  - 1.22.2
+  - 1.23.4
 
 services:
   - docker
 
 env:
   global:
-    - MONGODB=6.0.14
-    - MONGOSH=2.2.3
+    - MONGODB=6.0.19
+    - MONGOSH=2.3.7
 
 cache:
   directories:
@@ -20,10 +22,11 @@ cache:
 before_install:
   - sudo apt-get update
   - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
-  - mkdir /tmp/data
-  - /usr/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --replSet rs0 --logpath ${PWD}/mongod.log &> /dev/null &
+  - mkdir -p /var/ramfs/mongodb/data
+  - /usr/bin/mongod --dbpath /var/ramfs/mongodb/data --bind_ip 127.0.0.1 --replSet rs0 --logpath /var/ramfs/mongodb/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
   - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
+  - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
 
 addons:
   apt:
@@ -32,4 +35,5 @@ addons:
         key_url: 'https://pgp.mongodb.com/server-6.0.asc'
 
 script:
-  - make ci-generate ci-build go-ci-test ci-docker TIMING_CMD="time -p"
+  - export TIMING_CMD='time -p'
+  - make plugins-visibility-public && make ci && make plugins-visibility-private && make ci
