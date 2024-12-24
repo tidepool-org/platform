@@ -27,12 +27,8 @@ type Provider interface {
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*Token, error)
 }
 
-type HTTPClientSource interface {
-	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
-}
-
 type TokenSource interface {
-	HTTPClientSource
+	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
 	RefreshedToken() (*Token, error)
 	ExpireToken()
