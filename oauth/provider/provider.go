@@ -6,10 +6,10 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/oauth"
 )
 
 const ProviderType = "oauth"
@@ -71,15 +71,15 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionID string) error {
+func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionID string) error {
+func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (p *Provider) TokenSource(ctx context.Context, token *oauth.Token) (oauth2.TokenSource, error) {
+func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {
 	if token == nil {
 		return nil, errors.New("token is missing")
 	}
@@ -100,13 +100,13 @@ func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
 	return p.config.AuthCodeURL(state)
 }
 
-func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*oauth.Token, error) {
+func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error) {
 	token, err := p.config.Exchange(ctx, authorizationCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to exchange authorization code for token")
 	}
 
-	return oauth.NewTokenFromRawToken(token)
+	return auth.NewOAuthTokenFromRawToken(token)
 }
 
 func SplitScopes(scopes string) []string {
