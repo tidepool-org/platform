@@ -9,7 +9,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
@@ -91,7 +90,7 @@ func (p *ProviderSessionCreate) Parse(parser structure.ObjectParser) {
 		p.Name = *ptr
 	}
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
@@ -123,7 +122,7 @@ func NewProviderSessionUpdate() *ProviderSessionUpdate {
 
 func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
@@ -252,7 +251,7 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 		p.Name = *ptr
 	}
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}

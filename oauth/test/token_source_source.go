@@ -5,12 +5,12 @@ import (
 
 	"golang.org/x/oauth2"
 
-	"github.com/tidepool-org/platform/oauth"
+	"github.com/tidepool-org/platform/auth"
 )
 
 type TokenSourceInput struct {
 	Context context.Context
-	Token   *oauth.Token
+	Token   *auth.OAuthToken
 }
 
 type TokenSourceOutput struct {
@@ -21,7 +21,7 @@ type TokenSourceOutput struct {
 type TokenSourceSource struct {
 	TokenSourceInvocations int
 	TokenSourceInputs      []TokenSourceInput
-	TokenSourceStub        func(ctx context.Context, token *oauth.Token) (oauth2.TokenSource, error)
+	TokenSourceStub        func(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error)
 	TokenSourceOutputs     []TokenSourceOutput
 	TokenSourceOutput      *TokenSourceOutput
 }
@@ -30,7 +30,7 @@ func NewTokenSourceSource() *TokenSourceSource {
 	return &TokenSourceSource{}
 }
 
-func (t *TokenSourceSource) TokenSource(ctx context.Context, token *oauth.Token) (oauth2.TokenSource, error) {
+func (t *TokenSourceSource) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {
 	t.TokenSourceInvocations++
 	t.TokenSourceInputs = append(t.TokenSourceInputs, TokenSourceInput{Context: ctx, Token: token})
 	if t.TokenSourceStub != nil {

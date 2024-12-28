@@ -1,16 +1,16 @@
 package test
 
-import "github.com/tidepool-org/platform/oauth"
+import "github.com/tidepool-org/platform/auth"
 
 type RefreshedTokenOutput struct {
-	Token *oauth.Token
+	Token *auth.OAuthToken
 	Error error
 }
 
 type TokenSource struct {
 	*HTTPClientSource
 	RefreshedTokenInvocations int
-	RefreshedTokenStub        func() (*oauth.Token, error)
+	RefreshedTokenStub        func() (*auth.OAuthToken, error)
 	RefreshedTokenOutputs     []RefreshedTokenOutput
 	RefreshedTokenOutput      *RefreshedTokenOutput
 	ExpireTokenInvocations    int
@@ -23,7 +23,7 @@ func NewTokenSource() *TokenSource {
 	}
 }
 
-func (t *TokenSource) RefreshedToken() (*oauth.Token, error) {
+func (t *TokenSource) RefreshedToken() (*auth.OAuthToken, error) {
 	t.RefreshedTokenInvocations++
 	if t.RefreshedTokenStub != nil {
 		return t.RefreshedTokenStub()
