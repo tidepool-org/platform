@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/oauth"
 )
 
@@ -18,7 +19,7 @@ type HTTPClientOutput struct {
 }
 
 type RefreshedTokenOutput struct {
-	Token *oauth.Token
+	Token *auth.OAuthToken
 	Error error
 }
 
@@ -29,7 +30,7 @@ type TokenSource struct {
 	HTTPClientOutputs         []HTTPClientOutput
 	HTTPClientOutput          *HTTPClientOutput
 	RefreshedTokenInvocations int
-	RefreshedTokenStub        func() (*oauth.Token, error)
+	RefreshedTokenStub        func() (*auth.OAuthToken, error)
 	RefreshedTokenOutputs     []RefreshedTokenOutput
 	RefreshedTokenOutput      *RefreshedTokenOutput
 	ExpireTokenInvocations    int
@@ -57,7 +58,7 @@ func (t *TokenSource) HTTPClient(ctx context.Context, tokenSourceSource oauth.To
 	panic("HTTPClient has no output")
 }
 
-func (t *TokenSource) RefreshedToken() (*oauth.Token, error) {
+func (t *TokenSource) RefreshedToken() (*auth.OAuthToken, error) {
 	t.RefreshedTokenInvocations++
 	if t.RefreshedTokenStub != nil {
 		return t.RefreshedTokenStub()
