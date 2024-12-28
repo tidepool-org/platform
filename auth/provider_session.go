@@ -9,7 +9,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
@@ -67,9 +66,9 @@ func (p *ProviderSessionFilter) MutateRequest(req *http.Request) error {
 }
 
 type ProviderSessionCreate struct {
-	Type       string       `json:"type" bson:"type"`
-	Name       string       `json:"name" bson:"name"`
-	OAuthToken *oauth.Token `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
+	Type       string      `json:"type" bson:"type"`
+	Name       string      `json:"name" bson:"name"`
+	OAuthToken *OAuthToken `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
 }
 
 func NewProviderSessionCreate() *ProviderSessionCreate {
@@ -84,7 +83,7 @@ func (p *ProviderSessionCreate) Parse(parser structure.ObjectParser) {
 		p.Name = *ptr
 	}
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
@@ -104,7 +103,7 @@ func (p *ProviderSessionCreate) Validate(validator structure.Validator) {
 }
 
 type ProviderSessionUpdate struct {
-	OAuthToken *oauth.Token `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
+	OAuthToken *OAuthToken `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
 }
 
 func NewProviderSessionUpdate() *ProviderSessionUpdate {
@@ -113,7 +112,7 @@ func NewProviderSessionUpdate() *ProviderSessionUpdate {
 
 func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
@@ -176,13 +175,13 @@ func ValidateProviderName(value string) error {
 }
 
 type ProviderSession struct {
-	ID           string       `json:"id" bson:"id"`
-	UserID       string       `json:"userId" bson:"userId"`
-	Type         string       `json:"type" bson:"type"`
-	Name         string       `json:"name" bson:"name"`
-	OAuthToken   *oauth.Token `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
-	CreatedTime  time.Time    `json:"createdTime" bson:"createdTime"`
-	ModifiedTime *time.Time   `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ID           string      `json:"id" bson:"id"`
+	UserID       string      `json:"userId" bson:"userId"`
+	Type         string      `json:"type" bson:"type"`
+	Name         string      `json:"name" bson:"name"`
+	OAuthToken   *OAuthToken `json:"oauthToken,omitempty" bson:"oauthToken,omitempty"`
+	CreatedTime  time.Time   `json:"createdTime" bson:"createdTime"`
+	ModifiedTime *time.Time  `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
 func NewProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error) {
@@ -219,7 +218,7 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 		p.Name = *ptr
 	}
 	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = oauth.NewToken()
+		p.OAuthToken = NewOAuthToken()
 		p.OAuthToken.Parse(oauthTokenParser)
 		oauthTokenParser.NotParsed()
 	}
