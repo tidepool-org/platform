@@ -7,7 +7,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/auth",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
             "envFile": "${workspaceRoot}/auth.env",
             "env": {
@@ -20,7 +20,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/data",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
             "envFile": "${workspaceRoot}/data.env",
             "env": {
@@ -33,7 +33,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/notification",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
             "envFile": "${workspaceRoot}/notification.env",
             "env": {
@@ -46,7 +46,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/task",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
             "envFile": "${workspaceRoot}/task.env",
             "env": {
@@ -59,7 +59,7 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/user",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
             "envFile": "${workspaceRoot}/user.env",
             "env": {
@@ -68,6 +68,10 @@
         }
     ],
     "compounds": [
+        {
+            "name": "auth, data",
+            "configurations": ["auth", "data"]
+        },
         {
             "name": "auth, task",
             "configurations": ["auth", "task"]

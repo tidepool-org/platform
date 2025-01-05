@@ -532,13 +532,13 @@ func (s *Standard) initializeWorkCoordinator() error {
 	}
 	redwoodProcessors, err := redwoodWork.NewProcessors(redwoodProcessorDependencies)
 	if err != nil {
-		return errors.Wrap(err, "unable to create work processors")
+		return errors.Wrap(err, "unable to create redwood processors")
 	}
 
 	s.Logger().Debug("Registering redwood processors")
 
 	if err = s.workCoordinator.RegisterProcessors(redwoodProcessors); err != nil {
-		return errors.Wrap(err, "unable to create work processors")
+		return errors.Wrap(err, "unable to register redwood processors")
 	}
 
 	s.Logger().Debug("Starting work coordinator")
