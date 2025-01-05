@@ -14,6 +14,9 @@ env:
   global:
     - MONGODB=6.0.19
     - MONGOSH=2.3.7
+  jobs:
+    - PLUGIN_VISIBILITY=public
+    - PLUGIN_VISIBILITY=private
 
 cache:
   directories:
@@ -36,4 +39,4 @@ addons:
 
 script:
   - export TIMING_CMD='time -p'
-  - make plugins-visibility-public && make ci && make plugins-visibility-private && make ci
+  - make plugins-visibility-${PLUGIN_VISIBILITY} && make ci
