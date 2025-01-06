@@ -11,6 +11,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
@@ -64,6 +65,9 @@ func RandomCreate() *dataSource.Create {
 		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 	}
 	datum.State = pointer.FromString(state)
+
+	datum.Metadata = metadataTest.RandomMetadata()
+
 	return datum
 }
 
@@ -84,6 +88,9 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	if datum.State != nil {
 		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
+	if datum.Metadata != nil {
+		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)
+	}
 	return object
 }
 
@@ -100,6 +107,7 @@ func RandomUpdate() *dataSource.Update {
 	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
 	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
+	datum.Metadata = metadataTest.RandomMetadata()
 	return datum
 }
 
@@ -115,6 +123,7 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
 	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
+	clone.Metadata = metadataTest.CloneMetadata(datum.Metadata)
 	return clone
 }
 
@@ -144,6 +153,9 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 	if datum.LastImportTime != nil {
 		object["lastImportTime"] = test.NewObjectFromTime(*datum.LastImportTime, objectFormat)
 	}
+	if datum.Metadata != nil {
+		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)
+	}
 	return object
 }
 
@@ -159,6 +171,7 @@ func MatchUpdate(datum *dataSource.Update) gomegaTypes.GomegaMatcher {
 		"EarliestDataTime":  test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":    test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":    test.MatchTime(datum.LastImportTime),
+		"Metadata":          gomega.Equal(datum.Metadata),
 	}))
 }
 
@@ -182,6 +195,7 @@ func RandomSource() *dataSource.Source {
 	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
 	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
+	datum.Metadata = metadataTest.RandomMetadata()
 	return datum
 }
 
@@ -204,6 +218,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
 	clone.Revision = pointer.CloneInt(datum.Revision)
+	clone.Metadata = metadataTest.CloneMetadata(datum.Metadata)
 	return clone
 }
 
@@ -254,6 +269,9 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	if datum.Revision != nil {
 		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
 	}
+	if datum.Metadata != nil {
+		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)
+	}
 	return object
 }
 
@@ -276,6 +294,7 @@ func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
 		"CreatedTime":       test.MatchTime(datum.CreatedTime),
 		"ModifiedTime":      test.MatchTime(datum.ModifiedTime),
 		"Revision":          gomega.Equal(datum.Revision),
+		"Metadata":          gomega.Equal(datum.Metadata),
 	}))
 }
 

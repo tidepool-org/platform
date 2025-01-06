@@ -468,6 +468,7 @@ var _ = Describe("Mongo", func() {
 							"CreatedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
 							"ModifiedTime":      BeNil(),
 							"Revision":          PointTo(Equal(0)),
+							"Metadata":          BeNil(),
 						})
 						result, err := repository.Create(ctx, userID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -713,6 +714,7 @@ var _ = Describe("Mongo", func() {
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"Metadata":          Equal(original.Metadata),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
@@ -746,6 +748,7 @@ var _ = Describe("Mongo", func() {
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"Metadata":          Equal(original.Metadata),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
@@ -778,6 +781,7 @@ var _ = Describe("Mongo", func() {
 									"CreatedTime":       Equal(original.CreatedTime),
 									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"Metadata":          Equal(original.Metadata),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
