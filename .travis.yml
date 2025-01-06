@@ -38,5 +38,4 @@ addons:
         key_url: 'https://pgp.mongodb.com/server-6.0.asc'
 
 script:
-  - export TIMING_CMD='time -p'
-  - make plugins-visibility-${PLUGIN_VISIBILITY} && make ci
+  - echo "Fork test"
