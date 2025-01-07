@@ -233,9 +233,8 @@ build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
-		$(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
-			echo "go build -o $${LINE}"; \
-			$(TIMING_CMD) $(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
+		$(TIMING_CMD) $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
+			$(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
 		done
 
 build-watch: CompileDaemon
