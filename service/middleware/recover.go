@@ -23,7 +23,7 @@ func (r *Recover) MiddlewareFunc(handler rest.HandlerFunc) rest.HandlerFunc {
 					if responder, responderErr := serviceContext.NewResponder(res, req); responderErr != nil {
 						res.WriteHeader(http.StatusInternalServerError)
 					} else {
-						responder.RespondWithInternalServerFailure("Recovered from unhandled panic", string(debug.Stack()))
+						responder.RespondWithInternalServerFailure("Recovered from unhandled panic!!!", string(debug.Stack()))
 					}
 				}
 			}()
