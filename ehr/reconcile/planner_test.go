@@ -3,13 +3,12 @@ package reconcile_test
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	api "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
-	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
 
@@ -25,7 +24,7 @@ var _ = Describe("Planner", func() {
 	var clinicsCtrl *gomock.Controller
 	var taskCtrl *gomock.Controller
 
-	var clinicsClient *clinics.MockClient
+	var clinicsClient *clinicsTest.MockClient
 	var logger log.Logger
 	var planner *reconcile.Planner
 
@@ -33,7 +32,7 @@ var _ = Describe("Planner", func() {
 		authCtrl = gomock.NewController(GinkgoT())
 		clinicsCtrl = gomock.NewController(GinkgoT())
 		taskCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinics.NewMockClient(clinicsCtrl)
+		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
 		logger = null.NewLogger()
 		planner = reconcile.NewPlanner(clinicsClient, logger)
 	})
@@ -182,7 +181,7 @@ var _ = Describe("Planner", func() {
 	})
 })
 
-func setupEHRSettingsForClinics(clinicsClient *clinics.MockClient, clinics []api.Clinic) {
+func setupEHRSettingsForClinics(clinicsClient *clinicsTest.MockClient, clinics []api.Clinic) {
 	for _, clinic := range clinics {
 		clinicsClient.EXPECT().GetEHRSettings(gomock.Any(), *clinic.Id).Return(clinicsTest.NewRandomEHRSettings(), nil)
 	}

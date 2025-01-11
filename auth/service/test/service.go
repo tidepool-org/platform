@@ -21,17 +21,24 @@ import (
 
 type Service struct {
 	*serviceTest.Service
-	DomainInvocations          int
-	DomainOutputs              []string
-	AuthStoreInvocations       int
-	AuthStoreImpl              *authStoreTest.Store
-	ProviderFactoryInvocations int
-	ProviderFactoryImpl        *providerTest.Factory
-	TaskClientInvocations      int
-	TaskClientImpl             *taskTest.Client
-	StatusInvocations          int
-	StatusOutputs              []*service.Status
-	confirmationClient         confirmationClient.ClientWithResponsesInterface
+	DomainInvocations               int
+	DomainOutputs                   []string
+	AuthStoreInvocations            int
+	AuthStoreImpl                   *authStoreTest.Store
+	ProviderFactoryInvocations      int
+	ProviderFactoryImpl             *providerTest.Factory
+	TaskClientInvocations           int
+	TaskClientImpl                  *taskTest.Client
+	ConfirmationClientInvocations   int
+	ConfirmationClientImpl          confirmationClient.ClientWithResponsesInterface
+	DeviceCheckInvocations          int
+	DeviceCheckImpl                 apple.DeviceCheck
+	StatusInvocations               int
+	StatusOutputs                   []*service.Status
+	AppvalidateValidatorInvocations int
+	AppvalidateValidatorImpl        *appvalidate.Validator
+	PartnerSecretsInvocations       int
+	PartnerSecretsImpl              *appvalidate.PartnerSecrets
 }
 
 func NewService() *Service {
@@ -72,15 +79,15 @@ func (s *Service) TaskClient() task.Client {
 }
 
 func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
-	return s.confirmationClient
-}
+	s.ConfirmationClientInvocations++
 
-func (s *Service) AppValidator() *appvalidate.Validator {
-	return &appvalidate.Validator{}
+	return s.ConfirmationClientImpl
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
-	return nil
+	s.DeviceCheckInvocations++
+
+	return s.DeviceCheckImpl
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -93,8 +100,16 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	return output
 }
 
+func (s *Service) AppValidator() *appvalidate.Validator {
+	s.AppvalidateValidatorInvocations++
+
+	return s.AppvalidateValidatorImpl
+}
+
 func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
-	return nil
+	s.PartnerSecretsInvocations++
+
+	return s.PartnerSecretsImpl
 }
 
 func (s *Service) Expectations() {

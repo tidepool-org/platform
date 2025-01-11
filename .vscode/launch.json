@@ -7,11 +7,13 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/auth",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
+            "hideSystemGoroutines": true,
             "envFile": "${workspaceRoot}/auth.env",
             "env": {
-                "TIDEPOOL_DEBUG_NAME": "auth"
+                "TIDEPOOL_DEBUG_NAME": "auth",
+                "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         },
         {
@@ -20,11 +22,13 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/data",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
+            "hideSystemGoroutines": true,
             "envFile": "${workspaceRoot}/data.env",
             "env": {
-                "TIDEPOOL_DEBUG_NAME": "data"
+                "TIDEPOOL_DEBUG_NAME": "data",
+                "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         },
         {
@@ -33,11 +37,13 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/notification",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
+            "hideSystemGoroutines": true,
             "envFile": "${workspaceRoot}/notification.env",
             "env": {
-                "TIDEPOOL_DEBUG_NAME": "notification"
+                "TIDEPOOL_DEBUG_NAME": "notification",
+                "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         },
         {
@@ -46,11 +52,13 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/task",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
+            "hideSystemGoroutines": true,
             "envFile": "${workspaceRoot}/task.env",
             "env": {
-                "TIDEPOOL_DEBUG_NAME": "task"
+                "TIDEPOOL_DEBUG_NAME": "task",
+                "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         },
         {
@@ -59,15 +67,21 @@
             "request": "launch",
             "mode": "debug",
             "program": "${workspaceRoot}/services/user",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
             "cwd": "${workspaceRoot}",
+            "hideSystemGoroutines": true,
             "envFile": "${workspaceRoot}/user.env",
             "env": {
-                "TIDEPOOL_DEBUG_NAME": "user"
+                "TIDEPOOL_DEBUG_NAME": "user",
+                "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         }
     ],
     "compounds": [
+        {
+            "name": "auth, data",
+            "configurations": ["auth", "data"]
+        },
         {
             "name": "auth, task",
             "configurations": ["auth", "task"]
