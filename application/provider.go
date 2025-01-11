@@ -95,6 +95,13 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 
 	configReporter = configReporter.WithScopes(name).WithScopes(scopes...)
 
+	// TODO: DO NOT COMMIT!!!
+	file, err := os.Create(fmt.Sprintf("%s.log", name))
+	if err != nil {
+		panic(err)
+	}
+	os.Stdout = file
+
 	writer, err := sync.NewWriter(os.Stdout)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create writer")

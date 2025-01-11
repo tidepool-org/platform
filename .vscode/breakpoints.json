@@ -1,0 +1,1906 @@
+[
+  {
+    "location": "/work/service/client.go",
+    "line": [
+      {
+        "line": 41,
+        "character": 0
+      },
+      {
+        "line": 41,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/client.go",
+    "line": [
+      {
+        "line": 49,
+        "character": 0
+      },
+      {
+        "line": 49,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/client.go",
+    "line": [
+      {
+        "line": 53,
+        "character": 0
+      },
+      {
+        "line": 53,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/client.go",
+    "line": [
+      {
+        "line": 57,
+        "character": 0
+      },
+      {
+        "line": 57,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/client.go",
+    "line": [
+      {
+        "line": 61,
+        "character": 0
+      },
+      {
+        "line": 61,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 39,
+        "character": 0
+      },
+      {
+        "line": 39,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 47,
+        "character": 0
+      },
+      {
+        "line": 47,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 51,
+        "character": 0
+      },
+      {
+        "line": 51,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 55,
+        "character": 0
+      },
+      {
+        "line": 55,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 59,
+        "character": 0
+      },
+      {
+        "line": 59,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 63,
+        "character": 0
+      },
+      {
+        "line": 63,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/service/client.go",
+    "line": [
+      {
+        "line": 67,
+        "character": 0
+      },
+      {
+        "line": 67,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/private/plugin/redwood/redwood/client/client.go",
+    "line": [
+      {
+        "line": 58,
+        "character": 0
+      },
+      {
+        "line": 58,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/dexcom/client/client.go",
+    "line": [
+      {
+        "line": 116,
+        "character": 0
+      },
+      {
+        "line": 116,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/oauth/client/client.go",
+    "line": [
+      {
+        "line": 45,
+        "character": 0
+      },
+      {
+        "line": 45,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/oauth/client/client.go",
+    "line": [
+      {
+        "line": 69,
+        "character": 0
+      },
+      {
+        "line": 69,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/store/structured/condition.go",
+    "line": [
+      {
+        "line": 12,
+        "character": 0
+      },
+      {
+        "line": 12,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/store/structured/condition.go",
+    "line": [
+      {
+        "line": 16,
+        "character": 0
+      },
+      {
+        "line": 16,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/store/structured/condition.go",
+    "line": [
+      {
+        "line": 25,
+        "character": 0
+      },
+      {
+        "line": 25,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/store/structured/condition.go",
+    "line": [
+      {
+        "line": 29,
+        "character": 0
+      },
+      {
+        "line": 29,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 61,
+        "character": 0
+      },
+      {
+        "line": 61,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 124,
+        "character": 0
+      },
+      {
+        "line": 124,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 151,
+        "character": 0
+      },
+      {
+        "line": 151,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 156,
+        "character": 0
+      },
+      {
+        "line": 156,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 173,
+        "character": 0
+      },
+      {
+        "line": 173,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 176,
+        "character": 0
+      },
+      {
+        "line": 176,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 183,
+        "character": 0
+      },
+      {
+        "line": 183,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 199,
+        "character": 0
+      },
+      {
+        "line": 199,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 240,
+        "character": 0
+      },
+      {
+        "line": 240,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 277,
+        "character": 0
+      },
+      {
+        "line": 277,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/service/coordinator.go",
+    "line": [
+      {
+        "line": 297,
+        "character": 0
+      },
+      {
+        "line": 297,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/data_set.go",
+    "line": [
+      {
+        "line": 102,
+        "character": 0
+      },
+      {
+        "line": 102,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/data_set.go",
+    "line": [
+      {
+        "line": 118,
+        "character": 0
+      },
+      {
+        "line": 118,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/data_set.go",
+    "line": [
+      {
+        "line": 512,
+        "character": 0
+      },
+      {
+        "line": 512,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 87,
+        "character": 0
+      },
+      {
+        "line": 87,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 92,
+        "character": 0
+      },
+      {
+        "line": 92,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 98,
+        "character": 0
+      },
+      {
+        "line": 98,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 106,
+        "character": 0
+      },
+      {
+        "line": 106,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 109,
+        "character": 0
+      },
+      {
+        "line": 109,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 124,
+        "character": 0
+      },
+      {
+        "line": 124,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 128,
+        "character": 0
+      },
+      {
+        "line": 128,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_data_create.go",
+    "line": [
+      {
+        "line": 139,
+        "character": 0
+      },
+      {
+        "line": 139,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/datasets_update.go",
+    "line": [
+      {
+        "line": 82,
+        "character": 0
+      },
+      {
+        "line": 82,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/datum.go",
+    "line": [
+      {
+        "line": 80,
+        "character": 0
+      },
+      {
+        "line": 80,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/datum.go",
+    "line": [
+      {
+        "line": 89,
+        "character": 0
+      },
+      {
+        "line": 89,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/datum.go",
+    "line": [
+      {
+        "line": 93,
+        "character": 0
+      },
+      {
+        "line": 93,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/request/inspector.go",
+    "line": [
+      {
+        "line": 45,
+        "character": 0
+      },
+      {
+        "line": 45,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/metadata/metadata.go",
+    "line": [
+      {
+        "line": 67,
+        "character": 0
+      },
+      {
+        "line": 67,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 278,
+        "character": 0
+      },
+      {
+        "line": 278,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 379,
+        "character": 0
+      },
+      {
+        "line": 379,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 413,
+        "character": 0
+      },
+      {
+        "line": 413,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 509,
+        "character": 0
+      },
+      {
+        "line": 509,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 558,
+        "character": 0
+      },
+      {
+        "line": 558,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 587,
+        "character": 0
+      },
+      {
+        "line": 587,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 642,
+        "character": 0
+      },
+      {
+        "line": 642,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 645,
+        "character": 0
+      },
+      {
+        "line": 645,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 82,
+        "character": 0
+      },
+      {
+        "line": 82,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 172,
+        "character": 0
+      },
+      {
+        "line": 172,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 180,
+        "character": 0
+      },
+      {
+        "line": 180,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 188,
+        "character": 0
+      },
+      {
+        "line": 188,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 222,
+        "character": 0
+      },
+      {
+        "line": 222,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 256,
+        "character": 0
+      },
+      {
+        "line": 256,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 290,
+        "character": 0
+      },
+      {
+        "line": 290,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 329,
+        "character": 0
+      },
+      {
+        "line": 329,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 356,
+        "character": 0
+      },
+      {
+        "line": 356,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 384,
+        "character": 0
+      },
+      {
+        "line": 384,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 412,
+        "character": 0
+      },
+      {
+        "line": 412,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 453,
+        "character": 0
+      },
+      {
+        "line": 453,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 463,
+        "character": 0
+      },
+      {
+        "line": 463,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 471,
+        "character": 0
+      },
+      {
+        "line": 471,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 486,
+        "character": 0
+      },
+      {
+        "line": 486,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 93,
+        "character": 0
+      },
+      {
+        "line": 93,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 151,
+        "character": 0
+      },
+      {
+        "line": 151,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 186,
+        "character": 0
+      },
+      {
+        "line": 186,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 196,
+        "character": 0
+      },
+      {
+        "line": 196,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 224,
+        "character": 0
+      },
+      {
+        "line": 224,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 253,
+        "character": 0
+      },
+      {
+        "line": 253,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 263,
+        "character": 0
+      },
+      {
+        "line": 263,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/store/structured/mongo/mongo.go",
+    "line": [
+      {
+        "line": 266,
+        "character": 0
+      },
+      {
+        "line": 266,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/work/ingest/processor.go",
+    "line": [
+      {
+        "line": 105,
+        "character": 0
+      },
+      {
+        "line": 105,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/private/plugin/redwood/redwood/provider/provider.go",
+    "line": [
+      {
+        "line": 71,
+        "character": 0
+      },
+      {
+        "line": 71,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/private/plugin/redwood/redwood/provider/provider.go",
+    "line": [
+      {
+        "line": 77,
+        "character": 0
+      },
+      {
+        "line": 77,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/dexcom/provider/provider.go",
+    "line": [
+      {
+        "line": 49,
+        "character": 0
+      },
+      {
+        "line": 49,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/dexcom/provider/provider.go",
+    "line": [
+      {
+        "line": 127,
+        "character": 0
+      },
+      {
+        "line": 127,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 31,
+        "character": 0
+      },
+      {
+        "line": 31,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 35,
+        "character": 0
+      },
+      {
+        "line": 35,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 40,
+        "character": 0
+      },
+      {
+        "line": 40,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 45,
+        "character": 0
+      },
+      {
+        "line": 45,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 63,
+        "character": 0
+      },
+      {
+        "line": 63,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 83,
+        "character": 0
+      },
+      {
+        "line": 83,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 87,
+        "character": 0
+      },
+      {
+        "line": 87,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 108,
+        "character": 0
+      },
+      {
+        "line": 108,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 137,
+        "character": 0
+      },
+      {
+        "line": 137,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 152,
+        "character": 0
+      },
+      {
+        "line": 152,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 156,
+        "character": 0
+      },
+      {
+        "line": 156,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 160,
+        "character": 0
+      },
+      {
+        "line": 160,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/raw/raw.go",
+    "line": [
+      {
+        "line": 169,
+        "character": 0
+      },
+      {
+        "line": 169,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/auth/service/service/service.go",
+    "line": [
+      {
+        "line": 171,
+        "character": 0
+      },
+      {
+        "line": 171,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/users_datasets_create.go",
+    "line": [
+      {
+        "line": 89,
+        "character": 0
+      },
+      {
+        "line": 89,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/data/service/api/v1/users_datasets_create.go",
+    "line": [
+      {
+        "line": 97,
+        "character": 0
+      },
+      {
+        "line": 97,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 27,
+        "character": 0
+      },
+      {
+        "line": 27,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 42,
+        "character": 0
+      },
+      {
+        "line": 42,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 52,
+        "character": 0
+      },
+      {
+        "line": 52,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 64,
+        "character": 0
+      },
+      {
+        "line": 64,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 90,
+        "character": 0
+      },
+      {
+        "line": 90,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 99,
+        "character": 0
+      },
+      {
+        "line": 99,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 105,
+        "character": 0
+      },
+      {
+        "line": 105,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 111,
+        "character": 0
+      },
+      {
+        "line": 111,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 149,
+        "character": 0
+      },
+      {
+        "line": 149,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 153,
+        "character": 0
+      },
+      {
+        "line": 153,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 158,
+        "character": 0
+      },
+      {
+        "line": 158,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 174,
+        "character": 0
+      },
+      {
+        "line": 174,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 187,
+        "character": 0
+      },
+      {
+        "line": 187,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 224,
+        "character": 0
+      },
+      {
+        "line": 224,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 233,
+        "character": 0
+      },
+      {
+        "line": 233,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 237,
+        "character": 0
+      },
+      {
+        "line": 237,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 250,
+        "character": 0
+      },
+      {
+        "line": 250,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 261,
+        "character": 0
+      },
+      {
+        "line": 261,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 270,
+        "character": 0
+      },
+      {
+        "line": 270,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 274,
+        "character": 0
+      },
+      {
+        "line": 274,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 278,
+        "character": 0
+      },
+      {
+        "line": 278,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 288,
+        "character": 0
+      },
+      {
+        "line": 288,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 297,
+        "character": 0
+      },
+      {
+        "line": 297,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 301,
+        "character": 0
+      },
+      {
+        "line": 301,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 307,
+        "character": 0
+      },
+      {
+        "line": 307,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 317,
+        "character": 0
+      },
+      {
+        "line": 317,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 321,
+        "character": 0
+      },
+      {
+        "line": 321,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 327,
+        "character": 0
+      },
+      {
+        "line": 327,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 335,
+        "character": 0
+      },
+      {
+        "line": 335,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 359,
+        "character": 0
+      },
+      {
+        "line": 359,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 397,
+        "character": 0
+      },
+      {
+        "line": 397,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 434,
+        "character": 0
+      },
+      {
+        "line": 434,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 438,
+        "character": 0
+      },
+      {
+        "line": 438,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 442,
+        "character": 0
+      },
+      {
+        "line": 442,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 446,
+        "character": 0
+      },
+      {
+        "line": 446,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  },
+  {
+    "location": "/work/work.go",
+    "line": [
+      {
+        "line": 455,
+        "character": 0
+      },
+      {
+        "line": 455,
+        "character": 0
+      }
+    ],
+    "enabled": true
+  }
+]

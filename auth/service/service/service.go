@@ -442,7 +442,7 @@ func (s *Service) initializeProviderFactory() error {
 	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
 		ConfigReporter:   s.ConfigReporter().WithScopes("provider"),
 		DataSourceClient: s.DataSourceClient(),
-		WorkClient:       s.WorkClient(),
+		WorkClient:       s.workClient,
 	}
 	if prvdr, prvdrErr := redwoodProvider.NewProvider(redwoodProviderDependencies); prvdrErr != nil || prvdr == nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create redwood provider")

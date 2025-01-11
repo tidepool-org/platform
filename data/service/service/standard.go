@@ -2,10 +2,7 @@ package service
 
 import (
 	"context"
-	"log"
-	"os"
 
-	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	redwoodClient "github.com/tidepool-org/platform-plugin-redwood/redwood/client"
@@ -26,6 +23,8 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSummary "github.com/tidepool-org/platform/data/summary"
+	dataWorkIngest "github.com/tidepool-org/platform/data/work/ingest"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
@@ -541,6 +540,25 @@ func (s *Standard) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to register redwood processors")
 	}
 
+	s.Logger().Debug("Creating ingest processor")
+
+	ingestProcessorDependencies := dataWorkIngest.ProcessorDependencies{
+		DataRawClient:           s.dataRawClient,
+		DataRepository:          dataRepository,
+		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+		SummarizerRegistry:      dataSummary.New(s.dataStore.NewSummaryRepository().GetStore(), dataRepository),
+	}
+	ingestProcessor, err := dataWorkIngest.NewProcessor(ingestProcessorDependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create ingest processor")
+	}
+
+	s.Logger().Debug("Registering ingest processor")
+
+	if err = s.workCoordinator.RegisterProcessor(ingestProcessor); err != nil {
+		return errors.Wrap(err, "unable to register ingest processor")
+	}
+
 	s.Logger().Debug("Starting work coordinator")
 
 	s.workCoordinator.Start()
@@ -608,7 +626,9 @@ func (s *Standard) initializeServer() error {
 
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+
+	// TODO: DO NOT COMMIT!!!
+	// sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
 
 	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
