@@ -3,42 +3,23 @@ package types
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/data/summary/fetcher"
+
+	"github.com/tidepool-org/platform/data"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/pointer"
 )
 
-type ContinuousBucketData struct {
-	TotalRecords int `json:"totalRecords" bson:"totalRecords"`
-
-	// RealtimeRecords is the total count of records which were both uploaded within 24h of the record creation
-	// and from a continuous dataset
-	RealtimeRecords int `json:"realtimeRecords" bson:"realtimeRecords"`
-
-	// DeferredRecords is the total count of records which are in continuous datasets, but not uploaded within 24h
-	DeferredRecords int `json:"deferredRecords" bson:"deferredRecords"`
-}
-
-type ContinuousPeriod struct {
-	TotalRecords *int `json:"totalRecords" bson:"totalRecords"`
-
-	AverageDailyRecords *float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
-
-	RealtimeRecords *int     `json:"realtimeRecords" bson:"realtimeRecords"`
-	RealtimePercent *float64 `json:"realtimeRecordsPercent" bson:"realtimeRecordsPercent"`
-	DeferredRecords *int     `json:"deferredRecords" bson:"deferredRecords"`
-	DeferredPercent *float64 `json:"deferredPercent" bson:"deferredPercent"`
-}
-
-type ContinuousPeriods map[string]*ContinuousPeriod
+// This is a good example of what a summary type requires, as it does not share as many pieces as CGM/BGM
 
 type ContinuousStats struct {
-	Periods    ContinuousPeriods                                      `json:"periods" bson:"periods"`
-	Buckets    []*Bucket[*ContinuousBucketData, ContinuousBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours int                                                    `json:"totalHours" bson:"totalHours"`
+	Periods    ContinuousPeriods `json:"periods" bson:"periods"`
+	TotalHours int               `json:"totalHours" bson:"totalHours"`
 }
 
 func (*ContinuousStats) GetType() string {
@@ -49,48 +30,125 @@ func (*ContinuousStats) GetDeviceDataTypes() []string {
 	return DeviceDataTypes
 }
 
+type ContinuousRanges struct {
+	// Realtime is the total count of records which were both uploaded within 24h of the record creation
+	// and from a continuous dataset
+	Realtime Range `json:"realtime" bson:"realtime"`
+
+	// Deferred is the total count of records which are in continuous datasets, but not uploaded within 24h
+	Deferred Range `json:"deferred" bson:"deferred"`
+
+	// Total is the total count of all records, regardless of when they were created or uploaded
+	Total Range `json:"total" bson:"total"`
+}
+
+func (CR *ContinuousRanges) Add(new *ContinuousRanges) {
+	CR.Realtime.Add(&new.Realtime)
+	CR.Total.Add(&new.Total)
+	CR.Deferred.Add(&new.Deferred)
+}
+
+func (CR *ContinuousRanges) Finalize() {
+	CR.Realtime.Percent = float64(CR.Realtime.Records) / float64(CR.Total.Records)
+	CR.Deferred.Percent = float64(CR.Deferred.Records) / float64(CR.Total.Records)
+}
+
+type ContinuousBucket struct {
+	ContinuousRanges `json:",inline" bson:",inline"`
+}
+
+// Add Currently unused, useful for future compaction
+func (B *ContinuousBucket) Add(_ *ContinuousBucket) {
+	panic("ContinuousBucket.Add Not Implemented")
+}
+
+func (B *ContinuousBucket) Update(r data.Datum, _ *BucketShared) (bool, error) {
+	dataRecord, ok := r.(*glucoseDatum.Glucose)
+	if !ok {
+		return false, errors.New("cgm or bgm record for calculation is not compatible with Glucose type")
+	}
+
+	// TODO validate record type matches bucket type
+
+	// NOTE we do not call range.update here, as we only require a single field of a range
+	if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
+		B.Realtime.Records++
+	} else {
+		B.Deferred.Records++
+	}
+
+	B.Total.Records++
+
+	return true, nil
+}
+
+type ContinuousPeriod struct {
+	ContinuousRanges `json:",inline" bson:",inline"`
+
+	final bool
+
+	firstCountedHour time.Time
+	lastCountedHour  time.Time
+
+	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+}
+
+func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBucket]) error {
+	if P.final {
+		return errors.New("period has been finalized, cannot add any data")
+	}
+
+	if bucket.Data.Total.Records == 0 {
+		return nil
+	}
+
+	if P.firstCountedHour.IsZero() && P.firstCountedHour.IsZero() {
+		P.firstCountedHour = bucket.Time
+		P.lastCountedHour = bucket.Time
+	} else {
+		if bucket.Time.Before(P.firstCountedHour) {
+			P.firstCountedHour = bucket.Time
+		} else if bucket.Time.After(P.lastCountedHour) {
+			P.lastCountedHour = bucket.Time
+		} else {
+			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s", bucket.Time, P.firstCountedHour, P.lastCountedHour)
+		}
+	}
+
+	P.Add(&bucket.Data.ContinuousRanges)
+
+	return nil
+}
+
+func (P *ContinuousPeriod) Finalize(days int) {
+	if P.final != false {
+		return
+	}
+	P.final = true
+
+	P.ContinuousRanges.Finalize()
+	P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
+}
+
+type ContinuousPeriods map[string]*ContinuousPeriod
+
 func (s *ContinuousStats) Init() {
-	s.Buckets = make([]*Bucket[*ContinuousBucketData, ContinuousBucketData], 0)
 	s.Periods = make(map[string]*ContinuousPeriod)
 	s.TotalHours = 0
 }
 
-func (s *ContinuousStats) GetBucketsLen() int {
-	return len(s.Buckets)
-}
+func (s *ContinuousStats) Update(ctx context.Context, shared SummaryShared, bucketsFetcher BucketFetcher[*ContinuousBucket, ContinuousBucket], cursor fetcher.DeviceDataCursor) error {
+	// move all of this to a generic method? fetcher interface?
 
-func (s *ContinuousStats) GetBucketDate(i int) time.Time {
-	return s.Buckets[i].Date
-}
-
-func (s *ContinuousStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
-	if len(s.Buckets) == 0 {
-		return
-	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
-		return s.Buckets[len(s.Buckets)-1].LastRecordTime
-	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
-		// we are before all existing buckets, remake for GC
-		s.Buckets = make([]*Bucket[*ContinuousBucketData, ContinuousBucketData], 0)
-		return
-	}
-
-	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
-
-	for i := offset; i < len(s.Buckets); i++ {
-		s.Buckets[i] = nil
-	}
-	s.Buckets = s.Buckets[:offset]
-
-	if len(s.Buckets) > 0 {
-		return s.Buckets[len(s.Buckets)-1].LastRecordTime
-	}
-	return
-}
-
-func (s *ContinuousStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
 	hasMoreData := true
+	var buckets BucketsByTime[*ContinuousBucket, ContinuousBucket]
+	var err error
+	var userData []data.Datum
+	var startTime time.Time
+	var endTime time.Time
+
 	for hasMoreData {
-		userData, err := cursor.GetNextBatch(ctx)
+		userData, err = cursor.GetNextBatch(ctx)
 		if errors.Is(err, fetcher.ErrCursorExhausted) {
 			hasMoreData = false
 		} else if err != nil {
@@ -98,110 +156,95 @@ func (s *ContinuousStats) Update(ctx context.Context, cursor fetcher.DeviceDataC
 		}
 
 		if len(userData) > 0 {
-			err = AddData(&s.Buckets, userData)
+			startTime = userData[0].GetTime().UTC().Truncate(time.Hour)
+			endTime = userData[len(userData)-1].GetTime().UTC().Truncate(time.Hour)
+			buckets, err = bucketsFetcher.GetBuckets(ctx, shared.UserID, startTime, endTime)
+			if err != nil {
+				return err
+			}
+
+			err = buckets.Update(shared.UserID, shared.Type, userData)
+			if err != nil {
+				return err
+			}
+
+			err = bucketsFetcher.WriteModifiedBuckets(ctx, buckets)
 			if err != nil {
 				return err
 			}
 		}
 	}
 
-	s.CalculateSummary()
+	allBuckets, err := bucketsFetcher.GetAllBuckets(ctx, shared.UserID)
+	if err != nil {
+		return err
+	}
+
+	defer func(allBuckets *mongo.Cursor, ctx context.Context) {
+		err = allBuckets.Close(ctx)
+		if err != nil {
+
+		}
+	}(allBuckets, ctx)
+
+	err = s.CalculateSummary(ctx, allBuckets)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
 
-func (B *ContinuousBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
-	dataRecord, ok := r.(*glucoseDatum.Glucose)
-	if !ok {
-		return false, errors.New("continuous record for calculation is not compatible with Glucose type")
-	}
-
-	if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
-		B.RealtimeRecords++
-	} else {
-		B.DeferredRecords++
-	}
-
-	B.TotalRecords++
-
-	return false, nil
-}
-
-func (s *ContinuousStats) CalculateSummary() {
-	// count backwards (newest first) through hourly stats, stopping at 24, 24*7, 24*14, 24*30
+func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.AnyCursor) error {
+	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
-	totalStats := &ContinuousBucketData{}
+	totalStats := ContinuousPeriod{}
+	var err error
+	var stopPoints []time.Time
 
-	for i := 0; i < len(s.Buckets); i++ {
-		currentIndex := len(s.Buckets) - 1 - i
+	bucket := &Bucket[*ContinuousBucket, ContinuousBucket]{}
+
+	for buckets.Next(ctx) {
+		if err = buckets.Decode(bucket); err != nil {
+			return err
+		}
+
+		// We should have the newest (last) bucket here, use its date for breakpoints
+		if stopPoints == nil {
+			stopPoints, _ = calculateStopPoints(bucket.Time)
+		}
+
+		if bucket.Data.Total.Records == 0 {
+			panic("bucket exists with 0 records")
+		}
+
+		s.TotalHours++
+
+		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
+			s.CalculatePeriod(periodLengths[nextStopPoint], false, totalStats)
+			nextStopPoint++
+		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			if i == stopPoints[nextStopPoint]*24 {
-				s.CalculatePeriod(stopPoints[nextStopPoint], totalStats)
-				nextStopPoint++
+			err = totalStats.Update(bucket)
+			if err != nil {
+				return err
 			}
-
-			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-
-			totalStats.DeferredRecords += s.Buckets[currentIndex].Data.DeferredRecords
-			totalStats.RealtimeRecords += s.Buckets[currentIndex].Data.RealtimeRecords
 		}
 	}
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(stopPoints[i], totalStats)
+		s.CalculatePeriod(periodLengths[i], false, totalStats)
 	}
 
-	s.TotalHours = len(s.Buckets)
+	return nil
 }
 
-func (s *ContinuousStats) CalculatePeriod(i int, totalStats *ContinuousBucketData) {
-	newPeriod := &ContinuousPeriod{
-		TotalRecords:        pointer.FromAny(totalStats.TotalRecords),
-		AverageDailyRecords: pointer.FromAny(float64(totalStats.TotalRecords) / float64(i)),
-		RealtimeRecords:     pointer.FromAny(totalStats.RealtimeRecords),
-		DeferredRecords:     pointer.FromAny(totalStats.DeferredRecords),
-	}
-
-	if totalStats.TotalRecords != 0 {
-		newPeriod.RealtimePercent = pointer.FromAny(float64(totalStats.RealtimeRecords) / float64(totalStats.TotalRecords))
-		newPeriod.DeferredPercent = pointer.FromAny(float64(totalStats.DeferredRecords) / float64(totalStats.TotalRecords))
-	}
-
-	s.Periods[strconv.Itoa(i)+"d"] = newPeriod
-}
-
-func (s *ContinuousStats) GetNumberOfDaysWithRealtimeData(startTime time.Time, endTime time.Time) (count int) {
-	loc1 := startTime.Location()
-	loc2 := endTime.Location()
-
-	// user has not had their data calculated yet, or deleted their data
-	if len(s.Buckets) == 0 {
-		return 0
-	}
-
-	startOffset := int(startTime.Sub(s.Buckets[0].Date.In(loc1)).Hours())
-	// cap to start of list
-	if startOffset < 0 {
-		startOffset = 0
-	}
-
-	endOffset := int(endTime.Sub(s.Buckets[0].Date.In(loc2)).Hours())
-	// cap to end of list
-	if endOffset > len(s.Buckets) {
-		endOffset = len(s.Buckets)
-	}
-
-	for i := startOffset; i < endOffset; i++ {
-		if s.Buckets[i].Data.RealtimeRecords > 0 {
-			count += 1
-			i += 23 - s.Buckets[i].Date.In(loc1).Hour()
-			continue
-		}
-	}
-
-	return count
+func (s *ContinuousStats) CalculatePeriod(i int, _ bool, period ContinuousPeriod) {
+	// We don't make a copy of period, as the struct has no pointers... right? you didn't add any pointers right?
+	period.Finalize(i)
+	s.Periods[strconv.Itoa(i)+"d"] = &period
 }

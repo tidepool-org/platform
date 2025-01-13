@@ -170,16 +170,6 @@ type GetUsersWithBGDataSinceOutput struct {
 	Error   error
 }
 
-type DistinctUserIDsInput struct {
-	Context context.Context
-	Typ     []string
-}
-
-type DistinctUserIDsOutput struct {
-	UserIDs []string
-	Error   error
-}
-
 type GetAlertableDataInput struct {
 	Context context.Context
 	Params  dataStore.AlertableParams
@@ -255,10 +245,6 @@ type DataRepository struct {
 	GetUsersWithBGDataSinceInvocations int
 	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
 	GetUsersWithBGDataSinceOutputs     []GetUsersWithBGDataSinceOutput
-
-	DistinctUserIDsInvocations int
-	DistinctUserIDsInputs      []DistinctUserIDsInput
-	DistinctUserIDsOutputs     []DistinctUserIDsOutput
 
 	GetAlertableDataInvocations int
 	GetAlertableDataInputs      []GetAlertableDataInput
@@ -516,18 +502,6 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
-	d.DistinctUserIDsInvocations++
-
-	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
-
-	gomega.Expect(d.DistinctUserIDsOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.DistinctUserIDsOutputs[0]
-	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
-	return output.UserIDs, output.Error
-}
-
 func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
 	d.GetAlertableDataInvocations++
 
@@ -560,6 +534,5 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 }

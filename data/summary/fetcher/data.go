@@ -61,6 +61,7 @@ func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) 
 
 		userData = append(userData, datum)
 
+		// TODO make this pull an extra batch if the period is very small (<3 hours?)
 		if d.RemainingBatchLength() == 0 {
 			break
 		}

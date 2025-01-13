@@ -314,14 +314,6 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, summaryUpdateRnnr)
 
-	s.Logger().Debug("Creating summary backfill runner")
-
-	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryBackfillRnnrErr != nil {
-		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
-	}
-	runners = append(runners, summaryBackfillRnnr)
-
 	s.Logger().Debug("Creating summary migration runner")
 
 	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
