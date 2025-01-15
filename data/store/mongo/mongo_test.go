@@ -364,11 +364,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "-time")),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "-time")),
 						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "-deletedTime", "_active")),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Name": Equal("UploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
@@ -377,14 +377,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name":   Equal("UniqueUploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "client.name", "-createdTime")),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "client.name", "type", "-createdTime")),
 						"Name": Equal("ListUserDataSets"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "-createdTime")),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "-createdTime")),
 						"Name": Equal("ListUserDataSetsDeviceId"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},

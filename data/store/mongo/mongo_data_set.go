@@ -34,6 +34,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
+				{Key: "type", Value: 1},
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
@@ -50,6 +51,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
+				{Key: "type", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
@@ -60,6 +62,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "client.name", Value: 1},
+				{Key: "type", Value: 1},
 				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
@@ -72,6 +75,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
+				{Key: "type", Value: 1},
 				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
@@ -253,6 +257,7 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	selector := bson.M{
 		"_active": true,
 		"_userId": userID,
+		"type":    "upload",
 	}
 	if filter.ClientName != nil {
 		selector["client.name"] = *filter.ClientName
@@ -306,6 +311,7 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 	selector := bson.M{
 		"_active": true,
 		"_userId": userID,
+		"type":    "upload",
 	}
 	if !filter.Deleted {
 		selector["deletedTime"] = bson.M{"$exists": false}

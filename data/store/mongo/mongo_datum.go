@@ -372,6 +372,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"}
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
@@ -453,6 +454,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 		{
 			"$match": bson.M{
 				"uploadId": dataSet.UploadID,
+				"type":     bson.M{"$ne": "upload"},
 			},
 		},
 		{
