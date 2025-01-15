@@ -318,6 +318,10 @@ var _ = Describe("Mongo", func() {
 						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "type", "time", "_active", "modifiedTime")),
+						"Name": Equal("ShardKeyIndex"),
+					}),
+					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
 						"Name": Equal("UserIdActiveTypeTimeModifiedTime"),
 						"PartialFilterExpression": Equal(bson.D{
@@ -326,7 +330,7 @@ var _ = Describe("Mongo", func() {
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime", "time")),
-						"Name": Equal("TestUserIdActiveTypeModifiedTimeTime"),
+						"Name": Equal("UserIdActiveTypeModifiedTimeTime"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
 						}),
@@ -343,8 +347,8 @@ var _ = Describe("Mongo", func() {
 						"Name": Equal("UploadId"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "_deduplicator.hash")),
-						"Name": Equal("DeduplicatorHashNoType"),
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "deviceId", "type", "_active", "_deduplicator.hash")),
+						"Name": Equal("DeduplicatorHash"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "_active", Value: true},
 							{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},

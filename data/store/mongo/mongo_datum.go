@@ -55,6 +55,17 @@ func (d *DatumRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "time", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+			},
+			Options: options.Index().
+				SetName("ShardKeyIndex"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
 				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
 				{Key: "time", Value: 1},
@@ -81,7 +92,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 			},
 			// temp name because that's what I have it as tested.
 			Options: options.Index().
-				SetName("TestUserIdActiveTypeModifiedTimeTime").
+				SetName("UserIdActiveTypeModifiedTimeTime").
 				SetPartialFilterExpression(bson.D{
 					{
 						Key: "time",
@@ -118,6 +129,8 @@ func (d *DatumRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "_active", Value: 1},
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
@@ -126,7 +139,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
 					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
 				}).
-				SetName("DeduplicatorHashNoType"),
+				SetName("DeduplicatorHash"),
 		},
 	})
 }
@@ -396,7 +409,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		opts := options.Update().SetHint("DeduplicatorHashNoType")
+		opts := options.Update()
 		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	}
 
@@ -691,6 +704,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	}
 
 	findOptions := options.Find()
+	findOptions.SetProjection(bson.M{"_id": 0, "time": 1})
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
@@ -734,7 +748,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 
 	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
 	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
-		findOptions.SetHint("TestUserIdActiveTypeModifiedTimeTime")
+		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 	}
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
@@ -796,7 +810,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		}
 		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
 			// has blocking sort, but more selective so usually performs better.
-			findOptions.SetHint("TestUserIdActiveTypeModifiedTimeTime")
+			findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 		}
 	}
 
