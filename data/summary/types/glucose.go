@@ -162,7 +162,7 @@ func (R *GlucoseRanges) Finalize(firstData, lastData time.Time, lastDuration int
 		// if our bucket (period, at this point) has minutes
 		wallMinutes := lastData.Sub(firstData).Minutes() + float64(lastDuration)
 		R.finalizeMinutes(wallMinutes, days)
-	} else {
+	} else if R.Total.Records != 0 {
 		// otherwise, we only have record counts
 		R.finalizeRecords()
 	}
@@ -328,19 +328,27 @@ func (P *GlucosePeriod) Finalize(days int) {
 	}
 	P.final = true
 	P.GlucoseRanges.Finalize(P.firstData, P.lastData, P.lastRecordDuration, days)
-	P.AverageGlucose = P.Total.Glucose / float64(P.Total.Minutes)
 
-	// we only add GMI if cgm use >70%
-	if P.Total.Percent > 0.7 {
-		P.GlucoseManagementIndicator = CalculateGMI(P.AverageGlucose)
-	} else {
-		P.GlucoseManagementIndicator = 0
+	// if we have no records or minutes
+	if P.Total.Minutes != 0 {
+		P.AverageGlucose = P.Total.Glucose / float64(P.Total.Minutes)
+
+		// we only add GMI if cgm use >70%
+		if P.Total.Percent > 0.7 {
+			P.GlucoseManagementIndicator = CalculateGMI(P.AverageGlucose)
+		} else {
+			P.GlucoseManagementIndicator = 0
+		}
+
+		P.StandardDeviation = math.Sqrt(P.Total.Variance / float64(P.Total.Minutes))
+		P.CoefficientOfVariation = P.StandardDeviation / P.AverageGlucose
+	} else if P.Total.Records != 0 {
+		P.AverageGlucose = P.Total.Glucose / float64(P.Total.Records)
 	}
 
-	P.StandardDeviation = math.Sqrt(P.Total.Variance / float64(P.Total.Minutes))
-	P.CoefficientOfVariation = P.StandardDeviation / P.AverageGlucose
-
-	P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
+	if P.Total.Records != 0 {
+		P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
+	}
 }
 
 func (s *GlucoseStats) Init() {

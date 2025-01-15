@@ -18,8 +18,7 @@ import (
 // This is a good example of what a summary type requires, as it does not share as many pieces as CGM/BGM
 
 type ContinuousStats struct {
-	Periods    ContinuousPeriods `json:"periods" bson:"periods"`
-	TotalHours int               `json:"totalHours" bson:"totalHours"`
+	Periods ContinuousPeriods `json:"periods" bson:"periods"`
 }
 
 func (*ContinuousStats) GetType() string {
@@ -134,7 +133,6 @@ type ContinuousPeriods map[string]*ContinuousPeriod
 
 func (s *ContinuousStats) Init() {
 	s.Periods = make(map[string]*ContinuousPeriod)
-	s.TotalHours = 0
 }
 
 func (s *ContinuousStats) Update(ctx context.Context, shared SummaryShared, bucketsFetcher BucketFetcher[*ContinuousBucket, ContinuousBucket], cursor fetcher.DeviceDataCursor) error {
@@ -218,8 +216,6 @@ func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.
 		if bucket.Data.Total.Records == 0 {
 			panic("bucket exists with 0 records")
 		}
-
-		s.TotalHours++
 
 		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
 			s.CalculatePeriod(periodLengths[nextStopPoint], false, totalStats)

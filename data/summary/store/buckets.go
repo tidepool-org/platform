@@ -227,7 +227,7 @@ func (r *Buckets[B, A]) GetTotalHours(ctx context.Context, userId string) (int, 
 		return 0, nil
 	}
 
-	lastBucket, err := r.GetEnd(ctx, userId, 1)
+	lastBucket, err := r.GetEnd(ctx, userId, -1)
 	if err != nil {
 		return 0, err
 	}

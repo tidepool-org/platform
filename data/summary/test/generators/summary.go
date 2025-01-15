@@ -143,8 +143,7 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStat
 			Dates:  RandomDates(),
 		},
 		Stats: &types.ContinuousStats{
-			Periods:    types.ContinuousPeriods{},
-			TotalHours: test.RandomIntFromRange(1, 1440),
+			Periods: types.ContinuousPeriods{},
 		},
 	}
 
