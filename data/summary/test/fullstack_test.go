@@ -2,8 +2,9 @@ package test_test
 
 import (
 	"context"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"time"
+
+	"github.com/google/go-cmp/cmp/cmpopts"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
