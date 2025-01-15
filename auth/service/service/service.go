@@ -483,21 +483,21 @@ func (s *Service) initializePartnerSecrets() error {
 	var palmtreeSecrets *appvalidate.PalmTreeSecrets
 
 	// We are OK with partner secrets being missing so we only log any errors.
-	coastalCfg, err := appvalidate.NewCoastalSecretsConfig()
+	coastalCfg, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
 	if err != nil {
 		s.Logger().Warnf("error initializing Coastal config: %v", err)
 	} else {
-		coastalSecrets, err = appvalidate.NewCoastalSecrets(*coastalCfg)
+		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalCfg)
 		if err != nil {
 			s.Logger().Warnf("error initializing Coastal secrets: %v", err)
 		}
 	}
 
-	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig()
+	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
 	if err != nil {
 		s.Logger().Warnf("error initializing Palmtree config: %v", err)
 	} else {
-		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(*palmtreeCfg)
+		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmtreeCfg)
 		if err != nil {
 			s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
 		}

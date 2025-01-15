@@ -9,6 +9,7 @@ import (
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
+
 	auth "github.com/tidepool-org/platform/auth"
 	page "github.com/tidepool-org/platform/page"
 	permission "github.com/tidepool-org/platform/permission"
@@ -396,4 +397,42 @@ func (m *MockExternalAccessor) ValidateSessionToken(ctx context.Context, token s
 func (mr *MockExternalAccessorMockRecorder) ValidateSessionToken(ctx, token interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSessionToken", reflect.TypeOf((*MockExternalAccessor)(nil).ValidateSessionToken), ctx, token)
+}
+
+// MockServerSessionTokenProvider is a mock of ServerSessionTokenProvider interface.
+type MockServerSessionTokenProvider struct {
+	ctrl     *gomock.Controller
+	recorder *MockServerSessionTokenProviderMockRecorder
+}
+
+// MockServerSessionTokenProviderMockRecorder is the mock recorder for MockServerSessionTokenProvider.
+type MockServerSessionTokenProviderMockRecorder struct {
+	mock *MockServerSessionTokenProvider
+}
+
+// NewMockServerSessionTokenProvider creates a new mock instance.
+func NewMockServerSessionTokenProvider(ctrl *gomock.Controller) *MockServerSessionTokenProvider {
+	mock := &MockServerSessionTokenProvider{ctrl: ctrl}
+	mock.recorder = &MockServerSessionTokenProviderMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockServerSessionTokenProvider) EXPECT() *MockServerSessionTokenProviderMockRecorder {
+	return m.recorder
+}
+
+// ServerSessionToken mocks base method.
+func (m *MockServerSessionTokenProvider) ServerSessionToken() (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ServerSessionToken")
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ServerSessionToken indicates an expected call of ServerSessionToken.
+func (mr *MockServerSessionTokenProviderMockRecorder) ServerSessionToken() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ServerSessionToken", reflect.TypeOf((*MockServerSessionTokenProvider)(nil).ServerSessionToken))
 }

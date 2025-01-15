@@ -81,7 +81,6 @@ var _ = Describe("multi queue", func() {
 
 		It("Are partitioned correctly", func() {
 			ctx := log.NewContextWithLogger(context.Background(), lgr)
-			tasks := make([]*task.Task, 0, len(types)*tasksPerType)
 			creates := make([]*task.TaskCreate, 0, len(types)*tasksPerType)
 			runners := make([]*test.CountingRunner, 0, len(types))
 			now := time.Now()
@@ -109,7 +108,6 @@ var _ = Describe("multi queue", func() {
 				tsk, err := str.NewTaskRepository().CreateTask(ctx, create)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
-				tasks = append(tasks, tsk)
 			}
 
 			// Register runners from all types in the underlying queue
@@ -130,8 +128,11 @@ var _ = Describe("multi queue", func() {
 
 			nonTerminalStates := []string{task.TaskStatePending, task.TaskStateRunning}
 
-			// Wait until completion (up to 15 seconds)
-			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
+			// Wait until completion, within limits. On my local laptop, this typically
+			// takes < 15 seconds when run via Gingko (no parallel), but under Go test
+			// (parallel via package) it takes around 35 seconds. Who knows how long it
+			// would take running in parallel on a CI host. So give it plenty of time.
+			tCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
 
 			ticker := time.NewTicker(200 * time.Millisecond)
@@ -141,6 +142,7 @@ var _ = Describe("multi queue", func() {
 			for {
 				select {
 				case <-tCtx.Done():
+					Fail("the test did not fail; it ran out of time, give it more time")
 					break loop
 				case <-ticker.C:
 					nonTerminatedTasks := 0

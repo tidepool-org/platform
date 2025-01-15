@@ -2,10 +2,12 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/log"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
@@ -44,12 +46,11 @@ type Client interface {
 }
 
 type ClientImpl struct {
-	client                *platform.Client
-	extendedTimeoutClient *platform.Client
+	client *platform.Client
 }
 
 func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs) (*ClientImpl, error) {
-	clnt, err := platform.NewClient(cfg, authorizeAs)
+	clnt, err := platform.NewClientWithErrorResponseParser(cfg, authorizeAs, NewSerializableDataErrorResponseParser())
 	if err != nil {
 		return nil, err
 	}
@@ -68,12 +69,12 @@ func (c *ClientImpl) ListUserDataSets(ctx context.Context, userID string, filter
 	}
 	if filter == nil {
 		filter = data.NewDataSetFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -95,7 +96,7 @@ func (c *ClientImpl) CreateUserDataSet(ctx context.Context, userID string, creat
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -275,7 +276,7 @@ func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, paginat
 
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -296,7 +297,7 @@ func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagin
 
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -315,7 +316,7 @@ func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -382,4 +383,23 @@ func (c *ClientImpl) DestroyDataForUserByID(ctx context.Context, userID string) 
 
 	url := c.client.ConstructURL("v1", "users", userID, "data")
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func NewSerializableDataErrorResponseParser() *SerializableDataErrorResponseParser {
+	return &SerializableDataErrorResponseParser{}
+}
+
+type SerializableDataErrorResponseParser struct{}
+
+func (s *SerializableDataErrorResponseParser) ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error {
+	serializable := &struct {
+		Errors errors.Serializable `json:"errors,omitempty"`
+	}{}
+	if err := json.NewDecoder(res.Body).Decode(serializable); err != nil {
+		return nil
+	}
+	if serializable.Errors.Error != nil {
+		return serializable.Errors.Error
+	}
+	return nil
 }

@@ -9,6 +9,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/location"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -70,13 +71,13 @@ var _ = Describe("Accuracy", func() {
 
 		Context("ParseAccuracy", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(location.ParseAccuracy(structureParser.NewObject(nil))).To(BeNil())
+				Expect(location.ParseAccuracy(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := locationTest.RandomAccuracy()
 				object := locationTest.NewObjectFromAccuracy(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(location.ParseAccuracy(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -95,7 +96,7 @@ var _ = Describe("Accuracy", func() {
 					object := locationTest.NewObjectFromAccuracy(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &location.Accuracy{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -119,7 +120,7 @@ var _ = Describe("Accuracy", func() {
 				func(mutator func(datum *location.Accuracy), expectedErrors ...error) {
 					datum := locationTest.RandomAccuracy()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.Accuracy) {},

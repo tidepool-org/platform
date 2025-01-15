@@ -12,6 +12,7 @@ import (
 
 type Config struct {
 	Address string // this should be overridden for loaders using envconfig
+
 	// UserAgent is an optional way for a client to identify itself.
 	//
 	// This is usually set to the name of the service that's using the

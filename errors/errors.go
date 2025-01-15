@@ -15,6 +15,11 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+// NOTE: Should only be used with standard library or third-party library errors
+func Is(err error, target error) bool {
+	return errors.Is(err, target)
+}
+
 type Source interface {
 	Parameter() string
 	Pointer() string
@@ -169,6 +174,28 @@ func WithSource(err error, src Source) error {
 	return nil
 }
 
+func AsSource(err error) Source {
+	if err == nil {
+		return nil
+	}
+	if objectErr, objectOK := err.(*object); objectOK && objectErr.Source != nil {
+		return &sourceWrapper{source: objectErr.Source}
+	}
+	return nil
+}
+
+type sourceWrapper struct {
+	*source
+}
+
+func (s *sourceWrapper) Parameter() string {
+	return s.source.Parameter
+}
+
+func (s *sourceWrapper) Pointer() string {
+	return s.source.Pointer
+}
+
 func WithMeta(err error, meta interface{}) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
@@ -222,6 +249,30 @@ func Append(errs ...error) error {
 			Errors: errors,
 		}
 	}
+}
+
+func ToArray(err error) []error {
+	if err == nil {
+		return nil
+	}
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.Errors
+	}
+	return []error{err}
+}
+
+func First(err error) error {
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.First()
+	}
+	return err
+}
+
+func Last(err error) error {
+	if arrayErr, arrayOK := err.(*array); arrayOK {
+		return arrayErr.Last()
+	}
+	return err
 }
 
 func appendErrors(errors []error, err error) []error {
@@ -481,6 +532,20 @@ func (a *array) Sanitize() error {
 	return &array{
 		Errors: errors,
 	}
+}
+
+func (a *array) First() error {
+	if errorsLength := len(a.Errors); errorsLength > 0 {
+		return a.Errors[0]
+	}
+	return nil
+}
+
+func (a *array) Last() error {
+	if errorsLength := len(a.Errors); errorsLength > 0 {
+		return a.Errors[errorsLength-1]
+	}
+	return nil
 }
 
 type object struct {

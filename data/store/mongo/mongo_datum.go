@@ -90,7 +90,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "modifiedTime", Value: 1},
 				{Key: "time", Value: 1},
 			},
-			// temp name because that's what I have it as tested.
 			Options: options.Index().
 				SetName("UserIdActiveTypeModifiedTimeTime").
 				SetPartialFilterExpression(bson.D{
@@ -115,6 +114,10 @@ func (d *DatumRepository) EnsureIndexes() error {
 				}).
 				SetName("UserIdOriginId"),
 		},
+		// Future optimization after release.
+		// Rebuild index to to move _active
+		// before type for better compression and more
+		// closely follow ESR
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
@@ -125,6 +128,14 @@ func (d *DatumRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetName("UploadId"),
 		},
+
+		// Future optimization - remove the PFE on deviceId as the Base datum
+		// already makes sure it exists and prod DB has already been checked to
+		// ensure there are no datums w/ no deviceId. Other possible
+		// optimization remove the _active in the PFE to use this in the
+		// ArchiveDeviceDataUsingHashesFromDataSet > Distinct quiery. Can also
+		// remove "type" field w/ corresponding removal of "$ne": "upload" in
+		// queries where appropriate.
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
@@ -169,8 +180,6 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
 		datum.SetModifiedTime(&timestamp)
-	}
-	for _, datum := range dataSetData {
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
@@ -194,7 +203,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -205,6 +214,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"} // Note we WILL keep the "type" field in the UploadId index as that's a query need in tide-whisperer
 	selector["_active"] = false
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -233,7 +243,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -276,7 +286,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -320,7 +330,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, hasOriginID, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -330,7 +340,6 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	// selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
 	opts := options.Delete()
 	if hasOriginID {
@@ -353,7 +362,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, _, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -389,9 +398,12 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 
 	var updateInfo *mongo.UpdateResult
 
+	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
 	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
+		"_userId":            dataSet.UserID,
+		"uploadId":           dataSet.UploadID,
+		"type":               bson.M{"$ne": "upload"},
+		"_deduplicator.hash": bson.M{"$ne": nil},
 	}
 
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
@@ -399,6 +411,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 		selector = bson.M{
 			"_userId":            dataSet.UserID,
 			"deviceId":           *dataSet.DeviceID,
+			"type":               bson.M{"$ne": "upload"}, // Until we update the indexes to NOT have type, the planner will sometimes not use the correct index w/o the type range so we are leaving $ne upload in some cases. The actual performance and size gains are minor (~5%) TODO: for a future update, create a version of the index WITHOUT the type
 			"_active":            true,
 			"_deduplicator.hash": bson.M{"$in": hashes},
 		}
@@ -523,10 +536,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
-	} else if err := structureValidator.New().Validate(selectors); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
 		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 
@@ -730,12 +743,11 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 
 func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get latest modified record
-	timeMin := status.FirstData
 	selector := bson.M{
 		"_userId": userId,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
-			"$gte": timeMin,
+			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
 	}
@@ -747,7 +759,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	}
 
 	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
-	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
+	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
 		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 	}
 	findOptions.SetLimit(1)
@@ -780,12 +792,11 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 
 func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
 	// get earliest modified record which is newer than LastUpdated
-	timeMin := status.FirstData
 	selector := bson.M{
 		"_userId": userId,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
-			"$gte": timeMin,
+			"$gte": status.FirstData,
 			"$lte": status.LastData,
 		},
 	}
@@ -808,7 +819,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		selector["modifiedTime"] = bson.M{
 			"$gt": status.LastUpdated,
 		}
-		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && timeMin.After(lowerTimeBound) {
+		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
 			// has blocking sort, but more selective so usually performs better.
 			findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 		}

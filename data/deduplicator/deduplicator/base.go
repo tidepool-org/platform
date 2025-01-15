@@ -34,11 +34,11 @@ func NewBase(name string, version string) (*Base, error) {
 	}, nil
 }
 
-func (b *Base) New(dataSet *dataTypesUpload.Upload) (bool, error) {
-	return b.Get(dataSet)
+func (b *Base) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+	return b.Get(ctx, dataSet)
 }
 
-func (b *Base) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (b *Base) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}

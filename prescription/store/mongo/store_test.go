@@ -3,30 +3,20 @@ package mongo_test
 import (
 	"context"
 
-	"go.uber.org/fx"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/fx"
 
 	logNull "github.com/tidepool-org/platform/log/null"
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-var _ = Describe("Store", func() {
-	var mongoConfig *storeStructuredMongo.Config
+var _ = Describe("Store", Label("mongodb", "slow", "integration"), func() {
 	var store *prescriptionStoreMongo.PrescriptionStore
 
 	BeforeEach(func() {
-		mongoConfig = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil && store.Store != nil {
-			store.Store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("New", func() {
@@ -42,13 +32,8 @@ var _ = Describe("Store", func() {
 		It("returns successfully", func() {
 			err := fx.New(
 				fx.NopLogger,
-				fx.Supply(mongoConfig),
+				fx.Supply(store),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(storeStructuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
 			).Start(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
@@ -59,24 +44,14 @@ var _ = Describe("Store", func() {
 		BeforeEach(func() {
 			err := fx.New(
 				fx.NopLogger,
-				fx.Supply(mongoConfig),
+				fx.Supply(store),
 				fx.Provide(logNull.NewLogger),
-				fx.Provide(storeStructuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
 			).Start(context.Background())
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 		})
 
 		Context("With initialized store", func() {
-			BeforeEach(func() {
-				err := store.CreateIndexes(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-			})
-
 			Context("GetPrescriptionRepository", func() {
 				var repo prescriptionStore.PrescriptionRepository
 
