@@ -4,6 +4,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/location"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -54,13 +55,13 @@ var _ = Describe("GPS", func() {
 
 		Context("ParseGPS", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(location.ParseGPS(structureParser.NewObject(nil))).To(BeNil())
+				Expect(location.ParseGPS(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := locationTest.RandomGPS()
 				object := locationTest.NewObjectFromGPS(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(location.ParseGPS(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -79,7 +80,7 @@ var _ = Describe("GPS", func() {
 					object := locationTest.NewObjectFromGPS(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &location.GPS{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -118,7 +119,7 @@ var _ = Describe("GPS", func() {
 				func(mutator func(datum *location.GPS), expectedErrors ...error) {
 					datum := locationTest.RandomGPS()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.GPS) {},

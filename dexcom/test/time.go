@@ -8,28 +8,17 @@ import (
 )
 
 func RandomSystemTime() *dexcom.Time {
-	datum := dexcom.NewTime()
-	datum.Time = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second).UTC()
-	return datum
+	return dexcom.TimeFromRaw(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second).UTC())
 }
 
 func RandomDisplayTime() *dexcom.Time {
-	datum := dexcom.NewTime()
-	datum.Time = test.RandomTime().Truncate(time.Second).UTC()
-	return datum
+	return dexcom.TimeFromRaw(test.RandomTime().Truncate(time.Second))
 }
 
 func RandomTime() *dexcom.Time {
-	datum := dexcom.NewTime()
-	datum.Time = test.RandomTime().Truncate(time.Second).UTC()
-	return datum
+	return dexcom.TimeFromRaw(test.RandomTime().Truncate(time.Second))
 }
 
 func CloneTime(datum *dexcom.Time) *dexcom.Time {
-	if datum == nil {
-		return nil
-	}
-	clone := dexcom.NewTime()
-	clone.Time = datum.Time
-	return clone
+	return dexcom.TimeFromTime(datum)
 }

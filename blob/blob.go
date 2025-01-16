@@ -37,9 +37,12 @@ type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
 	CreateDeviceLogs(ctx context.Context, userID string, content *DeviceLogsContent) (*DeviceLogsBlob, error)
+	ListDeviceLogs(ctx context.Context, userID string, filter *DeviceLogsFilter, pagination *page.Pagination) (DeviceLogsBlobArray, error)
 	DeleteAll(ctx context.Context, userID string) error
 	Get(ctx context.Context, id string) (*Blob, error)
 	GetContent(ctx context.Context, id string) (*Content, error)
+	GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*DeviceLogsBlob, error)
+	GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*DeviceLogsContent, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
@@ -154,6 +157,9 @@ func (c *DeviceLogsContent) Validate(validator structure.Validator) {
 	validator.Time("endAt", c.EndAt).Exists().NotZero()
 }
 
+// DeviceLogsBlob is the metadata that is stored in the database that
+// "references" the actual content in some other place (such as S3) via the ID
+// field which is the DeviceLogsContent
 type DeviceLogsBlob struct {
 	ID          *string    `json:"id,omitempty" bson:"id,omitempty"`
 	UserID      *string    `json:"userId,omitempty" bson:"userId,omitempty"`
@@ -190,6 +196,38 @@ func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.Time("startAtTime", b.StartAtTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("endAtTime", b.EndAtTime).Exists().NotZero().After(pointer.ToTime(b.CreatedTime)).BeforeNow(time.Second)
 	validator.Int("revision", b.Revision).Exists().GreaterThanOrEqualTo(0)
+}
+
+// Note to self: By implementing structure.ObjectParsable interface
+// the name of the fields decoded will be in the Parse() method
+// hence the lack of any json tags.
+type DeviceLogsFilter struct {
+	StartAtTime *time.Time
+	EndAtTime   *time.Time
+}
+
+func NewDeviceLogsFilter() *DeviceLogsFilter {
+	return &DeviceLogsFilter{}
+}
+
+func (f *DeviceLogsFilter) Parse(parser structure.ObjectParser) {
+	f.StartAtTime = parser.Time("startAtTime", time.RFC3339Nano)
+	f.EndAtTime = parser.Time("endAtTime", time.RFC3339Nano)
+}
+
+func (f *DeviceLogsFilter) Validate(validator structure.Validator) {
+
+}
+
+func (f *DeviceLogsFilter) MutateRequest(req *http.Request) error {
+	parameters := map[string][]string{}
+	if f.StartAtTime != nil {
+		parameters["startAtTime"] = []string{f.StartAtTime.Format(time.RFC3339Nano)}
+	}
+	if f.EndAtTime != nil {
+		parameters["endAtTime"] = []string{f.EndAtTime.Format(time.RFC3339Nano)}
+	}
+	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
 func NewID() string {

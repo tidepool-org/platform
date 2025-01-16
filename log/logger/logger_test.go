@@ -1,8 +1,6 @@
-package log_test
+package logger_test
 
 import (
-	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +10,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/logger"
 )
 
 type Serializer struct {
@@ -56,45 +55,45 @@ var _ = Describe("Logger", func() {
 
 	Context("NewLogger", func() {
 		It("returns an error if the serializer is missing", func() {
-			logger, err := log.NewLogger(nil, log.DefaultLevelRanks(), log.DefaultLevel())
+			lgr, err := logger.New(nil, log.DefaultLevelRanks(), log.DefaultLevel())
 			Expect(err).To(MatchError("serializer is missing"))
-			Expect(logger).To(BeNil())
+			Expect(lgr).To(BeNil())
 		})
 
 		It("returns an error if the level ranks is missing", func() {
-			logger, err := log.NewLogger(serializer, nil, log.DefaultLevel())
+			lgr, err := logger.New(serializer, nil, log.DefaultLevel())
 			Expect(err).To(MatchError("level ranks is missing"))
-			Expect(logger).To(BeNil())
+			Expect(lgr).To(BeNil())
 		})
 
 		It("returns an error if the level is not found", func() {
-			logger, err := log.NewLogger(serializer, log.DefaultLevelRanks(), log.Level("unknown"))
+			lgr, err := logger.New(serializer, log.DefaultLevelRanks(), log.Level("unknown"))
 			Expect(err).To(MatchError("level not found"))
-			Expect(logger).To(BeNil())
+			Expect(lgr).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(log.NewLogger(serializer, log.DefaultLevelRanks(), log.DefaultLevel())).ToNot(BeNil())
+			Expect(logger.New(serializer, log.DefaultLevelRanks(), log.DefaultLevel())).ToNot(BeNil())
 		})
 	})
 
 	Context("with new logger", func() {
-		var logger log.Logger
+		var lgr log.Logger
 
 		BeforeEach(func() {
 			var err error
-			logger, err = log.NewLogger(serializer, log.DefaultLevelRanks(), log.DefaultLevel())
+			lgr, err = logger.New(serializer, log.DefaultLevelRanks(), log.DefaultLevel())
 			Expect(err).ToNot(HaveOccurred())
-			Expect(logger).ToNot(BeNil())
+			Expect(lgr).ToNot(BeNil())
 		})
 
 		Context("Log", func() {
 			It("does not invoke serializer if the level is unknown", func() {
-				logger.Log(log.Level("unknown"), "Unknown Level Message")
+				lgr.Log(log.Level("unknown"), "Unknown Level Message")
 			})
 
 			It("does not invoke serializer if the level is not logging", func() {
-				logger.Log(log.DebugLevel, "Not Logging Message")
+				lgr.Log(log.DebugLevel, "Not Logging Message")
 			})
 
 			Context("with disabled standard error", func() {
@@ -103,7 +102,7 @@ var _ = Describe("Logger", func() {
 
 				BeforeEach(func() {
 					var err error
-					newFile, err = ioutil.TempFile("", "")
+					newFile, err = os.CreateTemp("", "")
 					Expect(err).ToNot(HaveOccurred())
 					Expect(newFile).ToNot(BeNil())
 					oldFile = os.Stderr
@@ -116,15 +115,15 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("fails silently if the serializer returns an error", func() {
-					serializer.SerializeOutputs = []error{fmt.Errorf("test error")}
-					logger.Log(log.WarnLevel, "Serializer Error Message")
+					serializer.SerializeOutputs = []error{errors.New("test error")}
+					lgr.Log(log.WarnLevel, "Serializer Error Message")
 					Expect(serializer.SerializeInputs).ToNot(BeEmpty())
 				})
 			})
 
 			It("includes the expected fields in the expected format", func() {
 				serializer.SerializeOutputs = []error{nil}
-				logger.Log(log.WarnLevel, "Expected Message")
+				lgr.Log(log.WarnLevel, "Expected Message")
 				Expect(serializer.SerializeInputs).To(HaveLen(1))
 				serializeInput := serializer.SerializeInputs[0]
 				Expect(serializeInput).To(HaveKey("caller"))
@@ -139,12 +138,12 @@ var _ = Describe("Logger", func() {
 				serializedCaller, ok := serializeInput["caller"].(*errors.Caller)
 				Expect(ok).To(BeTrue())
 				Expect(serializedCaller.Line).To(BeNumerically(">", 0))
-				Expect(strings.HasSuffix(serializedCaller.File, "log/logger_test.go")).To(BeTrue())
+				Expect(strings.HasSuffix(serializedCaller.File, "log/logger/logger_test.go")).To(BeTrue())
 			})
 
 			It("does not include the message is it is an empty string", func() {
 				serializer.SerializeOutputs = []error{nil}
-				logger.Log(log.WarnLevel, "")
+				lgr.Log(log.WarnLevel, "")
 				Expect(serializer.SerializeInputs).To(HaveLen(1))
 				Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("message"))
 			})
@@ -153,13 +152,13 @@ var _ = Describe("Logger", func() {
 		Context("with successful serialize and debug level", func() {
 			BeforeEach(func() {
 				serializer.SerializeOutputs = []error{nil}
-				logger = logger.WithLevel(log.DebugLevel)
-				Expect(logger).ToNot(BeNil())
+				lgr = lgr.WithLevel(log.DebugLevel)
+				Expect(lgr).ToNot(BeNil())
 			})
 
 			Context("Debug", func() {
 				It("logs with the expected level and message", func() {
-					logger.Debug("Amazonian")
+					lgr.Debug("Amazonian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Amazonian"))
@@ -168,7 +167,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Info", func() {
 				It("logs with the expected level and message", func() {
-					logger.Info("Bostonian")
+					lgr.Info("Bostonian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.InfoLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Bostonian"))
@@ -177,7 +176,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Warn", func() {
 				It("logs with the expected level and message", func() {
-					logger.Warn("Canadian")
+					lgr.Warn("Canadian")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Canadian"))
@@ -186,7 +185,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Error", func() {
 				It("logs with the expected level and message", func() {
-					logger.Error("Dutch")
+					lgr.Error("Dutch")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.ErrorLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Dutch"))
@@ -195,7 +194,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Debugf", func() {
 				It("logs with the expected level and message", func() {
-					logger.Debugf("Amazonian %s", "Warrior")
+					lgr.Debugf("Amazonian %s", "Warrior")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Amazonian Warrior"))
@@ -204,7 +203,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Infof", func() {
 				It("logs with the expected level and message", func() {
-					logger.Infof("Bostonian %s", "Cabbie")
+					lgr.Infof("Bostonian %s", "Cabbie")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.InfoLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Bostonian Cabbie"))
@@ -213,7 +212,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Warnf", func() {
 				It("logs with the expected level and message", func() {
-					logger.Warnf("Canadian %s", "Skater")
+					lgr.Warnf("Canadian %s", "Skater")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Canadian Skater"))
@@ -222,7 +221,7 @@ var _ = Describe("Logger", func() {
 
 			Context("Errorf", func() {
 				It("logs with the expected level and message", func() {
-					logger.Errorf("Dutch %s", "Brothers")
+					lgr.Errorf("Dutch %s", "Brothers")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.ErrorLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "Dutch Brothers"))
@@ -231,19 +230,19 @@ var _ = Describe("Logger", func() {
 
 			Context("WithError", func() {
 				It("does not include the error field if the error is missing", func() {
-					logger.WithError(nil).Warn("European")
+					lgr.WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
 				})
 
 				It("deletes the error field if the error is missing", func() {
-					logger.WithError(fmt.Errorf("euro error")).WithError(nil).Warn("European")
+					lgr.WithError(errors.New("euro error")).WithError(nil).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("error"))
 				})
 
 				It("does include the error field if the error is not missing", func() {
-					logger.WithError(fmt.Errorf("euro error")).Warn("European")
+					lgr.WithError(errors.New("euro error")).Warn("European")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKey("error"))
 				})
@@ -251,25 +250,25 @@ var _ = Describe("Logger", func() {
 
 			Context("WithField", func() {
 				It("does not include the field if the key is missing", func() {
-					logger.WithField("", "fish").Warn("Finnish")
+					lgr.WithField("", "fish").Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey(""))
 				})
 
 				It("does not include the field if the value is missing", func() {
-					logger.WithField("sword", nil).Warn("Finnish")
+					lgr.WithField("sword", nil).Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
 				})
 
 				It("deletes the field if the value is missing", func() {
-					logger.WithField("sword", "fish").WithField("sword", nil).Warn("Finnish")
+					lgr.WithField("sword", "fish").WithField("sword", nil).Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("sword"))
 				})
 
 				It("does include the field if the key and value are not missing", func() {
-					logger.WithField("sword", "fish").Warn("Finnish")
+					lgr.WithField("sword", "fish").Warn("Finnish")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("sword", "fish"))
 				})
@@ -277,7 +276,7 @@ var _ = Describe("Logger", func() {
 
 			Context("WithFields", func() {
 				It("does include the field if the key and value are not missing", func() {
-					logger.WithFields(log.Fields{"": "Nein", "nope": nil, "yep": "Ja"}).Warn("German")
+					lgr.WithFields(log.Fields{"": "Nein", "nope": nil, "yep": "Ja"}).Warn("German")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey(""))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
@@ -285,7 +284,7 @@ var _ = Describe("Logger", func() {
 				})
 
 				It("deletes the field if the value is missing", func() {
-					logger.WithFields(log.Fields{"nope": "Nein"}).WithFields(log.Fields{"nope": nil}).Warn("German")
+					lgr.WithFields(log.Fields{"nope": "Nein"}).WithFields(log.Fields{"nope": nil}).Warn("German")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).ToNot(HaveKey("nope"))
 				})
@@ -294,10 +293,10 @@ var _ = Describe("Logger", func() {
 			Context("WithLevelRank", func() {
 				It("adds the specified level and rank", func() {
 					level := log.Level("new")
-					logger = logger.WithLevelRank(level, 90).WithLevel(level)
-					Expect(logger).ToNot(BeNil())
-					logger.Debug("Should Not Serialize")
-					logger.Log(level, "WithLevelRank Message")
+					lgr = lgr.WithLevelRank(level, 90).WithLevel(level)
+					Expect(lgr).ToNot(BeNil())
+					lgr.Debug("Should Not Serialize")
+					lgr.Log(level, "WithLevelRank Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRank Message"))
@@ -307,10 +306,10 @@ var _ = Describe("Logger", func() {
 			Context("WithLevelRanks", func() {
 				It("adds the specified level ranks", func() {
 					level := log.Level("new")
-					logger = logger.WithLevelRanks(log.LevelRanks{level: 30, log.Level("other"): 0}).WithLevel(level)
-					Expect(logger).ToNot(BeNil())
-					logger.Debug("Should Not Serialize")
-					logger.Log(level, "WithLevelRanks Message")
+					lgr = lgr.WithLevelRanks(log.LevelRanks{level: 30, log.Level("other"): 0}).WithLevel(level)
+					Expect(lgr).ToNot(BeNil())
+					lgr.Debug("Should Not Serialize")
+					lgr.Log(level, "WithLevelRanks Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", level))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevelRanks Message"))
@@ -319,20 +318,20 @@ var _ = Describe("Logger", func() {
 
 			Context("WithLevel", func() {
 				It("uses the current level if the specified level is unknown", func() {
-					logger = logger.WithLevel(log.Level("unknown"))
-					Expect(logger).ToNot(BeNil())
-					Expect(logger.Level()).To(Equal(log.DebugLevel))
-					logger.Debug("WithLevel Message")
+					lgr = lgr.WithLevel(log.Level("unknown"))
+					Expect(lgr).ToNot(BeNil())
+					Expect(lgr.Level()).To(Equal(log.DebugLevel))
+					lgr.Debug("WithLevel Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.DebugLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
 				})
 
 				It("adds the specified level", func() {
-					logger = logger.WithLevel(log.InfoLevel)
-					Expect(logger).ToNot(BeNil())
-					logger.Debug("Should Not Serialize")
-					logger.Warn("WithLevel Message")
+					lgr = lgr.WithLevel(log.InfoLevel)
+					Expect(lgr).ToNot(BeNil())
+					lgr.Debug("Should Not Serialize")
+					lgr.Warn("WithLevel Message")
 					Expect(serializer.SerializeInputs).To(HaveLen(1))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("level", log.WarnLevel))
 					Expect(serializer.SerializeInputs[0]).To(HaveKeyWithValue("message", "WithLevel Message"))
@@ -342,20 +341,20 @@ var _ = Describe("Logger", func() {
 
 		Context("Level", func() {
 			It("returns the current level", func() {
-				Expect(logger.Level()).To(Equal(log.WarnLevel))
+				Expect(lgr.Level()).To(Equal(log.WarnLevel))
 			})
 
 			It("returns the level after being set", func() {
-				logger = logger.WithLevel(log.DebugLevel)
-				Expect(logger).ToNot(BeNil())
-				Expect(logger.Level()).To(Equal(log.DebugLevel))
+				lgr = lgr.WithLevel(log.DebugLevel)
+				Expect(lgr).ToNot(BeNil())
+				Expect(lgr.Level()).To(Equal(log.DebugLevel))
 			})
 
 			It("returns the level after a new level is added and set", func() {
 				level := log.Level("new")
-				logger = logger.WithLevelRank(level, 55).WithLevel(level)
-				Expect(logger).ToNot(BeNil())
-				Expect(logger.Level()).To(Equal(level))
+				lgr = lgr.WithLevelRank(level, 55).WithLevel(level)
+				Expect(lgr).ToNot(BeNil())
+				Expect(lgr.Level()).To(Equal(level))
 			})
 		})
 	})

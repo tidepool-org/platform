@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -91,15 +90,16 @@ func (s *Service) Initialize(provider application.Provider) error {
 }
 
 func (s *Service) Terminate() {
-	s.Authenticated.Terminate()
-
 	s.terminateRouter()
 	s.terminateTaskQueue()
+	s.terminateClinicsClient()
 	s.terminateDexcomClient()
 	s.terminateDataSourceClient()
 	s.terminateDataClient()
 	s.terminateTaskClient()
 	s.terminateTaskStore()
+
+	s.Authenticated.Terminate()
 }
 
 func (s *Service) TaskStore() store.Store {
@@ -291,6 +291,13 @@ func (s *Service) initializeClinicsClient() error {
 	return nil
 }
 
+func (s *Service) terminateClinicsClient() {
+	if s.clinicsClient != nil {
+		s.Logger().Debug("Destroying clinics client")
+		s.clinicsClient = nil
+	}
+}
+
 func (s *Service) initializeTaskQueue() error {
 	s.Logger().Debug("Loading task queue config")
 
@@ -309,14 +316,16 @@ func (s *Service) initializeTaskQueue() error {
 	s.taskQueue = taskQueue
 
 	var runners []queue.Runner
-	if !s.cfg.DisableDexcom && s.dexcomClient != nil {
-		s.Logger().Debug("Creating dexcom fetch runner")
+	if !s.cfg.DisableDexcom {
+		if s.dexcomClient != nil {
+			s.Logger().Debug("Creating dexcom fetch runner")
 
-		rnnr, rnnrErr := dexcomFetch.NewRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
-		if rnnrErr != nil {
-			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
+			rnnr, rnnrErr := dexcomFetch.NewRunner(s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
+			if rnnrErr != nil {
+				return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
+			}
+			runners = append(runners, rnnr)
 		}
-		runners = append(runners, rnnr)
 	}
 
 	s.Logger().Debug("Creating summary update runner")
@@ -327,24 +336,32 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, summaryUpdateRnnr)
 
+	s.Logger().Debug("Creating summary backfill runner")
+
 	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryBackfillRnnrErr != nil {
 		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
 	}
 	runners = append(runners, summaryBackfillRnnr)
 
+	s.Logger().Debug("Creating summary migration runner")
+
 	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryMigrationRnnrErr != nil {
 		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
 	}
-	taskQueue.RegisterRunner(summaryMigrationRnnr)
+	runners = append(runners, summaryMigrationRnnr)
 
 	if !s.cfg.DisableClinic {
+		s.Logger().Debug("Creating ehr reconcile runner")
+
 		ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
 		if err != nil {
 			return errors.Wrap(err, "unable to create ehr reconcile runner")
 		}
 		runners = append(runners, ehrReconcileRnnr)
+
+		s.Logger().Debug("Creating ehr sync runner")
 
 		ehrSyncRnnr, err := sync.NewRunner(s.clinicsClient, s.Logger())
 		if err != nil {
@@ -356,7 +373,7 @@ func (s *Service) initializeTaskQueue() error {
 	for _, r := range runners {
 		r := r
 		if err := taskQueue.RegisterRunner(r); err != nil {
-			return fmt.Errorf("unable to register runner %s: %w", r.GetRunnerType(), err)
+			return errors.Wrapf(err, "unable to register runner %s", r.GetRunnerType())
 		}
 	}
 

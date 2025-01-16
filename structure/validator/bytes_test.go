@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/base"
 )
@@ -50,6 +51,6 @@ var _ = Describe("Bytes", func() {
 })
 
 func newTestValidator() (structure.Validator, *base.Base) {
-	b := base.New().WithSource(structure.NewPointerSource())
+	b := base.New(logTest.NewLogger()).WithSource(structure.NewPointerSource())
 	return NewValidator(b), b
 }

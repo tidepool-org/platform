@@ -4,11 +4,11 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/structure/validator"
-
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/test"
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Initial Settings", func() {
@@ -17,13 +17,13 @@ var _ = Describe("Initial Settings", func() {
 
 	BeforeEach(func() {
 		settings = test.RandomInitialSettings()
-		validate = validator.New()
+		validate = validator.New(logTest.NewLogger())
 		Expect(validate.Validate(settings)).ToNot(HaveOccurred())
 	})
 
 	Describe("ValidateSubmittedPrescription", func() {
 		BeforeEach(func() {
-			validate = validator.New()
+			validate = validator.New(logTest.NewLogger())
 		})
 
 		It("fails with empty basal rate schedule", func() {

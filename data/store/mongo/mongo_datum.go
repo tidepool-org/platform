@@ -50,8 +50,18 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "time", Value: 1},
+				{Key: "_active", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+			},
+			Options: options.Index().
+				SetName("ShardKeyIndex"),
 		},
 		{
 			Keys: bson.D{
@@ -74,15 +84,40 @@ func (d *DatumRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "origin.id", Value: 1},
+				{Key: "_userId", Value: 1},
+				{Key: "_active", Value: 1},
 				{Key: "type", Value: 1},
+				{Key: "modifiedTime", Value: 1},
+				{Key: "time", Value: 1},
+			},
+			Options: options.Index().
+				SetName("UserIdActiveTypeModifiedTimeTime").
+				SetPartialFilterExpression(bson.D{
+					{
+						Key: "time",
+						Value: bson.D{
+							{Key: "$gt", Value: lowerTimeBound},
+						},
+					},
+				}),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "origin.id", Value: 1},
 				{Key: "deletedTime", Value: -1},
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
-				SetName("OriginId"),
+				SetPartialFilterExpression(bson.D{
+					{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+				}).
+				SetName("UserIdOriginId"),
 		},
+		// Future optimization after release.
+		// Rebuild index to to move _active
+		// before type for better compression and more
+		// closely follow ESR
 		{
 			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
@@ -91,9 +126,16 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
 		},
+
+		// Future optimization - remove the PFE on deviceId as the Base datum
+		// already makes sure it exists and prod DB has already been checked to
+		// ensure there are no datums w/ no deviceId. Other possible
+		// optimization remove the _active in the PFE to use this in the
+		// ArchiveDeviceDataUsingHashesFromDataSet > Distinct quiery. Can also
+		// remove "type" field w/ corresponding removal of "$ne": "upload" in
+		// queries where appropriate.
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
@@ -103,7 +145,6 @@ func (d *DatumRepository) EnsureIndexes() error {
 				{Key: "_deduplicator.hash", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
 					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
@@ -139,7 +180,6 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		datum.SetDataSetID(dataSet.UploadID)
 		datum.SetCreatedTime(&timestamp)
 		datum.SetModifiedTime(&timestamp)
-		datum.SetModifiedTime(&timestamp)
 		insertData = append(insertData, mongo.NewInsertOneModel().SetDocument(datum))
 	}
 
@@ -163,7 +203,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -174,7 +214,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
+	selector["type"] = bson.M{"$ne": "upload"} // Note we WILL keep the "type" field in the UploadId index as that's a query need in tide-whisperer
 	selector["_active"] = false
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -203,7 +243,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -214,7 +254,6 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
@@ -226,7 +265,11 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 		"archivedDatasetId": 1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("UserIdOriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to archive data set data")
 		return fmt.Errorf("unable to archive data set data: %w", err)
@@ -243,7 +286,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -254,7 +297,6 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": false}
 	set := bson.M{
 		"_active":      false,
@@ -267,7 +309,11 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 		"deletedUserId":     1,
 		"modifiedUserId":    1,
 	}
-	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+	opts := options.Update()
+	if hasOriginID {
+		opts.SetHint("UserIdOriginId")
+	}
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to delete data set data")
 		return fmt.Errorf("unable to delete data set data: %w", err)
@@ -284,7 +330,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, hasOriginID, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -294,9 +340,12 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	selector["deletedTime"] = bson.M{"$exists": true}
-	changeInfo, err := d.DeleteMany(ctx, selector)
+	opts := options.Delete()
+	if hasOriginID {
+		opts.SetHint("UserIdOriginId")
+	}
+	changeInfo, err := d.DeleteMany(ctx, selector, opts)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy deleted data set data")
 		return fmt.Errorf("unable to destroy deleted data set data: %w", err)
@@ -313,7 +362,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	if err := validateDataSet(dataSet); err != nil {
 		return err
 	}
-	selector, err := validateAndTranslateSelectors(selectors)
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
 	if err != nil {
 		return err
 	}
@@ -350,10 +399,12 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 
 	var updateInfo *mongo.UpdateResult
 
+	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
 	selector := bson.M{
-		"_userId":  dataSet.UserID,
-		"uploadId": dataSet.UploadID,
-		"type":     bson.M{"$ne": "upload"},
+		"_userId":            dataSet.UserID,
+		"uploadId":           dataSet.UploadID,
+		"type":               bson.M{"$ne": "upload"},
+		"_deduplicator.hash": bson.M{"$ne": nil},
 	}
 
 	hashes, err := d.Distinct(ctx, "_deduplicator.hash", selector)
@@ -361,7 +412,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 		selector = bson.M{
 			"_userId":            dataSet.UserID,
 			"deviceId":           *dataSet.DeviceID,
-			"type":               bson.M{"$ne": "upload"},
+			"type":               bson.M{"$ne": "upload"}, // Until we update the indexes to NOT have type, the planner will sometimes not use the correct index w/o the type range so we are leaving $ne upload in some cases. The actual performance and size gains are minor (~5%) TODO: for a future update, create a version of the index WITHOUT the type
 			"_active":            true,
 			"_deduplicator.hash": bson.M{"$in": hashes},
 		}
@@ -486,11 +537,11 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
-		return bson.M{}, nil
-	} else if err := structureValidator.New().Validate(selectors); err != nil {
-		return nil, errors.Join(ErrSelectorsInvalid, err)
+		return bson.M{}, false, nil
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
+		return nil, false, errors.Join(ErrSelectorsInvalid, err)
 	}
 
 	var selectorIDs []string
@@ -518,10 +569,10 @@ func validateAndTranslateSelectors(selectors *data.Selectors) (bson.M, error) {
 	}
 
 	if len(selector) == 0 {
-		return nil, errors.New("selectors is invalid")
+		return nil, false, errors.New("selectors is invalid")
 	}
 
-	return selector, nil
+	return selector, len(selectorOriginIDs) > 0 && len(selectorIDs) == 0, nil
 }
 
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
@@ -667,6 +718,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	}
 
 	findOptions := options.Find()
+	findOptions.SetProjection(bson.M{"_id": 0, "time": 1})
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
@@ -707,8 +759,10 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 		selector["type"] = bson.M{"$in": typ}
 	}
 
-	findOptions := options.Find()
-	findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
+	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
+		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
+	}
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
 
@@ -756,7 +810,8 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 
 	findOptions := options.Find()
 	findOptions.SetLimit(1)
-	findOptions.SetSort(bson.D{{Key: "time", Value: 1}})
+	findOptions.SetSort(bson.D{{Key: "time", Value: 1}}).
+		SetProjection(bson.M{"_id": 0, "time": 1})
 
 	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
 	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
@@ -765,7 +820,10 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		selector["modifiedTime"] = bson.M{
 			"$gt": status.LastUpdated,
 		}
-		findOptions.SetHint("UserIdActiveTypeTimeModifiedTime")
+		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
+			// has blocking sort, but more selective so usually performs better.
+			findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
+		}
 	}
 
 	var cursor *mongo.Cursor

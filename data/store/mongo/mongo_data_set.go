@@ -38,7 +38,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
 		},
 		{
@@ -49,7 +48,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -68,25 +66,33 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "client.name", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "createdTime", Value: -1},
+			},
+			Options: options.Index().
+				SetName("ListUserDataSets").
+				SetPartialFilterExpression(bson.D{
+					{Key: "_active", Value: true},
+				}),
 		},
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
 				{Key: "type", Value: 1},
-				{Key: "_active", Value: 1},
-				{Key: "_deduplicator.hash", Value: 1},
+				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
+				SetName("ListUserDataSetsDeviceId").
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
-					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
-					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
-				}).
-				SetName("DeduplicatorHash"),
+				}),
 		},
 	})
 }
@@ -160,7 +166,7 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -245,12 +251,12 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	}
 	if filter == nil {
 		filter = data.NewDataSetFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -300,12 +306,12 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 	}
 	if filter == nil {
 		filter = store.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 

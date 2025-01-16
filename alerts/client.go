@@ -2,7 +2,6 @@ package alerts
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/kelseyhightower/envconfig"
@@ -17,22 +16,22 @@ import (
 
 // Client for managing alerts configs.
 type Client struct {
-	client PlatformClient
-	logger platformlog.Logger
-	token  TokenProvider
+	client        PlatformClient
+	logger        platformlog.Logger
+	tokenProvider auth.ServerSessionTokenProvider
 }
 
 // NewClient builds a client for interacting with alerts API endpoints.
 //
 // If no logger is provided, a null logger is used.
-func NewClient(client PlatformClient, token TokenProvider, logger platformlog.Logger) *Client {
+func NewClient(client PlatformClient, tokenProvider auth.ServerSessionTokenProvider, logger platformlog.Logger) *Client {
 	if logger == nil {
 		logger = null.NewLogger()
 	}
 	return &Client{
-		client: client,
-		logger: logger,
-		token:  token,
+		client:        client,
+		logger:        logger,
+		tokenProvider: tokenProvider,
 	}
 }
 
@@ -41,12 +40,6 @@ type PlatformClient interface {
 	ConstructURL(paths ...string) string
 	RequestData(ctx context.Context, method string, url string, mutators []request.RequestMutator,
 		requestBody interface{}, responseBody interface{}, inspectors ...request.ResponseInspector) error
-}
-
-// client.External is one implementation
-type TokenProvider interface {
-	// ServerSessionToken provides a server-to-server API authentication token.
-	ServerSessionToken() (string, error)
 }
 
 // request performs common operations before passing a request off to the
@@ -66,11 +59,7 @@ func (c *Client) request(ctx context.Context, method, url string, body any) erro
 // is specifically handled by the platform.Client via the context field, and
 // if left blank, platform.Client errors.
 func (c *Client) requestWithAuth(ctx context.Context, method, url string, body any) error {
-	authCtx, err := c.ctxWithAuth(ctx)
-	if err != nil {
-		return err
-	}
-	return c.client.RequestData(authCtx, method, url, nil, body, nil)
+	return c.client.RequestData(auth.NewContextWithServerSessionTokenProvider(ctx, c.tokenProvider), method, url, nil, body, nil)
 }
 
 // Upsert updates cfg if it exists or creates it if it doesn't.
@@ -83,15 +72,6 @@ func (c *Client) Upsert(ctx context.Context, cfg *Config) error {
 func (c *Client) Delete(ctx context.Context, cfg *Config) error {
 	url := c.client.ConstructURL("v1", "users", cfg.FollowedUserID, "followers", cfg.UserID, "alerts")
 	return c.request(ctx, http.MethodDelete, url, nil)
-}
-
-// ctxWithAuth injects a server session token into the context.
-func (c *Client) ctxWithAuth(ctx context.Context) (context.Context, error) {
-	token, err := c.token.ServerSessionToken()
-	if err != nil {
-		return nil, fmt.Errorf("retrieving token: %w", err)
-	}
-	return auth.NewContextWithServerSessionToken(ctx, token), nil
 }
 
 // ConfigLoader abstracts the method by which config values are loaded.

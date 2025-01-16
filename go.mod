@@ -5,7 +5,8 @@ go 1.22
 require (
 	github.com/IBM/sarama v1.43.2
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
-	github.com/aws/aws-sdk-go v1.54.11
+	github.com/aws/aws-sdk-go v1.50.6
+	github.com/bas-d/appattest v0.1.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.6.0
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -20,8 +21,8 @@ require (
 	github.com/onsi/gomega v1.33.1
 	github.com/prometheus/client_golang v1.19.1
 	github.com/rinchsan/device-check-go v1.3.0
-	github.com/tidepool-org/clinic/client v0.0.0-20240629034458-1365c8963143
-	github.com/tidepool-org/devices/api v0.0.0-20240412011010-75b16d8daec0
+	github.com/tidepool-org/clinic/client v0.0.0-20240926112325-657da308fce2
+	github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
@@ -34,7 +35,7 @@ require (
 	golang.org/x/sync v0.7.0
 	golang.org/x/tools v0.22.0
 	gonum.org/v1/gonum v0.15.0
-	google.golang.org/grpc v1.64.0
+	google.golang.org/grpc v1.65.0
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.3
 )
@@ -86,6 +87,7 @@ require (
 	github.com/radovskyb/watcher v1.0.7 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
