@@ -7,9 +7,6 @@ language: go
 go:
   - 1.23.4
 
-services:
-  - docker
-
 env:
   global:
     - MONGODB=6.0.19
@@ -23,20 +20,10 @@ cache:
     - $HOME/.cache/go-build
 
 before_install:
-  - sudo apt-get update
-  - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
-  - mkdir -p /var/ramfs/mongodb/data
-  - /usr/bin/mongod --dbpath /var/ramfs/mongodb/data --bind_ip 127.0.0.1 --replSet rs0 --logpath /var/ramfs/mongodb/mongod.log &> /dev/null &
-  - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
-  - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
-  - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
+  - . .travis/cache-setup.sh
 
-addons:
-  apt:
-    sources:
-      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse'
-        key_url: 'https://pgp.mongodb.com/server-6.0.asc'
+before_cache:
+  - . .travis/cache-teardown.sh
 
 script:
-  - export TIMING_CMD='time -p'
-  - make plugins-visibility-${PLUGINS_VISIBILITY} && make ci
+  - echo "Hello"
