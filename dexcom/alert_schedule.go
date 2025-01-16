@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -22,13 +23,13 @@ const (
 	AlertScheduleSettingsEndTimeDefault            = "00:00"
 	AlertScheduleSettingsEndTimeDefaultAlternate   = "0:00"
 
-	AlertScheduleSettingsDaySunday    = "sunday"
-	AlertScheduleSettingsDayMonday    = "monday"
-	AlertScheduleSettingsDayTuesday   = "tuesday"
-	AlertScheduleSettingsDayWednesday = "wednesday"
-	AlertScheduleSettingsDayThursday  = "thursday"
-	AlertScheduleSettingsDayFriday    = "friday"
-	AlertScheduleSettingsDaySaturday  = "saturday"
+	AlertScheduleSettingsDaySunday    = dataTypesCommon.DaySunday
+	AlertScheduleSettingsDayMonday    = dataTypesCommon.DayMonday
+	AlertScheduleSettingsDayTuesday   = dataTypesCommon.DayTuesday
+	AlertScheduleSettingsDayWednesday = dataTypesCommon.DayWednesday
+	AlertScheduleSettingsDayThursday  = dataTypesCommon.DayThursday
+	AlertScheduleSettingsDayFriday    = dataTypesCommon.DayFriday
+	AlertScheduleSettingsDaySaturday  = dataTypesCommon.DaySaturday
 
 	AlertScheduleSettingsOverrideModeUnknown = "unknown"
 	AlertScheduleSettingsOverrideModeQuiet   = "quiet"
@@ -455,7 +456,7 @@ func (a *AlertScheduleSettings) Validate(validator structure.Validator) {
 
 func (a *AlertScheduleSettings) Normalize(normalizer structure.Normalizer) {
 	if a.DaysOfWeek != nil {
-		sort.Sort(DaysOfWeekByDay(*a.DaysOfWeek))
+		sort.Sort(dataTypesCommon.DaysOfWeekByDayIndex(*a.DaysOfWeek))
 	}
 }
 
