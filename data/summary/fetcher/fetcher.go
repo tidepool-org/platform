@@ -19,9 +19,15 @@ type DeviceDataCursor interface {
 	Err() error
 }
 
+type AnyCursor interface {
+	Decode(val interface{}) error
+	Next(ctx context.Context) bool
+	Close(ctx context.Context) error
+	Err() error
+}
+
 type DeviceDataFetcher interface {
 	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
-	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }

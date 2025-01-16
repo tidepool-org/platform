@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -20,11 +21,11 @@ const (
 )
 
 type PatientRealtimeDaysReporter struct {
-	summarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
+	summarizer summary.Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 }
 
 func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysReporter {
-	summarizer := summary.GetSummarizer[*types.ContinuousStats](registry)
+	summarizer := summary.GetSummarizer[*types.ContinuousStats, *types.ContinuousBucket](registry)
 	return &PatientRealtimeDaysReporter{
 		summarizer: summarizer,
 	}
@@ -112,6 +113,35 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 	}, nil
 }
 
+func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets fetcher.AnyCursor) (count int, err error) {
+	bucket := types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
+
+	firstBucketTime := time.Time{}
+	nextDay := time.Time{}
+
+	for buckets.Next(ctx) {
+		if err = buckets.Decode(&bucket); err != nil {
+			return 0, err
+		}
+
+		if firstBucketTime.IsZero() {
+			firstBucketTime = bucket.Time
+			nextDay = bucket.Time
+		}
+
+		// if before or equal to nextDay
+		if bucket.Time.Compare(nextDay) <= 0 && bucket.Data.Realtime.Records > 0 {
+			count += 1
+
+			// set nextDay to the day before today, but in the same offset as the first bucket for day counting
+			nextDay = time.Date(bucket.Time.Year(), bucket.Time.Month(), bucket.Time.Day()-1,
+				firstBucketTime.Hour(), firstBucketTime.Minute(), firstBucketTime.Second(), firstBucketTime.Nanosecond(), firstBucketTime.Location())
+		}
+	}
+
+	return count, nil
+}
+
 func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Context, userIds []string, startTime time.Time, endTime time.Time) (map[string]int, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -126,7 +156,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 		return nil, errors.New("startTime is missing")
 	}
 	if endTime.IsZero() {
-		return nil, errors.New("startTime is missing")
+		return nil, errors.New("endTime is missing")
 	}
 
 	if startTime.After(endTime) {
@@ -141,15 +171,14 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 	realtimeUsers := make(map[string]int)
 
 	for _, userId := range userIds {
-		userSummary, err := r.summarizer.GetSummary(ctx, userId)
+		buckets, err := r.summarizer.GetBucketsRange(ctx, userId, startTime, endTime)
 		if err != nil {
 			return nil, err
 		}
 
-		if userSummary != nil && userSummary.Stats != nil {
-			realtimeUsers[userId] = userSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
-		} else {
-			realtimeUsers[userId] = 0
+		realtimeUsers[userId], err = r.GetNumberOfDaysWithRealtimeData(ctx, buckets)
+		if err != nil {
+			return nil, err
 		}
 	}
 
