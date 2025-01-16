@@ -26,7 +26,7 @@ func NewBuckets[B types.BucketDataPt[A], A types.BucketData](delegate *storeStru
 	}
 }
 
-func (r *Buckets[B, A]) GetBuckets(ctx context.Context, userId string, startTime, endTime time.Time) (types.BucketsByTime[B, A], error) {
+func (r *Buckets[B, A]) GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (types.BucketsByTime[B, A], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}

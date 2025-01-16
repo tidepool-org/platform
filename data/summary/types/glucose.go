@@ -377,7 +377,7 @@ func (s *GlucoseStats) Update(ctx context.Context, shared SummaryShared, buckets
 		if len(userData) > 0 {
 			startTime = userData[0].GetTime().UTC().Truncate(time.Hour)
 			endTime = userData[len(userData)-1].GetTime().UTC().Truncate(time.Hour)
-			buckets, err = bucketsFetcher.GetBuckets(ctx, shared.UserID, startTime, endTime)
+			buckets, err = bucketsFetcher.GetBucketsByTime(ctx, shared.UserID, startTime, endTime)
 			if err != nil {
 				return err
 			}

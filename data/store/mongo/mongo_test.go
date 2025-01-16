@@ -238,6 +238,7 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
+	var bucketsRepository dataStore.BucketsRepository
 	var alertsRepository alerts.Repository
 	var logger = logTest.NewLogger()
 	var store *dataStoreMongo.Store
@@ -264,6 +265,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
+		var bucketsCollection *mongo.Collection
 		var alertsCollection *mongo.Collection
 		var collectionsOnce sync.Once
 
@@ -272,6 +274,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				collection = store.GetCollection("deviceData")
 				dataSetCollection = store.GetCollection("deviceDataSets")
 				summaryCollection = store.GetCollection("summary")
+				bucketsCollection = store.GetCollection("buckets")
 				alertsCollection = store.GetCollection("alerts")
 			})
 		})
@@ -285,6 +288,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			_, err = dataSetCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 			_, err = summaryCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = bucketsCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 			_, err = alertsCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
@@ -421,6 +426,27 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					}),
 				))
 			})
+
+			It("bucket indexes return successfully", func() {
+				cursor, err := bucketsCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId", "type", "-time")),
+						"Background": Equal(false),
+						"Unique":     Equal(false),
+						"Name":       Equal("UserIdTypeTime"),
+					}),
+				))
+			})
 		})
 
 		Context("NewDataRepository", func() {
@@ -434,6 +460,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			It("returns a new repository", func() {
 				summaryRepository = store.NewSummaryRepository()
 				Expect(summaryRepository).ToNot(BeNil())
+			})
+		})
+
+		Context("NewBucketsRepository", func() {
+			It("returns a new repository", func() {
+				bucketsRepository = store.NewBucketsRepository()
+				Expect(bucketsRepository).ToNot(BeNil())
 			})
 		})
 

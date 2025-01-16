@@ -12,7 +12,7 @@ import (
 )
 
 type BucketFetcher[B BucketDataPt[A], A BucketData] interface {
-	GetBuckets(ctx context.Context, userId string, startTime, endTime time.Time) (BucketsByTime[B, A], error)
+	GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (BucketsByTime[B, A], error)
 	GetAllBuckets(ctx context.Context, userId string) (*mongo.Cursor, error)
 	WriteModifiedBuckets(ctx context.Context, buckets BucketsByTime[B, A]) error
 }
