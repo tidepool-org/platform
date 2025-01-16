@@ -169,7 +169,11 @@ func (r *Summaries[A, P, T, B]) CreateSummaries(ctx context.Context, summaries [
 	opts := options.InsertMany().SetOrdered(false)
 
 	writeResult, err := r.InsertMany(ctx, insertData, opts)
-	count := len(writeResult.InsertedIDs)
+
+	count := 0
+	if writeResult != nil {
+		count = len(writeResult.InsertedIDs)
+	}
 
 	if err != nil {
 		if count > 0 {
