@@ -1,12 +1,14 @@
 package v1
 
 import (
+	"net/http"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/tidepool-org/platform/data/service"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/service/api"
-	"net/http"
 )
 
 func PrometheusMetrics(dataServiceContext dataService.Context) {
