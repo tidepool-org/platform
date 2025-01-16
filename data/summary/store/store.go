@@ -20,8 +20,9 @@ import (
 
 var (
 	QueueLag = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name: "tidepool_summary_queue_lag",
-		Help: "The current queue lag in minutes",
+		Name:    "tidepool_summary_queue_lag",
+		Help:    "The current queue lag in seconds",
+		Buckets: []float64{0.5, 1, 2.5, 5, 7.5, 10, 25, 50, 75, 100, 150, 250, 500, 1000},
 	}, []string{"type"})
 	QueueLength = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "tidepool_summary_queue_length",
@@ -284,7 +285,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		response.End = *userSummary.Dates.OutdatedSince
 	}
 
-	QueueLag.WithLabelValues(typ).Observe(time.Now().UTC().Sub(response.Start).Minutes())
+	QueueLag.WithLabelValues(typ).Observe(time.Now().UTC().Sub(response.Start).Seconds())
 	count, err := r.GetSummaryQueueLength(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get summary queue length: %w", err)
