@@ -26,6 +26,8 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSummary "github.com/tidepool-org/platform/data/summary"
+	dataWorkIngest "github.com/tidepool-org/platform/data/work/ingest"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
@@ -539,6 +541,25 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 	if err = s.workCoordinator.RegisterProcessors(redwoodProcessors); err != nil {
 		return errors.Wrap(err, "unable to register redwood processors")
+	}
+
+	s.Logger().Debug("Creating ingest processor")
+
+	ingestProcessorDependencies := dataWorkIngest.ProcessorDependencies{
+		DataRawClient:           s.dataRawClient,
+		DataRepository:          dataRepository,
+		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+		SummarizerRegistry:      dataSummary.New(s.dataStore.NewSummaryRepository().GetStore(), dataRepository),
+	}
+	ingestProcessor, err := dataWorkIngest.NewProcessor(ingestProcessorDependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create ingest processor")
+	}
+
+	s.Logger().Debug("Registering ingest processor")
+
+	if err = s.workCoordinator.RegisterProcessor(ingestProcessor); err != nil {
+		return errors.Wrap(err, "unable to register ingest processor")
 	}
 
 	s.Logger().Debug("Starting work coordinator")

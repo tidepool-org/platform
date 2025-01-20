@@ -3,11 +3,9 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/summary"
-
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary/types"
+	dataWorkIngest "github.com/tidepool-org/platform/data/work/ingest"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
@@ -81,25 +79,19 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet)
-		if getErr != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
-			return
-		} else if deduplicator == nil {
-			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
-			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
-			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
-			return
+		if dataSet.HasDataSetTypeNormal() {
+			create, err := dataWorkIngest.NewCreateForDataSetTypeNormal(dataSet)
+			if err != nil {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to create work create", err)
+				return
+			}
+			work, err := dataServiceContext.WorkClient().Create(ctx, create)
+			if err != nil {
+				dataServiceContext.RespondWithInternalServerFailure("Unable to create work", err)
+				return
+			}
+			lgr.WithFields(log.Fields{"workId": work.ID}).Debug("Created work for raw")
 		}
-
-		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
-		updatesSummary := make(map[string]struct{})
-		for _, typ := range types.AllSummaryTypes {
-			updatesSummary[typ] = struct{}{}
-		}
-
-		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {
