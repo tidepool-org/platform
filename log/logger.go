@@ -151,7 +151,7 @@ func (l *logger) log(level Level, message string) {
 	}
 
 	if message != "" {
-		fields["message"] = message
+		fields["msg"] = message
 	}
 
 	if err := l.serializer.Serialize(addPrefix(joinFields(l.fields, fields))); err != nil {

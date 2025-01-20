@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.28.1 - 2024-01-20
+### Fixed
+- add missing log fields for our dashboard and reduce info log
+
 ## 0.28.0 - 2024-11-19
 ### Changed
 -  YLP-3304 changed basal safety storage to current settings collection for G1 users

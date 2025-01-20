@@ -30,12 +30,12 @@ func (s *Serializer) Serialize(fields log.Fields) error {
 }
 
 func (s *Serializer) AssertLog(level log.Level, message string, containsFields ...log.Fields) {
-	s.assertContainsFields(append(containsFields, log.Fields{"level": level, "message": message}), nil)
+	s.assertContainsFields(append(containsFields, log.Fields{"level": level, "msg": message}), nil)
 }
 
 func (s *Serializer) AssertLogExpression(level log.Level, messageExpression *regexp.Regexp, containsFields ...log.Fields) {
 	s.assertContainsFields(append(containsFields, log.Fields{"level": level}), func(serializedFields log.Fields) bool {
-		if value, found := serializedFields["message"]; found {
+		if value, found := serializedFields["msg"]; found {
 			if message, ok := value.(string); ok {
 				return messageExpression.MatchString(message)
 			}
