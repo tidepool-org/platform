@@ -47,6 +47,7 @@ DOCKER_TAG_CMD ?= docker tag
 
 TIMING_CMD ?=
 
+SERVICES=auth blob data migrations prescription task tools
 PLUGINS=redwood
 
 ifdef TRAVIS_COMMIT
@@ -325,14 +326,16 @@ docker-dump:
 
 docker:
 ifdef DOCKER
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-build DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
-	@cd $(ROOT_DIRECTORY) && for DOCKER_FILE in $(shell ls -1 Dockerfile.*); do $(MAKE) docker-push DOCKER_FILE="$${DOCKER_FILE}" TIMESTAMP="$(TIMESTAMP)";done
+	@cd $(ROOT_DIRECTORY) && \
+		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_FILE="Dockerfile.$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
+		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_FILE="Dockerfile.$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
 endif
 
 docker-build: docker-dump
 ifdef DOCKER
 ifdef DOCKER_FILE
 	@cd $(ROOT_DIRECTORY) && \
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --tag build --file "Dockerfile.build" . && \
 		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
 ifdef TRAVIS_BRANCH
 ifdef TRAVIS_COMMIT
