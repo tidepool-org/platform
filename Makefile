@@ -54,7 +54,7 @@ ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
 ifeq ($(TRAVIS_BRANCH),master)
     DOCKER:=true
-else # ifneq ($(wildcard ./go.work),) # TODO: Enable after BACK-3295 is merged into master
+else # ifneq ($(shell go env GOWORK),) # TODO: Enable after BACK-3295 is merged into master
     DOCKER:=true
 endif
 ifdef DOCKER
@@ -66,7 +66,7 @@ endif
 ifdef DOCKER
 ifdef DOCKER_FILE
 	DOCKER_REPOSITORY_SERVICE:=$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
-ifneq ($(wildcard ./go.work),)
+ifneq ($(shell go env GOWORK),)
 	DOCKER_REPOSITORY_PRIVATE:=-private
 endif
 	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(DOCKER_REPOSITORY_SERVICE)$(DOCKER_REPOSITORY_PRIVATE)
@@ -119,7 +119,7 @@ plugins-visibility:
 plugin-visibility:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go`."
 endif
 
@@ -217,7 +217,7 @@ imports-write-changed: goimports
 vet: tmp
 	@echo "go vet ./..."
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
 		(diff .govetignore _tmp/govet.out && exit 1)
 
@@ -230,7 +230,7 @@ build-list:
 build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		$(TIMING_CMD) $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
 			$(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
 		done
@@ -276,43 +276,43 @@ ci-test: ci-test-go
 test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-go:
 	@echo "go test $(GOTEST_FLAGS) $(GOTEST_PKGS)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || GOWORK_FLAGS=-mod=readonly; } && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
 ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
