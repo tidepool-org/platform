@@ -367,6 +367,7 @@ func (s *Service) initializeTaskQueue() error {
 	if s.alertsClient == nil {
 		s.Logger().Info("alerts client is nil; care partner tasks will not run successfully")
 	}
+
 	carePartnerRunner, err := alerts.NewCarePartnerRunner(s.Logger(), s.alertsClient,
 		s.AuthClient(), s.pusher, s.permissionClient, s.AuthClient())
 	if err != nil {

@@ -23,13 +23,14 @@ import (
 )
 
 type Consumer struct {
-	Alerts       AlertsClient
-	Data         alerts.DataRepository
-	DeviceTokens auth.DeviceTokensClient
-	Evaluator    AlertsEvaluator
-	Permissions  permission.Client
-	Pusher       Pusher
-	Recorder     EventsRecorder
+	Alerts         AlertsClient
+	Data           alerts.DataRepository
+	DeviceTokens   auth.DeviceTokensClient
+	Evaluator      AlertsEvaluator
+	Permissions    permission.Client
+	Pusher         Pusher
+	Recorder       EventsRecorder
+	TokensProvider auth.ServerSessionTokenProvider
 
 	Logger log.Logger
 }
@@ -48,6 +49,8 @@ func (c *Consumer) Consume(ctx context.Context,
 		return nil
 	}
 
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, c.TokensProvider)
+
 	switch {
 	case strings.Contains(msg.Topic, ".data.alerts"):
 		return c.consumeAlertsConfigs(ctx, session, msg)
@@ -65,13 +68,20 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
 
 	cfg := &alerts.Config{}
-	if err := unmarshalMessageValue(msg.Value, cfg); err != nil {
+	updatedFields, err := unmarshalMessageValue(msg.Value, cfg)
+	if err != nil {
 		return err
 	}
 	lgr := c.logger(ctx)
+	if isActivityAndActivityOnly(updatedFields) {
+		lgr.WithField("updatedFields", updatedFields).
+			Debug("alerts config is an activity update, will skip")
+		return nil
+	}
+
 	lgr.WithField("cfg", cfg).Info("consuming an alerts config message")
 
-	ctxLog := c.logger(ctx).WithField("followedUserID", cfg.FollowedUserID)
+	ctxLog := cfg.LoggerWithFields(c.logger(ctx))
 	ctx = log.NewContextWithLogger(ctx, ctxLog)
 
 	notes, err := c.Evaluator.EvaluateData(ctx, cfg.FollowedUserID, cfg.UploadID)
@@ -81,18 +91,30 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	}
 	ctxLog.WithField("notes", notes).Debug("notes generated from alerts config")
 
-	c.pushNotes(ctx, notes)
+	c.pushNotifications(ctx, notes)
 
 	session.MarkMessage(msg, "")
 	lgr.WithField("message", msg).Debug("marked")
 	return nil
 }
 
+func isActivityAndActivityOnly(updatedFields []string) bool {
+	hasActivity := false
+	for _, field := range updatedFields {
+		if field == "activity" {
+			hasActivity = true
+		} else {
+			return false
+		}
+	}
+	return hasActivity
+}
+
 func (c *Consumer) consumeDeviceData(ctx context.Context,
 	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
 
 	datum := &Glucose{}
-	if err := unmarshalMessageValue(msg.Value, datum); err != nil {
+	if _, err := unmarshalMessageValue(msg.Value, datum); err != nil {
 		return err
 	}
 	lgr := c.logger(ctx)
@@ -123,14 +145,14 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 		lgr.WithField("idx", idx).WithField("note", note).Debug("notes")
 	}
 
-	c.pushNotes(ctx, notes)
+	c.pushNotifications(ctx, notes)
 
 	session.MarkMessage(msg, "")
 	lgr.WithField("message", msg).Debug("marked")
 	return nil
 }
 
-func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.NotificationWithHook) {
+func (c *Consumer) pushNotifications(ctx context.Context, notifications []*alerts.Notification) {
 	lgr := c.logger(ctx)
 
 	// Notes could be pushed into a Kafka topic to have a more durable retry,
@@ -144,7 +166,7 @@ func (c *Consumer) pushNotes(ctx context.Context, notifications []*alerts.Notifi
 		if len(tokens) == 0 {
 			lgr.Debug("no device tokens found, won't push any notifications")
 		}
-		pushNote := alerts.ToPushNotification(notification.Notification)
+		pushNote := alerts.ToPushNotification(notification)
 		for _, token := range tokens {
 			err := c.Pusher.Push(ctx, token, pushNote)
 			if err != nil {
@@ -176,18 +198,25 @@ func (c *Consumer) logger(ctx context.Context) log.Logger {
 
 type AlertsEvaluator interface {
 	// EvaluateData to check if notifications should be sent in response to new data.
-	EvaluateData(ctx context.Context, followedUserID, dataSetID string) ([]*alerts.NotificationWithHook, error)
+	EvaluateData(ctx context.Context, followedUserID, dataSetID string) ([]*alerts.Notification, error)
 }
 
-func unmarshalMessageValue[A any](b []byte, payload *A) error {
+func unmarshalMessageValue[A any](b []byte, payload *A) ([]string, error) {
 	wrapper := &struct {
-		FullDocument A `json:"fullDocument"`
+		FullDocument      A `json:"fullDocument"`
+		UpdateDescription struct {
+			UpdatedFields map[string]any `json:"updatedFields"`
+		} `json:"updateDescription"`
 	}{}
 	if err := bson.UnmarshalExtJSON(b, false, wrapper); err != nil {
-		return errors.Wrap(err, "Unable to unmarshal ExtJSON")
+		return nil, errors.Wrap(err, "Unable to unmarshal ExtJSON")
 	}
 	*payload = wrapper.FullDocument
-	return nil
+	fields := []string{}
+	for k := range wrapper.UpdateDescription.UpdatedFields {
+		fields = append(fields, k)
+	}
+	return fields, nil
 }
 
 type AlertsClient interface {

@@ -67,3 +67,7 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 	}
 	return value
 }
+
+func IsMmolL(units string) bool {
+	return units == MmolL || units == Mmoll
+}

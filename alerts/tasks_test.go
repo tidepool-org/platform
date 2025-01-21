@@ -44,21 +44,30 @@ var _ = Describe("CarePartnerRunner", func() {
 
 				runner.Run(test.Ctx, test.Task)
 
-				test.Logger.AssertInfo("unable to evaluate no communication", log.Fields{
-					"followedUserID": testFollowedUserID,
+				Expect(func() {
+					test.Logger.AssertInfo("Unable to evaluate no communication", log.Fields{
+						"followedUserID": mockUserID2,
+					})
+				}).ToNot(Panic(), map[string]any{
+					"got": quickJSON(test.Logger.SerializedFields),
 				})
 			})
 
-			It("upserting alerts configs", func() {
+			It("upsetting alerts configs", func() {
 				runner, test := newCarePartnerRunnerTest()
 				test.Alerts.UpsertError = fmt.Errorf("test error")
 
 				runner.Run(test.Ctx, test.Task)
 
-				test.Logger.AssertInfo("Unable to upsert alerts config", log.Fields{
-					"UserID":         testUserID,
-					"FollowedUserID": testFollowedUserID,
-				})
+				Expect(func() {
+					test.Logger.AssertError("Unable to upsert changed alerts config", log.Fields{
+						"userID":         mockUserID1,
+						"followedUserID": mockUserID2,
+						"dataSetID":      mockDataSetID,
+					})
+				}).ToNot(Panic(), quickJSON(map[string]any{
+					"got": test.Logger.SerializedFields,
+				}))
 			})
 
 			It("retrieving device tokens", func() {
@@ -67,21 +76,29 @@ var _ = Describe("CarePartnerRunner", func() {
 
 				runner.Run(test.Ctx, test.Task)
 
-				test.Logger.AssertInfo("unable to retrieve device tokens", log.Fields{
-					"recipientUserID": testUserID,
-				})
+				Expect(func() {
+					test.Logger.AssertInfo("unable to retrieve device tokens", log.Fields{
+						"recipientUserID": mockUserID1,
+					})
+				}, quickJSON(map[string]any{
+					"got": test.Logger.SerializedFields,
+				}))
 			})
 
-			It("pushes notifications", func() {
+			It("pushing notifications", func() {
 				runner, test := newCarePartnerRunnerTest()
 				test.Pusher.PushErrors = append(test.Pusher.PushErrors, fmt.Errorf("test error"))
 
 				runner.Run(test.Ctx, test.Task)
 
 				Expect(len(test.Pusher.PushCalls)).To(Equal(1))
-				test.Logger.AssertInfo("unable to push notification", log.Fields{
-					"recipientUserID": testUserID,
-				})
+				Expect(func() {
+					test.Logger.AssertInfo("unable to push notification", log.Fields{
+						"recipientUserID": testUserID,
+					})
+				}, quickJSON(map[string]any{
+					"got": test.Logger.SerializedFields,
+				}))
 			})
 		})
 
@@ -109,7 +126,7 @@ var _ = Describe("CarePartnerRunner", func() {
 			Expect(len(test.Pusher.PushCalls)).To(Equal(2))
 		})
 
-		It("pushes to each token, even if the first experiences an error", func() {
+		It("pushes to each token, continuing if any experience an error", func() {
 			runner, test := newCarePartnerRunnerTest()
 			test.Tokens.GetResponses[0] = append(test.Tokens.GetResponses[0],
 				test.Tokens.GetResponses[0][0])
@@ -130,27 +147,74 @@ var _ = Describe("CarePartnerRunner", func() {
 
 			// reset, add a user *with* perms, and check that it works
 			runner, test = newCarePartnerRunnerTest()
-			userIDWithPerm := testUserID + "2"
 			test.Permissions.AlwaysAllow = false
-			test.Permissions.Allow(userIDWithPerm, permission.Follow, testFollowedUserID)
-			test.Alerts.ListResponses[0] = append(test.Alerts.ListResponses[0],
-				&Config{
-					UserID:         userIDWithPerm,
-					FollowedUserID: testFollowedUserID,
-					UploadID:       testDataSetID,
-					Alerts: Alerts{
-						NoCommunicationAlert: &NoCommunicationAlert{},
-					},
-				},
-			)
+			test.Permissions.Allow(mockUserID3, mockUserID2, permission.Follow, permission.Read)
+			cfg := *test.Config
+			cfg.UserID = mockUserID3
+			test.Alerts.ListResponses[0] = append(test.Alerts.ListResponses[0], &cfg)
 			runner.Run(test.Ctx, test.Task)
 			Expect(len(test.Pusher.PushCalls)).To(Equal(1))
+		})
+
+		It("upserts configs that need it", func() {
+			runner, test := newCarePartnerRunnerTest()
+			runner.Run(test.Ctx, test.Task)
+
+			// One call from needsUpsert, another when the notification is sent.
+			Expect(len(test.Alerts.UpsertCalls)).To(Equal(2))
+			act0 := test.Alerts.UpsertCalls[0].Activity.NoCommunication
+			Expect(act0.Triggered).ToNot(BeZero())
+			Expect(act0.Sent).To(BeZero())
+			act1 := test.Alerts.UpsertCalls[1].Activity.NoCommunication
+			Expect(act1.Sent).ToNot(BeZero())
+		})
+
+		It("upserts configs that need it, even without a notification", func() {
+			runner, test := newCarePartnerRunnerTest()
+			act := test.Alerts.ListResponses[0][0].Activity.NoCommunication
+			act.Triggered = time.Now().Add(-time.Hour)
+			act.Sent = time.Now().Add(-time.Hour)
+			test.Alerts.ListResponses[0][0].Activity.NoCommunication = act
+			test.Alerts.UsersWithoutCommsResponses[0][0].LastReceivedDeviceData = time.Now()
+
+			runner.Run(test.Ctx, test.Task)
+
+			// One call from needsUpsert, no call from sent (no notification to send)
+			Expect(len(test.Alerts.UpsertCalls)).To(Equal(1))
+			act0 := test.Alerts.UpsertCalls[0].Activity.NoCommunication
+			Expect(act0.Resolved).To(BeTemporally("~", time.Now()))
+		})
+
+		It("doesn't re-mark itself resolved", func() {
+			runner, test := newCarePartnerRunnerTest()
+			act := test.Alerts.ListResponses[0][0].Activity.NoCommunication
+			act.Triggered = time.Now().Add(-time.Hour)
+			act.Sent = time.Now().Add(-time.Hour)
+			act.Resolved = time.Now().Add(-time.Minute)
+			test.Alerts.ListResponses[0][0].Activity.NoCommunication = act
+			test.Alerts.UsersWithoutCommsResponses[0][0].LastReceivedDeviceData = time.Now()
+
+			runner.Run(test.Ctx, test.Task)
+			Expect(len(test.Alerts.UpsertCalls)).To(Equal(0))
+		})
+
+		It("doesn't re-send before delay", func() {
+			runner, test := newCarePartnerRunnerTest()
+			act := test.Alerts.ListResponses[0][0].Activity.NoCommunication
+			orig := time.Now().Add(-time.Minute)
+			act.Triggered = orig
+			act.Sent = orig
+			test.Alerts.ListResponses[0][0].Activity.NoCommunication = act
+
+			runner.Run(test.Ctx, test.Task)
+			Expect(len(test.Alerts.UpsertCalls)).To(Equal(0))
 		})
 	})
 })
 
 type carePartnerRunnerTest struct {
 	Alerts      *mockAlertsClient
+	Config      *Config
 	Ctx         context.Context
 	Logger      *logtest.Logger
 	Permissions *mockPermissionClient
@@ -161,49 +225,36 @@ type carePartnerRunnerTest struct {
 
 func newCarePartnerRunnerTest() (*CarePartnerRunner, *carePartnerRunnerTest) {
 	alerts := newMockAlertsClient()
-	lgr := logtest.NewLogger()
-	ctx := log.NewContextWithLogger(context.Background(), lgr)
+	ctx, lgr, cfg := newConfigTest()
+	cfg.Alerts.NoCommunication.Enabled = true
 	pusher := newMockPusher()
 	tsk := &task.Task{}
 	tokens := newMockDeviceTokensClient()
 	perms := newMockPermissionClient()
-	authClient := newMockAuthTokenProvider()
 	perms.AlwaysAllow = true
+	authClient := newMockAuthTokenProvider()
 
 	runner, err := NewCarePartnerRunner(lgr, alerts, tokens, pusher, perms, authClient)
 	Expect(err).To(Succeed())
 
-	alerts.UsersWithoutCommsResponses = [][]LastCommunication{
+	last := time.Now().Add(-(DefaultNoCommunicationDelay + time.Second))
+	alerts.UsersWithoutCommsResponses = [][]LastCommunication{{
 		{
-			{
-				UserID:                 testFollowedUserID,
-				DataSetID:              testDataSetID,
-				LastReceivedDeviceData: time.Now().Add(-12 * time.Hour),
-			},
+			UserID:                 mockUserID2,
+			DataSetID:              mockDataSetID,
+			LastReceivedDeviceData: last,
 		},
-	}
-	alerts.ListResponses = [][]*Config{
-		{
-			{
-				UserID:         testUserID,
-				FollowedUserID: testFollowedUserID,
-				UploadID:       testDataSetID,
-				Alerts: Alerts{
-					NoCommunicationAlert: &NoCommunicationAlert{},
-				},
-			},
-		},
-	}
+	}}
+	alerts.ListResponses = [][]*Config{{cfg}}
 	tokens.GetResponses = [][]*devicetokens.DeviceToken{
 		{
-			{
-				Apple: &devicetokens.AppleDeviceToken{},
-			},
+			{Apple: &devicetokens.AppleDeviceToken{}},
 		},
 	}
 
 	return runner, &carePartnerRunnerTest{
 		Alerts:      alerts,
+		Config:      cfg,
 		Ctx:         ctx,
 		Logger:      lgr,
 		Permissions: perms,

@@ -47,14 +47,11 @@ var _ = Describe("Consumer", func() {
 				UserID:         testUserID,
 				FollowedUserID: testFollowedUserID,
 				Alerts: alerts.Alerts{
-					DataAlerts: alerts.DataAlerts{
-						Low: &alerts.LowAlert{
-							Base: alerts.Base{
-								Enabled: true},
-							Threshold: alerts.Threshold{
-								Value: 101.1,
-								Units: "mg/dL",
-							},
+					Low: &alerts.LowAlert{
+						Base: alerts.Base{Enabled: true},
+						Threshold: alerts.Threshold{
+							Value: 101.1,
+							Units: "mg/dL",
 						},
 					},
 				},
@@ -119,14 +116,12 @@ var _ = Describe("Consumer", func() {
 			eval := newMockEvaluator()
 			eval.Evaluations[testFollowedUserID+testDataSetID] = []mockEvaluatorResponse{
 				{
-					Notifications: []*alerts.NotificationWithHook{
+					Notifications: []*alerts.Notification{
 						{
-							Notification: &alerts.Notification{
-								Message:         "something",
-								RecipientUserID: testUserID,
-								FollowedUserID:  testFollowedUserID,
-							},
-							Sent: func(time.Time) {},
+							Message:         "something",
+							RecipientUserID: testUserID,
+							FollowedUserID:  testFollowedUserID,
+							Sent:            func(time.Time) {},
 						},
 					},
 				},
@@ -178,9 +173,7 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 		{
 			UserID:         testUserID,
 			FollowedUserID: testFollowedUserID,
-			Alerts: alerts.Alerts{
-				DataAlerts: alerts.DataAlerts{},
-			},
+			Alerts:         alerts.Alerts{},
 		},
 	}, nil)
 	dataRepo := storetest.NewDataRepository()
@@ -226,7 +219,7 @@ type mockEvaluator struct {
 }
 
 type mockEvaluatorResponse struct {
-	Notifications []*alerts.NotificationWithHook
+	Notifications []*alerts.Notification
 	Error         error
 }
 
@@ -238,7 +231,7 @@ func newMockEvaluator() *mockEvaluator {
 }
 
 func (e *mockEvaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID string) (
-	[]*alerts.NotificationWithHook, error) {
+	[]*alerts.Notification, error) {
 
 	key := followedUserID + dataSetID
 	if _, found := e.Evaluations[key]; !found {
@@ -275,8 +268,8 @@ func newMockStaticEvaluator() *mockStaticEvaluator {
 	return &mockStaticEvaluator{newMockEvaluator()}
 }
 
-func (e *mockStaticEvaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID string) (
-	[]*alerts.NotificationWithHook, error) {
+func (e *mockStaticEvaluator) EvaluateData(ctx context.Context,
+	followedUserID, dataSetID string) ([]*alerts.Notification, error) {
 
 	e.EvaluateCalls[followedUserID] += 1
 	return nil, nil
@@ -333,22 +326,6 @@ func newMockMongoCursor(docs []interface{}) *mongo.Cursor {
 	cur, err := mongo.NewCursorFromDocuments(docs, nil, nil)
 	Expect(err).To(Succeed())
 	return cur
-}
-
-type mockPusher struct {
-	Pushes []string
-}
-
-func newMockPusher() *mockPusher {
-	return &mockPusher{
-		Pushes: []string{},
-	}
-}
-
-func (p *mockPusher) Push(ctx context.Context,
-	deviceToken *devicetokens.DeviceToken, notification *push.Notification) error {
-	p.Pushes = append(p.Pushes, notification.Message)
-	return nil
 }
 
 type mockAlertsConfigClient struct {

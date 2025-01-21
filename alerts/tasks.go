@@ -85,7 +85,8 @@ func (r *CarePartnerRunner) evaluateLastComms(ctx context.Context) error {
 		if err := r.evaluateLastComm(ctx, lastComm); err != nil {
 			r.logger.WithError(err).
 				WithField("followedUserID", lastComm.UserID).
-				Info("unable to evaluate no communication")
+				WithField("dataSetID", lastComm.DataSetID).
+				Info("Unable to evaluate no communication")
 			continue
 		}
 	}
@@ -96,39 +97,50 @@ func (r *CarePartnerRunner) evaluateLastComms(ctx context.Context) error {
 func (r *CarePartnerRunner) evaluateLastComm(ctx context.Context,
 	lastComm LastCommunication) error {
 
-	alertsConfigs, err := r.alerts.List(ctx, lastComm.UserID)
+	configs, err := r.alerts.List(ctx, lastComm.UserID)
 	if err != nil {
 		return errors.Wrap(err, "listing follower alerts configs")
 	}
-	alertsConfigs = slices.DeleteFunc(alertsConfigs, func(config *Config) bool {
+
+	configs = slices.DeleteFunc(configs, r.authDenied(ctx))
+	configs = slices.DeleteFunc(configs, func(config *Config) bool {
 		return config.UploadID != lastComm.DataSetID
 	})
-	alertsConfigs = slices.DeleteFunc(alertsConfigs, r.authDenied(ctx))
-	notifications := []*NotificationWithHook{}
-	toUpdate := map[*Config]struct{}{}
-	for _, alertsConfig := range alertsConfigs {
+
+	notifications := []*Notification{}
+	for _, config := range configs {
+		lgr := config.LoggerWithFields(r.logger)
 		lastData := lastComm.LastReceivedDeviceData
-		notification, changed := alertsConfig.EvaluateNoCommunication(ctx, lastData)
+		notification, needsUpsert := config.EvaluateNoCommunication(ctx, lastData)
 		if notification != nil {
+			notification.Sent = r.wrapWithUpsert(ctx, lgr, config, notification.Sent)
 			notifications = append(notifications, notification)
 		}
-		if changed || notification != nil {
-			toUpdate[alertsConfig] = struct{}{}
-		}
-	}
-	r.pushNotifications(ctx, notifications)
-	// Only after notifications have been pushed should they be saved. The alerts configs
-	// could change during evaluation or in response to their notification being pushed.
-	for alertConfig := range toUpdate {
-		if err := r.alerts.Upsert(ctx, alertConfig); err != nil {
-			r.logger.WithError(err).
-				WithField("UserID", alertConfig.UserID).
-				WithField("FollowedUserID", alertConfig.FollowedUserID).
-				Info("Unable to upsert alerts config")
+		if needsUpsert {
+			err := r.alerts.Upsert(ctx, config)
+			if err != nil {
+				lgr.WithError(err).Error("Unable to upsert changed alerts config")
+			}
 		}
 	}
 
+	r.pushNotifications(ctx, notifications)
+
 	return nil
+}
+
+// wrapWithUpsert to upsert the Config that triggered the Notification after it's sent.
+func (r *CarePartnerRunner) wrapWithUpsert(ctx context.Context, lgr log.Logger, config *Config,
+	original func(time.Time)) func(time.Time) {
+
+	return func(at time.Time) {
+		if original != nil {
+			original(at)
+		}
+		if err := r.alerts.Upsert(ctx, config); err != nil {
+			lgr.WithError(err).Error("Unable to upsert changed alerts config")
+		}
+	}
 }
 
 func (r *CarePartnerRunner) authDenied(ctx context.Context) func(*Config) bool {
@@ -154,7 +166,7 @@ func (r *CarePartnerRunner) authDenied(ctx context.Context) func(*Config) bool {
 }
 
 func (r *CarePartnerRunner) pushNotifications(ctx context.Context,
-	notifications []*NotificationWithHook) {
+	notifications []*Notification) {
 
 	for _, notification := range notifications {
 		lgr := r.logger.WithField("recipientUserID", notification.RecipientUserID)
@@ -165,9 +177,9 @@ func (r *CarePartnerRunner) pushNotifications(ctx context.Context,
 		if len(tokens) == 0 {
 			lgr.Debug("no device tokens found, won't push any notifications")
 		}
-		pushNote := ToPushNotification(notification.Notification)
+		pushNotification := ToPushNotification(notification)
 		for _, token := range tokens {
-			err := r.pusher.Push(ctx, token, pushNote)
+			err := r.pusher.Push(ctx, token, pushNotification)
 			if err != nil {
 				lgr.WithError(err).Info("unable to push notification")
 			} else {

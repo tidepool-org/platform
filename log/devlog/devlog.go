@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io"
 	stdlog "log"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -83,7 +84,20 @@ func (s *serializer) Serialize(fields log.Fields) error {
 	if len(pairs) > 0 {
 		rest = ": " + strings.Join(pairs, " ")
 	}
-	s.Logger.Printf(msgTime + " " + msgLevel + " " + msg + rest)
+	prefixes := []string{}
+	prefixes = append(prefixes, msgTime)
+	// HOSTNAME is set on Kubernetes pods and is useful for distinguishing logs from an
+	// outgoing Pod vs a newly created Pod.
+	if h := os.Getenv("HOSTNAME"); h != "" {
+		pieces := strings.Split(h, "-")
+		if len(pieces) > 0 {
+			prefixes = append(prefixes, pieces[len(pieces)-1])
+		} else {
+			prefixes = append(prefixes, h)
+		}
+	}
+	prefixes = append(prefixes, msgLevel)
+	s.Logger.Print(strings.Join(prefixes, " ") + " " + msg + rest)
 	return nil
 }
 
