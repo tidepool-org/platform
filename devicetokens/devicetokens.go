@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 
 	"github.com/tidepool-org/platform/structure"
@@ -50,6 +51,14 @@ func NewDocument(userID string, deviceToken DeviceToken) *Document {
 type DeviceToken struct {
 	// Apple devices should provide this information.
 	Apple *AppleDeviceToken `json:"apple,omitempty" bson:"apple,omitempty"`
+}
+
+func (t DeviceToken) String() string {
+	b, err := json.Marshal(t)
+	if err != nil {
+		return "<error marshaling DeviceToken>"
+	}
+	return string(b)
 }
 
 // key provides a unique string value to identify this device token.

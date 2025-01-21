@@ -2464,8 +2464,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				ctx := context.Background()
 				filter := bson.M{}
 				if upsertDoc {
-					Expect(alertsRepository.Upsert(ctx, cfg)).
-						To(Succeed())
+					Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
 					filter["userId"] = cfg.UserID
 					filter["followedUserId"] = cfg.FollowedUserID
 				}
@@ -2488,7 +2487,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				It("updates the existing document", func() {
 					ctx, cfg, filter := prep(true)
 
-					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					cfg.Alerts.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
@@ -2497,8 +2496,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					Expect(res.Err()).To(Succeed())
 					Expect(res.Decode(doc)).To(Succeed())
 					jsonOut, _ := json.Marshal(doc)
-					Expect(doc.Low).ToNot(BeNil(), string(jsonOut))
-					Expect(doc.Low.Base.Enabled).To(Equal(true))
+					Expect(doc.Alerts.Low).ToNot(BeNil(), string(jsonOut))
+					Expect(doc.Alerts.Low.Base.Enabled).To(Equal(true))
 				})
 
 				It("sets userId, followedUserId, and uploadId only on creation", func() {
@@ -2528,36 +2527,39 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					Expect(doc.UploadID).To(Equal("something"))
 					Expect(doc.FollowedUserID).To(Equal("followed-user-id"))
 					Expect(doc.UserID).To(Equal("user-id"))
-					Expect(doc.Low.Delay.Duration()).To(Equal(testDelay))
+					Expect(doc.Alerts.Low.Delay.Duration()).To(Equal(testDelay))
 				})
 
 				It("updates the Config's Activity", func() {
 					ctx, cfg, filter := prep(true)
-					testTriggered := time.Now().Add(-5 * time.Minute)
 					testSent := time.Now().Add(-3 * time.Minute)
-					cfg.Low = &alerts.LowAlert{
+					testTriggered := time.Now().Add(-5 * time.Minute)
+					cfg.Alerts.Low = &alerts.LowAlert{
 						Base: alerts.Base{
 							Enabled: true,
-							Activity: alerts.Activity{
-								Triggered: testTriggered,
-								Sent:      testSent,
-								// Resolved is unset, so it should be a zero value.
-							},
+							// Activity: alerts.AlertActivity{
+							// 	Triggered: testTriggered,
+							// 	Sent:      testSent,
+							// 	// Resolved is unset, so it should be a zero value.
+							// },
 						},
 					}
+					cfg.Activity.Low.Sent = testSent
+					cfg.Activity.Low.Triggered = testTriggered
 
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
 					doc := &alerts.Config{}
+					//raw := map[string]any{}
 					res := store.GetCollection("alerts").FindOne(ctx, filter)
 					Expect(res.Err()).To(Succeed())
 					Expect(res.Decode(doc)).To(Succeed())
-					Expect(doc.Low).ToNot(BeNil())
-					Expect(doc.Low.Base.Enabled).To(Equal(true))
-					Expect(doc.Low.Triggered).To(BeTemporally("~", testTriggered, time.Millisecond))
-					Expect(doc.Low.Sent).To(BeTemporally("~", testSent, time.Millisecond))
-					Expect(doc.Low.Resolved).To(Equal(time.Time{}))
+					Expect(doc.Alerts.Low).ToNot(BeNil())
+					Expect(doc.Alerts.Low.Base.Enabled).To(Equal(true))
+					Expect(doc.Activity.Low.Triggered).To(BeTemporally("~", testTriggered, time.Millisecond))
+					Expect(doc.Activity.Low.Sent).To(BeTemporally("~", testSent, time.Millisecond))
+					Expect(doc.Activity.Low.Resolved).To(Equal(time.Time{}))
 				})
 			})
 
@@ -2577,23 +2579,23 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						UserID:         "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
 						FollowedUserID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
 						Alerts: alerts.Alerts{
-							DataAlerts: alerts.DataAlerts{
-								High: &alerts.HighAlert{
-									Base: alerts.Base{Enabled: true},
-								},
+							// DataAlerts: alerts.DataAlerts{
+							High: &alerts.HighAlert{
+								Base: alerts.Base{Enabled: true},
 							},
+							// },
 						},
 					}
 					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
-					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					cfg.Alerts.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
 					got, err := alertsRepository.Get(ctx, cfg)
 					Expect(err).To(Succeed())
 					Expect(got).ToNot(BeNil())
-					Expect(got.Low).ToNot(BeNil())
-					Expect(got.Low.Enabled).To(Equal(true))
+					Expect(got.Alerts.Low).ToNot(BeNil())
+					Expect(got.Alerts.Low.Enabled).To(Equal(true))
 					Expect(got.UserID).To(Equal(cfg.UserID))
 					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
 				})

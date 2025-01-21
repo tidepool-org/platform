@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"slices"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	logjson "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -36,30 +38,46 @@ type Config struct {
 	UploadID string `json:"uploadId" bson:"uploadId,omitempty"`
 
 	// Alerts collects the user settings for each type of alert, and tracks their statuses.
-	Alerts `bson:",inline,omitempty"`
+	Alerts `bson:"alerts,omitempty"`
+
+	Activity `bson:"activity,omitempty" json:"activity,omitempty"`
 }
 
 // Alerts is a wrapper to collect the user-modifiable parts of a Config.
 type Alerts struct {
-	DataAlerts            `bson:",inline,omitempty"`
-	*NoCommunicationAlert `bson:"noCommunication,omitempty" json:"noCommunication,omitempty"`
+	UrgentLow       *UrgentLowAlert       `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             *LowAlert             `json:"low,omitempty" bson:"low,omitempty"`
+	High            *HighAlert            `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      *NotLoopingAlert      `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication *NoCommunicationAlert `bson:"noCommunication,omitempty" json:"noCommunication,omitempty"`
 }
 
-// DataAlerts models alerts triggered by incoming data.
-type DataAlerts struct {
-	UrgentLow  *UrgentLowAlert  `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
-	Low        *LowAlert        `json:"low,omitempty" bson:"low,omitempty"`
-	High       *HighAlert       `json:"high,omitempty" bson:"high,omitempty"`
-	NotLooping *NotLoopingAlert `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+type Activity struct {
+	UrgentLow       AlertActivity `json:"urgentLow,omitempty" bson:"urgentLow,omitempty"`
+	Low             AlertActivity `json:"low,omitempty" bson:"low,omitempty"`
+	High            AlertActivity `json:"high,omitempty" bson:"high,omitempty"`
+	NotLooping      AlertActivity `json:"notLooping,omitempty" bson:"notLooping,omitempty"`
+	NoCommunication AlertActivity `json:"noCommunication,omitempty" bson:"noCommunication,omitempty"`
 }
 
 func (c Config) Validate(validator structure.Validator) {
 	validator.String("userID", &c.UserID).Using(user.IDValidator)
 	validator.String("followedUserID", &c.FollowedUserID).Using(user.IDValidator)
 	validator.String("uploadID", &c.UploadID).Exists().Using(data.SetIDValidator)
-	c.DataAlerts.Validate(validator)
-	if c.NoCommunicationAlert != nil {
-		c.NoCommunicationAlert.Validate(validator)
+	if c.Alerts.UrgentLow != nil {
+		c.Alerts.UrgentLow.Validate(validator)
+	}
+	if c.Alerts.Low != nil {
+		c.Alerts.Low.Validate(validator)
+	}
+	if c.Alerts.High != nil {
+		c.Alerts.High.Validate(validator)
+	}
+	if c.Alerts.NotLooping != nil {
+		c.Alerts.NotLooping.Validate(validator)
+	}
+	if c.Alerts.NoCommunication != nil {
+		c.Alerts.NoCommunication.Validate(validator)
 	}
 }
 
@@ -68,55 +86,136 @@ func (c Config) Validate(validator structure.Validator) {
 // While this method, or the methods it calls, can fail, there's no point in returning an
 // error. Instead errors are logged before continuing. This is to ensure that any possible
 // alert that should be triggered, will be triggered.
-func (c *Config) EvaluateData(ctx context.Context, gd []*glucose.Glucose,
-	dd []*dosingdecision.DosingDecision) (*NotificationWithHook, bool) {
+func (c *Config) EvaluateData(ctx context.Context, gd []*Glucose,
+	dd []*DosingDecision) (*Notification, bool) {
 
-	notification, changed := c.DataAlerts.Evaluate(ctx, gd, dd)
-	if notification != nil {
-		notification.FollowedUserID = c.FollowedUserID
-		notification.RecipientUserID = c.UserID
+	var n *Notification
+	var needsUpsert bool
+
+	ul, low, high, nl := EvalResult{}, EvalResult{}, EvalResult{}, EvalResult{}
+	if c.Alerts.UrgentLow != nil && c.Alerts.UrgentLow.Enabled {
+		ul = c.Alerts.UrgentLow.Evaluate(ctx, gd)
+		needsUpsert = needsUpsert || c.Activity.UrgentLow.Update(ul.OutOfRange)
+	}
+	if c.Alerts.Low != nil && c.Alerts.Low.Enabled {
+		low = c.Alerts.Low.Evaluate(ctx, gd)
+		needsUpsert = needsUpsert || c.Activity.Low.Update(low.OutOfRange)
+	}
+	if c.Alerts.High != nil && c.Alerts.High.Enabled {
+		high = c.Alerts.High.Evaluate(ctx, gd)
+		needsUpsert = needsUpsert || c.Activity.High.Update(high.OutOfRange)
+	}
+	if c.Alerts.NotLooping != nil && c.Alerts.NotLooping.Enabled {
+		nl = c.Alerts.NotLooping.Evaluate(ctx, dd)
+		needsUpsert = needsUpsert || c.Activity.NotLooping.Update(nl.OutOfRange)
 	}
 
-	return notification, changed
+	if ul.OutOfRange {
+		if isReEval(c.Activity.UrgentLow.Sent, ul.NewestTime) {
+			return nil, needsUpsert
+		}
+		msg := genGlucoseThresholdMessage("below urgent low")
+		return c.newNotification(msg, &c.Activity.UrgentLow), needsUpsert
+	}
+	if low.OutOfRange {
+		if isReEval(c.Activity.Low.Sent, low.NewestTime) {
+			return nil, needsUpsert
+		}
+		delay := c.Alerts.Low.Delay.Duration()
+
+		if time.Since(low.Started) > delay {
+			repeat := c.Alerts.Low.Repeat
+			if !c.Activity.Low.IsSent() || mayRepeat(repeat, c.Activity.Low.Sent) {
+				msg := genGlucoseThresholdMessage("below low")
+				return c.newNotification(msg, &c.Activity.Low), needsUpsert
+
+			}
+		}
+		return nil, needsUpsert
+	}
+	if high.OutOfRange {
+		if isReEval(c.Activity.High.Sent, high.NewestTime) {
+			return nil, needsUpsert
+		}
+		delay := c.Alerts.High.Delay.Duration()
+		if time.Since(high.Started) > delay {
+			repeat := c.Alerts.High.Repeat
+			if !c.Activity.High.IsSent() || mayRepeat(repeat, c.Activity.High.Sent) {
+				msg := genGlucoseThresholdMessage("above high")
+				return c.newNotification(msg, &c.Activity.High), needsUpsert
+			}
+		}
+	}
+	if nl.OutOfRange {
+		// Because not looping doesn't use a threshold, re-evaluations aren't treated any
+		// differently.
+		delay := c.Alerts.NotLooping.Delay.Duration()
+		if delay == 0 {
+			delay = NotLoopingRepeat
+		}
+		if time.Since(c.Activity.NotLooping.Sent) > delay {
+			return c.newNotification(NotLoopingMessage, &c.Activity.NotLooping), needsUpsert
+		}
+	}
+
+	return n, needsUpsert
 }
 
-// SentFunc allows [Activity] to be updated in response to a notification being sent.
-type SentFunc func(time.Time)
-
-// NotificationWithHook wraps a Notification with a SentFunc.
-//
-// This separates the responsibilities of the individual alerts (e.g. [LowAlert]), which
-// create notifications and track when those notifications were sent, from those types which
-// trigger the alerts, (e.g. task service's CarePartnerRunner, or data/events' Kafka
-// connector).
-type NotificationWithHook struct {
-	Sent SentFunc
-	*Notification
+func mayRepeat(repeat DurationMinutes, lastSent time.Time) bool {
+	return repeat.Duration() > 0 && time.Since(lastSent) > repeat.Duration()
 }
 
+func (c *Config) newNotification(msg string, act *AlertActivity) *Notification {
+	return &Notification{
+		FollowedUserID:  c.FollowedUserID,
+		RecipientUserID: c.UserID,
+		Message:         msg,
+		Sent: func(t time.Time) {
+			if t.After(act.Sent) {
+				act.Sent = t
+			}
+		},
+	}
+}
+
+func (c Config) LoggerWithFields(lgr log.Logger) log.Logger {
+	return lgr.WithFields(log.Fields{
+		"userID":         c.UserID,
+		"followedUserID": c.FollowedUserID,
+		"dataSetID":      c.UploadID,
+	})
+}
+
+func isReEval(t1, t2 time.Time) bool {
+	return t1.After(t2)
+}
+
+// TODO pass in a logger
 func (c *Config) EvaluateNoCommunication(ctx context.Context, last time.Time) (
-	*NotificationWithHook, bool) {
+	*Notification, bool) {
 
-	if c.NoCommunicationAlert == nil {
+	if c.Alerts.NoCommunication == nil || !c.Alerts.NoCommunication.Enabled {
 		return nil, false
 	}
 
-	lgr := log.LoggerFromContext(ctx).WithFields(log.Fields{
-		"UserID":         c.UserID,
-		"DataSetID":      c.UploadID,
-		"FollowedUserID": c.FollowedUserID,
-	})
+	lgr := c.LoggerWithFields(log.LoggerFromContext(ctx))
 	ctx = log.NewContextWithLogger(ctx, lgr)
-	notification, changed := c.NoCommunicationAlert.Evaluate(ctx, last)
-	if notification != nil {
-		notification.FollowedUserID = c.FollowedUserID
-		notification.RecipientUserID = c.UserID
+	nc := c.Alerts.NoCommunication.Evaluate(ctx, last)
+	needsUpsert := c.Activity.NoCommunication.Update(nc.OutOfRange)
+	// TODO check re-eval? I don't think so
+	delay := c.Alerts.NoCommunication.Delay.Duration()
+	if delay == 0 {
+		delay = DefaultNoCommunicationDelay
 	}
-	return notification, changed
+	if time.Since(nc.Started) > delay && time.Since(c.Activity.NoCommunication.Sent) > delay {
+		n := c.newNotification(NoCommunicationMessage, &c.Activity.NoCommunication)
+		return n, needsUpsert
+	}
+	return nil, needsUpsert
 }
 
 // LongestDelay of the delays set on enabled alerts.
-func (a DataAlerts) LongestDelay() time.Duration {
+func (a Alerts) LongestDelay() time.Duration {
 	delays := []time.Duration{}
 	if a.Low != nil && a.Low.Enabled {
 		delays = append(delays, a.Low.Delay.Duration())
@@ -133,97 +232,33 @@ func (a DataAlerts) LongestDelay() time.Duration {
 	return slices.Max(delays)
 }
 
-func (a DataAlerts) Validate(validator structure.Validator) {
-	if a.UrgentLow != nil {
-		a.UrgentLow.Validate(validator)
-	}
-	if a.Low != nil {
-		a.Low.Validate(validator)
-	}
-	if a.High != nil {
-		a.High.Validate(validator)
-	}
-	if a.NotLooping != nil {
-		a.NotLooping.Validate(validator)
-	}
-}
-
-// Evaluate to determine if notifications are indicated.
-//
-// Evaluations are performed according to priority. The process is "short-circuited" at the
-// first indicated notification.
-func (a DataAlerts) Evaluate(ctx context.Context,
-	gd []*glucose.Glucose, dd []*dosingdecision.DosingDecision) (*NotificationWithHook, bool) {
-
-	changed := false
-	if a.UrgentLow != nil && a.UrgentLow.Enabled {
-		if n, c := a.UrgentLow.Evaluate(ctx, gd); n != nil {
-			return n, c
-		} else {
-			changed = changed || c
-		}
-	}
-	if a.Low != nil && a.Low.Enabled {
-		if n, c := a.Low.Evaluate(ctx, gd); n != nil {
-			return n, changed || c
-		} else {
-			changed = changed || c
-		}
-	}
-	if a.High != nil && a.High.Enabled {
-		if n, c := a.High.Evaluate(ctx, gd); n != nil {
-			return n, changed || c
-		} else {
-			changed = changed || c
-		}
-	}
-	if a.NotLooping != nil && a.NotLooping.Enabled {
-		if n, c := a.NotLooping.Evaluate(ctx, dd); n != nil {
-			return n, changed || c
-		} else {
-			changed = changed || c
-		}
-	}
-	return nil, changed
-}
-
 // Base describes the minimum specifics of a desired alert.
 type Base struct {
 	// Enabled controls whether notifications should be sent for this alert.
 	Enabled bool `json:"enabled" bson:"enabled"`
-
-	// Activity tracks when events related to the alert occurred.
-	Activity `json:"activity" bson:"activity,omitempty"`
 }
 
 func (b Base) Validate(validator structure.Validator) {
 	validator.Bool("enabled", &b.Enabled)
 }
 
-func (b Base) Evaluate(ctx context.Context, data []*glucose.Glucose) *Notification {
+func (b Base) Evaluate(ctx context.Context, data []*Glucose) *Notification {
 	if lgr := log.LoggerFromContext(ctx); lgr != nil {
 		lgr.Warn("alerts.Base.Evaluate called, this shouldn't happen!")
 	}
 	return nil
 }
 
-// withHook wraps a *Notification with a SentFunc that updates its Sent.
-func (b *Base) withHook(n *Notification) *NotificationWithHook {
-	if n == nil {
-		return nil
+func (b Base) lgr(ctx context.Context) log.Logger {
+	var lgr log.Logger = log.LoggerFromContext(ctx)
+	if lgr == nil {
+		// NewLogger can only fail if os.Stderr is nil.
+		lgr, _ = logjson.NewLogger(os.Stderr, log.DefaultLevelRanks(), log.DefaultLevel())
 	}
-	return &NotificationWithHook{
-		Notification: n,
-		Sent: func(at time.Time) {
-			if at.Before(b.Activity.Sent) {
-				return
-			}
-			b.Activity.Sent = at
-		},
-	}
+	return lgr
 }
 
-type Activity struct {
+type AlertActivity struct {
 	// Triggered records the last time this alert was triggered.
 	Triggered time.Time `json:"triggered" bson:"triggered"`
 	// Sent records the last time this alert was sent.
@@ -232,12 +267,24 @@ type Activity struct {
 	Resolved time.Time `json:"resolved" bson:"resolved"`
 }
 
-func (a Activity) IsActive() bool {
+func (a AlertActivity) IsActive() bool {
 	return a.Triggered.After(a.Resolved)
 }
 
-func (a Activity) IsSent() bool {
+func (a AlertActivity) IsSent() bool {
 	return a.Sent.After(a.Triggered)
+}
+
+func (a *AlertActivity) Update(outOfRange bool) bool {
+	changed := false
+	if outOfRange && !a.IsActive() {
+		a.Triggered = time.Now()
+		changed = true
+	} else if !outOfRange && a.IsActive() {
+		a.Resolved = time.Now()
+		changed = true
+	}
+	return changed
 }
 
 const (
@@ -274,52 +321,110 @@ func (a UrgentLowAlert) Validate(validator structure.Validator) {
 	a.Threshold.Validate(validator)
 }
 
+type EvalResult struct {
+	Name        string
+	Started     time.Time
+	Threshold   float64
+	NewestTime  time.Time
+	NewestValue float64
+	Evaluator   func(dv, tv float64) bool `json:"-"`
+	OutOfRange  bool
+}
+
+func (r EvalResult) String() string {
+	b, err := json.Marshal(r)
+	if err != nil {
+		return "<error marshaling EvalResult>"
+	}
+	return string(b)
+}
+
+func (r *EvalResult) Process(ctx context.Context, t Threshold, data []*Glucose) {
+	for _, datum := range data {
+		dv, tv, err := normalizeUnits(datum, t)
+		if err != nil {
+			r.lgr(ctx).WithError(err).Info("Unable to normalize datum")
+			continue
+		}
+
+		if datum.Time == nil {
+			r.lgr(ctx).Warn("Unable to process: Time == nil; that shouldn't be possible")
+			continue
+		}
+
+		outOfRange := r.Evaluator(dv, tv)
+
+		if r.NewestValue == 0 {
+			r.NewestValue = dv
+			r.NewestTime = *datum.Time
+			r.OutOfRange = outOfRange
+			r.Threshold = tv
+			r.logGlucoseEval(ctx)
+		}
+
+		if !outOfRange {
+			break
+		}
+
+		if datum.Time != nil && (r.Started.IsZero() || datum.Time.Before(r.Started)) {
+			r.Started = *datum.Time
+		}
+	}
+}
+
 // Evaluate urgent low condition.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (
-	notification *NotificationWithHook, _ bool) {
-
-	lgr := log.LoggerFromContext(ctx)
-	if len(data) == 0 {
-		lgr.Debug("no data to evaluate for urgent low")
-		return nil, false
+func (a *UrgentLowAlert) Evaluate(ctx context.Context, data []*Glucose) EvalResult {
+	er := EvalResult{
+		Name:      "urgent low",
+		Evaluator: func(dv, tv float64) bool { return dv < tv },
 	}
-	datum := data[0]
-	okDatum, okThreshold, err := validateGlucoseAlertDatum(datum, a.Threshold)
-	if err != nil {
-		lgr.WithError(err).Warn("Unable to evaluate urgent low")
-		return nil, false
-	}
-	defer func() {
-		logGlucoseAlertEvaluation(lgr, "urgent low", notification, okDatum, okThreshold)
-	}()
-	active := okDatum < okThreshold
-	changed := false
-	if !active {
-		if a.IsActive() {
-			a.Resolved = time.Now()
-			changed = true
-		}
-		return nil, changed
-	}
-	if !a.IsActive() {
-		a.Triggered = time.Now()
-		changed = true
-	}
-	n := &Notification{Message: genGlucoseThresholdMessage("below urgent low")}
-	return a.withHook(n), changed
+	er.Process(ctx, a.Threshold, data)
+	return er
 }
 
-func validateGlucoseAlertDatum(datum *glucose.Glucose, t Threshold) (float64, float64, error) {
-	if datum.Blood.Units == nil || datum.Blood.Value == nil || datum.Blood.Time == nil {
-		return 0, 0, errors.Newf("Unable to evaluate datum: Units, Value, or Time is nil")
+func (r EvalResult) logGlucoseEval(ctx context.Context) {
+	fields := log.Fields{
+		"isAlerting?": r.Evaluator(r.NewestValue, r.Threshold),
+		"threshold":   r.Threshold,
+		"value":       r.NewestValue,
 	}
-	threshold := nontypesglucose.NormalizeValueForUnits(&t.Value, datum.Blood.Units)
-	if threshold == nil {
-		return 0, 0, errors.Newf("Unable to normalize threshold units: normalized to nil")
+	r.lgr(ctx).WithFields(fields).Info(r.Name)
+}
+
+func (r EvalResult) lgr(ctx context.Context) log.Logger {
+	var lgr log.Logger = log.LoggerFromContext(ctx)
+	if lgr == nil {
+		// NewLogger can only fail if os.Stderr is nil.
+		lgr, _ = logjson.NewLogger(os.Stderr, log.DefaultLevelRanks(), log.DefaultLevel())
 	}
-	return *datum.Blood.Value, *threshold, nil
+	return lgr
+}
+
+func normalizeUnits(datum *Glucose, t Threshold) (float64, float64, error) {
+	if datum == nil || datum.Blood.Units == nil || datum.Blood.Value == nil {
+		return 0, 0, errors.Newf("Unable to evaluate datum: Units or Value is nil")
+	}
+
+	// Both units are the same, no need to convert either.
+	if t.Units == *datum.Blood.Units {
+		return *datum.Blood.Value, t.Value, nil
+	}
+
+	// The units don't match. There exists a known good function that converts to MmolL, so
+	// we'll convert whichever value isn't in MmolL to MmolL.
+
+	if nontypesglucose.IsMmolL(t.Units) {
+		n := nontypesglucose.NormalizeValueForUnits(datum.Blood.Value, datum.Blood.Units)
+		return *n, t.Value, nil
+	} else if nontypesglucose.IsMmolL(*datum.Blood.Units) {
+		n := nontypesglucose.NormalizeValueForUnits(&t.Value, &t.Units)
+		return *datum.Blood.Value, *n, nil
+	}
+
+	// This shouldn't happen. It indicates a new, third glucose unit is in use.
+	return 0, 0, errors.New("Unable to handle unit conversion, neither is MmolL")
 }
 
 // NotLoopingAlert extends Base with a delay.
@@ -335,64 +440,46 @@ func (a NotLoopingAlert) Validate(validator structure.Validator) {
 }
 
 // Evaluate if the device is looping.
-func (a *NotLoopingAlert) Evaluate(ctx context.Context,
-	decisions []*dosingdecision.DosingDecision) (_ *NotificationWithHook, changed bool) {
-
-	defer func() { logNotLoopingEvaluation(ctx, changed, a.IsActive()) }()
-
-	lastLooped := time.Time{}
+func (a *NotLoopingAlert) Evaluate(ctx context.Context, decisions []*DosingDecision) EvalResult {
+	er := EvalResult{}
 	for _, decision := range decisions {
 		if decision.Reason == nil || *decision.Reason != DosingDecisionReasonLoop {
 			continue
 		}
 		if decision.Time == nil {
+			a.lgr(ctx).Warn("Unable to process: Time == nil; that shouldn't be possible")
 			continue
 		}
-		if decision.Time.After(lastLooped) {
-			lastLooped = *decision.Time
+		if !decision.Time.IsZero() {
+			er.NewestTime = *decision.Time
+			break
 		}
 	}
+	delay := a.Delay.Duration()
+	if delay == 0 {
+		delay = DefaultNotLoopingDelay
+	}
+	er.OutOfRange = time.Since(er.NewestTime) > delay
+	logNotLoopingEvaluation(a.lgr(ctx), er.OutOfRange, time.Since(er.NewestTime), delay)
 
-	delay := DefaultNotLoopingDelay
-	if a.Delay.Duration() != 0 {
-		delay = a.Delay.Duration()
-	}
-	if time.Since(lastLooped) < delay {
-		if a.IsActive() {
-			a.Resolved = time.Now()
-			return nil, true
-		}
-		return nil, false
-	}
-
-	if a.IsActive() {
-		if time.Since(a.Sent) > NotLoopingRepeat {
-			notification := a.withHook(&Notification{Message: NotLoopingMessage})
-			return notification, false
-		}
-		return nil, false
-	} else {
-		a.Triggered = time.Now()
-		notification := a.withHook(&Notification{Message: NotLoopingMessage})
-		return notification, true
-	}
+	return er
 }
 
 // DefaultNotLoopingDelay is used when the delay has a Zero value (its default).
 const DefaultNotLoopingDelay = 30 * time.Minute
 
-func logNotLoopingEvaluation(ctx context.Context, changed, isAlerting bool) {
+func logNotLoopingEvaluation(lgr log.Logger, isAlerting bool, since, threshold time.Duration) {
 	fields := log.Fields{
-		"changed":     changed,
 		"isAlerting?": isAlerting,
+		"value":       since,
+		"threshold":   threshold,
 	}
-	lgr := log.LoggerFromContext(ctx)
 	lgr.WithFields(fields).Info("not looping")
 }
 
 const NotLoopingMessage = "Loop is not able to loop"
 
-// DosingDecisionReasonLoop is specified in a [dosingdecision.DosingDecision] to indicate
+// DosingDecisionReasonLoop is specified in a [DosingDecision] to indicate
 // that the decision is part of a loop adjustment (as opposed to bolus or something else).
 const DosingDecisionReasonLoop string = "loop"
 
@@ -418,50 +505,27 @@ func (a NoCommunicationAlert) Validate(validator structure.Validator) {
 }
 
 // Evaluate if the time since data was last received warrants a notification.
-func (a *NoCommunicationAlert) Evaluate(ctx context.Context,
-	lastReceived time.Time) (_ *NotificationWithHook, changed bool) {
+func (a *NoCommunicationAlert) Evaluate(ctx context.Context, lastReceived time.Time) EvalResult {
+	er := EvalResult{}
 
-	lgr := log.LoggerFromContext(ctx)
 	if lastReceived.IsZero() {
-		err := errors.Newf("Unable to evaluate no communication: time is Zero")
-		lgr.WithError(err).Debug("Unable to evaluate no communication")
-		return nil, false
+		a.lgr(ctx).Info("Unable to evaluate no communication: time is Zero")
+		return er
 	}
 
-	defer func() {
-		logNoCommunicationEvaluation(lgr, changed, a.IsActive())
-	}()
-	delay := DefaultNoCommunicationDelay
-	if a.Delay.Duration() > 0 {
-		delay = a.Delay.Duration()
+	delay := a.Delay.Duration()
+	if delay == 0 {
+		delay = DefaultNoCommunicationDelay
 	}
+	er.OutOfRange = time.Since(lastReceived) > delay
+	er.Started = lastReceived
+	er.NewestTime = lastReceived
+	a.lgr(ctx).WithField("isAlerting?", er.OutOfRange).Info("no communication")
 
-	if time.Since(lastReceived) < delay {
-		if a.IsActive() {
-			a.Resolved = time.Now()
-			return nil, true
-		}
-		return nil, false
-	}
-	if !a.IsActive() {
-		a.Triggered = time.Now()
-		return a.withHook(&Notification{Message: NoCommunicationMessage}), true
-	}
-	if time.Since(a.Sent) > DefaultNoCommunicationDelay {
-		return a.withHook(&Notification{Message: NoCommunicationMessage}), false
-	}
-	return nil, false
+	return er
 }
 
 const DefaultNoCommunicationDelay = 5 * time.Minute
-
-func logNoCommunicationEvaluation(lgr log.Logger, changed, isAlerting bool) {
-	fields := log.Fields{
-		"changed":     changed,
-		"isAlerting?": isAlerting,
-	}
-	lgr.WithFields(fields).Info("no communication")
-}
 
 const NoCommunicationMessage = "Tidepool is unable to communicate with a user's device"
 
@@ -490,50 +554,13 @@ func (a LowAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *LowAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (
-	notification *NotificationWithHook, _ bool) {
-
-	lgr := log.LoggerFromContext(ctx)
-	if len(data) == 0 {
-		lgr.Debug("no data to evaluate for low")
-		return nil, false
+func (a *LowAlert) Evaluate(ctx context.Context, data []*Glucose) EvalResult {
+	er := EvalResult{
+		Name:      "low",
+		Evaluator: func(dv, tv float64) bool { return dv < tv },
 	}
-	var eventBegan time.Time
-	var okDatum, okThreshold float64
-	var err error
-	defer func() {
-		logGlucoseAlertEvaluation(lgr, "low", notification, okDatum, okThreshold)
-	}()
-	for _, datum := range data {
-		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
-		if err != nil {
-			lgr.WithError(err).Debug("Skipping low alert datum evaluation")
-			continue
-		}
-		active := okDatum < okThreshold
-		if !active {
-			break
-		}
-		if (*datum.Time).Before(eventBegan) || eventBegan.IsZero() {
-			eventBegan = *datum.Time
-		}
-	}
-	changed := false
-	if eventBegan.IsZero() {
-		if a.IsActive() {
-			a.Resolved = time.Now()
-			changed = true
-		}
-		return nil, changed
-	}
-	if !a.IsActive() {
-		if time.Since(eventBegan) > a.Delay.Duration() {
-			a.Triggered = time.Now()
-			changed = true
-		}
-	}
-	n := &Notification{Message: genGlucoseThresholdMessage("below low")}
-	return a.withHook(n), changed
+	er.Process(ctx, a.Threshold, data)
+	return er
 }
 
 func genGlucoseThresholdMessage(alertType string) string {
@@ -565,63 +592,13 @@ func (a HighAlert) Validate(validator structure.Validator) {
 // Evaluate the given data to determine if an alert should be sent.
 //
 // Assumes data is pre-sorted in descending order by Time.
-func (a *HighAlert) Evaluate(ctx context.Context, data []*glucose.Glucose) (
-	notification *NotificationWithHook, _ bool) {
-
-	lgr := log.LoggerFromContext(ctx)
-	if len(data) == 0 {
-		lgr.Debug("no data to evaluate for high")
-		return nil, false
+func (a *HighAlert) Evaluate(ctx context.Context, data []*Glucose) EvalResult {
+	er := &EvalResult{
+		Name:      "high",
+		Evaluator: func(dv, tv float64) bool { return dv > tv },
 	}
-	var eventBegan time.Time
-	var okDatum, okThreshold float64
-	var err error
-	defer func() {
-		logGlucoseAlertEvaluation(lgr, "high", notification, okDatum, okThreshold)
-	}()
-	for _, datum := range data {
-		okDatum, okThreshold, err = validateGlucoseAlertDatum(datum, a.Threshold)
-		if err != nil {
-			lgr.WithError(err).Debug("Skipping high alert datum evaluation")
-			continue
-		}
-		active := okDatum > okThreshold
-		if !active {
-			break
-		}
-		if (*datum.Time).Before(eventBegan) || eventBegan.IsZero() {
-			eventBegan = *datum.Time
-		}
-	}
-	changed := false
-	if eventBegan.IsZero() {
-		if a.IsActive() {
-			a.Resolved = time.Now()
-			changed = true
-		}
-		return nil, changed
-	}
-	if !a.IsActive() {
-		if time.Since(eventBegan) > a.Delay.Duration() {
-			a.Triggered = time.Now()
-			changed = true
-		}
-	}
-	n := &Notification{Message: genGlucoseThresholdMessage("above high")}
-	return a.withHook(n), changed
-}
-
-// logGlucoseAlertEvaluation is called during each glucose-based evaluation for
-// record-keeping.
-func logGlucoseAlertEvaluation(lgr log.Logger, alertType string,
-	notification *NotificationWithHook, value, threshold float64) {
-
-	fields := log.Fields{
-		"isAlerting?": notification != nil,
-		"threshold":   threshold,
-		"value":       value,
-	}
-	lgr.WithFields(fields).Info(alertType)
+	er.Process(ctx, a.Threshold, data)
+	return *er
 }
 
 // DurationMinutes reads a JSON integer and converts it to a time.Duration.
@@ -700,6 +677,7 @@ type Notification struct {
 	Message         string
 	RecipientUserID string
 	FollowedUserID  string
+	Sent            func(time.Time)
 }
 
 // RecordsRepository encapsulates queries of the records collection for use with alerts.
@@ -711,3 +689,9 @@ type RecordsRepository interface {
 
 	EnsureIndexes() error
 }
+
+// DosingDecision is an alias of convenience.
+type DosingDecision = dosingdecision.DosingDecision
+
+// Glucose is an alias of convenience.
+type Glucose = glucose.Glucose

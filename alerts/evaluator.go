@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/log"
@@ -37,26 +38,28 @@ type GetAlertableDataResponse struct {
 }
 
 type Evaluator struct {
-	Alerts      Repository
-	Data        DataRepository
-	Logger      log.Logger
-	Permissions permission.Client
+	Alerts        Repository
+	Data          DataRepository
+	Logger        log.Logger
+	Permissions   permission.Client
+	TokenProvider auth.ServerSessionTokenProvider
 }
 
 func NewEvaluator(alerts Repository, dataRepo DataRepository, permissions permission.Client,
-	logger log.Logger) *Evaluator {
+	logger log.Logger, tokenProvider auth.ServerSessionTokenProvider) *Evaluator {
 
 	return &Evaluator{
-		Alerts:      alerts,
-		Data:        dataRepo,
-		Logger:      logger,
-		Permissions: permissions,
+		Alerts:        alerts,
+		Data:          dataRepo,
+		Logger:        logger,
+		Permissions:   permissions,
+		TokenProvider: tokenProvider,
 	}
 }
 
 // EvaluateData generates alert notifications in response to a user uploading data.
 func (e *Evaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID string) (
-	[]*NotificationWithHook, error) {
+	[]*Notification, error) {
 
 	configs, err := e.gatherConfigs(ctx, followedUserID, dataSetID)
 	if err != nil {
@@ -65,16 +68,38 @@ func (e *Evaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID 
 
 	configsByDataSetID := e.mapConfigsByDataSetID(configs)
 
-	notifications := []*NotificationWithHook{}
-	for dsID, cfgs := range configsByDataSetID {
-		resp, err := e.gatherData(ctx, followedUserID, dsID, cfgs)
+	notifications := []*Notification{}
+	for dsID, configs := range configsByDataSetID {
+		resp, err := e.gatherData(ctx, followedUserID, dsID, configs)
 		if err != nil {
 			return nil, err
 		}
-		notifications = slices.Concat(notifications, e.generateNotes(ctx, cfgs, resp))
+		for _, config := range configs {
+			lgr := config.LoggerWithFields(e.Logger)
+			notification, needsUpsert := e.genNotificationForConfig(ctx, lgr, config, resp)
+			if notification != nil {
+				notifications = append(notifications, notification)
+			}
+			if needsUpsert {
+				err := e.Alerts.Upsert(ctx, config)
+				if err != nil {
+					lgr.WithError(err).Error("Unable to upsert changed alerts config")
+				}
+			}
+		}
 	}
 
 	return notifications, nil
+}
+
+func (e *Evaluator) genNotificationForConfig(ctx context.Context, lgr log.Logger,
+	config *Config, resp *GetAlertableDataResponse) (*Notification, bool) {
+
+	notification, needsUpsert := config.EvaluateData(ctx, resp.Glucose, resp.DosingDecisions)
+	if notification != nil {
+		notification.Sent = e.wrapWithUpsert(ctx, lgr, config, notification.Sent)
+	}
+	return notification, needsUpsert
 }
 
 func (e *Evaluator) mapConfigsByDataSetID(cfgs []*Config) map[string][]*Config {
@@ -117,6 +142,7 @@ func (e *Evaluator) authDenied(ctx context.Context) func(*Config) bool {
 			"userID":         c.UserID,
 			"followedUserID": c.FollowedUserID,
 		})
+		ctx = auth.NewContextWithServerSessionTokenProvider(ctx, e.TokenProvider)
 		perms, err := e.Permissions.GetUserPermissions(ctx, c.UserID, c.FollowedUserID)
 		if err != nil {
 			logger.WithError(err).Warn("Unable to confirm permissions; skipping")
@@ -151,53 +177,24 @@ func (e *Evaluator) gatherData(ctx context.Context, followedUserID, dataSetID st
 		return nil, err
 	}
 
+	resp.Glucose = slices.DeleteFunc(resp.Glucose,
+		func(g *glucose.Glucose) bool { return g.Time == nil })
+	resp.DosingDecisions = slices.DeleteFunc(resp.DosingDecisions,
+		func(d *dosingdecision.DosingDecision) bool { return d.Time == nil })
+
 	return resp, nil
 }
 
-func (e *Evaluator) generateNotes(ctx context.Context, configs []*Config,
-	resp *GetAlertableDataResponse) []*NotificationWithHook {
-
-	if len(configs) == 0 {
-		return nil
-	}
-
-	notifications := []*NotificationWithHook{}
-	for _, config := range configs {
-		lgr := e.Logger.WithFields(log.Fields{
-			"userID":         config.UserID,
-			"followedUserID": config.FollowedUserID,
-			"uploadID":       config.UploadID,
-		})
-		evalCtx := log.NewContextWithLogger(ctx, lgr)
-		notification, changed := config.EvaluateData(evalCtx, resp.Glucose, resp.DosingDecisions)
-		if notification != nil {
-			if notification.Sent != nil {
-				notification.Sent = e.wrapWithUpsert(evalCtx, lgr, config, notification.Sent)
-			}
-			notifications = append(notifications, notification)
-			continue
-		} else if changed {
-			// No notification was generated, so no further changes are expected. However,
-			// there were activity changes that need persisting.
-			err := e.Alerts.Upsert(ctx, config)
-			if err != nil {
-				lgr.WithError(err).Error("Unable to save changed alerts config")
-				continue
-			}
-		}
-	}
-
-	return notifications
-}
-
 // wrapWithUpsert to upsert the Config that triggered the Notification after it's sent.
-func (e *Evaluator) wrapWithUpsert(ctx context.Context,
-	lgr log.Logger, config *Config, original SentFunc) SentFunc {
+func (e *Evaluator) wrapWithUpsert(ctx context.Context, lgr log.Logger, config *Config,
+	original func(time.Time)) func(time.Time) {
 
 	return func(at time.Time) {
-		original(at)
+		if original != nil {
+			original(at)
+		}
 		if err := e.Alerts.Upsert(ctx, config); err != nil {
-			lgr.WithError(err).Error("Unable to save changed alerts config")
+			lgr.WithError(err).Error("Unable to upsert changed alerts config")
 		}
 	}
 }

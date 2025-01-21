@@ -32,7 +32,7 @@ func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 		{Key: "uploadId", Value: conf.UploadID},
 	}
 	doc := bson.M{
-		"$set":         conf.Alerts,
+		"$set":         bson.M{"alerts": conf.Alerts, "activity": conf.Activity},
 		"$setOnInsert": filter,
 	}
 	_, err := r.UpdateOne(ctx, filter, doc, opts)

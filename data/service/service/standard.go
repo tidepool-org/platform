@@ -498,17 +498,19 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	dataRepo := s.dataStore.NewAlertsDataRepository()
 	recorderRepo := s.dataStore.NewRecorderRepository()
 
-	alertsEvaluator := alerts.NewEvaluator(alertsRepo, dataRepo, s.permissionClient, s.Logger())
+	alertsEvaluator := alerts.NewEvaluator(alertsRepo, dataRepo, s.PermissionClient(),
+		s.Logger(), s.AuthClient())
 
 	ec := &dataEvents.Consumer{
-		Alerts:       alertsRepo,
-		Evaluator:    alertsEvaluator,
-		Data:         dataRepo,
-		DeviceTokens: s.AuthClient(),
-		Logger:       s.Logger(),
-		Permissions:  s.permissionClient,
-		Pusher:       s.pusher,
-		Recorder:     dataEvents.NewRecorder(recorderRepo),
+		Alerts:         alertsRepo,
+		Evaluator:      alertsEvaluator,
+		Data:           dataRepo,
+		DeviceTokens:   s.AuthClient(),
+		Logger:         s.Logger(),
+		Permissions:    s.PermissionClient(),
+		Pusher:         s.pusher,
+		Recorder:       dataEvents.NewRecorder(recorderRepo),
+		TokensProvider: s.AuthClient(),
 	}
 
 	runnerCfg := dataEvents.SaramaRunnerConfig{

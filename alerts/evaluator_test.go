@@ -22,7 +22,7 @@ var _ = Describe("Evaluator", func() {
 			ctx, lgr := contextWithNullLoggerDeluxe()
 			alertsRepo := newMockAlertsClient()
 
-			evaluator := NewEvaluator(alertsRepo, nil, nil, lgr)
+			evaluator := NewEvaluator(alertsRepo, nil, nil, lgr, nil)
 			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
 
 			Expect(notifications).To(BeEmpty())
@@ -42,7 +42,7 @@ var _ = Describe("Evaluator", func() {
 			dataRepo := newMockDataRepo()
 			perms := newMockPermissionClient()
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
 			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
 
 			Expect(notifications).To(BeEmpty())
@@ -60,13 +60,11 @@ var _ = Describe("Evaluator", func() {
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							High: &HighAlert{
-								Base: Base{Enabled: true},
-								Threshold: Threshold{
-									Value: 10.0,
-									Units: nontypesglucose.MmolL,
-								},
+						High: &HighAlert{
+							Base: Base{Enabled: true},
+							Threshold: Threshold{
+								Value: 10.0,
+								Units: nontypesglucose.MmolL,
 							},
 						},
 					},
@@ -76,13 +74,11 @@ var _ = Describe("Evaluator", func() {
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							High: &HighAlert{
-								Base: Base{Enabled: true},
-								Threshold: Threshold{
-									Value: 10.0,
-									Units: nontypesglucose.MmolL,
-								},
+						High: &HighAlert{
+							Base: Base{Enabled: true},
+							Threshold: Threshold{
+								Value: 10.0,
+								Units: nontypesglucose.MmolL,
 							},
 						},
 					},
@@ -91,15 +87,15 @@ var _ = Describe("Evaluator", func() {
 			dataRepo := newMockDataRepo()
 			dataRepo.AlertableData = []*GetAlertableDataResponse{
 				{
-					Glucose: []*glucose.Glucose{testHighDatum},
+					Glucose: []*glucose.Glucose{testHighDatum()},
 				},
 			}
 			perms := newMockPermissionClient()
-			perms.Allow(testUserID, permission.Follow, testFollowedUserID)
+			perms.Allow(testUserID, testFollowedUserID, permission.Follow)
 			// This user still has a config, but has had their follow permission revoked.
-			perms.Allow(testUserID+"-2", permission.Read, testFollowedUserID)
+			perms.Allow(testUserID+"-2", testFollowedUserID, permission.Read)
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
 			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
 
 			Expect(err).To(Succeed())
@@ -109,23 +105,17 @@ var _ = Describe("Evaluator", func() {
 		})
 
 		It("handles data queries that return empty results (no data)", func() {
-			ctx, lgr := contextWithNullLoggerDeluxe()
+			ctx, lgr, cfg := newConfigTest()
 			alertsRepo := newMockAlertsClient()
-			alertsRepo.ListResponses = append(alertsRepo.ListResponses, []*Config{
-				{
-					UserID:         testUserID,
-					FollowedUserID: testFollowedUserID,
-					UploadID:       testDataSetID,
-				},
-			})
+			alertsRepo.ListResponses = append(alertsRepo.ListResponses, []*Config{cfg})
 			dataRepo := newMockDataRepo()
 			perms := newMockPermissionClient()
 			perms.AlwaysAllow = true
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
-			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
+			e := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
+			ns, err := e.EvaluateData(ctx, mockUserID2, mockDataSetID)
 
-			Expect(notifications).To(BeEmpty())
+			Expect(ns).To(BeEmpty())
 			Expect(err).To(Succeed())
 		})
 
@@ -138,28 +128,20 @@ var _ = Describe("Evaluator", func() {
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							UrgentLow: &UrgentLowAlert{
-								Base: Base{Enabled: true},
-								Threshold: Threshold{
-									Value: 3.0,
-									Units: nontypesglucose.MmolL,
-								},
-							},
-						},
+						UrgentLow: testUrgentLowAlert(),
 					},
 				},
 			})
 			dataRepo := newMockDataRepo()
 			dataRepo.AlertableData = []*GetAlertableDataResponse{
 				{
-					Glucose: []*glucose.Glucose{testUrgentLowDatum},
+					Glucose: []*glucose.Glucose{testUrgentLowDatum()},
 				},
 			}
 			perms := newMockPermissionClient()
 			perms.AlwaysAllow = true
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
 			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
 
 			if Expect(notifications).To(HaveLen(1)) {
@@ -172,22 +154,15 @@ var _ = Describe("Evaluator", func() {
 		It("queries data based on the longest delay", func() {
 			ctx, lgr := contextWithNullLoggerDeluxe()
 			alertsRepo := newMockAlertsClient()
+			longerDelay := testHighAlert()
+			longerDelay.Delay = DurationMinutes(3)
 			alertsRepo.ListResponses = append(alertsRepo.ListResponses, []*Config{
 				{
 					UserID:         testUserID + "-2",
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							High: &HighAlert{
-								Base:  Base{Enabled: true},
-								Delay: DurationMinutes(6),
-								Threshold: Threshold{
-									Value: 10.0,
-									Units: nontypesglucose.MmolL,
-								},
-							},
-						},
+						High: testHighAlert(),
 					},
 				},
 				{
@@ -195,20 +170,11 @@ var _ = Describe("Evaluator", func() {
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							High: &HighAlert{
-								Base:  Base{Enabled: true},
-								Delay: DurationMinutes(3),
-								Threshold: Threshold{
-									Value: 10.0,
-									Units: nontypesglucose.MmolL,
-								},
-							},
-						},
+						High: longerDelay,
 					},
 				},
 			})
-			highDatum := testHighDatum
+			highDatum := testHighDatum()
 			highDatum.Blood.Base.Time = pointer.FromAny(time.Now().Add(-10 * time.Minute))
 			dataRepo := newMockDataRepo()
 			dataRepo.AlertableData = []*GetAlertableDataResponse{
@@ -219,62 +185,37 @@ var _ = Describe("Evaluator", func() {
 			perms := newMockPermissionClient()
 			perms.AlwaysAllow = true
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
 			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
-
+			Expect(err).To(Succeed())
 			if Expect(notifications).To(HaveLen(2)) {
 				msgFound := strings.Contains(notifications[0].Message, "above high")
-				Expect(msgFound).To(BeTrue())
+				Expect(msgFound).To(BeTrue(), notifications[0].Message)
 			}
-			Expect(err).To(Succeed())
 		})
 
-		It("wraps notifications so that changes are persisted when notifications are pushed", func() {
-			ctx, lgr := contextWithNullLoggerDeluxe()
+		It("wraps notifications so that changes are persisted when pushed", func() {
+			ctx, lgr, cfg := newConfigTest()
 			startOfTest := time.Now()
 			alertsRepo := newMockAlertsClient()
-			alertsRepo.ListResponses = append(alertsRepo.ListResponses, []*Config{
-				{
-					UserID:         testUserID,
-					FollowedUserID: testFollowedUserID,
-					UploadID:       testDataSetID,
-					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							UrgentLow: &UrgentLowAlert{
-								Base: Base{
-									Enabled: true,
-									Activity: Activity{
-										Triggered: time.Now().Add(-10 * time.Minute),
-									},
-								},
-								Threshold: Threshold{
-									Value: 3.0,
-									Units: nontypesglucose.MmolL,
-								},
-							},
-						},
-					},
-				},
-			})
+			alertsRepo.ListResponses = append(alertsRepo.ListResponses, []*Config{cfg})
 			dataRepo := newMockDataRepo()
 			dataRepo.AlertableData = []*GetAlertableDataResponse{
-				{
-					Glucose: []*glucose.Glucose{testUrgentLowDatum},
-				},
+				{Glucose: []*glucose.Glucose{testUrgentLowDatum()}},
 			}
 			perms := newMockPermissionClient()
 			perms.AlwaysAllow = true
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
-			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
+			ns, err := evaluator.EvaluateData(ctx, mockUserID2, mockDataSetID)
 			Expect(err).To(Succeed())
-			for _, notification := range notifications {
-				Expect(func() { notification.Sent(time.Now()) }).ToNot(Panic())
+			Expect(len(ns)).To(Equal(1))
+			for _, n := range ns {
+				Expect(n.Sent).ToNot(BeNil())
+				n.Sent(time.Now())
 			}
-
-			Expect(len(notifications)).To(Equal(1))
-			if Expect(len(alertsRepo.UpsertCalls)).To(Equal(1)) {
-				activity := alertsRepo.UpsertCalls[0].UrgentLow.Activity
+			if Expect(len(alertsRepo.UpsertCalls)).To(Equal(2)) {
+				activity := alertsRepo.UpsertCalls[1].Activity.UrgentLow
 				Expect(activity.Sent).To(BeTemporally(">", startOfTest))
 			}
 		})
@@ -291,19 +232,11 @@ var _ = Describe("Evaluator", func() {
 					FollowedUserID: testFollowedUserID,
 					UploadID:       testDataSetID,
 					Alerts: Alerts{
-						DataAlerts: DataAlerts{
-							UrgentLow: &UrgentLowAlert{
-								Base: Base{
-									Enabled: true,
-									Activity: Activity{
-										Triggered: time.Now().Add(-10 * time.Minute),
-									},
-								},
-								Threshold: Threshold{
-									Value: 3.0,
-									Units: nontypesglucose.MmolL,
-								},
-							},
+						UrgentLow: testUrgentLowAlert(),
+					},
+					Activity: Activity{
+						UrgentLow: AlertActivity{
+							Triggered: time.Now().Add(-10 * time.Minute),
 						},
 					},
 				},
@@ -311,19 +244,19 @@ var _ = Describe("Evaluator", func() {
 			dataRepo := newMockDataRepo()
 			dataRepo.AlertableData = []*GetAlertableDataResponse{
 				{
-					Glucose: []*glucose.Glucose{testInRangeDatum},
+					Glucose: []*glucose.Glucose{testInRangeDatum()},
 				},
 			}
 			perms := newMockPermissionClient()
 			perms.AlwaysAllow = true
 
-			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
-			notifications, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
+			evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
+			ns, err := evaluator.EvaluateData(ctx, testFollowedUserID, testDataSetID)
 
 			Expect(err).To(Succeed())
-			Expect(len(notifications)).To(Equal(0))
+			Expect(len(ns)).To(Equal(0))
 			if Expect(len(alertsRepo.UpsertCalls)).To(Equal(1)) {
-				activity := alertsRepo.UpsertCalls[0].UrgentLow.Activity
+				activity := alertsRepo.UpsertCalls[0].Activity.UrgentLow
 				Expect(activity.Resolved).To(BeTemporally(">", startOfTest))
 			}
 		})
@@ -338,18 +271,18 @@ var _ = Describe("Evaluator", func() {
 					[]*Config{resp1, resp2})
 				dataRepo := newMockDataRepo()
 				dataRepo.AlertableData = []*GetAlertableDataResponse{
-					{Glucose: []*glucose.Glucose{testUrgentLowDatum}},
+					{Glucose: []*glucose.Glucose{testUrgentLowDatum()}},
 				}
 				perms := newMockPermissionClient()
 				perms.AlwaysAllow = true
 
-				evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr)
+				evaluator := NewEvaluator(alertsRepo, dataRepo, perms, lgr, nil)
 				notifications, err := evaluator.EvaluateData(ctx,
 					testFollowedUserID, testDataSetID)
 
 				Expect(err).To(Succeed())
 				if Expect(len(notifications)).To(Equal(1)) {
-					recipientUserID := notifications[0].Notification.RecipientUserID
+					recipientUserID := notifications[0].RecipientUserID
 					Expect(recipientUserID).To(Equal(testUserID))
 				}
 			})
@@ -363,9 +296,7 @@ func newTestAlertsConfig(userID, dataSetID string) *Config {
 		FollowedUserID: testFollowedUserID,
 		UploadID:       dataSetID,
 		Alerts: Alerts{
-			DataAlerts: DataAlerts{
-				UrgentLow: testUrgentLowAlert(),
-			},
+			UrgentLow: testUrgentLowAlert(),
 		},
 	}
 }
@@ -392,7 +323,12 @@ func (c *mockAlertsClient) Get(ctx context.Context, conf *Config) (*Config, erro
 }
 
 func (c *mockAlertsClient) Upsert(ctx context.Context, conf *Config) error {
-	c.UpsertCalls = append(c.UpsertCalls, conf)
+	if conf == nil {
+		c.UpsertCalls = append(c.UpsertCalls, nil)
+	} else {
+		copyConf := *conf
+		c.UpsertCalls = append(c.UpsertCalls, &copyConf)
+	}
 	if c.UpsertError != nil {
 		return c.UpsertError
 	}
@@ -486,12 +422,14 @@ func (c *mockPermissionClient) GetUserPermissions(ctx context.Context,
 	}
 }
 
-func (c *mockPermissionClient) Allow(requestUserID, perm, targetUserID string) {
+func (c *mockPermissionClient) Allow(requestUserID, targetUserID string, perms ...string) {
 	key := c.Key(requestUserID, targetUserID)
 	if _, found := c.Perms[key]; !found {
 		c.Perms[key] = permission.Permissions{}
 	}
-	c.Perms[key][perm] = permission.Permission{}
+	for _, perm := range perms {
+		c.Perms[key][perm] = permission.Permission{}
+	}
 }
 
 func (c *mockPermissionClient) Key(requesterUserID, targetUserID string) string {
