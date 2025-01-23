@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"github.com/tidepool-org/platform/data"
@@ -41,6 +39,7 @@ type ContinuousRanges struct {
 	Total Range `json:"total" bson:"total"`
 }
 
+// TODO: pointer receiver
 func (CR *ContinuousRanges) Add(new *ContinuousRanges) {
 	CR.Realtime.Add(&new.Realtime)
 	CR.Total.Add(&new.Total)
@@ -135,65 +134,11 @@ func (s *ContinuousStats) Init() {
 	s.Periods = make(map[string]*ContinuousPeriod)
 }
 
-func (s *ContinuousStats) Update(ctx context.Context, shared SummaryShared, bucketsFetcher BucketFetcher[*ContinuousBucket, ContinuousBucket], cursor fetcher.DeviceDataCursor) error {
-	// move all of this to a generic method? fetcher interface?
-
-	hasMoreData := true
-	var buckets BucketsByTime[*ContinuousBucket, ContinuousBucket]
-	var err error
-	var userData []data.Datum
-	var startTime time.Time
-	var endTime time.Time
-
-	for hasMoreData {
-		userData, err = cursor.GetNextBatch(ctx)
-		if errors.Is(err, fetcher.ErrCursorExhausted) {
-			hasMoreData = false
-		} else if err != nil {
-			return err
-		}
-
-		if len(userData) > 0 {
-			startTime = userData[0].GetTime().UTC().Truncate(time.Hour)
-			endTime = userData[len(userData)-1].GetTime().UTC().Truncate(time.Hour)
-			buckets, err = bucketsFetcher.GetBucketsByTime(ctx, shared.UserID, startTime, endTime)
-			if err != nil {
-				return err
-			}
-
-			err = buckets.Update(shared.UserID, shared.Type, userData)
-			if err != nil {
-				return err
-			}
-
-			err = bucketsFetcher.WriteModifiedBuckets(ctx, buckets)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	allBuckets, err := bucketsFetcher.GetAllBuckets(ctx, shared.UserID)
-	if err != nil {
-		return err
-	}
-
-	defer func(allBuckets *mongo.Cursor, ctx context.Context) {
-		err = allBuckets.Close(ctx)
-		if err != nil {
-
-		}
-	}(allBuckets, ctx)
-
-	err = s.CalculateSummary(ctx, allBuckets)
-	if err != nil {
-		return err
-	}
-
-	return nil
+func (s *ContinuousStats) Update(ctx context.Context, cursor fetcher.BucketCursor[*ContinuousBucket, ContinuousBucket]) error {
+	return  s.CalculateSummary(ctx, cursor)
 }
 
-func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.AnyCursor) error {
+func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.BucketCursor[*ContinuousBucket, ContinuousBucket]) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0

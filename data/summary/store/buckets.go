@@ -108,6 +108,7 @@ func (r *Buckets[B, A]) GetBucketsRange(ctx context.Context, userId string, star
 	return nil, fmt.Errorf("unable to get buckets: %w", err)
 }
 
+// TODO: Not used
 func (r *Buckets[B, A]) TrimExcessBuckets(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -145,6 +146,8 @@ func (r *Buckets[B, A]) ClearInvalidatedBuckets(ctx context.Context, userId stri
 	return r.GetNewestRecordTime(ctx, userId)
 }
 
+
+// TODO: Rename. What's side?
 func (r *Buckets[B, A]) GetEnd(ctx context.Context, userId string, side int) (*types.Bucket[B, A], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -235,6 +238,7 @@ func (r *Buckets[B, A]) GetTotalHours(ctx context.Context, userId string) (int, 
 	return int(lastBucket.LastData.Sub(firstBucket.FirstData).Hours()), nil
 }
 
+// TODO: move after WriteModifiedBuckets
 func (r *Buckets[B, A]) writeBuckets(ctx context.Context, buckets []interface{}) error {
 	opts := options.InsertMany()
 	opts.SetOrdered(false)
@@ -250,6 +254,7 @@ func (r *Buckets[B, A]) WriteModifiedBuckets(ctx context.Context, buckets types.
 		return nil
 	}
 
+	// TODO: rename to modifiedBuckets
 	bucketsInt := make([]interface{}, 0, len(buckets))
 	for _, v := range buckets {
 		if !v.IsModified() {

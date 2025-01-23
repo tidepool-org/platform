@@ -2,6 +2,7 @@ package fetcher
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,6 +20,15 @@ type DeviceDataCursor interface {
 	Err() error
 }
 
+type BucketCursor[P types.BucketDataPt[B], B types.BucketData] interface {
+	Decode(val *types.Bucket[P, B]) error
+	Next(ctx context.Context) bool
+	Close(ctx context.Context) error
+	Err() error
+}
+
+// TODO: What's the purpose of this?
+// TODO: Remove, not used anymore
 type AnyCursor interface {
 	Decode(val interface{}) error
 	Next(ctx context.Context) bool

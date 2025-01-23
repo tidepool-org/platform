@@ -2,13 +2,13 @@ package types
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/pointer"
@@ -35,6 +35,7 @@ const (
 var DeviceDataTypes = []string{continuous.Type, selfmonitored.Type}
 var DeviceDataTypesSet = mapset.NewSet[string](DeviceDataTypes...)
 
+// TODO: This is incorrect. Both ought to return continuous as well.
 var DeviceDataToSummaryTypes = map[string]string{
 	continuous.Type:    SummaryTypeCGM,
 	selfmonitored.Type: SummaryTypeBGM,
@@ -91,7 +92,7 @@ type StatsPt[T Stats, P BucketDataPt[B], B BucketData] interface {
 	GetType() string
 	GetDeviceDataTypes() []string
 	Init()
-	Update(context.Context, SummaryShared, BucketFetcher[P, B], fetcher.DeviceDataCursor) error
+	Update(context.Context, fetcher.BucketCursor[P, B]) error
 }
 
 type SummaryShared struct {
@@ -101,6 +102,13 @@ type SummaryShared struct {
 	Config Config             `json:"config" bson:"config"`
 	Dates  Dates              `json:"dates" bson:"dates"`
 }
+
+
+// TODO: Type parameters are getting out of hand and are inconsistently named. I propose we call them:
+// S - Stats
+// PS - StatsPt
+// B - BucketData
+// PB - BucketDataPt
 
 type Summary[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData] struct {
 	SummaryShared `json:",inline" bson:",inline"`
@@ -158,11 +166,13 @@ func Create[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData](userId
 	return s
 }
 
+// TODO: Remove string suffix
 func GetTypeString[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData]() string {
 	s := new(Summary[A, P, T, B])
 	return s.Stats.GetType()
 }
 
+// TODO: Remove string suffix
 func GetDeviceDataTypeStrings[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData]() []string {
 	s := new(Summary[A, P, T, B])
 	return s.Stats.GetDeviceDataTypes()

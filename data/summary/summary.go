@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -41,6 +42,7 @@ func GetSummarizer[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.St
 
 type Summarizer[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[A, P, T, B], error)
+	// TODO: Consider moving
 	GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (fetcher.AnyCursor, error)
 	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[A, P, T, B], error)
@@ -86,6 +88,7 @@ func NewCGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollec
 	}
 }
 
+// TODO: move after glucose summarizer functions
 func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket] {
 	return &GlucoseSummarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]{
 		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
@@ -106,6 +109,7 @@ func (gs *GlucoseSummarizer[A, P, T, B]) GetSummary(ctx context.Context, userId 
 	return gs.summaries.GetSummary(ctx, userId)
 }
 
+// TODO: Not used
 func (gs *GlucoseSummarizer[A, P, T, B]) ClearInvalidatedBuckets(ctx context.Context, userId string, earliestModified time.Time) (time.Time, error) {
 	return gs.buckets.ClearInvalidatedBuckets(ctx, userId, earliestModified)
 }
@@ -184,6 +188,13 @@ func (gs *GlucoseSummarizer[A, P, T, B]) UpdateSummary(ctx context.Context, user
 	}
 	defer cursor.Close(ctx)
 
+	// TODO: Update buckets here
+	err = gs.UpdateBuckets(ctx, userId, gs.cursorFactory(cursor))
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Pass only bucket cursor
 	err = userSummary.Stats.Update(ctx, userSummary.SummaryShared, gs.buckets, gs.cursorFactory(cursor))
 	if err != nil {
 		return nil, err
@@ -210,6 +221,42 @@ func (gs *GlucoseSummarizer[A, P, T, B]) UpdateSummary(ctx context.Context, user
 	err = gs.summaries.ReplaceSummary(ctx, userSummary)
 
 	return userSummary, err
+}
+
+func (gs *GlucoseSummarizer[A, P, T, B]) UpdateBuckets(ctx context.Context, userId string, cursor fetcher.DeviceDataCursor) error {
+
+	hasMoreData := true
+	for hasMoreData {
+		userData, err := cursor.GetNextBatch(ctx)
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
+			return err
+		}
+
+		if len(userData) > 0 {
+			startTime := userData[0].GetTime().UTC().Truncate(time.Hour)
+			endTime := userData[len(userData)-1].GetTime().UTC().Truncate(time.Hour)
+			buckets, err := gs.buckets.GetBucketsByTime(ctx, userId, startTime, endTime)
+			if err != nil {
+				return err
+			}
+
+			// TODO: fix typ
+			err = buckets.Update(types.CreateBucketForUser[P, B](userId, typ), userData)
+			if err != nil {
+				return err
+			}
+
+			err = gs.buckets.WriteModifiedBuckets(ctx, buckets)
+			if err != nil {
+				return err
+			}
+
+		}
+	}
+
+	return nil
 }
 
 func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {

@@ -11,14 +11,18 @@ import (
 	"github.com/tidepool-org/platform/data"
 )
 
+// TODO: Not a fetcher as it updates buckets too
+// TODO: Not used anymore, delete
 type BucketFetcher[B BucketDataPt[A], A BucketData] interface {
 	GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (BucketsByTime[B, A], error)
 	GetAllBuckets(ctx context.Context, userId string) (*mongo.Cursor, error)
 	WriteModifiedBuckets(ctx context.Context, buckets BucketsByTime[B, A]) error
 }
 
+// TODO: define consts at the top
 const minutesPerDay = 60 * 24
 
+// TODO: Follow naming conventions in data service. Rename to BaseBucket
 type BucketShared struct {
 	ID        primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	UserId    string             `json:"userId" bson:"userId"`
@@ -30,33 +34,35 @@ type BucketShared struct {
 	modified bool
 }
 
-func (BS *BucketShared) Update(datumTime *time.Time) error {
+// TODO: single letter lower case pointer receiver
+func (b *BucketShared) Update(datumTime *time.Time) error {
 	// check that datumTime is within the bucket bounds
-	bucketStart := BS.Time
-	bucketEnd := BS.Time.Add(time.Hour)
+	bucketStart := b.Time
+	bucketEnd := b.Time.Add(time.Hour)
+	// TODO: both ends are exclusive
 	if datumTime.Before(bucketStart) || datumTime.After(bucketEnd) {
 		return fmt.Errorf("datum with time %s is outside the bounds of bucket with bounds %s - %s", datumTime, bucketStart, bucketEnd)
 	}
 
-	if BS.FirstData.IsZero() || datumTime.Before(BS.FirstData) {
-		BS.FirstData = *datumTime
-		BS.SetModified()
+	if b.FirstData.IsZero() || datumTime.Before(b.FirstData) {
+		b.FirstData = *datumTime
+		b.SetModified()
 	}
 
-	if BS.LastData.IsZero() || datumTime.After(BS.LastData) {
-		BS.LastData = *datumTime
-		BS.SetModified()
+	if b.LastData.IsZero() || datumTime.After(b.LastData) {
+		b.LastData = *datumTime
+		b.SetModified()
 	}
 
 	return nil
 }
 
-func (BS *BucketShared) SetModified() {
-	BS.modified = true
+func (b *BucketShared) SetModified() {
+	b.modified = true
 }
 
-func (BS *BucketShared) IsModified() bool {
-	return BS.modified
+func (b *BucketShared) IsModified() bool {
+	return b.modified
 }
 
 type BucketData interface {
@@ -66,7 +72,7 @@ type BucketData interface {
 type BucketDataPt[A BucketData] interface {
 	*A
 	Add(bucket *A)
-	Update(record data.Datum, shared *BucketShared) (bool, error)
+	Update(record data.Datum, base *BucketShared) (bool, error)
 }
 
 type Bucket[B BucketDataPt[A], A BucketData] struct {
@@ -74,6 +80,7 @@ type Bucket[B BucketDataPt[A], A BucketData] struct {
 	Data         B `json:"data" bson:"data"`
 }
 
+// TODO: Not clear what is type here. BGM/CGM/Glucose/SummaryType?
 func NewBucket[B BucketDataPt[A], A BucketData](userId string, date time.Time, typ string) *Bucket[B, A] {
 	return &Bucket[B, A]{
 		BucketShared: BucketShared{
@@ -85,6 +92,7 @@ func NewBucket[B BucketDataPt[A], A BucketData](userId string, date time.Time, t
 	}
 }
 
+// TODO: single letter lowercase pointer receiver
 func (BU *Bucket[B, A]) Update(record data.Datum) error {
 	updated, err := BU.Data.Update(record, &BU.BucketShared)
 	if err != nil {
@@ -101,9 +109,18 @@ func (BU *Bucket[B, A]) Update(record data.Datum) error {
 	return nil
 }
 
+func CreateBucketForUser[P BucketDataPt[B], B BucketData] (userId string, typ string) BucketFactoryFn[P, B] {
+	return func(recordHour time.Time) *Bucket[P, B] {
+		return NewBucket[P](userId, recordHour, typ)
+	}
+}
+
+type BucketFactoryFn[P BucketDataPt[B], B BucketData] func(recordHour time.Time) *Bucket[P, B]
+
 type BucketsByTime[B BucketDataPt[A], A BucketData] map[time.Time]*Bucket[B, A]
 
-func (BT BucketsByTime[B, A]) Update(userId string, typ string, userData []data.Datum) error {
+// TODO: simplify this by removing user id and type and set it by the caller or pass a factory fn
+func (BT BucketsByTime[B, A]) Update(createBucket BucketFactoryFn[B, A], userData []data.Datum) error {
 	for _, r := range userData {
 		// truncate time is not timezone/DST safe here, even if we do expect UTC, never truncate non-utc
 		recordHour := r.GetTime().UTC().Truncate(time.Hour)
@@ -111,7 +128,7 @@ func (BT BucketsByTime[B, A]) Update(userId string, typ string, userData []data.
 		// OPTIMIZATION this could check if recordHour equal to previous hour, to save a map lookup, probably saves 0ms
 		if _, ok := BT[recordHour]; !ok {
 			// we don't already have a bucket for this data
-			BT[recordHour] = NewBucket[B](userId, recordHour, typ)
+			BT[recordHour] = createBucket(recordHour)
 
 			// fresh bucket, pull LastData from previous hour if possible for dedup
 			if _, ok = BT[recordHour.Add(-time.Hour)]; ok {

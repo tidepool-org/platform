@@ -8,8 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/summary/fetcher"
@@ -32,6 +30,7 @@ type Range struct {
 	Variance float64 `json:"variance,omitempty" bson:"variance,omitempty"`
 }
 
+// TODO: single letter lower case pointer receiver
 func (R *Range) Add(new *Range) {
 	R.Variance = R.CombineVariance(new)
 	R.Glucose += new.Glucose
@@ -42,6 +41,7 @@ func (R *Range) Add(new *Range) {
 	R.Percent = 0
 }
 
+// TODO: Split to multiple functions - Update and UpdateTotal
 func (R *Range) Update(value float64, duration int, total bool) {
 	if total {
 		// this must occur before the counters below as the pre-increment counters are used during calc
@@ -122,8 +122,10 @@ type GlucoseBucket struct {
 	LastRecordDuration int `json:"lastRecordDuration,omitempty" bson:"lastRecordDuration,omitempty"`
 }
 
+// TODO: define before glucose bucket
 func (R *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
 	R.Total.Percent = float64(R.Total.Minutes) / float64(days*24*60)
+	// TODO: Why 0.7? What's that magic number? Add a comment explaining the conditional
 	if (wallMinutes <= minutesPerDay && R.Total.Percent > 0.7) || (wallMinutes > minutesPerDay && R.Total.Minutes > minutesPerDay) {
 		R.VeryLow.Percent = float64(R.VeryLow.Minutes) / wallMinutes
 		R.Low.Percent = float64(R.Low.Minutes) / wallMinutes
@@ -167,7 +169,7 @@ func (R *GlucoseRanges) Finalize(firstData, lastData time.Time, lastDuration int
 		R.finalizeRecords()
 	}
 }
-
+// TODO: remove duration parameter. Can be calculated from the record
 func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose, duration int) {
 	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
 
@@ -195,17 +197,22 @@ func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose, duration int) {
 	R.Total.Update(normalizedValue, duration, true)
 }
 
+// TODO: Remove if not used. Code changes a lot.
 // Add Currently unused, useful for future compaction
 func (B *GlucoseBucket) Add(_ *GlucoseBucket) {
 	panic("GlucoseBucket.Add Not Implemented")
 }
 
+// TODO: Glucose bucket doesn't need shared bucket.
+// TODO: It needs a way to calculate blackout window. The caller should pass a blackout window calculator
 func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error) {
+
 	record, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("record for calculation is not compatible with Glucose type")
 	}
 
+	// TODO: Doesn't seem right, remove. It's the responsibility of the caller to pass correct data
 	if DeviceDataToSummaryTypes[record.Type] != shared.Type {
 		return false, fmt.Errorf("record for %s calculation is of invald type %s", shared.Type, record.Type)
 	}
@@ -213,9 +220,11 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error)
 	// if this is bgm data, this will return 0
 	duration := GetDuration(record)
 
+	// TODO: Update branching logic somehow? Move to a separate function
 	// if we have cgm data, we care about blackout periods
 	if shared.Type == SummaryTypeCGM {
 		// calculate blackoutWindow based on duration of previous value
+		// TODO: Magic value. Why 10 seconds?
 		blackoutWindow := time.Duration(B.LastRecordDuration)*time.Minute - 10*time.Second
 
 		// Skip record if we are within the blackout window
@@ -236,6 +245,7 @@ type GlucosePeriod struct {
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
 
+	// TODO: move intermediary variables at the end, or even move out of this struct
 	final bool
 
 	firstCountedDay time.Time
@@ -260,10 +270,12 @@ type GlucosePeriod struct {
 	Delta *GlucosePeriod `json:"delta,omitempty" bson:"delta,omitempty"`
 }
 
+// TODO: what is final? Should this be "IsFinalized"?
 func (P *GlucosePeriod) IsFinal() bool {
 	return P.final
 }
 
+// TODO: single letter lower case pointer receiver
 func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
 	if P.final {
 		return errors.New("period has been finalized, cannot add any data")
@@ -273,7 +285,9 @@ func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 		return nil
 	}
 
+	// TODO: check order in caller
 	// NOTE this works correctly for buckets in forward or backwards order, but not unordered, it must be added with consistent direction
+	// TODO: make tickets
 	// NOTE this could use some math with firstData/lastData to work with non-hourly buckets, but today they're hourly.
 	// NOTE should this be moved to a generic periods type as a Shared sidecar, days/hours is probably useful to other types
 	// NOTE average daily records could also be moved
@@ -326,6 +340,7 @@ func (P *GlucosePeriod) Finalize(days int) {
 	if P.final != false {
 		return
 	}
+	// TODO: move to end of function
 	P.final = true
 	P.GlucoseRanges.Finalize(P.firstData, P.lastData, P.lastRecordDuration, days)
 
@@ -356,68 +371,12 @@ func (s *GlucoseStats) Init() {
 	s.OffsetPeriods = make(map[string]*GlucosePeriod)
 }
 
-func (s *GlucoseStats) Update(ctx context.Context, shared SummaryShared, bucketsFetcher BucketFetcher[*GlucoseBucket, GlucoseBucket], cursor fetcher.DeviceDataCursor) error {
-	// move all of this to a generic method? fetcher interface?
-
-	hasMoreData := true
-	var buckets BucketsByTime[*GlucoseBucket, GlucoseBucket]
-	var err error
-	var userData []data.Datum
-	var startTime time.Time
-	var endTime time.Time
-
-	for hasMoreData {
-		userData, err = cursor.GetNextBatch(ctx)
-		if errors.Is(err, fetcher.ErrCursorExhausted) {
-			hasMoreData = false
-		} else if err != nil {
-			return err
-		}
-
-		if len(userData) > 0 {
-			startTime = userData[0].GetTime().UTC().Truncate(time.Hour)
-			endTime = userData[len(userData)-1].GetTime().UTC().Truncate(time.Hour)
-			buckets, err = bucketsFetcher.GetBucketsByTime(ctx, shared.UserID, startTime, endTime)
-			if err != nil {
-				return err
-			}
-
-			err = buckets.Update(shared.UserID, shared.Type, userData)
-			if err != nil {
-				return err
-			}
-
-			err = bucketsFetcher.WriteModifiedBuckets(ctx, buckets)
-			if err != nil {
-				return err
-			}
-
-		}
-	}
-
-	allBuckets, err := bucketsFetcher.GetAllBuckets(ctx, shared.UserID)
-	if err != nil {
-		return err
-	}
-
-	defer func(allBuckets *mongo.Cursor, ctx context.Context) {
-		err = allBuckets.Close(ctx)
-		if err != nil {
-
-		}
-	}(allBuckets, ctx)
-
-	err = s.CalculateSummary(ctx, allBuckets)
-	if err != nil {
-		return err
-	}
-
-	s.CalculateDelta()
-
-	return nil
+func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor fetcher.BucketCursor[*GlucoseBucket, GlucoseBucket]) error {
+	// TODO: CalculateDelta moved to calculate summary
+	return s.CalculateSummary(ctx, bucketsCursor)
 }
 
-func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.AnyCursor) error {
+func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.BucketCursor[*GlucoseBucket, GlucoseBucket]) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
@@ -426,6 +385,7 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Any
 	totalOffsetStats := GlucosePeriod{}
 	bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
 
+	// TODO: remove top level error definition
 	var err error
 	var stopPoints []time.Time
 	var offsetStopPoints []time.Time
@@ -435,6 +395,7 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Any
 			return err
 		}
 
+		// TODO: Move out of the loop and remov confiti
 		// We should have the newest (last) bucket here, use its date for breakpoints
 		if stopPoints == nil {
 			stopPoints, offsetStopPoints = calculateStopPoints(bucket.Time)
@@ -478,8 +439,11 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Any
 	}
 	for i := nextOffsetStopPoint; i < len(offsetStopPoints); i++ {
 		s.CalculatePeriod(periodLengths[i], true, totalOffsetStats)
+		// TODO: is this intentional? Why is this different for offset periods?
 		totalOffsetStats = GlucosePeriod{}
 	}
+
+	s.CalculateDelta()
 
 	return nil
 }
@@ -511,7 +475,9 @@ func (s *GlucoseStats) CalculateDelta() {
 	}
 }
 
+// TODO: Split to two functions - Calculate Period and Calculate offset periods
 func (s *GlucoseStats) CalculatePeriod(i int, offset bool, period GlucosePeriod) {
+	// TODO: remove this comment
 	// We don't make a copy of period, as the struct has no pointers... right? you didn't add any pointers right?
 	period.Finalize(i)
 
