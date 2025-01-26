@@ -54,7 +54,7 @@ ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
 ifeq ($(TRAVIS_BRANCH),master)
     DOCKER:=true
-else ifneq ($(wildcard ./go.work),)
+else # ifneq ($(wildcard ./go.work),) # TODO: Enable after BACK-3295 is merged into master
     DOCKER:=true
 endif
 ifdef DOCKER
