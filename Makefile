@@ -18,8 +18,8 @@ ifneq ($(wildcard ./version.env),)
 endif
 
 VERSION_BASE?=platform
-VERSION_SHORT_COMMIT?=$(shell git rev-parse --short HEAD || echo "dev")
-VERSION_FULL_COMMIT?=$(shell git rev-parse HEAD || echo "dev")
+VERSION_SHORT_COMMIT?=$(shell git rev-parse --short HEAD 2> /dev/null || echo "dev")
+VERSION_FULL_COMMIT?=$(shell git rev-parse HEAD 2> /dev/null || echo "dev")
 VERSION_PACKAGE?=$(REPOSITORY_PACKAGE)/application
 
 GOIMPORTS_LOCAL:=github.com/tidepool-org/platform

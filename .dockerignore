@@ -68,4 +68,3 @@ private/plugin/redwood/.gitignore
 
 # Docker
 .dockerignore
-Dockerfile*
