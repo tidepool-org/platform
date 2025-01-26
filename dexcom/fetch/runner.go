@@ -24,8 +24,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-//go:generate mockgen -destination=./test/mock.go -package test . AuthClient,DataClient,DataSourceClient,DexcomClient,Provider
-
 const (
 	AvailableAfterDuration       = 120 * time.Minute
 	AvailableAfterDurationJitter = 15 * time.Minute
@@ -37,6 +35,7 @@ const (
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 
+//go:generate mockgen -source=runner.go -destination=test/runner.go -package test AuthClient
 type AuthClient interface {
 	ServerSessionToken() (string, error)
 
@@ -44,6 +43,7 @@ type AuthClient interface {
 	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner.go -package test DataClient
 type DataClient interface {
 	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
@@ -52,11 +52,13 @@ type DataClient interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner.go -package test DataSourceClient
 type DataSourceClient interface {
 	Get(ctx context.Context, id string) (*dataSource.Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner.go -package test DexcomClient
 type DexcomClient interface {
 	GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error)
 	GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error)
@@ -136,6 +138,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	}
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner.go -package test Provider
 type Provider interface {
 	AuthClient() AuthClient
 	DataClient() DataClient
