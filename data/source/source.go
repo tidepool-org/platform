@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -85,10 +86,11 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 }
 
 type Create struct {
-	ProviderType      *string `json:"providerType,omitempty"`
-	ProviderName      *string `json:"providerName,omitempty"`
-	ProviderSessionID *string `json:"providerSessionId,omitempty"`
-	State             *string `json:"state,omitempty"`
+	ProviderType      *string            `json:"providerType,omitempty"`
+	ProviderName      *string            `json:"providerName,omitempty"`
+	ProviderSessionID *string            `json:"providerSessionId,omitempty"`
+	State             *string            `json:"state,omitempty"`
+	Metadata          *metadata.Metadata `json:"metadata,omitempty"`
 }
 
 func NewCreate() *Create {
@@ -100,6 +102,7 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderName = parser.String("providerName")
 	c.ProviderSessionID = parser.String("providerSessionId")
 	c.State = parser.String("state")
+	c.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
 }
 
 func (c *Create) Validate(validator structure.Validator) {
@@ -113,11 +116,15 @@ func (c *Create) Validate(validator structure.Validator) {
 		providerSessionIDValidator.NotExists()
 	}
 	validator.String("state", c.State).Exists().OneOf(States()...)
+	if c.Metadata != nil {
+		c.Metadata.Validate(validator.WithReference("metadata"))
+	}
 }
 
 type Update struct {
 	ProviderSessionID *string              `json:"providerSessionId,omitempty"`
 	State             *string              `json:"state,omitempty"`
+	Metadata          *metadata.Metadata   `json:"metadata,omitempty"`
 	Error             *errors.Serializable `json:"error,omitempty"`
 	DataSetIDs        *[]string            `json:"dataSetIds,omitempty"`
 	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty"`
@@ -132,6 +139,7 @@ func NewUpdate() *Update {
 func (u *Update) Parse(parser structure.ObjectParser) {
 	u.ProviderSessionID = parser.String("providerSessionId")
 	u.State = parser.String("state")
+	u.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
@@ -152,6 +160,9 @@ func (u *Update) Validate(validator structure.Validator) {
 		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
 	}
 	validator.String("state", u.State).OneOf(States()...)
+	if u.Metadata != nil {
+		u.Metadata.Validate(validator.WithReference("metadata"))
+	}
 	if u.Error != nil {
 		u.Error.Validate(validator.WithReference("error"))
 	}
@@ -168,7 +179,7 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 }
 
 func (u *Update) IsEmpty() bool {
-	return u.ProviderSessionID == nil && u.State == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
+	return u.ProviderSessionID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }
 
 type Source struct {
@@ -178,6 +189,7 @@ type Source struct {
 	ProviderName      *string              `json:"providerName,omitempty" bson:"providerName,omitempty"`
 	ProviderSessionID *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
 	State             *string              `json:"state,omitempty" bson:"state,omitempty"`
+	Metadata          *metadata.Metadata   `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	Error             *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
 	DataSetIDs        *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
@@ -195,6 +207,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	s.ProviderName = parser.String("providerName")
 	s.ProviderSessionID = parser.String("providerSessionId")
 	s.State = parser.String("state")
+	s.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
@@ -224,6 +237,9 @@ func (s *Source) Validate(validator structure.Validator) {
 		providerSessionIDValidator.NotExists()
 	}
 	validator.String("state", s.State).Exists().OneOf(States()...)
+	if s.Metadata != nil {
+		s.Metadata.Validate(validator.WithReference("metadata"))
+	}
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))
 	}

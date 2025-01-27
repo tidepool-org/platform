@@ -37,7 +37,13 @@ GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interv
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
-GOTEST_PKGS ?= ./...
+ifndef GOTEST_PKGS
+ifdef TEST
+	GOTEST_PKGS=$(REPOSITORY_PACKAGE)/$(TEST)
+else
+	GOTEST_PKGS=./...
+endif
+endif
 GOTEST_FLAGS ?=
 
 DOCKER_LOGIN_CMD ?= docker login

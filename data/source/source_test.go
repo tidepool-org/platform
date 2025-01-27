@@ -17,6 +17,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -434,21 +436,38 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = pointer.FromString(valid)
 					},
 				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
+						valid := metadataTest.RandomMetadata()
+						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						expectedDatum.Metadata = valid
+					},
+				),
 				Entry("multiple",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
 						object["providerType"] = true
 						object["providerName"] = true
 						object["providerSessionId"] = true
 						object["state"] = true
+						object["metadata"] = true
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderSessionID = nil
 						expectedDatum.State = nil
+						expectedDatum.Metadata = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 				),
 			)
 		})
@@ -645,17 +664,28 @@ var _ = Describe("Source", func() {
 				Entry("state valid",
 					func(datum *dataSource.Create) {},
 				),
+				Entry("metadata invalid",
+					func(datum *dataSource.Create) {
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(datum *dataSource.Create) {},
+				),
 				Entry("multiple errors",
 					func(datum *dataSource.Create) {
 						datum.ProviderType = nil
 						datum.ProviderName = nil
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.State = nil
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
 				),
 			)
 		})
@@ -721,6 +751,20 @@ var _ = Describe("Source", func() {
 						valid := dataSourceTest.RandomState()
 						object["state"] = valid
 						expectedDatum.State = pointer.FromString(valid)
+					},
+				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						valid := metadataTest.RandomMetadata()
+						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						expectedDatum.Metadata = valid
 					},
 				),
 				Entry("error invalid type",
@@ -818,6 +862,7 @@ var _ = Describe("Source", func() {
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						object["providerSessionId"] = true
 						object["state"] = true
+						object["metadata"] = true
 						object["error"] = true
 						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
@@ -825,6 +870,7 @@ var _ = Describe("Source", func() {
 						object["lastImportTime"] = true
 						expectedDatum.ProviderSessionID = nil
 						expectedDatum.State = nil
+						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
 						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
@@ -833,6 +879,7 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
@@ -1008,6 +1055,15 @@ var _ = Describe("Source", func() {
 						datum.Error = errorsTest.RandomSerializable()
 					},
 				),
+				Entry("metadata invalid",
+					func(datum *dataSource.Update) {
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(datum *dataSource.Update) {},
+				),
 				Entry("data set ids missing",
 					func(datum *dataSource.Update) { datum.DataSetIDs = nil },
 				),
@@ -1139,6 +1195,7 @@ var _ = Describe("Source", func() {
 					func(datum *dataSource.Update) {
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.State = pointer.FromString("")
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
@@ -1146,6 +1203,7 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
@@ -1193,6 +1251,11 @@ var _ = Describe("Source", func() {
 
 			It("returns false when state is not nil", func() {
 				datum.State = pointer.FromString(dataSourceTest.RandomState())
+				Expect(datum.IsEmpty()).To(BeFalse())
+			})
+
+			It("returns false when metdata is not nil", func() {
+				datum.Metadata = metadataTest.RandomMetadata()
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
@@ -1339,6 +1402,20 @@ var _ = Describe("Source", func() {
 						valid := dataSourceTest.RandomState()
 						object["state"] = valid
 						expectedDatum.State = pointer.FromString(valid)
+					},
+				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						valid := metadataTest.RandomMetadata()
+						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						expectedDatum.Metadata = valid
 					},
 				),
 				Entry("error invalid type",
@@ -1496,6 +1573,7 @@ var _ = Describe("Source", func() {
 						object["providerName"] = true
 						object["providerSessionId"] = true
 						object["state"] = true
+						object["metadata"] = true
 						object["error"] = true
 						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
@@ -1510,6 +1588,7 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderSessionID = nil
 						expectedDatum.State = nil
+						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
 						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
@@ -1525,6 +1604,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
@@ -1774,6 +1854,15 @@ var _ = Describe("Source", func() {
 				Entry("state valid",
 					func(datum *dataSource.Source) {},
 				),
+				Entry("metadata invalid",
+					func(datum *dataSource.Source) {
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(datum *dataSource.Source) {},
+				),
 				Entry("error missing",
 					func(datum *dataSource.Source) {
 						datum.Error = nil
@@ -1976,6 +2065,7 @@ var _ = Describe("Source", func() {
 						datum.ProviderName = nil
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.State = nil
+						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
@@ -1990,6 +2080,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
