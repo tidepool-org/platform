@@ -525,7 +525,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 	dataRepository := s.dataStore.NewDataRepository()
 	redwoodProcessorDependencies := redwoodWork.ProcessorDependencies{
 		DataClient:            dataRepository,
-		DataSetClient:         dataRepository,
+		DataSetClient:         s.dataClient,
 		DataSourceClient:      s.dataSourceClient,
 		ProviderSessionClient: s.AuthClient(),
 		DataRawClient:         s.dataRawClient,
