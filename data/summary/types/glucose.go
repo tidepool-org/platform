@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"math"
 	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 )
 
@@ -41,20 +41,26 @@ func (R *Range) Add(new *Range) {
 	R.Percent = 0
 }
 
-// TODO: Split to multiple functions - Update and UpdateTotal
-func (R *Range) Update(value float64, duration int, total bool) {
-	if total {
-		// this must occur before the counters below as the pre-increment counters are used during calc
-		if duration > 0 {
-			R.Variance = R.CalculateVariance(value, float64(duration))
-			R.Glucose += value * float64(duration)
-		} else {
-			R.Glucose += value
-		}
+func (R *Range) Update(record *glucoseDatum.Glucose) {
+	R.Minutes += GetDuration(record)
+	R.Records++
+}
+
+func (R *Range) UpdateTotal(record *glucoseDatum.Glucose) {
+	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
+
+	// if this is bgm data, this will return 0
+	duration := GetDuration(record)
+
+	// this must occur before the regular update as the pre-increment counters are used during calc
+	if duration > 0 {
+		R.Variance = R.CalculateVariance(normalizedValue, float64(duration))
+		R.Glucose += normalizedValue * float64(duration)
+	} else {
+		R.Glucose += normalizedValue
 	}
 
-	R.Minutes += duration
-	R.Records++
+	R.Update(record)
 }
 
 // CombineVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
@@ -159,66 +165,51 @@ func (R *GlucoseRanges) finalizeRecords() {
 	R.AnyHigh.Percent = float64(R.AnyHigh.Records) / float64(R.Total.Records)
 }
 
-func (R *GlucoseRanges) Finalize(firstData, lastData time.Time, lastDuration int, days int) {
+func (R *GlucoseRanges) Finalize(state CalcState, days int) {
 	if R.Total.Minutes != 0 {
 		// if our bucket (period, at this point) has minutes
-		wallMinutes := lastData.Sub(firstData).Minutes() + float64(lastDuration)
+		wallMinutes := state.LastData.Sub(state.FirstData).Minutes() + float64(state.LastRecordDuration)
 		R.finalizeMinutes(wallMinutes, days)
 	} else if R.Total.Records != 0 {
 		// otherwise, we only have record counts
 		R.finalizeRecords()
 	}
 }
-// TODO: remove duration parameter. Can be calculated from the record
-func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose, duration int) {
+
+func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose) {
 	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
 
 	if normalizedValue < veryLowBloodGlucose {
-		R.VeryLow.Update(normalizedValue, duration, false)
-		R.AnyLow.Update(normalizedValue, duration, false)
+		R.VeryLow.Update(record)
+		R.AnyLow.Update(record)
 	} else if normalizedValue > veryHighBloodGlucose {
-		R.VeryHigh.Update(normalizedValue, duration, false)
-		R.AnyHigh.Update(normalizedValue, duration, false)
+		R.VeryHigh.Update(record)
+		R.AnyHigh.Update(record)
 
 		// VeryHigh is inclusive of extreme high, this is intentional
 		if normalizedValue >= extremeHighBloodGlucose {
-			R.ExtremeHigh.Update(normalizedValue, duration, false)
+			R.ExtremeHigh.Update(record)
 		}
 	} else if normalizedValue < lowBloodGlucose {
-		R.Low.Update(normalizedValue, duration, false)
-		R.AnyLow.Update(normalizedValue, duration, false)
+		R.Low.Update(record)
+		R.AnyLow.Update(record)
 	} else if normalizedValue > highBloodGlucose {
-		R.AnyHigh.Update(normalizedValue, duration, false)
-		R.High.Update(normalizedValue, duration, false)
+		R.AnyHigh.Update(record)
+		R.High.Update(record)
 	} else {
-		R.Target.Update(normalizedValue, duration, false)
+		R.Target.Update(record)
 	}
 
-	R.Total.Update(normalizedValue, duration, true)
-}
-
-// TODO: Remove if not used. Code changes a lot.
-// Add Currently unused, useful for future compaction
-func (B *GlucoseBucket) Add(_ *GlucoseBucket) {
-	panic("GlucoseBucket.Add Not Implemented")
+	R.Total.UpdateTotal(record)
 }
 
 // TODO: Glucose bucket doesn't need shared bucket.
 // TODO: It needs a way to calculate blackout window. The caller should pass a blackout window calculator
 func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error) {
-
 	record, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("record for calculation is not compatible with Glucose type")
 	}
-
-	// TODO: Doesn't seem right, remove. It's the responsibility of the caller to pass correct data
-	if DeviceDataToSummaryTypes[record.Type] != shared.Type {
-		return false, fmt.Errorf("record for %s calculation is of invald type %s", shared.Type, record.Type)
-	}
-
-	// if this is bgm data, this will return 0
-	duration := GetDuration(record)
 
 	// TODO: Update branching logic somehow? Move to a separate function
 	// if we have cgm data, we care about blackout periods
@@ -233,9 +224,9 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error)
 		}
 	}
 
-	B.GlucoseRanges.Update(record, duration)
+	B.GlucoseRanges.Update(record)
 
-	B.LastRecordDuration = duration
+	B.LastRecordDuration = GetDuration(record)
 
 	return true, nil
 }
@@ -244,20 +235,6 @@ type GlucosePeriod struct {
 	GlucoseRanges `json:",inline" bson:",inline"`
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
-
-	// TODO: move intermediary variables at the end, or even move out of this struct
-	final bool
-
-	firstCountedDay time.Time
-	lastCountedDay  time.Time
-
-	firstCountedHour time.Time
-	lastCountedHour  time.Time
-
-	lastData  time.Time
-	firstData time.Time
-
-	lastRecordDuration int
 
 	AverageGlucose             float64 `json:"averageGlucoseMmol,omitempty" bson:"avgGlucose,omitempty"`
 	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator,omitempty" bson:"GMI,omitempty"`
@@ -268,16 +245,13 @@ type GlucosePeriod struct {
 	AverageDailyRecords float64 `json:"averageDailyRecords,omitempty" b;son:"avgDailyRecords,omitempty,omitempty"`
 
 	Delta *GlucosePeriod `json:"delta,omitempty" bson:"delta,omitempty"`
-}
 
-// TODO: what is final? Should this be "IsFinalized"?
-func (P *GlucosePeriod) IsFinal() bool {
-	return P.final
+	state CalcState
 }
 
 // TODO: single letter lower case pointer receiver
 func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
-	if P.final {
+	if P.state.Final {
 		return errors.New("period has been finalized, cannot add any data")
 	}
 
@@ -290,44 +264,44 @@ func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 	// TODO: make tickets
 	// NOTE this could use some math with firstData/lastData to work with non-hourly buckets, but today they're hourly.
 	// NOTE should this be moved to a generic periods type as a Shared sidecar, days/hours is probably useful to other types
-	// NOTE average daily records could also be moved
 
-	if P.lastCountedDay.IsZero() {
-		P.firstCountedDay = bucket.Time
-		P.lastCountedDay = bucket.Time
+	if P.state.LastCountedDay.IsZero() {
+		P.state.FirstCountedDay = bucket.Time
+		P.state.LastCountedDay = bucket.Time
 
-		P.firstCountedHour = bucket.Time
-		P.lastCountedHour = bucket.Time
+		P.state.FirstCountedHour = bucket.Time
+		P.state.LastCountedHour = bucket.Time
 
-		P.firstData = bucket.FirstData
-		P.lastData = bucket.LastData
+		P.state.FirstData = bucket.FirstData
+		P.state.LastData = bucket.LastData
 
-		P.lastRecordDuration = bucket.Data.LastRecordDuration
+		P.state.LastRecordDuration = bucket.Data.LastRecordDuration
 
 		P.DaysWithData++
 		P.HoursWithData++
 	} else {
-		if bucket.Time.Before(P.firstCountedHour) {
+		if bucket.Time.Before(P.state.FirstCountedHour) {
 			P.HoursWithData++
-			P.firstCountedHour = bucket.Time
-			P.firstData = bucket.FirstData
+			P.state.FirstCountedHour = bucket.Time
+			P.state.FirstData = bucket.FirstData
 
-			if P.firstCountedDay.Sub(bucket.Time).Hours() >= 24 {
-				P.firstCountedDay = bucket.Time
+			if P.state.FirstCountedDay.Sub(bucket.Time).Hours() >= 24 {
+				P.state.FirstCountedDay = bucket.Time
 				P.DaysWithData++
 			}
-		} else if bucket.Time.After(P.lastCountedHour) {
+		} else if bucket.Time.After(P.state.LastCountedHour) {
 			P.HoursWithData++
-			P.lastCountedHour = bucket.Time
-			P.lastData = bucket.LastData
-			P.lastRecordDuration = bucket.Data.LastRecordDuration
+			P.state.LastCountedHour = bucket.Time
+			P.state.LastData = bucket.LastData
+			P.state.LastRecordDuration = bucket.Data.LastRecordDuration
 
-			if bucket.Time.Sub(P.lastCountedDay).Hours() >= 24 {
-				P.lastCountedDay = bucket.Time
+			if bucket.Time.Sub(P.state.LastCountedDay).Hours() >= 24 {
+				P.state.LastCountedDay = bucket.Time
 				P.DaysWithData++
 			}
 		} else {
-			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s", bucket.Time, P.firstCountedHour, P.lastCountedHour)
+			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s",
+				bucket.Time, P.state.FirstCountedHour, P.state.LastCountedHour)
 		}
 	}
 
@@ -337,12 +311,10 @@ func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 }
 
 func (P *GlucosePeriod) Finalize(days int) {
-	if P.final != false {
+	if P.state.Final != false {
 		return
 	}
-	// TODO: move to end of function
-	P.final = true
-	P.GlucoseRanges.Finalize(P.firstData, P.lastData, P.lastRecordDuration, days)
+	P.GlucoseRanges.Finalize(P.state, days)
 
 	// if we have no records or minutes
 	if P.Total.Minutes != 0 {
@@ -364,6 +336,8 @@ func (P *GlucosePeriod) Finalize(days int) {
 	if P.Total.Records != 0 {
 		P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
 	}
+
+	P.state.Final = true
 }
 
 func (s *GlucoseStats) Init() {
@@ -371,12 +345,7 @@ func (s *GlucoseStats) Init() {
 	s.OffsetPeriods = make(map[string]*GlucosePeriod)
 }
 
-func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor fetcher.BucketCursor[*GlucoseBucket, GlucoseBucket]) error {
-	// TODO: CalculateDelta moved to calculate summary
-	return s.CalculateSummary(ctx, bucketsCursor)
-}
-
-func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.BucketCursor[*GlucoseBucket, GlucoseBucket]) error {
+func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
@@ -385,18 +354,15 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Buc
 	totalOffsetStats := GlucosePeriod{}
 	bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
 
-	// TODO: remove top level error definition
-	var err error
 	var stopPoints []time.Time
 	var offsetStopPoints []time.Time
 
-	for buckets.Next(ctx) {
-		if err = buckets.Decode(bucket); err != nil {
+	for bucketsCursor.Next(ctx) {
+		if err := bucketsCursor.Decode(bucket); err != nil {
 			return err
 		}
 
-		// TODO: Move out of the loop and remov confiti
-		// We should have the newest (last) bucket here, use its date for breakpoints
+		// Use the newest (last) bucket here to calculate date ranges
 		if stopPoints == nil {
 			stopPoints, offsetStopPoints = calculateStopPoints(bucket.Time)
 		}
@@ -406,28 +372,26 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Buc
 		}
 
 		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
-			s.CalculatePeriod(periodLengths[nextStopPoint], false, totalStats)
+			s.CalculatePeriod(periodLengths[nextStopPoint], totalStats)
 			nextStopPoint++
 		}
 
 		if len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
-			s.CalculatePeriod(periodLengths[nextOffsetStopPoint], true, totalOffsetStats)
+			s.CalculateOffsetPeriod(periodLengths[nextOffsetStopPoint], totalOffsetStats)
 			nextOffsetStopPoint++
 			totalOffsetStats = GlucosePeriod{}
 		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			err = totalStats.Update(bucket)
-			if err != nil {
+			if err := totalStats.Update(bucket); err != nil {
 				return err
 			}
 		}
 
 		// only add to offset stats when primary stop point is ahead of offset
 		if nextStopPoint > nextOffsetStopPoint && len(offsetStopPoints) > nextOffsetStopPoint {
-			err = totalOffsetStats.Update(bucket)
-			if err != nil {
+			if err := totalOffsetStats.Update(bucket); err != nil {
 				return err
 			}
 		}
@@ -435,11 +399,10 @@ func (s *GlucoseStats) CalculateSummary(ctx context.Context, buckets fetcher.Buc
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(periodLengths[i], false, totalStats)
+		s.CalculatePeriod(periodLengths[i], totalStats)
 	}
 	for i := nextOffsetStopPoint; i < len(offsetStopPoints); i++ {
-		s.CalculatePeriod(periodLengths[i], true, totalOffsetStats)
-		// TODO: is this intentional? Why is this different for offset periods?
+		s.CalculateOffsetPeriod(periodLengths[i], totalOffsetStats)
 		totalOffsetStats = GlucosePeriod{}
 	}
 
@@ -475,16 +438,12 @@ func (s *GlucoseStats) CalculateDelta() {
 	}
 }
 
-// TODO: Split to two functions - Calculate Period and Calculate offset periods
-func (s *GlucoseStats) CalculatePeriod(i int, offset bool, period GlucosePeriod) {
-	// TODO: remove this comment
-	// We don't make a copy of period, as the struct has no pointers... right? you didn't add any pointers right?
-	period.Finalize(i)
+func (s *GlucoseStats) CalculatePeriod(days int, period GlucosePeriod) {
+	period.Finalize(days)
+	s.Periods[strconv.Itoa(days)+"d"] = &period
+}
 
-	if offset {
-		s.OffsetPeriods[strconv.Itoa(i)+"d"] = &period
-	} else {
-		s.Periods[strconv.Itoa(i)+"d"] = &period
-	}
-
+func (s *GlucoseStats) CalculateOffsetPeriod(days int, period GlucosePeriod) {
+	period.Finalize(days)
+	s.OffsetPeriods[strconv.Itoa(days)+"d"] = &period
 }

@@ -13,10 +13,10 @@ import (
 
 // TODO: Not a fetcher as it updates buckets too
 // TODO: Not used anymore, delete
-type BucketFetcher[B BucketDataPt[A], A BucketData] interface {
-	GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (BucketsByTime[B, A], error)
+type BucketFetcher[PB BucketDataPt[B], B BucketData] interface {
+	GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (BucketsByTime[PB, B], error)
 	GetAllBuckets(ctx context.Context, userId string) (*mongo.Cursor, error)
-	WriteModifiedBuckets(ctx context.Context, buckets BucketsByTime[B, A]) error
+	WriteModifiedBuckets(ctx context.Context, buckets BucketsByTime[PB, B]) error
 }
 
 // TODO: define consts at the top
@@ -69,31 +69,30 @@ type BucketData interface {
 	GlucoseBucket | ContinuousBucket
 }
 
-type BucketDataPt[A BucketData] interface {
-	*A
-	Add(bucket *A)
+type BucketDataPt[B BucketData] interface {
+	*B
 	Update(record data.Datum, base *BucketShared) (bool, error)
 }
 
-type Bucket[B BucketDataPt[A], A BucketData] struct {
+type Bucket[PB BucketDataPt[B], B BucketData] struct {
 	BucketShared `json:",inline" bson:",inline"`
-	Data         B `json:"data" bson:"data"`
+	Data         PB `json:"data" bson:"data"`
 }
 
 // TODO: Not clear what is type here. BGM/CGM/Glucose/SummaryType?
-func NewBucket[B BucketDataPt[A], A BucketData](userId string, date time.Time, typ string) *Bucket[B, A] {
-	return &Bucket[B, A]{
+func NewBucket[PB BucketDataPt[B], B BucketData](userId string, date time.Time, typ string) *Bucket[PB, B] {
+	return &Bucket[PB, B]{
 		BucketShared: BucketShared{
 			UserId: userId,
 			Type:   typ,
 			Time:   date,
 		},
-		Data: new(A),
+		Data: new(B),
 	}
 }
 
 // TODO: single letter lowercase pointer receiver
-func (BU *Bucket[B, A]) Update(record data.Datum) error {
+func (BU *Bucket[PB, B]) Update(record data.Datum) error {
 	updated, err := BU.Data.Update(record, &BU.BucketShared)
 	if err != nil {
 		return err
@@ -109,18 +108,18 @@ func (BU *Bucket[B, A]) Update(record data.Datum) error {
 	return nil
 }
 
-func CreateBucketForUser[P BucketDataPt[B], B BucketData] (userId string, typ string) BucketFactoryFn[P, B] {
-	return func(recordHour time.Time) *Bucket[P, B] {
-		return NewBucket[P](userId, recordHour, typ)
+func CreateBucketForUser[PB BucketDataPt[B], B BucketData](userId string, typ string) BucketFactoryFn[PB, B] {
+	return func(recordHour time.Time) *Bucket[PB, B] {
+		return NewBucket[PB](userId, recordHour, typ)
 	}
 }
 
-type BucketFactoryFn[P BucketDataPt[B], B BucketData] func(recordHour time.Time) *Bucket[P, B]
+type BucketFactoryFn[PB BucketDataPt[B], B BucketData] func(recordHour time.Time) *Bucket[PB, B]
 
-type BucketsByTime[B BucketDataPt[A], A BucketData] map[time.Time]*Bucket[B, A]
+type BucketsByTime[PB BucketDataPt[B], B BucketData] map[time.Time]*Bucket[PB, B]
 
 // TODO: simplify this by removing user id and type and set it by the caller or pass a factory fn
-func (BT BucketsByTime[B, A]) Update(createBucket BucketFactoryFn[B, A], userData []data.Datum) error {
+func (BT BucketsByTime[PB, B]) Update(createBucket BucketFactoryFn[PB, B], userData []data.Datum) error {
 	for _, r := range userData {
 		// truncate time is not timezone/DST safe here, even if we do expect UTC, never truncate non-utc
 		recordHour := r.GetTime().UTC().Truncate(time.Hour)

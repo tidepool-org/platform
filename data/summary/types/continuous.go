@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
-
-	"github.com/tidepool-org/platform/data/summary/fetcher"
 
 	"github.com/tidepool-org/platform/data"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
@@ -24,7 +25,7 @@ func (*ContinuousStats) GetType() string {
 }
 
 func (*ContinuousStats) GetDeviceDataTypes() []string {
-	return DeviceDataTypes
+	return []string{continuous.Type, selfmonitored.Type}
 }
 
 type ContinuousRanges struct {
@@ -39,25 +40,19 @@ type ContinuousRanges struct {
 	Total Range `json:"total" bson:"total"`
 }
 
-// TODO: pointer receiver
-func (CR *ContinuousRanges) Add(new *ContinuousRanges) {
-	CR.Realtime.Add(&new.Realtime)
-	CR.Total.Add(&new.Total)
-	CR.Deferred.Add(&new.Deferred)
+func (c *ContinuousRanges) Add(new *ContinuousRanges) {
+	c.Realtime.Add(&new.Realtime)
+	c.Total.Add(&new.Total)
+	c.Deferred.Add(&new.Deferred)
 }
 
-func (CR *ContinuousRanges) Finalize() {
-	CR.Realtime.Percent = float64(CR.Realtime.Records) / float64(CR.Total.Records)
-	CR.Deferred.Percent = float64(CR.Deferred.Records) / float64(CR.Total.Records)
+func (c *ContinuousRanges) Finalize() {
+	c.Realtime.Percent = float64(c.Realtime.Records) / float64(c.Total.Records)
+	c.Deferred.Percent = float64(c.Deferred.Records) / float64(c.Total.Records)
 }
 
 type ContinuousBucket struct {
 	ContinuousRanges `json:",inline" bson:",inline"`
-}
-
-// Add Currently unused, useful for future compaction
-func (B *ContinuousBucket) Add(_ *ContinuousBucket) {
-	panic("ContinuousBucket.Add Not Implemented")
 }
 
 func (B *ContinuousBucket) Update(r data.Datum, _ *BucketShared) (bool, error) {
@@ -83,16 +78,13 @@ func (B *ContinuousBucket) Update(r data.Datum, _ *BucketShared) (bool, error) {
 type ContinuousPeriod struct {
 	ContinuousRanges `json:",inline" bson:",inline"`
 
-	final bool
-
-	firstCountedHour time.Time
-	lastCountedHour  time.Time
-
 	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
+
+	state CalcState
 }
 
 func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBucket]) error {
-	if P.final {
+	if P.state.Final {
 		return errors.New("period has been finalized, cannot add any data")
 	}
 
@@ -100,16 +92,17 @@ func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBu
 		return nil
 	}
 
-	if P.firstCountedHour.IsZero() && P.firstCountedHour.IsZero() {
-		P.firstCountedHour = bucket.Time
-		P.lastCountedHour = bucket.Time
+	if P.state.FirstCountedHour.IsZero() && P.state.FirstCountedHour.IsZero() {
+		P.state.FirstCountedHour = bucket.Time
+		P.state.LastCountedHour = bucket.Time
 	} else {
-		if bucket.Time.Before(P.firstCountedHour) {
-			P.firstCountedHour = bucket.Time
-		} else if bucket.Time.After(P.lastCountedHour) {
-			P.lastCountedHour = bucket.Time
+		if bucket.Time.Before(P.state.FirstCountedHour) {
+			P.state.FirstCountedHour = bucket.Time
+		} else if bucket.Time.After(P.state.LastCountedHour) {
+			P.state.LastCountedHour = bucket.Time
 		} else {
-			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s", bucket.Time, P.firstCountedHour, P.lastCountedHour)
+			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s",
+				bucket.Time, P.state.FirstCountedHour, P.state.LastCountedHour)
 		}
 	}
 
@@ -119,10 +112,10 @@ func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBu
 }
 
 func (P *ContinuousPeriod) Finalize(days int) {
-	if P.final != false {
+	if P.state.Final != false {
 		return
 	}
-	P.final = true
+	P.state.Final = true
 
 	P.ContinuousRanges.Finalize()
 	P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
@@ -134,11 +127,7 @@ func (s *ContinuousStats) Init() {
 	s.Periods = make(map[string]*ContinuousPeriod)
 }
 
-func (s *ContinuousStats) Update(ctx context.Context, cursor fetcher.BucketCursor[*ContinuousBucket, ContinuousBucket]) error {
-	return  s.CalculateSummary(ctx, cursor)
-}
-
-func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.BucketCursor[*ContinuousBucket, ContinuousBucket]) error {
+func (s *ContinuousStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
@@ -148,8 +137,8 @@ func (s *ContinuousStats) CalculateSummary(ctx context.Context, buckets fetcher.
 
 	bucket := &Bucket[*ContinuousBucket, ContinuousBucket]{}
 
-	for buckets.Next(ctx) {
-		if err = buckets.Decode(bucket); err != nil {
+	for bucketsCursor.Next(ctx) {
+		if err = bucketsCursor.Decode(bucket); err != nil {
 			return err
 		}
 

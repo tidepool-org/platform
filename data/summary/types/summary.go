@@ -2,7 +2,7 @@ package types
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
@@ -32,13 +32,11 @@ const (
 	OutdatedReasonSchemaMigration = "SCHEMA_MIGRATION"
 )
 
-var DeviceDataTypes = []string{continuous.Type, selfmonitored.Type}
-var DeviceDataTypesSet = mapset.NewSet[string](DeviceDataTypes...)
+var DeviceDataTypesSet = mapset.NewSet[string](continuous.Type, selfmonitored.Type)
 
-// TODO: This is incorrect. Both ought to return continuous as well.
-var DeviceDataToSummaryTypes = map[string]string{
-	continuous.Type:    SummaryTypeCGM,
-	selfmonitored.Type: SummaryTypeBGM,
+var DeviceDataToSummaryTypes = map[string][]string{
+	continuous.Type:    {SummaryTypeCGM, SummaryTypeContinuous},
+	selfmonitored.Type: {SummaryTypeBGM, SummaryTypeContinuous},
 }
 
 var AllSummaryTypes = []string{SummaryTypeCGM, SummaryTypeBGM, SummaryTypeContinuous}
@@ -71,6 +69,21 @@ type Dates struct {
 	OutdatedReason []string   `json:"outdatedReason,omitempty" bson:"outdatedReason,omitempty"`
 }
 
+type CalcState struct {
+	Final bool
+
+	FirstCountedDay time.Time
+	LastCountedDay  time.Time
+
+	FirstCountedHour time.Time
+	LastCountedHour  time.Time
+
+	LastData  time.Time
+	FirstData time.Time
+
+	LastRecordDuration int
+}
+
 func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
 	d.LastUpdatedReason = d.OutdatedReason
@@ -87,12 +100,12 @@ type Stats interface {
 	CGMStats | BGMStats | ContinuousStats
 }
 
-type StatsPt[T Stats, P BucketDataPt[B], B BucketData] interface {
-	*T
+type StatsPt[S Stats, PB BucketDataPt[B], B BucketData] interface {
+	*S
 	GetType() string
 	GetDeviceDataTypes() []string
 	Init()
-	Update(context.Context, fetcher.BucketCursor[P, B]) error
+	Update(context.Context, *mongo.Cursor) error
 }
 
 type SummaryShared struct {
@@ -103,17 +116,10 @@ type SummaryShared struct {
 	Dates  Dates              `json:"dates" bson:"dates"`
 }
 
-
-// TODO: Type parameters are getting out of hand and are inconsistently named. I propose we call them:
-// S - Stats
-// PS - StatsPt
-// B - BucketData
-// PB - BucketDataPt
-
-type Summary[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData] struct {
+type Summary[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData] struct {
 	SummaryShared `json:",inline" bson:",inline"`
 
-	Stats A `json:"stats" bson:"stats"`
+	Stats PS `json:"stats" bson:"stats"`
 }
 
 func NewConfig() Config {
@@ -126,14 +132,14 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[A, P, T, B]) SetOutdated(reason string) {
+func (s *Summary[PS, PB, S, PB]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)
 	}
 
 	if reason == OutdatedReasonSchemaMigration {
-		*s = *Create[A, P](s.UserID)
+		*s = *Create[PS, PB](s.UserID)
 	}
 
 	s.Dates.OutdatedReason = set.ToSlice()
@@ -143,7 +149,7 @@ func (s *Summary[A, P, T, B]) SetOutdated(reason string) {
 	}
 }
 
-func (s *Summary[A, T, P, B]) SetNotOutdated() {
+func (s *Summary[PS, PB, S, B]) SetNotOutdated() {
 	s.Dates.OutdatedReason = nil
 	s.Dates.OutdatedSince = nil
 }
@@ -154,10 +160,10 @@ func NewDates() Dates {
 	}
 }
 
-func Create[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData](userId string) *Summary[A, P, T, B] {
-	s := new(Summary[A, P, T, B])
+func Create[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData](userId string) *Summary[PS, PB, S, B] {
+	s := new(Summary[PS, PB, S, B])
 	s.UserID = userId
-	s.Stats = new(T)
+	s.Stats = new(S)
 	s.Stats.Init()
 	s.Type = s.Stats.GetType()
 	s.Config = NewConfig()
@@ -166,15 +172,13 @@ func Create[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData](userId
 	return s
 }
 
-// TODO: Remove string suffix
-func GetTypeString[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData]() string {
-	s := new(Summary[A, P, T, B])
+func GetType[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData]() string {
+	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetType()
 }
 
-// TODO: Remove string suffix
-func GetDeviceDataTypeStrings[A StatsPt[T, P, B], P BucketDataPt[B], T Stats, B BucketData]() []string {
-	s := new(Summary[A, P, T, B])
+func GetDeviceDataType[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData]() []string {
+	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetDeviceDataTypes()
 }
 

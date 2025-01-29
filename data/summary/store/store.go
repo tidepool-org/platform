@@ -104,7 +104,7 @@ func (r *Summaries[A, P, T, B]) DeleteSummary(ctx context.Context, userId string
 
 	selector := bson.M{
 		"userId": userId,
-		"type":   types.GetTypeString[A, P, T, B](),
+		"type":   types.GetType[A, P, T, B](),
 	}
 
 	_, err := r.DeleteMany(ctx, selector)
@@ -123,7 +123,7 @@ func (r *Summaries[A, P, T, B]) ReplaceSummary(ctx context.Context, userSummary 
 		return errors.New("summary object is missing")
 	}
 
-	var expectedType = types.GetTypeString[A, P]()
+	var expectedType = types.GetType[A, P]()
 	if userSummary.Type != expectedType {
 		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
@@ -151,7 +151,7 @@ func (r *Summaries[A, P, T, B]) CreateSummaries(ctx context.Context, summaries [
 		return 0, errors.New("summaries for create missing")
 	}
 
-	var expectedType = types.GetTypeString[A, P]()
+	var expectedType = types.GetType[A, P]()
 
 	insertData := make([]interface{}, 0, len(summaries))
 
@@ -214,7 +214,7 @@ func (r *Summaries[A, P, T, B]) SetOutdated(ctx context.Context, userId, reason 
 
 func (r *Summaries[A, P, T, B]) GetSummaryQueueLength(ctx context.Context) (int64, error) {
 	selector := bson.M{
-		"type":                types.GetTypeString[A, P](),
+		"type":                types.GetType[A, P](),
 		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 	}
 
@@ -229,7 +229,7 @@ func (r *Summaries[A, P, T, B]) GetOutdatedUserIDs(ctx context.Context, page *pa
 		return nil, errors.New("pagination is missing")
 	}
 
-	typ := types.GetTypeString[A, P]()
+	typ := types.GetType[A, P]()
 
 	selector := bson.M{
 		"type":                typ,
@@ -290,7 +290,7 @@ func (r *Summaries[A, P, T, B]) GetMigratableUserIDs(ctx context.Context, page *
 	}
 
 	selector := bson.M{
-		"type":                 types.GetTypeString[A, P](),
+		"type":                 types.GetType[A, P](),
 		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}

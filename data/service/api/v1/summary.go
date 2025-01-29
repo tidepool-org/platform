@@ -62,7 +62,7 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetSummary[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -75,12 +75,12 @@ func GetSummary[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats
 		return
 	}
 
-	summarizer := summary.GetSummarizer[A, P](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if userSummary == nil {
-		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetTypeString[A, P](), id))
+		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetType[PS, PB](), id))
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}
@@ -129,7 +129,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, response)
 }
 
-func UpdateSummary[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func UpdateSummary[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -142,7 +142,7 @@ func UpdateSummary[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.St
 		return
 	}
 
-	summarizer := summary.GetSummarizer[A, P](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -151,7 +151,7 @@ func UpdateSummary[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.St
 	}
 }
 
-func GetOutdatedUserIDs[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -169,7 +169,7 @@ func GetOutdatedUserIDs[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T typ
 		return
 	}
 
-	summarizer := summary.GetSummarizer[A, P](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
 	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -179,7 +179,7 @@ func GetOutdatedUserIDs[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T typ
 	responder.Data(http.StatusOK, response)
 }
 
-func GetMigratableUserIDs[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetMigratableUserIDs[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -197,7 +197,7 @@ func GetMigratableUserIDs[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T t
 		return
 	}
 
-	summarizer := summary.GetSummarizer[A, P](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
