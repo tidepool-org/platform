@@ -52,20 +52,14 @@ type Number interface {
 	constraints.Float | constraints.Integer
 }
 
-func BinDelta(bin, offsetBin, deltaBin, offsetDeltaBin *Range) {
-	deltaBin.Percent = bin.Percent - offsetBin.Percent
-	offsetDeltaBin.Percent = -deltaBin.Percent
-
-	deltaBin.Records = bin.Records - offsetBin.Records
-	offsetDeltaBin.Records = -deltaBin.Records
-
-	deltaBin.Minutes = bin.Minutes - offsetBin.Minutes
-	offsetDeltaBin.Minutes = -deltaBin.Minutes
+func BinDelta(currentRange, offsetRange, deltaRange *Range) {
+	deltaRange.Percent = currentRange.Percent - offsetRange.Percent
+	deltaRange.Records = currentRange.Records - offsetRange.Records
+	deltaRange.Minutes = currentRange.Minutes - offsetRange.Minutes
 }
 
-func Delta[T Number](a, b, c, d *T) {
-	*c = *a - *b
-	*d = -*c
+func Delta[T Number](current, previous, destination *T) {
+	*destination = *current - *previous
 }
 
 var periodLengths = [...]int{1, 7, 14, 30}

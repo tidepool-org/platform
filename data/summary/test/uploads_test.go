@@ -35,7 +35,7 @@ var _ = Describe("Upload Helpers", func() {
 	var dataRepo dataStore.DataRepository
 	var userId string
 	var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-	var bgmStore *dataStoreSummary.Summaries[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]
+	var bgmStore *dataStoreSummary.Summaries[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]
 	var continuousStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 
 	BeforeEach(func() {
@@ -54,7 +54,7 @@ var _ = Describe("Upload Helpers", func() {
 		userId = userTest.RandomID()
 
 		cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepo)
-		bgmStore = dataStoreSummary.NewSummaries[*types.BGMStats, *types.GlucoseBucket](summaryRepo)
+		bgmStore = dataStoreSummary.NewSummaries[*types.BGMObservations, *types.GlucoseBucket](summaryRepo)
 		continuousStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepo)
 	})
 

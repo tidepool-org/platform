@@ -35,10 +35,10 @@ type Client interface {
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error)
-	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error)
+	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error)
 	GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error)
 	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error)
-	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error)
+	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error)
 	UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error)
 	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
 	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
@@ -151,7 +151,7 @@ func (c *ClientImpl) GetCGMSummary(ctx context.Context, userId string) (*types.S
 	return summary, nil
 }
 
-func (c *ClientImpl) GetBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error) {
+func (c *ClientImpl) GetBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -160,7 +160,7 @@ func (c *ClientImpl) GetBGMSummary(ctx context.Context, userId string) (*types.S
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
-	summary := &types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]{}
+	summary := &types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
@@ -211,7 +211,7 @@ func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, userId string) (*type
 	return summary, nil
 }
 
-func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], error) {
+func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -220,7 +220,7 @@ func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*type
 	}
 
 	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
-	summary := &types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]{}
+	summary := &types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil

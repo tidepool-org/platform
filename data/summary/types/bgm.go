@@ -4,14 +4,14 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 )
 
-type BGMStats struct {
+type BGMObservations struct {
 	GlucoseStats
 }
 
-func (*BGMStats) GetType() string {
+func (*BGMObservations) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (*BGMStats) GetDeviceDataTypes() []string {
+func (*BGMObservations) GetDeviceDataTypes() []string {
 	return []string{selfmonitored.Type}
 }

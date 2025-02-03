@@ -17,8 +17,7 @@ import (
 type GlucosePeriods map[string]*GlucosePeriod
 
 type GlucoseStats struct {
-	Periods       GlucosePeriods `json:"periods,omitempty" bson:"periods,omitempty"`
-	OffsetPeriods GlucosePeriods `json:"offsetPeriods,omitempty" bson:"offsetPeriods,omitempty"`
+	GlucosePeriods
 }
 
 type Range struct {
@@ -30,23 +29,22 @@ type Range struct {
 	Variance float64 `json:"variance,omitempty" bson:"variance,omitempty"`
 }
 
-// TODO: single letter lower case pointer receiver
-func (R *Range) Add(new *Range) {
-	R.Variance = R.CombineVariance(new)
-	R.Glucose += new.Glucose
-	R.Minutes += new.Minutes
-	R.Records += new.Records
+func (r *Range) Add(new *Range) {
+	r.Variance = r.CombineVariance(new)
+	r.Glucose += new.Glucose
+	r.Minutes += new.Minutes
+	r.Records += new.Records
 
 	// clear percent, we don't have required values at this stage
-	R.Percent = 0
+	r.Percent = 0
 }
 
-func (R *Range) Update(record *glucoseDatum.Glucose) {
-	R.Minutes += GetDuration(record)
-	R.Records++
+func (r *Range) Update(record *glucoseDatum.Glucose) {
+	r.Minutes += GetDuration(record)
+	r.Records++
 }
 
-func (R *Range) UpdateTotal(record *glucoseDatum.Glucose) {
+func (r *Range) UpdateTotal(record *glucoseDatum.Glucose) {
 	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
 
 	// if this is bgm data, this will return 0
@@ -54,49 +52,55 @@ func (R *Range) UpdateTotal(record *glucoseDatum.Glucose) {
 
 	// this must occur before the regular update as the pre-increment counters are used during calc
 	if duration > 0 {
-		R.Variance = R.CalculateVariance(normalizedValue, float64(duration))
-		R.Glucose += normalizedValue * float64(duration)
+		r.Variance = r.CalculateVariance(normalizedValue, float64(duration))
+		r.Glucose += normalizedValue * float64(duration)
 	} else {
-		R.Glucose += normalizedValue
+		r.Glucose += normalizedValue
 	}
 
-	R.Update(record)
+	r.Update(record)
 }
 
 // CombineVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
-func (R *Range) CombineVariance(new *Range) float64 {
+func (r *Range) CombineVariance(new *Range) float64 {
 	// Exit early for No-Op case
-	if R.Variance == 0 && new.Variance == 0 {
+	if r.Variance == 0 && new.Variance == 0 {
 		return 0
 	}
 
 	// Return new if existing is 0
-	if R.Variance == 0 {
+	if r.Variance == 0 {
 		return new.Variance
 	}
 
 	// if we have no values in either bucket, this will result in NaN, and cant be added anyway, return what we started with
-	if R.Minutes == 0 || new.Minutes == 0 {
-		return R.Variance
+	if r.Minutes == 0 || new.Minutes == 0 {
+		return r.Variance
 	}
 
-	n1 := float64(R.Minutes)
+	n1 := float64(r.Minutes)
 	n2 := float64(new.Minutes)
 	n := n1 + n2
-	delta := new.Glucose/n2 - R.Glucose/n1
-	return R.Variance + new.Variance + math.Pow(delta, 2)*n1*n2/n
+	delta := new.Glucose/n2 - r.Glucose/n1
+	return r.Variance + new.Variance + math.Pow(delta, 2)*n1*n2/n
 }
 
 // CalculateVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
-func (R *Range) CalculateVariance(value float64, duration float64) float64 {
+func (r *Range) CalculateVariance(value float64, duration float64) float64 {
 	var mean float64 = 0
-	if R.Minutes > 0 {
-		mean = R.Glucose / float64(R.Minutes)
+	if r.Minutes > 0 {
+		mean = r.Glucose / float64(r.Minutes)
 	}
 
-	weight := float64(R.Minutes) + duration
+	weight := float64(r.Minutes) + duration
 	newMean := mean + (duration/weight)*(value-mean)
-	return R.Variance + duration*(value-mean)*(value-newMean)
+	return r.Variance + duration*(value-mean)*(value-newMean)
+}
+
+func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
+	r.Percent = currentRange.Percent - offsetRange.Percent
+	r.Records = currentRange.Records - offsetRange.Records
+	r.Minutes = currentRange.Minutes - offsetRange.Minutes
 }
 
 type GlucoseRanges struct {
@@ -111,16 +115,102 @@ type GlucoseRanges struct {
 	AnyHigh     Range `json:"inAnyHigh,omitempty" bson:"inAnyHigh,omitempty"`
 }
 
-func (R *GlucoseRanges) Add(new *GlucoseRanges) {
-	R.Total.Add(&new.Total)
-	R.VeryLow.Add(&new.VeryLow)
-	R.Low.Add(&new.Low)
-	R.Target.Add(&new.Target)
-	R.High.Add(&new.High)
-	R.VeryHigh.Add(&new.VeryHigh)
-	R.ExtremeHigh.Add(&new.ExtremeHigh)
-	R.AnyLow.Add(&new.AnyLow)
-	R.AnyHigh.Add(&new.AnyHigh)
+func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
+	rs.Total.Add(&new.Total)
+	rs.VeryLow.Add(&new.VeryLow)
+	rs.Low.Add(&new.Low)
+	rs.Target.Add(&new.Target)
+	rs.High.Add(&new.High)
+	rs.VeryHigh.Add(&new.VeryHigh)
+	rs.ExtremeHigh.Add(&new.ExtremeHigh)
+	rs.AnyLow.Add(&new.AnyLow)
+	rs.AnyHigh.Add(&new.AnyHigh)
+}
+
+func (rs *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
+	rs.Total.Percent = float64(rs.Total.Minutes) / float64(days*24*60)
+	// TODO: Why 0.7? What's that magic number? Add a comment explaining the conditional
+	if (wallMinutes <= minutesPerDay && rs.Total.Percent > 0.7) || (wallMinutes > minutesPerDay && rs.Total.Minutes > minutesPerDay) {
+		rs.VeryLow.Percent = float64(rs.VeryLow.Minutes) / wallMinutes
+		rs.Low.Percent = float64(rs.Low.Minutes) / wallMinutes
+		rs.Target.Percent = float64(rs.Target.Minutes) / wallMinutes
+		rs.High.Percent = float64(rs.High.Minutes) / wallMinutes
+		rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / wallMinutes
+		rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / wallMinutes
+		rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / wallMinutes
+		rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / wallMinutes
+	} else {
+		rs.VeryLow.Percent = 0
+		rs.Low.Percent = 0
+		rs.Target.Percent = 0
+		rs.High.Percent = 0
+		rs.VeryHigh.Percent = 0
+		rs.ExtremeHigh.Percent = 0
+		rs.AnyLow.Percent = 0
+		rs.AnyHigh.Percent = 0
+	}
+}
+
+func (rs *GlucoseRanges) finalizeRecords() {
+	rs.Total.Percent = float64(rs.Total.Records) / float64(rs.Total.Records)
+	rs.VeryLow.Percent = float64(rs.VeryLow.Records) / float64(rs.Total.Records)
+	rs.Low.Percent = float64(rs.Low.Records) / float64(rs.Total.Records)
+	rs.Target.Percent = float64(rs.Target.Records) / float64(rs.Total.Records)
+	rs.High.Percent = float64(rs.High.Records) / float64(rs.Total.Records)
+	rs.VeryHigh.Percent = float64(rs.VeryHigh.Records) / float64(rs.Total.Records)
+	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Records) / float64(rs.Total.Records)
+	rs.AnyLow.Percent = float64(rs.AnyLow.Records) / float64(rs.Total.Records)
+	rs.AnyHigh.Percent = float64(rs.AnyHigh.Records) / float64(rs.Total.Records)
+}
+
+func (rs *GlucoseRanges) Finalize(state CalcState, days int) {
+	if rs.Total.Minutes != 0 {
+		// if our bucket (period, at this point) has minutes
+		wallMinutes := state.LastData.Sub(state.FirstData).Minutes() + float64(state.LastRecordDuration)
+		rs.finalizeMinutes(wallMinutes, days)
+	} else if rs.Total.Records != 0 {
+		// otherwise, we only have record counts
+		rs.finalizeRecords()
+	}
+}
+
+func (rs *GlucoseRanges) Update(record *glucoseDatum.Glucose) {
+	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
+
+	if normalizedValue < veryLowBloodGlucose {
+		rs.VeryLow.Update(record)
+		rs.AnyLow.Update(record)
+	} else if normalizedValue > veryHighBloodGlucose {
+		rs.VeryHigh.Update(record)
+		rs.AnyHigh.Update(record)
+
+		// VeryHigh is inclusive of extreme high, this is intentional
+		if normalizedValue >= extremeHighBloodGlucose {
+			rs.ExtremeHigh.Update(record)
+		}
+	} else if normalizedValue < lowBloodGlucose {
+		rs.Low.Update(record)
+		rs.AnyLow.Update(record)
+	} else if normalizedValue > highBloodGlucose {
+		rs.AnyHigh.Update(record)
+		rs.High.Update(record)
+	} else {
+		rs.Target.Update(record)
+	}
+
+	rs.Total.UpdateTotal(record)
+}
+
+func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
+	rs.Total.CalculateDelta(&current.Total, &previous.Total)
+	rs.VeryLow.CalculateDelta(&current.VeryLow, &previous.VeryLow)
+	rs.Low.CalculateDelta(&current.Low, &previous.Low)
+	rs.Target.CalculateDelta(&current.Target, &previous.Target)
+	rs.High.CalculateDelta(&current.High, &previous.High)
+	rs.VeryHigh.CalculateDelta(&current.VeryHigh, &previous.VeryHigh)
+	rs.ExtremeHigh.CalculateDelta(&current.ExtremeHigh, &previous.ExtremeHigh)
+	rs.AnyLow.CalculateDelta(&current.AnyLow, &previous.AnyLow)
+	rs.AnyHigh.CalculateDelta(&current.AnyHigh, &previous.AnyHigh)
 }
 
 type GlucoseBucket struct {
@@ -128,84 +218,9 @@ type GlucoseBucket struct {
 	LastRecordDuration int `json:"lastRecordDuration,omitempty" bson:"lastRecordDuration,omitempty"`
 }
 
-// TODO: define before glucose bucket
-func (R *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
-	R.Total.Percent = float64(R.Total.Minutes) / float64(days*24*60)
-	// TODO: Why 0.7? What's that magic number? Add a comment explaining the conditional
-	if (wallMinutes <= minutesPerDay && R.Total.Percent > 0.7) || (wallMinutes > minutesPerDay && R.Total.Minutes > minutesPerDay) {
-		R.VeryLow.Percent = float64(R.VeryLow.Minutes) / wallMinutes
-		R.Low.Percent = float64(R.Low.Minutes) / wallMinutes
-		R.Target.Percent = float64(R.Target.Minutes) / wallMinutes
-		R.High.Percent = float64(R.High.Minutes) / wallMinutes
-		R.VeryHigh.Percent = float64(R.VeryHigh.Minutes) / wallMinutes
-		R.ExtremeHigh.Percent = float64(R.ExtremeHigh.Minutes) / wallMinutes
-		R.AnyLow.Percent = float64(R.AnyLow.Minutes) / wallMinutes
-		R.AnyHigh.Percent = float64(R.AnyHigh.Minutes) / wallMinutes
-	} else {
-		R.VeryLow.Percent = 0
-		R.Low.Percent = 0
-		R.Target.Percent = 0
-		R.High.Percent = 0
-		R.VeryHigh.Percent = 0
-		R.ExtremeHigh.Percent = 0
-		R.AnyLow.Percent = 0
-		R.AnyHigh.Percent = 0
-	}
-}
-
-func (R *GlucoseRanges) finalizeRecords() {
-	R.Total.Percent = float64(R.Total.Records) / float64(R.Total.Records)
-	R.VeryLow.Percent = float64(R.VeryLow.Records) / float64(R.Total.Records)
-	R.Low.Percent = float64(R.Low.Records) / float64(R.Total.Records)
-	R.Target.Percent = float64(R.Target.Records) / float64(R.Total.Records)
-	R.High.Percent = float64(R.High.Records) / float64(R.Total.Records)
-	R.VeryHigh.Percent = float64(R.VeryHigh.Records) / float64(R.Total.Records)
-	R.ExtremeHigh.Percent = float64(R.ExtremeHigh.Records) / float64(R.Total.Records)
-	R.AnyLow.Percent = float64(R.AnyLow.Records) / float64(R.Total.Records)
-	R.AnyHigh.Percent = float64(R.AnyHigh.Records) / float64(R.Total.Records)
-}
-
-func (R *GlucoseRanges) Finalize(state CalcState, days int) {
-	if R.Total.Minutes != 0 {
-		// if our bucket (period, at this point) has minutes
-		wallMinutes := state.LastData.Sub(state.FirstData).Minutes() + float64(state.LastRecordDuration)
-		R.finalizeMinutes(wallMinutes, days)
-	} else if R.Total.Records != 0 {
-		// otherwise, we only have record counts
-		R.finalizeRecords()
-	}
-}
-
-func (R *GlucoseRanges) Update(record *glucoseDatum.Glucose) {
-	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
-
-	if normalizedValue < veryLowBloodGlucose {
-		R.VeryLow.Update(record)
-		R.AnyLow.Update(record)
-	} else if normalizedValue > veryHighBloodGlucose {
-		R.VeryHigh.Update(record)
-		R.AnyHigh.Update(record)
-
-		// VeryHigh is inclusive of extreme high, this is intentional
-		if normalizedValue >= extremeHighBloodGlucose {
-			R.ExtremeHigh.Update(record)
-		}
-	} else if normalizedValue < lowBloodGlucose {
-		R.Low.Update(record)
-		R.AnyLow.Update(record)
-	} else if normalizedValue > highBloodGlucose {
-		R.AnyHigh.Update(record)
-		R.High.Update(record)
-	} else {
-		R.Target.Update(record)
-	}
-
-	R.Total.UpdateTotal(record)
-}
-
 // TODO: Glucose bucket doesn't need shared bucket.
 // TODO: It needs a way to calculate blackout window. The caller should pass a blackout window calculator
-func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error) {
+func (b *GlucoseBucket) Update(r data.Datum, shared *BaseBucket) (bool, error) {
 	record, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("record for calculation is not compatible with Glucose type")
@@ -216,7 +231,7 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error)
 	if shared.Type == SummaryTypeCGM {
 		// calculate blackoutWindow based on duration of previous value
 		// TODO: Magic value. Why 10 seconds?
-		blackoutWindow := time.Duration(B.LastRecordDuration)*time.Minute - 10*time.Second
+		blackoutWindow := time.Duration(b.LastRecordDuration)*time.Minute - 10*time.Second
 
 		// Skip record if we are within the blackout window
 		if record.Time.Sub(shared.LastData) < blackoutWindow {
@@ -224,34 +239,45 @@ func (B *GlucoseBucket) Update(r data.Datum, shared *BucketShared) (bool, error)
 		}
 	}
 
-	B.GlucoseRanges.Update(record)
+	b.GlucoseRanges.Update(record)
 
-	B.LastRecordDuration = GetDuration(record)
+	b.LastRecordDuration = GetDuration(record)
 
 	return true, nil
 }
 
 type GlucosePeriod struct {
 	GlucoseRanges `json:",inline" bson:",inline"`
-	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
-	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
+	HoursWithData int `json:"hoursWithData,omitempty" bson:"HWD,omitempty"`
+	DaysWithData  int `json:"daysWithData,omitempty" bson:"DWD,omitempty"`
 
-	AverageGlucose             float64 `json:"averageGlucoseMmol,omitempty" bson:"avgGlucose,omitempty"`
+	AverageGlucose             float64 `json:"averageGlucoseMmol,omitempty" bson:"AG,omitempty"`
 	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator,omitempty" bson:"GMI,omitempty"`
 
 	CoefficientOfVariation float64 `json:"coefficientOfVariation,omitempty" bson:"CV,omitempty"`
 	StandardDeviation      float64 `json:"standardDeviation,omitempty" bson:"SD,omitempty"`
 
-	AverageDailyRecords float64 `json:"averageDailyRecords,omitempty" b;son:"avgDailyRecords,omitempty,omitempty"`
+	AverageDailyRecords float64 `json:"averageDailyRecords,omitempty" bson:"ADR,omitempty,omitempty"`
 
 	Delta *GlucosePeriod `json:"delta,omitempty" bson:"delta,omitempty"`
 
 	state CalcState
 }
 
-// TODO: single letter lower case pointer receiver
-func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
-	if P.state.Final {
+func (p *GlucosePeriod) CalculateDelta(current *GlucosePeriod, previous *GlucosePeriod) {
+	p.GlucoseRanges.CalculateDelta(&current.GlucoseRanges, &previous.GlucoseRanges)
+
+	Delta(&current.AverageGlucose, &previous.AverageGlucose, &p.AverageGlucose)
+	Delta(&current.GlucoseManagementIndicator, &previous.GlucoseManagementIndicator, &p.GlucoseManagementIndicator)
+	Delta(&current.AverageDailyRecords, &previous.AverageDailyRecords, &p.AverageDailyRecords)
+	Delta(&current.StandardDeviation, &previous.StandardDeviation, &p.StandardDeviation)
+	Delta(&current.CoefficientOfVariation, &previous.CoefficientOfVariation, &p.CoefficientOfVariation)
+	Delta(&current.DaysWithData, &previous.DaysWithData, &p.DaysWithData)
+	Delta(&current.HoursWithData, &previous.HoursWithData, &p.HoursWithData)
+}
+
+func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
+	if p.state.Final {
 		return errors.New("period has been finalized, cannot add any data")
 	}
 
@@ -265,93 +291,93 @@ func (P *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 	// NOTE this could use some math with firstData/lastData to work with non-hourly buckets, but today they're hourly.
 	// NOTE should this be moved to a generic periods type as a Shared sidecar, days/hours is probably useful to other types
 
-	if P.state.LastCountedDay.IsZero() {
-		P.state.FirstCountedDay = bucket.Time
-		P.state.LastCountedDay = bucket.Time
+	if p.state.LastCountedDay.IsZero() {
+		p.state.FirstCountedDay = bucket.Time
+		p.state.LastCountedDay = bucket.Time
 
-		P.state.FirstCountedHour = bucket.Time
-		P.state.LastCountedHour = bucket.Time
+		p.state.FirstCountedHour = bucket.Time
+		p.state.LastCountedHour = bucket.Time
 
-		P.state.FirstData = bucket.FirstData
-		P.state.LastData = bucket.LastData
+		p.state.FirstData = bucket.FirstData
+		p.state.LastData = bucket.LastData
 
-		P.state.LastRecordDuration = bucket.Data.LastRecordDuration
+		p.state.LastRecordDuration = bucket.Data.LastRecordDuration
 
-		P.DaysWithData++
-		P.HoursWithData++
+		p.DaysWithData++
+		p.HoursWithData++
 	} else {
-		if bucket.Time.Before(P.state.FirstCountedHour) {
-			P.HoursWithData++
-			P.state.FirstCountedHour = bucket.Time
-			P.state.FirstData = bucket.FirstData
+		if bucket.Time.Before(p.state.FirstCountedHour) {
+			p.HoursWithData++
+			p.state.FirstCountedHour = bucket.Time
+			p.state.FirstData = bucket.FirstData
 
-			if P.state.FirstCountedDay.Sub(bucket.Time).Hours() >= 24 {
-				P.state.FirstCountedDay = bucket.Time
-				P.DaysWithData++
+			if p.state.FirstCountedDay.Sub(bucket.Time).Hours() >= 24 {
+				p.state.FirstCountedDay = bucket.Time
+				p.DaysWithData++
 			}
-		} else if bucket.Time.After(P.state.LastCountedHour) {
-			P.HoursWithData++
-			P.state.LastCountedHour = bucket.Time
-			P.state.LastData = bucket.LastData
-			P.state.LastRecordDuration = bucket.Data.LastRecordDuration
+		} else if bucket.Time.After(p.state.LastCountedHour) {
+			p.HoursWithData++
+			p.state.LastCountedHour = bucket.Time
+			p.state.LastData = bucket.LastData
+			p.state.LastRecordDuration = bucket.Data.LastRecordDuration
 
-			if bucket.Time.Sub(P.state.LastCountedDay).Hours() >= 24 {
-				P.state.LastCountedDay = bucket.Time
-				P.DaysWithData++
+			if bucket.Time.Sub(p.state.LastCountedDay).Hours() >= 24 {
+				p.state.LastCountedDay = bucket.Time
+				p.DaysWithData++
 			}
 		} else {
 			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s",
-				bucket.Time, P.state.FirstCountedHour, P.state.LastCountedHour)
+				bucket.Time, p.state.FirstCountedHour, p.state.LastCountedHour)
 		}
 	}
 
-	P.Add(&bucket.Data.GlucoseRanges)
+	p.Add(&bucket.Data.GlucoseRanges)
 
 	return nil
 }
 
-func (P *GlucosePeriod) Finalize(days int) {
-	if P.state.Final != false {
+func (p *GlucosePeriod) Finalize(days int) {
+	if p.state.Final != false {
 		return
 	}
-	P.GlucoseRanges.Finalize(P.state, days)
+	p.GlucoseRanges.Finalize(p.state, days)
 
 	// if we have no records or minutes
-	if P.Total.Minutes != 0 {
-		P.AverageGlucose = P.Total.Glucose / float64(P.Total.Minutes)
+	if p.Total.Minutes != 0 {
+		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
 
 		// we only add GMI if cgm use >70%
-		if P.Total.Percent > 0.7 {
-			P.GlucoseManagementIndicator = CalculateGMI(P.AverageGlucose)
+		if p.Total.Percent > 0.7 {
+			p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
 		} else {
-			P.GlucoseManagementIndicator = 0
+			p.GlucoseManagementIndicator = 0
 		}
 
-		P.StandardDeviation = math.Sqrt(P.Total.Variance / float64(P.Total.Minutes))
-		P.CoefficientOfVariation = P.StandardDeviation / P.AverageGlucose
-	} else if P.Total.Records != 0 {
-		P.AverageGlucose = P.Total.Glucose / float64(P.Total.Records)
+		p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
+		p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
+	} else if p.Total.Records != 0 {
+		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
 	}
 
-	if P.Total.Records != 0 {
-		P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
+	if p.Total.Records != 0 {
+		p.AverageDailyRecords = float64(p.Total.Records) / float64(days)
 	}
 
-	P.state.Final = true
+	p.state.Final = true
 }
 
-func (s *GlucoseStats) Init() {
-	s.Periods = make(map[string]*GlucosePeriod)
-	s.OffsetPeriods = make(map[string]*GlucosePeriod)
+func (st *GlucoseStats) Init() {
+	st.GlucosePeriods = make(GlucosePeriods)
 }
 
-func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
+func (st *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
 	nextOffsetStopPoint := 0
 	totalStats := GlucosePeriod{}
 	totalOffsetStats := GlucosePeriod{}
+	offsetPeriods := make(GlucosePeriods)
 	bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
 
 	var stopPoints []time.Time
@@ -372,14 +398,14 @@ func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) 
 		}
 
 		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
-			s.CalculatePeriod(periodLengths[nextStopPoint], totalStats)
+			st.CalculatePeriod(periodLengths[nextStopPoint], totalStats)
 			nextStopPoint++
 		}
 
 		if len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
-			s.CalculateOffsetPeriod(periodLengths[nextOffsetStopPoint], totalOffsetStats)
-			nextOffsetStopPoint++
+			CalculateOffsetPeriod(offsetPeriods, periodLengths[nextOffsetStopPoint], totalOffsetStats)
 			totalOffsetStats = GlucosePeriod{}
+			nextOffsetStopPoint++
 		}
 
 		// only count primary stats when the next stop point is a real period
@@ -399,51 +425,35 @@ func (s *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) 
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(periodLengths[i], totalStats)
+		st.CalculatePeriod(periodLengths[i], totalStats)
 	}
 	for i := nextOffsetStopPoint; i < len(offsetStopPoints); i++ {
-		s.CalculateOffsetPeriod(periodLengths[i], totalOffsetStats)
+		CalculateOffsetPeriod(offsetPeriods, periodLengths[i], totalOffsetStats)
 		totalOffsetStats = GlucosePeriod{}
 	}
 
-	s.CalculateDelta()
+	st.CalculateDelta(offsetPeriods)
 
 	return nil
 }
 
-func (s *GlucoseStats) CalculateDelta() {
+func (st *GlucoseStats) CalculateDelta(offsetPeriods GlucosePeriods) {
 
-	for k := range s.Periods {
-		// initialize delta pointers, make sure we are starting from a clean delta period/no shared pointers
-		s.Periods[k].Delta = &GlucosePeriod{}
-		s.OffsetPeriods[k].Delta = &GlucosePeriod{}
+	for k := range st.GlucosePeriods {
+		// make sure we are starting from a clean delta period/no shared pointers
+		d := &GlucosePeriod{}
 
-		BinDelta(&s.Periods[k].Total, &s.OffsetPeriods[k].Total, &s.Periods[k].Delta.Total, &s.OffsetPeriods[k].Delta.Total)
-		BinDelta(&s.Periods[k].VeryLow, &s.OffsetPeriods[k].VeryLow, &s.Periods[k].Delta.VeryLow, &s.OffsetPeriods[k].Delta.VeryLow)
-		BinDelta(&s.Periods[k].Low, &s.OffsetPeriods[k].Low, &s.Periods[k].Delta.Low, &s.OffsetPeriods[k].Delta.Low)
-		BinDelta(&s.Periods[k].Target, &s.OffsetPeriods[k].Target, &s.Periods[k].Delta.Target, &s.OffsetPeriods[k].Delta.Target)
-		BinDelta(&s.Periods[k].High, &s.OffsetPeriods[k].High, &s.Periods[k].Delta.High, &s.OffsetPeriods[k].Delta.High)
-		BinDelta(&s.Periods[k].VeryHigh, &s.OffsetPeriods[k].VeryHigh, &s.Periods[k].Delta.VeryHigh, &s.OffsetPeriods[k].Delta.VeryHigh)
-		BinDelta(&s.Periods[k].ExtremeHigh, &s.OffsetPeriods[k].ExtremeHigh, &s.Periods[k].Delta.ExtremeHigh, &s.OffsetPeriods[k].Delta.ExtremeHigh)
-		BinDelta(&s.Periods[k].AnyLow, &s.OffsetPeriods[k].AnyLow, &s.Periods[k].Delta.AnyLow, &s.OffsetPeriods[k].Delta.AnyLow)
-		BinDelta(&s.Periods[k].AnyHigh, &s.OffsetPeriods[k].AnyHigh, &s.Periods[k].Delta.AnyHigh, &s.OffsetPeriods[k].Delta.AnyHigh)
-
-		Delta(&s.Periods[k].AverageGlucose, &s.OffsetPeriods[k].AverageGlucose, &s.Periods[k].Delta.AverageGlucose, &s.OffsetPeriods[k].Delta.AverageGlucose)
-		Delta(&s.Periods[k].GlucoseManagementIndicator, &s.OffsetPeriods[k].GlucoseManagementIndicator, &s.Periods[k].Delta.GlucoseManagementIndicator, &s.OffsetPeriods[k].Delta.GlucoseManagementIndicator)
-		Delta(&s.Periods[k].AverageDailyRecords, &s.OffsetPeriods[k].AverageDailyRecords, &s.Periods[k].Delta.AverageDailyRecords, &s.OffsetPeriods[k].Delta.AverageDailyRecords)
-		Delta(&s.Periods[k].StandardDeviation, &s.OffsetPeriods[k].StandardDeviation, &s.Periods[k].Delta.StandardDeviation, &s.OffsetPeriods[k].Delta.StandardDeviation)
-		Delta(&s.Periods[k].CoefficientOfVariation, &s.OffsetPeriods[k].CoefficientOfVariation, &s.Periods[k].Delta.CoefficientOfVariation, &s.OffsetPeriods[k].Delta.CoefficientOfVariation)
-		Delta(&s.Periods[k].DaysWithData, &s.OffsetPeriods[k].DaysWithData, &s.Periods[k].Delta.DaysWithData, &s.OffsetPeriods[k].Delta.DaysWithData)
-		Delta(&s.Periods[k].HoursWithData, &s.OffsetPeriods[k].HoursWithData, &s.Periods[k].Delta.HoursWithData, &s.OffsetPeriods[k].Delta.HoursWithData)
+		d.CalculateDelta(st.GlucosePeriods[k], offsetPeriods[k])
+		st.GlucosePeriods[k].Delta = d
 	}
 }
 
-func (s *GlucoseStats) CalculatePeriod(days int, period GlucosePeriod) {
+func (st *GlucoseStats) CalculatePeriod(days int, period GlucosePeriod) {
 	period.Finalize(days)
-	s.Periods[strconv.Itoa(days)+"d"] = &period
+	st.GlucosePeriods[strconv.Itoa(days)+"d"] = &period
 }
 
-func (s *GlucoseStats) CalculateOffsetPeriod(days int, period GlucosePeriod) {
+func CalculateOffsetPeriod(offsetPeriods GlucosePeriods, days int, period GlucosePeriod) {
 	period.Finalize(days)
-	s.OffsetPeriods[strconv.Itoa(days)+"d"] = &period
+	offsetPeriods[strconv.Itoa(days)+"d"] = &period
 }

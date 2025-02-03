@@ -29,18 +29,18 @@ func New(summaryRepository *storeStructuredMongo.Repository, bucketsRepository *
 	return registry
 }
 
-func addSummarizer[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](reg *SummarizerRegistry, summarizer Summarizer[PS, PB, S, B]) {
+func addSummarizer[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](reg *SummarizerRegistry, summarizer Summarizer[PS, PB, S, B]) {
 	typ := types.GetType[PS, PB]()
 	reg.summarizers[typ] = summarizer
 }
 
-func GetSummarizer[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](reg *SummarizerRegistry) Summarizer[PS, PB, S, B] {
+func GetSummarizer[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](reg *SummarizerRegistry) Summarizer[PS, PB, S, B] {
 	typ := types.GetType[PS, PB]()
 	summarizer := reg.summarizers[typ]
 	return summarizer.(Summarizer[PS, PB, S, B])
 }
 
-type Summarizer[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData] interface {
+type Summarizer[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[PS, PB, S, B], error)
 	// TODO: Consider moving
 	GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error)
@@ -52,27 +52,27 @@ type Summarizer[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.St
 
 // Compile time interface check
 var _ Summarizer[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket] = &GlucoseSummarizer[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{}
-var _ Summarizer[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket] = &GlucoseSummarizer[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]{}
+var _ Summarizer[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket] = &GlucoseSummarizer[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{}
 var _ Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket] = &GlucoseSummarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]{}
 
 func CreateGlucoseDatum() data.Datum {
 	return &glucoseDatum.Glucose{}
 }
 
-type GlucoseSummarizer[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData] struct {
+type GlucoseSummarizer[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData] struct {
 	cursorFactory fetcher.DataCursorFactory
 	dataFetcher   fetcher.DeviceDataFetcher
 	summaries     *store.Summaries[PS, PB, S, B]
 	buckets       *store.Buckets[PB, B]
 }
 
-func NewBGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket] {
-	return &GlucoseSummarizer[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]{
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket] {
+	return &GlucoseSummarizer[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{
 		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
 			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
 		},
 		dataFetcher: dataFetcher,
-		summaries:   store.NewSummaries[*types.BGMStats, *types.GlucoseBucket](collection),
+		summaries:   store.NewSummaries[*types.BGMObservations, *types.GlucoseBucket](collection),
 		buckets:     store.NewBuckets[*types.GlucoseBucket](bucketsCollection, types.SummaryTypeBGM),
 	}
 }
@@ -257,7 +257,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	}
 
 	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := GetSummarizer[*types.BGMStats, *types.GlucoseBucket](registry)
+		summarizer := GetSummarizer[*types.BGMObservations, *types.GlucoseBucket](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
 			lgr.WithError(err).Error("Unable to set bgm summary outdated")

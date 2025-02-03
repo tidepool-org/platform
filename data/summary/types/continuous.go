@@ -40,37 +40,35 @@ type ContinuousRanges struct {
 	Total Range `json:"total" bson:"total"`
 }
 
-func (c *ContinuousRanges) Add(new *ContinuousRanges) {
-	c.Realtime.Add(&new.Realtime)
-	c.Total.Add(&new.Total)
-	c.Deferred.Add(&new.Deferred)
+func (rs *ContinuousRanges) Add(new *ContinuousRanges) {
+	rs.Realtime.Add(&new.Realtime)
+	rs.Total.Add(&new.Total)
+	rs.Deferred.Add(&new.Deferred)
 }
 
-func (c *ContinuousRanges) Finalize() {
-	c.Realtime.Percent = float64(c.Realtime.Records) / float64(c.Total.Records)
-	c.Deferred.Percent = float64(c.Deferred.Records) / float64(c.Total.Records)
+func (rs *ContinuousRanges) Finalize() {
+	rs.Realtime.Percent = float64(rs.Realtime.Records) / float64(rs.Total.Records)
+	rs.Deferred.Percent = float64(rs.Deferred.Records) / float64(rs.Total.Records)
 }
 
 type ContinuousBucket struct {
 	ContinuousRanges `json:",inline" bson:",inline"`
 }
 
-func (B *ContinuousBucket) Update(r data.Datum, _ *BucketShared) (bool, error) {
+func (b *ContinuousBucket) Update(r data.Datum, _ *BaseBucket) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("cgm or bgm record for calculation is not compatible with Glucose type")
 	}
 
-	// TODO validate record type matches bucket type
-
 	// NOTE we do not call range.update here, as we only require a single field of a range
 	if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
-		B.Realtime.Records++
+		b.Realtime.Records++
 	} else {
-		B.Deferred.Records++
+		b.Deferred.Records++
 	}
 
-	B.Total.Records++
+	b.Total.Records++
 
 	return true, nil
 }
@@ -83,8 +81,8 @@ type ContinuousPeriod struct {
 	state CalcState
 }
 
-func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBucket]) error {
-	if P.state.Final {
+func (p *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBucket]) error {
+	if p.state.Final {
 		return errors.New("period has been finalized, cannot add any data")
 	}
 
@@ -92,33 +90,33 @@ func (P *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBu
 		return nil
 	}
 
-	if P.state.FirstCountedHour.IsZero() && P.state.FirstCountedHour.IsZero() {
-		P.state.FirstCountedHour = bucket.Time
-		P.state.LastCountedHour = bucket.Time
+	if p.state.FirstCountedHour.IsZero() && p.state.FirstCountedHour.IsZero() {
+		p.state.FirstCountedHour = bucket.Time
+		p.state.LastCountedHour = bucket.Time
 	} else {
-		if bucket.Time.Before(P.state.FirstCountedHour) {
-			P.state.FirstCountedHour = bucket.Time
-		} else if bucket.Time.After(P.state.LastCountedHour) {
-			P.state.LastCountedHour = bucket.Time
+		if bucket.Time.Before(p.state.FirstCountedHour) {
+			p.state.FirstCountedHour = bucket.Time
+		} else if bucket.Time.After(p.state.LastCountedHour) {
+			p.state.LastCountedHour = bucket.Time
 		} else {
 			return fmt.Errorf("bucket of time %s is within the existing period range of %s - %s",
-				bucket.Time, P.state.FirstCountedHour, P.state.LastCountedHour)
+				bucket.Time, p.state.FirstCountedHour, p.state.LastCountedHour)
 		}
 	}
 
-	P.Add(&bucket.Data.ContinuousRanges)
+	p.Add(&bucket.Data.ContinuousRanges)
 
 	return nil
 }
 
-func (P *ContinuousPeriod) Finalize(days int) {
-	if P.state.Final != false {
+func (p *ContinuousPeriod) Finalize(days int) {
+	if p.state.Final != false {
 		return
 	}
-	P.state.Final = true
+	p.state.Final = true
 
-	P.ContinuousRanges.Finalize()
-	P.AverageDailyRecords = float64(P.Total.Records) / float64(days)
+	p.ContinuousRanges.Finalize()
+	p.AverageDailyRecords = float64(p.Total.Records) / float64(days)
 }
 
 type ContinuousPeriods map[string]*ContinuousPeriod

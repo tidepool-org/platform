@@ -51,16 +51,16 @@ var _ = Describe("End to end summary calculations", func() {
 	var datumTime time.Time
 	var deviceData []mongo.WriteModel
 	//var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-	var bgmStore *dataStoreSummary.Summaries[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]
+	var bgmStore *dataStoreSummary.Summaries[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]
 	var cgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
 	var bgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
 	var conBucketsStore *dataStoreSummary.Buckets[*types.ContinuousBucket, types.ContinuousBucket]
 	//var conStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 	var cgmSummarizer summary.Summarizer[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-	var bgmSummarizer summary.Summarizer[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]
+	var bgmSummarizer summary.Summarizer[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]
 	var continuousSummarizer summary.Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 	var cgmSummary *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-	var bgmSummary *types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]
+	var bgmSummary *types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]
 	var conSummary *types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 	var dataCollection *mongo.Collection
 
@@ -82,14 +82,14 @@ var _ = Describe("End to end summary calculations", func() {
 		dataCollection = store.GetCollection("deviceData")
 
 		//cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepo)
-		bgmStore = dataStoreSummary.NewSummaries[*types.BGMStats, *types.GlucoseBucket](summaryRepo)
+		bgmStore = dataStoreSummary.NewSummaries[*types.BGMObservations, *types.GlucoseBucket](summaryRepo)
 		cgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeCGM)
 		bgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeBGM)
 		conBucketsStore = dataStoreSummary.NewBuckets[*types.ContinuousBucket](bucketsRepo, types.SummaryTypeContinuous)
 		//conStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepo)
 
 		cgmSummarizer = summary.GetSummarizer[*types.CGMStats, *types.GlucoseBucket](registry)
-		bgmSummarizer = summary.GetSummarizer[*types.BGMStats, *types.GlucoseBucket](registry)
+		bgmSummarizer = summary.GetSummarizer[*types.BGMObservations, *types.GlucoseBucket](registry)
 		continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats, *types.ContinuousBucket](registry)
 	})
 
@@ -240,11 +240,11 @@ var _ = Describe("End to end summary calculations", func() {
 		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 		Expect(err).ToNot(HaveOccurred())
 
-		summaries := make([]*types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket], 1)
+		summaries := make([]*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], 1)
 
 		// we don't use types.Create as we want to create a sparse jellyfish style upsert
-		summaries[0] = &types.Summary[*types.BGMStats, *types.GlucoseBucket, types.BGMStats, types.GlucoseBucket]{
-			SummaryShared: types.SummaryShared{
+		summaries[0] = &types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{
+			BaseSummary: types.BaseSummary{
 				Type:   types.SummaryTypeBGM,
 				UserID: userId,
 				Dates: types.Dates{

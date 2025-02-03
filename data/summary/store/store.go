@@ -30,7 +30,7 @@ var (
 	}, []string{"type"})
 )
 
-type Summaries[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData] struct {
+type Summaries[A types.ObservationsPt[T, P, B], P types.BucketDataPt[B], T types.Observations, B types.BucketData] struct {
 	*storeStructuredMongo.Repository
 }
 
@@ -38,7 +38,7 @@ type TypelessSummaries struct {
 	*storeStructuredMongo.Repository
 }
 
-func NewSummaries[A types.StatsPt[T, P, B], P types.BucketDataPt[B], T types.Stats, B types.BucketData](delegate *storeStructuredMongo.Repository) *Summaries[A, P, T, B] {
+func NewSummaries[A types.ObservationsPt[T, P, B], P types.BucketDataPt[B], T types.Observations, B types.BucketData](delegate *storeStructuredMongo.Repository) *Summaries[A, P, T, B] {
 	return &Summaries[A, P, T, B]{
 		delegate,
 	}

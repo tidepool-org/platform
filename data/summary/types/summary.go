@@ -96,11 +96,11 @@ func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.OutdatedReason = nil
 }
 
-type Stats interface {
-	CGMStats | BGMStats | ContinuousStats
+type Observations interface {
+	CGMStats | BGMObservations | ContinuousStats
 }
 
-type StatsPt[S Stats, PB BucketDataPt[B], B BucketData] interface {
+type ObservationsPt[S Observations, PB BucketDataPt[B], B BucketData] interface {
 	*S
 	GetType() string
 	GetDeviceDataTypes() []string
@@ -108,7 +108,7 @@ type StatsPt[S Stats, PB BucketDataPt[B], B BucketData] interface {
 	Update(context.Context, *mongo.Cursor) error
 }
 
-type SummaryShared struct {
+type BaseSummary struct {
 	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
 	Type   string             `json:"type" bson:"type"`
 	UserID string             `json:"userId" bson:"userId"`
@@ -116,8 +116,8 @@ type SummaryShared struct {
 	Dates  Dates              `json:"dates" bson:"dates"`
 }
 
-type Summary[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData] struct {
-	SummaryShared `json:",inline" bson:",inline"`
+type Summary[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData] struct {
+	BaseSummary `json:",inline" bson:",inline"`
 
 	Stats PS `json:"stats" bson:"stats"`
 }
@@ -160,7 +160,7 @@ func NewDates() Dates {
 	}
 }
 
-func Create[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData](userId string) *Summary[PS, PB, S, B] {
+func Create[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData](userId string) *Summary[PS, PB, S, B] {
 	s := new(Summary[PS, PB, S, B])
 	s.UserID = userId
 	s.Stats = new(S)
@@ -172,12 +172,12 @@ func Create[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData](use
 	return s
 }
 
-func GetType[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData]() string {
+func GetType[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData]() string {
 	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetType()
 }
 
-func GetDeviceDataType[PS StatsPt[S, PB, B], PB BucketDataPt[B], S Stats, B BucketData]() []string {
+func GetDeviceDataType[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData]() []string {
 	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetDeviceDataTypes()
 }

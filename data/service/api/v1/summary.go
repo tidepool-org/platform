@@ -22,19 +22,19 @@ import (
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[*types.CGMStats, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[*types.BGMStats, *types.GlucoseBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[*types.BGMObservations, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[*types.CGMStats, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[*types.BGMStats, *types.GlucoseBucket], api.RequireAuth),
+		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[*types.BGMObservations, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[*types.CGMStats, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[*types.BGMStats, *types.GlucoseBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[*types.BGMObservations, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[*types.CGMStats, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[*types.BGMStats, *types.GlucoseBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[*types.BGMObservations, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
@@ -62,7 +62,7 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetSummary[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -129,7 +129,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, response)
 }
 
-func UpdateSummary[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func UpdateSummary[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -151,7 +151,7 @@ func UpdateSummary[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types
 	}
 }
 
-func GetOutdatedUserIDs[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -179,7 +179,7 @@ func GetOutdatedUserIDs[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S 
 	responder.Data(http.StatusOK, response)
 }
 
-func GetMigratableUserIDs[PS types.StatsPt[S, PB, B], PB types.BucketDataPt[B], S types.Stats, B types.BucketData](dataServiceContext dataService.Context) {
+func GetMigratableUserIDs[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()

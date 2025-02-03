@@ -229,7 +229,7 @@ func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, 
 
 	for i := 0; i < hours; i++ {
 		buckets[i] = &types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]{
-			BucketShared: types.BucketShared{
+			BaseBucket: types.BaseBucket{
 				Type:      types.SummaryTypeCGM,
 				Time:      startTime.Add(-time.Hour * time.Duration(i)),
 				FirstData: startTime.Add(-time.Hour * time.Duration(i)),
@@ -279,7 +279,7 @@ func CreateContinuousBuckets(startTime time.Time, hours int, recordsPerBucket in
 
 	for i := 0; i < hours; i++ {
 		buckets[i] = &types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{
-			BucketShared: types.BucketShared{
+			BaseBucket: types.BaseBucket{
 				Type:      types.SummaryTypeCGM,
 				Time:      startTime.Add(-time.Hour * time.Duration(i)),
 				FirstData: startTime.Add(-time.Hour * time.Duration(i)),
