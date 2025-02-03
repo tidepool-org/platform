@@ -5,7 +5,7 @@ import (
 )
 
 type CGMStats struct {
-	GlucoseStats
+	GlucosePeriods
 }
 
 func (*CGMStats) GetType() string {

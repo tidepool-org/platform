@@ -16,10 +16,6 @@ import (
 
 type GlucosePeriods map[string]*GlucosePeriod
 
-type GlucoseStats struct {
-	GlucosePeriods
-}
-
 type Range struct {
 	Glucose float64 `json:"glucose,omitempty" bson:"glucose,omitempty"`
 	Minutes int     `json:"minutes,omitempty" bson:"minutes,omitempty"`
@@ -366,11 +362,11 @@ func (p *GlucosePeriod) Finalize(days int) {
 	p.state.Final = true
 }
 
-func (st *GlucoseStats) Init() {
-	st.GlucosePeriods = make(GlucosePeriods)
+func (st *GlucosePeriods) Init() {
+	*st = make(GlucosePeriods)
 }
 
-func (st *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
+func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
@@ -437,20 +433,20 @@ func (st *GlucoseStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor)
 	return nil
 }
 
-func (st *GlucoseStats) CalculateDelta(offsetPeriods GlucosePeriods) {
+func (st *GlucosePeriods) CalculateDelta(offsetPeriods GlucosePeriods) {
 
-	for k := range st.GlucosePeriods {
+	for k := range *st {
 		// make sure we are starting from a clean delta period/no shared pointers
 		d := &GlucosePeriod{}
 
-		d.CalculateDelta(st.GlucosePeriods[k], offsetPeriods[k])
-		st.GlucosePeriods[k].Delta = d
+		d.CalculateDelta((*st)[k], offsetPeriods[k])
+		(*st)[k].Delta = d
 	}
 }
 
-func (st *GlucoseStats) CalculatePeriod(days int, period GlucosePeriod) {
+func (st *GlucosePeriods) CalculatePeriod(days int, period GlucosePeriod) {
 	period.Finalize(days)
-	st.GlucosePeriods[strconv.Itoa(days)+"d"] = &period
+	(*st)[strconv.Itoa(days)+"d"] = &period
 }
 
 func CalculateOffsetPeriod(offsetPeriods GlucosePeriods, days int, period GlucosePeriod) {

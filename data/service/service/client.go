@@ -58,7 +58,7 @@ func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error) {
+func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
@@ -66,7 +66,7 @@ func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summar
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket], error) {
+func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 

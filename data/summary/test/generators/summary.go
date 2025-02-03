@@ -108,15 +108,15 @@ func RandomCGMSummary(userId string) *types.Summary[*types.CGMStats, *types.Gluc
 	return &datum
 }
 
-func RandomBGMSummary(userId string) *types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket] {
-	datum := types.Summary[*types.BGMObservations, *types.GlucoseBucket, types.BGMObservations, types.GlucoseBucket]{
+func RandomBGMSummary(userId string) *types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket] {
+	datum := types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{
 		BaseSummary: types.BaseSummary{
 			Type:   "bgm",
 			UserID: userId,
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Stats: &types.BGMObservations{
+		Stats: &types.BGMPeriods{
 			GlucoseStats: types.GlucoseStats{
 				Periods:       types.GlucosePeriods{},
 				OffsetPeriods: types.GlucosePeriods{},
