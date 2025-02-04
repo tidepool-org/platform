@@ -166,7 +166,7 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStat
 //			FirstData: &startTime,
 //			LastData:  &lastData,
 //		},
-//		Observations: &types.ContinuousStats{
+//		Periods: &types.ContinuousStats{
 //			Buckets: make([]*types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData], totalHours),
 //		},
 //	}
@@ -177,7 +177,7 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStat
 //	var flaggedDays int
 //	var recordCount int
 //
-//	for i := 0; i < len(datum.Observations.Buckets); i++ {
+//	for i := 0; i < len(datum.Periods.Buckets); i++ {
 //		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
 //		today = bucketDate.Truncate(time.Hour * 24)
 //
@@ -193,7 +193,7 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStat
 //			recordCount = 0
 //		}
 //
-//		datum.Observations.Buckets[i] = &types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData]{
+//		datum.Periods.Buckets[i] = &types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData]{
 //			Date: bucketDate,
 //			Data: &types.ContinuousBucketData{
 //				RealtimeRecords: recordCount,

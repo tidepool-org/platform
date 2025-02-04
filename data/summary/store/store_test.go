@@ -25,7 +25,7 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integration"), func() {
+var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"), func() {
 	var logger *logTest.Logger
 	var err error
 	var ctx context.Context

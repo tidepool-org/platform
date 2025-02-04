@@ -62,7 +62,7 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
+func GetSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -129,7 +129,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, response)
 }
 
-func UpdateSummary[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
+func UpdateSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -151,7 +151,7 @@ func UpdateSummary[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], 
 	}
 }
 
-func GetOutdatedUserIDs[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -179,7 +179,7 @@ func GetOutdatedUserIDs[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt
 	responder.Data(http.StatusOK, response)
 }
 
-func GetMigratableUserIDs[PS types.ObservationsPt[S, PB, B], PB types.BucketDataPt[B], S types.Observations, B types.BucketData](dataServiceContext dataService.Context) {
+func GetMigratableUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()

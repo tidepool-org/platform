@@ -96,11 +96,11 @@ func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.OutdatedReason = nil
 }
 
-type Observations interface {
+type Periods interface {
 	CGMPeriods | BGMPeriods | ContinuousPeriods
 }
 
-type ObservationsPt[S Observations, PB BucketDataPt[B], B BucketData] interface {
+type PeriodsPt[S Periods, PB BucketDataPt[B], B BucketData] interface {
 	*S
 	GetType() string
 	GetDeviceDataTypes() []string
@@ -116,7 +116,7 @@ type BaseSummary struct {
 	Dates  Dates              `json:"dates" bson:"dates"`
 }
 
-type Summary[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData] struct {
+type Summary[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData] struct {
 	BaseSummary `json:",inline" bson:",inline"`
 
 	Stats PS `json:"stats" bson:"stats"`
@@ -160,7 +160,7 @@ func NewDates() Dates {
 	}
 }
 
-func Create[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData](userId string) *Summary[PS, PB, S, B] {
+func Create[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData](userId string) *Summary[PS, PB, S, B] {
 	s := new(Summary[PS, PB, S, B])
 	s.UserID = userId
 	s.Stats = new(S)
@@ -172,12 +172,12 @@ func Create[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B B
 	return s
 }
 
-func GetType[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData]() string {
+func GetType[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData]() string {
 	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetType()
 }
 
-func GetDeviceDataType[PS ObservationsPt[S, PB, B], PB BucketDataPt[B], S Observations, B BucketData]() []string {
+func GetDeviceDataType[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData]() []string {
 	s := new(Summary[PS, PB, S, B])
 	return s.Stats.GetDeviceDataTypes()
 }
