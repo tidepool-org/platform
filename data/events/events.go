@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"sync"
@@ -348,7 +349,8 @@ func (r *CascadingSaramaEventsRunner) buildConsumer(ctx context.Context, idx int
 			Logger:   r.Logger,
 		}
 	}
-	handler := asyncevents.NewSaramaConsumerGroupHandler(consumer,
+	aeLoggerAdapter := &asynceventsLoggerAdapter{r.Logger}
+	handler := asyncevents.NewSaramaConsumerGroupHandler(aeLoggerAdapter, consumer,
 		AlertsEventConsumptionTimeout)
 	topic := baseTopic
 	if delay > 0 {
@@ -552,4 +554,20 @@ type EventsRecorder interface {
 	// used to determine if alerts should be sent to the care partners
 	// of a given user.
 	RecordReceivedDeviceData(context.Context, alerts.LastCommunication) error
+}
+
+// asynceventsLoggerAdapter adapts a [log.Logger] to [asyncevents.Logger].
+type asynceventsLoggerAdapter struct {
+	log.Logger
+}
+
+var logLevels map[slog.Level]log.Level = map[slog.Level]log.Level{
+	slog.LevelDebug: log.DebugLevel,
+	slog.LevelInfo:  log.InfoLevel,
+	slog.LevelWarn:  log.WarnLevel,
+	slog.LevelError: log.ErrorLevel,
+}
+
+func (a *asynceventsLoggerAdapter) Log(ctx context.Context, level slog.Level, msg string, args ...any) {
+	a.Logger.Log(logLevels[level], fmt.Sprintf(msg, args...))
 }
