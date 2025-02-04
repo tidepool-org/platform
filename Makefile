@@ -236,7 +236,7 @@ ci-test-watch: ginkgo
 go-test:
 	. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
 
-go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+go-ci-test: override GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 go-ci-test: GOTEST_PKGS = ./...
 go-ci-test: go-test
 

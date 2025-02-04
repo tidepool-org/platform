@@ -195,10 +195,6 @@ func (d *DataRepository) DestroyDataForUserByID(ctx context.Context, userID stri
 	return nil
 }
 
-func (d *DataRepository) mongoClient() *mongo.Client {
-	return d.DatumRepository.Database().Client()
-}
-
 func isTypeUpload(typ []string) bool {
 	return slices.Contains(typ, strings.ToLower(upload.Type))
 }

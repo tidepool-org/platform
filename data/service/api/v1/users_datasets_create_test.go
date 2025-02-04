@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/summary/reporters"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -83,6 +84,8 @@ type testingT interface {
 	Errorf(format string, args ...any)
 	Fatalf(format string, args ...any)
 }
+
+var _ dataService.Context = (*mockDataServiceContext)(nil)
 
 type mockDataServiceContext struct {
 	t testingT
@@ -222,5 +225,9 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) RecordsRepository() alerts.RecordsRepository {
 	panic("not implemented")
 }
