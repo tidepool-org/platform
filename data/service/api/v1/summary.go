@@ -23,19 +23,19 @@ func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[*types.ContinuousStats, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}
@@ -62,7 +62,7 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
+func GetSummary[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -75,12 +75,12 @@ func GetSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.
 		return
 	}
 
-	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 	} else if userSummary == nil {
-		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetType[PS, PB](), id))
+		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetType[PP, PB](), id))
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}
@@ -129,7 +129,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, response)
 }
 
-func UpdateSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
+func UpdateSummary[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -142,7 +142,7 @@ func UpdateSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S typ
 		return
 	}
 
-	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -151,7 +151,7 @@ func UpdateSummary[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S typ
 	}
 }
 
-func GetOutdatedUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -169,7 +169,7 @@ func GetOutdatedUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], 
 		return
 	}
 
-	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -179,7 +179,7 @@ func GetOutdatedUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], 
 	responder.Data(http.StatusOK, response)
 }
 
-func GetMigratableUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
+func GetMigratableUserIDs[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
@@ -197,7 +197,7 @@ func GetMigratableUserIDs[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B]
 		return
 	}
 
-	summarizer := summary.GetSummarizer[PS, PB](dataServiceContext.SummarizerRegistry())
+	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)

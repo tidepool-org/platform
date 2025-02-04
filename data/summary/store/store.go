@@ -30,7 +30,7 @@ var (
 	}, []string{"type"})
 )
 
-type Summaries[A types.PeriodsPt[T, P, B], P types.BucketDataPt[B], T types.Periods, B types.BucketData] struct {
+type Summaries[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
 	*storeStructuredMongo.Repository
 }
 
@@ -38,8 +38,8 @@ type TypelessSummaries struct {
 	*storeStructuredMongo.Repository
 }
 
-func NewSummaries[A types.PeriodsPt[T, P, B], P types.BucketDataPt[B], T types.Periods, B types.BucketData](delegate *storeStructuredMongo.Repository) *Summaries[A, P, T, B] {
-	return &Summaries[A, P, T, B]{
+func NewSummaries[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](delegate *storeStructuredMongo.Repository) *Summaries[PP, PB, P, B] {
+	return &Summaries[PP, PB, P, B]{
 		delegate,
 	}
 }
@@ -50,7 +50,7 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessSummaries {
 	}
 }
 
-func (r *Summaries[A, P, T, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[A, P, T, B], error) {
+func (r *Summaries[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -58,7 +58,7 @@ func (r *Summaries[A, P, T, B]) GetSummary(ctx context.Context, userId string) (
 		return nil, errors.New("userId is missing")
 	}
 
-	summary := types.Create[A, P](userId)
+	summary := types.Create[PP, PB](userId)
 	selector := bson.M{
 		"userId": userId,
 		"type":   summary.Type,
@@ -94,7 +94,7 @@ func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userId string) er
 	return nil
 }
 
-func (r *Summaries[A, P, T, B]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -104,7 +104,7 @@ func (r *Summaries[A, P, T, B]) DeleteSummary(ctx context.Context, userId string
 
 	selector := bson.M{
 		"userId": userId,
-		"type":   types.GetType[A, P, T, B](),
+		"type":   types.GetType[PP, PB, P, B](),
 	}
 
 	_, err := r.DeleteMany(ctx, selector)
@@ -115,7 +115,7 @@ func (r *Summaries[A, P, T, B]) DeleteSummary(ctx context.Context, userId string
 	return nil
 }
 
-func (r *Summaries[A, P, T, B]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[A, P, T, B]) error {
+func (r *Summaries[PP, PB, P, B]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[PP, PB, P, B]) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -123,7 +123,7 @@ func (r *Summaries[A, P, T, B]) ReplaceSummary(ctx context.Context, userSummary 
 		return errors.New("summary object is missing")
 	}
 
-	var expectedType = types.GetType[A, P]()
+	var expectedType = types.GetType[PP, PB]()
 	if userSummary.Type != expectedType {
 		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
@@ -143,7 +143,7 @@ func (r *Summaries[A, P, T, B]) ReplaceSummary(ctx context.Context, userSummary 
 	return err
 }
 
-func (r *Summaries[A, P, T, B]) CreateSummaries(ctx context.Context, summaries []*types.Summary[A, P, T, B]) (int, error) {
+func (r *Summaries[PP, PB, P, B]) CreateSummaries(ctx context.Context, summaries []*types.Summary[PP, PB, P, B]) (int, error) {
 	if ctx == nil {
 		return 0, errors.New("context is missing")
 	}
@@ -151,7 +151,7 @@ func (r *Summaries[A, P, T, B]) CreateSummaries(ctx context.Context, summaries [
 		return 0, errors.New("summaries for create missing")
 	}
 
-	var expectedType = types.GetType[A, P]()
+	var expectedType = types.GetType[PP, PB]()
 
 	insertData := make([]interface{}, 0, len(summaries))
 
@@ -184,7 +184,7 @@ func (r *Summaries[A, P, T, B]) CreateSummaries(ctx context.Context, summaries [
 	return count, nil
 }
 
-func (r *Summaries[A, P, T, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (r *Summaries[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -200,7 +200,7 @@ func (r *Summaries[A, P, T, B]) SetOutdated(ctx context.Context, userId, reason 
 	}
 
 	if userSummary == nil {
-		userSummary = types.Create[A, P](userId)
+		userSummary = types.Create[PP, PB](userId)
 	}
 
 	userSummary.SetOutdated(reason)
@@ -212,16 +212,16 @@ func (r *Summaries[A, P, T, B]) SetOutdated(ctx context.Context, userId, reason 
 	return userSummary.Dates.OutdatedSince, nil
 }
 
-func (r *Summaries[A, P, T, B]) GetSummaryQueueLength(ctx context.Context) (int64, error) {
+func (r *Summaries[PP, PB, P, B]) GetSummaryQueueLength(ctx context.Context) (int64, error) {
 	selector := bson.M{
-		"type":                types.GetType[A, P](),
+		"type":                types.GetType[PP, PB](),
 		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 	}
 
 	return r.CountDocuments(ctx, selector)
 }
 
-func (r *Summaries[A, P, T, B]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) (*types.OutdatedSummariesResponse, error) {
+func (r *Summaries[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -229,7 +229,7 @@ func (r *Summaries[A, P, T, B]) GetOutdatedUserIDs(ctx context.Context, page *pa
 		return nil, errors.New("pagination is missing")
 	}
 
-	typ := types.GetType[A, P]()
+	typ := types.GetType[PP, PB]()
 
 	selector := bson.M{
 		"type":                typ,
@@ -252,7 +252,7 @@ func (r *Summaries[A, P, T, B]) GetOutdatedUserIDs(ctx context.Context, page *pa
 		UserIds: make([]string, 0, cursor.RemainingBatchLength()),
 	}
 
-	userSummary := &types.Summary[A, P, T, B]{}
+	userSummary := &types.Summary[PP, PB, P, B]{}
 	for cursor.Next(ctx) {
 		if err = cursor.Decode(userSummary); err != nil {
 			return nil, fmt.Errorf("unable to decode Summary: %w", err)
@@ -281,7 +281,7 @@ func (r *Summaries[A, P, T, B]) GetOutdatedUserIDs(ctx context.Context, page *pa
 	return response, nil
 }
 
-func (r *Summaries[A, P, T, B]) GetMigratableUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -290,7 +290,7 @@ func (r *Summaries[A, P, T, B]) GetMigratableUserIDs(ctx context.Context, page *
 	}
 
 	selector := bson.M{
-		"type":                 types.GetType[A, P](),
+		"type":                 types.GetType[PP, PB](),
 		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
@@ -309,7 +309,7 @@ func (r *Summaries[A, P, T, B]) GetMigratableUserIDs(ctx context.Context, page *
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
-	var summaries []*types.Summary[A, P, T, B]
+	var summaries []*types.Summary[PP, PB, P, B]
 	if err = cursor.All(ctx, &summaries); err != nil {
 		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
 	}

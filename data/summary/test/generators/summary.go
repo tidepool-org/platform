@@ -99,10 +99,10 @@ func RandomCGMSummary(userId string) *types.Summary[*types.CGMPeriods, *types.Gl
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Stats.Periods[period] = RandomGlucosePeriod(true)
-		datum.Stats.Periods[period].Delta = RandomGlucosePeriod(true)
-		datum.Stats.OffsetPeriods[period] = RandomGlucosePeriod(true)
-		datum.Stats.OffsetPeriods[period].Delta = RandomGlucosePeriod(true)
+		datum.Periods.Periods[period] = RandomGlucosePeriod(true)
+		datum.Periods.Periods[period].Delta = RandomGlucosePeriod(true)
+		datum.Periods.OffsetPeriods[period] = RandomGlucosePeriod(true)
+		datum.Periods.OffsetPeriods[period].Delta = RandomGlucosePeriod(true)
 	}
 
 	return &datum
@@ -125,10 +125,10 @@ func RandomBGMSummary(userId string) *types.Summary[*types.BGMPeriods, *types.Gl
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Stats.Periods[period] = RandomGlucosePeriod(false)
-		datum.Stats.Periods[period].Delta = RandomGlucosePeriod(false)
-		datum.Stats.OffsetPeriods[period] = RandomGlucosePeriod(false)
-		datum.Stats.OffsetPeriods[period].Delta = RandomGlucosePeriod(false)
+		datum.Periods.Periods[period] = RandomGlucosePeriod(false)
+		datum.Periods.Periods[period].Delta = RandomGlucosePeriod(false)
+		datum.Periods.OffsetPeriods[period] = RandomGlucosePeriod(false)
+		datum.Periods.OffsetPeriods[period].Delta = RandomGlucosePeriod(false)
 	}
 
 	return &datum
@@ -148,7 +148,7 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStat
 	}
 
 	for _, period := range []string{"30d"} {
-		datum.Stats.Periods[period] = RandomContinuousPeriod()
+		datum.Periods.Periods[period] = RandomContinuousPeriod()
 	}
 
 	return &datum

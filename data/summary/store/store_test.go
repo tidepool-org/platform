@@ -426,7 +426,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						userContinuousSummary = generators.RandomContinuousSummary(userId)
 						userContinuousSummary.Dates.OutdatedSince = &fiveMinutesAgo
 						userContinuousSummary.Dates.OutdatedReason = []string{types.OutdatedReasonUploadCompleted}
-						Expect(userContinuousSummary.Stats.Periods).ToNot(HaveLen(0))
+						Expect(userContinuousSummary.Periods.Periods).ToNot(HaveLen(0))
 
 						err = continuousStore.ReplaceSummary(ctx, userContinuousSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -439,7 +439,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userContinuousSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userContinuousSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
-						Expect(userContinuousSummaryWritten.Stats.Periods).To(HaveLen(0))
+						Expect(userContinuousSummaryWritten.Periods.Periods).To(HaveLen(0))
 						Expect(userContinuousSummaryWritten.Dates.LastData).To(BeZero())
 						Expect(userContinuousSummaryWritten.Dates.FirstData).To(BeZero())
 						Expect(userContinuousSummaryWritten.Dates.LastUpdatedDate).To(BeZero())
@@ -996,7 +996,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						userCGMSummary = generators.RandomCGMSummary(userId)
 						userCGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
 						userCGMSummary.Dates.OutdatedReason = []string{types.OutdatedReasonUploadCompleted}
-						Expect(userCGMSummary.Stats.Periods).ToNot(HaveLen(0))
+						Expect(userCGMSummary.Periods.Periods).ToNot(HaveLen(0))
 
 						err = cgmStore.ReplaceSummary(ctx, userCGMSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -1009,7 +1009,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userCGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userCGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
-						Expect(userCGMSummaryWritten.Stats.Periods).To(HaveLen(0))
+						Expect(userCGMSummaryWritten.Periods.Periods).To(HaveLen(0))
 						Expect(userCGMSummaryWritten.Dates.LastData).To(BeZero())
 						Expect(userCGMSummaryWritten.Dates.FirstData).To(BeZero())
 						Expect(userCGMSummaryWritten.Dates.LastUpdatedDate).To(BeZero())
@@ -1554,7 +1554,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						userBGMSummary = generators.RandomBGMSummary(userId)
 						userBGMSummary.Dates.OutdatedSince = &fiveMinutesAgo
 						userBGMSummary.Dates.OutdatedReason = []string{types.OutdatedReasonUploadCompleted}
-						Expect(userBGMSummary.Stats.Periods).ToNot(HaveLen(0))
+						Expect(userBGMSummary.Periods.Periods).ToNot(HaveLen(0))
 
 						err = bgmStore.ReplaceSummary(ctx, userBGMSummary)
 						Expect(err).ToNot(HaveOccurred())
@@ -1567,7 +1567,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 						Expect(err).ToNot(HaveOccurred())
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).ToNot(BeNil())
 						Expect(userBGMSummaryWritten.Dates.OutdatedSince).To(Equal(outdatedSince))
-						Expect(userBGMSummaryWritten.Stats.Periods).To(HaveLen(0))
+						Expect(userBGMSummaryWritten.Periods.Periods).To(HaveLen(0))
 						Expect(userBGMSummaryWritten.Dates.LastData).To(BeZero())
 						Expect(userBGMSummaryWritten.Dates.FirstData).To(BeZero())
 						Expect(userBGMSummaryWritten.Dates.LastUpdatedDate).To(BeZero())

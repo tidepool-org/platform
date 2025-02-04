@@ -29,23 +29,23 @@ func New(summaryRepository *storeStructuredMongo.Repository, bucketsRepository *
 	return registry
 }
 
-func addSummarizer[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](reg *SummarizerRegistry, summarizer Summarizer[PS, PB, S, B]) {
-	typ := types.GetType[PS, PB]()
+func addSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](reg *SummarizerRegistry, summarizer Summarizer[PP, PB, P, B]) {
+	typ := types.GetType[PP, PB]()
 	reg.summarizers[typ] = summarizer
 }
 
-func GetSummarizer[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData](reg *SummarizerRegistry) Summarizer[PS, PB, S, B] {
-	typ := types.GetType[PS, PB]()
+func GetSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData](reg *SummarizerRegistry) Summarizer[PP, PB, P, B] {
+	typ := types.GetType[PP, PB]()
 	summarizer := reg.summarizers[typ]
-	return summarizer.(Summarizer[PS, PB, S, B])
+	return summarizer.(Summarizer[PP, PB, P, B])
 }
 
-type Summarizer[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData] interface {
-	GetSummary(ctx context.Context, userId string) (*types.Summary[PS, PB, S, B], error)
+type Summarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] interface {
+	GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
 	// TODO: Consider moving
 	GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error)
 	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
-	UpdateSummary(ctx context.Context, userId string) (*types.Summary[PS, PB, S, B], error)
+	UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
 	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
 	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 }
@@ -59,10 +59,10 @@ func CreateGlucoseDatum() data.Datum {
 	return &glucoseDatum.Glucose{}
 }
 
-type GlucoseSummarizer[PS types.PeriodsPt[S, PB, B], PB types.BucketDataPt[B], S types.Periods, B types.BucketData] struct {
+type GlucoseSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
 	cursorFactory fetcher.DataCursorFactory
 	dataFetcher   fetcher.DeviceDataFetcher
-	summaries     *store.Summaries[PS, PB, S, B]
+	summaries     *store.Summaries[PP, PB, P, B]
 	buckets       *store.Buckets[PB, B]
 }
 
@@ -88,49 +88,49 @@ func NewCGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollec
 	}
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) DeleteSummaries(ctx context.Context, userId string) error {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) DeleteSummaries(ctx context.Context, userId string) error {
 	return gs.summaries.DeleteSummary(ctx, userId)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PS, PB, S, B], error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	return gs.summaries.GetSummary(ctx, userId)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error) {
 	return gs.buckets.GetBucketsRange(ctx, userId, &startTime, &endTime)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
 	return gs.summaries.SetOutdated(ctx, userId, reason)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	return gs.summaries.GetOutdatedUserIDs(ctx, pagination)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
 	return gs.summaries.GetMigratableUserIDs(ctx, pagination)
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PS, PB, S, B], error) {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
 	userSummary, err := gs.GetSummary(ctx, userId)
-	summaryType := types.GetType[PS, PB]()
-	dataTypes := types.GetDeviceDataType[PS, PB]()
+	summaryType := types.GetType[PP, PB]()
+	dataTypes := types.GetDeviceDataType[PP, PB]()
 	if err != nil {
 		return nil, err
 	}
 
-	logger.Debugf("Starting %s summary calculation for %s", types.GetType[PS, PB](), userId)
+	logger.Debugf("Starting %s summary calculation for %s", types.GetType[PP, PB](), userId)
 
 	// user has no usable summary for incremental update
 	if userSummary == nil {
-		userSummary = types.Create[PS, PB](userId)
+		userSummary = types.Create[PP, PB](userId)
 	}
 
-	if userSummary.Stats == nil {
-		userSummary.Stats = new(S)
-		userSummary.Stats.Init()
+	if userSummary.Periods == nil {
+		userSummary.Periods = new(P)
+		userSummary.Periods.Init()
 	}
 
 	if userSummary.Config.SchemaVersion != types.SchemaVersion {
@@ -181,7 +181,7 @@ func (gs *GlucoseSummarizer[PS, PB, S, B]) UpdateSummary(ctx context.Context, us
 		return nil, err
 	}
 
-	err = userSummary.Stats.Update(ctx, allBuckets)
+	err = userSummary.Periods.Update(ctx, allBuckets)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +195,7 @@ func (gs *GlucoseSummarizer[PS, PB, S, B]) UpdateSummary(ctx context.Context, us
 	if totalHours == 0 {
 		logger.Warnf("User %s has a summary, but no valid data within range, creating placeholder summary", userId)
 		userSummary.Dates.Reset()
-		userSummary.Stats = nil
+		userSummary.Periods = nil
 	} else {
 		oldest, err := gs.buckets.GetOldestRecordTime(ctx, userId)
 		if err != nil {
@@ -209,7 +209,7 @@ func (gs *GlucoseSummarizer[PS, PB, S, B]) UpdateSummary(ctx context.Context, us
 	return userSummary, err
 }
 
-func (gs *GlucoseSummarizer[PS, PB, S, B]) UpdateBuckets(ctx context.Context, userId string, typ string, cursor fetcher.DeviceDataCursor) error {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userId string, typ string, cursor fetcher.DeviceDataCursor) error {
 	hasMoreData := true
 	for hasMoreData {
 		userData, err := cursor.GetNextBatch(ctx)

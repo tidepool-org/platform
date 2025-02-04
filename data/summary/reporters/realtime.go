@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/fetcher"
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -21,11 +21,11 @@ const (
 )
 
 type PatientRealtimeDaysReporter struct {
-	summarizer summary.Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
+	summarizer summary.Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
 }
 
 func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysReporter {
-	summarizer := summary.GetSummarizer[*types.ContinuousStats, *types.ContinuousBucket](registry)
+	summarizer := summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
 	return &PatientRealtimeDaysReporter{
 		summarizer: summarizer,
 	}
@@ -113,7 +113,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 	}, nil
 }
 
-func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets fetcher.AnyCursor) (count int, err error) {
+func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets *mongo.Cursor) (count int, err error) {
 	bucket := types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
 
 	firstBucketTime := time.Time{}

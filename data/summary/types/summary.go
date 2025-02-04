@@ -100,8 +100,8 @@ type Periods interface {
 	CGMPeriods | BGMPeriods | ContinuousPeriods
 }
 
-type PeriodsPt[S Periods, PB BucketDataPt[B], B BucketData] interface {
-	*S
+type PeriodsPt[P Periods, PB BucketDataPt[B], B BucketData] interface {
+	*P
 	GetType() string
 	GetDeviceDataTypes() []string
 	Init()
@@ -116,10 +116,10 @@ type BaseSummary struct {
 	Dates  Dates              `json:"dates" bson:"dates"`
 }
 
-type Summary[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData] struct {
+type Summary[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData] struct {
 	BaseSummary `json:",inline" bson:",inline"`
 
-	Stats PS `json:"stats" bson:"stats"`
+	Periods PP `json:"periods" bson:"periods"`
 }
 
 func NewConfig() Config {
@@ -132,14 +132,14 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[PS, PB, S, PB]) SetOutdated(reason string) {
+func (s *Summary[PP, PB, P, PB]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)
 	}
 
 	if reason == OutdatedReasonSchemaMigration {
-		*s = *Create[PS, PB](s.UserID)
+		*s = *Create[PP, PB](s.UserID)
 	}
 
 	s.Dates.OutdatedReason = set.ToSlice()
@@ -149,7 +149,7 @@ func (s *Summary[PS, PB, S, PB]) SetOutdated(reason string) {
 	}
 }
 
-func (s *Summary[PS, PB, S, B]) SetNotOutdated() {
+func (s *Summary[PP, PB, P, B]) SetNotOutdated() {
 	s.Dates.OutdatedReason = nil
 	s.Dates.OutdatedSince = nil
 }
@@ -160,26 +160,26 @@ func NewDates() Dates {
 	}
 }
 
-func Create[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData](userId string) *Summary[PS, PB, S, B] {
-	s := new(Summary[PS, PB, S, B])
+func Create[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData](userId string) *Summary[PP, PB, P, B] {
+	s := new(Summary[PP, PB, P, B])
 	s.UserID = userId
-	s.Stats = new(S)
-	s.Stats.Init()
-	s.Type = s.Stats.GetType()
+	s.Periods = new(P)
+	s.Periods.Init()
+	s.Type = s.Periods.GetType()
 	s.Config = NewConfig()
 	s.Dates = NewDates()
 
 	return s
 }
 
-func GetType[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData]() string {
-	s := new(Summary[PS, PB, S, B])
-	return s.Stats.GetType()
+func GetType[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData]() string {
+	s := new(Summary[PP, PB, P, B])
+	return s.Periods.GetType()
 }
 
-func GetDeviceDataType[PS PeriodsPt[S, PB, B], PB BucketDataPt[B], S Periods, B BucketData]() []string {
-	s := new(Summary[PS, PB, S, B])
-	return s.Stats.GetDeviceDataTypes()
+func GetDeviceDataType[PS PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData]() []string {
+	s := new(Summary[PS, PB, P, B])
+	return s.Periods.GetDeviceDataTypes()
 }
 
 func (d *Dates) Reset() {

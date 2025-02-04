@@ -8,7 +8,7 @@ package reporters_test
 //
 //				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 15)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(count).To(Equal(15))
 //			})
 //
@@ -18,7 +18,7 @@ package reporters_test
 //
 //				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 0)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(count).To(Equal(0))
 //			})
 //
@@ -28,7 +28,7 @@ package reporters_test
 //
 //				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 60)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(err).ToNot(HaveOccurred())
 //				Expect(count).To(Equal(30))
 //			})
@@ -47,7 +47,7 @@ package reporters_test
 //					endTime.AddDate(0, 0, 2),
 //					7)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(err).ToNot(HaveOccurred())
 //				Expect(count).To(Equal(3))
 //			})
@@ -66,7 +66,7 @@ package reporters_test
 //					endTime.AddDate(0, 0, 2),
 //					7)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(err).ToNot(HaveOccurred())
 //				Expect(count).To(Equal(3))
 //			})
@@ -86,7 +86,7 @@ package reporters_test
 //					endTime.AddDate(0, 0, 2),
 //					7)
 //
-//				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+//				count := userContinuousSummary.Periods.GetNumberOfDaysWithRealtimeData(startTime, endTime)
 //				Expect(err).ToNot(HaveOccurred())
 //				Expect(count).To(Equal(3))
 //			})

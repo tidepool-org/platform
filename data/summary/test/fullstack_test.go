@@ -115,7 +115,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(cgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(5))
+		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -128,7 +128,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(10))
-		Expect(cgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(10))
+		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(10))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -141,7 +141,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(15))
-		Expect(cgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(15))
+		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(15))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -158,7 +158,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(22))
-		Expect(cgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(22))
+		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(22))
 	})
 
 	It("repeat out of order bgm summary calc", func() {
@@ -175,7 +175,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(bgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(5))
+		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -188,7 +188,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(10))
-		Expect(bgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(10))
+		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(10))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -201,7 +201,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(15))
-		Expect(bgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(15))
+		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(15))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -218,7 +218,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(22))
-		Expect(bgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(22))
+		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(22))
 	})
 
 	It("summary calc with very old data", func() {
@@ -265,7 +265,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(bgmSummary.Stats.Periods["7d"].Total.Records).To(Equal(5))
+		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
 		Expect(bgmSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", types.OutdatedReasonSchemaMigration))
 	})
 
@@ -420,7 +420,7 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
 		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
 		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Stats).To(BeNil())
+		Expect(conSummary.Periods).To(BeNil())
 	})
 
 	It("summary calc with non-continuous data multiple times", func() {
@@ -441,7 +441,7 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
 		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
 		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Stats).To(BeNil())
+		Expect(conSummary.Periods).To(BeNil())
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
@@ -449,7 +449,7 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
 		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
 		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Stats).To(BeNil())
+		Expect(conSummary.Periods).To(BeNil())
 	})
 
 	It("continuous summary calc with >batch of realtime data", func() {

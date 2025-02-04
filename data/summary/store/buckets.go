@@ -14,19 +14,19 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-type Buckets[B types.BucketDataPt[A], A types.BucketData] struct {
+type Buckets[PB types.BucketDataPt[B], B types.BucketData] struct {
 	*storeStructuredMongo.Repository
 	Type string
 }
 
-func NewBuckets[B types.BucketDataPt[A], A types.BucketData](delegate *storeStructuredMongo.Repository, typ string) *Buckets[B, A] {
-	return &Buckets[B, A]{
+func NewBuckets[PB types.BucketDataPt[B], B types.BucketData](delegate *storeStructuredMongo.Repository, typ string) *Buckets[PB, B] {
+	return &Buckets[PB, B]{
 		Repository: delegate,
 		Type:       typ,
 	}
 }
 
-func (r *Buckets[B, A]) GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (types.BucketsByTime[B, A], error) {
+func (r *Buckets[PB, B]) GetBucketsByTime(ctx context.Context, userId string, startTime, endTime time.Time) (types.BucketsByTime[PB, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -34,8 +34,8 @@ func (r *Buckets[B, A]) GetBucketsByTime(ctx context.Context, userId string, sta
 		return nil, errors.New("userId is missing")
 	}
 
-	buckets := make([]types.Bucket[B, A], 1)
-	transformed := make(types.BucketsByTime[B, A], 1)
+	buckets := make([]types.Bucket[PB, B], 1)
+	transformed := make(types.BucketsByTime[PB, B], 1)
 
 	selector := bson.M{
 		"userId": userId,
@@ -63,7 +63,7 @@ func (r *Buckets[B, A]) GetBucketsByTime(ctx context.Context, userId string, sta
 	return transformed, nil
 }
 
-func (r *Buckets[B, A]) GetAllBuckets(ctx context.Context, userId string) (*mongo.Cursor, error) {
+func (r *Buckets[PB, B]) GetAllBuckets(ctx context.Context, userId string) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -74,7 +74,7 @@ func (r *Buckets[B, A]) GetAllBuckets(ctx context.Context, userId string) (*mong
 	return r.GetBucketsRange(ctx, userId, nil, nil)
 }
 
-func (r *Buckets[B, A]) GetBucketsRange(ctx context.Context, userId string, startTime *time.Time, endTime *time.Time) (*mongo.Cursor, error) {
+func (r *Buckets[PB, B]) GetBucketsRange(ctx context.Context, userId string, startTime *time.Time, endTime *time.Time) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -109,7 +109,7 @@ func (r *Buckets[B, A]) GetBucketsRange(ctx context.Context, userId string, star
 }
 
 // TODO: Not used
-func (r *Buckets[B, A]) TrimExcessBuckets(ctx context.Context, userId string) error {
+func (r *Buckets[PB, B]) TrimExcessBuckets(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -131,7 +131,7 @@ func (r *Buckets[B, A]) TrimExcessBuckets(ctx context.Context, userId string) er
 	return err
 }
 
-func (r *Buckets[B, A]) ClearInvalidatedBuckets(ctx context.Context, userId string, earliestModified time.Time) (firstData time.Time, err error) {
+func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId string, earliestModified time.Time) (firstData time.Time, err error) {
 	selector := bson.M{
 		"userId": userId,
 		"type":   r.Type,
@@ -146,9 +146,8 @@ func (r *Buckets[B, A]) ClearInvalidatedBuckets(ctx context.Context, userId stri
 	return r.GetNewestRecordTime(ctx, userId)
 }
 
-
 // TODO: Rename. What's side?
-func (r *Buckets[B, A]) GetEnd(ctx context.Context, userId string, side int) (*types.Bucket[B, A], error) {
+func (r *Buckets[PB, B]) GetEnd(ctx context.Context, userId string, side int) (*types.Bucket[PB, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -156,7 +155,7 @@ func (r *Buckets[B, A]) GetEnd(ctx context.Context, userId string, side int) (*t
 		return nil, errors.New("userId is missing")
 	}
 
-	buckets := make([]types.Bucket[B, A], 1)
+	buckets := make([]types.Bucket[PB, B], 1)
 	selector := bson.M{
 		"userId": userId,
 		"type":   r.Type,
@@ -180,7 +179,7 @@ func (r *Buckets[B, A]) GetEnd(ctx context.Context, userId string, side int) (*t
 	return &buckets[0], nil
 }
 
-func (r *Buckets[B, A]) GetNewestRecordTime(ctx context.Context, userId string) (time.Time, error) {
+func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string) (time.Time, error) {
 	if ctx == nil {
 		return time.Time{}, errors.New("context is missing")
 	}
@@ -196,7 +195,7 @@ func (r *Buckets[B, A]) GetNewestRecordTime(ctx context.Context, userId string) 
 	return bucket.LastData, nil
 }
 
-func (r *Buckets[B, A]) GetOldestRecordTime(ctx context.Context, userId string) (time.Time, error) {
+func (r *Buckets[PB, B]) GetOldestRecordTime(ctx context.Context, userId string) (time.Time, error) {
 	if ctx == nil {
 		return time.Time{}, errors.New("context is missing")
 	}
@@ -212,7 +211,7 @@ func (r *Buckets[B, A]) GetOldestRecordTime(ctx context.Context, userId string) 
 	return bucket.FirstData, nil
 }
 
-func (r *Buckets[B, A]) GetTotalHours(ctx context.Context, userId string) (int, error) {
+func (r *Buckets[PB, B]) GetTotalHours(ctx context.Context, userId string) (int, error) {
 	if ctx == nil {
 		return 0, errors.New("context is missing")
 	}
@@ -238,15 +237,7 @@ func (r *Buckets[B, A]) GetTotalHours(ctx context.Context, userId string) (int, 
 	return int(lastBucket.LastData.Sub(firstBucket.FirstData).Hours()), nil
 }
 
-// TODO: move after WriteModifiedBuckets
-func (r *Buckets[B, A]) writeBuckets(ctx context.Context, buckets []interface{}) error {
-	opts := options.InsertMany()
-	opts.SetOrdered(false)
-	_, err := r.InsertMany(ctx, buckets, opts)
-	return err
-}
-
-func (r *Buckets[B, A]) WriteModifiedBuckets(ctx context.Context, buckets types.BucketsByTime[B, A]) error {
+func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types.BucketsByTime[PB, B]) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -270,4 +261,11 @@ func (r *Buckets[B, A]) WriteModifiedBuckets(ctx context.Context, buckets types.
 	}
 
 	return r.writeBuckets(ctx, bucketsInt)
+}
+
+func (r *Buckets[PB, B]) writeBuckets(ctx context.Context, buckets []interface{}) error {
+	opts := options.InsertMany()
+	opts.SetOrdered(false)
+	_, err := r.InsertMany(ctx, buckets, opts)
+	return err
 }
