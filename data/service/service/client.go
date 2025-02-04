@@ -54,7 +54,7 @@ func (c *Client) DestroyDataForUserByID(ctx context.Context, userID string) erro
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error) {
+func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
@@ -62,7 +62,7 @@ func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket], error) {
+func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 

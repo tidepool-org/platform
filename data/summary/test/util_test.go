@@ -168,17 +168,11 @@ var _ = Describe("Summary", func() {
 				Percent: 2,
 			}
 			d1 := &types.Range{}
-			d2 := &types.Range{}
-			types.BinDelta(r1, r2, d1, d2)
+			types.BinDelta(r1, r2, d1)
 
 			Expect(d1.Minutes).To(Equal(3))
-			Expect(d2.Minutes).To(Equal(-3))
-
 			Expect(d1.Records).To(Equal(4))
-			Expect(d2.Records).To(Equal(-4))
-
 			Expect(d1.Percent).To(Equal(5.0))
-			Expect(d2.Percent).To(Equal(-5.0))
 		})
 	})
 
@@ -187,11 +181,9 @@ var _ = Describe("Summary", func() {
 			a := 5
 			b := 2
 			c := 0
-			d := 0
-			types.Delta(&a, &b, &c, &d)
+			types.Delta(&a, &b, &c)
 
 			Expect(c).To(Equal(3))
-			Expect(d).To(Equal(-3))
 		})
 	})
 })

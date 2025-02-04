@@ -82,15 +82,15 @@ func RandomContinuousPeriod() *types.ContinuousPeriod {
 	}
 }
 
-func RandomCGMSummary(userId string) *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket] {
-	datum := types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+func RandomCGMSummary(userId string) *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket] {
+	datum := types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 		BaseSummary: types.BaseSummary{
 			Type:   "cgm",
 			UserID: userId,
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Stats: &types.CGMStats{
+		Stats: &types.CGMPeriods{
 			GlucoseStats: types.GlucoseStats{
 				Periods:       types.GlucosePeriods{},
 				OffsetPeriods: types.GlucosePeriods{},

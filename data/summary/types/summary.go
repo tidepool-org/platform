@@ -97,7 +97,7 @@ func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 }
 
 type Observations interface {
-	CGMStats | BGMPeriods | ContinuousStats
+	CGMPeriods | BGMPeriods | ContinuousPeriods
 }
 
 type ObservationsPt[S Observations, PB BucketDataPt[B], B BucketData] interface {

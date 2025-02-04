@@ -16,15 +16,13 @@ import (
 
 // This is a good example of what a summary type requires, as it does not share as many pieces as CGM/BGM
 
-type ContinuousStats struct {
-	Periods ContinuousPeriods `json:"periods" bson:"periods"`
-}
+type ContinuousPeriods map[string]*ContinuousPeriod
 
-func (*ContinuousStats) GetType() string {
+func (*ContinuousPeriods) GetType() string {
 	return SummaryTypeContinuous
 }
 
-func (*ContinuousStats) GetDeviceDataTypes() []string {
+func (*ContinuousPeriods) GetDeviceDataTypes() []string {
 	return []string{continuous.Type, selfmonitored.Type}
 }
 
@@ -119,13 +117,11 @@ func (p *ContinuousPeriod) Finalize(days int) {
 	p.AverageDailyRecords = float64(p.Total.Records) / float64(days)
 }
 
-type ContinuousPeriods map[string]*ContinuousPeriod
-
-func (s *ContinuousStats) Init() {
-	s.Periods = make(map[string]*ContinuousPeriod)
+func (s *ContinuousPeriods) Init() {
+	*s = make(map[string]*ContinuousPeriod)
 }
 
-func (s *ContinuousStats) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
+func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
 	// currently only supports day precision
 	nextStopPoint := 0
@@ -171,8 +167,8 @@ func (s *ContinuousStats) Update(ctx context.Context, bucketsCursor *mongo.Curso
 	return nil
 }
 
-func (s *ContinuousStats) CalculatePeriod(i int, _ bool, period ContinuousPeriod) {
+func (s *ContinuousPeriods) CalculatePeriod(i int, _ bool, period ContinuousPeriod) {
 	// We don't make a copy of period, as the struct has no pointers... right? you didn't add any pointers right?
 	period.Finalize(i)
-	s.Periods[strconv.Itoa(i)+"d"] = &period
+	(*s)[strconv.Itoa(i)+"d"] = &period
 }

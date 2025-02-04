@@ -34,7 +34,7 @@ var _ = Describe("Upload Helpers", func() {
 	var bucketsRepo *storeStructuredMongo.Repository
 	var dataRepo dataStore.DataRepository
 	var userId string
-	var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+	var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 	var bgmStore *dataStoreSummary.Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
 	var continuousStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 
@@ -53,7 +53,7 @@ var _ = Describe("Upload Helpers", func() {
 		registry = summary.New(summaryRepo, bucketsRepo, dataRepo)
 		userId = userTest.RandomID()
 
-		cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepo)
+		cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepo)
 		bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepo)
 		continuousStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepo)
 	})

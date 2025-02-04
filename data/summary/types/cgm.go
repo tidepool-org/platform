@@ -4,14 +4,14 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 )
 
-type CGMStats struct {
+type CGMPeriods struct {
 	GlucosePeriods
 }
 
-func (*CGMStats) GetType() string {
+func (*CGMPeriods) GetType() string {
 	return SummaryTypeCGM
 }
 
-func (*CGMStats) GetDeviceDataTypes() []string {
+func (*CGMPeriods) GetDeviceDataTypes() []string {
 	return []string{continuous.Type}
 }

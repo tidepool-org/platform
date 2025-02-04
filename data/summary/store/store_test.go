@@ -60,7 +60,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 			summaryRepository = createStore.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			cgmStore := dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+			cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 			Expect(cgmStore).ToNot(BeNil())
 		})
 
@@ -487,10 +487,10 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Get with multiple summaries of different type", func() {
-						cgmStore := dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+						cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 						bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -627,12 +627,12 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					It("Get outdated summaries with all types present", func() {
 						userIdFour := userTest.RandomID()
 						userIdFive := userTest.RandomID()
-						cgmStore := dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+						cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 						bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -671,11 +671,11 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 			})
 
 			Context("CGM", func() {
-				var userCGMSummary *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-				var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+				var userCGMSummary *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
+				var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 				BeforeEach(func() {
-					cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+					cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 				})
 
 				Context("ReplaceSummary", func() {
@@ -737,9 +737,9 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Update Summary", func() {
-						var userCGMSummaryTwo *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-						var userCGMSummaryWritten *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
-						var userCGMSummaryWrittenTwo *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+						var userCGMSummaryTwo *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
+						var userCGMSummaryWritten *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
+						var userCGMSummaryWrittenTwo *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 						// generate and insert first summary
 						userCGMSummary = generators.RandomCGMSummary(userId)
@@ -787,7 +787,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Delete Summary", func() {
-						var userCGMSummaryWritten *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+						var userCGMSummaryWritten *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 						userCGMSummary = generators.RandomCGMSummary(userId)
 						Expect(userCGMSummary.Type).To(Equal("cgm"))
@@ -813,7 +813,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 				Context("CreateSummaries", func() {
 					It("Create summaries with missing context", func() {
-						var summaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var summaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -830,7 +830,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Create summaries with an invalid type", func() {
-						var summaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var summaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -843,7 +843,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Create summaries with an empty userId", func() {
-						var summaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var summaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -857,7 +857,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 					It("Create summaries", func() {
 						var count int
-						var summaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var summaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -878,7 +878,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 				Context("SetOutdated", func() {
 					var outdatedSince *time.Time
-					var userCGMSummaryWritten *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+					var userCGMSummaryWritten *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 					It("With missing context", func() {
 						outdatedSince, err = cgmStore.SetOutdated(nil, userId, types.OutdatedReasonDataAdded)
@@ -1040,7 +1040,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("With multiple summaries", func() {
-						var summaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var summaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -1060,7 +1060,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 						bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 						continuousStore := dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepository)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -1127,7 +1127,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 					It("With outdated CGM summaries", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 							generators.RandomCGMSummary(userIdTwo),
@@ -1148,7 +1148,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					It("With a specific pagination size", func() {
 						var pagination = page.NewPagination()
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 							generators.RandomCGMSummary(userIdTwo),
@@ -1171,7 +1171,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 					It("Check sort order", func() {
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 							generators.RandomCGMSummary(userIdTwo),
@@ -1201,7 +1201,7 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -1615,10 +1615,10 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 					})
 
 					It("Get with multiple summaries of different type a", func() {
-						cgmStore := dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+						cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 						continuousStore := dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepository)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -1755,11 +1755,11 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 						userIdFour := userTest.RandomID()
 						userIdFive := userTest.RandomID()
 						continuousStore := dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepository)
-						cgmStore := dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+						cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 
 						var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
 
-						var cgmSummaries = []*types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]{
+						var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 							generators.RandomCGMSummary(userId),
 							generators.RandomCGMSummary(userIdOther),
 						}
@@ -1799,21 +1799,21 @@ var _ = Describe("Summary Observations Mongo", Label("mongodb", "slow", "integra
 
 			Context("Typeless", func() {
 				var userBGMSummary *types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-				var userCGMSummary *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+				var userCGMSummary *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 				var userContinuousSummary *types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 				var bgmStore *dataStoreSummary.Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-				var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+				var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 				var continuousStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 
 				BeforeEach(func() {
 					bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
-					cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepository)
+					cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 					continuousStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepository)
 				})
 
 				Context("DeleteSummary", func() {
 					It("Delete All Summaries for User", func() {
-						var userCGMSummaryWritten *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+						var userCGMSummaryWritten *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 						var userBGMSummaryWritten *types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
 						var userContinuousSummaryWritten *types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
 

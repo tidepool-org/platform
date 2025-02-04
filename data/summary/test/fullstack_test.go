@@ -50,18 +50,18 @@ var _ = Describe("End to end summary calculations", func() {
 	var userId string
 	var datumTime time.Time
 	var deviceData []mongo.WriteModel
-	//var cgmStore *dataStoreSummary.Summaries[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+	//var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 	var bgmStore *dataStoreSummary.Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
 	var cgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
 	var bgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
 	var conBucketsStore *dataStoreSummary.Buckets[*types.ContinuousBucket, types.ContinuousBucket]
-	//var conStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
-	var cgmSummarizer summary.Summarizer[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+	//var conStore *dataStoreSummary.Summaries[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
+	var cgmSummarizer summary.Summarizer[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 	var bgmSummarizer summary.Summarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var continuousSummarizer summary.Summarizer[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
-	var cgmSummary *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+	var continuousSummarizer summary.Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
+	var cgmSummary *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 	var bgmSummary *types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var conSummary *types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
+	var conSummary *types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
 	var dataCollection *mongo.Collection
 
 	BeforeEach(func() {
@@ -81,16 +81,16 @@ var _ = Describe("End to end summary calculations", func() {
 		datumTime = time.Now().UTC().Truncate(time.Hour)
 		dataCollection = store.GetCollection("deviceData")
 
-		//cgmStore = dataStoreSummary.NewSummaries[*types.CGMStats, *types.GlucoseBucket](summaryRepo)
+		//cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepo)
 		bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepo)
 		cgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeCGM)
 		bgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeBGM)
 		conBucketsStore = dataStoreSummary.NewBuckets[*types.ContinuousBucket](bucketsRepo, types.SummaryTypeContinuous)
-		//conStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepo)
+		//conStore = dataStoreSummary.NewSummaries[*types.ContinuousPeriods, *types.ContinuousBucket](summaryRepo)
 
-		cgmSummarizer = summary.GetSummarizer[*types.CGMStats, *types.GlucoseBucket](registry)
+		cgmSummarizer = summary.GetSummarizer[*types.CGMPeriods, *types.GlucoseBucket](registry)
 		bgmSummarizer = summary.GetSummarizer[*types.BGMPeriods, *types.GlucoseBucket](registry)
-		continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats, *types.ContinuousBucket](registry)
+		continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
 	})
 
 	AfterEach(func() {
@@ -313,7 +313,7 @@ var _ = Describe("End to end summary calculations", func() {
 	})
 
 	It("summary calc with no new data correctly leaves summary unchanged", func() {
-		var cgmSummaryNew *types.Summary[*types.CGMStats, *types.GlucoseBucket, types.CGMStats, types.GlucoseBucket]
+		var cgmSummaryNew *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 		opts := options.BulkWrite().SetOrdered(false)
 		deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
