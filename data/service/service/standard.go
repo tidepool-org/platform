@@ -523,8 +523,12 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		},
 	}
 
-	eventsRunner := dataEvents.NewCascadingSaramaEventsRunner(runnerCfg, s.Logger(),
-		[]time.Duration{0, 1 * time.Second, 2 * time.Second, 3 * time.Second, 5 * time.Second})
+	retryDelays := []time.Duration{0, 1 * time.Second}
+	if strings.Contains(commonConfig.KafkaTopicPrefix, "tidepool-prod") {
+		// Kakfa topics/partitions aren't cheap, so minimize costs outside of production.
+		retryDelays = append(retryDelays, 2*time.Second, 3*time.Second, 5*time.Second)
+	}
+	eventsRunner := dataEvents.NewCascadingSaramaEventsRunner(runnerCfg, s.Logger(), retryDelays)
 	runner := dataEvents.NewSaramaRunner(eventsRunner)
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
