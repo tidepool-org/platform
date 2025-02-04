@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"time"
@@ -35,26 +34,14 @@ func NewSaramaEventsConsumer(consumerGroup sarama.ConsumerGroup,
 // Run is stopped by its context being canceled. When its context is canceled,
 // it returns nil.
 func (p *SaramaEventsConsumer) Run(ctx context.Context) (err error) {
-	defer canceledContextReturnsNil(&err)
-
 	for {
 		err := p.ConsumerGroup.Consume(ctx, p.Topics, p.Handler)
 		if err != nil {
 			return err
 		}
 		if ctxErr := ctx.Err(); ctxErr != nil {
-			return ctxErr
+			return nil
 		}
-	}
-}
-
-// canceledContextReturnsNil checks for a context.Canceled error, and when
-// found, returns nil instead.
-//
-// It is meant to be called via defer.
-func canceledContextReturnsNil(err *error) {
-	if err != nil && errors.Is(*err, context.Canceled) {
-		*err = nil
 	}
 }
 
@@ -62,18 +49,25 @@ func canceledContextReturnsNil(err *error) {
 type SaramaConsumerGroupHandler struct {
 	Consumer        SaramaMessageConsumer
 	ConsumerTimeout time.Duration
+	Logger          Logger
 }
 
 // NewSaramaConsumerGroupHandler builds a consumer group handler.
 //
 // A timeout of 0 will use DefaultMessageConsumptionTimeout.
-func NewSaramaConsumerGroupHandler(consumer SaramaMessageConsumer, timeout time.Duration) *SaramaConsumerGroupHandler {
+func NewSaramaConsumerGroupHandler(logger Logger, consumer SaramaMessageConsumer,
+	timeout time.Duration) *SaramaConsumerGroupHandler {
+
 	if timeout == 0 {
 		timeout = DefaultMessageConsumptionTimeout
+	}
+	if logger == nil {
+		logger = slog.Default()
 	}
 	return &SaramaConsumerGroupHandler{
 		Consumer:        consumer,
 		ConsumerTimeout: timeout,
+		Logger:          logger,
 	}
 }
 
@@ -93,20 +87,28 @@ func (h *SaramaConsumerGroupHandler) Cleanup(_ sarama.ConsumerGroupSession) erro
 func (h *SaramaConsumerGroupHandler) ConsumeClaim(session sarama.ConsumerGroupSession,
 	claim sarama.ConsumerGroupClaim) error {
 
-	for message := range claim.Messages() {
-		err := func() error {
-			ctx, cancel := context.WithTimeout(context.Background(), h.ConsumerTimeout)
-			defer cancel()
-			return h.Consumer.Consume(ctx, session, message)
-		}()
-		switch {
-		case errors.Is(err, context.DeadlineExceeded):
-			log.Print(err)
-		case !errors.Is(err, nil):
-			return err
+	done := session.Context().Done()
+	for {
+		select {
+		case <-done:
+			return nil
+		case message, more := <-claim.Messages():
+			if !more {
+				return nil
+			}
+			err := func() error {
+				ctx, cancel := context.WithTimeout(session.Context(), h.ConsumerTimeout)
+				defer cancel()
+				return h.Consumer.Consume(ctx, session, message)
+			}()
+			switch {
+			case errors.Is(err, context.DeadlineExceeded):
+				h.Logger.Log(session.Context(), slog.LevelDebug, err.Error())
+			case !errors.Is(err, nil):
+				return err
+			}
 		}
 	}
-	return nil
 }
 
 // Close implements sarama.ConsumerGroupHandler.
@@ -136,7 +138,7 @@ type NTimesRetryingConsumer struct {
 	Times    int
 	Consumer SaramaMessageConsumer
 	Delay    func(tries int) time.Duration
-	Logger   func(ctx context.Context) Logger
+	Logger   Logger
 }
 
 // Logger is an intentionally minimal interface for basic logging.
@@ -147,7 +149,7 @@ type Logger interface {
 }
 
 func (c *NTimesRetryingConsumer) Consume(ctx context.Context,
-	session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) error {
+	session sarama.ConsumerGroupSession, message *sarama.ConsumerMessage) (err error) {
 
 	var joinedErrors error
 	var tries int = 0
@@ -156,29 +158,20 @@ func (c *NTimesRetryingConsumer) Consume(ctx context.Context,
 		c.Delay = DelayFibonacci
 	}
 	if c.Logger == nil {
-		c.Logger = func(_ context.Context) Logger { return slog.Default() }
+		c.Logger = slog.Default()
 	}
-	logger := c.Logger(ctx)
 	done := ctx.Done()
 	for tries < c.Times {
 		select {
 		case <-done:
-			if ctxErr := ctx.Err(); ctxErr != nil {
-				return ctxErr
-			}
 			return nil
 		case <-time.After(delay):
 			err := c.Consumer.Consume(ctx, session, message)
-			if err == nil {
-				return nil
-			}
-			if c.isContextErr(err) {
-				return err
-			} else if errors.Is(err, nil) {
+			if errors.Is(err, nil) || errors.Is(err, context.Canceled) {
 				return nil
 			}
 			delay = c.Delay(tries)
-			logger.Log(ctx, slog.LevelInfo, "failure consuming Kafka message, will retry",
+			c.Logger.Log(ctx, slog.LevelInfo, "failure consuming Kafka message, will retry",
 				slog.Attr{Key: "tries", Value: slog.IntValue(tries)},
 				slog.Attr{Key: "times", Value: slog.IntValue(c.Times)},
 				slog.Attr{Key: "delay", Value: slog.DurationValue(delay)},
@@ -190,10 +183,6 @@ func (c *NTimesRetryingConsumer) Consume(ctx context.Context,
 	}
 
 	return errors.Join(joinedErrors, c.retryLimitError())
-}
-
-func (c *NTimesRetryingConsumer) isContextErr(err error) bool {
-	return errors.Is(err, context.DeadlineExceeded) || errors.Is(err, context.Canceled)
 }
 
 func (c *NTimesRetryingConsumer) retryLimitError() error {

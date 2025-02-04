@@ -619,7 +619,7 @@ func (s *mockSaramaConsumerGroupSession) MarkMessage(msg *sarama.ConsumerMessage
 }
 
 func (s *mockSaramaConsumerGroupSession) Context() context.Context {
-	panic("not implemented") // implement if needed
+	return context.Background()
 }
 
 type mockSaramaConsumerGroupClaim struct {
