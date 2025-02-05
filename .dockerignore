@@ -62,9 +62,11 @@ README.md
 .gitmodules
 private/plugin/redwood/.git
 private/plugin/redwood/.gitignore
-
-# Travis
-.travis.yml
+private/plugin/redwood/Makefile
 
 # Docker
 .dockerignore
+Dockerfile
+
+# Travis
+.travis.yml

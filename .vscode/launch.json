@@ -2,6 +2,39 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "[remote] auth",
+            "type": "go",
+            "debugAdapter": "dlv-dap",
+            "request": "attach",
+            "mode": "remote",
+            "port": 19222,
+            "substitutePath": [
+                { "from": "${workspaceFolder}", "to": "/build" },
+            ]
+        },
+        {
+            "name": "[remote] data",
+            "type": "go",
+            "debugAdapter": "dlv-dap",
+            "request": "attach",
+            "mode": "remote",
+            "port": 19220,
+            "substitutePath": [
+                { "from": "${workspaceFolder}", "to": "/build" },
+            ]
+        },
+        {
+            "name": "[remote] task",
+            "type": "go",
+            "debugAdapter": "dlv-dap",
+            "request": "attach",
+            "mode": "remote",
+            "port": 19224,
+            "substitutePath": [
+                { "from": "${workspaceFolder}", "to": "/build" },
+            ]
+        },
+        {
             "name": "auth",
             "type": "go",
             "request": "launch",
@@ -32,21 +65,6 @@
             }
         },
         {
-            "name": "notification",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceRoot}/services/notification",
-            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
-            "cwd": "${workspaceRoot}",
-            "hideSystemGoroutines": true,
-            "envFile": "${workspaceRoot}/notification.env",
-            "env": {
-                "TIDEPOOL_DEBUG_NAME": "notification",
-                "TIDEPOOL_LOGGER_LEVEL": "debug"
-            }
-        },
-        {
             "name": "task",
             "type": "go",
             "request": "launch",
@@ -61,38 +79,31 @@
                 "TIDEPOOL_LOGGER_LEVEL": "debug"
             }
         },
-        {
-            "name": "user",
-            "type": "go",
-            "request": "launch",
-            "mode": "debug",
-            "program": "${workspaceRoot}/services/user",
-            "buildFlags": "-mod=readonly -ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
-            "cwd": "${workspaceRoot}",
-            "hideSystemGoroutines": true,
-            "envFile": "${workspaceRoot}/user.env",
-            "env": {
-                "TIDEPOOL_DEBUG_NAME": "user",
-                "TIDEPOOL_LOGGER_LEVEL": "debug"
-            }
-        }
     ],
     "compounds": [
         {
+            "name": "[remote] auth, data",
+            "configurations": [ "[remote] auth", "[remote] data" ]
+        },
+        {
+            "name": "[remote] auth, task",
+            "configurations": [ "[remote] auth", "[remote] task" ]
+        },
+        {
+            "name": "[remote] auth, data, task",
+            "configurations": [ "[remote] auth", "[remote] data", "[remote] task" ]
+        },
+        {
             "name": "auth, data",
-            "configurations": ["auth", "data"]
+            "configurations": [ "auth", "data" ]
         },
         {
             "name": "auth, task",
-            "configurations": ["auth", "task"]
+            "configurations": [ "auth", "task" ]
         },
         {
             "name": "auth, data, task",
-            "configurations": ["auth", "data", "task"]
+            "configurations": [ "auth", "data", "task" ]
         },
-        {
-            "name": "auth, data, notification, task, user",
-            "configurations": ["auth", "data", "notification", "task", "user"]
-        }
     ]
 }
