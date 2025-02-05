@@ -6,6 +6,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -13,6 +16,18 @@ import (
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+)
+
+var (
+	QueueLag = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "tidepool_summary_queue_lag",
+		Help:    "The current queue lag in seconds",
+		Buckets: []float64{0.5, 1, 2.5, 5, 7.5, 10, 25, 50, 75, 100, 150, 250, 500, 1000},
+	}, []string{"type"})
+	QueueLength = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_summary_queue_length",
+		Help: "The current queue length in number of summaries",
+	}, []string{"type"})
 )
 
 type Repo[A types.StatsPt[T], T types.Stats] struct {
@@ -213,6 +228,14 @@ func (r *Repo[A, T]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	return userSummary.Dates.OutdatedSince, nil
 }
 
+func (r *Repo[T, A]) GetSummaryQueueLength(ctx context.Context) (int64, error) {
+	selector := bson.M{
+		"type":                types.GetTypeString[T, A](),
+		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
+	}
+	return r.CountDocuments(ctx, selector)
+}
+
 func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -221,8 +244,10 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		return nil, errors.New("pagination is missing")
 	}
 
+	typ := types.GetTypeString[T, A]()
+
 	selector := bson.M{
-		"type":                types.GetTypeString[T, A](),
+		"type":                typ,
 		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 	}
 
@@ -231,7 +256,7 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 		{Key: "dates.outdatedSince", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
-	opts.SetProjection(bson.M{"stats": 0})
+	opts.SetProjection(bson.M{"userId": 1, "dates": 1})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if err != nil {
@@ -259,6 +284,13 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	if !response.Start.IsZero() {
 		response.End = *userSummary.Dates.OutdatedSince
 	}
+
+	QueueLag.WithLabelValues(typ).Observe(time.Now().UTC().Sub(response.Start).Seconds())
+	count, err := r.GetSummaryQueueLength(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get summary queue length: %w", err)
+	}
+	QueueLength.WithLabelValues(typ).Set(float64(count))
 
 	return response, nil
 }

@@ -1,9 +1,24 @@
 package v1
 
 import (
+	"net/http"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/tidepool-org/platform/data/service"
+	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/service/api"
 )
+
+func PrometheusMetrics(dataServiceContext dataService.Context) {
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	// The default go-json-rest middleware gzips the content
+	promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{DisableCompression: true}).
+		ServeHTTP(res.(http.ResponseWriter), req.Request)
+}
 
 func Routes() []service.Route {
 	routes := []service.Route{
@@ -20,6 +35,7 @@ func Routes() []service.Route {
 		service.Put("/v1/data_sets/:dataSetId", DataSetsUpdate, api.RequireAuth),
 		service.Get("/v1/time", TimeGet),
 		service.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, api.RequireAuth),
+		service.Get("/v1/metrics", PrometheusMetrics),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)
