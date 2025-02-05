@@ -132,7 +132,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "providerSessionId": providerSession.ID})
+	logger := log.LoggerFromContext(ctx)
 
 	taskFilter := task.NewTaskFilter()
 	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSession.ID))

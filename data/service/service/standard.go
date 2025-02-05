@@ -487,7 +487,7 @@ func (s *Standard) initializeRedwoodClient() error {
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		reporter := s.ConfigReporter().WithScopes("redwood", "client")
+		reporter := s.ConfigReporter().WithScopes("abbott", "client")
 		loader := client.NewConfigReporterLoader(reporter)
 		if err = cfg.Load(loader); err != nil {
 			return errors.Wrap(err, "unable to load redwood client config")

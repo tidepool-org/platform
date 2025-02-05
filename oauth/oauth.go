@@ -21,7 +21,6 @@ type Provider interface {
 	provider.Provider
 	TokenSourceSource
 
-	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
 	GetAuthorizationCodeURLWithState(state string) string
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error)
 }

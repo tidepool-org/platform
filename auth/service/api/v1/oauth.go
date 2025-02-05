@@ -18,7 +18,6 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
 )
@@ -59,8 +58,7 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 		return
 	}
 
-	responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
-	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(details.Token())))
+	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(details.Token()))
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
@@ -98,7 +96,6 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 }
 
 func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	query := req.URL.Query()
 
@@ -114,7 +111,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	redirectURLDeclined := req.BaseUrl()
 	redirectURLDeclined.Path = path.Join(redirectURLDeclined.Path, prvdr.Type(), prvdr.Name(), "declined")
 
-	restrictedToken, err := r.oauthProviderRestrictedToken(req.Request, prvdr)
+	restrictedToken, err := r.oauthProviderRestrictedToken(req.Request)
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
@@ -141,8 +138,6 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		redirectURLAuthorized.RawQuery = signupParams.Encode()
 		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
-
-	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
 
 	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
@@ -214,20 +209,13 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 	return oauthProvider, nil
 }
 
-func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
-	state := req.URL.Query().Get("state")
-	errorCode := req.URL.Query().Get("error")
-	cookieName := r.providerCookieName(prvdr)
-	for _, cookie := range req.Cookies() {
-		if cookie.Name == cookieName {
-			if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), cookie.Value); err != nil {
-				return nil, err
-			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (errorCode == oauth.ErrorAccessDenied || state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)) {
-				return restrictedToken, nil
-			}
-		}
+func (r *Router) oauthProviderRestrictedToken(req *http.Request) (*auth.RestrictedToken, error) {
+	restrictedTokenID := req.URL.Query().Get("state")
+	if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), restrictedTokenID); err != nil || restrictedToken == nil || !restrictedToken.Authenticates(req) {
+		return nil, request.ErrorUnauthenticated()
+	} else {
+		return restrictedToken, nil
 	}
-	return nil, request.ErrorUnauthenticated()
 }
 
 func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request, html string) {
@@ -244,33 +232,6 @@ func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err err
 		strings.Replace(htmlOnError, "{{ MESSAGES }}", strings.Join(messages, " "), -1),
 		request.NewHeaderMutator("Content-Type", "text/html"),
 	)
-}
-
-func (r *Router) providerCookie(prvdr provider.Provider, value string, maxAge int) *http.Cookie {
-	name := r.providerCookieName(prvdr)
-	path := r.providerCookiePath(prvdr)
-	domain := r.Domain()
-	secure := (domain != "localhost")
-
-	cookie := &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     path,
-		Domain:   domain,
-		MaxAge:   maxAge,
-		Secure:   secure,
-		HttpOnly: true,
-	}
-
-	return cookie
-}
-
-func (r *Router) providerCookieName(prvdr provider.Provider) string {
-	return fmt.Sprintf("org.tidepool.provider.%s.%s", prvdr.Type(), prvdr.Name())
-}
-
-func (r *Router) providerCookiePath(prvdr provider.Provider) string {
-	return fmt.Sprintf("/v1/%s/%s", prvdr.Type(), prvdr.Name())
 }
 
 const htmlOnRedirect = `

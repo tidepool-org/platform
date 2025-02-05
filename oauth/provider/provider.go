@@ -2,13 +2,11 @@ package provider
 
 import (
 	"context"
-	"fmt"
 
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -90,10 +88,6 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 	}
 
 	return tknSrc, nil
-}
-
-func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
-	return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
 }
 
 func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
