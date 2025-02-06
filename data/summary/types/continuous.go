@@ -53,7 +53,7 @@ type ContinuousBucket struct {
 	ContinuousRanges `json:",inline" bson:",inline"`
 }
 
-func (b *ContinuousBucket) Update(r data.Datum, _ *BaseBucket) (bool, error) {
+func (b *ContinuousBucket) Update(r data.Datum, _ *time.Time) (bool, error) {
 	dataRecord, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("cgm or bgm record for calculation is not compatible with Glucose type")

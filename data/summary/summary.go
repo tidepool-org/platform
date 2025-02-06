@@ -224,7 +224,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 	return result.(*types.Summary[PP, PB, P, B]), err
 }
 
-func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userId string, typ string, cursor fetcher.DeviceDataCursor) error {
+func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userId string, summaryType string, cursor fetcher.DeviceDataCursor) error {
 	hasMoreData := true
 	for hasMoreData {
 		userData, err := cursor.GetNextBatch(ctx)
@@ -242,7 +242,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, us
 				return err
 			}
 
-			err = buckets.Update(types.CreateBucketForUser[PB](userId, typ), userData)
+			err = buckets.Update(types.CreateBucketForUser[PB](userId, summaryType), userData)
 			if err != nil {
 				return err
 			}
