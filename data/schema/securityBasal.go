@@ -46,7 +46,12 @@ func (s *SecurityBasals) MapForBasalSecurity(event *basalsecurity.BasalSecurity)
 	basalRateScheduleArray := event.BasalRateSchedule
 	if basalRateScheduleArray != nil {
 		for _, brs := range *basalRateScheduleArray {
-			item := SecurityBasalRates{Start: brs.Start}
+			// convert start in ms to minutes
+			item := SecurityBasalRates{}
+			if brs.Start != nil {
+				startInMin := *brs.Start / 60000 // 60*1000
+				item.Start = &startInMin
+			}
 			if brs.Rate != nil {
 				value := float32(*brs.Rate)
 				item.Rate = &value

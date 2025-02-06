@@ -1,6 +1,10 @@
 # Platform 
 The data platform API
 
+## 0.28.2 - 2025-02-02
+### Fixed
+- YLP-3425 fix start value
+
 ## 0.28.1 - 2024-01-20
 ### Fixed
 - add missing log fields for our dashboard and reduce info log
