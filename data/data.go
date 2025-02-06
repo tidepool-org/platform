@@ -3,6 +3,7 @@ package data
 import (
 	"regexp"
 	"strconv"
+	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
@@ -132,3 +133,16 @@ func ErrorValueStringAsIDNotValid(value string) error {
 }
 
 var idExpression = regexp.MustCompile("^[0-9a-z]{32}$") // TODO: Want just "[0-9a-f]{32}" (Jellyfish uses [0-9a-z])
+
+// UserDataStatus is used to track the state of the user's data at the start of a summary calculation
+type UserDataStatus struct {
+	FirstData time.Time
+	LastData  time.Time
+
+	EarliestModified time.Time
+
+	LastUpload time.Time
+
+	LastUpdated     time.Time
+	NextLastUpdated time.Time
+}

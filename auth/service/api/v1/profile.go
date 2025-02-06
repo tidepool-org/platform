@@ -10,6 +10,7 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"golang.org/x/sync/errgroup"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
@@ -205,7 +206,7 @@ func (r *Router) updateProfile(res rest.ResponseWriter, req *rest.Request, profi
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	if err := structValidator.New().Validate(profile); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
@@ -224,7 +225,7 @@ func (r *Router) updateLegacyProfile(res rest.ResponseWriter, req *rest.Request,
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	if err := structValidator.New().Validate(profile); err != nil {
+	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}

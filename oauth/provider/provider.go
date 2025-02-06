@@ -51,6 +51,11 @@ func NewProvider(name string, configReporter config.Reporter) (*Provider, error)
 	}
 	cfg.Scopes = SplitScopes(configReporter.GetWithDefault("scopes", ""))
 
+	authStyleInParams := configReporter.GetWithDefault("auth_style_in_params", "")
+	if authStyleInParams == "true" {
+		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
+	}
+
 	stateSalt := configReporter.GetWithDefault("state_salt", "")
 	if stateSalt == "" {
 		return nil, errors.New("state salt is missing")

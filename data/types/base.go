@@ -53,6 +53,7 @@ type Base struct {
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
+	Provenance        *data.Provenance              `json:"-" bson:"provenance,omitempty"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *time.Time                    `json:"time,omitempty" bson:"time,omitempty"`
@@ -274,6 +275,14 @@ func (b *Base) GetTime() *time.Time {
 	return b.Time
 }
 
+func (b *Base) GetTimeZoneOffset() *int {
+	return b.TimeZoneOffset
+}
+
+func (b *Base) GetUploadID() *string {
+	return b.UploadID
+}
+
 func (b *Base) GetType() string {
 	return b.Type
 }
@@ -300,6 +309,10 @@ func (b *Base) SetActive(active bool) {
 
 func (b *Base) SetDeviceID(deviceID *string) {
 	b.DeviceID = deviceID
+}
+
+func (b *Base) GetCreatedTime() *time.Time {
+	return b.CreatedTime
 }
 
 func (b *Base) SetCreatedTime(createdTime *time.Time) {
@@ -332,6 +345,10 @@ func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 
 func (b *Base) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.DeduplicatorDescriptor) {
 	b.Deduplicator = deduplicatorDescriptor
+}
+
+func (b *Base) SetProvenance(provenance *data.Provenance) {
+	b.Provenance = provenance
 }
 
 func latestTime(tms ...time.Time) time.Time {

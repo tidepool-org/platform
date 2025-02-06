@@ -14,10 +14,11 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewStoreFromBase(store), nil
+}
 
-	return &Store{
-		Store: store,
-	}, nil
+func NewStoreFromBase(base *storeStructuredMongo.Store) *Store {
+	return &Store{Store: base}
 }
 
 func (s *Store) EnsureIndexes() error {

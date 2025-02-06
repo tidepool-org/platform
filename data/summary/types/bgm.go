@@ -1,25 +1,26 @@
 package types
 
 import (
+	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/pointer"
 )
 
 type BGMBucketData struct {
-	TargetRecords   int `json:"targetRecords" bson:"targetRecords"`
-	AverageReadings int `json:"averageReadings" bson:"averageReadings"`
-	LowRecords      int `json:"lowRecords" bson:"lowRecords"`
-	VeryLowRecords  int `json:"veryLowRecords" bson:"veryLowRecords"`
-	HighRecords     int `json:"highRecords" bson:"highRecords"`
-	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
+	TargetRecords      int `json:"targetRecords" bson:"targetRecords"`
+	AverageReadings    int `json:"averageReadings" bson:"averageReadings"`
+	LowRecords         int `json:"lowRecords" bson:"lowRecords"`
+	VeryLowRecords     int `json:"veryLowRecords" bson:"veryLowRecords"`
+	HighRecords        int `json:"highRecords" bson:"highRecords"`
+	VeryHighRecords    int `json:"veryHighRecords" bson:"veryHighRecords"`
+	ExtremeHighRecords int `json:"extremeHighRecords" bson:"extremeHighRecords"`
 
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
@@ -86,6 +87,14 @@ type BGMPeriod struct {
 	TimeInVeryHighRecords      *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta" bson:"timeInVeryHighRecordsDelta"`
 
+	HasTimeInExtremeHighRecords   bool `json:"hasTimeInExtremeHighRecords" bson:"hasTimeInExtremeHighRecords"`
+	TimeInExtremeHighRecords      *int `json:"timeInExtremeHighRecords" bson:"timeInExtremeHighRecords"`
+	TimeInExtremeHighRecordsDelta *int `json:"timeInExtremeHighRecordsDelta" bson:"timeInExtremeHighRecordsDelta"`
+
+	HasTimeInExtremeHighPercent   bool     `json:"hasTimeInExtremeHighPercent" bson:"hasTimeInExtremeHighPercent"`
+	TimeInExtremeHighPercent      *float64 `json:"timeInExtremeHighPercent" bson:"timeInExtremeHighPercent"`
+	TimeInExtremeHighPercentDelta *float64 `json:"timeInExtremeHighPercentDelta" bson:"timeInExtremeHighPercentDelta"`
+
 	HasTimeInAnyHighPercent   bool     `json:"hasTimeInAnyHighPercent" bson:"hasTimeInAnyHighPercent"`
 	TimeInAnyHighPercent      *float64 `json:"timeInAnyHighPercent" bson:"timeInAnyHighPercent"`
 	TimeInAnyHighPercentDelta *float64 `json:"timeInAnyHighPercentDelta" bson:"timeInAnyHighPercentDelta"`
@@ -98,22 +107,22 @@ type BGMPeriod struct {
 type BGMPeriods map[string]*BGMPeriod
 
 type BGMStats struct {
-	Periods       BGMPeriods                             `json:"periods" bson:"periods"`
-	OffsetPeriods BGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	Buckets       Buckets[BGMBucketData, *BGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       BGMPeriods                               `json:"periods" bson:"periods"`
+	OffsetPeriods BGMPeriods                               `json:"offsetPeriods" bson:"offsetPeriods"`
+	Buckets       []*Bucket[*BGMBucketData, BGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours    int                                      `json:"totalHours" bson:"totalHours"`
 }
 
 func (*BGMStats) GetType() string {
 	return SummaryTypeBGM
 }
 
-func (*BGMStats) GetDeviceDataType() string {
-	return selfmonitored.Type
+func (*BGMStats) GetDeviceDataTypes() []string {
+	return []string{selfmonitored.Type}
 }
 
 func (s *BGMStats) Init() {
-	s.Buckets = make(Buckets[BGMBucketData, *BGMBucketData], 0)
+	s.Buckets = make([]*Bucket[*BGMBucketData, BGMBucketData], 0)
 	s.Periods = make(map[string]*BGMPeriod)
 	s.OffsetPeriods = make(map[string]*BGMPeriod)
 	s.TotalHours = 0
@@ -127,22 +136,46 @@ func (s *BGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *BGMStats) Update(userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("BGM records for calculation is not compatible with Glucose type")
+func (s *BGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
+	if len(s.Buckets) == 0 {
+		return
+	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
+		// we are before all existing buckets, remake for GC
+		s.Buckets = make([]*Bucket[*BGMBucketData, BGMBucketData], 0)
+		return
 	}
 
-	for i, v := range userDataTyped {
-		if v.Type != selfmonitored.Type {
-			return fmt.Errorf("Non-BGM data provided for BGM summary update at position %d", i)
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
+
+	for i := offset; i < len(s.Buckets); i++ {
+		s.Buckets[i] = nil
+	}
+	s.Buckets = s.Buckets[:offset]
+
+	if len(s.Buckets) > 0 {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	}
+	return
+}
+
+func (s *BGMStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
+	hasMoreData := true
+	for hasMoreData {
+		userData, err := cursor.GetNextBatch(ctx)
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
+			return err
 		}
-	}
 
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[BGMBucketData, *BGMBucketData](&s.Buckets, userDataTyped)
-	if err != nil {
-		return err
+		if len(userData) > 0 {
+			err = AddData(&s.Buckets, userData)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	s.CalculateSummary()
@@ -162,6 +195,11 @@ func (B *BGMBucketData) CalculateStats(r any, _ *time.Time) (bool, error) {
 		B.VeryLowRecords++
 	} else if normalizedValue > veryHighBloodGlucose {
 		B.VeryHighRecords++
+
+		// veryHigh is inclusive of extreme high, this is intentional
+		if normalizedValue >= extremeHighBloodGlucose {
+			B.ExtremeHighRecords++
+		}
 	} else if normalizedValue < lowBloodGlucose {
 		B.LowRecords++
 	} else if normalizedValue > highBloodGlucose {
@@ -199,6 +237,7 @@ func (s *BGMStats) CalculateSummary() {
 			totalStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
 			totalStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
 			totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+			totalStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
 
 			totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
@@ -217,6 +256,7 @@ func (s *BGMStats) CalculateSummary() {
 			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
 			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
 			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+			totalOffsetStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
 
 			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
@@ -348,6 +388,20 @@ func (s *BGMStats) CalculateDelta() {
 			s.OffsetPeriods[k].TimeInVeryHighRecordsDelta = pointer.FromAny(-delta)
 		}
 
+		if s.Periods[k].TimeInExtremeHighPercent != nil && s.OffsetPeriods[k].TimeInExtremeHighPercent != nil {
+			delta := *s.Periods[k].TimeInExtremeHighPercent - *s.OffsetPeriods[k].TimeInExtremeHighPercent
+
+			s.Periods[k].TimeInExtremeHighPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInExtremeHighPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInExtremeHighRecords != nil && s.OffsetPeriods[k].TimeInExtremeHighRecords != nil {
+			delta := *s.Periods[k].TimeInExtremeHighRecords - *s.OffsetPeriods[k].TimeInExtremeHighRecords
+
+			s.Periods[k].TimeInExtremeHighRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInExtremeHighRecordsDelta = pointer.FromAny(-delta)
+		}
+
 		if s.Periods[k].TimeInAnyHighPercent != nil && s.OffsetPeriods[k].TimeInAnyHighPercent != nil {
 			delta := *s.Periods[k].TimeInAnyHighPercent - *s.OffsetPeriods[k].TimeInAnyHighPercent
 
@@ -390,6 +444,9 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 		HasTimeInVeryHighRecords: true,
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 
+		HasTimeInExtremeHighRecords: true,
+		TimeInExtremeHighRecords:    pointer.FromAny(totalStats.ExtremeHighRecords),
+
 		HasTimeInAnyHighRecords: true,
 		TimeInAnyHighRecords:    pointer.FromAny(totalStats.VeryHighRecords + totalStats.HighRecords),
 	}
@@ -412,6 +469,9 @@ func (s *BGMStats) CalculatePeriod(i int, offset bool, totalStats *BGMBucketData
 
 		newPeriod.HasTimeInVeryHighPercent = true
 		newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords) / float64(totalStats.TotalRecords))
+
+		newPeriod.HasTimeInExtremeHighPercent = true
+		newPeriod.TimeInExtremeHighPercent = pointer.FromAny(float64(totalStats.ExtremeHighRecords) / float64(totalStats.TotalRecords))
 
 		newPeriod.HasTimeInAnyHighPercent = true
 		newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))

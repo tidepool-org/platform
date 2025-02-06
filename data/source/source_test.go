@@ -16,6 +16,7 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -60,7 +61,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromFilter(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Filter{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -146,7 +147,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Filter), expectedErrors ...error) {
 					datum := dataSourceTest.RandomFilter()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Filter) {},
@@ -371,7 +372,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromCreate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Create{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -457,7 +458,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Create), expectedErrors ...error) {
 					datum := dataSourceTest.RandomCreate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Create) {},
@@ -509,58 +510,151 @@ var _ = Describe("Source", func() {
 						datum.ProviderName = pointer.FromString(authTest.RandomProviderType())
 					},
 				),
-				Entry("provider session id missing",
-					func(datum *dataSource.Create) { datum.ProviderSessionID = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				Entry("state missing; provider session id missing",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = nil
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
-				Entry("provider session id empty",
+				Entry("state missing; provider session id empty",
 					func(datum *dataSource.Create) {
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state missing; provider session id invalid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state missing; provider session id valid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state connected; provider session id missing",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("state connected; provider session id empty",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 				),
-				Entry("provider session id invalid",
+				Entry("state connected; provider session id invalid",
 					func(datum *dataSource.Create) {
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
 				),
-				Entry("provider session id valid",
+				Entry("state connected; provider session id valid",
 					func(datum *dataSource.Create) {
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+				),
+				Entry("state disconnected; provider session id missing",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+				),
+				Entry("state disconnected; provider session id empty",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state disconnected; provider session id invalid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state disconnected; provider session id valid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id missing",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id empty",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id invalid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+				),
+				Entry("state error; provider session id valid",
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 				),
 				Entry("state missing",
-					func(datum *dataSource.Create) { datum.State = nil },
+					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = nil
+						datum.State = nil
+					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
 				Entry("state empty",
 					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 						datum.State = pointer.FromString("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 				),
 				Entry("state invalid",
 					func(datum *dataSource.Create) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 						datum.State = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
 				),
 				Entry("state valid",
-					func(datum *dataSource.Create) {
-						datum.State = pointer.FromString(dataSourceTest.RandomState())
-					},
+					func(datum *dataSource.Create) {},
 				),
 				Entry("multiple errors",
 					func(datum *dataSource.Create) {
 						datum.ProviderType = nil
 						datum.ProviderName = nil
-						datum.ProviderSessionID = nil
+						datum.ProviderSessionID = pointer.FromString("")
 						datum.State = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
 			)
@@ -595,7 +689,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromUpdate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Update{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(dataSourceTest.MatchUpdate(expectedDatum))
 				},
 				Entry("succeeds",
@@ -753,135 +847,142 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Update), expectedErrors ...error) {
 					datum := dataSourceTest.RandomUpdate()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Update) {},
 				),
 				Entry("state missing; provider session id missing",
 					func(datum *dataSource.Update) {
-						datum.State = nil
 						datum.ProviderSessionID = nil
+						datum.State = nil
 					},
 				),
 				Entry("state missing; provider session id empty",
 					func(datum *dataSource.Update) {
-						datum.State = nil
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state missing; provider session id invalid",
 					func(datum *dataSource.Update) {
-						datum.State = nil
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = nil
 					},
-					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state missing; provider session id valid",
 					func(datum *dataSource.Update) {
-						datum.State = nil
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = nil
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state connected; provider session id missing",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("connected")
 						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString("connected")
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
 				),
 				Entry("state connected; provider session id empty",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("connected")
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString("connected")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 				),
 				Entry("state connected; provider session id invalid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("connected")
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString("connected")
 					},
 					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
 				),
 				Entry("state connected; provider session id valid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("connected")
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString("connected")
 					},
 				),
 				Entry("state disconnected; provider session id missing",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("disconnected")
 						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString("disconnected")
 					},
 				),
 				Entry("state disconnected; provider session id empty",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("disconnected")
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString("disconnected")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state disconnected; provider session id invalid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("disconnected")
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString("disconnected")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state disconnected; provider session id valid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("disconnected")
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString("disconnected")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state error; provider session id missing",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("error")
 						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString("error")
 					},
 				),
 				Entry("state error; provider session id empty",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("error")
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString("error")
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state error; provider session id invalid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("error")
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString("error")
 					},
-					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state error; provider session id valid",
 					func(datum *dataSource.Update) {
-						datum.State = pointer.FromString("error")
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString("error")
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
 				Entry("state missing",
 					func(datum *dataSource.Update) {
+						datum.ProviderSessionID = nil
 						datum.State = nil
 					},
 				),
 				Entry("state empty",
 					func(datum *dataSource.Update) {
+						datum.ProviderSessionID = nil
 						datum.State = pointer.FromString("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 				),
 				Entry("state invalid",
 					func(datum *dataSource.Update) {
+						datum.ProviderSessionID = nil
 						datum.State = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
 				),
 				Entry("state connected",
 					func(datum *dataSource.Update) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 						datum.State = pointer.FromString("connected")
 					},
 				),
@@ -893,6 +994,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("state error",
 					func(datum *dataSource.Update) {
+						datum.ProviderSessionID = nil
 						datum.State = pointer.FromString("error")
 					},
 				),
@@ -1042,7 +1144,7 @@ var _ = Describe("Source", func() {
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
 						datum.LastImportTime = pointer.FromTime(time.Time{})
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
@@ -1058,7 +1160,7 @@ var _ = Describe("Source", func() {
 					datum := dataSourceTest.RandomUpdate()
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneUpdate(datum)
-					normalizer := structureNormalizer.New()
+					normalizer := structureNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					Expect(normalizer.Normalize(datum)).ToNot(HaveOccurred())
 					if expectator != nil {
@@ -1149,7 +1251,7 @@ var _ = Describe("Source", func() {
 					object := dataSourceTest.NewObjectFromSource(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Source{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(dataSourceTest.MatchSource(expectedDatum))
 				},
 				Entry("succeeds",
@@ -1440,7 +1542,7 @@ var _ = Describe("Source", func() {
 				func(mutator func(datum *dataSource.Source), expectedErrors ...error) {
 					datum := dataSourceTest.RandomSource()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataSource.Source) {},
@@ -1538,46 +1640,139 @@ var _ = Describe("Source", func() {
 						datum.ProviderName = pointer.FromString(authTest.RandomProviderType())
 					},
 				),
-				Entry("provider session id missing",
-					func(datum *dataSource.Source) { datum.ProviderSessionID = nil },
+				Entry("state missing; provider session id missing",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = nil
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
-				Entry("provider session id empty",
+				Entry("state missing; provider session id empty",
 					func(datum *dataSource.Source) {
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state missing; provider session id invalid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state missing; provider session id valid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+				),
+				Entry("state connected; provider session id missing",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("state connected; provider session id empty",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 				),
-				Entry("provider session id invalid",
+				Entry("state connected; provider session id invalid",
 					func(datum *dataSource.Source) {
 						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
 				),
-				Entry("provider session id valid",
+				Entry("state connected; provider session id valid",
 					func(datum *dataSource.Source) {
 						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+				),
+				Entry("state disconnected; provider session id missing",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+				),
+				Entry("state disconnected; provider session id empty",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state disconnected; provider session id invalid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state disconnected; provider session id valid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateDisconnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id missing",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = nil
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id empty",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("")
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+				),
+				Entry("state error; provider session id invalid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString("invalid")
+						datum.State = pointer.FromString(dataSource.StateConnected)
+					},
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
+				),
+				Entry("state error; provider session id valid",
+					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 				),
 				Entry("state missing",
-					func(datum *dataSource.Source) { datum.State = nil },
+					func(datum *dataSource.Source) {
+						datum.State = nil
+					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
 				Entry("state empty",
 					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 						datum.State = pointer.FromString("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 				),
 				Entry("state invalid",
 					func(datum *dataSource.Source) {
+						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 						datum.State = pointer.FromString("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
 				),
 				Entry("state valid",
-					func(datum *dataSource.Source) {
-						datum.State = pointer.FromString(dataSourceTest.RandomState())
-					},
+					func(datum *dataSource.Source) {},
 				),
 				Entry("error missing",
 					func(datum *dataSource.Source) {
@@ -1812,7 +2007,7 @@ var _ = Describe("Source", func() {
 					datum := dataSourceTest.RandomSource()
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneSource(datum)
-					normalizer := structureNormalizer.New()
+					normalizer := structureNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					Expect(normalizer.Normalize(datum)).ToNot(HaveOccurred())
 					if expectator != nil {
@@ -1870,6 +2065,48 @@ var _ = Describe("Source", func() {
 					original.Error.Error = errors.Sanitize(unauthenticatedError)
 					Expect(sanitized).To(Equal(original))
 				})
+			})
+		})
+
+		Context("HasError", func() {
+			It("returns false if the error wrapper is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = nil
+				Expect(source.HasError()).To(BeFalse())
+			})
+
+			It("returns false if the error is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{}
+				Expect(source.HasError()).To(BeFalse())
+			})
+
+			It("returns true if the error is not nil", func() {
+				testErr := errorsTest.RandomError()
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{Error: testErr}
+				Expect(source.HasError()).To(BeTrue())
+			})
+		})
+
+		Context("GetError", func() {
+			It("returns nil if the error wrapper is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = nil
+				Expect(source.GetError()).To(BeNil())
+			})
+
+			It("returns nil if the error is nil", func() {
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{}
+				Expect(source.GetError()).To(BeNil())
+			})
+
+			It("returns the error if the error is not nil", func() {
+				testErr := errorsTest.RandomError()
+				source := dataSourceTest.RandomSource()
+				source.Error = &errors.Serializable{Error: testErr}
+				Expect(source.GetError()).To(Equal(testErr))
 			})
 		})
 	})

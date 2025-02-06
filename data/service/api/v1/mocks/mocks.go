@@ -3,11 +3,8 @@ package mocks
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"net/http"
 
 	"github.com/tidepool-org/platform/permission"
-	"github.com/tidepool-org/platform/request"
 )
 
 // likeT encapsulates some handy methods of testing.T
@@ -31,47 +28,6 @@ func MustMarshalJSON(t likeT, v any) []byte {
 		t.Fatalf("error marshaling JSON: %s", err)
 	}
 	return data
-}
-
-// AuthDetails implements request.AuthDetails with test helpers.
-type AuthDetails struct {
-	request.AuthDetails
-}
-
-func NewAuthDetailsDefault() *AuthDetails {
-	return NewAuthDetails(request.MethodSessionToken, TestUserID1, TestToken1)
-}
-
-func NewAuthDetails(authMethod request.Method, userID, token string) *AuthDetails {
-	return &AuthDetails{
-		AuthDetails: request.NewAuthDetails(authMethod, userID, token),
-	}
-}
-
-// mockResponseWriter extends http.ResponseWriter with test utility.
-type mockResponseWriter struct {
-	http.ResponseWriter
-}
-
-func NewResponseWriter(w http.ResponseWriter) *mockResponseWriter {
-	return &mockResponseWriter{
-		ResponseWriter: w,
-	}
-}
-
-// WriteJson is a method of rest.ResponseWriter that is useful to override.
-func (w *mockResponseWriter) WriteJson(object interface{}) error {
-	data, err := w.EncodeJson(object)
-	if err != nil {
-		return err
-	}
-	_, err = fmt.Fprint(w.ResponseWriter, string(data))
-	return err
-}
-
-// EncodeJson is a method of rest.ResponseWriter that is useful to override.
-func (c *mockResponseWriter) EncodeJson(v interface{}) ([]byte, error) {
-	return json.MarshalIndent(v, "", "  ")
 }
 
 type PermissionsMapMap map[string]map[string]permission.Permissions

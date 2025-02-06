@@ -23,36 +23,29 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
-	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Mongo", func() {
-	var config *storeStructuredMongo.Config
 	var logger *logTest.Logger
 	var store *blobStoreStructuredMongo.Store
 
 	BeforeEach(func() {
-		config = storeStructuredMongoTest.NewConfig()
 		logger = logTest.NewLogger()
-	})
-
-	AfterEach(func() {
-		if store != nil {
-			store.Terminate(context.Background())
-		}
 	})
 
 	Context("with a new store", func() {
 		var deviceLogsCollection *mongo.Collection
 
 		BeforeEach(func() {
-			var err error
-			store, err = blobStoreStructuredMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			store = GetSuiteStore()
 			deviceLogsCollection = store.GetCollection("deviceLogs")
+		})
+
+		AfterEach(func() {
+			if deviceLogsCollection != nil {
+				deviceLogsCollection.DeleteMany(context.Background(), bson.D{})
+			}
 		})
 
 		Context("NewDeviceLogsRepository", func() {

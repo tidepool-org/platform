@@ -34,7 +34,7 @@ var _ = Describe("Router", func() {
 	var svc *serviceTest.Service
 	var userAccessor *user.MockUserAccessor
 	var profileAccessor *user.MockUserProfileAccessor
-	var permsClient *permission.MockClient
+	var permsClient *permission.MockExtendedClient
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())

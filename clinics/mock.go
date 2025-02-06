@@ -6,10 +6,11 @@ package clinics
 
 import (
 	context "context"
+	url "net/url"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	api "github.com/tidepool-org/clinic/client"
+	client "github.com/tidepool-org/clinic/client"
 )
 
 // MockClient is a mock of Client interface.
@@ -36,10 +37,10 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 }
 
 // GetClinician mocks base method.
-func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*api.Clinician, error) {
+func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*client.Clinician, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClinician", ctx, clinicID, clinicianID)
-	ret0, _ := ret[0].(*api.Clinician)
+	ret0, _ := ret[0].(*client.Clinician)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -50,11 +51,41 @@ func (mr *MockClientMockRecorder) GetClinician(ctx, clinicID, clinicianID interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinician", reflect.TypeOf((*MockClient)(nil).GetClinician), ctx, clinicID, clinicianID)
 }
 
+// GetEHRSettings mocks base method.
+func (m *MockClient) GetEHRSettings(ctx context.Context, clinicId string) (*client.EHRSettings, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetEHRSettings", ctx, clinicId)
+	ret0, _ := ret[0].(*client.EHRSettings)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetEHRSettings indicates an expected call of GetEHRSettings.
+func (mr *MockClientMockRecorder) GetEHRSettings(ctx, clinicId interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEHRSettings", reflect.TypeOf((*MockClient)(nil).GetEHRSettings), ctx, clinicId)
+}
+
+// GetPatients mocks base method.
+func (m *MockClient) GetPatients(ctx context.Context, clinicId, userToken string, params *client.ListPatientsParams, injectedParams url.Values) ([]client.Patient, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPatients", ctx, clinicId, userToken, params, injectedParams)
+	ret0, _ := ret[0].([]client.Patient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPatients indicates an expected call of GetPatients.
+func (mr *MockClientMockRecorder) GetPatients(ctx, clinicId, userToken, params, injectedParams interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatients", reflect.TypeOf((*MockClient)(nil).GetPatients), ctx, clinicId, userToken, params, injectedParams)
+}
+
 // ListEHREnabledClinics mocks base method.
-func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]api.Clinic, error) {
+func (m *MockClient) ListEHREnabledClinics(ctx context.Context) ([]client.Clinic, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEHREnabledClinics", ctx)
-	ret0, _ := ret[0].([]api.Clinic)
+	ret0, _ := ret[0].([]client.Clinic)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -66,10 +97,10 @@ func (mr *MockClientMockRecorder) ListEHREnabledClinics(ctx interface{}) *gomock
 }
 
 // SharePatientAccount mocks base method.
-func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*api.Patient, error) {
+func (m *MockClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*client.Patient, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SharePatientAccount", ctx, clinicID, patientID)
-	ret0, _ := ret[0].(*api.Patient)
+	ret0, _ := ret[0].(*client.Patient)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

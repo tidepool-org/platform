@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,7 +15,7 @@ import (
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 )
 
-var _ = Describe("Mongo", func() {
+var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	Context("Store", func() {
 		var config *storeStructuredMongo.Config
 		var store *storeStructuredMongo.Store
@@ -27,18 +28,18 @@ var _ = Describe("Mongo", func() {
 			"203.0.113.2", "203.0.113.3",
 		}
 
-		BeforeEach(func() {
-			config = storeStructuredMongoTest.NewConfig()
-		})
-
-		AfterEach(func() {
-			if store != nil {
-				err := store.Terminate(context.Background())
-				Expect(err).ToNot(HaveOccurred())
-			}
-		})
-
 		Context("NewStore", func() {
+			BeforeEach(func() {
+				config = storeStructuredMongoTest.NewConfig()
+			})
+
+			AfterEach(func() {
+				if store != nil {
+					err := store.Terminate(context.Background())
+					Expect(err).ToNot(HaveOccurred())
+				}
+			})
+
 			It("returns an error if the config is missing", func() {
 				var err error
 				store, err = storeStructuredMongo.NewStore(nil)
@@ -55,9 +56,14 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns an error if the addresses are not reachable", func() {
-				config.Addresses = unusedIPs
 				var err error
-				store, err = storeStructuredMongo.NewStore(config)
+				clientOptions := options.Client()
+				clientOptions.SetTimeout(time.Millisecond)
+				clientOptions.SetSocketTimeout(time.Millisecond)
+				clientOptions.SetServerSelectionTimeout(time.Millisecond)
+				clientOptions.SetConnectTimeout(time.Millisecond)
+				config.Addresses = unusedIPs
+				store, err = storeStructuredMongo.NewStoreFromClient(config, clientOptions)
 				Expect(store).ToNot(BeNil())
 				Expect(err).ToNot(HaveOccurred())
 				// We can't compare the exact error here, since different OSes display slightly different errors
@@ -66,9 +72,14 @@ var _ = Describe("Mongo", func() {
 			})
 
 			It("returns the correct status if the addresses are not reachable", func() {
-				config.Addresses = unusedIPs
 				var err error
-				store, err = storeStructuredMongo.NewStore(config)
+				clientOptions := options.Client()
+				clientOptions.SetTimeout(time.Millisecond)
+				clientOptions.SetSocketTimeout(time.Millisecond)
+				clientOptions.SetServerSelectionTimeout(time.Millisecond)
+				clientOptions.SetConnectTimeout(time.Millisecond)
+				config.Addresses = unusedIPs
+				store, err = storeStructuredMongo.NewStoreFromClient(config, clientOptions)
 				Expect(store).ToNot(BeNil())
 				Expect(err).ToNot(HaveOccurred())
 				status := store.Status(context.Background())
@@ -97,10 +108,7 @@ var _ = Describe("Mongo", func() {
 
 		Context("with a new store", func() {
 			BeforeEach(func() {
-				var err error
-				store, err = storeStructuredMongo.NewStore(config)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(store).ToNot(BeNil())
+				store = storeStructuredMongoTest.GetSuiteStore()
 			})
 
 			Context("Status", func() {

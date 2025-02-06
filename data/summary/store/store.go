@@ -2,10 +2,9 @@ package store
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
-
-	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -16,7 +15,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-type Repo[T types.Stats, A types.StatsPt[T]] struct {
+type Repo[A types.StatsPt[T], T types.Stats] struct {
 	*storeStructuredMongo.Repository
 }
 
@@ -24,8 +23,8 @@ type TypelessRepo struct {
 	*storeStructuredMongo.Repository
 }
 
-func New[T types.Stats, A types.StatsPt[T]](delegate *storeStructuredMongo.Repository) *Repo[T, A] {
-	return &Repo[T, A]{
+func New[A types.StatsPt[T], T types.Stats](delegate *storeStructuredMongo.Repository) *Repo[A, T] {
+	return &Repo[A, T]{
 		delegate,
 	}
 }
@@ -36,7 +35,7 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessRepo {
 	}
 }
 
-func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summary[T, A], error) {
+func (r *Repo[A, T]) GetSummary(ctx context.Context, userId string) (*types.Summary[A, T], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -44,7 +43,7 @@ func (r *Repo[T, A]) GetSummary(ctx context.Context, userId string) (*types.Summ
 		return nil, errors.New("userId is missing")
 	}
 
-	summary := types.Create[T, A](userId)
+	summary := types.Create[A](userId)
 	selector := bson.M{
 		"userId": userId,
 		"type":   summary.Type,
@@ -80,7 +79,7 @@ func (r *TypelessRepo) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *Repo[A, T]) DeleteSummary(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -90,7 +89,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 
 	selector := bson.M{
 		"userId": userId,
-		"type":   types.GetTypeString[T, A](),
+		"type":   types.GetTypeString[A](),
 	}
 
 	_, err := r.DeleteMany(ctx, selector)
@@ -101,7 +100,7 @@ func (r *Repo[T, A]) DeleteSummary(ctx context.Context, userId string) error {
 	return nil
 }
 
-func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summary[T, A]) error {
+func (r *Repo[A, T]) ReplaceSummary(ctx context.Context, userSummary *types.Summary[A, T]) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -109,7 +108,7 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summa
 		return errors.New("summary object is missing")
 	}
 
-	var expectedType = types.GetTypeString[T, A]()
+	var expectedType = types.GetTypeString[A]()
 	if userSummary.Type != expectedType {
 		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
@@ -118,13 +117,13 @@ func (r *Repo[T, A]) UpsertSummary(ctx context.Context, userSummary *types.Summa
 		return errors.New("summary is missing UserID")
 	}
 
-	opts := options.Update().SetUpsert(true)
+	opts := options.Replace().SetUpsert(true)
 	selector := bson.M{
 		"userId": userSummary.UserID,
 		"type":   userSummary.Type,
 	}
 
-	_, err := r.UpdateOne(ctx, selector, bson.M{"$set": userSummary}, opts)
+	_, err := r.ReplaceOne(ctx, selector, userSummary, opts)
 
 	return err
 }
@@ -186,7 +185,7 @@ func (r *Repo[T, A]) CreateSummaries(ctx context.Context, summaries []*types.Sum
 	return count, nil
 }
 
-func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (r *Repo[A, T]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -202,11 +201,11 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	}
 
 	if userSummary == nil {
-		userSummary = types.Create[T, A](userId)
+		userSummary = types.Create[A](userId)
 	}
 
 	userSummary.SetOutdated(reason)
-	err = r.UpsertSummary(ctx, userSummary)
+	err = r.ReplaceSummary(ctx, userSummary)
 	if err != nil {
 		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userId, userSummary.Type, err)
 	}
@@ -214,7 +213,7 @@ func (r *Repo[T, A]) SetOutdated(ctx context.Context, userId, reason string) (*t
 	return userSummary.Dates.OutdatedSince, nil
 }
 
-func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
+func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) (*types.OutdatedSummariesResponse, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -223,8 +222,8 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	}
 
 	selector := bson.M{
-		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 		"type":                types.GetTypeString[T, A](),
+		"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()},
 	}
 
 	opts := options.Find()
@@ -235,23 +234,33 @@ func (r *Repo[T, A]) GetOutdatedUserIDs(ctx context.Context, page *page.Paginati
 	opts.SetProjection(bson.M{"stats": 0})
 
 	cursor, err := r.Find(ctx, selector, opts)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
 
-	var summaries []*types.Summary[T, A]
-	if err = cursor.All(ctx, &summaries); err != nil {
-		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
+	response := &types.OutdatedSummariesResponse{
+		UserIds: make([]string, 0, cursor.RemainingBatchLength()),
 	}
 
-	var userIDs = make([]string, len(summaries))
-	for i := 0; i < len(summaries); i++ {
-		userIDs[i] = summaries[i].UserID
+	userSummary := &types.Summary[T, A]{}
+	for cursor.Next(ctx) {
+		if err = cursor.Decode(userSummary); err != nil {
+			return nil, fmt.Errorf("unable to decode Summary: %w", err)
+		}
+
+		response.UserIds = append(response.UserIds, userSummary.UserID)
+
+		if response.Start.IsZero() {
+			response.Start = *userSummary.Dates.OutdatedSince
+		}
 	}
 
-	return userIDs, nil
+	// if we saw at least one summary
+	if !response.Start.IsZero() {
+		response.End = *userSummary.Dates.OutdatedSince
+	}
+
+	return response, nil
 }
 
 func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagination) ([]string, error) {
@@ -263,8 +272,9 @@ func (r *Repo[T, A]) GetMigratableUserIDs(ctx context.Context, page *page.Pagina
 	}
 
 	selector := bson.M{
-		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 		"type":                 types.GetTypeString[T, A](),
+		"dates.outdatedSince":  nil,
+		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
 	opts := options.Find()

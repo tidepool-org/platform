@@ -1,27 +1,29 @@
-sudo: false
-
 dist: jammy
 
 language: go
 
 go:
-  - 1.21.x
+  - 1.22.2
 
-go_import_path: github.com/tidepool-org/platform
+services:
+  - docker
 
 env:
   global:
-    - MONGODB=6.0.11
-    - MONGOSH=2.0.2
-    - DIST=jammy
+    - MONGODB=6.0.14
+    - MONGOSH=2.2.3
+
+cache:
+  directories:
+    - $HOME/.cache/go-build
 
 before_install:
-  - sudo apt update
-  - sudo apt install -y docker-buildx mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools=${MONGODB}
+  - sudo apt-get update
+  - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
   - mkdir /tmp/data
-  - /usr/bin/mongod --replSet rs0 --dbpath /tmp/data --bind_ip 127.0.0.1 --logpath ${PWD}/mongod.log &> /dev/null &
+  - /usr/bin/mongod --dbpath /tmp/data --bind_ip 127.0.0.1 --replSet rs0 --logpath ${PWD}/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
-  - /usr/bin/mongosh --host 127.0.0.1 --port 27017 --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
+  - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
 
 addons:
   apt:
@@ -37,12 +39,5 @@ addons:
   code_climate:
     repo_token: 91ded9b66924acbe830541ab3593daf535f05f7c6db91b5cbd2d26dcf37da0b8
 
-services:
-  - docker
-
 script:
-  - make ci-generate ci-build ci-test ci-deploy ci-docker
-
-cache:
-  directories:
-    - $HOME/.cache/go-build
+  - make ci-generate ci-build go-ci-test ci-deploy ci-docker TIMING_CMD="time -p"

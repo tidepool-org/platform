@@ -1,15 +1,16 @@
 package types
 
 import (
+	"context"
 	"errors"
-	"fmt"
+	"math"
 	"strconv"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-
 	"github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -31,9 +32,20 @@ type CGMBucketData struct {
 	VeryHighMinutes int `json:"veryHighMinutes" bson:"veryHighMinutes"`
 	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
 
+	ExtremeHighMinutes int `json:"extremeHighMinutes" bson:"extremeHighMinutes"`
+	ExtremeHighRecords int `json:"extremeHighRecords" bson:"extremeHighRecords"`
+
 	TotalGlucose float64 `json:"totalGlucose" bson:"totalGlucose"`
 	TotalMinutes int     `json:"totalMinutes" bson:"totalMinutes"`
 	TotalRecords int     `json:"totalRecords" bson:"totalRecords"`
+
+	TotalVariance float64 `json:"totalVariance" bson:"totalVariance"`
+}
+
+type CGMTotalStats struct {
+	CGMBucketData
+	HoursWithData int `json:"hoursWithData" bson:"hoursWithData"`
+	DaysWithData  int `json:"daysWithData" bson:"daysWithData"`
 }
 
 type CGMPeriod struct {
@@ -137,6 +149,18 @@ type CGMPeriod struct {
 	TimeInVeryHighRecords      *int `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
 	TimeInVeryHighRecordsDelta *int `json:"timeInVeryHighRecordsDelta" bson:"timeInVeryHighRecordsDelta"`
 
+	HasTimeInExtremeHighRecords   bool `json:"hasTimeInExtremeHighRecords" bson:"hasTimeInExtremeHighRecords"`
+	TimeInExtremeHighRecords      *int `json:"timeInExtremeHighRecords" bson:"timeInExtremeHighRecords"`
+	TimeInExtremeHighRecordsDelta *int `json:"timeInExtremeHighRecordsDelta" bson:"timeInExtremeHighRecordsDelta"`
+
+	HasTimeInExtremeHighPercent   bool     `json:"hasTimeInExtremeHighPercent" bson:"hasTimeInExtremeHighPercent"`
+	TimeInExtremeHighPercent      *float64 `json:"timeInExtremeHighPercent" bson:"timeInExtremeHighPercent"`
+	TimeInExtremeHighPercentDelta *float64 `json:"timeInExtremeHighPercentDelta" bson:"timeInExtremeHighPercentDelta"`
+
+	HasTimeInExtremeHighMinutes   bool `json:"hasTimeInExtremeHighMinutes" bson:"hasTimeInExtremeHighMinutes"`
+	TimeInExtremeHighMinutes      *int `json:"timeInExtremeHighMinutes" bson:"timeInExtremeHighMinutes"`
+	TimeInExtremeHighMinutesDelta *int `json:"timeInExtremeHighMinutesDelta" bson:"timeInExtremeHighMinutesDelta"`
+
 	HasTimeInAnyHighPercent   bool     `json:"hasTimeInAnyHighPercent" bson:"hasTimeInAnyHighPercent"`
 	TimeInAnyHighPercent      *float64 `json:"timeInAnyHighPercent" bson:"timeInAnyHighPercent"`
 	TimeInAnyHighPercentDelta *float64 `json:"timeInAnyHighPercentDelta" bson:"timeInAnyHighPercentDelta"`
@@ -148,27 +172,39 @@ type CGMPeriod struct {
 	HasTimeInAnyHighRecords   bool `json:"hasTimeInAnyHighRecords" bson:"hasTimeInAnyHighRecords"`
 	TimeInAnyHighRecords      *int `json:"timeInAnyHighRecords" bson:"timeInAnyHighRecords"`
 	TimeInAnyHighRecordsDelta *int `json:"timeInAnyHighRecordsDelta" bson:"timeInAnyHighRecordsDelta"`
+
+	StandardDeviation      float64 `json:"standardDeviation" bson:"standardDeviation"`
+	StandardDeviationDelta float64 `json:"standardDeviationDelta" bson:"standardDeviationDelta"`
+
+	CoefficientOfVariation      float64 `json:"coefficientOfVariation" bson:"coefficientOfVariation"`
+	CoefficientOfVariationDelta float64 `json:"coefficientOfVariationDelta" bson:"coefficientOfVariationDelta"`
+
+	HoursWithData      int `json:"hoursWithData" bson:"hoursWithData"`
+	HoursWithDataDelta int `json:"hoursWithDataDelta" bson:"hoursWithDataDelta"`
+
+	DaysWithData      int `json:"daysWithData" bson:"daysWithData"`
+	DaysWithDataDelta int `json:"daysWithDataDelta" bson:"daysWithDataDelta"`
 }
 
 type CGMPeriods map[string]*CGMPeriod
 
 type CGMStats struct {
-	Periods       CGMPeriods                             `json:"periods" bson:"periods"`
-	OffsetPeriods CGMPeriods                             `json:"offsetPeriods" bson:"offsetPeriods"`
-	Buckets       Buckets[CGMBucketData, *CGMBucketData] `json:"buckets" bson:"buckets"`
-	TotalHours    int                                    `json:"totalHours" bson:"totalHours"`
+	Periods       CGMPeriods                               `json:"periods" bson:"periods"`
+	OffsetPeriods CGMPeriods                               `json:"offsetPeriods" bson:"offsetPeriods"`
+	Buckets       []*Bucket[*CGMBucketData, CGMBucketData] `json:"buckets" bson:"buckets"`
+	TotalHours    int                                      `json:"totalHours" bson:"totalHours"`
 }
 
 func (*CGMStats) GetType() string {
 	return SummaryTypeCGM
 }
 
-func (*CGMStats) GetDeviceDataType() string {
-	return continuous.Type
+func (*CGMStats) GetDeviceDataTypes() []string {
+	return []string{continuous.Type}
 }
 
 func (s *CGMStats) Init() {
-	s.Buckets = make(Buckets[CGMBucketData, *CGMBucketData], 0)
+	s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
 	s.Periods = make(map[string]*CGMPeriod)
 	s.OffsetPeriods = make(map[string]*CGMPeriod)
 	s.TotalHours = 0
@@ -182,27 +218,78 @@ func (s *CGMStats) GetBucketDate(i int) time.Time {
 	return s.Buckets[i].Date
 }
 
-func (s *CGMStats) Update(userData any) error {
-	userDataTyped, ok := userData.([]*glucoseDatum.Glucose)
-	if !ok {
-		return errors.New("CGM records for calculation is not compatible with Glucose type")
+func (s *CGMStats) ClearInvalidatedBuckets(earliestModified time.Time) (firstData time.Time) {
+	if len(s.Buckets) == 0 {
+		return
+	} else if earliestModified.After(s.Buckets[len(s.Buckets)-1].LastRecordTime) {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	} else if earliestModified.Before(s.Buckets[0].Date) || earliestModified.Equal(s.Buckets[0].Date) {
+		// we are before all existing buckets, remake for GC
+		s.Buckets = make([]*Bucket[*CGMBucketData, CGMBucketData], 0)
+		return
 	}
 
-	for i, v := range userDataTyped {
-		if v.Type != continuous.Type {
-			return fmt.Errorf("Non-CGM data provided for CGM summary update at position %d", i)
+	offset := len(s.Buckets) - (int(s.Buckets[len(s.Buckets)-1].Date.Sub(earliestModified.UTC().Truncate(time.Hour)).Hours()) + 1)
+
+	for i := offset; i < len(s.Buckets); i++ {
+		s.Buckets[i] = nil
+	}
+	s.Buckets = s.Buckets[:offset]
+
+	if len(s.Buckets) > 0 {
+		return s.Buckets[len(s.Buckets)-1].LastRecordTime
+	}
+	return
+}
+
+func (s *CGMStats) Update(ctx context.Context, cursor fetcher.DeviceDataCursor) error {
+	hasMoreData := true
+	for hasMoreData {
+		userData, err := cursor.GetNextBatch(ctx)
+		if errors.Is(err, fetcher.ErrCursorExhausted) {
+			hasMoreData = false
+		} else if err != nil {
+			return err
 		}
-	}
 
-	// NOTE: redundant type arguments to prevent confused IDEs on go 1.20
-	err := AddData[CGMBucketData, *CGMBucketData](&s.Buckets, userDataTyped)
-	if err != nil {
-		return err
+		if len(userData) > 0 {
+			err = AddData(&s.Buckets, userData)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	s.CalculateSummary()
 
 	return nil
+}
+
+// CalculateVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
+func (B *CGMBucketData) CalculateVariance(value float64, duration float64) float64 {
+	var mean float64 = 0
+	if B.TotalMinutes > 0 {
+		mean = B.TotalGlucose / float64(B.TotalMinutes)
+	}
+
+	weight := float64(B.TotalMinutes) + duration
+	newMean := mean + (duration/weight)*(value-mean)
+	return B.TotalVariance + duration*(value-mean)*(value-newMean)
+}
+
+// CombineVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
+func (B *CGMBucketData) CombineVariance(newBucket *CGMBucketData) float64 {
+	n1 := float64(B.TotalMinutes)
+	n2 := float64(newBucket.TotalMinutes)
+
+	// if we have no values in any bucket, this will result in NaN, and cant be added anyway, return what we started with
+	if n1 == 0 || n2 == 0 {
+		return B.TotalVariance
+	}
+
+	n := n1 + n2
+	delta := newBucket.TotalGlucose/n2 - B.TotalGlucose/n1
+	return B.TotalVariance + newBucket.TotalVariance + math.Pow(delta, 2)*n1*n2/n
 }
 
 func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, error) {
@@ -230,6 +317,12 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 		} else if normalizedValue > veryHighBloodGlucose {
 			B.VeryHighMinutes += duration
 			B.VeryHighRecords++
+
+			// veryHigh is inclusive of extreme high, this is intentional
+			if normalizedValue >= extremeHighBloodGlucose {
+				B.ExtremeHighMinutes += duration
+				B.ExtremeHighRecords++
+			}
 		} else if normalizedValue < lowBloodGlucose {
 			B.LowMinutes += duration
 			B.LowRecords++
@@ -240,6 +333,9 @@ func (B *CGMBucketData) CalculateStats(r any, lastRecordTime *time.Time) (bool, 
 			B.TargetMinutes += duration
 			B.TargetRecords++
 		}
+
+		// this must occur before the counters below as the pre-increment counters are used during calc
+		B.TotalVariance = B.CalculateVariance(normalizedValue, float64(duration))
 
 		B.TotalMinutes += duration
 		B.TotalRecords++
@@ -257,17 +353,71 @@ func (s *CGMStats) CalculateSummary() {
 	// currently only supports day precision
 	nextStopPoint := 0
 	nextOffsetStopPoint := 0
-	totalStats := &CGMBucketData{}
-	totalOffsetStats := &CGMBucketData{}
+	totalStats := &CGMTotalStats{}
+	totalOffsetStats := &CGMTotalStats{}
+	dayCounted := false
+	offsetDayCounted := false
 
-	for i := 0; i < len(s.Buckets); i++ {
-		currentIndex := len(s.Buckets) - 1 - i
+	for i := 1; i <= len(s.Buckets); i++ {
+		currentIndex := len(s.Buckets) - i
+
+		// only add to offset stats when primary stop point is ahead of offset
+		if nextStopPoint > nextOffsetStopPoint && len(stopPoints) > nextOffsetStopPoint {
+			if totalOffsetStats.TotalVariance == 0 {
+				totalOffsetStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
+			} else {
+				totalOffsetStats.TotalVariance = totalOffsetStats.CombineVariance(s.Buckets[currentIndex].Data)
+			}
+
+			totalOffsetStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
+			totalOffsetStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
+
+			totalOffsetStats.LowMinutes += s.Buckets[currentIndex].Data.LowMinutes
+			totalOffsetStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+
+			totalOffsetStats.VeryLowMinutes += s.Buckets[currentIndex].Data.VeryLowMinutes
+			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
+
+			totalOffsetStats.HighMinutes += s.Buckets[currentIndex].Data.HighMinutes
+			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
+
+			totalOffsetStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
+			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
+
+			totalOffsetStats.ExtremeHighMinutes += s.Buckets[currentIndex].Data.ExtremeHighMinutes
+			totalOffsetStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
+
+			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
+			totalOffsetStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
+			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+
+			if s.Buckets[currentIndex].Data.TotalRecords > 0 {
+				totalOffsetStats.HoursWithData++
+
+				if !offsetDayCounted {
+					totalOffsetStats.DaysWithData++
+					offsetDayCounted = true
+				}
+			}
+
+			// new day, reset day counting flag
+			if i%24 == 0 {
+				offsetDayCounted = false
+			}
+
+			if i == stopPoints[nextOffsetStopPoint]*24*2 {
+				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
+				nextOffsetStopPoint++
+				totalOffsetStats = &CGMTotalStats{}
+			}
+		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			if i == stopPoints[nextStopPoint]*24 {
-				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
-				nextStopPoint++
+			if totalStats.TotalVariance == 0 {
+				totalStats.TotalVariance = s.Buckets[currentIndex].Data.TotalVariance
+			} else {
+				totalStats.TotalVariance = totalStats.CombineVariance(s.Buckets[currentIndex].Data)
 			}
 
 			totalStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
@@ -285,36 +435,31 @@ func (s *CGMStats) CalculateSummary() {
 			totalStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
 			totalStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
 
+			totalStats.ExtremeHighMinutes += s.Buckets[currentIndex].Data.ExtremeHighMinutes
+			totalStats.ExtremeHighRecords += s.Buckets[currentIndex].Data.ExtremeHighRecords
+
 			totalStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
 			totalStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
 			totalStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
-		}
 
-		// only add to offset stats when primary stop point is ahead of offset
-		if nextStopPoint > nextOffsetStopPoint && len(stopPoints) > nextOffsetStopPoint {
-			if i == stopPoints[nextOffsetStopPoint]*24*2 {
-				s.CalculatePeriod(stopPoints[nextOffsetStopPoint], true, totalOffsetStats)
-				nextOffsetStopPoint++
-				totalOffsetStats = &CGMBucketData{}
+			if s.Buckets[currentIndex].Data.TotalRecords > 0 {
+				totalStats.HoursWithData++
+
+				if !dayCounted {
+					totalStats.DaysWithData++
+					dayCounted = true
+				}
 			}
-			totalOffsetStats.TargetMinutes += s.Buckets[currentIndex].Data.TargetMinutes
-			totalOffsetStats.TargetRecords += s.Buckets[currentIndex].Data.TargetRecords
 
-			totalOffsetStats.LowMinutes += s.Buckets[currentIndex].Data.LowMinutes
-			totalOffsetStats.LowRecords += s.Buckets[currentIndex].Data.LowRecords
+			// end of day, reset day counting flag
+			if i > 0 && i%24 == 0 {
+				dayCounted = false
+			}
 
-			totalOffsetStats.VeryLowMinutes += s.Buckets[currentIndex].Data.VeryLowMinutes
-			totalOffsetStats.VeryLowRecords += s.Buckets[currentIndex].Data.VeryLowRecords
-
-			totalOffsetStats.HighMinutes += s.Buckets[currentIndex].Data.HighMinutes
-			totalOffsetStats.HighRecords += s.Buckets[currentIndex].Data.HighRecords
-
-			totalOffsetStats.VeryHighMinutes += s.Buckets[currentIndex].Data.VeryHighMinutes
-			totalOffsetStats.VeryHighRecords += s.Buckets[currentIndex].Data.VeryHighRecords
-
-			totalOffsetStats.TotalGlucose += s.Buckets[currentIndex].Data.TotalGlucose
-			totalOffsetStats.TotalMinutes += s.Buckets[currentIndex].Data.TotalMinutes
-			totalOffsetStats.TotalRecords += s.Buckets[currentIndex].Data.TotalRecords
+			if i == stopPoints[nextStopPoint]*24 {
+				s.CalculatePeriod(stopPoints[nextStopPoint], false, totalStats)
+				nextStopPoint++
+			}
 		}
 	}
 
@@ -324,7 +469,7 @@ func (s *CGMStats) CalculateSummary() {
 	}
 	for i := nextOffsetStopPoint; i < len(stopPoints); i++ {
 		s.CalculatePeriod(stopPoints[i], true, totalOffsetStats)
-		totalOffsetStats = &CGMBucketData{}
+		totalOffsetStats = &CGMTotalStats{}
 	}
 
 	s.TotalHours = len(s.Buckets)
@@ -513,6 +658,27 @@ func (s *CGMStats) CalculateDelta() {
 			s.OffsetPeriods[k].TimeInVeryHighMinutesDelta = pointer.FromAny(-delta)
 		}
 
+		if s.Periods[k].TimeInExtremeHighPercent != nil && s.OffsetPeriods[k].TimeInExtremeHighPercent != nil {
+			delta := *s.Periods[k].TimeInExtremeHighPercent - *s.OffsetPeriods[k].TimeInExtremeHighPercent
+
+			s.Periods[k].TimeInExtremeHighPercentDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInExtremeHighPercentDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInExtremeHighRecords != nil && s.OffsetPeriods[k].TimeInExtremeHighRecords != nil {
+			delta := *s.Periods[k].TimeInExtremeHighRecords - *s.OffsetPeriods[k].TimeInExtremeHighRecords
+
+			s.Periods[k].TimeInExtremeHighRecordsDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInExtremeHighRecordsDelta = pointer.FromAny(-delta)
+		}
+
+		if s.Periods[k].TimeInExtremeHighMinutes != nil && s.OffsetPeriods[k].TimeInExtremeHighMinutes != nil {
+			delta := *s.Periods[k].TimeInExtremeHighMinutes - *s.OffsetPeriods[k].TimeInExtremeHighMinutes
+
+			s.Periods[k].TimeInExtremeHighMinutesDelta = pointer.FromAny(delta)
+			s.OffsetPeriods[k].TimeInExtremeHighMinutesDelta = pointer.FromAny(-delta)
+		}
+
 		if s.Periods[k].TimeInAnyHighPercent != nil && s.OffsetPeriods[k].TimeInAnyHighPercent != nil {
 			delta := *s.Periods[k].TimeInAnyHighPercent - *s.OffsetPeriods[k].TimeInAnyHighPercent
 
@@ -533,10 +699,38 @@ func (s *CGMStats) CalculateDelta() {
 			s.Periods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(delta)
 			s.OffsetPeriods[k].TimeInAnyHighMinutesDelta = pointer.FromAny(-delta)
 		}
+
+		{ // no pointers to protect
+			delta := s.Periods[k].StandardDeviation - s.OffsetPeriods[k].StandardDeviation
+
+			s.Periods[k].StandardDeviationDelta = delta
+			s.OffsetPeriods[k].StandardDeviationDelta = -delta
+		}
+
+		{ // no pointers to protect
+			delta := s.Periods[k].CoefficientOfVariation - s.OffsetPeriods[k].CoefficientOfVariation
+
+			s.Periods[k].CoefficientOfVariationDelta = delta
+			s.OffsetPeriods[k].CoefficientOfVariationDelta = -delta
+		}
+
+		{ // no pointers to protect
+			delta := s.Periods[k].DaysWithData - s.OffsetPeriods[k].DaysWithData
+
+			s.Periods[k].DaysWithDataDelta = delta
+			s.OffsetPeriods[k].DaysWithDataDelta = -delta
+		}
+
+		{ // no pointers to protect
+			delta := s.Periods[k].HoursWithData - s.OffsetPeriods[k].HoursWithData
+
+			s.Periods[k].HoursWithDataDelta = delta
+			s.OffsetPeriods[k].HoursWithDataDelta = -delta
+		}
 	}
 }
 
-func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData) {
+func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMTotalStats) {
 	newPeriod := &CGMPeriod{
 		HasTimeCGMUseMinutes: true,
 		TimeCGMUseMinutes:    pointer.FromAny(totalStats.TotalMinutes),
@@ -586,11 +780,20 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 		HasTimeInVeryHighRecords: true,
 		TimeInVeryHighRecords:    pointer.FromAny(totalStats.VeryHighRecords),
 
+		HasTimeInExtremeHighMinutes: true,
+		TimeInExtremeHighMinutes:    pointer.FromAny(totalStats.ExtremeHighMinutes),
+
+		HasTimeInExtremeHighRecords: true,
+		TimeInExtremeHighRecords:    pointer.FromAny(totalStats.ExtremeHighRecords),
+
 		HasTimeInAnyHighMinutes: true,
 		TimeInAnyHighMinutes:    pointer.FromAny(totalStats.HighMinutes + totalStats.VeryHighMinutes),
 
 		HasTimeInAnyHighRecords: true,
 		TimeInAnyHighRecords:    pointer.FromAny(totalStats.HighRecords + totalStats.VeryHighRecords),
+
+		DaysWithData:  totalStats.DaysWithData,
+		HoursWithData: totalStats.HoursWithData,
 	}
 
 	if totalStats.TotalRecords != 0 {
@@ -619,9 +822,11 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 			newPeriod.HasTimeInVeryHighPercent = true
 			newPeriod.TimeInVeryHighPercent = pointer.FromAny(float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalMinutes))
 
+			newPeriod.HasTimeInExtremeHighPercent = true
+			newPeriod.TimeInExtremeHighPercent = pointer.FromAny(float64(totalStats.ExtremeHighMinutes) / float64(totalStats.TotalMinutes))
+
 			newPeriod.HasTimeInAnyHighPercent = true
 			newPeriod.TimeInAnyHighPercent = pointer.FromAny(float64(totalStats.VeryHighRecords+totalStats.HighRecords) / float64(totalStats.TotalRecords))
-
 		}
 
 		newPeriod.HasAverageGlucoseMmol = true
@@ -632,6 +837,9 @@ func (s *CGMStats) CalculatePeriod(i int, offset bool, totalStats *CGMBucketData
 			newPeriod.HasGlucoseManagementIndicator = true
 			newPeriod.GlucoseManagementIndicator = pointer.FromAny(CalculateGMI(*newPeriod.AverageGlucoseMmol))
 		}
+
+		newPeriod.StandardDeviation = math.Sqrt(totalStats.TotalVariance / float64(totalStats.TotalMinutes))
+		newPeriod.CoefficientOfVariation = newPeriod.StandardDeviation / (*newPeriod.AverageGlucoseMmol)
 	}
 
 	if offset {

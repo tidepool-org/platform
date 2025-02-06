@@ -19,32 +19,48 @@ import (
 )
 
 type Client struct {
-	client        *oauthClient.Client
-	isSandboxData bool
+	client *oauthClient.Client
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
-	clnt, err := oauthClient.New(cfg, tknSrcSrc)
+	baseClient, err := client.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	isSandboxData := false
-	if cfg != nil && cfg.Address == "https://sandbox-api.dexcom.com" {
-		isSandboxData = true
+	clnt, err := oauthClient.New(baseClient, tknSrcSrc)
+	if err != nil {
+		return nil, err
 	}
 
 	return &Client{
-		client:        clnt,
-		isSandboxData: isSandboxData,
+		client: clnt,
 	}, nil
+}
+
+func (c *Client) GetDataRange(ctx context.Context, lastSyncTime *time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangesResponse, error) {
+	dataRangeResponse := &dexcom.DataRangesResponse{}
+	paths := []string{"v3", "users", "self", "dataRange"}
+
+	url := c.client.ConstructURL(paths...)
+	if lastSyncTime != nil {
+		url = c.client.AppendURLQuery(url, map[string]string{
+			"lastSyncTime": lastSyncTime.UTC().Format(time.RFC3339), // NOTE: Explicitly not normal Dexcom time format (Dexcom API requires timezone offset)
+		})
+	}
+
+	if err := c.sendDexcomRequest(ctx, "GET", url, dataRangeResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get data range")
+	}
+
+	return dataRangeResponse, nil
 }
 
 func (c *Client) GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error) {
 	alertsResponse := &dexcom.AlertsResponse{}
 	paths := []string{"v3", "users", "self", "alerts"}
 
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), alertsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequestWithDataRange(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), alertsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get alerts")
 	}
 
@@ -55,7 +71,7 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 	calibrationsResponse := &dexcom.CalibrationsResponse{}
 	paths := []string{"v3", "users", "self", "calibrations"}
 
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), calibrationsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequestWithDataRange(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), calibrationsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get calibrations")
 	}
 
@@ -63,10 +79,10 @@ func (c *Client) GetCalibrations(ctx context.Context, startTime time.Time, endTi
 }
 
 func (c *Client) GetDevices(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.DevicesResponse, error) {
-	devicesResponse := &dexcom.DevicesResponse{IsSandboxData: c.isSandboxData}
+	devicesResponse := &dexcom.DevicesResponse{}
 	paths := []string{"v3", "users", "self", "devices"}
 
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), devicesResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequestWithDataRange(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), devicesResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get devices")
 	}
 
@@ -77,7 +93,7 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 	egvsResponse := &dexcom.EGVsResponse{}
 	paths := []string{"v3", "users", "self", "egvs"}
 
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), egvsResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequestWithDataRange(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), egvsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get egvs")
 	}
 
@@ -87,25 +103,35 @@ func (c *Client) GetEGVs(ctx context.Context, startTime time.Time, endTime time.
 func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
 	eventsResponse := &dexcom.EventsResponse{}
 	paths := []string{"v3", "users", "self", "events"}
-	if err := c.sendDexcomRequest(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
+
+	if err := c.sendDexcomRequestWithDataRange(ctx, startTime, endTime, "GET", c.client.ConstructURL(paths...), eventsResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get events")
 	}
 	return eventsResponse, nil
 }
 
-func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
+func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
+	url = c.client.AppendURLQuery(url, map[string]string{
+		"startDate": startTime.UTC().Format(dexcom.DateRangeTimeFormat),
+		"endDate":   endTime.UTC().Format(dexcom.DateRangeTimeFormat),
+	})
+	return c.sendDexcomRequest(ctx, method, url, responseBody, tokenSource)
+}
+
+func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
 	now := time.Now()
 
-	url = c.client.AppendURLQuery(url, map[string]string{
-		"startDate": startTime.UTC().Format(dexcom.TimeFormat),
-		"endDate":   endTime.UTC().Format(dexcom.TimeFormat),
-	})
-
 	err := c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
+
+	// If the first request results in an access token error, then mark the token as
+	// expired, send request again, and it will attempt to use the refresh token to
+	// generate a new access token
 	if oauth.IsAccessTokenError(err) {
 		tokenSource.ExpireToken()
 		err = c.sendRequest(ctx, method, url, nil, nil, responseBody, tokenSource)
 	}
+
+	// If a request results in a refresh token error, then mark it as unauthenticated
 	if oauth.IsRefreshTokenError(err) {
 		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 	}
@@ -117,7 +143,7 @@ func (c *Client) sendDexcomRequest(ctx context.Context, startTime time.Time, end
 	return err
 }
 
-const requestDurationMaximum = 15 * time.Second
+const requestDurationMaximum = 30 * time.Second
 
 // sendRequest adds instrumentation before calling oauth.Client.SendOAuthRequest.
 func (c *Client) sendRequest(ctx context.Context, method, url string, mutators []request.RequestMutator,

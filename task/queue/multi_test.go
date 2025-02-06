@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
-	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -82,7 +81,6 @@ var _ = Describe("multi queue", func() {
 
 		It("Are partitioned correctly", func() {
 			ctx := log.NewContextWithLogger(context.Background(), lgr)
-			tasks := make([]*task.Task, 0, len(types)*tasksPerType)
 			creates := make([]*task.TaskCreate, 0, len(types)*tasksPerType)
 			runners := make([]*test.CountingRunner, 0, len(types))
 			now := time.Now()
@@ -110,7 +108,6 @@ var _ = Describe("multi queue", func() {
 				tsk, err := str.NewTaskRepository().CreateTask(ctx, create)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(tsk).ToNot(BeNil())
-				tasks = append(tasks, tsk)
 			}
 
 			// Register runners from all types in the underlying queue
@@ -129,41 +126,53 @@ var _ = Describe("multi queue", func() {
 
 			multi.Start()
 
-			// Wait until completion (up to 10 seconds)
-			tCtx, cancel := context.WithTimeout(ctx, 15*time.Second)
-			ticker := time.NewTicker(200 * time.Millisecond)
-			wg := &sync.WaitGroup{}
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				defer ticker.Stop()
-				defer cancel()
+			nonTerminalStates := []string{task.TaskStatePending, task.TaskStateRunning}
 
-				for {
-					select {
-					case <-tCtx.Done():
-						return
-					case <-ticker.C:
-						state := task.TaskStatePending
+			// Wait until completion, within limits. On my local laptop, this typically
+			// takes < 15 seconds when run via Gingko (no parallel), but under Go test
+			// (parallel via package) it takes around 35 seconds. Who knows how long it
+			// would take running in parallel on a CI host. So give it plenty of time.
+			tCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
+			defer cancel()
+
+			ticker := time.NewTicker(200 * time.Millisecond)
+			defer ticker.Stop()
+
+		loop:
+			for {
+				select {
+				case <-tCtx.Done():
+					Fail("the test did not fail; it ran out of time, give it more time")
+					break loop
+				case <-ticker.C:
+					nonTerminatedTasks := 0
+					for _, state := range nonTerminalStates {
 						pending, err := str.NewTaskRepository().ListTasks(ctx, &task.TaskFilter{
 							State: &state,
 						}, &page.Pagination{
 							Page: 0,
 							Size: 10,
 						})
-						if err == nil && len(pending) == 0 {
-							return
-						}
 						Expect(err).ToNot(HaveOccurred())
+						nonTerminatedTasks += len(pending)
+					}
+					if nonTerminatedTasks == 0 {
+						break loop
 					}
 				}
-			}()
-			wg.Wait()
-
-			for _, runner := range runners {
-				// Check all tasks were processed
-				Expect(runner.GetCount()).To(Equal(tasksPerType))
 			}
+
+			expected := map[string]int{}
+			for _, typ := range types {
+				expected[typ] = tasksPerType
+			}
+			results := map[string]int{}
+			for _, runner := range runners {
+				results[runner.GetRunnerType()] = runner.GetCount()
+			}
+
+			Expect(results).To(Equal(expected))
+
 			for _, runner := range expectedNoopRunners {
 				// Check extra runners didn't do any work
 				Expect(runner.GetCount()).To(Equal(0))

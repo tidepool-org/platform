@@ -6,11 +6,10 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "host": "127.0.0.1",
-            "port": 19222,
             "program": "${workspaceRoot}/services/auth",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application/version.Base=0.0.0 -X github.com/tidepool-org/platform/application/version.ShortCommit=00000000 -X github.com/tidepool-org/platform/application/version.FullCommit=0000000000000000000000000000000000000000'",
-            "envFile": "${workspaceRoot}/env.sh",
+            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "cwd": "${workspaceRoot}",
+            "envFile": "${workspaceRoot}/auth.env",
             "env": {
                 "TIDEPOOL_DEBUG_NAME": "auth"
             }
@@ -20,11 +19,10 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "host": "127.0.0.1",
-            "port": 19220,
             "program": "${workspaceRoot}/services/data",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application/version.Base=0.0.0 -X github.com/tidepool-org/platform/application/version.ShortCommit=00000000 -X github.com/tidepool-org/platform/application/version.FullCommit=0000000000000000000000000000000000000000'",
-            "envFile": "${workspaceRoot}/env.sh",
+            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "cwd": "${workspaceRoot}",
+            "envFile": "${workspaceRoot}/data.env",
             "env": {
                 "TIDEPOOL_DEBUG_NAME": "data"
             }
@@ -34,11 +32,10 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "host": "127.0.0.1",
-            "port": 19223,
             "program": "${workspaceRoot}/services/notification",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application/version.Base=0.0.0 -X github.com/tidepool-org/platform/application/version.ShortCommit=00000000 -X github.com/tidepool-org/platform/application/version.FullCommit=0000000000000000000000000000000000000000'",
-            "envFile": "${workspaceRoot}/env.sh",
+            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "cwd": "${workspaceRoot}",
+            "envFile": "${workspaceRoot}/notification.env",
             "env": {
                 "TIDEPOOL_DEBUG_NAME": "notification"
             }
@@ -48,11 +45,10 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "host": "127.0.0.1",
-            "port": 19224,
             "program": "${workspaceRoot}/services/task",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application/version.Base=0.0.0 -X github.com/tidepool-org/platform/application/version.ShortCommit=00000000 -X github.com/tidepool-org/platform/application/version.FullCommit=0000000000000000000000000000000000000000'",
-            "envFile": "${workspaceRoot}/env.sh",
+            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "cwd": "${workspaceRoot}",
+            "envFile": "${workspaceRoot}/task.env",
             "env": {
                 "TIDEPOOL_DEBUG_NAME": "task"
             }
@@ -62,17 +58,20 @@
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "host": "127.0.0.1",
-            "port": 19221,
             "program": "${workspaceRoot}/services/user",
-            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application/version.Base=0.0.0 -X github.com/tidepool-org/platform/application/version.ShortCommit=00000000 -X github.com/tidepool-org/platform/application/version.FullCommit=0000000000000000000000000000000000000000'",
-            "envFile": "${workspaceRoot}/env.sh",
+            "buildFlags": "-ldflags '-X github.com/tidepool-org/platform/application.VersionBase=0.0.0 -X github.com/tidepool-org/platform/application.VersionShortCommit=00000000 -X github.com/tidepool-org/platform/application.VersionFullCommit=0000000000000000000000000000000000000000'",
+            "cwd": "${workspaceRoot}",
+            "envFile": "${workspaceRoot}/user.env",
             "env": {
                 "TIDEPOOL_DEBUG_NAME": "user"
             }
         }
     ],
     "compounds": [
+        {
+            "name": "auth, task",
+            "configurations": ["auth", "task"]
+        },
         {
             "name": "auth, data, task",
             "configurations": ["auth", "data", "task"]

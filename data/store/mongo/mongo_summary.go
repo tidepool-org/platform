@@ -4,9 +4,8 @@ import (
 	"context"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
-
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
@@ -28,20 +27,13 @@ func (d *SummaryRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
+				{Key: "type", Value: 1},
 				{Key: "dates.outdatedSince", Value: 1},
-				{Key: "type", Value: 1},
-			},
-			Options: options.Index().
-				SetName("OutdatedSince"),
-		},
-		{
-			Keys: bson.D{
 				{Key: "config.schemaVersion", Value: 1},
-				{Key: "type", Value: 1},
 				{Key: "dates.lastUpdatedDate", Value: 1},
 			},
 			Options: options.Index().
-				SetName("SchemaVersion"),
+				SetName("OutdatedSinceSchemaLastUpdated"),
 		},
 	})
 }

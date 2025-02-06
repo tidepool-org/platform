@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	stdErrs "errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,10 +25,6 @@ type DataSetRepository struct {
 }
 
 func (d *DataSetRepository) EnsureIndexes() error {
-	modifiedTime, err := time.Parse(time.RFC3339, ModifiedTimeIndexRaw)
-	if err != nil {
-		return err
-	}
 	// Note "type" field isn't really needed because datasets/uploads are
 	// always type == "upload" but this is just to keep the original queries
 	// untouched.
@@ -41,27 +38,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "time", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UserIdTypeWeighted_v2"),
-		},
-		{
-			Keys: bson.D{
-				{Key: "_userId", Value: 1},
-				{Key: "_active", Value: 1},
-				{Key: "type", Value: 1},
-				{Key: "modifiedTime", Value: 1},
-			},
-			Options: options.Index().
-				SetBackground(true).
-				SetPartialFilterExpression(bson.D{
-					{
-						Key: "modifiedTime",
-						Value: bson.D{
-							{Key: "$gt", Value: modifiedTime},
-						},
-					},
-				}).
-				SetName("UserIdTypeModifiedTime"),
 		},
 		{
 			Keys: bson.D{
@@ -71,7 +48,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("OriginId"),
 		},
 		{
@@ -90,25 +66,33 @@ func (d *DataSetRepository) EnsureIndexes() error {
 				{Key: "_active", Value: 1},
 			},
 			Options: options.Index().
-				SetBackground(true).
 				SetName("UploadId"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "_userId", Value: 1},
+				{Key: "client.name", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "createdTime", Value: -1},
+			},
+			Options: options.Index().
+				SetName("ListUserDataSets").
+				SetPartialFilterExpression(bson.D{
+					{Key: "_active", Value: true},
+				}),
 		},
 		{
 			Keys: bson.D{
 				{Key: "_userId", Value: 1},
 				{Key: "deviceId", Value: 1},
 				{Key: "type", Value: 1},
-				{Key: "_active", Value: 1},
-				{Key: "_deduplicator.hash", Value: 1},
+				{Key: "createdTime", Value: -1},
 			},
 			Options: options.Index().
-				SetBackground(true).
+				SetName("ListUserDataSetsDeviceId").
 				SetPartialFilterExpression(bson.D{
 					{Key: "_active", Value: true},
-					{Key: "_deduplicator.hash", Value: bson.D{{Key: "$exists", Value: true}}},
-					{Key: "deviceId", Value: bson.D{{Key: "$exists", Value: true}}},
-				}).
-				SetName("DeduplicatorHash"),
+				}),
 		},
 	})
 }
@@ -132,7 +116,7 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
 
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set by id")
@@ -182,7 +166,7 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -231,25 +215,25 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	return d.GetDataSetByID(ctx, id)
 }
 
-func (d *DataSetRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
+func (d *DataSetRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if id == "" {
+	if dataSetID == "" {
 		return nil, errors.New("id is missing")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
+	logger := log.LoggerFromContext(ctx).WithField("id", dataSetID)
 
 	var dataSet *data.DataSet
 	selector := bson.M{
-		"uploadId": id,
+		"uploadId": dataSetID,
 	}
 
 	err := d.FindOne(ctx, selector).Decode(&dataSet)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("DataSet.GetDataSet")
-	if err == mongo.ErrNoDocuments {
+	if stdErrs.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to get data set")
@@ -267,12 +251,12 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	}
 	if filter == nil {
 		filter = data.NewDataSetFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -322,12 +306,12 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 	}
 	if filter == nil {
 		filter = store.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 

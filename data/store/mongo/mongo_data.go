@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"time"
 
@@ -39,17 +40,8 @@ func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, fi
 	return d.DataSetRepository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
-func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataSet, error) {
-	// Try reading from both new and old collections that hold dataSets, starting with the new one.
-	// Can read only from the new deviceDataSets collection via DataSetRepository when migration completed.
-	dataSet, err := d.DataSetRepository.GetDataSet(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if dataSet != nil {
-		return dataSet, nil
-	}
-	return d.DatumRepository.GetDataSet(ctx, id)
+func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
+	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }
 
 func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
@@ -207,66 +199,6 @@ func (d *DataRepository) mongoClient() *mongo.Client {
 	return d.DatumRepository.Database().Client()
 }
 
-// MergeSortedUploads combines the unique Uploads by UploadID into a new slice.
-func MergeSortedUploads(newUploads, prevUploads []*upload.Upload) []*upload.Upload {
-	combined := make([]*upload.Upload, 0, len(newUploads)+len(prevUploads))
-
-	// Merge the two datasets like the merge step in merge sort. Note we don't
-	// use sort.Slice/sort.SliceStable from the standard library as the
-	// sorting criteria may change (?) in the Repositories in the future.
-	newCounter := 0
-	// Prefer the uploads in prevUploads as that will maintain proper
-	// Pagination in the case that not all records are in the new collection
-	// yet because all existing uploads are already in the old collection but
-	// might not be in the new one.
-	for _, dataSet := range prevUploads {
-		for newCounter < len(newUploads) && *newUploads[newCounter].UploadID < *dataSet.UploadID {
-			combined = append(combined, newUploads[newCounter])
-			newCounter++
-		}
-		// Always add the dataSet/upload in the "old" deviceData collection
-		// because the dataSet/upload may not have been finished migrating
-		// into the new deviceDataSets collection
-		combined = append(combined, dataSet)
-		// Skip duplicate of newUploads in prevUploads if it exists.
-		if newCounter < len(newUploads) && *newUploads[newCounter].UploadID == *dataSet.UploadID {
-			newCounter++
-		}
-	}
-	combined = append(combined, newUploads[newCounter:]...)
-	return combined
-}
-
-// MergeSortedDataSets combines the unique Uploads by UploadID into a new slice.
-func MergeSortedDataSets(newDataSets, prevDataSets data.DataSets) data.DataSets {
-	combined := make(data.DataSets, 0, len(newDataSets)+len(prevDataSets))
-
-	// Merge the two datasets like the merge step in merge sort. Note we don't
-	// use sort.Slice/sort.SliceStable from the standard library as the
-	// sorting criteria may change (?) in the Repositories in the future.
-	newCounter := 0
-	// Prefer the dataSets in prevDataSets as that will maintain proper
-	// Pagination in the case that not all records are in the new collection
-	// yet because all existing DataSets are already in the old collection but
-	// might not be in the new one.
-	for _, dataSet := range prevDataSets {
-		for newCounter < len(newDataSets) && *newDataSets[newCounter].UploadID < *dataSet.UploadID {
-			combined = append(combined, newDataSets[newCounter])
-			newCounter++
-		}
-		// Always add the dataSet/upload in the "old" deviceData collection
-		// because the dataSet/upload may not have been finished migrating
-		// into the new deviceDataSets collection
-		combined = append(combined, dataSet)
-		// Skip duplicate of newDataSets in prevDataSets if it exists.
-		if newCounter < len(newDataSets) && *newDataSets[newCounter].UploadID == *dataSet.UploadID {
-			newCounter++
-		}
-	}
-	combined = append(combined, newDataSets[newCounter:]...)
-	return combined
-}
-
-func isTypeUpload(typ string) bool {
-	return strings.ToLower(typ) == strings.ToLower(upload.Type)
+func isTypeUpload(typ []string) bool {
+	return slices.Contains(typ, strings.ToLower(upload.Type))
 }

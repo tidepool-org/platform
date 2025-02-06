@@ -10,8 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/Shopify/sarama"
-
+	"github.com/IBM/sarama"
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 )
@@ -67,13 +66,21 @@ func (r *Receiver) ConsumeClaim(session sarama.ConsumerGroupSession, claim saram
 				return nil
 			}
 			m := NewMessageFromConsumerMessage(msg)
-
-			r.incoming <- msgErr{
+			msgErrObj := msgErr{
 				msg: binding.WithFinish(m, func(err error) {
 					if protocol.IsACK(err) {
 						session.MarkMessage(msg, "")
 					}
 				}),
+			}
+
+			// Need to use select clause here, otherwise r.incoming <- msgErrObj can become a blocking operation,
+			// resulting in never reaching outside block's case <-session.Context().Done()
+			select {
+			case r.incoming <- msgErrObj:
+				// do nothing
+			case <-session.Context().Done():
+				return nil
 			}
 
 		// Should return when `session.Context()` is done.

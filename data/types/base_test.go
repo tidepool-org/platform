@@ -15,6 +15,7 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
@@ -814,7 +815,7 @@ var _ = Describe("Base", func() {
 						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -838,7 +839,7 @@ var _ = Describe("Base", func() {
 					datum := dataTypesTest.RandomBase()
 					mutator(datum)
 					expectedDatum := dataTypesTest.CloneBase(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -875,7 +876,7 @@ var _ = Describe("Base", func() {
 						datum := dataTypesTest.RandomBase()
 						mutator(datum)
 						expectedDatum := dataTypesTest.CloneBase(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -903,57 +904,59 @@ var _ = Describe("Base", func() {
 	})
 
 	Context("with new, initialized datum", func() {
-		var datum *types.Base
+		var datumBase *types.Base
+		var datum data.Datum
 
 		BeforeEach(func() {
-			datum = dataTypesTest.RandomBase()
+			datumBase = dataTypesTest.RandomBase()
+			datum = datumBase
 		})
 
 		Context("IdentityFields", func() {
 			It("returns error if user id is missing", func() {
-				datum.UserID = nil
+				datumBase.UserID = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.FromString("")
+				datumBase.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is missing", func() {
-				datum.DeviceID = nil
+				datumBase.DeviceID = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
-				datum.DeviceID = pointer.FromString("")
+				datumBase.DeviceID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
-				datum.Time = nil
+				datumBase.Time = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
-				datum.Time = pointer.FromTime(time.Time{})
+				datumBase.Time = pointer.FromTime(time.Time{})
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if type is empty", func() {
-				datum.Type = ""
+				datumBase.Type = ""
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("type is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -962,13 +965,19 @@ var _ = Describe("Base", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type}))
+				Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
 			})
 		})
 
 		Context("GetPayload", func() {
 			It("gets the payload", func() {
-				Expect(datum.GetPayload()).To(Equal(datum.Payload))
+				Expect(datum.GetPayload()).To(Equal(datumBase.Payload))
+			})
+		})
+
+		Context("GetTimeZoneOffset", func() {
+			It("gets the time zone offset", func() {
+				Expect(datum.GetTimeZoneOffset()).To(Equal(datumBase.TimeZoneOffset))
 			})
 		})
 
@@ -976,7 +985,7 @@ var _ = Describe("Base", func() {
 			It("sets the user id", func() {
 				userID := pointer.FromString(userTest.RandomID())
 				datum.SetUserID(userID)
-				Expect(datum.UserID).To(Equal(userID))
+				Expect(datumBase.UserID).To(Equal(userID))
 			})
 		})
 
@@ -984,19 +993,19 @@ var _ = Describe("Base", func() {
 			It("sets the data set id", func() {
 				dataSetID := pointer.FromString(dataTest.RandomSetID())
 				datum.SetDataSetID(dataSetID)
-				Expect(datum.UploadID).To(Equal(dataSetID))
+				Expect(datumBase.UploadID).To(Equal(dataSetID))
 			})
 		})
 
 		Context("SetActive", func() {
 			It("sets active to true", func() {
 				datum.SetActive(true)
-				Expect(datum.Active).To(BeTrue())
+				Expect(datumBase.Active).To(BeTrue())
 			})
 
 			It("sets active to false", func() {
 				datum.SetActive(false)
-				Expect(datum.Active).To(BeFalse())
+				Expect(datumBase.Active).To(BeFalse())
 			})
 		})
 
@@ -1004,7 +1013,7 @@ var _ = Describe("Base", func() {
 			It("sets the device id", func() {
 				deviceID := pointer.FromString(dataTest.NewDeviceID())
 				datum.SetDeviceID(deviceID)
-				Expect(datum.DeviceID).To(Equal(deviceID))
+				Expect(datumBase.DeviceID).To(Equal(deviceID))
 			})
 		})
 
@@ -1012,7 +1021,7 @@ var _ = Describe("Base", func() {
 			It("sets the created time", func() {
 				createdTime := pointer.FromTime(test.RandomTime())
 				datum.SetCreatedTime(createdTime)
-				Expect(datum.CreatedTime).To(Equal(createdTime))
+				Expect(datumBase.CreatedTime).To(Equal(createdTime))
 			})
 		})
 
@@ -1020,7 +1029,7 @@ var _ = Describe("Base", func() {
 			It("sets the created user id", func() {
 				createdUserID := pointer.FromString(userTest.RandomID())
 				datum.SetCreatedUserID(createdUserID)
-				Expect(datum.CreatedUserID).To(Equal(createdUserID))
+				Expect(datumBase.CreatedUserID).To(Equal(createdUserID))
 			})
 		})
 
@@ -1028,7 +1037,7 @@ var _ = Describe("Base", func() {
 			It("sets the modified time", func() {
 				modifiedTime := pointer.FromTime(test.RandomTime())
 				datum.SetModifiedTime(modifiedTime)
-				Expect(datum.ModifiedTime).To(Equal(modifiedTime))
+				Expect(datumBase.ModifiedTime).To(Equal(modifiedTime))
 			})
 		})
 
@@ -1036,7 +1045,7 @@ var _ = Describe("Base", func() {
 			It("sets the modified user id", func() {
 				modifiedUserID := pointer.FromString(userTest.RandomID())
 				datum.SetModifiedUserID(modifiedUserID)
-				Expect(datum.ModifiedUserID).To(Equal(modifiedUserID))
+				Expect(datumBase.ModifiedUserID).To(Equal(modifiedUserID))
 			})
 		})
 
@@ -1044,7 +1053,7 @@ var _ = Describe("Base", func() {
 			It("sets the deleted time", func() {
 				deletedTime := pointer.FromTime(test.RandomTime())
 				datum.SetDeletedTime(deletedTime)
-				Expect(datum.DeletedTime).To(Equal(deletedTime))
+				Expect(datumBase.DeletedTime).To(Equal(deletedTime))
 			})
 		})
 
@@ -1052,13 +1061,13 @@ var _ = Describe("Base", func() {
 			It("sets the deleted user id", func() {
 				deletedUserID := pointer.FromString(userTest.RandomID())
 				datum.SetDeletedUserID(deletedUserID)
-				Expect(datum.DeletedUserID).To(Equal(deletedUserID))
+				Expect(datumBase.DeletedUserID).To(Equal(deletedUserID))
 			})
 		})
 
 		Context("DeduplicatorDescriptor", func() {
 			It("gets the deduplicator descriptor", func() {
-				Expect(datum.DeduplicatorDescriptor()).To(Equal(datum.Deduplicator))
+				Expect(datum.DeduplicatorDescriptor()).To(Equal(datumBase.Deduplicator))
 			})
 		})
 
@@ -1066,7 +1075,7 @@ var _ = Describe("Base", func() {
 			It("sets the deduplicator descriptor", func() {
 				deduplicatorDescriptor := dataTest.RandomDeduplicatorDescriptor()
 				datum.SetDeduplicatorDescriptor(deduplicatorDescriptor)
-				Expect(datum.Deduplicator).To(Equal(deduplicatorDescriptor))
+				Expect(datumBase.Deduplicator).To(Equal(deduplicatorDescriptor))
 			})
 		})
 	})

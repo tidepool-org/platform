@@ -2,13 +2,12 @@ package summary
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-
-	"errors"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -20,9 +19,9 @@ import (
 )
 
 const (
-	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
 	DefaultBackfillAvailableAfterDurationMinimum = 23 * time.Hour
-	BackfillTaskDurationMaximum                  = 5 * time.Minute
+	DefaultBackfillAvailableAfterDurationMaximum = 24 * time.Hour
+	BackfillTaskDurationMaximum                  = 15 * time.Minute
 	BackfillType                                 = "org.tidepool.summary.backfill"
 )
 
@@ -63,14 +62,18 @@ func (r *BackfillRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(BackfillTaskDurationMaximum * 3)
 }
 
-func (r *BackfillRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *BackfillRunner) GetRunnerTimeout() time.Duration {
+	return BackfillTaskDurationMaximum * 2
+}
+
+func (r *BackfillRunner) GetRunnerDurationMaximum() time.Duration {
 	return BackfillTaskDurationMaximum
 }
 
 func (r *BackfillRunner) GenerateNextTime(interval MinuteRange) time.Duration {
 
-	Min := time.Duration(interval.Min) * time.Minute
-	Max := time.Duration(interval.Max) * time.Minute
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime
@@ -106,36 +109,23 @@ func (r *BackfillRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 
 	return config
 }
-func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *BackfillRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx); tErr != nil {
-			tsk.AppendError(tErr)
-		}
+	if taskRunner, tErr := NewBackfillTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx); tErr != nil {
+		tsk.AppendError(tErr)
 	}
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > BackfillTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type BackfillTaskRunner struct {
@@ -165,21 +155,15 @@ func (t *BackfillTaskRunner) Run(ctx context.Context) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
-	t.logger.Debug("Starting User CGM Summary Creation")
-	count, err := t.dataClient.BackfillSummaries(t.context, "cgm")
-	if err != nil {
-		return err
+	for _, typ := range []string{"continuous"} {
+		t.logger.Debugf("Starting User %s Summary Backfill", typ)
+		count, err := t.dataClient.BackfillSummaries(t.context, typ)
+		if err != nil {
+			return err
+		}
+		t.logger.Infof("Backfilled %d %s summaries", count, typ)
 	}
-	t.logger.Info(fmt.Sprintf("Backfilled %d CGM summaries", count))
-
-	t.logger.Debug("Starting User BGM Summary Creation")
-	count, err = t.dataClient.BackfillSummaries(t.context, "bgm")
-	if err != nil {
-		return err
-	}
-	t.logger.Info(fmt.Sprintf("Backfilled %d BGM summaries", count))
-
 	return nil
 }

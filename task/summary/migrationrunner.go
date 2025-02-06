@@ -2,11 +2,10 @@ package summary
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"time"
-
-	"errors"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"golang.org/x/sync/errgroup"
@@ -23,8 +22,8 @@ import (
 )
 
 const (
-	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	DefaultMigrationAvailableAfterDurationMinimum = 5 * time.Minute
+	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
 	MigrationWorkerCount                          = 1
@@ -68,13 +67,17 @@ func (r *MigrationRunner) GetRunnerDeadline() time.Time {
 	return time.Now().Add(MigrationTaskDurationMaximum * 3)
 }
 
-func (r *MigrationRunner) GetRunnerMaximumDuration() time.Duration {
+func (r *MigrationRunner) GetRunnerTimeout() time.Duration {
+	return MigrationTaskDurationMaximum * 2
+}
+
+func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 	return MigrationTaskDurationMaximum
 }
 
 func (r *MigrationRunner) GenerateNextTime(interval MinuteRange) time.Duration {
-	Min := time.Duration(interval.Min) * time.Minute
-	Max := time.Duration(interval.Max) * time.Minute
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime
@@ -111,36 +114,23 @@ func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	return config
 }
 
-func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) bool {
-	now := time.Now()
-
+func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = log.NewContextWithLogger(ctx, r.logger)
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 
 	tsk.ClearError()
 
 	config := r.GetConfig(tsk)
 
-	if serverSessionToken, sErr := r.authClient.ServerSessionToken(); sErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to get server session token: %w", sErr))
-	} else {
-		ctx = auth.NewContextWithServerSessionToken(ctx, serverSessionToken)
-
-		if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-		} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-			tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
-		}
+	if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
+	} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
+		tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
 	}
 
 	if !tsk.IsFailed() {
 		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
 	}
-
-	if taskDuration := time.Since(now); taskDuration > UpdateTaskDurationMaximum {
-		r.logger.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
-	}
-
-	return true
 }
 
 type MigrationTaskRunner struct {
@@ -170,34 +160,46 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 	}
 
 	t.context = ctx
-	t.validator = structureValidator.New()
+	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
 
 	pagination := page.NewPagination()
 	pagination.Size = batch
 
 	t.logger.Info("Searching for User CGM Summaries requiring Migration")
-	outdatedCGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
-	if err != nil {
-		return err
-	}
-
-	t.logger.Info("Searching for User BGM Summaries requiring Migration")
-	outdatedBGMSummaryUserIDs, err := t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
 	if err != nil {
 		return err
 	}
 
 	t.logger.Debug("Starting User CGM Summary Migration")
-	if err := t.UpdateCGMSummaries(outdatedCGMSummaryUserIDs); err != nil {
+	if err := t.UpdateCGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User CGM Summary Migration")
 
+	t.logger.Info("Searching for User BGM Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	if err != nil {
+		return err
+	}
+
 	t.logger.Debug("Starting User BGM Summary Migration")
-	if err := t.UpdateBGMSummaries(outdatedBGMSummaryUserIDs); err != nil {
+	if err := t.UpdateBGMSummaries(outdatedUserIds); err != nil {
 		return err
 	}
 	t.logger.Debug("Finished User BGM Summary Migration")
+
+	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
+	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
+	if err != nil {
+		return err
+	}
+
+	t.logger.Debug("Starting User Continuous Summary Migration")
+	if err := t.UpdateContinuousSummaries(outdatedUserIds); err != nil {
+		return err
+	}
+	t.logger.Debug("Finished User Continuous Summary Migration")
 
 	return nil
 }
@@ -252,6 +254,31 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 	return eg.Wait()
 }
 
+func (t *MigrationTaskRunner) UpdateContinuousSummaries(userIDs []string) error {
+	eg, ctx := errgroup.WithContext(t.context)
+
+	eg.Go(func() error {
+		sem := semaphore.NewWeighted(MigrationWorkerCount)
+		for _, userID := range userIDs {
+			if err := sem.Acquire(ctx, 1); err != nil {
+				return err
+			}
+
+			// we can't pass arguments to errgroup goroutines
+			// we need to explicitly redefine the variables,
+			// because we're launching the goroutines in a loop
+			userID := userID
+			eg.Go(func() error {
+				defer sem.Release(1)
+				return t.UpdateContinuousUserSummary(userID)
+			})
+		}
+
+		return nil
+	})
+	return eg.Wait()
+}
+
 func (t *MigrationTaskRunner) UpdateCGMUserSummary(userID string) error {
 	t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
 
@@ -276,6 +303,20 @@ func (t *MigrationTaskRunner) UpdateBGMUserSummary(userID string) error {
 	}
 
 	t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
+
+	return nil
+}
+
+func (t *MigrationTaskRunner) UpdateContinuousUserSummary(userID string) error {
+	t.logger.WithField("UserID", userID).Debug("Updating User Continuous Summary")
+
+	// update summary
+	_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
+	if err != nil {
+		return err
+	}
+
+	t.logger.WithField("UserID", userID).Debug("Finished Updating User Continuous Summary")
 
 	return nil
 }

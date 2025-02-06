@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 
+	"go.mongodb.org/mongo-driver/internal/codecutil"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
@@ -132,6 +133,14 @@ func getEncoder(
 	return enc, nil
 }
 
+// newEncoderFn will return a function for constructing an encoder based on the
+// provided codec options.
+func newEncoderFn(opts *options.BSONOptions, registry *bsoncodec.Registry) codecutil.EncoderFn {
+	return func(w io.Writer) (*bson.Encoder, error) {
+		return getEncoder(w, opts, registry)
+	}
+}
+
 // marshal marshals the given value as a BSON document. Byte slices are always converted to a
 // bson.Raw before marshaling.
 //
@@ -168,8 +177,11 @@ func marshal(
 }
 
 // ensureID inserts the given ObjectID as an element named "_id" at the
-// beginning of the given BSON document if there is not an "_id" already. If
-// there is already an element named "_id", the document is not modified. It
+// beginning of the given BSON document if there is not an "_id" already.
+// If the given ObjectID is primitive.NilObjectID, a new object ID will be
+// generated with time.Now().
+//
+// If there is already an element named "_id", the document is not modified. It
 // returns the resulting document and the decoded Go value of the "_id" element.
 func ensureID(
 	doc bsoncore.Document,
@@ -210,6 +222,9 @@ func ensureID(
 	const extraSpace = 17
 	doc = make(bsoncore.Document, 0, len(olddoc)+extraSpace)
 	_, doc = bsoncore.ReserveLength(doc)
+	if oid.IsZero() {
+		oid = primitive.NewObjectID()
+	}
 	doc = bsoncore.AppendObjectIDElement(doc, "_id", oid)
 
 	// Remove and re-write the BSON document length header.
@@ -421,26 +436,7 @@ func marshalValue(
 	bsonOpts *options.BSONOptions,
 	registry *bsoncodec.Registry,
 ) (bsoncore.Value, error) {
-	if registry == nil {
-		registry = bson.DefaultRegistry
-	}
-	if val == nil {
-		return bsoncore.Value{}, ErrNilValue
-	}
-
-	buf := new(bytes.Buffer)
-	enc, err := getEncoder(buf, bsonOpts, registry)
-	if err != nil {
-		return bsoncore.Value{}, fmt.Errorf("error configuring BSON encoder: %w", err)
-	}
-
-	// Encode the value in a single-element document with an empty key. Use bsoncore to extract the
-	// first element and return the BSON value.
-	err = enc.Encode(bson.D{{Key: "", Value: val}})
-	if err != nil {
-		return bsoncore.Value{}, MarshalError{Value: val, Err: err}
-	}
-	return bsoncore.Document(buf.Bytes()).Index(0).Value(), nil
+	return codecutil.MarshalValue(val, newEncoderFn(bsonOpts, registry))
 }
 
 // Build the aggregation pipeline for the CountDocument command.

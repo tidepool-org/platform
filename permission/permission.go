@@ -25,9 +25,15 @@ const (
 	Write     = "upload"
 )
 
-//go:generate mockgen -build_flags=--mod=mod -destination=./client_mock.go -package=permission . Client
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
+}
+
+// ExtendedClient is a temporary interface that handles more involved permission checking as I refactor things after merging existing changes
+//
+//go:generate mockgen -build_flags=--mod=mod -destination=./client_mock.go -package=permission . ExtendedClient
+type ExtendedClient interface {
+	Client
 	// GroupsForUser returns permissions that have been shared with granteeUserID. It is keyed by the user that has shared something with granteeUserID. It includes the user themself.
 	GroupsForUser(ctx context.Context, granteeUserID string) (Permissions, error)
 	// UsersInGroup returns permissions that the user with id sharerID has shared with others, keyed by user id. It includes the user themself.
@@ -61,4 +67,48 @@ func (p Permission) HasAny(permissionTypes ...string) bool {
 		}
 	}
 	return false
+}
+
+// HasExplicitMembershipRelationship return whether a grantor has given a
+// grantee explicit rights. This is need in some places where we want to test a
+// user's permission. It is called "Explicit" because in most middleware, a
+// service call already has implicit rights and this would then only be called
+// to check if a user has explicit writes if the AuthDetails were not from a
+// service.
+func HasExplicitMembershipRelationship(ctx context.Context, client Client, granteeUserID, grantorUserID string) (has bool, err error) {
+	fromTo, err := client.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	if len(fromTo) > 0 {
+		return true, nil
+	}
+	toFrom, err := client.GetUserPermissions(ctx, grantorUserID, granteeUserID)
+	if err != nil {
+		return false, err
+	}
+	if len(toFrom) > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func HasExplicitWritePermissions(ctx context.Context, c Client, granteeUserID, grantorUserID string) (has bool, err error) {
+	if granteeUserID != "" && granteeUserID == grantorUserID {
+		return true, nil
+	}
+	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := perms[Custodian]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Write]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Owner]; ok {
+		return true, nil
+	}
+	return false, nil
 }

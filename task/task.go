@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -192,10 +193,10 @@ type Task struct {
 	ModifiedTime   *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
-func NewTask(create *TaskCreate) (*Task, error) {
+func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -303,6 +304,13 @@ func (t *Task) SetCompleted() {
 
 func (t *Task) HasError() bool {
 	return t.Error != nil && t.Error.Error != nil
+}
+
+func (t *Task) GetError() error {
+	if t.Error != nil {
+		return t.Error.Error
+	}
+	return nil
 }
 
 func (t *Task) AppendError(err error) {

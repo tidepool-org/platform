@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	mongoDriver "go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 	"go.uber.org/fx"
@@ -19,7 +19,7 @@ var StoreModule = fx.Options(
 )
 
 type Store struct {
-	client *mongoDriver.Client
+	client *mongo.Client
 	config *Config
 }
 
@@ -31,18 +31,22 @@ func NewStore(c *Config) (*Store, error) {
 	if c == nil {
 		return nil, errors.New("database config is empty")
 	}
+	return NewStoreFromClient(c, nil)
+}
 
+func NewStoreFromClient(c *Config, clientOptions *options.ClientOptions) (*Store, error) {
+	var err error
 	store := &Store{
 		config: c,
 	}
 
-	var err error
-	cs := c.AsConnectionString()
-	clientOptions := options.Client().
-		ApplyURI(cs).
+	if clientOptions == nil {
+		clientOptions = options.Client()
+	}
+	clientOptions.ApplyURI(c.AsConnectionString()).
 		SetConnectTimeout(store.config.Timeout).
 		SetServerSelectionTimeout(store.config.Timeout)
-	store.client, err = mongoDriver.Connect(context.Background(), clientOptions)
+	store.client, err = mongo.Connect(context.Background(), clientOptions)
 	if err != nil {
 		return nil, errors.Wrap(err, "connection options are invalid")
 	}
@@ -65,7 +69,7 @@ func (o *Store) GetRepository(collection string) *Repository {
 	return NewRepository(o.GetCollection(collection))
 }
 
-func (o *Store) GetCollection(collection string) *mongoDriver.Collection {
+func (o *Store) GetCollection(collection string) *mongo.Collection {
 	db := o.client.Database(o.config.Database)
 	prefixed := fmt.Sprintf("%s%s", o.config.CollectionPrefix, collection)
 	return db.Collection(prefixed)

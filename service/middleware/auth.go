@@ -45,11 +45,7 @@ func (a *Authenticator) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.Handle
 
 			lgr := log.LoggerFromContext(req.Context())
 
-			if serverSessionToken, err := a.authClient.ServerSessionToken(); err == nil {
-				req.Request = req.WithContext(auth.NewContextWithServerSessionToken(req.Context(), serverSessionToken))
-			} else {
-				lgr.WithError(err).Warn("Unable to obtain server session token in auth middleware")
-			}
+			req.Request = req.WithContext(auth.NewContextWithServerSessionTokenProvider(req.Context(), a.authClient))
 
 			if details, err := a.authenticate(req); err != nil {
 				// TODO: Sleep exponential fallback based upon IP and occurrences in period

@@ -4,21 +4,22 @@ import (
 	"context"
 
 	"github.com/golang/mock/gomock"
-	"github.com/tidepool-org/platform/apple"
-	"github.com/tidepool-org/platform/user"
 
 	"github.com/onsi/gomega"
-
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
-	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
+	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
+
+	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
-	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
@@ -36,7 +37,7 @@ type Service struct {
 	StatusOutputs              []*service.Status
 	confirmationClient         confirmationClient.ClientWithResponsesInterface
 	userAccessor               user.UserAccessor
-	permsClient                permission.Client
+	permsClient                permission.ExtendedClient
 	profileAccessor            user.UserProfileAccessor
 }
 
@@ -52,10 +53,10 @@ func NewService() *Service {
 // NewMockedService uses a combination of the "old" style manual stub / fakes /
 // mocks and newer gomocks for convenience so that the current code doesn't
 // have to be refactored too much
-func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor, permsClient *permission.MockClient) {
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor, permsClient *permission.MockExtendedClient) {
 	userAccessor = user.NewMockUserAccessor(ctrl)
 	profileAccessor = user.NewMockUserProfileAccessor(ctrl)
-	permsClient = permission.NewMockClient(ctrl)
+	permsClient = permission.NewMockExtendedClient(ctrl)
 	return &Service{
 		Service:             serviceTest.NewService(),
 		AuthStoreImpl:       authStoreTest.NewStore(),
@@ -99,11 +100,15 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 	return s.confirmationClient
 }
 
+func (s *Service) AppValidator() *appvalidate.Validator {
+	return &appvalidate.Validator{}
+}
+
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return nil
 }
 
-func (s *Service) PermissionsClient() permission.Client {
+func (s *Service) PermissionsClient() permission.ExtendedClient {
 	return s.permsClient
 }
 
@@ -115,6 +120,10 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	output := s.StatusOutputs[0]
 	s.StatusOutputs = s.StatusOutputs[1:]
 	return output
+}
+
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return nil
 }
 
 func (s *Service) Expectations() {

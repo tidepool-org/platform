@@ -33,6 +33,8 @@ type Datum struct {
 	GetOriginOutputs                     []*origin.Origin
 	GetTimeInvocations                   int
 	GetTimeOutputs                       []*time.Time
+	GetTimeZoneOffsetInvocations         int
+	GetTimeZoneOffsetOutputs             []*int
 	GetTypeInvocations                   int
 	GetTypeOutputs                       []string
 	SetTypeInvocations                   int
@@ -62,6 +64,10 @@ type Datum struct {
 	SetDeduplicatorDescriptorInvocations int
 	IsActiveInvocations                  int
 	IsActiveOutputs                      []bool
+	SetProvenanceInvocations             int
+	SetProvenanceInputs                  []*data.Provenance
+	GetUploadIDInvocations               int
+	GetUploadIDOutputs                   []*string
 }
 
 func NewDatum() *Datum {
@@ -162,6 +168,16 @@ func (d *Datum) GetTime() *time.Time {
 	return output
 }
 
+func (d *Datum) GetTimeZoneOffset() *int {
+	d.GetTimeZoneOffsetInvocations++
+
+	gomega.Expect(d.GetTimeZoneOffsetOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetTimeZoneOffsetOutputs[0]
+	d.GetTimeZoneOffsetOutputs = d.GetTimeZoneOffsetOutputs[1:]
+	return output
+}
+
 func (d *Datum) SetUserID(userID *string) {
 	d.SetUserIDInvocations++
 
@@ -222,6 +238,11 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
+func (d *Datum) SetProvenance(p *data.Provenance) {
+	d.SetProvenanceInvocations++
+	d.SetProvenanceInputs = append(d.SetProvenanceInputs, p)
+}
+
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	d.DeduplicatorDescriptorInvocations++
 
@@ -239,4 +260,17 @@ func (d *Datum) Expectations() {
 	gomega.Expect(d.IdentityFieldsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetPayloadOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetOriginOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetTimeOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetTimeZoneOffsetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetTypeOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.IsActiveOutputs).To(gomega.BeEmpty())
+}
+
+func (d *Datum) GetUploadID() *string {
+	d.GetUploadIDInvocations++
+
+	output := d.GetUploadIDOutputs[0]
+	d.GetUploadIDOutputs = d.GetUploadIDOutputs[1:]
+
+	return output
 }

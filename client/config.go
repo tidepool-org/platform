@@ -11,13 +11,15 @@ import (
 
 type Config struct {
 	Address string // this should be overridden for loaders using envconfig
+
 	// UserAgent is an optional way for a client to identify itself.
 	//
 	// This is usually set to the name of the service that's using the
 	// client. If left empty, the default Go http.Client value should be used.
 	//
 	// This value can be helpful when debugging. But remember that these
-	// values can be spoofed, so when in doubt, verify the client's source IP.
+	// values can be spoofed, it's better to verify via some other means, like
+	// the request's access token's "azp" claim.
 	//
 	// More info: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 	UserAgent string `envconfig:"TIDEPOOL_USER_AGENT"`

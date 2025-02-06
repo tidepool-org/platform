@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"io"
 	"reflect"
+	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
@@ -159,13 +160,13 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		ctx = context.Background()
 	}
 	doc, err := c.batch.Next()
-	switch err {
-	case nil:
+	switch {
+	case err == nil:
 		// Consume the next document in the current batch.
 		c.batchLength--
 		c.Current = bson.Raw(doc)
 		return true
-	case io.EOF: // Need to do a getMore
+	case errors.Is(err, io.EOF): // Need to do a getMore
 	default:
 		c.err = err
 		return false
@@ -203,12 +204,12 @@ func (c *Cursor) next(ctx context.Context, nonBlocking bool) bool {
 		c.batch = c.bc.Batch()
 		c.batchLength = c.batch.DocumentCount()
 		doc, err = c.batch.Next()
-		switch err {
-		case nil:
+		switch {
+		case err == nil:
 			c.batchLength--
 			c.Current = bson.Raw(doc)
 			return true
-		case io.EOF: // Empty batch so we continue
+		case errors.Is(err, io.EOF): // Empty batch so we continue
 		default:
 			c.err = err
 			return false
@@ -387,6 +388,22 @@ func (c *Cursor) closeImplicitSession() {
 // document batches fetched from the database.
 func (c *Cursor) SetBatchSize(batchSize int32) {
 	c.bc.SetBatchSize(batchSize)
+}
+
+// SetMaxTime will set the maximum amount of time the server will allow the
+// operations to execute. The server will error if this field is set but the
+// cursor is not configured with awaitData=true.
+//
+// The time.Duration value passed by this setter will be converted and rounded
+// down to the nearest millisecond.
+func (c *Cursor) SetMaxTime(dur time.Duration) {
+	c.bc.SetMaxTime(dur)
+}
+
+// SetComment will set a user-configurable comment that can be used to identify
+// the operation in server logs.
+func (c *Cursor) SetComment(comment interface{}) {
+	c.bc.SetComment(comment)
 }
 
 // BatchCursorFromCursor returns a driver.BatchCursor for the given Cursor. If there is no underlying

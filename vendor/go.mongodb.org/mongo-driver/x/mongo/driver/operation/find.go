@@ -13,6 +13,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/event"
+	"go.mongodb.org/mongo-driver/internal/driverutil"
 	"go.mongodb.org/mongo-driver/internal/logger"
 	"go.mongodb.org/mongo-driver/mongo/description"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
@@ -61,6 +62,7 @@ type Find struct {
 	result              driver.CursorResponse
 	serverAPI           *driver.ServerAPIOptions
 	timeout             *time.Duration
+	omitCSOTMaxTimeMS   bool
 	logger              *logger.Logger
 }
 
@@ -108,6 +110,8 @@ func (f *Find) Execute(ctx context.Context) error {
 		ServerAPI:         f.serverAPI,
 		Timeout:           f.timeout,
 		Logger:            f.logger,
+		Name:              driverutil.FindOp,
+		OmitCSOTMaxTimeMS: f.omitCSOTMaxTimeMS,
 	}.Execute(ctx)
 
 }
@@ -547,6 +551,18 @@ func (f *Find) Timeout(timeout *time.Duration) *Find {
 	}
 
 	f.timeout = timeout
+	return f
+}
+
+// OmitCSOTMaxTimeMS omits the automatically-calculated "maxTimeMS" from the
+// command when CSOT is enabled. It does not effect "maxTimeMS" set by
+// [Find.MaxTime].
+func (f *Find) OmitCSOTMaxTimeMS(omit bool) *Find {
+	if f == nil {
+		f = new(Find)
+	}
+
+	f.omitCSOTMaxTimeMS = omit
 	return f
 }
 

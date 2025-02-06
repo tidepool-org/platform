@@ -1,20 +1,29 @@
 package client_test
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataTest "github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -94,11 +103,16 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("with server token", func() {
-				var token string
+				var serverSessionTokenProviderController *gomock.Controller
+				var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
+				var sessionToken string
 
 				BeforeEach(func() {
-					token = dataTest.NewSessionToken()
-					ctx = auth.NewContextWithServerSessionToken(ctx, token)
+					serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+					serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+					sessionToken = dataTest.NewSessionToken()
+					serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
+					ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)
 				})
 
 				Context("with an unauthorized response", func() {
@@ -107,7 +121,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusUnauthorized, nil)),
 						)
@@ -126,7 +140,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusForbidden, nil)),
 						)
@@ -145,7 +159,7 @@ var _ = Describe("Client", func() {
 							CombineHandlers(
 								VerifyRequest("DELETE", fmt.Sprintf("/v1/users/%s/data", userID)),
 								VerifyHeaderKV("User-Agent", userAgent),
-								VerifyHeaderKV("X-Tidepool-Session-Token", token),
+								VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken),
 								VerifyBody(nil),
 								RespondWith(http.StatusOK, nil)),
 						)
@@ -157,6 +171,30 @@ var _ = Describe("Client", func() {
 					})
 				})
 			})
+		})
+	})
+
+	Context("NewSerializableDataErrorResponseParser", func() {
+		It("returns success", func() {
+			Expect(dataClient.NewSerializableDataErrorResponseParser()).ToNot(BeNil())
+		})
+	})
+
+	Context("SerializableDataErrorResponseParser", func() {
+		It("returns nil if response body is not parseable", func() {
+			serializableErrorResponseParser := dataClient.NewSerializableDataErrorResponseParser()
+			err := serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader([]byte("NOT JSON")))}, testHttp.NewRequest())
+			Expect(err).To(BeNil())
+		})
+
+		It("returns deserialized error if response body is parseable", func() {
+			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+			body, err := json.Marshal(map[string]any{"errors": errors.Serializable{Error: responseErr}})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(body).ToNot(BeNil())
+			serializableErrorResponseParser := dataClient.NewSerializableDataErrorResponseParser()
+			err = serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader(body))}, testHttp.NewRequest())
+			Expect(err).To(Equal(responseErr))
 		})
 	})
 })

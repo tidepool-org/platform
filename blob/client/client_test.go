@@ -13,6 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"github.com/golang/mock/gomock"
+
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/blob"
 	blobClient "github.com/tidepool-org/platform/blob/client"
@@ -849,11 +851,21 @@ var _ = Describe("Client", func() {
 		})
 
 		When("client must authorize as user", func() {
+			var serverSessionTokenProviderController *gomock.Controller
+			var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
+
 			BeforeEach(func() {
+				serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+				serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
 				sessionToken := authTest.NewSessionToken()
+				serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
 				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
+			})
+
+			AfterEach(func() {
+				serverSessionTokenProviderController.Finish()
 			})
 
 			authorizeAssertions()

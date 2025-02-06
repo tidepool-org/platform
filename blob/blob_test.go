@@ -16,6 +16,7 @@ import (
 	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -60,7 +61,7 @@ var _ = Describe("Blob", func() {
 					object := blobTest.NewObjectFromFilter(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &blob.Filter{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -112,7 +113,7 @@ var _ = Describe("Blob", func() {
 				func(mutator func(datum *blob.Filter), expectedErrors ...error) {
 					datum := blobTest.RandomFilter()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blob.Filter) {},
@@ -235,7 +236,7 @@ var _ = Describe("Blob", func() {
 				func(mutator func(datum *blob.Content), expectedErrors ...error) {
 					datum := blobTest.RandomContent()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blob.Content) {},
@@ -326,7 +327,7 @@ var _ = Describe("Blob", func() {
 					object := blobTest.NewObjectFromBlob(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &blob.Blob{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(blobTest.MatchBlob(expectedDatum))
 				},
 				Entry("succeeds",
@@ -535,7 +536,7 @@ var _ = Describe("Blob", func() {
 				func(mutator func(datum *blob.Blob), expectedErrors ...error) {
 					datum := blobTest.RandomBlob()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blob.Blob) {},
@@ -757,7 +758,7 @@ var _ = Describe("Blob", func() {
 					object := blobTest.NewObjectFromDeviceLogsBlob(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &blob.DeviceLogsBlob{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(blobTest.MatchDeviceLogsBlob(expectedDatum))
 				},
 				Entry("succeeds",
@@ -905,7 +906,7 @@ var _ = Describe("Blob", func() {
 				func(mutator func(datum *blob.DeviceLogsBlob), expectedErrors ...error) {
 					datum := blobTest.RandomDeviceLogsBlob()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *blob.DeviceLogsBlob) {},

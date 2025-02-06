@@ -82,7 +82,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
+		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet)
 		if getErr != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 			return
@@ -94,8 +94,12 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			return
 		}
 
+		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
 		updatesSummary := make(map[string]struct{})
-		summary.CheckDataSetUpdatesSummary(ctx, dataServiceContext.DataRepository(), updatesSummary, dataSetID)
+		for _, typ := range types.AllSummaryTypes {
+			updatesSummary[typ] = struct{}{}
+		}
+
 		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 

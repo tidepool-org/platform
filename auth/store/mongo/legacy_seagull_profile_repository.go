@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -67,7 +68,7 @@ func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, 
 		return errors.New("user id is missing")
 	}
 	legacyProfile := profile.ToLegacyProfile()
-	if err := structureValidator.New().Validate(legacyProfile); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(legacyProfile); err != nil {
 		return err
 	}
 	var doc user.LegacySeagullDocument

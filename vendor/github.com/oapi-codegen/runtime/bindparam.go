@@ -31,24 +31,53 @@ import (
 // https://swagger.io/docs/specification/serialization/
 // It is a backward compatible function to clients generated with codegen
 // up to version v1.5.5. v1.5.6+ calls the function below.
+// Deprecated: BindStyledParameter is deprecated.
 func BindStyledParameter(style string, explode bool, paramName string,
 	value string, dest interface{}) error {
-	return BindStyledParameterWithLocation(style, explode, paramName, ParamLocationUndefined, value, dest)
+	return BindStyledParameterWithOptions(style, paramName, value, dest, BindStyledParameterOptions{
+		ParamLocation: ParamLocationUndefined,
+		Explode:       explode,
+		Required:      true,
+	})
 }
 
 // BindStyledParameterWithLocation binds a parameter as described in the Path Parameters
 // section here to a Go object:
 // https://swagger.io/docs/specification/serialization/
+// This is a compatibility function which is used by oapi-codegen v2.0.0 and earlier.
+// Deprecated: BindStyledParameterWithLocation is deprecated.
 func BindStyledParameterWithLocation(style string, explode bool, paramName string,
 	paramLocation ParamLocation, value string, dest interface{}) error {
+	return BindStyledParameterWithOptions(style, paramName, value, dest, BindStyledParameterOptions{
+		ParamLocation: paramLocation,
+		Explode:       explode,
+		Required:      true, // This emulates behavior before the required parameter was optional.
+	})
+}
 
-	if value == "" {
-		return fmt.Errorf("parameter '%s' is empty, can't bind its value", paramName)
+// BindStyledParameterOptions defines optional arguments for BindStyledParameterWithOptions
+type BindStyledParameterOptions struct {
+	// ParamLocation tells us where the parameter is located in the request.
+	ParamLocation ParamLocation
+	// Whether the parameter should use exploded structure
+	Explode bool
+	// Whether the parameter is required in the query
+	Required bool
+}
+
+// BindStyledParameterWithOptions binds a parameter as described in the Path Parameters
+// section here to a Go object:
+// https://swagger.io/docs/specification/serialization/
+func BindStyledParameterWithOptions(style string, paramName string, value string, dest any, opts BindStyledParameterOptions) error {
+	if opts.Required {
+		if value == "" {
+			return fmt.Errorf("parameter '%s' is empty, can't bind its value", paramName)
+		}
 	}
 
 	// Based on the location of the parameter, we need to unescape it properly.
 	var err error
-	switch paramLocation {
+	switch opts.ParamLocation {
 	case ParamLocationQuery, ParamLocationUndefined:
 		// We unescape undefined parameter locations here for older generated code,
 		// since prior to this refactoring, they always query unescaped.
@@ -83,17 +112,17 @@ func BindStyledParameterWithLocation(style string, explode bool, paramName strin
 	if t.Kind() == reflect.Struct {
 		// We've got a destination object, we'll create a JSON representation
 		// of the input value, and let the json library deal with the unmarshaling
-		parts, err := splitStyledParameter(style, explode, true, paramName, value)
+		parts, err := splitStyledParameter(style, opts.Explode, true, paramName, value)
 		if err != nil {
 			return err
 		}
 
-		return bindSplitPartsToDestinationStruct(paramName, parts, explode, dest)
+		return bindSplitPartsToDestinationStruct(paramName, parts, opts.Explode, dest)
 	}
 
 	if t.Kind() == reflect.Slice {
 		// Chop up the parameter into parts based on its style
-		parts, err := splitStyledParameter(style, explode, false, paramName, value)
+		parts, err := splitStyledParameter(style, opts.Explode, false, paramName, value)
 		if err != nil {
 			return fmt.Errorf("error splitting input '%s' into parts: %s", value, err)
 		}

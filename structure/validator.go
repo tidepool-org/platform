@@ -10,6 +10,7 @@ type Validatable interface {
 }
 
 type Validator interface {
+	LoggerReporter
 	OriginReporter
 	SourceReporter
 	MetaReporter
@@ -28,6 +29,7 @@ type Validator interface {
 
 	Object(reference string, value *map[string]interface{}) Object
 	Array(reference string, value *[]interface{}) Array
+	Bytes(reference string, value []byte) Bytes
 
 	WithOrigin(origin Origin) Validator
 	WithSource(source Source) Validator
@@ -222,4 +224,9 @@ type Array interface {
 	NotEmpty() Array
 
 	Using(usingFunc ArrayUsingFunc) Array
+}
+
+type Bytes interface {
+	NotEmpty() Bytes
+	LengthLessThanOrEqualTo(limit int) Bytes
 }
