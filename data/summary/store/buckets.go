@@ -108,13 +108,12 @@ func (r *Buckets[PB, B]) GetBucketsRange(ctx context.Context, userId string, sta
 	return nil, fmt.Errorf("unable to get buckets: %w", err)
 }
 
-// TODO: Not used
 func (r *Buckets[PB, B]) TrimExcessBuckets(ctx context.Context, userId string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 
-	bucket, err := r.GetEnd(ctx, userId, -1)
+	bucket, err := r.GetNewest(ctx, userId)
 	if err != nil {
 		return err
 	}
@@ -146,8 +145,7 @@ func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId str
 	return r.GetNewestRecordTime(ctx, userId)
 }
 
-// TODO: Rename. What's side?
-func (r *Buckets[PB, B]) GetEnd(ctx context.Context, userId string, side int) (*types.Bucket[PB, B], error) {
+func (r *Buckets[PB, B]) getOne(ctx context.Context, userId string, sort int) (*types.Bucket[PB, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -161,7 +159,7 @@ func (r *Buckets[PB, B]) GetEnd(ctx context.Context, userId string, side int) (*
 		"type":   r.Type,
 	}
 	opts := options.Find()
-	opts.SetSort(bson.D{{Key: "time", Value: side}})
+	opts.SetSort(bson.D{{Key: "time", Value: sort}})
 	opts.SetLimit(1)
 
 	cur, err := r.Find(ctx, selector, opts)
@@ -179,6 +177,14 @@ func (r *Buckets[PB, B]) GetEnd(ctx context.Context, userId string, side int) (*
 	return &buckets[0], nil
 }
 
+func (r *Buckets[PB, B]) GetNewest(ctx context.Context, userId string) (*types.Bucket[PB, B], error) {
+	return r.getOne(ctx, userId, 1)
+}
+
+func (r *Buckets[PB, B]) GetOldest(ctx context.Context, userId string) (*types.Bucket[PB, B], error) {
+	return r.getOne(ctx, userId, -1)
+}
+
 func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string) (time.Time, error) {
 	if ctx == nil {
 		return time.Time{}, errors.New("context is missing")
@@ -187,7 +193,7 @@ func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string)
 		return time.Time{}, errors.New("userId is missing")
 	}
 
-	bucket, err := r.GetEnd(ctx, userId, -1)
+	bucket, err := r.GetNewest(ctx, userId)
 	if err != nil || bucket == nil {
 		return time.Time{}, err
 	}
@@ -203,7 +209,7 @@ func (r *Buckets[PB, B]) GetOldestRecordTime(ctx context.Context, userId string)
 		return time.Time{}, errors.New("userId is missing")
 	}
 
-	bucket, err := r.GetEnd(ctx, userId, 1)
+	bucket, err := r.GetOldest(ctx, userId)
 	if err != nil || bucket == nil {
 		return time.Time{}, err
 	}
@@ -219,7 +225,7 @@ func (r *Buckets[PB, B]) GetTotalHours(ctx context.Context, userId string) (int,
 		return 0, errors.New("userId is missing")
 	}
 
-	firstBucket, err := r.GetEnd(ctx, userId, 1)
+	firstBucket, err := r.GetOldest(ctx, userId)
 	if err != nil {
 		return 0, err
 	}
@@ -229,7 +235,7 @@ func (r *Buckets[PB, B]) GetTotalHours(ctx context.Context, userId string) (int,
 		return 0, nil
 	}
 
-	lastBucket, err := r.GetEnd(ctx, userId, -1)
+	lastBucket, err := r.GetNewest(ctx, userId)
 	if err != nil {
 		return 0, err
 	}
@@ -245,8 +251,7 @@ func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types
 		return nil
 	}
 
-	// TODO: rename to modifiedBuckets
-	bucketsInt := make([]interface{}, 0, len(buckets))
+	modifiedBuckets := make([]interface{}, 0, len(buckets))
 	for _, v := range buckets {
 		if !v.IsModified() {
 			continue
@@ -257,10 +262,10 @@ func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types
 		if v.Type == "" {
 			return errors.New("type is missing")
 		}
-		bucketsInt = append(bucketsInt, v)
+		modifiedBuckets = append(modifiedBuckets, v)
 	}
 
-	return r.writeBuckets(ctx, bucketsInt)
+	return r.writeBuckets(ctx, modifiedBuckets)
 }
 
 func (r *Buckets[PB, B]) writeBuckets(ctx context.Context, buckets []interface{}) error {

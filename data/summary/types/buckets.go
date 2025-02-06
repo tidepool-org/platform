@@ -26,7 +26,6 @@ func (bb *BaseBucket) Update(datumTime *time.Time) error {
 	bucketStart := bb.Time
 	bucketEnd := bb.Time.Add(time.Hour)
 
-	// TODO: both ends are exclusive
 	if datumTime.Before(bucketStart) || datumTime.After(bucketEnd) {
 		return fmt.Errorf("datum with time %s is outside the bounds of bucket with bounds %s - %s", datumTime, bucketStart, bucketEnd)
 	}
@@ -58,7 +57,7 @@ type BucketData interface {
 
 type BucketDataPt[B BucketData] interface {
 	*B
-	Update(record data.Datum, base *BaseBucket) (bool, error)
+	Update(record data.Datum, lastData *time.Time) (bool, error)
 }
 
 type Bucket[PB BucketDataPt[B], B BucketData] struct {
@@ -66,12 +65,11 @@ type Bucket[PB BucketDataPt[B], B BucketData] struct {
 	Data       PB `json:"data" bson:"data"`
 }
 
-// TODO: Not clear what is type here. BGM/CGM/Glucose/SummaryType?
-func NewBucket[PB BucketDataPt[B], B BucketData](userId string, date time.Time, typ string) *Bucket[PB, B] {
+func NewBucket[PB BucketDataPt[B], B BucketData](userId string, date time.Time, summaryType string) *Bucket[PB, B] {
 	return &Bucket[PB, B]{
 		BaseBucket: BaseBucket{
 			UserId: userId,
-			Type:   typ,
+			Type:   summaryType,
 			Time:   date,
 		},
 		Data: new(B),
@@ -79,7 +77,7 @@ func NewBucket[PB BucketDataPt[B], B BucketData](userId string, date time.Time, 
 }
 
 func (b *Bucket[PB, B]) Update(record data.Datum) error {
-	updated, err := b.Data.Update(record, &b.BaseBucket)
+	updated, err := b.Data.Update(record, &b.BaseBucket.LastData)
 	if err != nil {
 		return err
 	}
@@ -109,7 +107,6 @@ func (BT BucketsByTime[PB, B]) Update(createBucket BucketFactoryFn[PB, B], userD
 		// truncate time is not timezone/DST safe here, even if we do expect UTC, never truncate non-utc
 		recordHour := r.GetTime().UTC().Truncate(time.Hour)
 
-		// OPTIMIZATION this could check if recordHour equal to previous hour, to save a map lookup, probably saves 0ms
 		if _, ok := BT[recordHour]; !ok {
 			// we don't already have a bucket for this data
 			BT[recordHour] = createBucket(recordHour)

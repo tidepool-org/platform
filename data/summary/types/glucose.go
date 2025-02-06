@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"go.mongodb.org/mongo-driver/mongo"
 	"math"
 	"strconv"
@@ -13,6 +14,8 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 )
+
+const MaxRecordsPerBucket = 60 // one per minute max
 
 type GlucosePeriods map[string]*GlucosePeriod
 
@@ -125,26 +128,14 @@ func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
 
 func (rs *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
 	rs.Total.Percent = float64(rs.Total.Minutes) / float64(days*24*60)
-	// TODO: Why 0.7? What's that magic number? Add a comment explaining the conditional
-	if (wallMinutes <= minutesPerDay && rs.Total.Percent > 0.7) || (wallMinutes > minutesPerDay && rs.Total.Minutes > minutesPerDay) {
-		rs.VeryLow.Percent = float64(rs.VeryLow.Minutes) / wallMinutes
-		rs.Low.Percent = float64(rs.Low.Minutes) / wallMinutes
-		rs.Target.Percent = float64(rs.Target.Minutes) / wallMinutes
-		rs.High.Percent = float64(rs.High.Minutes) / wallMinutes
-		rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / wallMinutes
-		rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / wallMinutes
-		rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / wallMinutes
-		rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / wallMinutes
-	} else {
-		rs.VeryLow.Percent = 0
-		rs.Low.Percent = 0
-		rs.Target.Percent = 0
-		rs.High.Percent = 0
-		rs.VeryHigh.Percent = 0
-		rs.ExtremeHigh.Percent = 0
-		rs.AnyLow.Percent = 0
-		rs.AnyHigh.Percent = 0
-	}
+	rs.VeryLow.Percent = float64(rs.VeryLow.Minutes) / wallMinutes
+	rs.Low.Percent = float64(rs.Low.Minutes) / wallMinutes
+	rs.Target.Percent = float64(rs.Target.Minutes) / wallMinutes
+	rs.High.Percent = float64(rs.High.Minutes) / wallMinutes
+	rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / wallMinutes
+	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / wallMinutes
+	rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / wallMinutes
+	rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / wallMinutes
 }
 
 func (rs *GlucoseRanges) finalizeRecords() {
@@ -214,29 +205,38 @@ type GlucoseBucket struct {
 	LastRecordDuration int `json:"lastRecordDuration,omitempty" bson:"lastRecordDuration,omitempty"`
 }
 
-// TODO: Glucose bucket doesn't need shared bucket.
-// TODO: It needs a way to calculate blackout window. The caller should pass a blackout window calculator
-func (b *GlucoseBucket) Update(r data.Datum, shared *BaseBucket) (bool, error) {
+func (b *GlucoseBucket) ShouldSkipDatum(d *glucoseDatum.Glucose, lastData *time.Time) bool {
+	// if we have more records than could possibly be in 1 hour of data
+	if b.Total.Records > MaxRecordsPerBucket {
+		return true
+	}
+
+	// if we have cgm data, we care about blackout periods
+	if d.Type == continuous.Type {
+		// calculate blackoutWindow based on duration of previous value
+		// remove 10 seconds from the duration to prevent slight early reporting or exactly on time reporting from being skipped.
+		blackoutWindow := time.Duration(b.LastRecordDuration)*time.Minute - 10*time.Second
+
+		// Skip record if we are within the blackout window
+		if d.Time.Sub(*lastData) < blackoutWindow {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) {
 	record, ok := r.(*glucoseDatum.Glucose)
 	if !ok {
 		return false, errors.New("record for calculation is not compatible with Glucose type")
 	}
 
-	// TODO: Update branching logic somehow? Move to a separate function
-	// if we have cgm data, we care about blackout periods
-	if shared.Type == SummaryTypeCGM {
-		// calculate blackoutWindow based on duration of previous value
-		// TODO: Magic value. Why 10 seconds?
-		blackoutWindow := time.Duration(b.LastRecordDuration)*time.Minute - 10*time.Second
-
-		// Skip record if we are within the blackout window
-		if record.Time.Sub(shared.LastData) < blackoutWindow {
-			return false, nil
-		}
+	if b.ShouldSkipDatum(record, lastData) {
+		return false, nil
 	}
 
 	b.GlucoseRanges.Update(record)
-
 	b.LastRecordDuration = GetDuration(record)
 
 	return true, nil
@@ -280,12 +280,6 @@ func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 	if bucket.Data.Total.Records == 0 {
 		return nil
 	}
-
-	// TODO: check order in caller
-	// NOTE this works correctly for buckets in forward or backwards order, but not unordered, it must be added with consistent direction
-	// TODO: make tickets
-	// NOTE this could use some math with firstData/lastData to work with non-hourly buckets, but today they're hourly.
-	// NOTE should this be moved to a generic periods type as a Shared sidecar, days/hours is probably useful to other types
 
 	if p.state.LastCountedDay.IsZero() {
 		p.state.FirstCountedDay = bucket.Time
@@ -375,6 +369,7 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 	totalOffsetStats := GlucosePeriod{}
 	offsetPeriods := make(GlucosePeriods)
 	bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
+	previousBucketTime := time.Time{}
 
 	var stopPoints []time.Time
 	var offsetStopPoints []time.Time
@@ -383,6 +378,12 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 		if err := bucketsCursor.Decode(bucket); err != nil {
 			return err
 		}
+
+		if bucket.Time.Compare(previousBucketTime) <= 0 {
+			return fmt.Errorf("bucket with date %s is before or equal to the last added bucket with date %s, "+
+				"buckets must be in order and unique", bucket.Time, previousBucketTime)
+		}
+		previousBucketTime = bucket.Time
 
 		// Use the newest (last) bucket here to calculate date ranges
 		if stopPoints == nil {
@@ -434,11 +435,8 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 }
 
 func (st *GlucosePeriods) CalculateDelta(offsetPeriods GlucosePeriods) {
-
 	for k := range *st {
-		// make sure we are starting from a clean delta period/no shared pointers
 		d := &GlucosePeriod{}
-
 		d.CalculateDelta((*st)[k], offsetPeriods[k])
 		(*st)[k].Delta = d
 	}

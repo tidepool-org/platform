@@ -1,6 +1,7 @@
 package context
 
 import (
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/summary/reporters"
@@ -167,7 +168,7 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.DataRepository())
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.DataRepository(), s.GetMongoClient())
 	}
 	return s.summarizerRegistry
 }
@@ -218,4 +219,8 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
+}
+
+func (s *Standard) GetMongoClient() *mongo.Client {
+	return s.dataStore.GetClient()
 }
