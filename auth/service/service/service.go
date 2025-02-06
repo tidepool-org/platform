@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -26,6 +27,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -34,6 +37,8 @@ import (
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/user"
+	"github.com/tidepool-org/platform/user/keycloak"
 )
 
 type confirmationClientConfig struct {
@@ -46,17 +51,20 @@ func (c *confirmationClientConfig) Load() error {
 
 type Service struct {
 	*serviceService.Service
-	domain             string
-	authStore          *authMongo.Store
-	dataSourceClient   *dataSourceClient.Client
-	confirmationClient confirmationClient.ClientWithResponsesInterface
-	taskClient         task.Client
-	providerFactory    provider.Factory
-	authClient         *Client
-	userEventsHandler  events.Runner
-	deviceCheck        apple.DeviceCheck
-	appValidator       *appvalidate.Validator
-	partnerSecrets     *appvalidate.PartnerSecrets
+	domain              string
+	authStore           *authMongo.Store
+	dataSourceClient    *dataSourceClient.Client
+	confirmationClient  confirmationClient.ClientWithResponsesInterface
+	taskClient          task.Client
+	providerFactory     provider.Factory
+	authClient          *Client
+	userEventsHandler   events.Runner
+	deviceCheck         apple.DeviceCheck
+	appValidator        *appvalidate.Validator
+	partnerSecrets      *appvalidate.PartnerSecrets
+	userAccessor        user.UserAccessor
+	userProfileAccessor user.UserProfileAccessor
+	permsClient         *permissionClient.Client
 }
 
 func New() *Service {
@@ -107,6 +115,15 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeDeviceCheck(); err != nil {
+		return err
+	}
+	if err := s.initializeUserAccessor(); err != nil {
+		return err
+	}
+	if err := s.initializeUserProfileAccessor(s.userAccessor); err != nil {
+		return err
+	}
+	if err := s.initializePermissionsClient(); err != nil {
 		return err
 	}
 	if err := s.initializeAppValidate(); err != nil {
@@ -162,6 +179,17 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
 }
 
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+	return s.userProfileAccessor
+}
+
+func (s *Service) PermissionsClient() permission.ExtendedClient {
+	return s.permsClient
+}
 func (s *Service) AppValidator() *appvalidate.Validator {
 	return s.appValidator
 }
@@ -343,6 +371,25 @@ func (s *Service) initializeTaskClient() error {
 	return nil
 }
 
+func (s *Service) initializePermissionsClient() error {
+	s.Logger().Debug("Loading permission client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
+	}
+
+	permsClient, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create permission client")
+	}
+	s.permsClient = permsClient
+	return nil
+}
+
 func (s *Service) terminateTaskClient() {
 	if s.taskClient != nil {
 		s.Logger().Debug("Destroying task client")
@@ -437,6 +484,46 @@ func (s *Service) initializeUserEventsHandler() error {
 	}
 	s.userEventsHandler = runner
 
+	return nil
+}
+
+func (s *Service) initializeUserAccessor() error {
+	s.Logger().Debug("Initializing user accessor")
+
+	config := &keycloak.KeycloakConfig{}
+	if err := config.FromEnv(); err != nil {
+		return err
+	}
+	s.userAccessor = keycloak.NewKeycloakUserAccessor(config)
+
+	return nil
+}
+
+func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) error {
+	s.Logger().Debug("Initializing user profile accessor")
+
+	if userAccessor == nil {
+		return errors.New("empty user accessor passed to initializeUserProfileAccessor")
+	}
+	cfg := storeStructuredMongo.NewConfig()
+	// Note the "SEAGULL" prefix, this is so that the regular env vars
+	// for mongo access such as TIDEPOOL_STORE_SCHEME are
+	// SEAGULL_TIDEPOOL_STORE_SCHEME so as to not conflict with existing
+	// TIDEPOOL_STORE_SCHEME values. This is done instead of using a
+	// seagull client as seagull will eventually be removed so no sense
+	// in keeping it around.
+	if err := cfg.LoadPrefix("SEAGULL"); err != nil {
+		return errors.Wrap(err, "unable to load seagull profile accessor config")
+	}
+
+	s.Logger().Debug("creating legacy seagull profile accessor")
+
+	repo, err := authMongo.NewLegacySeagullProfileRepository(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create fallback user profile repository")
+	}
+
+	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor)
 	return nil
 }
 

@@ -44,13 +44,13 @@ var _ = Describe("App Validation", func() {
 	challenge := "challenge"
 	serverSessionToken := "serverToken"
 
-	unattestedUser := user{
+	unattestedUser := testUser{
 		UserID:              "unattested",
 		SessionToken:        "unattestedToken",
 		Details:             request.NewAuthDetails(request.MethodSessionToken, "unattested", "unattestedToken"),
 		AttestationVerified: false,
 	}
-	attestedUser := user{
+	attestedUser := testUser{
 		UserID:               "attested",
 		SessionToken:         "attestedToken",
 		Details:              request.NewAuthDetails(request.MethodSessionToken, "attested", "attestedToken"),
@@ -58,7 +58,7 @@ var _ = Describe("App Validation", func() {
 		AttestationVerified:  false,
 		AttestationChallenge: challenge,
 	}
-	attestedUnverifiedUser := user{
+	attestedUnverifiedUser := testUser{
 		UserID:               "attestedUnverified",
 		SessionToken:         "attestedUnverifiedToken",
 		Details:              request.NewAuthDetails(request.MethodSessionToken, "attestedUnverified", "attestedUnverified"),
@@ -66,7 +66,7 @@ var _ = Describe("App Validation", func() {
 		AttestationVerified:  false,
 		AttestationChallenge: challenge,
 	}
-	attestedVerifiedUser := user{
+	attestedVerifiedUser := testUser{
 		UserID:               "attestedVerified",
 		SessionToken:         "attestedVerifiedToken",
 		Details:              request.NewAuthDetails(request.MethodSessionToken, "attestedVerified", "attestedVerifiedToken"),
@@ -75,7 +75,7 @@ var _ = Describe("App Validation", func() {
 		AttestationChallenge: challenge,
 		AssertionChallenge:   challenge,
 	}
-	users := []user{
+	users := []testUser{
 		unattestedUser,
 		attestedUser,
 		attestedVerifiedUser,
@@ -339,8 +339,8 @@ var _ = Describe("App Validation", func() {
 	})
 })
 
-// user is a helper user that contains relevant user information for tests.
-type user struct {
+// testUser is a helper testUser that contains relevant testUser information for tests.
+type testUser struct {
 	UserID               string
 	SessionToken         string
 	Details              request.AuthDetails

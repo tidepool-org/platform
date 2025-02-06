@@ -27,6 +27,7 @@ func (r *Router) Routes() []*rest.Route {
 		r.ProviderSessionsRoutes(),
 		r.RestrictedTokensRoutes(),
 		r.DeviceCheckRoutes(),
+		r.ProfileRoutes(),
 		r.DeviceTokensRoutes(),
 		r.AppValidateRoutes(),
 	}
