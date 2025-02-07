@@ -1,6 +1,7 @@
 package context
 
 import (
+	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
 
 	"github.com/tidepool-org/platform/data/summary/reporters"
@@ -33,6 +34,7 @@ type Standard struct {
 	dataStore               dataStore.Store
 	dataRepository          dataStore.DataRepository
 	summaryRepository       dataStore.SummaryRepository
+	bucketsRepository       dataStore.BucketsRepository
 	summarizerRegistry      *summary.SummarizerRegistry
 	summaryReporter         *reporters.PatientRealtimeDaysReporter
 	syncTaskStore           syncTaskStore.Store
@@ -126,6 +128,9 @@ func (s *Standard) Close() {
 	if s.summaryReporter != nil {
 		s.summaryReporter = nil
 	}
+	if s.bucketsRepository != nil {
+		s.bucketsRepository = nil
+	}
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
@@ -163,7 +168,7 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.DataRepository())
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.DataRepository(), s.GetMongoClient())
 	}
 	return s.summarizerRegistry
 }
@@ -173,6 +178,13 @@ func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
 		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
 	}
 	return s.summaryReporter
+}
+
+func (s *Standard) BucketsRepository() dataStore.BucketsRepository {
+	if s.bucketsRepository == nil {
+		s.bucketsRepository = s.dataStore.NewBucketsRepository()
+	}
+	return s.bucketsRepository
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
@@ -207,4 +219,8 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
+}
+
+func (s *Standard) GetMongoClient() *mongo.Client {
+	return s.dataStore.GetClient()
 }

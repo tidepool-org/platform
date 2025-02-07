@@ -48,28 +48,6 @@ func ValidateConfig(config TaskConfiguration, withBatch bool) error {
 	return nil
 }
 
-func NewDefaultBackfillConfig() TaskConfiguration {
-	return TaskConfiguration{
-		Interval: MinuteRange{
-			int(DefaultBackfillAvailableAfterDurationMinimum.Seconds()),
-			int(DefaultBackfillAvailableAfterDurationMaximum.Seconds()),
-		},
-		Version: ConfigVersion,
-	}
-}
-
-func NewDefaultBackfillTaskCreate() *task.TaskCreate {
-	return &task.TaskCreate{
-		Name:          pointer.FromAny(BackfillType),
-		Type:          BackfillType,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"config": NewDefaultBackfillConfig(),
-		},
-	}
-}
-
 func NewDefaultUpdateConfig() TaskConfiguration {
 	return TaskConfiguration{
 		Interval: MinuteRange{
