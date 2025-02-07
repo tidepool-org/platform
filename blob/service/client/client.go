@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/base64"
-	stdErrs "errors"
 	"io"
 	"time"
 
@@ -77,7 +76,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	options.MediaType = content.MediaType
 	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
 				logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
 			}
@@ -88,7 +87,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 	size := sizer.Size
 	if size > blob.SizeMaximum {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 				logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
 			}
@@ -102,7 +101,7 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 				logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
 			}
@@ -145,7 +144,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	options.MediaType = content.MediaType
 	err = c.DeviceLogsUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
 				logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
 			}
@@ -156,7 +155,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 
 	size := sizer.Size
 	if size > blob.SizeMaximum {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 				logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
 			}
@@ -170,7 +169,7 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
-		doDoneCtx(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
 			if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
 				logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
 			}
@@ -314,20 +313,12 @@ func (s *SizeWriter) Write(bites []byte) (int, error) {
 	return length, nil
 }
 
-// doDoneCtx performs an action given a context even if the context is
+// alwaysDo performs an action given a context even if the context is
 // canceled or timed out. This is used if we have any cleanup functions that we
 // still want to perform and passing the parent context would time out any
 // child contexts.
-func doDoneCtx(ctx context.Context, timeout time.Duration, fn func(ctx context.Context) error) error {
-	newContext := ctx
-	var cancel context.CancelFunc
-	select {
-	case <-ctx.Done():
-		if stdErrs.Is(ctx.Err(), context.Canceled) || stdErrs.Is(ctx.Err(), context.DeadlineExceeded) {
-			newContext, cancel = context.WithTimeout(context.WithoutCancel(ctx), timeout)
-			defer cancel()
-		}
-	default:
-	}
+func alwaysDo(ctx context.Context, timeout time.Duration, fn func(ctx context.Context) error) error {
+	newContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
+	defer cancel()
 	return fn(newContext)
 }

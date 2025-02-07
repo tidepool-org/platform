@@ -119,10 +119,6 @@ func (r *Responder) Error(statusCode int, err error, mutators ...ResponseMutator
 	}
 }
 
-func (r *Responder) CodedError(err error, mutators ...ResponseMutator) {
-	r.Error(StatusCodeForError(err), err, mutators...)
-}
-
 func (r *Responder) InternalServerError(err error, mutators ...ResponseMutator) {
 	if err == nil {
 		err = ErrorInternalServerError(errors.New("error is missing"))
