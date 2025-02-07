@@ -46,12 +46,12 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 	}, nil
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) (*auth.ProviderSessionUpdate, error) {
 	if userID == "" {
-		return errors.New("user id is missing")
+		return nil, errors.New("user id is missing")
 	}
 	if providerSession == nil {
-		return errors.New("provider session is missing")
+		return nil, errors.New("provider session is missing")
 	}
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
@@ -61,7 +61,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
 	sources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
 	if err != nil {
-		return errors.Wrap(err, "unable to fetch data sources")
+		return nil, errors.Wrap(err, "unable to fetch data sources")
 	}
 
 	var source *dataSource.Source
@@ -79,7 +79,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 
 				_, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
 				if err != nil {
-					return errors.Wrap(err, "unable to update data source")
+					return nil, errors.Wrap(err, "unable to update data source")
 				}
 			}
 		}
@@ -93,18 +93,18 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 
 		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {
-			return errors.Wrap(err, "unable to create data source")
+			return nil, errors.Wrap(err, "unable to create data source")
 		}
 	}
 
 	taskCreate, err := fetch.NewTaskCreate(providerSession.ID, *source.ID)
 	if err != nil {
-		return errors.Wrap(err, "unable to create task create")
+		return nil, errors.Wrap(err, "unable to create task create")
 	}
 
 	task, err := p.taskClient.CreateTask(ctx, taskCreate)
 	if err != nil {
-		return errors.Wrap(err, "unable to create task")
+		return nil, errors.Wrap(err, "unable to create task")
 	}
 
 	// Update data source to connected after task successfully created
@@ -118,10 +118,10 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
 		}
 
-		return errors.Wrap(err, "unable to update data source")
+		return nil, errors.Wrap(err, "unable to update data source")
 	}
 
-	return nil
+	return nil, nil
 }
 
 func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
