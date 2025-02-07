@@ -244,6 +244,7 @@ func (t *TaskRunner) updateProviderSession() error {
 	// Without cancel to ensure provider session is updated in the database
 	updateProviderSession := auth.NewProviderSessionUpdate()
 	updateProviderSession.OAuthToken = refreshedToken
+	updateProviderSession.ExternalID = t.providerSession.ExternalID
 	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, updateProviderSession)
 	if err != nil {
 		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update provider session"), updateProviderSession))

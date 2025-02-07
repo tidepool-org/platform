@@ -71,10 +71,11 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	}
 
 	ctx = log.ContextWithFields(ctx, log.Fields{
-		"providerSessionId":   providerSession.ID,
-		"providerSessionType": providerSession.Type,
-		"providerSessionName": providerSession.Name,
-		"userId":              providerSession.UserID,
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
 	})
 
 	// From this point forward, the context should not be cancelable
@@ -136,10 +137,11 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 
 func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) error {
 	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
-		"providerSessionId":   providerSession.ID,
-		"providerSessionType": providerSession.Type,
-		"providerSessionName": providerSession.Name,
-		"userId":              providerSession.UserID,
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
 	})
 
 	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
