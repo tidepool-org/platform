@@ -21,7 +21,7 @@ type Store interface {
 	Status(ctx context.Context) *storeStructuredMongo.Status
 
 	GetClient() *mongo.Client
-	
+
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
 	NewBucketsRepository() BucketsRepository
