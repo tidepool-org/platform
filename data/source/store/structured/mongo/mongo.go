@@ -112,6 +112,11 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 			"$in": *filter.ProviderSessionID,
 		}
 	}
+	if filter.ProviderExternalID != nil {
+		query["providerExternalId"] = bson.M{
+			"$in": *filter.ProviderExternalID,
+		}
+	}
 	if filter.State != nil {
 		query["state"] = bson.M{
 			"$in": *filter.State,
@@ -153,13 +158,15 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
 	doc := &dataSource.Source{
-		UserID:            pointer.FromString(userID),
-		ProviderType:      create.ProviderType,
-		ProviderName:      create.ProviderName,
-		ProviderSessionID: create.ProviderSessionID,
-		State:             create.State,
-		CreatedTime:       pointer.FromTime(now),
-		Revision:          pointer.FromInt(0),
+		UserID:             pointer.FromString(userID),
+		ProviderType:       create.ProviderType,
+		ProviderName:       create.ProviderName,
+		ProviderSessionID:  create.ProviderSessionID,
+		ProviderExternalID: create.ProviderExternalID,
+		State:              create.State,
+		Metadata:           create.Metadata,
+		CreatedTime:        pointer.FromTime(now),
+		Revision:           pointer.FromInt(0),
 	}
 
 	var id string
@@ -281,9 +288,15 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 				unset["error"] = true
 			}
 		}
+		if update.Metadata != nil {
+			set["metadata"] = *update.Metadata
+		}
 		if update.ProviderSessionID != nil {
 			delete(unset, "providerSessionId")
 			set["providerSessionId"] = *update.ProviderSessionID
+		}
+		if update.ProviderExternalID != nil {
+			set["providerExternalId"] = *update.ProviderExternalID
 		}
 		if update.Error != nil {
 			delete(unset, "error")

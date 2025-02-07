@@ -241,12 +241,13 @@ var _ = Describe("Client", func() {
 							filter = dataSourceTest.RandomFilter()
 							pagination = pageTest.RandomPagination()
 							query := url.Values{
-								"providerType":      *filter.ProviderType,
-								"providerName":      *filter.ProviderName,
-								"providerSessionId": *filter.ProviderSessionID,
-								"state":             *filter.State,
-								"page":              []string{strconv.Itoa(pagination.Page)},
-								"size":              []string{strconv.Itoa(pagination.Size)},
+								"providerType":       *filter.ProviderType,
+								"providerName":       *filter.ProviderName,
+								"providerSessionId":  *filter.ProviderSessionID,
+								"providerExternalId": *filter.ProviderExternalID,
+								"state":              *filter.State,
+								"page":               []string{strconv.Itoa(pagination.Page)},
+								"size":               []string{strconv.Itoa(pagination.Size)},
 							}
 							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
