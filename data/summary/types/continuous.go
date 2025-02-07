@@ -122,19 +122,25 @@ func (s *ContinuousPeriods) Init() {
 }
 
 func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
-	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
-	// currently only supports day precision
-	nextStopPoint := 0
-	totalStats := ContinuousPeriod{}
-	var err error
-	var stopPoints []time.Time
+	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d
+	period := ContinuousPeriod{}
 
-	bucket := &Bucket[*ContinuousBucket, ContinuousBucket]{}
+	var stopPoints []time.Time
+	nextStopPoint := 0
+
+	previousBucketTime := time.Time{}
 
 	for bucketsCursor.Next(ctx) {
-		if err = bucketsCursor.Decode(bucket); err != nil {
+		bucket := &Bucket[*ContinuousBucket, ContinuousBucket]{}
+		if err := bucketsCursor.Decode(bucket); err != nil {
 			return err
 		}
+
+		if bucket.Time.Compare(previousBucketTime) <= 0 {
+			return fmt.Errorf("bucket with date %s is before or equal to the last added bucket with date %s, "+
+				"buckets must be in order and unique", bucket.Time, previousBucketTime)
+		}
+		previousBucketTime = bucket.Time
 
 		// We should have the newest (last) bucket here, use its date for breakpoints
 		if stopPoints == nil {
@@ -146,14 +152,13 @@ func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cur
 		}
 
 		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
-			s.CalculatePeriod(periodLengths[nextStopPoint], false, totalStats)
+			s.CalculatePeriod(periodLengths[nextStopPoint], false, period)
 			nextStopPoint++
 		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			err = totalStats.Update(bucket)
-			if err != nil {
+			if err := period.Update(bucket); err != nil {
 				return err
 			}
 		}
@@ -161,7 +166,7 @@ func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cur
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		s.CalculatePeriod(periodLengths[i], false, totalStats)
+		s.CalculatePeriod(periodLengths[i], false, period)
 	}
 
 	return nil

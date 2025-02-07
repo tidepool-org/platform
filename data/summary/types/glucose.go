@@ -103,15 +103,15 @@ func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
 }
 
 type GlucoseRanges struct {
-	Total       Range `json:"cgmUse,omitempty" bson:"cgmUse,omitempty"`
-	VeryLow     Range `json:"inVeryLow,omitempty" bson:"inVeryLow,omitempty"`
-	Low         Range `json:"inLow,omitempty" bson:"inLow,omitempty"`
-	Target      Range `json:"inTarget,omitempty" bson:"inTarget,omitempty"`
-	High        Range `json:"inHigh,omitempty" bson:"inHigh,omitempty"`
-	VeryHigh    Range `json:"inVeryHigh,omitempty" bson:"inVeryHigh,omitempty"`
-	ExtremeHigh Range `json:"inExtremeHigh,omitempty" bson:"inExtremeHigh,omitempty"`
-	AnyLow      Range `json:"inAnyLow,omitempty" bson:"inAnyLow,omitempty"`
-	AnyHigh     Range `json:"inAnyHigh,omitempty" bson:"inAnyHigh,omitempty"`
+	Total       Range `json:"cgmUse" bson:"cgmUse"`
+	VeryLow     Range `json:"inVeryLow" bson:"inVeryLow"`
+	Low         Range `json:"inLow" bson:"inLow"`
+	Target      Range `json:"inTarget" bson:"inTarget"`
+	High        Range `json:"inHigh" bson:"inHigh"`
+	VeryHigh    Range `json:"inVeryHigh" bson:"inVeryHigh"`
+	ExtremeHigh Range `json:"inExtremeHigh" bson:"inExtremeHigh"`
+	AnyLow      Range `json:"inAnyLow" bson:"inAnyLow"`
+	AnyHigh     Range `json:"inAnyHigh" bson:"inAnyHigh"`
 }
 
 func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
@@ -361,20 +361,21 @@ func (st *GlucosePeriods) Init() {
 }
 
 func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
-	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d,
-	// currently only supports day precision
-	nextStopPoint := 0
-	nextOffsetStopPoint := 0
-	totalStats := GlucosePeriod{}
-	totalOffsetStats := GlucosePeriod{}
+	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d
+	period := GlucosePeriod{}
+	offsetPeriod := GlucosePeriod{}
 	offsetPeriods := make(GlucosePeriods)
-	bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
-	previousBucketTime := time.Time{}
 
 	var stopPoints []time.Time
+	nextStopPoint := 0
+
 	var offsetStopPoints []time.Time
+	nextOffsetStopPoint := 0
+
+	previousBucketTime := time.Time{}
 
 	for bucketsCursor.Next(ctx) {
+		bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
 		if err := bucketsCursor.Decode(bucket); err != nil {
 			return err
 		}
@@ -395,26 +396,26 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 		}
 
 		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
-			st.CalculatePeriod(periodLengths[nextStopPoint], totalStats)
+			st.CalculatePeriod(periodLengths[nextStopPoint], period)
 			nextStopPoint++
 		}
 
 		if len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
-			CalculateOffsetPeriod(offsetPeriods, periodLengths[nextOffsetStopPoint], totalOffsetStats)
-			totalOffsetStats = GlucosePeriod{}
+			CalculateOffsetPeriod(offsetPeriods, periodLengths[nextOffsetStopPoint], offsetPeriod)
+			offsetPeriod = GlucosePeriod{}
 			nextOffsetStopPoint++
 		}
 
 		// only count primary stats when the next stop point is a real period
 		if len(stopPoints) > nextStopPoint {
-			if err := totalStats.Update(bucket); err != nil {
+			if err := period.Update(bucket); err != nil {
 				return err
 			}
 		}
 
 		// only add to offset stats when primary stop point is ahead of offset
 		if nextStopPoint > nextOffsetStopPoint && len(offsetStopPoints) > nextOffsetStopPoint {
-			if err := totalOffsetStats.Update(bucket); err != nil {
+			if err := offsetPeriod.Update(bucket); err != nil {
 				return err
 			}
 		}
@@ -422,11 +423,11 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
-		st.CalculatePeriod(periodLengths[i], totalStats)
+		st.CalculatePeriod(periodLengths[i], period)
 	}
 	for i := nextOffsetStopPoint; i < len(offsetStopPoints); i++ {
-		CalculateOffsetPeriod(offsetPeriods, periodLengths[i], totalOffsetStats)
-		totalOffsetStats = GlucosePeriod{}
+		CalculateOffsetPeriod(offsetPeriods, periodLengths[i], offsetPeriod)
+		offsetPeriod = GlucosePeriod{}
 	}
 
 	st.CalculateDelta(offsetPeriods)

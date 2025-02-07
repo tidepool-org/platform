@@ -12,16 +12,16 @@ import (
 )
 
 // GetDuration assumes all except freestyle is 5 minutes
-func GetDuration(dataSet *glucoseDatum.Glucose) int {
-	if dataSet.Type != continuous.Type {
+func GetDuration(datum *glucoseDatum.Glucose) int {
+	if datum.Type != continuous.Type {
 		// non-continuous has no duration
 		return 0
 	}
-	if dataSet.DeviceID != nil {
-		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre3") {
+	if datum.DeviceID != nil {
+		if strings.Contains(*datum.DeviceID, "AbbottFreeStyleLibre3") {
 			return 5
 		}
-		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
+		if strings.Contains(*datum.DeviceID, "AbbottFreeStyleLibre") {
 			return 15
 		}
 	}
