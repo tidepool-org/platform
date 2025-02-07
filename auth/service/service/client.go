@@ -70,7 +70,13 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
-	ctx = log.ContextWithField(ctx, "providerSessionId", providerSession.ID)
+	ctx = log.ContextWithFields(ctx, log.Fields{
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
+	})
 
 	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession.ID); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
@@ -127,7 +133,13 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 }
 
 func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) error {
-	ctx, logger := log.ContextAndLoggerWithField(context.WithoutCancel(ctx), "providerSessionId", providerSession.ID) // Do not allow context to be cancelled
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
+	})
 
 	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
 	if err != nil {

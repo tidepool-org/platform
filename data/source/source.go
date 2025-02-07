@@ -43,10 +43,11 @@ type Client interface {
 }
 
 type Filter struct {
-	ProviderType      *[]string
-	ProviderName      *[]string
-	ProviderSessionID *[]string
-	State             *[]string
+	ProviderType       *[]string `json:"providerType,omitempty"`
+	ProviderName       *[]string `json:"providerName,omitempty"`
+	ProviderSessionID  *[]string `json:"providerSessionId,omitempty"`
+	ProviderExternalID *[]string `json:"providerExternalId,omitempty"`
+	State              *[]string `json:"state,omitempty"`
 }
 
 func NewFilter() *Filter {
@@ -57,6 +58,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.ProviderType = parser.StringArray("providerType")
 	f.ProviderName = parser.StringArray("providerName")
 	f.ProviderSessionID = parser.StringArray("providerSessionId")
+	f.ProviderExternalID = parser.StringArray("providerExternalId")
 	f.State = parser.StringArray("state")
 }
 
@@ -64,6 +66,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.StringArray("providerType", f.ProviderType).NotEmpty().EachOneOf(auth.ProviderTypes()...).EachUnique()
 	validator.StringArray("providerName", f.ProviderName).NotEmpty().EachUsing(auth.ProviderNameValidator).EachUnique()
 	validator.StringArray("providerSessionId", f.ProviderSessionID).NotEmpty().EachUsing(auth.ProviderSessionIDValidator).EachUnique()
+	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternaIDValidator).EachUnique()
 	validator.StringArray("state", f.State).NotEmpty().EachOneOf(States()...).EachUnique()
 }
 
@@ -78,6 +81,9 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	if f.ProviderSessionID != nil {
 		parameters["providerSessionId"] = *f.ProviderSessionID
 	}
+	if f.ProviderExternalID != nil {
+		parameters["providerExternalId"] = *f.ProviderExternalID
+	}
 	if f.State != nil {
 		parameters["state"] = *f.State
 	}
@@ -85,10 +91,12 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 }
 
 type Create struct {
-	ProviderType      *string `json:"providerType,omitempty"`
-	ProviderName      *string `json:"providerName,omitempty"`
-	ProviderSessionID *string `json:"providerSessionId,omitempty"`
-	State             *string `json:"state,omitempty"`
+	ProviderType       *string            `json:"providerType,omitempty"`
+	ProviderName       *string            `json:"providerName,omitempty"`
+	ProviderSessionID  *string            `json:"providerSessionId,omitempty"`
+	ProviderExternalID *string            `json:"providerExternalId,omitempty"`
+	State              *string            `json:"state,omitempty"`
+	Metadata           *metadata.Metadata `json:"metadata,omitempty"`
 }
 
 func NewCreate() *Create {
@@ -99,6 +107,7 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderType = parser.String("providerType")
 	c.ProviderName = parser.String("providerName")
 	c.ProviderSessionID = parser.String("providerSessionId")
+	c.ProviderExternalID = parser.String("providerExternalId")
 	c.State = parser.String("state")
 }
 
@@ -112,17 +121,20 @@ func (c *Create) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.NotExists()
 	}
+	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
 	validator.String("state", c.State).Exists().OneOf(States()...)
 }
 
 type Update struct {
-	ProviderSessionID *string              `json:"providerSessionId,omitempty"`
-	State             *string              `json:"state,omitempty"`
-	Error             *errors.Serializable `json:"error,omitempty"`
-	DataSetIDs        *[]string            `json:"dataSetIds,omitempty"`
-	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty"`
-	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty"`
-	LastImportTime    *time.Time           `json:"lastImportTime,omitempty"`
+	ProviderSessionID  *string              `json:"providerSessionId,omitempty"`
+	ProviderExternalID *string              `json:"providerExternalId,omitempty"`
+	State              *string              `json:"state,omitempty"`
+	Metadata           *metadata.Metadata   `json:"metadata,omitempty"`
+	Error              *errors.Serializable `json:"error,omitempty"`
+	DataSetIDs         *[]string            `json:"dataSetIds,omitempty"`
+	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty"`
+	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty"`
+	LastImportTime     *time.Time           `json:"lastImportTime,omitempty"`
 }
 
 func NewUpdate() *Update {
@@ -131,6 +143,7 @@ func NewUpdate() *Update {
 
 func (u *Update) Parse(parser structure.ObjectParser) {
 	u.ProviderSessionID = parser.String("providerSessionId")
+	u.ProviderExternalID = parser.String("providerExternalId")
 	u.State = parser.String("state")
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
@@ -151,6 +164,7 @@ func (u *Update) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
 	}
+	validator.String("providerExternalId", u.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
 	validator.String("state", u.State).OneOf(States()...)
 	if u.Error != nil {
 		u.Error.Validate(validator.WithReference("error"))
@@ -168,24 +182,26 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 }
 
 func (u *Update) IsEmpty() bool {
-	return u.ProviderSessionID == nil && u.State == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
+	return u.ProviderSessionID == nil && u.ProviderExternalID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }
 
 type Source struct {
-	ID                *string              `json:"id,omitempty" bson:"id,omitempty"`
-	UserID            *string              `json:"userId,omitempty" bson:"userId,omitempty"`
-	ProviderType      *string              `json:"providerType,omitempty" bson:"providerType,omitempty"`
-	ProviderName      *string              `json:"providerName,omitempty" bson:"providerName,omitempty"`
-	ProviderSessionID *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
-	State             *string              `json:"state,omitempty" bson:"state,omitempty"`
-	Error             *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
-	DataSetIDs        *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
-	EarliestDataTime  *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
-	LatestDataTime    *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
-	LastImportTime    *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
-	CreatedTime       *time.Time           `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	ModifiedTime      *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	Revision          *int                 `json:"revision,omitempty" bson:"revision,omitempty"`
+	ID                 *string              `json:"id,omitempty" bson:"id,omitempty"`
+	UserID             *string              `json:"userId,omitempty" bson:"userId,omitempty"`
+	ProviderType       *string              `json:"providerType,omitempty" bson:"providerType,omitempty"`
+	ProviderName       *string              `json:"providerName,omitempty" bson:"providerName,omitempty"`
+	ProviderSessionID  *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
+	ProviderExternalID *string              `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
+	State              *string              `json:"state,omitempty" bson:"state,omitempty"`
+	Metadata           *metadata.Metadata   `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Error              *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
+	DataSetIDs         *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
+	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
+	LastImportTime     *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
+	CreatedTime        *time.Time           `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	ModifiedTime       *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	Revision           *int                 `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
 func (s *Source) Parse(parser structure.ObjectParser) {
@@ -194,6 +210,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	s.ProviderType = parser.String("providerType")
 	s.ProviderName = parser.String("providerName")
 	s.ProviderSessionID = parser.String("providerSessionId")
+	s.ProviderExternalID = parser.String("providerExternalId")
 	s.State = parser.String("state")
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
@@ -223,6 +240,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.NotExists()
 	}
+	validator.String("providerExternalId", s.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
 	validator.String("state", s.State).Exists().OneOf(States()...)
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))
