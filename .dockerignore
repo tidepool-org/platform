@@ -6,6 +6,7 @@
 .envrc
 env*.sh
 private/plugin/redwood/*.env
+private/plugin/redwood/env*.sh
 !version.env
 
 # Debug
@@ -62,9 +63,11 @@ README.md
 .gitmodules
 private/plugin/redwood/.git
 private/plugin/redwood/.gitignore
-
-# Travis
-.travis.yml
+private/plugin/redwood/Makefile
 
 # Docker
 .dockerignore
+Dockerfile
+
+# Travis
+.travis.yml

@@ -1,13 +1,12 @@
-TIMESTAMP ?= $(shell date +%s)
-# ensure that we use the same timestamps in sub-makes. We've seen cases where
-# these can vary by 1 second
-export TIMESTAMP
+export TIMESTAMP ?= $(shell date +%s)
+TIMING_CMD ?=
 
 MAKEFILE:=$(realpath $(lastword $(MAKEFILE_LIST)))
 ROOT_DIRECTORY:=$(realpath $(dir $(MAKEFILE)))
 
-REPOSITORY_GOPATH:=$(word 1, $(subst :, ,$(GOPATH)))
-REPOSITORY_PACKAGE:=github.com/tidepool-org/platform
+PLATFORM_PACKAGE=github.com/tidepool-org/platform
+
+REPOSITORY_PACKAGE:=$(shell sed -En 's/^module (.*)$$/\1/p' $(ROOT_DIRECTORY)/go.mod)
 REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 
 BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
@@ -17,25 +16,25 @@ ifneq ($(wildcard ./version.env),)
     include ./version.env
 endif
 
-VERSION_BASE?=platform
+VERSION_BASE?=$(REPOSITORY_NAME)
 VERSION_SHORT_COMMIT?=$(shell git rev-parse --short HEAD 2> /dev/null || echo "dev")
 VERSION_FULL_COMMIT?=$(shell git rev-parse HEAD 2> /dev/null || echo "dev")
-VERSION_PACKAGE?=$(REPOSITORY_PACKAGE)/application
+VERSION_PACKAGE?=$(PLATFORM_PACKAGE)/application
 
-GOIMPORTS_LOCAL:=github.com/tidepool-org/platform
+GOIMPORTS_LOCAL:=$(PLATFORM_PACKAGE)
 
-GO_BUILD_FLAGS:=-buildvcs=false
+GO_BUILD_FLAGS+=-buildvcs=false
+ifdef DELVE_PORT
+	GO_BUILD_FLAGS+=-gcflags 'all=-N -l'
+endif
+
 GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
 FIND_CMD=find . -not -path '*/.git/*' -not -path '*/.gvm_local/*' -not -path '*/.vs_code/*'
-FIND_MAIN_CMD:=$(FIND_CMD) -path './$(BUILD)*' -type f -name '*.go' -not -name '*_test.go' -exec grep -E -l '^\s*func\s+main\s*(\s*)' {} \;
+FIND_MAIN_CMD:=$(FIND_CMD) -not -path './private/*' -path './$(BUILD)*' -type f -name '*.go' -not -name '*_test.go' -exec grep -E -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS)
-
-GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
-GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
-GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
 ifndef GOTEST_PKGS
 ifdef TEST
@@ -46,15 +45,14 @@ endif
 endif
 GOTEST_FLAGS ?=
 
+GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
+GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
+GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
+
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
-
-TIMING_CMD ?=
-
-SERVICES=auth blob data migrations prescription task tools
-PLUGINS=redwood
 
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
@@ -70,14 +68,23 @@ endif
 endif
 
 ifdef DOCKER
-ifdef DOCKER_FILE
-	DOCKER_REPOSITORY_SERVICE:=$(patsubst .%,%,$(suffix $(DOCKER_FILE)))
+ifdef DOCKER_SERVICE
+	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(DOCKER_SERVICE)
 ifneq ($(shell go env GOWORK),)
-	DOCKER_REPOSITORY_PRIVATE:=-private
-endif
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(DOCKER_REPOSITORY_SERVICE)$(DOCKER_REPOSITORY_PRIVATE)
+	DOCKER_REPOSITORY:=$(DOCKER_REPOSITORY)-private
 endif
 endif
+endif
+
+PLUGINS=redwood
+
+ifeq ($(shell go env GOWORK),)
+	PLUGIN_VISIBILITY:=public
+else
+	PLUGIN_VISIBILITY:=private
+endif
+
+SERVICES=auth blob data migrations prescription task tools
 
 default: test
 
@@ -90,29 +97,29 @@ bindir:
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
 	@cd $(ROOT_DIRECTORY) && \
-		echo "go install github.com/githubnemo/CompileDaemon@v1.4.0" && \
-		go install github.com/githubnemo/CompileDaemon@v1.4.0
+		echo "go install github.com/githubnemo/CompileDaemon" && \
+		GOWORK=off go install github.com/githubnemo/CompileDaemon
 endif
 
 mockgen:
 ifeq ($(shell which mockgen),)
 	@cd $(ROOT_DIRECTORY) && \
-		echo "go install go.uber.org/mock/mockgen@v0.5.0" && \
-		go install go.uber.org/mock/mockgen@v0.5.0
+		echo "go install go.uber.org/mock/mockgen" && \
+		GOWORK=off go install go.uber.org/mock/mockgen
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
 	@cd $(ROOT_DIRECTORY) && \
-		echo "go install github.com/onsi/ginkgo/v2/ginkgo@v2.19.0" && \
-		go install github.com/onsi/ginkgo/v2/ginkgo@v2.19.0
+		echo "go install github.com/onsi/ginkgo/v2/ginkgo" && \
+		GOWORK=off go install github.com/onsi/ginkgo/v2/ginkgo
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
 	@cd $(ROOT_DIRECTORY) && \
-		echo "go install golang.org/x/tools/cmd/goimports@latest" && \
-		go install golang.org/x/tools/cmd/goimports@latest
+		echo "go install golang.org/x/tools/cmd/goimports" && \
+		GOWORK=off go install golang.org/x/tools/cmd/goimports
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
@@ -242,38 +249,12 @@ build:
 		done
 
 build-watch: CompileDaemon
-	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude-dir='.gvm_local' -exclude-dir='.vscode' -exclude='*_test.go' -include='Makefile' -recursive=true
 
 ci-build: build
 
 ci-build-watch: CompileDaemon
-	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
-
-service-build:
-ifdef SERVICE
-	@$(MAKE) build BUILD=$${SERVICE}
-endif
-
-service-start: CompileDaemon tmp
-ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
-endif
-
-service-debug: CompileDaemon tmp
-ifdef SERVICE
-ifdef DEBUG_PORT
-	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
-endif
-endif
-
-service-restart: tmp
-ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/$(subst /,.,$(SERVICE)).restart
-endif
-
-service-restart-all:
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart SERVICE="services/$${SERVICE}"; done
-	@cd $(ROOT_DIRECTORY) && for SERVICE in migrations tools; do $(MAKE) service-restart SERVICE="$${SERVICE}"; done
+	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -exclude-dir='.gvm_local' -exclude-dir='.vscode' -include='Makefile' -recursive=true
 
 test: test-go
 
@@ -325,51 +306,70 @@ ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
 
+service-build:
+ifdef SERVICE
+	@$(MAKE) build BUILD=$${SERVICE}
+endif
+
+service-start: CompileDaemon tmp
+ifdef SERVICE
+	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
+
+service-debug: CompileDaemon tmp
+ifdef SERVICE
+ifdef DEBUG_PORT
+	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+endif
+endif
+
+service-restart: tmp
+ifdef SERVICE
+	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/$(subst /,.,$(SERVICE)).restart
+endif
+
+service-restart-all:
+	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart SERVICE="services/$${SERVICE}"; done
+
 docker-dump:
 	@echo "DOCKER=$(DOCKER)"
-	@echo "DOCKER_FILE=$(DOCKER_FILE)"
 	@echo "DOCKER_REPOSITORY=$(DOCKER_REPOSITORY)"
 
 docker:
 ifdef DOCKER
 	@cd $(ROOT_DIRECTORY) && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_FILE="Dockerfile.$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_FILE="Dockerfile.$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
+		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
+		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
 endif
 
-docker-build: docker-dump
-ifdef DOCKER
-ifdef DOCKER_FILE
+docker-login: 
+ifdef DOCKER_REPOSITORY
+	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
+endif
+
+docker-build: docker-dump docker-login
+ifdef DOCKER_REPOSITORY
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --tag build --file "Dockerfile.build" . && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --tag $(DOCKER_REPOSITORY) --file "$(DOCKER_FILE)" .
-ifdef TRAVIS_BRANCH
-ifdef TRAVIS_COMMIT
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
+ifdef DOCKER_TRAVIS_BRANCH
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-latest
 endif
 endif
-endif
-endif
 
-docker-push: docker-dump
-ifdef DOCKER
+docker-push: docker-dump docker-login
 ifdef DOCKER_REPOSITORY
-	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
-ifeq ($(TRAVIS_BRANCH),master)
+ifdef DOCKER_TRAVIS_BRANCH
+ifeq ($(DOCKER_TRAVIS_BRANCH),master)
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY)
 endif
-ifdef TRAVIS_BRANCH
-ifdef TRAVIS_COMMIT
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
 		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) && \
 		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-latest
-endif
-endif
 endif
 endif
 
@@ -409,22 +409,19 @@ clean-all: clean
 
 pre-commit: format imports vet
 
-gopath-implode:
-	@cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
-
 phony:
-	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | grep -v '^.PHONY' | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g'
+	@{ rm $(MAKEFILE) && sed -E -n '/^.PHONY: /q;p' > $(MAKEFILE); } < $(MAKEFILE)
+	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g' >> $(MAKEFILE)
 
 .PHONY: CompileDaemon bindir build build-list build-watch buildable ci ci-build \
     ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
     ci-test-ginkgo-until-failure ci-test-ginkgo-watch ci-test-go clean clean-all \
     clean-bin clean-cover clean-debug clean-generate clean-test clean-version \
-    default docker docker-build docker-dump docker-push format format-write \
-    format-write-changed generate ginkgo go-generate go-mod-download go-mod-tidy \
-    goimports gopath-implode imports imports-write imports-write-changed init \
-    mockgen phony plugin-visibility plugin-visibility-private \
-    plugin-visibility-public plugins-visibility plugins-visibility-private \
-    plugins-visibility-public pre-commit service-build service-debug \
-    service-restart service-restart-all service-start test test-ginkgo \
-    test-ginkgo-until-failure test-ginkgo-watch test-go tmp version-write vet \
-    vet-ignore
+    default docker docker-build docker-dump docker-login docker-push format \
+    format-write format-write-changed generate ginkgo go-generate go-mod-download \
+    go-mod-tidy goimports imports imports-write imports-write-changed init mockgen \
+    phony plugin-visibility plugin-visibility-private plugin-visibility-public \
+    plugins-visibility plugins-visibility-private plugins-visibility-public \
+    pre-commit service-build service-debug service-restart service-restart-all \
+    service-start test test-ginkgo test-ginkgo-until-failure test-ginkgo-watch \
+    test-go tmp version-write vet vet-ignore

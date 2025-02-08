@@ -1,8 +1,0 @@
-# Production
-FROM alpine:latest AS production
-RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata
-RUN adduser --disabled-password tidepool
-USER tidepool
-WORKDIR /home/tidepool
-COPY --from=build --chown=tidepool:tidepool /go/src/github.com/tidepool-org/platform/_bin/services/task/ .
-CMD ["./task"]
