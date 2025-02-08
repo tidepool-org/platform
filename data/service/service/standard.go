@@ -13,7 +13,6 @@ import (
 	redwoodWork "github.com/tidepool-org/platform-plugin-redwood/redwood/work"
 
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
@@ -485,11 +484,10 @@ func (s *Standard) initializeRedwoodClient() error {
 	} else {
 		s.Logger().Debug("Loading redwood client config")
 
-		cfg := client.NewConfig()
+		cfg := redwoodClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
 		reporter := s.ConfigReporter().WithScopes("abbott", "client")
-		loader := client.NewConfigReporterLoader(reporter)
-		if err = cfg.Load(loader); err != nil {
+		if err = cfg.LoadFromConfigReporter(reporter); err != nil {
 			return errors.Wrap(err, "unable to load redwood client config")
 		}
 
