@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
@@ -21,6 +22,10 @@ const (
 	CoordinatorDelayJitter      = 0.1
 )
 
+type ServerSessionTokenProvider interface {
+	ServerSessionToken() (string, error)
+}
+
 type WorkClient interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *work.Update) (*work.Work, error)
@@ -28,35 +33,40 @@ type WorkClient interface {
 }
 
 type Coordinator struct {
-	logger                   log.Logger
-	workClient               WorkClient
-	processors               map[string]work.Processor
-	typeQuantities           work.TypeQuantities
-	frequency                time.Duration
-	workersCompletionChannel chan *coordinatorProcessingCompletion
-	workersContext           context.Context
-	workersCancelFunc        context.CancelFunc
-	workersWaitGroup         sync.WaitGroup
-	managerContext           context.Context
-	managerCancelFunc        context.CancelFunc
-	managerWaitGroup         sync.WaitGroup
-	timer                    *time.Timer
+	logger                     log.Logger
+	serverSessionTokenProvider ServerSessionTokenProvider
+	workClient                 WorkClient
+	processors                 map[string]work.Processor
+	typeQuantities             work.TypeQuantities
+	frequency                  time.Duration
+	workersCompletionChannel   chan *coordinatorProcessingCompletion
+	workersContext             context.Context
+	workersCancelFunc          context.CancelFunc
+	workersWaitGroup           sync.WaitGroup
+	managerContext             context.Context
+	managerCancelFunc          context.CancelFunc
+	managerWaitGroup           sync.WaitGroup
+	timer                      *time.Timer
 }
 
-func NewCoordinator(logger log.Logger, workClient WorkClient) (*Coordinator, error) {
+func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionTokenProvider, workClient WorkClient) (*Coordinator, error) {
 	if logger == nil {
 		return nil, errors.New("logger is missing")
+	}
+	if serverSessionTokenProvider == nil {
+		return nil, errors.New("server session token provider is missing")
 	}
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
 
 	return &Coordinator{
-		logger:         logger,
-		workClient:     workClient,
-		processors:     map[string]work.Processor{},
-		typeQuantities: work.NewTypeQuantities(),
-		frequency:      CoordinatorFrequencyDefault,
+		logger:                     logger,
+		serverSessionTokenProvider: serverSessionTokenProvider,
+		workClient:                 workClient,
+		processors:                 map[string]work.Processor{},
+		typeQuantities:             work.NewTypeQuantities(),
+		frequency:                  CoordinatorFrequencyDefault,
 	}, nil
 }
 
@@ -110,6 +120,7 @@ func (c *Coordinator) Start() {
 	commonContext := log.NewContextWithLogger(context.Background(), c.logger)
 
 	workersContext, workersCancelFunc := context.WithCancel(commonContext)
+	workersContext = auth.NewContextWithServerSessionTokenProvider(workersContext, c.serverSessionTokenProvider)
 	c.workersContext = workersContext
 	c.workersCancelFunc = workersCancelFunc
 
@@ -197,29 +208,35 @@ func (c *Coordinator) dispatchWork(ctx context.Context, wrk *work.Work) {
 	c.workersWaitGroup.Add(1)
 	go func() {
 		defer c.workersWaitGroup.Done()
-		defer func() {
-			if err := recover(); err != nil {
-				stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
-				log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": stack}).Error("Unhandled panic")
-			}
-		}()
 		c.workersCompletionChannel <- c.processWork(ctx, wrk)
 	}()
 }
 
 func (c *Coordinator) processWork(ctx context.Context, wrk *work.Work) *coordinatorProcessingCompletion {
-	identifier := &coordinatorProcessingIdentifier{
-		ID:       wrk.ID,
-		Type:     wrk.Type,
-		Revision: wrk.Revision,
-	}
-	updater := &coordinatorProcessingUpdater{
-		WorkClient: c.workClient,
-		Identifier: identifier,
-	}
 	completion := &coordinatorProcessingCompletion{
-		Identifier: identifier,
+		Identifier: &coordinatorProcessingIdentifier{
+			ID:       wrk.ID,
+			Type:     wrk.Type,
+			Revision: wrk.Revision,
+		},
 	}
+	c.processWorkWithCompletion(ctx, wrk, completion)
+	return completion
+}
+
+func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.Work, completion *coordinatorProcessingCompletion) {
+	defer func() {
+		if err := recover(); err != nil {
+			stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
+			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": stack}).Error("Unhandled panic")
+			completion.ProcessResult = work.NewProcessResultFailing(work.FailingUpdate{
+				FailingError:      errors.Serializable{Error: errors.WithMeta(errors.Newf("unhandled panic: %v", err), stack)},
+				FailingRetryCount: 1,
+				FailingRetryTime:  time.Now().Add(5 * time.Second),
+				Metadata:          wrk.Metadata,
+			})
+		}
+	}()
 
 	processor, ok := c.processors[wrk.Type]
 	if !ok {
@@ -227,7 +244,12 @@ func (c *Coordinator) processWork(ctx context.Context, wrk *work.Work) *coordina
 			FailedError: errors.Serializable{Error: errors.New("processor not found for type")},
 			Metadata:    wrk.Metadata,
 		})
-		return completion
+		return
+	}
+
+	updater := &coordinatorProcessingUpdater{
+		WorkClient: c.workClient,
+		Identifier: completion.Identifier,
 	}
 
 	// If the work has a processing timeout time specified
@@ -246,9 +268,7 @@ func (c *Coordinator) processWork(ctx context.Context, wrk *work.Work) *coordina
 		}()
 	}
 
-	// Process the work, allowing for intermediate updates, and return completion
 	completion.ProcessResult = processor.Process(ctx, wrk, updater)
-	return completion
 }
 
 func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) {

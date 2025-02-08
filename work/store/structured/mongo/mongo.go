@@ -92,6 +92,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"state": "pending", "processingAvailableTime": bson.M{"$lte": now}},
 		bson.M{"state": "processing", "serialId": bson.M{"$exists": true}},
+		bson.M{"state": "failing", "failingRetryTime": bson.M{"$lte": now}},
 		bson.M{"state": "failing", "serialId": bson.M{"$exists": true}},
 	}}})
 

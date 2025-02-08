@@ -510,7 +510,7 @@ func (s *Standard) initializeRedwoodClient() error {
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
-	coordinator, err := workService.NewCoordinator(s.Logger(), s.workClient)
+	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create work coordinator")
 	}
