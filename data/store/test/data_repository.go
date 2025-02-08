@@ -41,6 +41,17 @@ type CreateDataSetInput struct {
 	DataSet *data.DataSet
 }
 
+type CreateUserDataSetInput struct {
+	Context context.Context
+	UserID  string
+	Create  *data.DataSetCreate
+}
+
+type CreateUserDataSetOutput struct {
+	DataSet *data.DataSet
+	Error   error
+}
+
 type UpdateDataSetInput struct {
 	Context context.Context
 	ID      string
@@ -200,6 +211,9 @@ type DataRepository struct {
 	CreateDataSetInvocations                             int
 	CreateDataSetInputs                                  []CreateDataSetInput
 	CreateDataSetOutputs                                 []error
+	CreateUserDataSetInvocations                         int
+	CreateUserDataSetInputs                              []CreateUserDataSetInput
+	CreateUserDataSetOutputs                             []CreateUserDataSetOutput
 	UpdateDataSetInvocations                             int
 	UpdateDataSetInputs                                  []UpdateDataSetInput
 	UpdateDataSetOutputs                                 []UpdateDataSetOutput
@@ -309,6 +323,18 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSe
 	output := d.CreateDataSetOutputs[0]
 	d.CreateDataSetOutputs = d.CreateDataSetOutputs[1:]
 	return output
+}
+
+func (d *DataRepository) CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error) {
+	d.CreateUserDataSetInvocations++
+
+	d.CreateUserDataSetInputs = append(d.CreateUserDataSetInputs, CreateUserDataSetInput{Context: ctx, UserID: userID, Create: create})
+
+	gomega.Expect(d.CreateUserDataSetOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.CreateUserDataSetOutputs[0]
+	d.CreateUserDataSetOutputs = d.CreateUserDataSetOutputs[1:]
+	return output.DataSet, output.Error
 }
 
 func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

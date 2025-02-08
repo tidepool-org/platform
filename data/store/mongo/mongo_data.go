@@ -46,7 +46,8 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 }
 
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSet) error {
-	return d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
+	_, err := d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
+	return err
 }
 
 func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {

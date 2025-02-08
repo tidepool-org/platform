@@ -426,7 +426,7 @@ func (s *Standard) initializeWorkStructuredStore() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStore)
+	clnt, err := NewClient(s.Logger(), s.dataStore, s.dataDeduplicatorFactory)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
@@ -518,11 +518,10 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 	s.Logger().Debug("Creating redwood processors")
 
-	dataRepository := s.dataStore.NewDataRepository()
 	redwoodProcessorDependencies := redwoodWork.ProcessorDependencies{
-		DataClient:            dataRepository,
-		DataSetClient:         dataRepository,
-		DataSourceClient:      s.dataSourceClient,
+		DataClient:            s.dataStore.NewDataRepository(),
+		DataSetClient:         s.dataClient,
+		DataSourceClient:      s.dataSourceStructuredStore.NewDataSourcesRepository(),
 		ProviderSessionClient: s.AuthClient(),
 		DataRawClient:         s.dataRawClient,
 		RedwoodClient:         s.redwoodClient,
