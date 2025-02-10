@@ -70,7 +70,7 @@ func (r *CarePartnerRunner) GetRunnerTimeout() time.Duration {
 }
 
 func (r *CarePartnerRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(30 * time.Second)
+	return time.Now().Add(r.GetRunnerDurationMaximum())
 }
 
 func (r *CarePartnerRunner) GetRunnerDurationMaximum() time.Duration {
