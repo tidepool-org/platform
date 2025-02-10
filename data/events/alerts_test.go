@@ -71,7 +71,7 @@ var _ = Describe("Consumer", func() {
 			c, deps := newConsumerTestDeps(docs)
 
 			Expect(c.Consume(deps.Context, deps.Session, kafkaMsg)).To(Succeed())
-			Expect(deps.Recorder.NumCallsFor(testFollowedUserID)).To(Equal(1))
+			Expect(deps.LastCommunications.NumCallsFor(testFollowedUserID)).To(Equal(1))
 		})
 
 		It("consumes device data events", func() {
@@ -132,13 +132,13 @@ var _ = Describe("Consumer", func() {
 		})
 	})
 
-	Describe("Reporter", func() {
-		Describe("Record", func() {
+	Describe("LastCommunicationsReporter", func() {
+		Describe("RecordReceivedDeviceData", func() {
 			It("records the metadata for the user id", func() {
 				testLogger := logtest.NewLogger()
 				ctx := log.NewContextWithLogger(context.Background(), testLogger)
-				mockRepo := newMockRecorderRepository()
-				rec := NewRecorder(mockRepo)
+				mockRepo := newMockLastCommunicationsRepository()
+				rec := NewLastCommunicationRecorder(mockRepo)
 				lastComm := alerts.LastCommunication{
 					UserID:                 testFollowedUserID,
 					LastReceivedDeviceData: time.Now(),
@@ -153,17 +153,17 @@ var _ = Describe("Consumer", func() {
 })
 
 type consumerTestDeps struct {
-	Alerts       *mockAlertsConfigClient
-	Context      context.Context
-	Cursor       *mongo.Cursor
-	DeviceTokens *mockDeviceTokens
-	Evaluator    *mockStaticEvaluator
-	Logger       *logtest.Logger
-	Permissions  *mockPermissionsClient
-	Pusher       Pusher
-	Recorder     *mockRecorder
-	Repo         *storetest.DataRepository
-	Session      *mockConsumerGroupSession
+	Alerts             *mockAlertsConfigClient
+	Context            context.Context
+	Cursor             *mongo.Cursor
+	DeviceTokens       *mockDeviceTokens
+	Evaluator          *mockStaticEvaluator
+	Logger             *logtest.Logger
+	Permissions        *mockPermissionsClient
+	Pusher             Pusher
+	LastCommunications *mockLastCommunicationsRecorder
+	Repo               *storetest.DataRepository
+	Session            *mockConsumerGroupSession
 }
 
 func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
@@ -187,28 +187,28 @@ func newConsumerTestDeps(docs []interface{}) (*Consumer, *consumerTestDeps) {
 	evaluator := newMockStaticEvaluator()
 	pusher := push.NewLogPusher(logger)
 	deviceTokens := newMockDeviceTokens()
-	recorder := newMockRecorder()
+	lastCommunications := newMockLastCommunicationsRecorder()
 
 	return &Consumer{
-			Alerts:       alertsClient,
-			Evaluator:    evaluator,
-			Data:         dataRepo,
-			DeviceTokens: deviceTokens,
-			Permissions:  permissions,
-			Pusher:       pusher,
-			Recorder:     recorder,
+			Alerts:             alertsClient,
+			Evaluator:          evaluator,
+			Data:               dataRepo,
+			DeviceTokens:       deviceTokens,
+			Permissions:        permissions,
+			Pusher:             pusher,
+			LastCommunications: lastCommunications,
 		}, &consumerTestDeps{
-			Alerts:       alertsClient,
-			Context:      ctx,
-			Cursor:       cur,
-			DeviceTokens: deviceTokens,
-			Evaluator:    evaluator,
-			Pusher:       pusher,
-			Repo:         dataRepo,
-			Session:      &mockConsumerGroupSession{},
-			Logger:       logger,
-			Recorder:     recorder,
-			Permissions:  permissions,
+			Alerts:             alertsClient,
+			Context:            ctx,
+			Cursor:             cur,
+			DeviceTokens:       deviceTokens,
+			Evaluator:          evaluator,
+			Pusher:             pusher,
+			Repo:               dataRepo,
+			Session:            &mockConsumerGroupSession{},
+			Logger:             logger,
+			LastCommunications: lastCommunications,
+			Permissions:        permissions,
 		}
 }
 
@@ -444,18 +444,18 @@ func (c *mockPermissionsClient) GetUserPermissions(ctx context.Context, requestU
 	}
 }
 
-type mockRecorder struct {
+type mockLastCommunicationsRecorder struct {
 	recordCalls   map[string]int
 	recordCallsMu sync.Mutex
 }
 
-func newMockRecorder() *mockRecorder {
-	return &mockRecorder{
+func newMockLastCommunicationsRecorder() *mockLastCommunicationsRecorder {
+	return &mockLastCommunicationsRecorder{
 		recordCalls: map[string]int{},
 	}
 }
 
-func (r *mockRecorder) RecordReceivedDeviceData(ctx context.Context,
+func (r *mockLastCommunicationsRecorder) RecordReceivedDeviceData(ctx context.Context,
 	lastComm alerts.LastCommunication) error {
 
 	r.recordCallsMu.Lock()
@@ -464,24 +464,24 @@ func (r *mockRecorder) RecordReceivedDeviceData(ctx context.Context,
 	return nil
 }
 
-func (r *mockRecorder) NumCallsFor(userID string) int {
+func (r *mockLastCommunicationsRecorder) NumCallsFor(userID string) int {
 	r.recordCallsMu.Lock()
 	defer r.recordCallsMu.Unlock()
 	return r.recordCalls[userID]
 }
 
-type mockRecorderRepository struct {
+type mockLastCommunicationsRepository struct {
 	recordCalls   map[string]int
 	recordCallsMu sync.Mutex
 }
 
-func newMockRecorderRepository() *mockRecorderRepository {
-	return &mockRecorderRepository{
+func newMockLastCommunicationsRepository() *mockLastCommunicationsRepository {
+	return &mockLastCommunicationsRepository{
 		recordCalls: map[string]int{},
 	}
 }
 
-func (r *mockRecorderRepository) RecordReceivedDeviceData(ctx context.Context,
+func (r *mockLastCommunicationsRepository) RecordReceivedDeviceData(ctx context.Context,
 	lastComm alerts.LastCommunication) error {
 
 	r.recordCallsMu.Lock()
@@ -490,19 +490,19 @@ func (r *mockRecorderRepository) RecordReceivedDeviceData(ctx context.Context,
 	return nil
 }
 
-func (r *mockRecorderRepository) UsersWithoutCommunication(ctx context.Context) (
+func (r *mockLastCommunicationsRepository) OverdueCommunications(ctx context.Context) (
 	[]alerts.LastCommunication, error) {
 
 	return nil, nil
 }
 
-func (r *mockRecorderRepository) NumCallsFor(userID string) int {
+func (r *mockLastCommunicationsRepository) NumCallsFor(userID string) int {
 	r.recordCallsMu.Lock()
 	defer r.recordCallsMu.Unlock()
 	return r.recordCalls[userID]
 }
 
-func (r *mockRecorderRepository) EnsureIndexes() error { return nil }
+func (r *mockLastCommunicationsRepository) EnsureIndexes() error { return nil }
 
 type mockDeviceTokens struct {
 	Tokens map[string][]*devicetokens.DeviceToken

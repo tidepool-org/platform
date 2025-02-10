@@ -25,7 +25,7 @@ func AlertsRoutes() []service.Route {
 		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
 		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
 		service.Get("/v1/users/:userId/followers/alerts", ListAlerts, api.RequireServer),
-		service.Get("/v1/users/without_communication", GetUsersWithoutCommunication, api.RequireServer),
+		service.Get("/v1/users/overdue_communications", ListOverdueCommunications, api.RequireServer),
 	}
 }
 
@@ -171,7 +171,7 @@ func ListAlerts(dCtx service.Context) {
 	responder.Data(http.StatusOK, alerts)
 }
 
-func GetUsersWithoutCommunication(dCtx service.Context) {
+func ListOverdueCommunications(dCtx service.Context) {
 	r := dCtx.Request()
 	ctx := r.Context()
 
@@ -182,17 +182,18 @@ func GetUsersWithoutCommunication(dCtx service.Context) {
 		dCtx.RespondWithError(platform.ErrorUnauthorized())
 		return
 	}
-	lastComms, err := dCtx.RecordsRepository().UsersWithoutCommunication(ctx)
+	overdue, err := dCtx.LastCommunicationsRepository().OverdueCommunications(ctx)
 	if err != nil {
-		lgr.WithError(err).Debug("unable to list users without communication")
+		lgr.WithError(err).Debug("Unable to list overdue records")
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		return
 	}
 
-	lgr.WithField("found", len(lastComms)).WithField("lastComms", lastComms).Debug("/v1/users/without_communication")
+	lgr.WithField("found", len(overdue)).WithField("overdue", overdue).
+		Debug("/v1/users/overdue_communications")
 
 	responder := request.MustNewResponder(dCtx.Response(), r)
-	responder.Data(http.StatusOK, lastComms)
+	responder.Data(http.StatusOK, overdue)
 }
 
 // checkUserIDConsistency verifies the userIDs in a request.

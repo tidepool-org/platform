@@ -680,12 +680,14 @@ type Notification struct {
 	Sent            func(time.Time)
 }
 
-// RecordsRepository encapsulates queries of the records collection for use with alerts.
-type RecordsRepository interface {
+// LastCommunicationsRepository encapsulates queries of the [LastCommunication] records
+// collection for use with alerts.
+type LastCommunicationsRepository interface {
 	// RecordReceivedDeviceData upserts the time of last communication from a user.
 	RecordReceivedDeviceData(context.Context, LastCommunication) error
-	// UsersWithoutCommunication lists those users that haven't communicated for a time.
-	UsersWithoutCommunication(context.Context) ([]LastCommunication, error)
+	// OverdueCommunications lists records for those users that haven't communicated for a
+	// time.
+	OverdueCommunications(context.Context) ([]LastCommunication, error)
 
 	EnsureIndexes() error
 }

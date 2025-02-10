@@ -23,14 +23,14 @@ import (
 )
 
 type Consumer struct {
-	Alerts         AlertsClient
-	Data           alerts.DataRepository
-	DeviceTokens   auth.DeviceTokensClient
-	Evaluator      AlertsEvaluator
-	Permissions    permission.Client
-	Pusher         Pusher
-	Recorder       EventsRecorder
-	TokensProvider auth.ServerSessionTokenProvider
+	Alerts             AlertsClient
+	Data               alerts.DataRepository
+	DeviceTokens       auth.DeviceTokensClient
+	Evaluator          AlertsEvaluator
+	Permissions        permission.Client
+	Pusher             Pusher
+	LastCommunications LastCommunicationsRecorder
+	TokensProvider     auth.ServerSessionTokenProvider
 
 	Logger log.Logger
 }
@@ -132,7 +132,7 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 		LastReceivedDeviceData: time.Now(),
 		DataSetID:              *datum.UploadID,
 	}
-	err := c.Recorder.RecordReceivedDeviceData(ctx, lastComm)
+	err := c.LastCommunications.RecordReceivedDeviceData(ctx, lastComm)
 	if err != nil {
 		lgr.WithError(err).Info("Unable to record device data received")
 	}

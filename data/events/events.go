@@ -547,7 +547,7 @@ func (c *CascadingConsumer) updateCascadeHeaders(headers []sarama.RecordHeader) 
 	return keep
 }
 
-type EventsRecorder interface {
+type LastCommunicationsRecorder interface {
 	// RecordReceivedDeviceData to support sending care partner alerts.
 	//
 	// Metadata about when we last received data for any given user is

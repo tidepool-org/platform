@@ -302,19 +302,19 @@ func newTestAlertsConfig(userID, dataSetID string) *Config {
 }
 
 type mockAlertsClient struct {
-	UsersWithoutCommsError     error
-	UsersWithoutCommsResponses [][]LastCommunication
-	ListResponses              [][]*Config
-	ListError                  error
-	UpsertError                error
-	UpsertCalls                []*Config
+	OverdueCommunicationsError     error
+	OverdueCommunicationsResponses [][]LastCommunication
+	ListResponses                  [][]*Config
+	ListError                      error
+	UpsertError                    error
+	UpsertCalls                    []*Config
 }
 
 func newMockAlertsClient() *mockAlertsClient {
 	return &mockAlertsClient{
-		UsersWithoutCommsResponses: [][]LastCommunication{},
-		ListResponses:              [][]*Config{},
-		UpsertCalls:                []*Config{},
+		OverdueCommunicationsResponses: [][]LastCommunication{},
+		ListResponses:                  [][]*Config{},
+		UpsertCalls:                    []*Config{},
 	}
 }
 
@@ -351,15 +351,15 @@ func (c *mockAlertsClient) List(ctx context.Context, userID string) ([]*Config, 
 	return []*Config{}, nil
 }
 
-func (c *mockAlertsClient) UsersWithoutCommunication(context.Context) (
+func (c *mockAlertsClient) OverdueCommunications(context.Context) (
 	[]LastCommunication, error) {
 
-	if c.UsersWithoutCommsError != nil {
-		return nil, c.UsersWithoutCommsError
+	if c.OverdueCommunicationsError != nil {
+		return nil, c.OverdueCommunicationsError
 	}
-	if len(c.UsersWithoutCommsResponses) > 0 {
-		ret := c.UsersWithoutCommsResponses[0]
-		c.UsersWithoutCommsResponses = c.UsersWithoutCommsResponses[1:]
+	if len(c.OverdueCommunicationsResponses) > 0 {
+		ret := c.OverdueCommunicationsResponses[0]
+		c.OverdueCommunicationsResponses = c.OverdueCommunicationsResponses[1:]
 		return ret, nil
 	}
 	return nil, nil

@@ -243,7 +243,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var alertsDataRepository alerts.DataRepository
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
-	var recordsRepository alerts.RecordsRepository
+	var lastCommunicationsRepository alerts.LastCommunicationsRepository
 	var logger = logTest.NewLogger()
 	var store *dataStoreMongo.Store
 
@@ -279,7 +279,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				dataSetCollection = store.GetCollection("deviceDataSets")
 				summaryCollection = store.GetCollection("summary")
 				alertsCollection = store.GetCollection("alerts")
-				recordsCollection = store.GetCollection("records")
+				recordsCollection = store.GetCollection("lastCommunications")
 			})
 		})
 
@@ -453,10 +453,10 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			})
 		})
 
-		Context("NewRecordsRepository", func() {
+		Context("NewLastCommunicationsRepository", func() {
 			It("returns a new repository", func() {
-				recordsRepository = store.NewRecorderRepository()
-				Expect(recordsRepository).ToNot(BeNil())
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
+				Expect(lastCommunicationsRepository).ToNot(BeNil())
 			})
 		})
 
@@ -466,7 +466,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				summaryRepository = store.NewSummaryRepository()
 				alertsRepository = store.NewAlertsRepository()
 				alertsDataRepository = store.NewAlertsDataRepository()
-				recordsRepository = store.NewRecorderRepository()
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
 				Expect(alertsRepository).ToNot(BeNil())
@@ -2634,17 +2634,16 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			})
 		})
 
-		Context("recorder", func() {
-
+		Context("LastCommunicationsRecorder", func() {
 			BeforeEach(func() {
-				recordsRepository = store.NewRecorderRepository()
-				Expect(recordsRepository).ToNot(BeNil())
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
+				Expect(lastCommunicationsRepository).ToNot(BeNil())
 			})
 
-			Describe("UsersWithoutCommunication", func() {
+			Describe("OverdueCommunications", func() {
 				It("retrieves matching records", func() {
 					ctx := context.Background()
-					got, err := recordsRepository.UsersWithoutCommunication(ctx)
+					got, err := lastCommunicationsRepository.OverdueCommunications(ctx)
 					Expect(err).To(Succeed())
 					Expect(len(got)).To(Equal(0))
 				})
@@ -2656,15 +2655,15 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						DataSetID:              testDataSetID,
 						LastReceivedDeviceData: time.Unix(123, 456),
 					}
-					Expect(recordsRepository.RecordReceivedDeviceData(ctx, testLastComm)).To(Succeed())
+					Expect(lastCommunicationsRepository.RecordReceivedDeviceData(ctx, testLastComm)).To(Succeed())
 					testLastComm2 := alerts.LastCommunication{
 						UserID:                 testUserID + "2",
 						DataSetID:              testDataSetID + "2",
 						LastReceivedDeviceData: time.Now(),
 					}
-					Expect(recordsRepository.RecordReceivedDeviceData(ctx, testLastComm2)).To(Succeed())
+					Expect(lastCommunicationsRepository.RecordReceivedDeviceData(ctx, testLastComm2)).To(Succeed())
 
-					got, err := recordsRepository.UsersWithoutCommunication(ctx)
+					got, err := lastCommunicationsRepository.OverdueCommunications(ctx)
 					Expect(err).To(Succeed())
 					Expect(len(got)).To(Equal(1))
 				})
