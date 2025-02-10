@@ -30,9 +30,9 @@ type CarePartnerRunner struct {
 type AlertsClient interface {
 	List(_ context.Context, followedUserID string) ([]*Config, error)
 	Upsert(context.Context, *Config) error
-	// UsersWithoutCommunication returns a slice of user ids for those users that haven't
+	// OverdueCommunications returns a slice of [LastCommunication] for users that haven't
 	// uploaded data recently.
-	UsersWithoutCommunication(context.Context) ([]LastCommunication, error)
+	OverdueCommunications(context.Context) ([]LastCommunication, error)
 }
 
 func NewCarePartnerRunner(logger log.Logger, alerts AlertsClient,
@@ -76,12 +76,12 @@ func (r *CarePartnerRunner) Run(ctx context.Context, tsk *task.Task) {
 }
 
 func (r *CarePartnerRunner) evaluateLastComms(ctx context.Context) error {
-	lastComms, err := r.alerts.UsersWithoutCommunication(ctx)
+	overdue, err := r.alerts.OverdueCommunications(ctx)
 	if err != nil {
 		return errors.Wrap(err, "listing users without communication")
 	}
 
-	for _, lastComm := range lastComms {
+	for _, lastComm := range overdue {
 		if err := r.evaluateLastComm(ctx, lastComm); err != nil {
 			r.logger.WithError(err).
 				WithField("followedUserID", lastComm.UserID).

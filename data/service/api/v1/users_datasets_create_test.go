@@ -228,6 +228,6 @@ func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDay
 	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) RecordsRepository() alerts.RecordsRepository {
+func (c *mockDataServiceContext) LastCommunicationsRepository() alerts.LastCommunicationsRepository {
 	panic("not implemented")
 }

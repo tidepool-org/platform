@@ -106,14 +106,14 @@ var _ = Describe("Client", func() {
 		})
 	})
 
-	Context("UsersWithoutCommunication", func() {
+	Context("OverdueCommunications", func() {
 		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
-			_, err := client.UsersWithoutCommunication(ctx)
+			_, err := client.OverdueCommunications(ctx)
 			return err
 		})
 
 		ItReturnsANilErrorOnSuccess("[]", func(ctx context.Context, client *Client) error {
-			_, err := client.UsersWithoutCommunication(ctx)
+			_, err := client.OverdueCommunications(ctx)
 			return err
 		})
 	})

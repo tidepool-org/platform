@@ -20,7 +20,7 @@ type Store interface {
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
 	NewAlertsRepository() alerts.Repository
-	NewRecorderRepository() alerts.RecordsRepository
+	NewLastCommunicationsRepository() alerts.LastCommunicationsRepository
 }
 
 // DataSetRepository is the interface for interacting and modifying

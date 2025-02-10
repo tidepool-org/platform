@@ -9,17 +9,17 @@ import (
 	lognull "github.com/tidepool-org/platform/log/null"
 )
 
-type Recorder struct {
-	Repo alerts.RecordsRepository
+type LastCommunicationRecorder struct {
+	Repo alerts.LastCommunicationsRepository
 }
 
-func NewRecorder(repo alerts.RecordsRepository) *Recorder {
-	return &Recorder{
+func NewLastCommunicationRecorder(repo alerts.LastCommunicationsRepository) *LastCommunicationRecorder {
+	return &LastCommunicationRecorder{
 		Repo: repo,
 	}
 }
 
-func (r *Recorder) RecordReceivedDeviceData(ctx context.Context,
+func (r *LastCommunicationRecorder) RecordReceivedDeviceData(ctx context.Context,
 	lastComm alerts.LastCommunication) error {
 
 	logger := r.log(ctx).WithFields(log.Fields{
@@ -33,7 +33,7 @@ func (r *Recorder) RecordReceivedDeviceData(ctx context.Context,
 	return nil
 }
 
-func (r *Recorder) log(ctx context.Context) log.Logger {
+func (r *LastCommunicationRecorder) log(ctx context.Context) log.Logger {
 	if ctxLogger := log.LoggerFromContext(ctx); ctxLogger != nil {
 		return ctxLogger
 	}

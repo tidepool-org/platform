@@ -14,10 +14,11 @@ import (
 	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-// recorderRepo implements RecorderRepository, writing data to a MongoDB collection.
-type recorderRepo structuredmongo.Repository
+// lastCommunicationsRepo implements LastCommunicationsRepository, writing data to a
+// MongoDB collection.
+type lastCommunicationsRepo structuredmongo.Repository
 
-func (r *recorderRepo) RecordReceivedDeviceData(ctx context.Context,
+func (r *lastCommunicationsRepo) RecordReceivedDeviceData(ctx context.Context,
 	lastComm alerts.LastCommunication) error {
 
 	opts := options.Update().SetUpsert(true)
@@ -28,7 +29,7 @@ func (r *recorderRepo) RecordReceivedDeviceData(ctx context.Context,
 	return nil
 }
 
-func (r *recorderRepo) EnsureIndexes() error {
+func (r *lastCommunicationsRepo) EnsureIndexes() error {
 	repo := structuredmongo.Repository(*r)
 	return (&repo).CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
@@ -49,14 +50,14 @@ func (r *recorderRepo) EnsureIndexes() error {
 	})
 }
 
-func (r *recorderRepo) filter(lastComm alerts.LastCommunication) map[string]any {
+func (r *lastCommunicationsRepo) filter(lastComm alerts.LastCommunication) map[string]any {
 	return map[string]any{
 		"userId":    lastComm.UserID,
 		"dataSetId": lastComm.DataSetID,
 	}
 }
 
-func (d *recorderRepo) UsersWithoutCommunication(ctx context.Context) ([]alerts.LastCommunication, error) {
+func (d *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) ([]alerts.LastCommunication, error) {
 	start := time.Now().Add(-5 * time.Minute)
 	selector := bson.M{
 		"lastReceivedDeviceData": bson.M{"$lte": start},
@@ -64,11 +65,11 @@ func (d *recorderRepo) UsersWithoutCommunication(ctx context.Context) ([]alerts.
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastReceivedDeviceData", Value: 1}})
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Unable to list users without communication")
+		return nil, errors.Wrapf(err, "Unable to list overdue records")
 	}
 	records := []alerts.LastCommunication{}
 	if err := cursor.All(ctx, &records); err != nil {
-		return nil, errors.Wrapf(err, "Unable to iterate users without communication cursor")
+		return nil, errors.Wrapf(err, "Unable to iterate overdue records")
 	}
 	return records, nil
 }

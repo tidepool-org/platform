@@ -24,13 +24,13 @@ type Context struct {
 
 	T likeT
 	// authDetails should be updated via the WithAuthDetails method.
-	authDetails           *test.MockAuthDetails
-	RESTRequest           *rest.Request
-	ResponseWriter        rest.ResponseWriter
-	recorder              *httptest.ResponseRecorder
-	MockAlertsRepository  alerts.Repository
-	MockPermissionClient  permission.Client
-	MockRecordsRepository alerts.RecordsRepository
+	authDetails                      *test.MockAuthDetails
+	RESTRequest                      *rest.Request
+	ResponseWriter                   rest.ResponseWriter
+	recorder                         *httptest.ResponseRecorder
+	MockAlertsRepository             alerts.Repository
+	MockPermissionClient             permission.Client
+	MockLastCommunicationsRepository alerts.LastCommunicationsRepository
 }
 
 func NewContext(t likeT, method, url string, body io.Reader) *Context {
@@ -105,6 +105,6 @@ func (c *Context) PermissionClient() permission.Client {
 	return c.MockPermissionClient
 }
 
-func (c *Context) RecordsRepository() alerts.RecordsRepository {
-	return c.MockRecordsRepository
+func (c *Context) LastCommunicationsRepository() alerts.LastCommunicationsRepository {
+	return c.MockLastCommunicationsRepository
 }

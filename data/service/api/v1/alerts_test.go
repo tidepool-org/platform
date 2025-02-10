@@ -263,9 +263,9 @@ var _ = Describe("Alerts endpoints", func() {
 		})
 	})
 
-	Describe("GetUsersWithoutCommunication", func() {
+	Describe("ListOverdueCommunications", func() {
 		It("rejects unauthenticated users", func() {
-			testAuthenticationRequired(GetUsersWithoutCommunication)
+			testAuthenticationRequired(ListOverdueCommunications)
 		})
 
 		It("succeeds, even when there are no users found", func() {
@@ -273,8 +273,8 @@ var _ = Describe("Alerts endpoints", func() {
 			dCtx := mocks.NewContext(t, "", "", nil)
 			alertsRepo := newMockAlertsRepo()
 			dCtx.MockAlertsRepository = alertsRepo
-			dCtx.MockRecordsRepository = newMockRecordsRepo()
-			GetUsersWithoutCommunication(dCtx)
+			dCtx.MockLastCommunicationsRepository = newMockLastCommunicationsRepo()
+			ListOverdueCommunications(dCtx)
 
 			rec := dCtx.Recorder()
 			Expect(rec.Code).To(Equal(http.StatusOK))
@@ -285,11 +285,11 @@ var _ = Describe("Alerts endpoints", func() {
 			dCtx := mocks.NewContext(t, "", "", nil)
 			alertsRepo := newMockAlertsRepo()
 			dCtx.MockAlertsRepository = alertsRepo
-			recordsRepo := newMockRecordsRepo()
-			recordsRepo.UsersWithoutCommunicationError = fmt.Errorf("test error")
-			dCtx.MockRecordsRepository = recordsRepo
+			lastCommunicationsRepo := newMockLastCommunicationsRepo()
+			lastCommunicationsRepo.ListOverdueCommunicationsError = fmt.Errorf("test error")
+			dCtx.MockLastCommunicationsRepository = lastCommunicationsRepo
 
-			GetUsersWithoutCommunication(dCtx)
+			ListOverdueCommunications(dCtx)
 
 			rec := dCtx.Recorder()
 			Expect(rec.Code).To(Equal(http.StatusInternalServerError))
@@ -300,18 +300,18 @@ var _ = Describe("Alerts endpoints", func() {
 			dCtx := mocks.NewContext(t, "", "", nil)
 			alertsRepo := newMockAlertsRepo()
 			dCtx.MockAlertsRepository = alertsRepo
-			recordsRepo := newMockRecordsRepo()
+			lastCommunicationsRepo := newMockLastCommunicationsRepo()
 			testTime := time.Unix(123, 456)
-			recordsRepo.UsersWithoutCommunicationResponses = [][]alerts.LastCommunication{
+			lastCommunicationsRepo.ListOverdueCommunicationsResponses = [][]alerts.LastCommunication{
 				{
 					{
 						LastReceivedDeviceData: testTime,
 					},
 				},
 			}
-			dCtx.MockRecordsRepository = recordsRepo
+			dCtx.MockLastCommunicationsRepository = lastCommunicationsRepo
 
-			GetUsersWithoutCommunication(dCtx)
+			ListOverdueCommunications(dCtx)
 
 			rec := dCtx.Recorder()
 			Expect(rec.Code).To(Equal(http.StatusOK))
@@ -391,39 +391,39 @@ func (r *mockRepo) EnsureIndexes() error {
 	return nil
 }
 
-type mockRecordsRepo struct {
-	UsersWithoutCommunicationResponses [][]alerts.LastCommunication
-	UsersWithoutCommunicationError     error
+type mockLastCommunicationsRepo struct {
+	ListOverdueCommunicationsResponses [][]alerts.LastCommunication
+	ListOverdueCommunicationsError     error
 }
 
-func newMockRecordsRepo() *mockRecordsRepo {
-	return &mockRecordsRepo{
-		UsersWithoutCommunicationResponses: [][]alerts.LastCommunication{},
+func newMockLastCommunicationsRepo() *mockLastCommunicationsRepo {
+	return &mockLastCommunicationsRepo{
+		ListOverdueCommunicationsResponses: [][]alerts.LastCommunication{},
 	}
 }
 
-func (r *mockRecordsRepo) RecordReceivedDeviceData(_ context.Context,
+func (r *mockLastCommunicationsRepo) RecordReceivedDeviceData(_ context.Context,
 	_ alerts.LastCommunication) error {
 
 	return nil
 }
 
-func (r *mockRecordsRepo) UsersWithoutCommunication(_ context.Context) (
+func (r *mockLastCommunicationsRepo) OverdueCommunications(_ context.Context) (
 	[]alerts.LastCommunication, error) {
 
-	if r.UsersWithoutCommunicationError != nil {
-		return nil, r.UsersWithoutCommunicationError
+	if r.ListOverdueCommunicationsError != nil {
+		return nil, r.ListOverdueCommunicationsError
 	}
 
-	if len(r.UsersWithoutCommunicationResponses) > 0 {
-		ret := r.UsersWithoutCommunicationResponses[0]
-		r.UsersWithoutCommunicationResponses = r.UsersWithoutCommunicationResponses[1:]
+	if len(r.ListOverdueCommunicationsResponses) > 0 {
+		ret := r.ListOverdueCommunicationsResponses[0]
+		r.ListOverdueCommunicationsResponses = r.ListOverdueCommunicationsResponses[1:]
 		return ret, nil
 	}
 	return nil, nil
 }
 
-func (r *mockRecordsRepo) EnsureIndexes() error {
+func (r *mockLastCommunicationsRepo) EnsureIndexes() error {
 	return nil
 }
 

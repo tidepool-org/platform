@@ -31,7 +31,7 @@ var _ = Describe("CarePartnerRunner", func() {
 		Context("continues after logging errors", func() {
 			It("retrieving users without communication", func() {
 				runner, test := newCarePartnerRunnerTest()
-				test.Alerts.UsersWithoutCommsError = fmt.Errorf("test error")
+				test.Alerts.OverdueCommunicationsError = fmt.Errorf("test error")
 
 				runner.Run(test.Ctx, test.Task)
 
@@ -104,8 +104,8 @@ var _ = Describe("CarePartnerRunner", func() {
 
 		It("ignores Configs that don't match the data set id", func() {
 			runner, test := newCarePartnerRunnerTest()
-			firstResp := test.Alerts.UsersWithoutCommsResponses[0]
-			test.Alerts.UsersWithoutCommsResponses[0] = append(firstResp, LastCommunication{
+			firstResp := test.Alerts.OverdueCommunicationsResponses[0]
+			test.Alerts.OverdueCommunicationsResponses[0] = append(firstResp, LastCommunication{
 				UserID:                 firstResp[0].UserID,
 				DataSetID:              "non-matching",
 				LastReceivedDeviceData: firstResp[0].LastReceivedDeviceData,
@@ -175,7 +175,7 @@ var _ = Describe("CarePartnerRunner", func() {
 			act.Triggered = time.Now().Add(-time.Hour)
 			act.Sent = time.Now().Add(-time.Hour)
 			test.Alerts.ListResponses[0][0].Activity.NoCommunication = act
-			test.Alerts.UsersWithoutCommsResponses[0][0].LastReceivedDeviceData = time.Now()
+			test.Alerts.OverdueCommunicationsResponses[0][0].LastReceivedDeviceData = time.Now()
 
 			runner.Run(test.Ctx, test.Task)
 
@@ -192,7 +192,7 @@ var _ = Describe("CarePartnerRunner", func() {
 			act.Sent = time.Now().Add(-time.Hour)
 			act.Resolved = time.Now().Add(-time.Minute)
 			test.Alerts.ListResponses[0][0].Activity.NoCommunication = act
-			test.Alerts.UsersWithoutCommsResponses[0][0].LastReceivedDeviceData = time.Now()
+			test.Alerts.OverdueCommunicationsResponses[0][0].LastReceivedDeviceData = time.Now()
 
 			runner.Run(test.Ctx, test.Task)
 			Expect(len(test.Alerts.UpsertCalls)).To(Equal(0))
@@ -238,7 +238,7 @@ func newCarePartnerRunnerTest() (*CarePartnerRunner, *carePartnerRunnerTest) {
 	Expect(err).To(Succeed())
 
 	last := time.Now().Add(-(DefaultNoCommunicationDelay + time.Second))
-	alerts.UsersWithoutCommsResponses = [][]LastCommunication{{
+	alerts.OverdueCommunicationsResponses = [][]LastCommunication{{
 		{
 			UserID:                 mockUserID2,
 			DataSetID:              mockDataSetID,
