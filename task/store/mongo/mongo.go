@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/ehr/reconcile"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -178,7 +179,7 @@ func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
 }
 
 func (t *TaskRepository) EnsureCarePartnerTask(ctx context.Context) error {
-	create := task.NewCarePartnerTaskCreate()
+	create := alerts.NewCarePartnerTaskCreate()
 	return t.ensureTask(ctx, create)
 }
 
