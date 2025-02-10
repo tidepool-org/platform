@@ -212,6 +212,14 @@ var _ = Describe("CarePartnerRunner", func() {
 	})
 })
 
+var _ = Describe("NewCarePartnerTaskCreate", func() {
+	It("succeeds", func() {
+		Expect(func() {
+			Expect(NewCarePartnerTaskCreate()).ToNot(Equal(nil))
+		}).ToNot(Panic())
+	})
+})
+
 type carePartnerRunnerTest struct {
 	Alerts      *mockAlertsClient
 	Config      *Config

@@ -10,9 +10,21 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/push"
 	"github.com/tidepool-org/platform/task"
 )
+
+const CarePartnerType = "org.tidepool.carepartner"
+
+func NewCarePartnerTaskCreate() *task.TaskCreate {
+	return &task.TaskCreate{
+		Name:          pointer.FromAny(CarePartnerType),
+		Type:          CarePartnerType,
+		AvailableTime: &time.Time{},
+		Data:          map[string]interface{}{},
+	}
+}
 
 type CarePartnerRunner struct {
 	logger log.Logger
@@ -50,7 +62,7 @@ func NewCarePartnerRunner(logger log.Logger, alerts AlertsClient,
 }
 
 func (r *CarePartnerRunner) GetRunnerType() string {
-	return task.CarePartnerType
+	return CarePartnerType
 }
 
 func (r *CarePartnerRunner) GetRunnerTimeout() time.Duration {
