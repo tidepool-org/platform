@@ -200,7 +200,6 @@ func (c *Config) EvaluateNoCommunication(ctx context.Context,
 	ctx = log.NewContextWithLogger(ctx, lgr)
 	nc := c.Alerts.NoCommunication.Evaluate(ctx, last)
 	needsUpsert := c.Activity.NoCommunication.Update(nc.OutOfRange)
-	// TODO check re-eval? I don't think so
 	delay := c.Alerts.NoCommunication.Delay.Duration()
 	if delay == 0 {
 		delay = DefaultNoCommunicationDelay
