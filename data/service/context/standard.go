@@ -1,8 +1,9 @@
 package context
 
 import (
-	"go.mongodb.org/mongo-driver/mongo"
 	"net/http"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data/summary/reporters"
 

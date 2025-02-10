@@ -4,14 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"go.mongodb.org/mongo-driver/mongo"
 	"strconv"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/data"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 )
 
 // This is a good example of what a summary type requires, as it does not share as many pieces as CGM/BGM

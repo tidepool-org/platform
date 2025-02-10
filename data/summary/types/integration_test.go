@@ -1,11 +1,10 @@
-package test_test
+package types_test
 
 import (
 	"context"
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
@@ -17,8 +16,8 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/summary"
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
-	. "github.com/tidepool-org/platform/data/summary/test/generators"
-	"github.com/tidepool-org/platform/data/summary/types"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -26,8 +25,8 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-func GetBuckets[B types.BucketDataPt[A], A types.BucketData](ctx context.Context, userId string, bucketsStore *dataStoreSummary.Buckets[B, A]) []*types.Bucket[B, A] {
-	buckets := []*types.Bucket[B, A]{}
+func GetBuckets[B BucketDataPt[A], A BucketData](ctx context.Context, userId string, bucketsStore *dataStoreSummary.Buckets[B, A]) []*Bucket[B, A] {
+	buckets := []*Bucket[B, A]{}
 
 	bucketsCursor, err := bucketsStore.GetAllBuckets(ctx, userId)
 	Expect(err).ToNot(HaveOccurred())
@@ -51,17 +50,17 @@ var _ = Describe("End to end summary calculations", func() {
 	var datumTime time.Time
 	var deviceData []mongo.WriteModel
 	//var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
-	var bgmStore *dataStoreSummary.Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var cgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
-	var bgmBucketsStore *dataStoreSummary.Buckets[*types.GlucoseBucket, types.GlucoseBucket]
-	var conBucketsStore *dataStoreSummary.Buckets[*types.ContinuousBucket, types.ContinuousBucket]
+	var bgmStore *dataStoreSummary.Summaries[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	var cgmBucketsStore *dataStoreSummary.Buckets[*GlucoseBucket, GlucoseBucket]
+	var bgmBucketsStore *dataStoreSummary.Buckets[*GlucoseBucket, GlucoseBucket]
+	var conBucketsStore *dataStoreSummary.Buckets[*ContinuousBucket, ContinuousBucket]
 	//var conStore *dataStoreSummary.Summaries[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
-	var cgmSummarizer summary.Summarizer[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
-	var bgmSummarizer summary.Summarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var continuousSummarizer summary.Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
-	var cgmSummary *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
-	var bgmSummary *types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var conSummary *types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
+	var cgmSummarizer summary.Summarizer[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
+	var bgmSummarizer summary.Summarizer[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	var continuousSummarizer summary.Summarizer[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
+	var cgmSummary *Summary[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
+	var bgmSummary *Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	var conSummary *Summary[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
 	var dataCollection *mongo.Collection
 
 	BeforeEach(func() {
@@ -76,21 +75,21 @@ var _ = Describe("End to end summary calculations", func() {
 		summaryRepo = store.NewSummaryRepository().GetStore()
 		bucketsRepo = store.NewBucketsRepository().GetStore()
 		dataRepo = store.NewDataRepository()
-		registry = summary.New(summaryRepo, bucketsRepo, dataRepo)
+		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
 		userId = userTest.RandomID()
 		datumTime = time.Now().UTC().Truncate(time.Hour)
 		dataCollection = store.GetCollection("deviceData")
 
 		//cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepo)
-		bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepo)
-		cgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeCGM)
-		bgmBucketsStore = dataStoreSummary.NewBuckets[*types.GlucoseBucket](bucketsRepo, types.SummaryTypeBGM)
-		conBucketsStore = dataStoreSummary.NewBuckets[*types.ContinuousBucket](bucketsRepo, types.SummaryTypeContinuous)
+		bgmStore = dataStoreSummary.NewSummaries[*BGMPeriods, *GlucoseBucket](summaryRepo)
+		cgmBucketsStore = dataStoreSummary.NewBuckets[*GlucoseBucket](bucketsRepo, SummaryTypeCGM)
+		bgmBucketsStore = dataStoreSummary.NewBuckets[*GlucoseBucket](bucketsRepo, SummaryTypeBGM)
+		conBucketsStore = dataStoreSummary.NewBuckets[*ContinuousBucket](bucketsRepo, SummaryTypeContinuous)
 		//conStore = dataStoreSummary.NewSummaries[*types.ContinuousPeriods, *types.ContinuousBucket](summaryRepo)
 
-		cgmSummarizer = summary.GetSummarizer[*types.CGMPeriods, *types.GlucoseBucket](registry)
-		bgmSummarizer = summary.GetSummarizer[*types.BGMPeriods, *types.GlucoseBucket](registry)
-		continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
+		cgmSummarizer = summary.GetSummarizer[*CGMPeriods, *GlucoseBucket](registry)
+		bgmSummarizer = summary.GetSummarizer[*BGMPeriods, *GlucoseBucket](registry)
+		continuousSummarizer = summary.GetSummarizer[*ContinuousPeriods, *ContinuousBucket](registry)
 	})
 
 	AfterEach(func() {
@@ -115,7 +114,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
+		Expect(cgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -128,7 +127,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(10))
-		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(10))
+		Expect(cgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(10))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -141,7 +140,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(15))
-		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(15))
+		Expect(cgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(15))
 
 		deviceData = NewDataSetData("cbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -158,7 +157,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(22))
-		Expect(cgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(22))
+		Expect(cgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(22))
 	})
 
 	It("repeat out of order bgm summary calc", func() {
@@ -175,7 +174,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(5*time.Hour), 5, 10)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -188,7 +187,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(10))
-		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(10))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(10))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(15*time.Hour), 5, 2)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -201,7 +200,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(15))
-		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(15))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(15))
 
 		deviceData = NewDataSetData("smbg", userId, datumTime.Add(20*time.Hour), 5, 7)
 		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
@@ -218,7 +217,7 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets = GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(22))
-		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(22))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(22))
 	})
 
 	It("summary calc with very old data", func() {
@@ -240,14 +239,14 @@ var _ = Describe("End to end summary calculations", func() {
 		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 		Expect(err).ToNot(HaveOccurred())
 
-		summaries := make([]*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], 1)
+		summaries := make([]*Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket], 1)
 
 		// we don't use types.Create as we want to create a sparse jellyfish style upsert
-		summaries[0] = &types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{
-			BaseSummary: types.BaseSummary{
-				Type:   types.SummaryTypeBGM,
+		summaries[0] = &Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]{
+			BaseSummary: BaseSummary{
+				Type:   SummaryTypeBGM,
 				UserID: userId,
-				Dates: types.Dates{
+				Dates: Dates{
 					OutdatedSince:  &time.Time{},
 					OutdatedReason: []string{"LEGACY_DATA_ADDED"},
 				},
@@ -265,15 +264,15 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(5))
-		Expect(bgmSummary.Periods.Periods["7d"].Total.Records).To(Equal(5))
-		Expect(bgmSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", types.OutdatedReasonSchemaMigration))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+		Expect(bgmSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", OutdatedReasonSchemaMigration))
 	})
 
 	It("summary calc with no data correctly deletes summaries", func() {
 		var t *time.Time
 
 		// create bgm summary
-		t, err = bgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+		t, err = bgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
 		Expect(err).ToNot(HaveOccurred())
 
 		// check that it exists in the db
@@ -283,7 +282,7 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Dates.OutdatedSince).To(Equal(t))
 
 		// create cgm summary
-		t, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+		t, err = cgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
 		Expect(err).ToNot(HaveOccurred())
 		// check that it exists in the db
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
@@ -313,7 +312,7 @@ var _ = Describe("End to end summary calculations", func() {
 	})
 
 	It("summary calc with no new data correctly leaves summary unchanged", func() {
-		var cgmSummaryNew *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
+		var cgmSummaryNew *Summary[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
 
 		opts := options.BulkWrite().SetOrdered(false)
 		deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
@@ -334,7 +333,7 @@ var _ = Describe("End to end summary calculations", func() {
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
 
-		_, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+		_, err = cgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
 		Expect(err).ToNot(HaveOccurred())
 
 		cgmSummaryNew, err = cgmSummarizer.UpdateSummary(ctx, userId)
@@ -346,7 +345,7 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		// ensure unchanged
-		cmpOpts := cmpopts.IgnoreUnexported(types.GlucosePeriod{})
+		cmpOpts := cmpopts.IgnoreUnexported(GlucosePeriod{})
 		Expect(cgmSummaryNew).To(BeComparableTo(cgmSummary, cmpOpts))
 	})
 

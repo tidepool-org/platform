@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/data"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+
+	"github.com/tidepool-org/platform/data"
 )
 
 const minutesPerDay = 60 * 24

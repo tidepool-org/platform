@@ -2,11 +2,11 @@ package types
 
 import (
 	"context"
-	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"

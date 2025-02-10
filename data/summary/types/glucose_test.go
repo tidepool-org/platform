@@ -1,4 +1,4 @@
-package test_test
+package types_test
 
 import (
 	"context"
@@ -11,8 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	. "github.com/tidepool-org/platform/data/summary/test/generators"
-	"github.com/tidepool-org/platform/data/summary/types"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/log"
@@ -23,44 +23,41 @@ var _ = Describe("Glucose", func() {
 	var bucketTime time.Time
 	var err error
 	var userId string
+	var now time.Time
 
 	BeforeEach(func() {
-		now := time.Now()
+		now = time.Now()
 		userId = "1234"
 		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	})
 
 	Context("Range", func() {
 		It("range.Update", func() {
-			glucoseRange := types.Range{}
+			glucoseRange := Range{}
+			datum := NewGlucoseWithValue(continuous.Type, now, 5)
 
 			By("adding 5 minutes of 5mmol")
-			glucoseRange.Update(5, 5, true)
+			glucoseRange.Update(datum)
 			Expect(glucoseRange.Glucose).To(Equal(5.0 * 5.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
-
-			By("adding 1 minute of 10mmol")
-			glucoseRange.Update(10, 1, true)
-			Expect(glucoseRange.Glucose).To(Equal(5.0*5.0 + 10.0))
-			Expect(glucoseRange.Records).To(Equal(2))
-			Expect(glucoseRange.Minutes).To(Equal(6))
-			Expect(glucoseRange.Variance).To(Equal(20.833333333333336))
 		})
 
 		It("range.Update without minutes", func() {
-			glucoseRange := types.Range{}
+			glucoseRange := Range{}
 
 			By("adding 1 record of 5mmol")
-			glucoseRange.Update(5, 0, true)
+			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
+			glucoseRange.Update(datum)
 			Expect(glucoseRange.Glucose).To(Equal(5.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(0))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
 			By("adding 1 record of 10mmol")
-			glucoseRange.Update(10, 0, true)
+			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
+			glucoseRange.Update(datum)
 			Expect(glucoseRange.Glucose).To(Equal(15.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
@@ -68,7 +65,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("range.Add", func() {
-			firstRange := types.Range{
+			firstRange := Range{
 				Glucose:  5,
 				Minutes:  5,
 				Records:  5,
@@ -76,7 +73,7 @@ var _ = Describe("Glucose", func() {
 				Variance: 5,
 			}
 
-			secondRange := types.Range{
+			secondRange := Range{
 				Glucose:  10,
 				Minutes:  10,
 				Records:  10,
@@ -98,64 +95,64 @@ var _ = Describe("Glucose", func() {
 
 	Context("Ranges", func() {
 		It("ranges.Add", func() {
-			firstRanges := types.GlucoseRanges{
-				Total: types.Range{
+			firstRanges := GlucoseRanges{
+				Total: Range{
 					Glucose:  10,
 					Minutes:  11,
 					Records:  12,
 					Percent:  13,
 					Variance: 14,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Glucose:  20,
 					Minutes:  21,
 					Records:  22,
 					Percent:  23,
 					Variance: 24,
 				},
-				Low: types.Range{
+				Low: Range{
 					Glucose:  30,
 					Minutes:  31,
 					Records:  32,
 					Percent:  33,
 					Variance: 34,
 				},
-				Target: types.Range{
+				Target: Range{
 					Glucose:  40,
 					Minutes:  41,
 					Records:  42,
 					Percent:  43,
 					Variance: 44,
 				},
-				High: types.Range{
+				High: Range{
 					Glucose:  50,
 					Minutes:  51,
 					Records:  52,
 					Percent:  53,
 					Variance: 54,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Glucose:  60,
 					Minutes:  61,
 					Records:  62,
 					Percent:  63,
 					Variance: 64,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Glucose:  70,
 					Minutes:  71,
 					Records:  72,
 					Percent:  73,
 					Variance: 74,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Glucose:  80,
 					Minutes:  81,
 					Records:  82,
 					Percent:  83,
 					Variance: 84,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Glucose:  90,
 					Minutes:  91,
 					Records:  92,
@@ -164,64 +161,64 @@ var _ = Describe("Glucose", func() {
 				},
 			}
 
-			secondRanges := types.GlucoseRanges{
-				Total: types.Range{
+			secondRanges := GlucoseRanges{
+				Total: Range{
 					Glucose:  15,
 					Minutes:  16,
 					Records:  17,
 					Percent:  18,
 					Variance: 19,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Glucose:  25,
 					Minutes:  26,
 					Records:  27,
 					Percent:  28,
 					Variance: 29,
 				},
-				Low: types.Range{
+				Low: Range{
 					Glucose:  35,
 					Minutes:  36,
 					Records:  37,
 					Percent:  38,
 					Variance: 39,
 				},
-				Target: types.Range{
+				Target: Range{
 					Glucose:  45,
 					Minutes:  46,
 					Records:  47,
 					Percent:  48,
 					Variance: 49,
 				},
-				High: types.Range{
+				High: Range{
 					Glucose:  55,
 					Minutes:  56,
 					Records:  57,
 					Percent:  58,
 					Variance: 59,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Glucose:  65,
 					Minutes:  66,
 					Records:  67,
 					Percent:  68,
 					Variance: 69,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Glucose:  75,
 					Minutes:  76,
 					Records:  77,
 					Percent:  78,
 					Variance: 79,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Glucose:  85,
 					Minutes:  86,
 					Records:  87,
 					Percent:  88,
 					Variance: 89,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Glucose:  95,
 					Minutes:  96,
 					Records:  97,
@@ -232,64 +229,64 @@ var _ = Describe("Glucose", func() {
 
 			firstRanges.Add(&secondRanges)
 
-			expectedRanges := types.GlucoseRanges{
-				Total: types.Range{
+			expectedRanges := GlucoseRanges{
+				Total: Range{
 					Glucose:  25,
 					Minutes:  27,
 					Records:  29,
 					Percent:  0,
 					Variance: 33.00526094276094,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Glucose:  45,
 					Minutes:  47,
 					Records:  49,
 					Percent:  0,
 					Variance: 53.00097420310186,
 				},
-				Low: types.Range{
+				Low: Range{
 					Glucose:  65,
 					Minutes:  67,
 					Records:  69,
 					Percent:  0,
 					Variance: 73.0003343497566,
 				},
-				Target: types.Range{
+				Target: Range{
 					Glucose:  85,
 					Minutes:  87,
 					Records:  89,
 					Percent:  0,
 					Variance: 93.00015236284297,
 				},
-				High: types.Range{
+				High: Range{
 					Glucose:  105,
 					Minutes:  107,
 					Records:  109,
 					Percent:  0,
 					Variance: 113.0000818084243,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Glucose:  125,
 					Minutes:  127,
 					Records:  129,
 					Percent:  0,
 					Variance: 133.00004889478234,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Glucose:  145,
 					Minutes:  147,
 					Records:  149,
 					Percent:  0,
 					Variance: 153.00003151742536,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Glucose:  165,
 					Minutes:  167,
 					Records:  169,
 					Percent:  0,
 					Variance: 173.0000214901807,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Glucose:  185,
 					Minutes:  187,
 					Records:  189,
@@ -302,95 +299,101 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("ranges.Update", func() {
-			glucoseRanges := types.GlucoseRanges{}
+			glucoseRanges := GlucoseRanges{}
 
 			By("adding a VeryLow value")
 			glucoseRecord := NewGlucoseWithValue(continuous.Type, bucketTime, VeryLowBloodGlucose-0.1)
 			Expect(glucoseRanges.Total.Records).To(Equal(0))
 			Expect(glucoseRanges.VeryLow.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.VeryLow.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(1))
 
 			By("adding a Low value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, LowBloodGlucose-0.1)
 			Expect(glucoseRanges.Low.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.Low.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(2))
 
 			By("adding a Target value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, InTargetBloodGlucose+0.1)
 			Expect(glucoseRanges.Target.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.Target.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(3))
 
 			By("adding a High value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, HighBloodGlucose+0.1)
 			Expect(glucoseRanges.High.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.High.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(4))
 
 			By("adding a VeryHigh value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, VeryHighBloodGlucose+0.1)
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(5))
 
 			By("adding a High value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, ExtremeHighBloodGlucose+0.1)
 			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord, 5)
+			glucoseRanges.Update(glucoseRecord)
 			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(2))
 			Expect(glucoseRanges.Total.Records).To(Equal(6))
 		})
 
 		It("ranges.Finalize with minutes >70% of a day", func() {
-			glucoseRanges := types.GlucoseRanges{
-				Total: types.Range{
+			glucoseRanges := GlucoseRanges{
+				Total: Range{
 					Minutes: 60 * 17,
 					Records: 100,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Minutes: 60 * 1,
 					Records: 10,
 				},
-				Low: types.Range{
+				Low: Range{
 					Minutes: 60 * 2,
 					Records: 20,
 				},
-				Target: types.Range{
+				Target: Range{
 					Minutes: 60 * 3,
 					Records: 30,
 				},
-				High: types.Range{
+				High: Range{
 					Minutes: 60 * 4,
 					Records: 40,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Minutes: 60 * 5,
 					Records: 50,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Minutes: 60 * 6,
 					Records: 60,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Minutes: 60 * 7,
 					Records: 70,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Minutes: 60 * 8,
 					Records: 80,
 				},
 			}
 
 			ts := time.Now()
-			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts.Add(-time.Minute*5), 5, 1)
+			s := CalcState{
+				Final:              false,
+				FirstData:          ts.Add(-time.Minute * 60 * 12),
+				LastData:           ts.Add(-time.Minute * 5),
+				LastRecordDuration: 5,
+			}
+			glucoseRanges.Finalize(s, 1)
 
 			Expect(glucoseRanges.Total.Percent).To(Equal(17.0 / 24.0))
 			Expect(glucoseRanges.VeryLow.Percent).To(Equal(1.0 / 12.0))
@@ -404,48 +407,48 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("ranges.Finalize with minutes <70% of a day", func() {
-			glucoseRanges := types.GlucoseRanges{
-				Total: types.Range{
+			glucoseRanges := GlucoseRanges{
+				Total: Range{
 					Minutes: 60 * 16,
 					Records: 100,
 					Percent: 1.0,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Minutes: 60 * 1,
 					Records: 10,
 					Percent: 1.0,
 				},
-				Low: types.Range{
+				Low: Range{
 					Minutes: 60 * 2,
 					Records: 20,
 					Percent: 1.0,
 				},
-				Target: types.Range{
+				Target: Range{
 					Minutes: 60 * 3,
 					Records: 30,
 					Percent: 1.0,
 				},
-				High: types.Range{
+				High: Range{
 					Minutes: 60 * 4,
 					Records: 40,
 					Percent: 1.0,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Minutes: 60 * 5,
 					Records: 50,
 					Percent: 1.0,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Minutes: 60 * 6,
 					Records: 60,
 					Percent: 1.0,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Minutes: 60 * 7,
 					Records: 70,
 					Percent: 1.0,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Minutes: 70 * 8,
 					Records: 80,
 					Percent: 1.0,
@@ -453,7 +456,13 @@ var _ = Describe("Glucose", func() {
 			}
 
 			ts := time.Now()
-			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts, 5, 1)
+			s := CalcState{
+				Final:              false,
+				FirstData:          ts.Add(-time.Minute * 60 * 12),
+				LastData:           ts,
+				LastRecordDuration: 5,
+			}
+			glucoseRanges.Finalize(s, 1)
 
 			Expect(glucoseRanges.Total.Percent).To(Equal(16.0 / 24.0))
 			Expect(glucoseRanges.VeryLow.Percent).To(BeZero())
@@ -467,38 +476,44 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("ranges.Finalize with no minutes", func() {
-			glucoseRanges := types.GlucoseRanges{
-				Total: types.Range{
+			glucoseRanges := GlucoseRanges{
+				Total: Range{
 					Records: 100,
 				},
-				VeryLow: types.Range{
+				VeryLow: Range{
 					Records: 10,
 				},
-				Low: types.Range{
+				Low: Range{
 					Records: 20,
 				},
-				Target: types.Range{
+				Target: Range{
 					Records: 30,
 				},
-				High: types.Range{
+				High: Range{
 					Records: 40,
 				},
-				VeryHigh: types.Range{
+				VeryHigh: Range{
 					Records: 50,
 				},
-				ExtremeHigh: types.Range{
+				ExtremeHigh: Range{
 					Records: 60,
 				},
-				AnyLow: types.Range{
+				AnyLow: Range{
 					Records: 70,
 				},
-				AnyHigh: types.Range{
+				AnyHigh: Range{
 					Records: 80,
 				},
 			}
 
 			ts := time.Now()
-			glucoseRanges.Finalize(ts.Add(-time.Minute*60*12), ts, 5, 1)
+			s := CalcState{
+				Final:              false,
+				FirstData:          ts.Add(-time.Minute * 60 * 12),
+				LastData:           ts,
+				LastRecordDuration: 5,
+			}
+			glucoseRanges.Finalize(s, 1)
 
 			Expect(glucoseRanges.Total.Percent).To(Equal(100.0 / 100.0))
 			Expect(glucoseRanges.VeryLow.Percent).To(Equal(10.0 / 100.0))
@@ -513,12 +528,12 @@ var _ = Describe("Glucose", func() {
 	})
 
 	Context("bucket.Update", func() {
-		var userBucket *types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]
+		var userBucket *Bucket[*GlucoseBucket, GlucoseBucket]
 		var cgmDatum data.Datum
 
 		It("With a cgm value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(cgmDatum)
@@ -537,7 +552,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With a bgm value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeBGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
 			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(bgmDatum)
@@ -556,7 +571,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With two cgm values within 5 minutes", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(cgmDatum)
@@ -580,7 +595,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With two bgm values within 5 minutes", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeBGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
 			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(bgmDatum)
@@ -604,7 +619,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With a smbg value in a cgm bucket", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(bgmDatum)
@@ -614,7 +629,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With a cbg value in a bgm bucket", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeBGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
 			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(cgmDatum)
@@ -624,7 +639,7 @@ var _ = Describe("Glucose", func() {
 
 		It("With two values in a range", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 
 			By("Inserting the first data")
 
@@ -664,9 +679,9 @@ var _ = Describe("Glucose", func() {
 
 		It("With values in all ranges", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 
-			ranges := map[float64]*types.Range{
+			ranges := map[float64]*Range{
 				VeryLowBloodGlucose - 0.1:     &userBucket.Data.VeryLow,
 				LowBloodGlucose - 0.1:         &userBucket.Data.Low,
 				InTargetBloodGlucose + 0.1:    &userBucket.Data.Target,
@@ -742,13 +757,13 @@ var _ = Describe("Glucose", func() {
 	})
 
 	Context("period", func() {
-		var period types.GlucosePeriod
+		var period GlucosePeriod
 
 		It("Add single bucket to an empty period", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 
-			bucketOne := types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -759,9 +774,9 @@ var _ = Describe("Glucose", func() {
 
 		It("Add duplicate buckets to a period", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 
-			bucketOne := types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -775,17 +790,17 @@ var _ = Describe("Glucose", func() {
 
 		It("Add three buckets to an empty period on 2 different days, 3 different hours", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 
-			bucketOne := types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
-			bucketTwo := types.NewBucket[*types.GlucoseBucket](userId, bucketTime.Add(time.Hour), types.SummaryTypeCGM)
+			bucketTwo := NewBucket[*GlucoseBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
 			err = bucketTwo.Update(NewGlucoseWithValue(continuous.Type, datumTime.Add(time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
-			bucketThree := types.NewBucket[*types.GlucoseBucket](userId, bucketTime.Add(24*time.Hour), types.SummaryTypeCGM)
+			bucketThree := NewBucket[*GlucoseBucket](userId, bucketTime.Add(24*time.Hour), SummaryTypeCGM)
 			err = bucketThree.Update(NewGlucoseWithValue(continuous.Type, datumTime.Add(24*time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -809,7 +824,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Finalize a 1d period", func() {
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 			buckets := CreateGlucoseBuckets(bucketTime, 24, 12, true)
 
 			for i := range buckets {
@@ -831,7 +846,7 @@ var _ = Describe("Glucose", func() {
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
-			Expect(period.GlucoseManagementIndicator).To(Equal(types.CalculateGMI(InTargetBloodGlucose)))
+			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
 			// we only validate these are set here, as this requires more specific validation
 			Expect(period.StandardDeviation).ToNot(Equal(0.0))
@@ -839,7 +854,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Finalize a 7d period", func() {
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 			buckets := CreateGlucoseBuckets(bucketTime, 24*5, 12, true)
 
 			for i := range buckets {
@@ -861,7 +876,7 @@ var _ = Describe("Glucose", func() {
 
 			Expect(period.AverageDailyRecords).To(Equal((12.0 * 24.0) * 5 / 7))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
-			Expect(period.GlucoseManagementIndicator).To(Equal(types.CalculateGMI(InTargetBloodGlucose)))
+			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
 			// we only validate these are set here, as this requires more specific validation
 			Expect(period.StandardDeviation).ToNot(Equal(0.0))
@@ -869,7 +884,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Finalize a 1d period with insufficient data", func() {
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 			buckets := CreateGlucoseBuckets(bucketTime, 16, 12, true)
 
 			for i := range buckets {
@@ -899,7 +914,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Finalize a 7d period with insufficient data", func() {
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 			buckets := CreateGlucoseBuckets(bucketTime, 23, 12, true)
 
 			for i := range buckets {
@@ -929,16 +944,16 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Update a finalized period", func() {
-			period = types.GlucosePeriod{}
+			period = GlucosePeriod{}
 			period.Finalize(14)
 
-			bucket := types.NewBucket[*types.GlucoseBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucket := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 			err = period.Update(bucket)
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Context("GlucoseStats", func() {
+	Context("GlucosePeriods", func() {
 		var logger log.Logger
 		var ctx context.Context
 
@@ -948,229 +963,148 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Init", func() {
-			s := types.GlucoseStats{}
+			s := GlucosePeriods{}
 			s.Init()
 
-			Expect(s.Periods).ToNot(BeNil())
-			Expect(s.OffsetPeriods).ToNot(BeNil())
+			Expect(s).ToNot(BeNil())
 		})
 
-		Context("CalculateSummary", func() {
+		Context("Update", func() {
 
-			It("CalculateSummary 1d", func() {
-				s := types.GlucoseStats{}
+			It("Update 1d", func() {
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24))
+				Expect(s["14d"].Total.Records).To(Equal(24))
+				Expect(s["30d"].Total.Records).To(Equal(24))
 			})
 
 			It("CalculateSummary 2d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 48, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 2))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 2))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 2))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 2))
 			})
 
 			It("CalculateSummary 7d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*7, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 7))
 			})
 
 			It("CalculateSummary 14d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*14, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(24 * 7))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(0))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 14))
 			})
 
 			It("CalculateSummary 28d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*28, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(24 * 7))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(24 * 14))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 28))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 28))
 			})
 
 			It("CalculateSummary 30d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*30, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(24 * 7))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(24 * 14))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 30))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(0))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
 
 			It("CalculateSummary 60d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*60, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(24 * 7))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(24 * 14))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 30))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(24 * 30))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
 
 			It("CalculateSummary 61d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				buckets := CreateGlucoseBuckets(bucketTime, 24*61, 1, true)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-				Expect(s.OffsetPeriods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.OffsetPeriods["1d"].Total.Records).To(Equal(24))
-
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.OffsetPeriods["7d"].Total.Records).To(Equal(24 * 7))
-
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.OffsetPeriods["14d"].Total.Records).To(Equal(24 * 14))
-
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 30))
-				Expect(s.OffsetPeriods["30d"].Total.Records).To(Equal(24 * 30))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
 		})
 
@@ -1179,202 +1113,202 @@ var _ = Describe("Glucose", func() {
 			It("CalculateDelta populates all values", func() {
 				// This validates a large block of easy to typo function calls in CalculateDelta, apologies to whoever has
 				// to update this.
-				s := types.GlucoseStats{
-					Periods: types.GlucosePeriods{"1d": &types.GlucosePeriod{
-						GlucoseRanges: types.GlucoseRanges{
-							Total: types.Range{
-								Glucose:  0,
-								Minutes:  0,
-								Records:  0,
-								Percent:  0,
-								Variance: 0,
-							},
-							VeryLow: types.Range{
-								Glucose:  1,
-								Minutes:  1,
-								Records:  1,
-								Percent:  1,
-								Variance: 1,
-							},
-							Low: types.Range{
-								Glucose:  2,
-								Minutes:  2,
-								Records:  2,
-								Percent:  2,
-								Variance: 2,
-							},
-							Target: types.Range{
-								Glucose:  3,
-								Minutes:  3,
-								Records:  3,
-								Percent:  3,
-								Variance: 3,
-							},
-							High: types.Range{
-								Glucose:  4,
-								Minutes:  4,
-								Records:  4,
-								Percent:  4,
-								Variance: 4,
-							},
-							VeryHigh: types.Range{
-								Glucose:  5,
-								Minutes:  5,
-								Records:  5,
-								Percent:  5,
-								Variance: 5,
-							},
-							ExtremeHigh: types.Range{
-								Glucose:  6,
-								Minutes:  6,
-								Records:  6,
-								Percent:  6,
-								Variance: 6,
-							},
-							AnyLow: types.Range{
-								Glucose:  7,
-								Minutes:  7,
-								Records:  7,
-								Percent:  7,
-								Variance: 7,
-							},
-							AnyHigh: types.Range{
-								Glucose:  8,
-								Minutes:  8,
-								Records:  8,
-								Percent:  8,
-								Variance: 8,
-							},
+				s := GlucosePeriods{"1d": &GlucosePeriod{
+					GlucoseRanges: GlucoseRanges{
+						Total: Range{
+							Glucose:  0,
+							Minutes:  0,
+							Records:  0,
+							Percent:  0,
+							Variance: 0,
 						},
-						HoursWithData:              0,
-						DaysWithData:               1,
-						AverageGlucose:             2,
-						GlucoseManagementIndicator: 3,
-						CoefficientOfVariation:     4,
-						StandardDeviation:          5,
-						AverageDailyRecords:        6,
-					}},
-					OffsetPeriods: types.GlucosePeriods{"1d": &types.GlucosePeriod{
-						GlucoseRanges: types.GlucoseRanges{
-							Total: types.Range{
-								Glucose:  99,
-								Minutes:  98,
-								Records:  97,
-								Percent:  96,
-								Variance: 95,
-							},
-							VeryLow: types.Range{
-								Glucose:  89,
-								Minutes:  88,
-								Records:  87,
-								Percent:  86,
-								Variance: 85,
-							},
-							Low: types.Range{
-								Glucose:  79,
-								Minutes:  78,
-								Records:  77,
-								Percent:  76,
-								Variance: 75,
-							},
-							Target: types.Range{
-								Glucose:  69,
-								Minutes:  68,
-								Records:  67,
-								Percent:  66,
-								Variance: 65,
-							},
-							High: types.Range{
-								Glucose:  59,
-								Minutes:  58,
-								Records:  57,
-								Percent:  56,
-								Variance: 55,
-							},
-							VeryHigh: types.Range{
-								Glucose:  49,
-								Minutes:  48,
-								Records:  47,
-								Percent:  46,
-								Variance: 45,
-							},
-							ExtremeHigh: types.Range{
-								Glucose:  39,
-								Minutes:  38,
-								Records:  37,
-								Percent:  36,
-								Variance: 35,
-							},
-							AnyLow: types.Range{
-								Glucose:  29,
-								Minutes:  28,
-								Records:  27,
-								Percent:  26,
-								Variance: 25,
-							},
-							AnyHigh: types.Range{
-								Glucose:  19,
-								Minutes:  18,
-								Records:  17,
-								Percent:  16,
-								Variance: 15,
-							},
+						VeryLow: Range{
+							Glucose:  1,
+							Minutes:  1,
+							Records:  1,
+							Percent:  1,
+							Variance: 1,
 						},
-						HoursWithData:              99,
-						DaysWithData:               98,
-						AverageGlucose:             97,
-						GlucoseManagementIndicator: 96,
-						CoefficientOfVariation:     95,
-						StandardDeviation:          94,
-						AverageDailyRecords:        93,
-					}},
+						Low: Range{
+							Glucose:  2,
+							Minutes:  2,
+							Records:  2,
+							Percent:  2,
+							Variance: 2,
+						},
+						Target: Range{
+							Glucose:  3,
+							Minutes:  3,
+							Records:  3,
+							Percent:  3,
+							Variance: 3,
+						},
+						High: Range{
+							Glucose:  4,
+							Minutes:  4,
+							Records:  4,
+							Percent:  4,
+							Variance: 4,
+						},
+						VeryHigh: Range{
+							Glucose:  5,
+							Minutes:  5,
+							Records:  5,
+							Percent:  5,
+							Variance: 5,
+						},
+						ExtremeHigh: Range{
+							Glucose:  6,
+							Minutes:  6,
+							Records:  6,
+							Percent:  6,
+							Variance: 6,
+						},
+						AnyLow: Range{
+							Glucose:  7,
+							Minutes:  7,
+							Records:  7,
+							Percent:  7,
+							Variance: 7,
+						},
+						AnyHigh: Range{
+							Glucose:  8,
+							Minutes:  8,
+							Records:  8,
+							Percent:  8,
+							Variance: 8,
+						},
+					},
+					HoursWithData:              0,
+					DaysWithData:               1,
+					AverageGlucose:             2,
+					GlucoseManagementIndicator: 3,
+					CoefficientOfVariation:     4,
+					StandardDeviation:          5,
+					AverageDailyRecords:        6,
+				},
+				}
+				offset := GlucosePeriods{"1d": &GlucosePeriod{
+					GlucoseRanges: GlucoseRanges{
+						Total: Range{
+							Glucose:  99,
+							Minutes:  98,
+							Records:  97,
+							Percent:  96,
+							Variance: 95,
+						},
+						VeryLow: Range{
+							Glucose:  89,
+							Minutes:  88,
+							Records:  87,
+							Percent:  86,
+							Variance: 85,
+						},
+						Low: Range{
+							Glucose:  79,
+							Minutes:  78,
+							Records:  77,
+							Percent:  76,
+							Variance: 75,
+						},
+						Target: Range{
+							Glucose:  69,
+							Minutes:  68,
+							Records:  67,
+							Percent:  66,
+							Variance: 65,
+						},
+						High: Range{
+							Glucose:  59,
+							Minutes:  58,
+							Records:  57,
+							Percent:  56,
+							Variance: 55,
+						},
+						VeryHigh: Range{
+							Glucose:  49,
+							Minutes:  48,
+							Records:  47,
+							Percent:  46,
+							Variance: 45,
+						},
+						ExtremeHigh: Range{
+							Glucose:  39,
+							Minutes:  38,
+							Records:  37,
+							Percent:  36,
+							Variance: 35,
+						},
+						AnyLow: Range{
+							Glucose:  29,
+							Minutes:  28,
+							Records:  27,
+							Percent:  26,
+							Variance: 25,
+						},
+						AnyHigh: Range{
+							Glucose:  19,
+							Minutes:  18,
+							Records:  17,
+							Percent:  16,
+							Variance: 15,
+						},
+					},
+					HoursWithData:              99,
+					DaysWithData:               98,
+					AverageGlucose:             97,
+					GlucoseManagementIndicator: 96,
+					CoefficientOfVariation:     95,
+					StandardDeviation:          94,
+					AverageDailyRecords:        93,
+				},
 				}
 
-				s.CalculateDelta()
+				s.CalculateDelta(offset)
 
-				expectedDelta := types.GlucosePeriod{
-					GlucoseRanges: types.GlucoseRanges{
-						Total: types.Range{
+				expectedDelta := GlucosePeriod{
+					GlucoseRanges: GlucoseRanges{
+						Total: Range{
 							Minutes: -98,
 							Records: -97,
 							Percent: -96,
 						},
-						VeryLow: types.Range{
+						VeryLow: Range{
 							Minutes: -87,
 							Records: -86,
 							Percent: -85,
 						},
-						Low: types.Range{
+						Low: Range{
 							Minutes: -76,
 							Records: -75,
 							Percent: -74,
 						},
-						Target: types.Range{
+						Target: Range{
 							Minutes: -65,
 							Records: -64,
 							Percent: -63,
 						},
-						High: types.Range{
+						High: Range{
 							Minutes: -54,
 							Records: -53,
 							Percent: -52,
 						},
-						VeryHigh: types.Range{
+						VeryHigh: Range{
 							Minutes: -43,
 							Records: -42,
 							Percent: -41,
 						},
-						ExtremeHigh: types.Range{
+						ExtremeHigh: Range{
 							Minutes: -32,
 							Records: -31,
 							Percent: -30,
 						},
-						AnyLow: types.Range{
+						AnyLow: Range{
 							Minutes: -21,
 							Records: -20,
 							Percent: -19,
 						},
-						AnyHigh: types.Range{
+						AnyHigh: Range{
 							Minutes: -10,
 							Records: -9,
 							Percent: -8,
@@ -1389,13 +1323,13 @@ var _ = Describe("Glucose", func() {
 					AverageDailyRecords:        -87,
 				}
 
-				opts := cmpopts.IgnoreUnexported(types.GlucosePeriod{})
-				Expect(*(s.Periods["1d"].Delta)).To(BeComparableTo(expectedDelta, opts))
+				opts := cmpopts.IgnoreUnexported(GlucosePeriod{})
+				Expect(*(s["1d"].Delta)).To(BeComparableTo(expectedDelta, opts))
 
 			})
 
 			It("CalculateDelta 1d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				bucketsOne := CreateGlucoseBuckets(bucketTime, 24, 1, true)
@@ -1404,20 +1338,14 @@ var _ = Describe("Glucose", func() {
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods["1d"].Delta).To(BeNil())
-				Expect(s.OffsetPeriods["1d"].Delta).To(BeNil())
-
-				s.CalculateDelta()
-
-				Expect(s.Periods["1d"].Delta.Total.Records).To(Equal(-24))
-				Expect(s.OffsetPeriods["1d"].Delta.Total.Records).To(Equal(24))
+				Expect(s["1d"].Delta.Total.Records).To(Equal(-24))
 			})
 
 			It("CalculateDelta 7d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				bucketsOne := CreateGlucoseBuckets(bucketTime, 24*7, 1, true)
@@ -1426,20 +1354,14 @@ var _ = Describe("Glucose", func() {
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods["7d"].Delta).To(BeNil())
-				Expect(s.OffsetPeriods["7d"].Delta).To(BeNil())
-
-				s.CalculateDelta()
-
-				Expect(s.Periods["7d"].Delta.Total.Records).To(Equal(-24 * 7))
-				Expect(s.OffsetPeriods["7d"].Delta.Total.Records).To(Equal(24 * 7))
+				Expect(s["7d"].Delta.Total.Records).To(Equal(-24 * 7))
 			})
 
 			It("CalculateDelta 14d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				bucketsOne := CreateGlucoseBuckets(bucketTime, 24*14, 1, true)
@@ -1448,20 +1370,14 @@ var _ = Describe("Glucose", func() {
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods["14d"].Delta).To(BeNil())
-				Expect(s.OffsetPeriods["14d"].Delta).To(BeNil())
-
-				s.CalculateDelta()
-
-				Expect(s.Periods["14d"].Delta.Total.Records).To(Equal(-24 * 14))
-				Expect(s.OffsetPeriods["14d"].Delta.Total.Records).To(Equal(24 * 14))
+				Expect(s["14d"].Delta.Total.Records).To(Equal(-24 * 14))
 			})
 
 			It("CalculateDelta 30d", func() {
-				s := types.GlucoseStats{}
+				s := GlucosePeriods{}
 				s.Init()
 
 				bucketsOne := CreateGlucoseBuckets(bucketTime, 24*30, 1, true)
@@ -1470,16 +1386,10 @@ var _ = Describe("Glucose", func() {
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods["30d"].Delta).To(BeNil())
-				Expect(s.OffsetPeriods["30d"].Delta).To(BeNil())
-
-				s.CalculateDelta()
-
-				Expect(s.Periods["30d"].Delta.Total.Records).To(Equal(-24 * 30))
-				Expect(s.OffsetPeriods["30d"].Delta.Total.Records).To(Equal(24 * 30))
+				Expect(s["30d"].Delta.Total.Records).To(Equal(-24 * 30))
 			})
 		})
 	})

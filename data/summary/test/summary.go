@@ -1,6 +1,10 @@
-package generators
+package test
 
 import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+
 	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -90,19 +94,12 @@ func RandomCGMSummary(userId string) *types.Summary[*types.CGMPeriods, *types.Gl
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Stats: &types.CGMPeriods{
-			GlucoseStats: types.GlucoseStats{
-				Periods:       types.GlucosePeriods{},
-				OffsetPeriods: types.GlucosePeriods{},
-			},
-		},
+		Periods: &types.CGMPeriods{},
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Periods.Periods[period] = RandomGlucosePeriod(true)
-		datum.Periods.Periods[period].Delta = RandomGlucosePeriod(true)
-		datum.Periods.OffsetPeriods[period] = RandomGlucosePeriod(true)
-		datum.Periods.OffsetPeriods[period].Delta = RandomGlucosePeriod(true)
+		datum.Periods.GlucosePeriods[period] = RandomGlucosePeriod(true)
+		datum.Periods.GlucosePeriods[period].Delta = RandomGlucosePeriod(true)
 	}
 
 	return &datum
@@ -116,91 +113,79 @@ func RandomBGMSummary(userId string) *types.Summary[*types.BGMPeriods, *types.Gl
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Stats: &types.BGMPeriods{
-			GlucoseStats: types.GlucoseStats{
-				Periods:       types.GlucosePeriods{},
-				OffsetPeriods: types.GlucosePeriods{},
-			},
-		},
+		Periods: &types.BGMPeriods{},
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
-		datum.Periods.Periods[period] = RandomGlucosePeriod(false)
-		datum.Periods.Periods[period].Delta = RandomGlucosePeriod(false)
-		datum.Periods.OffsetPeriods[period] = RandomGlucosePeriod(false)
-		datum.Periods.OffsetPeriods[period].Delta = RandomGlucosePeriod(false)
+		datum.Periods.GlucosePeriods[period] = RandomGlucosePeriod(false)
+		datum.Periods.GlucosePeriods[period].Delta = RandomGlucosePeriod(false)
 	}
 
 	return &datum
 }
 
-func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket] {
-	datum := types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]{
+func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket] {
+	datum := types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
 		BaseSummary: types.BaseSummary{
 			Type:   "con",
 			UserID: userId,
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Stats: &types.ContinuousStats{
-			Periods: types.ContinuousPeriods{},
-		},
+		Periods: &types.ContinuousPeriods{},
 	}
 
 	for _, period := range []string{"30d"} {
-		datum.Periods.Periods[period] = RandomContinuousPeriod()
+		(*datum.Periods)[period] = RandomContinuousPeriod()
 	}
 
 	return &datum
 }
 
-//
-//func NewRealtimeSummary(userId string, startTime time.Time, endTime time.Time, realtimeDays int) *types.Summary[*types.ContinuousStats, types.ContinuousStats] {
-//	totalHours := int(endTime.Sub(startTime).Hours())
-//	lastData := endTime.Add(59 * time.Minute)
-//
-//	datum := types.Summary[*types.ContinuousStats, types.ContinuousStats]{
-//		UserID: userId,
-//		Type:   types.SummaryTypeCGM,
-//		Dates: types.Dates{
-//			FirstData: &startTime,
-//			LastData:  &lastData,
-//		},
-//		Periods: &types.ContinuousStats{
-//			Buckets: make([]*types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData], totalHours),
-//		},
-//	}
-//
-//	var yesterday time.Time
-//	var today time.Time
-//	var bucketDate time.Time
-//	var flaggedDays int
-//	var recordCount int
-//
-//	for i := 0; i < len(datum.Periods.Buckets); i++ {
-//		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
-//		today = bucketDate.Truncate(time.Hour * 24)
-//
-//		if flaggedDays < realtimeDays {
-//			recordCount = test.RandomIntFromRange(1, 12)
-//
-//			if today.After(yesterday) {
-//				flaggedDays++
-//				yesterday = today
-//			}
-//
-//		} else {
-//			recordCount = 0
-//		}
-//
-//		datum.Periods.Buckets[i] = &types.Bucket[*types.ContinuousBucketData, types.ContinuousBucketData]{
-//			Date: bucketDate,
-//			Data: &types.ContinuousBucketData{
-//				RealtimeRecords: recordCount,
-//				DeferredRecords: recordCount,
-//			},
-//		}
-//	}
-//
-//	return &datum
-//}
+func NewRealtimeBuckets(userId string, startTime time.Time, endTime time.Time, realtimeDays int) []*types.Bucket[*types.ContinuousBucket, types.ContinuousBucket] {
+	totalHours := int(endTime.Sub(startTime).Hours())
+
+	buckets := make([]*types.Bucket[*types.ContinuousBucket, types.ContinuousBucket], totalHours)
+
+	var yesterday time.Time
+	var today time.Time
+	var bucketDate time.Time
+	var flaggedDays int
+	var recordCount int
+
+	for i := 0; i < len(buckets); i++ {
+		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
+		today = bucketDate.Truncate(time.Hour * 24)
+
+		if flaggedDays < realtimeDays {
+			recordCount = test.RandomIntFromRange(1, 12)
+
+			if today.After(yesterday) {
+				flaggedDays++
+				yesterday = today
+			}
+
+		} else {
+			recordCount = 0
+		}
+
+		buckets[i] = &types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{
+			BaseBucket: types.BaseBucket{
+				ID:        primitive.ObjectID{},
+				UserId:    userId,
+				Type:      types.SummaryTypeContinuous,
+				Time:      bucketDate,
+				FirstData: time.Time{},
+				LastData:  time.Time{},
+			},
+			Data: &types.ContinuousBucket{
+				ContinuousRanges: types.ContinuousRanges{
+					Realtime: types.Range{Records: recordCount},
+					Deferred: types.Range{Records: recordCount},
+				},
+			},
+		}
+	}
+
+	return buckets
+}

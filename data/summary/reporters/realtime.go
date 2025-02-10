@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/data/summary"

@@ -1,4 +1,4 @@
-package generators
+package test
 
 import (
 	"math"
@@ -27,6 +27,10 @@ const (
 	ExtremeHighBloodGlucose = 19.4
 	InTargetBloodGlucose    = 5.0
 )
+
+func SliceToCursor[T any](s []T) (*mongo.Cursor, error) {
+	return mongo.NewCursorFromDocuments(ConvertToIntArray(s), nil, nil)
+}
 
 func ConvertToIntArray[T any](arr []T) []interface{} {
 	s := make([]interface{}, len(arr))

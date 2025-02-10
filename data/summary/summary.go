@@ -2,7 +2,6 @@ package summary
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/data/summary/types"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"

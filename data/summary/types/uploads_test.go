@@ -1,4 +1,4 @@
-package test_test
+package types_test
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/data/summary"
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
-	. "github.com/tidepool-org/platform/data/summary/test/generators"
-	"github.com/tidepool-org/platform/data/summary/types"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/food"
@@ -34,9 +34,9 @@ var _ = Describe("Upload Helpers", func() {
 	var bucketsRepo *storeStructuredMongo.Repository
 	var dataRepo dataStore.DataRepository
 	var userId string
-	var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
-	var bgmStore *dataStoreSummary.Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
-	var continuousStore *dataStoreSummary.Summaries[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket]
+	var cgmStore *dataStoreSummary.Summaries[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
+	var bgmStore *dataStoreSummary.Summaries[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	var continuousStore *dataStoreSummary.Summaries[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
@@ -50,12 +50,12 @@ var _ = Describe("Upload Helpers", func() {
 		summaryRepo = store.NewSummaryRepository().GetStore()
 		bucketsRepo = store.NewBucketsRepository().GetStore()
 		dataRepo = store.NewDataRepository()
-		registry = summary.New(summaryRepo, bucketsRepo, dataRepo)
+		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
 		userId = userTest.RandomID()
 
-		cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepo)
-		bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepo)
-		continuousStore = dataStoreSummary.NewSummaries[*types.ContinuousStats, *types.ContinuousBucket](summaryRepo)
+		cgmStore = dataStoreSummary.NewSummaries[*CGMPeriods, *GlucoseBucket](summaryRepo)
+		bgmStore = dataStoreSummary.NewSummaries[*BGMPeriods, *GlucoseBucket](summaryRepo)
+		continuousStore = dataStoreSummary.NewSummaries[*ContinuousPeriods, *ContinuousBucket](summaryRepo)
 	})
 
 	Context("MaybeUpdateSummary", func() {
@@ -67,23 +67,23 @@ var _ = Describe("Upload Helpers", func() {
 				"con": empty,
 			}
 
-			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(3))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeCGM))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeBGM))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeContinuous))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeCGM]))
+			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeCGM]))
 
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeBGM]))
 
 			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeContinuous]))
 		})
 
 		It("with cgm summary type outdated", func() {
@@ -91,13 +91,13 @@ var _ = Describe("Upload Helpers", func() {
 				"cgm": empty,
 			}
 
-			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeCGM))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeCGM]))
+			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeCGM]))
 
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -113,9 +113,9 @@ var _ = Describe("Upload Helpers", func() {
 				"bgm": empty,
 			}
 
-			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeBGM))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -123,7 +123,7 @@ var _ = Describe("Upload Helpers", func() {
 
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeBGM]))
 
 			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -135,9 +135,9 @@ var _ = Describe("Upload Helpers", func() {
 				"con": empty,
 			}
 
-			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(1))
-			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
+			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeContinuous))
 
 			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -149,7 +149,7 @@ var _ = Describe("Upload Helpers", func() {
 
 			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeContinuous]))
 		})
 
 		It("with unknown summary type outdated", func() {
@@ -157,7 +157,7 @@ var _ = Describe("Upload Helpers", func() {
 				"food": empty,
 			}
 
-			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(BeEmpty())
 		})
 	})
@@ -193,8 +193,8 @@ var _ = Describe("Upload Helpers", func() {
 
 			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(2))
-			Expect(updatesSummary).To(HaveKey(types.SummaryTypeCGM))
-			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
+			Expect(updatesSummary).To(HaveKey(SummaryTypeCGM))
+			Expect(updatesSummary).To(HaveKey(SummaryTypeContinuous))
 		})
 
 		It("with BGM summary affecting record", func() {
@@ -203,8 +203,8 @@ var _ = Describe("Upload Helpers", func() {
 
 			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(2))
-			Expect(updatesSummary).To(HaveKey(types.SummaryTypeBGM))
-			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
+			Expect(updatesSummary).To(HaveKey(SummaryTypeBGM))
+			Expect(updatesSummary).To(HaveKey(SummaryTypeContinuous))
 		})
 
 		It("with inactive BGM summary affecting record", func() {

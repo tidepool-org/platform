@@ -1,14 +1,13 @@
-package test_test
+package types_test
 
 import (
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary/test/generators"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/summary/types"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/pointer"
@@ -31,17 +30,17 @@ var _ = Describe("Summary", func() {
 		typ := pointer.FromString("cbg")
 
 		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = generators.NewGlucose(typ, pointer.FromString(generators.Units), &datumTime, &deviceID, &uploadId)
+			libreDatum = NewGlucose(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
 			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
 
-			duration := types.GetDuration(libreDatum)
+			duration := GetDuration(libreDatum)
 			Expect(duration).To(Equal(15))
 		})
 
 		It("Returns correct duration for other devices", func() {
-			otherDatum = generators.NewGlucose(typ, pointer.FromString(generators.Units), &datumTime, &deviceID, &uploadId)
+			otherDatum = NewGlucose(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
 
-			duration := types.GetDuration(otherDatum)
+			duration := GetDuration(otherDatum)
 			Expect(duration).To(Equal(5))
 		})
 	})
@@ -49,52 +48,52 @@ var _ = Describe("Summary", func() {
 	Context("CalculateGMI", func() {
 		// input and output examples sourced from https://diabetesjournals.org/care/article/41/11/2275/36593/
 		It("Returns correct GMI for medical example 1", func() {
-			gmi := types.CalculateGMI(5.55)
+			gmi := CalculateGMI(5.55)
 			Expect(gmi).To(Equal(5.7))
 		})
 
 		It("Returns correct GMI for medical example 2", func() {
-			gmi := types.CalculateGMI(6.9375)
+			gmi := CalculateGMI(6.9375)
 			Expect(gmi).To(Equal(6.3))
 		})
 
 		It("Returns correct GMI for medical example 3", func() {
-			gmi := types.CalculateGMI(8.325)
+			gmi := CalculateGMI(8.325)
 			Expect(gmi).To(Equal(6.9))
 		})
 
 		It("Returns correct GMI for medical example 4", func() {
-			gmi := types.CalculateGMI(9.722)
+			gmi := CalculateGMI(9.722)
 			Expect(gmi).To(Equal(7.5))
 		})
 
 		It("Returns correct GMI for medical example 5", func() {
-			gmi := types.CalculateGMI(11.11)
+			gmi := CalculateGMI(11.11)
 			Expect(gmi).To(Equal(8.1))
 		})
 
 		It("Returns correct GMI for medical example 6", func() {
-			gmi := types.CalculateGMI(12.4875)
+			gmi := CalculateGMI(12.4875)
 			Expect(gmi).To(Equal(8.7))
 		})
 
 		It("Returns correct GMI for medical example 7", func() {
-			gmi := types.CalculateGMI(13.875)
+			gmi := CalculateGMI(13.875)
 			Expect(gmi).To(Equal(9.3))
 		})
 
 		It("Returns correct GMI for medical example 8", func() {
-			gmi := types.CalculateGMI(15.2625)
+			gmi := CalculateGMI(15.2625)
 			Expect(gmi).To(Equal(9.9))
 		})
 
 		It("Returns correct GMI for medical example 9", func() {
-			gmi := types.CalculateGMI(16.65)
+			gmi := CalculateGMI(16.65)
 			Expect(gmi).To(Equal(10.5))
 		})
 
 		It("Returns correct GMI for medical example 10", func() {
-			gmi := types.CalculateGMI(19.425)
+			gmi := CalculateGMI(19.425)
 			Expect(gmi).To(Equal(11.7))
 		})
 	})
@@ -102,73 +101,73 @@ var _ = Describe("Summary", func() {
 	Context("CalculateRealMinutes", func() {
 		It("with a full hour endpoint", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 59, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 1440))
 		})
 
 		It("with a half hour endpoint", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 30, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 1440-25))
 		})
 
 		It("with a start of hour endpoint", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 1, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 1440-54))
 		})
 
 		It("with a near full hour endpoint", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 54, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 1440-1))
 		})
 
 		It("with an on the hour endpoint", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 0, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 1440-55))
 		})
 
 		It("with 7d period", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(7, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(7, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 7*1440))
 		})
 
 		It("with 14d period", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(14, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(14, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 14*1440))
 		})
 
 		It("with 30d period", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 55, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(30, lastRecordTime, 5)
+			realMinutes := CalculateWallMinutes(30, lastRecordTime, 5)
 			Expect(realMinutes).To(BeNumerically("==", 30*1440))
 		})
 
 		It("with 15 minute duration", func() {
 			lastRecordTime := time.Date(2016, time.Month(1), 1, 1, 40, 0, 0, time.UTC)
-			realMinutes := types.CalculateWallMinutes(1, lastRecordTime, 15)
+			realMinutes := CalculateWallMinutes(1, lastRecordTime, 15)
 			Expect(realMinutes).To(BeNumerically("==", 1440-5))
 		})
 	})
 
 	Context("BinDelta", func() {
 		It("Delta Calc", func() {
-			r1 := &types.Range{
+			r1 := &Range{
 				Minutes: 5,
 				Records: 6,
 				Percent: 7,
 			}
-			r2 := &types.Range{
+			r2 := &Range{
 				Minutes: 2,
 				Records: 2,
 				Percent: 2,
 			}
-			d1 := &types.Range{}
-			types.BinDelta(r1, r2, d1)
+			d1 := &Range{}
+			BinDelta(r1, r2, d1)
 
 			Expect(d1.Minutes).To(Equal(3))
 			Expect(d1.Records).To(Equal(4))
@@ -181,7 +180,7 @@ var _ = Describe("Summary", func() {
 			a := 5
 			b := 2
 			c := 0
-			types.Delta(&a, &b, &c)
+			Delta(&a, &b, &c)
 
 			Expect(c).To(Equal(3))
 		})

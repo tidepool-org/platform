@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"go.mongodb.org/mongo-driver/mongo"
 	"math"
 	"strconv"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 )
 
 const MaxRecordsPerBucket = 60 // one per minute max

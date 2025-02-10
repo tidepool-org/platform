@@ -1,4 +1,4 @@
-package test_test
+package types_test
 
 import (
 	"context"
@@ -9,8 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	. "github.com/tidepool-org/platform/data/summary/test/generators"
-	"github.com/tidepool-org/platform/data/summary/types"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -33,26 +33,26 @@ var _ = Describe("Continuous", func() {
 
 	Context("Ranges", func() {
 		It("ranges.Add", func() {
-			firstRange := types.ContinuousRanges{
-				Realtime: types.Range{
+			firstRange := ContinuousRanges{
+				Realtime: Range{
 					Records: 5,
 				},
-				Deferred: types.Range{
+				Deferred: Range{
 					Records: 10,
 				},
-				Total: types.Range{
+				Total: Range{
 					Records: 12,
 				},
 			}
 
-			secondRange := types.ContinuousRanges{
-				Realtime: types.Range{
+			secondRange := ContinuousRanges{
+				Realtime: Range{
 					Records: 3,
 				},
-				Deferred: types.Range{
+				Deferred: Range{
 					Records: 11,
 				},
-				Total: types.Range{
+				Total: Range{
 					Records: 13,
 				},
 			}
@@ -64,14 +64,14 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("ranges.Finalize", func() {
-			continuousRange := types.ContinuousRanges{
-				Realtime: types.Range{
+			continuousRange := ContinuousRanges{
+				Realtime: Range{
 					Records: 5,
 				},
-				Deferred: types.Range{
+				Deferred: Range{
 					Records: 10,
 				},
-				Total: types.Range{
+				Total: Range{
 					Records: 10,
 				},
 			}
@@ -85,12 +85,12 @@ var _ = Describe("Continuous", func() {
 	})
 
 	Context("bucket.Update", func() {
-		var userBucket *types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]
+		var userBucket *Bucket[*ContinuousBucket, ContinuousBucket]
 		var continuousDatum data.Datum
 
 		It("With a realtime value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			continuousDatum = NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(continuousDatum)
@@ -114,7 +114,7 @@ var _ = Describe("Continuous", func() {
 
 		It("With a deferred value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			continuousDatum = NewDeferredGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(continuousDatum)
@@ -139,13 +139,13 @@ var _ = Describe("Continuous", func() {
 	})
 
 	Context("period", func() {
-		var period types.ContinuousPeriod
+		var period ContinuousPeriod
 
 		It("Add single bucket to an empty period", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 
-			bucketOne := types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -158,9 +158,9 @@ var _ = Describe("Continuous", func() {
 
 		It("Add duplicate buckets to a period", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 
-			bucketOne := types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -175,13 +175,13 @@ var _ = Describe("Continuous", func() {
 
 		It("Add two buckets to an empty period on 2 different hours", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 
-			bucketOne := types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
-			bucketTwo := types.NewBucket[*types.ContinuousBucket](userId, bucketTime.Add(time.Hour), types.SummaryTypeCGM)
+			bucketTwo := NewBucket[*ContinuousBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
 			err = bucketTwo.Update(NewRealtimeGlucose(continuous.Type, datumTime.Add(time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
@@ -199,7 +199,7 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("Finalize a 1d period", func() {
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 			buckets := CreateContinuousBuckets(bucketTime, 24, 12)
 
 			for i := range buckets {
@@ -216,7 +216,7 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("Finalize a 7d period", func() {
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 			buckets := CreateContinuousBuckets(bucketTime, 24*5, 12)
 
 			for i := range buckets {
@@ -233,16 +233,16 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("Update a finalized period", func() {
-			period = types.ContinuousPeriod{}
+			period = ContinuousPeriod{}
 			period.Finalize(14)
 
-			bucket := types.NewBucket[*types.ContinuousBucket](userId, bucketTime, types.SummaryTypeCGM)
+			bucket := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
 			err = period.Update(bucket)
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Context("ContinuousStats", func() {
+	Context("ContinuousPeriods", func() {
 		var logger log.Logger
 		var ctx context.Context
 
@@ -252,107 +252,102 @@ var _ = Describe("Continuous", func() {
 		})
 
 		It("Init", func() {
-			s := types.ContinuousStats{}
+			s := ContinuousPeriods{}
 			s.Init()
 
-			Expect(s.Periods).ToNot(BeNil())
+			Expect(s).ToNot(BeNil())
 		})
 
-		Context("CalculateSummary", func() {
+		Context("Update", func() {
 
-			It("CalculateSummary 1d", func() {
-				s := types.ContinuousStats{}
+			It("Update 1d", func() {
+				s := ContinuousPeriods{}
 				s.Init()
 
 				buckets := CreateContinuousBuckets(bucketTime, 24, 1)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24))
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24))
+				Expect(s["14d"].Total.Records).To(Equal(24))
+				Expect(s["30d"].Total.Records).To(Equal(24))
 			})
 
-			It("CalculateSummary 2d", func() {
-				s := types.ContinuousStats{}
+			It("Update 2d", func() {
+				s := ContinuousPeriods{}
 				s.Init()
 
 				buckets := CreateContinuousBuckets(bucketTime, 48, 1)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 2))
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 2))
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 2))
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 2))
 			})
 
-			It("CalculateSummary 7d", func() {
-				s := types.ContinuousStats{}
+			It("Update 7d", func() {
+				s := ContinuousPeriods{}
 				s.Init()
 
 				buckets := CreateContinuousBuckets(bucketTime, 24*7, 1)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 7))
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 7))
 			})
 
-			It("CalculateSummary 14d", func() {
-				s := types.ContinuousStats{}
+			It("Update 14d", func() {
+				s := ContinuousPeriods{}
 				s.Init()
 
 				buckets := CreateContinuousBuckets(bucketTime, 24*14, 1)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 14))
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 14))
 			})
 
-			It("CalculateSummary 30d", func() {
-				s := types.ContinuousStats{}
+			It("Update 30d", func() {
+				s := ContinuousPeriods{}
 				s.Init()
 
 				buckets := CreateContinuousBuckets(bucketTime, 24*30, 1)
 				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
 
-				err = s.CalculateSummary(ctx, bucketsCursor)
+				err = s.Update(ctx, bucketsCursor)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(s.Periods).To(Not(BeNil()))
-
-				Expect(s.Periods["1d"].Total.Records).To(Equal(24))
-				Expect(s.Periods["7d"].Total.Records).To(Equal(24 * 7))
-				Expect(s.Periods["14d"].Total.Records).To(Equal(24 * 14))
-				Expect(s.Periods["30d"].Total.Records).To(Equal(24 * 30))
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
 		})
 	})
