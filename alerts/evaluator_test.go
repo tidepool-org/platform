@@ -9,7 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/permission"
@@ -64,7 +64,7 @@ var _ = Describe("Evaluator", func() {
 							Base: Base{Enabled: true},
 							Threshold: Threshold{
 								Value: 10.0,
-								Units: nontypesglucose.MmolL,
+								Units: dataBloodGlucose.MmolL,
 							},
 						},
 					},
@@ -78,7 +78,7 @@ var _ = Describe("Evaluator", func() {
 							Base: Base{Enabled: true},
 							Threshold: Threshold{
 								Value: 10.0,
-								Units: nontypesglucose.MmolL,
+								Units: dataBloodGlucose.MmolL,
 							},
 						},
 					},
