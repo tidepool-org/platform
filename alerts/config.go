@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/data"
-	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/errors"
@@ -415,11 +415,11 @@ func normalizeUnits(datum *Glucose, t Threshold) (float64, float64, error) {
 	// The units don't match. There exists a known good function that converts to MmolL, so
 	// we'll convert whichever value isn't in MmolL to MmolL.
 
-	if nontypesglucose.IsMmolL(t.Units) {
-		n := nontypesglucose.NormalizeValueForUnits(datum.Blood.Value, datum.Blood.Units)
+	if dataBloodGlucose.IsMmolL(t.Units) {
+		n := dataBloodGlucose.NormalizeValueForUnits(datum.Blood.Value, datum.Blood.Units)
 		return *n, t.Value, nil
-	} else if nontypesglucose.IsMmolL(*datum.Blood.Units) {
-		n := nontypesglucose.NormalizeValueForUnits(&t.Value, &t.Units)
+	} else if dataBloodGlucose.IsMmolL(*datum.Blood.Units) {
+		n := dataBloodGlucose.NormalizeValueForUnits(&t.Value, &t.Units)
 		return *datum.Blood.Value, *n, nil
 	}
 
@@ -641,20 +641,20 @@ type Threshold ValueWithUnits
 
 // Validate implements structure.Validatable
 func (t Threshold) Validate(v structure.Validator) {
-	v.String("units", &t.Units).OneOf(nontypesglucose.MgdL, nontypesglucose.MmolL)
+	v.String("units", &t.Units).OneOf(dataBloodGlucose.MgdL, dataBloodGlucose.MmolL)
 	// This is a sanity check. Client software will likely further constrain these
 	// values. The broadness of these values allows clients to change their own min and max
 	// values independently, and it sidesteps rounding and conversion conflicts between the
 	// backend and clients.
 	var max, min float64
 	switch t.Units {
-	case nontypesglucose.MgdL, nontypesglucose.Mgdl:
-		max = nontypesglucose.MgdLMaximum
-		min = nontypesglucose.MgdLMinimum
+	case dataBloodGlucose.MgdL, dataBloodGlucose.Mgdl:
+		max = dataBloodGlucose.MgdLMaximum
+		min = dataBloodGlucose.MgdLMinimum
 		v.Float64("value", &t.Value).InRange(min, max)
-	case nontypesglucose.MmolL, nontypesglucose.Mmoll:
-		max = nontypesglucose.MmolLMaximum
-		min = nontypesglucose.MmolLMinimum
+	case dataBloodGlucose.MmolL, dataBloodGlucose.Mmoll:
+		max = dataBloodGlucose.MmolLMaximum
+		min = dataBloodGlucose.MmolLMinimum
 		v.Float64("value", &t.Value).InRange(min, max)
 	default:
 		v.WithReference("value").ReportError(validator.ErrorValueNotValid())

@@ -12,7 +12,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	"github.com/tidepool-org/platform/log"
@@ -84,15 +84,15 @@ var _ = Describe("Config", func() {
 		Expect(cfg.Alerts.High.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(cfg.Alerts.High.Delay).To(Equal(DurationMinutes(5 * time.Minute)))
 		Expect(cfg.Alerts.High.Threshold.Value).To(Equal(10.0))
-		Expect(cfg.Alerts.High.Threshold.Units).To(Equal(nontypesglucose.MmolL))
+		Expect(cfg.Alerts.High.Threshold.Units).To(Equal(dataBloodGlucose.MmolL))
 		Expect(cfg.Alerts.Low.Enabled).To(Equal(true))
 		Expect(cfg.Alerts.Low.Repeat).To(Equal(DurationMinutes(30 * time.Minute)))
 		Expect(cfg.Alerts.Low.Delay).To(Equal(DurationMinutes(10 * time.Minute)))
 		Expect(cfg.Alerts.Low.Threshold.Value).To(Equal(80.0))
-		Expect(cfg.Alerts.Low.Threshold.Units).To(Equal(nontypesglucose.MgdL))
+		Expect(cfg.Alerts.Low.Threshold.Units).To(Equal(dataBloodGlucose.MgdL))
 		Expect(cfg.Alerts.UrgentLow.Enabled).To(Equal(false))
 		Expect(cfg.Alerts.UrgentLow.Threshold.Value).To(Equal(47.5))
-		Expect(cfg.Alerts.UrgentLow.Threshold.Units).To(Equal(nontypesglucose.MgdL))
+		Expect(cfg.Alerts.UrgentLow.Threshold.Units).To(Equal(dataBloodGlucose.MgdL))
 		Expect(cfg.Alerts.NotLooping.Enabled).To(Equal(true))
 		Expect(cfg.Alerts.NotLooping.Delay).To(Equal(DurationMinutes(4 * time.Minute)))
 		// Expect(conf.Alerts.NoCommunication.Enabled).To(Equal(true))
@@ -902,7 +902,7 @@ var _ = Describe("Config", func() {
 
 	Context("repeat", func() {
 		var defaultAlert = LowAlert{
-			Threshold: Threshold{Value: 11, Units: nontypesglucose.MmolL},
+			Threshold: Threshold{Value: 11, Units: dataBloodGlucose.MmolL},
 		}
 
 		It("accepts values of 0 (indicating disabled)", func() {
@@ -983,7 +983,7 @@ var _ = Describe("Config", func() {
       "value": 47.5
     }
   }
-}`, mockUserID1, mockUserID2, mockDataSetID, nontypesglucose.MgdL)
+}`, mockUserID1, mockUserID2, mockDataSetID, dataBloodGlucose.MgdL)
 		cfg := &Config{}
 		err := request.DecodeObject(context.Background(), nil, buf, cfg)
 		Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
@@ -1001,7 +1001,7 @@ var _ = Describe("Config", func() {
       "value": 1
     }
   }
-}`, mockUserID1, mockUserID2, mockDataSetID, nontypesglucose.MgdL)
+}`, mockUserID1, mockUserID2, mockDataSetID, dataBloodGlucose.MgdL)
 		cfg := &Config{}
 		err := request.DecodeObject(context.Background(), nil, buf, cfg)
 		Expect(err).To(MatchError("json is malformed"))
@@ -1138,20 +1138,20 @@ var _ = Describe("DurationMinutes", func() {
 
 var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
-		buf := buff(`{"units":"%s","value":42}`, nontypesglucose.MgdL)
+		buf := buff(`{"units":"%s","value":42}`, dataBloodGlucose.MgdL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(nontypesglucose.MgdL))
+		Expect(threshold.Units).To(Equal(dataBloodGlucose.MgdL))
 	})
 	It("accepts mmol/L", func() {
-		buf := buff(`{"units":"%s","value":42}`, nontypesglucose.MmolL)
+		buf := buff(`{"units":"%s","value":42}`, dataBloodGlucose.MmolL)
 		threshold := &Threshold{}
 		err := request.DecodeObject(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
-		Expect(threshold.Units).To(Equal(nontypesglucose.MmolL))
+		Expect(threshold.Units).To(Equal(dataBloodGlucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
 		buf := buff(`{"units":"%s","value":42}`, "lb/gal")
@@ -1164,7 +1164,7 @@ var _ = Describe("Threshold", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 	It("is case-sensitive with respect to Units", func() {
-		badUnits := strings.ToUpper(nontypesglucose.MmolL)
+		badUnits := strings.ToUpper(dataBloodGlucose.MmolL)
 		buf := buff(`{"units":"%s","value":42}`, badUnits)
 		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
@@ -1223,7 +1223,7 @@ var _ = Describe("AlertActivity", func() {
 				d := testUrgentLowDatum()
 				t := Threshold{
 					Value: 5.0,
-					Units: nontypesglucose.MmolL,
+					Units: dataBloodGlucose.MmolL,
 				}
 				dv, tv, err := normalizeUnits(d, t)
 				Expect(err).To(Succeed())
@@ -1231,10 +1231,10 @@ var _ = Describe("AlertActivity", func() {
 				Expect(dv).To(Equal(2.9))
 
 				d = testUrgentLowDatum()
-				d.Blood.Units = pointer.FromAny(nontypesglucose.MgdL)
+				d.Blood.Units = pointer.FromAny(dataBloodGlucose.MgdL)
 				t = Threshold{
 					Value: 5.0,
-					Units: nontypesglucose.MgdL,
+					Units: dataBloodGlucose.MgdL,
 				}
 				dv, tv, err = normalizeUnits(d, t)
 				Expect(err).To(Succeed())
@@ -1246,10 +1246,10 @@ var _ = Describe("AlertActivity", func() {
 		Context("value in Mmol/L & threshold in mg/dL", func() {
 			It("normalizes to Mmol/L", func() {
 				d := testUrgentLowDatum()
-				d.Blood.Units = pointer.FromAny(nontypesglucose.MmolL)
+				d.Blood.Units = pointer.FromAny(dataBloodGlucose.MmolL)
 				t := Threshold{
 					Value: 90.0,
-					Units: nontypesglucose.MgdL,
+					Units: dataBloodGlucose.MgdL,
 				}
 				dv, tv, err := normalizeUnits(d, t)
 				Expect(err).To(Succeed())
@@ -1262,10 +1262,10 @@ var _ = Describe("AlertActivity", func() {
 			It("normalizes to Mmol/L", func() {
 				d := testUrgentLowDatum()
 				d.Blood.Value = pointer.FromAny(90.0)
-				d.Blood.Units = pointer.FromAny(nontypesglucose.MgdL)
+				d.Blood.Units = pointer.FromAny(dataBloodGlucose.MgdL)
 				t := Threshold{
 					Value: 5.0,
-					Units: nontypesglucose.MmolL,
+					Units: dataBloodGlucose.MmolL,
 				}
 				dv, tv, err := normalizeUnits(d, t)
 				Expect(err).To(Succeed())
@@ -1304,7 +1304,7 @@ func testUrgentLowDatum() *Glucose {
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
 			},
-			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Units: pointer.FromAny(dataBloodGlucose.MmolL),
 			Value: pointer.FromAny(2.9),
 		},
 	}
@@ -1316,7 +1316,7 @@ func testHighDatum() *Glucose {
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
 			},
-			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Units: pointer.FromAny(dataBloodGlucose.MmolL),
 			Value: pointer.FromAny(11.0),
 		},
 	}
@@ -1328,7 +1328,7 @@ func testLowDatum() *Glucose {
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
 			},
-			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Units: pointer.FromAny(dataBloodGlucose.MmolL),
 			Value: pointer.FromAny(3.9),
 		},
 	}
@@ -1340,7 +1340,7 @@ func testInRangeDatum() *Glucose {
 			Base: types.Base{
 				Time: pointer.FromAny(time.Now()),
 			},
-			Units: pointer.FromAny(nontypesglucose.MmolL),
+			Units: pointer.FromAny(dataBloodGlucose.MmolL),
 			Value: pointer.FromAny(6.0),
 		},
 	}
@@ -1380,7 +1380,7 @@ func testLowAlert() *LowAlert {
 		Base: Base{Enabled: true},
 		Threshold: Threshold{
 			Value: 4,
-			Units: nontypesglucose.MmolL,
+			Units: dataBloodGlucose.MmolL,
 		},
 	}
 }
@@ -1389,7 +1389,7 @@ func testHighAlert() *HighAlert {
 		Base: Base{Enabled: true},
 		Threshold: Threshold{
 			Value: 10,
-			Units: nontypesglucose.MmolL,
+			Units: dataBloodGlucose.MmolL,
 		},
 	}
 }
@@ -1398,7 +1398,7 @@ func testUrgentLowAlert() *UrgentLowAlert {
 		Base: Base{Enabled: true},
 		Threshold: Threshold{
 			Value: 3,
-			Units: nontypesglucose.MmolL,
+			Units: dataBloodGlucose.MmolL,
 		},
 	}
 }

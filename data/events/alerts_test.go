@@ -12,7 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
-	nontypesglucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	storetest "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
@@ -529,7 +529,7 @@ func newTestStaticDatumMmolL(value float64) *glucose.Glucose {
 				Time:     pointer.FromTime(time.Now()),
 				UploadID: pointer.FromAny(testDataSetID),
 			},
-			Units: pointer.FromString(nontypesglucose.MmolL),
+			Units: pointer.FromString(dataBloodGlucose.MmolL),
 			Value: pointer.FromFloat64(value),
 		},
 	}
