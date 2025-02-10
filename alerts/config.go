@@ -190,15 +190,13 @@ func isReEval(t1, t2 time.Time) bool {
 	return t1.After(t2)
 }
 
-// TODO pass in a logger
-func (c *Config) EvaluateNoCommunication(ctx context.Context, last time.Time) (
-	*Notification, bool) {
+func (c *Config) EvaluateNoCommunication(ctx context.Context,
+	lgr log.Logger, last time.Time) (*Notification, bool) {
 
 	if c.Alerts.NoCommunication == nil || !c.Alerts.NoCommunication.Enabled {
 		return nil, false
 	}
 
-	lgr := c.LoggerWithFields(log.LoggerFromContext(ctx))
 	ctx = log.NewContextWithLogger(ctx, lgr)
 	nc := c.Alerts.NoCommunication.Evaluate(ctx, last)
 	needsUpsert := c.Activity.NoCommunication.Update(nc.OutOfRange)

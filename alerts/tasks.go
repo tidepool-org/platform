@@ -111,7 +111,7 @@ func (r *CarePartnerRunner) evaluateLastComm(ctx context.Context,
 	for _, config := range configs {
 		lgr := config.LoggerWithFields(r.logger)
 		lastData := lastComm.LastReceivedDeviceData
-		notification, needsUpsert := config.EvaluateNoCommunication(ctx, lastData)
+		notification, needsUpsert := config.EvaluateNoCommunication(ctx, lgr, lastData)
 		if notification != nil {
 			notification.Sent = r.wrapWithUpsert(ctx, lgr, config, notification.Sent)
 			notifications = append(notifications, notification)

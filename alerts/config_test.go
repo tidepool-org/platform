@@ -128,11 +128,11 @@ var _ = Describe("Config", func() {
 	Context("when a notification is returned", func() {
 		Describe("EvaluateNoCommunication", func() {
 			It("injects user ids", func() {
-				ctx, _, cfg := newConfigTest()
+				ctx, lgr, cfg := newConfigTest()
 				cfg.Alerts.NoCommunication.Enabled = true
 
 				when := time.Now().Add(-(DefaultNoCommunicationDelay + time.Second))
-				n, _ := cfg.EvaluateNoCommunication(ctx, when)
+				n, _ := cfg.EvaluateNoCommunication(ctx, lgr, when)
 
 				Expect(n).ToNot(BeNil())
 				Expect(n.RecipientUserID).To(Equal(mockUserID1))
