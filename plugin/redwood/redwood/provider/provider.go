@@ -5,14 +5,17 @@ import (
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 )
 
-type DataSourceClient interface{}
+type ProviderSessionClient any
 
-type WorkClient interface{}
+type DataSourceClient any
+
+type WorkClient any
 
 type ProviderDependencies struct {
-	ConfigReporter   config.Reporter
-	DataSourceClient DataSourceClient
-	WorkClient       WorkClient
+	ConfigReporter        config.Reporter
+	ProviderSessionClient ProviderSessionClient
+	DataSourceClient      DataSourceClient
+	WorkClient            WorkClient
 }
 
 type Provider struct {

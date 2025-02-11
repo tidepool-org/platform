@@ -57,7 +57,7 @@ type Service struct {
 	confirmationClient  confirmationClient.ClientWithResponsesInterface
 	taskClient          task.Client
 	workClient          *workService.Client
-	providerFactory     provider.Factory
+	providerFactory     *providerFactory.Factory
 	authClient          *Client
 	userEventsHandler   events.Runner
 	deviceCheck         apple.DeviceCheck
@@ -116,6 +116,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeAuthClient(); err != nil {
+		return err
+	}
+	if err := s.initializeProviders(); err != nil {
 		return err
 	}
 	if err := s.initializeDeviceCheck(); err != nil {
@@ -430,25 +433,7 @@ func (s *Service) initializeProviderFactory() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create provider factory")
 	}
-
 	s.providerFactory = prvdrFctry
-
-	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
-	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
-	}
-
-	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
-		ConfigReporter:   s.ConfigReporter().WithScopes("provider"),
-		DataSourceClient: s.DataSourceClient(),
-		WorkClient:       s.workClient,
-	}
-	if prvdr, prvdrErr := redwoodProvider.NewProvider(redwoodProviderDependencies); prvdrErr != nil || prvdr == nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create redwood provider")
-	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add redwood provider")
-	}
 
 	return nil
 }
@@ -500,6 +485,28 @@ func (s *Service) terminateAuthClient() {
 
 		s.SetAuthClient(nil)
 	}
+}
+
+func (s *Service) initializeProviders() error {
+	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
+		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		WorkClient:            s.workClient,
+	}
+	if prvdr, prvdrErr := redwoodProvider.NewProvider(redwoodProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create redwood provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add redwood provider")
+	}
+
+	return nil
 }
 
 func (s *Service) initializeUserEventsHandler() error {

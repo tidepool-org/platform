@@ -475,9 +475,10 @@ func (s *Standard) initializeRedwoodClient() error {
 	s.Logger().Debug("Loading redwood provider")
 
 	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
-		ConfigReporter:   s.ConfigReporter().WithScopes("provider"),
-		DataSourceClient: s.dataSourceClient,
-		WorkClient:       s.workClient,
+		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.dataSourceClient,
+		WorkClient:            s.workClient,
 	}
 	if prvdr, err := redwoodProvider.NewProvider(redwoodProviderDependencies); err != nil {
 		s.Logger().Warn("Unable to create redwood provider")

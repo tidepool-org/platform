@@ -4,19 +4,19 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-type DataClient interface{}
+type DataClient any
 
-type DataRawClient interface{}
+type DataRawClient any
 
-type DataSetClient interface{}
+type DataSetClient any
 
-type DataSourceClient interface{}
+type DataSourceClient any
 
-type ProviderSessionClient interface{}
+type ProviderSessionClient any
 
-type RedwoodClient interface{}
+type RedwoodClient any
 
-type WorkClient interface{}
+type WorkClient any
 
 type ProcessorDependencies struct {
 	DataClient            DataClient
