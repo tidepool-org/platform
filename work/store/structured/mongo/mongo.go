@@ -239,7 +239,7 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
-		return nil, errors.New("pagination is missing")
+		pagination = page.NewPagination()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}

@@ -515,6 +515,10 @@ func (d *DataSet) HasDeduplicatorNameMatch(name string) bool {
 	return d.Deduplicator != nil && d.Deduplicator.HasNameMatch(name)
 }
 
+func (d *DataSet) IsOpen() bool {
+	return d.State == nil || *d.State == DataSetStateOpen
+}
+
 type DataSets []*DataSet
 
 func latestTime(tms ...time.Time) time.Time {
