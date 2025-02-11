@@ -522,7 +522,10 @@ func (a *NoCommunicationAlert) Evaluate(ctx context.Context, lastReceived time.T
 	return er
 }
 
-const DefaultNoCommunicationDelay = 5 * time.Minute
+const (
+	DefaultNoCommunicationDelay = 5 * time.Minute
+	MinimumNoCommunicationDelay = 5 * time.Minute
+)
 
 const NoCommunicationMessage = "Tidepool is unable to communicate with a user's device"
 
