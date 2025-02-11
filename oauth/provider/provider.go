@@ -69,8 +69,8 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) (*auth.ProviderSessionUpdate, error) {
-	return nil, nil
+func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+	return nil
 }
 
 func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {

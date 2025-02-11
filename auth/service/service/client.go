@@ -81,13 +81,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	// From this point forward, the context should not be cancelable
 	ctx = context.WithoutCancel(ctx)
 
-	// Finalize creation of provider session
-	update, err := prvdr.OnCreate(ctx, providerSession.UserID, providerSession)
-	if err == nil && update != nil {
-		providerSession, err = repository.UpdateProviderSession(ctx, providerSession.ID, update)
-	}
-
-	if err != nil {
+	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
 		c.deleteProviderSession(ctx, repository, providerSession)
 		return nil, err
