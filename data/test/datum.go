@@ -40,6 +40,8 @@ type Datum struct {
 	GetTimeZoneOffsetOutputs             []*int
 	GetTypeInvocations                   int
 	GetTypeOutputs                       []string
+	GetDeviceIDInvocations               int
+	GetDeviceIDOutputs                   []*string
 	SetTypeInvocations                   int
 	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
@@ -142,6 +144,16 @@ func (d *Datum) GetType() string {
 
 	output := d.GetTypeOutputs[0]
 	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetDeviceID() *string {
+	d.GetDeviceIDInvocations++
+
+	gomega.Expect(d.GetDeviceIDOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDeviceIDOutputs[0]
+	d.GetDeviceIDOutputs = d.GetDeviceIDOutputs[1:]
 	return output
 }
 

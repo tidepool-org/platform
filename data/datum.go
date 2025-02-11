@@ -25,6 +25,7 @@ type Datum interface {
 	GetTime() *time.Time
 	GetTimeZoneOffset() *int
 	GetUploadID() *string
+	GetDeviceID() *string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)

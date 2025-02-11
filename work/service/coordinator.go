@@ -65,7 +65,7 @@ func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionT
 		serverSessionTokenProvider: serverSessionTokenProvider,
 		workClient:                 workClient,
 		processors:                 map[string]work.Processor{},
-		typeQuantities:             work.NewTypeQuantities(),
+		typeQuantities:             work.TypeQuantities{},
 		frequency:                  CoordinatorFrequencyDefault,
 	}, nil
 }

@@ -40,15 +40,11 @@ func States() []string {
 type TypeQuantities map[string]int
 
 func ParseTypeQuantities(parser structure.ObjectParser) TypeQuantities {
-	datum := NewTypeQuantities()
+	datum := TypeQuantities{}
 	if parser.Exists() {
 		parser.Parse(&datum)
 	}
 	return datum
-}
-
-func NewTypeQuantities() TypeQuantities {
-	return TypeQuantities{}
 }
 
 func (t TypeQuantities) Parse(parser structure.ObjectParser) {
@@ -113,7 +109,7 @@ func (t TypeQuantities) Total() int {
 }
 
 func (t TypeQuantities) NonZero() TypeQuantities {
-	nonZero := NewTypeQuantities()
+	nonZero := TypeQuantities{}
 	for typ, quantity := range t {
 		if quantity > 0 {
 			nonZero[typ] = quantity
@@ -135,10 +131,6 @@ type Poll struct {
 	TypeQuantities TypeQuantities `json:"typeQuantities,omitempty"`
 }
 
-func NewPoll() *Poll {
-	return &Poll{}
-}
-
 func (p *Poll) Parse(parser structure.ObjectParser) {
 	p.TypeQuantities = ParseTypeQuantities(parser.WithReferenceObjectParser("typeQuantities"))
 }
@@ -150,10 +142,6 @@ func (p *Poll) Validate(validator structure.Validator) {
 type Filter struct {
 	Types   *[]string `json:"types,omitempty"`
 	GroupID *string   `json:"groupId,omitempty"`
-}
-
-func NewFilter() *Filter {
-	return &Filter{}
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -181,13 +169,9 @@ func ParseCreate(parser structure.ObjectParser) *Create {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewCreate()
+	datum := &Create{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewCreate() *Create {
-	return &Create{}
 }
 
 func (c *Create) Parse(parser structure.ObjectParser) {
@@ -231,13 +215,9 @@ func ParsePendingUpdate(parser structure.ObjectParser) *PendingUpdate {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewPendingUpdate()
+	datum := &PendingUpdate{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewPendingUpdate() *PendingUpdate {
-	return &PendingUpdate{}
 }
 
 func (p *PendingUpdate) Parse(parser structure.ObjectParser) {
@@ -268,13 +248,9 @@ func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewProcessingUpdate()
+	datum := &ProcessingUpdate{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewProcessingUpdate() *ProcessingUpdate {
-	return &ProcessingUpdate{}
 }
 
 func (p *ProcessingUpdate) Parse(parser structure.ObjectParser) {
@@ -298,13 +274,9 @@ func ParseFailingUpdate(parser structure.ObjectParser) *FailingUpdate {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewFailingUpdate()
+	datum := &FailingUpdate{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewFailingUpdate() *FailingUpdate {
-	return &FailingUpdate{}
 }
 
 func (f *FailingUpdate) Parse(parser structure.ObjectParser) {
@@ -338,13 +310,9 @@ func ParseFailedUpdate(parser structure.ObjectParser) *FailedUpdate {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewFailedUpdate()
+	datum := &FailedUpdate{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewFailedUpdate() *FailedUpdate {
-	return &FailedUpdate{}
 }
 
 func (f *FailedUpdate) Parse(parser structure.ObjectParser) {
@@ -370,13 +338,9 @@ func ParseSuccessUpdate(parser structure.ObjectParser) *SuccessUpdate {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewSuccessUpdate()
+	datum := &SuccessUpdate{}
 	parser.Parse(datum)
 	return datum
-}
-
-func NewSuccessUpdate() *SuccessUpdate {
-	return &SuccessUpdate{}
 }
 
 func (s *SuccessUpdate) Parse(parser structure.ObjectParser) {
@@ -396,10 +360,6 @@ type Update struct {
 	FailingUpdate    *FailingUpdate    `json:"failingUpdate,omitempty"`
 	FailedUpdate     *FailedUpdate     `json:"failedUpdate,omitempty"`
 	SuccessUpdate    *SuccessUpdate    `json:"successUpdate,omitempty"`
-}
-
-func NewUpdate() *Update {
-	return &Update{}
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {

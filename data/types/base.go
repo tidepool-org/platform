@@ -284,6 +284,10 @@ func (b *Base) IsActive() bool {
 	return b.Active
 }
 
+func (b *Base) GetDeviceID() *string {
+	return b.DeviceID
+}
+
 func (b *Base) SetType(typ string) {
 	b.Type = typ
 }

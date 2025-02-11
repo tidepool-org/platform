@@ -29,10 +29,6 @@ type Filter struct {
 	Processed   *bool      `json:"processed,omitempty"`
 }
 
-func NewFilter() *Filter {
-	return &Filter{}
-}
-
 func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.CreatedDate = parser.Time("createdDate", FilterCreatedDateFormat)
 	f.DataSetIDs = parser.StringArray("dataSetIds")
@@ -58,10 +54,6 @@ type Create struct {
 	MediaType *string            `json:"mediaType,omitempty"`
 }
 
-func NewCreate() *Create {
-	return &Create{}
-}
-
 func (c *Create) Parse(parser structure.ObjectParser) {
 	c.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
 	c.DigestMD5 = parser.String("digestMD5")
@@ -82,10 +74,6 @@ type Content struct {
 	ReadCloser io.ReadCloser `json:"-"`
 }
 
-func NewContent() *Content {
-	return &Content{}
-}
-
 func (c *Content) Validate(validator structure.Validator) {
 	validator.String("digestMD5", &c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", &c.MediaType).Using(net.MediaTypeValidator)
@@ -96,10 +84,6 @@ func (c *Content) Validate(validator structure.Validator) {
 
 type Update struct {
 	ProcessedTime time.Time `json:"processedTime,omitempty"`
-}
-
-func NewUpdate() *Update {
-	return &Update{}
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {

@@ -64,7 +64,7 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 		return nil, errors.New("user id is invalid")
 	}
 	if filter == nil {
-		filter = dataRaw.NewFilter()
+		filter = &dataRaw.Filter{}
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
