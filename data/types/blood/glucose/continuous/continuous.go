@@ -17,8 +17,10 @@ const (
 	RapidFall    = "rapidFall"
 	RapidRise    = "rapidRise"
 
-	TrendRateMaximum = 100
-	TrendRateMinimum = -100
+	TrendRateMaximum      = 100
+	TrendRateMinimum      = -100
+	SampleIntervalMinimum = 0
+	SampleIntervalMaximum = 24 * 60 * 60 * 1000
 )
 
 func Trends() []string {
@@ -26,9 +28,11 @@ func Trends() []string {
 }
 
 type Continuous struct {
+	glucose.Glucose `bson:",inline"`
 	Trend           *string  `json:"trend,omitempty" bson:"trend,omitempty"`
 	TrendRate       *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty"`
-	glucose.Glucose `bson:",inline"`
+	SampleInterval  *int     `json:"sampleInterval,omitempty" bson:"sampleInterval,omitempty"`
+	Backfilled      *bool    `json:"backfilled,omitempty" bson:"backfilled,omitempty"`
 }
 
 func New() *Continuous {
@@ -46,6 +50,8 @@ func (c *Continuous) Parse(parser structure.ObjectParser) {
 
 	c.Trend = parser.String("trend")
 	c.TrendRate = parser.Float64("trendRate")
+	c.SampleInterval = parser.Int("sampleInterval")
+	c.Backfilled = parser.Bool("backfilled")
 }
 
 func (c *Continuous) Validate(validator structure.Validator) {
@@ -59,8 +65,9 @@ func (c *Continuous) Validate(validator structure.Validator) {
 		validator.String("type", &c.Type).EqualTo(Type)
 	}
 
-	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
 	validator.String("trend", c.Trend).OneOf(Trends()...)
+	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
+	validator.Int("sampleInterval", c.SampleInterval).InRange(SampleIntervalMinimum, SampleIntervalMaximum)
 }
 
 func (c *Continuous) Normalize(normalizer data.Normalizer) {
