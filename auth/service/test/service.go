@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/onsi/gomega"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -10,8 +12,10 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/service"
 	"github.com/tidepool-org/platform/auth/store"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
 
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	providerTest "github.com/tidepool-org/platform/provider/test"
@@ -32,6 +36,9 @@ type Service struct {
 	StatusInvocations          int
 	StatusOutputs              []*service.Status
 	confirmationClient         confirmationClient.ClientWithResponsesInterface
+	userAccessor               user.UserAccessor
+	permsClient                permission.ExtendedClient
+	profileAccessor            user.UserProfileAccessor
 }
 
 func NewService() *Service {
@@ -41,6 +48,24 @@ func NewService() *Service {
 		ProviderFactoryImpl: providerTest.NewFactory(),
 		TaskClientImpl:      taskTest.NewClient(),
 	}
+}
+
+// NewMockedService uses a combination of the "old" style manual stub / fakes /
+// mocks and newer gomocks for convenience so that the current code doesn't
+// have to be refactored too much
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor, permsClient *permission.MockExtendedClient) {
+	userAccessor = user.NewMockUserAccessor(ctrl)
+	profileAccessor = user.NewMockUserProfileAccessor(ctrl)
+	permsClient = permission.NewMockExtendedClient(ctrl)
+	return &Service{
+		Service:             serviceTest.NewService(),
+		AuthStoreImpl:       authStoreTest.NewStore(),
+		ProviderFactoryImpl: providerTest.NewFactory(),
+		TaskClientImpl:      taskTest.NewClient(),
+		userAccessor:        userAccessor,
+		profileAccessor:     profileAccessor,
+		permsClient:         permsClient,
+	}, userAccessor, profileAccessor, permsClient
 }
 
 func (s *Service) Domain() string {
@@ -83,6 +108,10 @@ func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return nil
 }
 
+func (s *Service) PermissionsClient() permission.ExtendedClient {
+	return s.permsClient
+}
+
 func (s *Service) Status(ctx context.Context) *service.Status {
 	s.StatusInvocations++
 
@@ -103,4 +132,12 @@ func (s *Service) Expectations() {
 	s.ProviderFactoryImpl.Expectations()
 	s.TaskClientImpl.Expectations()
 	gomega.Expect(s.StatusOutputs).To(gomega.BeEmpty())
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+	return s.profileAccessor
 }

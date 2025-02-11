@@ -10,7 +10,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/tidepool-org/hydrophone/client"
-
 	apple "github.com/tidepool-org/platform/apple"
 	appvalidate "github.com/tidepool-org/platform/appvalidate"
 	auth "github.com/tidepool-org/platform/auth"
@@ -18,8 +17,10 @@ import (
 	store "github.com/tidepool-org/platform/auth/store"
 	config "github.com/tidepool-org/platform/config"
 	log "github.com/tidepool-org/platform/log"
+	permission "github.com/tidepool-org/platform/permission"
 	provider "github.com/tidepool-org/platform/provider"
 	task "github.com/tidepool-org/platform/task"
+	user "github.com/tidepool-org/platform/user"
 	version "github.com/tidepool-org/platform/version"
 )
 
@@ -172,6 +173,20 @@ func (mr *MockAuthServiceMockRecorder) PartnerSecrets() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerSecrets", reflect.TypeOf((*MockAuthService)(nil).PartnerSecrets))
 }
 
+// PermissionsClient mocks base method.
+func (m *MockAuthService) PermissionsClient() permission.ExtendedClient {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermissionsClient")
+	ret0, _ := ret[0].(permission.ExtendedClient)
+	return ret0
+}
+
+// PermissionsClient indicates an expected call of PermissionsClient.
+func (mr *MockAuthServiceMockRecorder) PermissionsClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsClient", reflect.TypeOf((*MockAuthService)(nil).PermissionsClient))
+}
+
 // ProviderFactory mocks base method.
 func (m *MockAuthService) ProviderFactory() provider.Factory {
 	m.ctrl.T.Helper()
@@ -226,6 +241,34 @@ func (m *MockAuthService) TaskClient() task.Client {
 func (mr *MockAuthServiceMockRecorder) TaskClient() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskClient", reflect.TypeOf((*MockAuthService)(nil).TaskClient))
+}
+
+// UserAccessor mocks base method.
+func (m *MockAuthService) UserAccessor() user.UserAccessor {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserAccessor")
+	ret0, _ := ret[0].(user.UserAccessor)
+	return ret0
+}
+
+// UserAccessor indicates an expected call of UserAccessor.
+func (mr *MockAuthServiceMockRecorder) UserAccessor() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserAccessor", reflect.TypeOf((*MockAuthService)(nil).UserAccessor))
+}
+
+// UserProfileAccessor mocks base method.
+func (m *MockAuthService) UserProfileAccessor() user.UserProfileAccessor {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserProfileAccessor")
+	ret0, _ := ret[0].(user.UserProfileAccessor)
+	return ret0
+}
+
+// UserProfileAccessor indicates an expected call of UserProfileAccessor.
+func (mr *MockAuthServiceMockRecorder) UserProfileAccessor() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserProfileAccessor", reflect.TypeOf((*MockAuthService)(nil).UserProfileAccessor))
 }
 
 // VersionReporter mocks base method.
