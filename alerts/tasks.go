@@ -79,12 +79,12 @@ func (r *CarePartnerRunner) GetRunnerDurationMaximum() time.Duration {
 
 func (r *CarePartnerRunner) Run(ctx context.Context, tsk *task.Task) {
 	r.logger.Info("care partner no communication check")
-	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 	start := time.Now()
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 	if err := r.evaluateLastComms(ctx); err != nil {
 		r.logger.WithError(err).Warn("running care partner no communication check")
 	}
-	r.scheduleNextRun(tsk, start)
+	tsk.RepeatAvailableAfter(time.Second - time.Since(start))
 }
 
 func (r *CarePartnerRunner) evaluateLastComms(ctx context.Context) error {
@@ -199,31 +199,6 @@ func (r *CarePartnerRunner) pushNotifications(ctx context.Context,
 			}
 		}
 	}
-}
-
-func (r *CarePartnerRunner) scheduleNextRun(tsk *task.Task, lastStart time.Time) {
-	// Ideally, we would start the next run 1 second after this run...
-	nextDesiredRun := lastStart.Add(time.Second)
-	now := time.Now()
-	if nextDesiredRun.Before(now) {
-		r.logger.Info("care partner is bumping nextDesiredRun")
-		// nextDesiredRun, when added to time.Now in tsk.RepeatAvailableAfter, must
-		// result in a time in the future or the task will be marked failed (and not run
-		// again).
-		//
-		// One workaround is to take a guess at how long it will take Run() to return
-		// and the task queue to evaluate the task's AvailableAfter time. Maybe the task
-		// queue could be re-worked to accept a value that indicates "as soon as
-		// possible"? Or if it accepted a time.Duration, then one could pass it
-		// time.Nanosecond to get closer to "ASAP", and then the Zero value might mean
-		// don't repeat. Or the Zero value could mean repeat ASAP. Or a negative value
-		// could mean repeat now. Whatever. It would prevent the task from being marked
-		// a failure for not being able to guess when the value would be read. Which
-		// wasn't its intent I'm sure, it just wasn't designed for tasks with the level
-		// of resolution and repetition expected for this purpose.
-		nextDesiredRun = now.Add(25 * time.Millisecond)
-	}
-	tsk.RepeatAvailableAfter(time.Until(nextDesiredRun))
 }
 
 // Pusher is a service-agnostic interface for sending push notifications.

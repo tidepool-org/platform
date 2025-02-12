@@ -18,12 +18,15 @@ import (
 
 var _ = Describe("CarePartnerRunner", func() {
 	Describe("Run", func() {
-		It("schedules its next run", func() {
+		It("schedules its next run for 1 second", func() {
 			runner, test := newCarePartnerRunnerTest()
 
+			start := time.Now()
 			runner.Run(test.Ctx, test.Task)
 
-			Expect(test.Task.AvailableTime).ToNot(BeZero())
+			if Expect(test.Task.AvailableTime).ToNot(BeNil()) {
+				Expect(*test.Task.AvailableTime).To(BeTemporally("~", start.Add(time.Second)))
+			}
 			Expect(test.Task.DeadlineTime).To(BeNil())
 			Expect(test.Task.State).To(Equal(task.TaskStatePending))
 		})
