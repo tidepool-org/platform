@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
@@ -16,10 +15,13 @@ import (
 )
 
 const testToken = "auth-me"
+const testUserID = "test-user-id"
+const testFollowedUserID = "test-followed-user-id"
+const testDataSetID = "upid_000000000000"
 
 var _ = Describe("Client", func() {
-	var test404Server, test200Server *httptest.Server
-	var testAuthServer func(*string) *httptest.Server
+	var test404Server *httptest.Server
+	var test200Server func(string) *httptest.Server
 
 	BeforeEach(func() {
 		t := GinkgoT()
@@ -28,72 +30,103 @@ var _ = Describe("Client", func() {
 		test404Server = testServer(t, func(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		})
-		test200Server = testServer(t, func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusOK)
-		})
-		testAuthServer = func(token *string) *httptest.Server {
+		test200Server = func(resp string) *httptest.Server {
 			return testServer(t, func(w http.ResponseWriter, r *http.Request) {
-				*token = r.Header.Get(auth.TidepoolSessionTokenHeaderKey)
 				w.WriteHeader(http.StatusOK)
+				w.Write([]byte(resp))
 			})
 		}
 	})
 
-	Context("Delete", func() {
-		It("returns an error on non-200 responses", func() {
+	ItReturnsAnErrorOnNon200Responses := func(f func(context.Context, *Client) error) {
+		GinkgoHelper()
+		It("returns an error on non-200 respnoses", func() {
 			client, ctx := newAlertsClientTest(test404Server)
-			err := client.Delete(ctx, &Config{})
+			err := f(ctx, client)
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(MatchError(ContainSubstring("resource not found")))
 		})
+	}
 
-		It("returns nil on success", func() {
-			client, ctx := newAlertsClientTest(test200Server)
-			err := client.Delete(ctx, &Config{})
-			Expect(err).ShouldNot(HaveOccurred())
+	ItReturnsANilErrorOnSuccess := func(resp string, f func(context.Context, *Client) error) {
+		GinkgoHelper()
+		It("returns a nil error on success", func() {
+			client, ctx := newAlertsClientTest(test200Server(resp))
+			err := f(ctx, client)
+			Expect(err).To(Succeed())
+		})
+	}
+
+	Context("Delete", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			return client.Delete(ctx, &Config{})
 		})
 
-		It("injects an auth token", func() {
-			token := ""
-			client, ctx := newAlertsClientTest(testAuthServer(&token))
-			_ = client.Delete(ctx, &Config{})
-			Expect(token).To(Equal(testToken))
+		ItReturnsANilErrorOnSuccess("", func(ctx context.Context, client *Client) error {
+			return client.Delete(ctx, &Config{})
 		})
 	})
 
 	Context("Upsert", func() {
-		It("returns an error on non-200 responses", func() {
-			client, ctx := newAlertsClientTest(test404Server)
-			err := client.Upsert(ctx, &Config{})
-			Expect(err).Should(HaveOccurred())
-			Expect(err).To(MatchError(ContainSubstring("resource not found")))
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			return client.Upsert(ctx, &Config{})
 		})
 
-		It("returns nil on success", func() {
-			client, ctx := newAlertsClientTest(test200Server)
-			err := client.Upsert(ctx, &Config{})
-			Expect(err).ShouldNot(HaveOccurred())
+		ItReturnsANilErrorOnSuccess("", func(ctx context.Context, client *Client) error {
+			return client.Upsert(ctx, &Config{})
+		})
+	})
+
+	Context("Get", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.Get(ctx, testFollowedUserID, testUserID)
+			return err
 		})
 
-		It("injects an auth token", func() {
-			token := ""
-			client, ctx := newAlertsClientTest(testAuthServer(&token))
-			_ = client.Upsert(ctx, &Config{})
-			Expect(token).To(Equal(testToken))
+		ret := `{
+                  "userId": "14ee703f-ca9b-4a6b-9ce3-41d886514e7f",
+                  "followedUserId": "ce5863bc-cc0b-4177-97d7-e8de0c558820",
+                  "uploadId": "upid_00000000000000000000000000000000"
+                }`
+		ItReturnsANilErrorOnSuccess(ret, func(ctx context.Context, client *Client) error {
+			_, err := client.Get(ctx, testFollowedUserID, testUserID)
+			return err
+		})
+	})
+
+	Context("List", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.List(ctx, "")
+			return err
+		})
+
+		ItReturnsANilErrorOnSuccess("[]", func(ctx context.Context, client *Client) error {
+			_, err := client.List(ctx, "")
+			return err
+		})
+	})
+
+	Context("OverdueCommunications", func() {
+		ItReturnsAnErrorOnNon200Responses(func(ctx context.Context, client *Client) error {
+			_, err := client.OverdueCommunications(ctx)
+			return err
+		})
+
+		ItReturnsANilErrorOnSuccess("[]", func(ctx context.Context, client *Client) error {
+			_, err := client.OverdueCommunications(ctx)
+			return err
 		})
 	})
 })
 
 func buildTestClient(s *httptest.Server) *Client {
 	pCfg := &platform.Config{
-		Config: &client.Config{
-			Address: s.URL,
-		},
+		Config:        &client.Config{Address: s.URL},
+		ServiceSecret: "auth-me",
 	}
-	token := mockTokenProvider(testToken)
 	pc, err := platform.NewClient(pCfg, platform.AuthorizeAsService)
 	Expect(err).ToNot(HaveOccurred())
-	client := NewClient(pc, token, null.NewLogger())
+	client := NewClient(pc, null.NewLogger())
 	return client
 }
 
@@ -101,14 +134,14 @@ func newAlertsClientTest(server *httptest.Server) (*Client, context.Context) {
 	return buildTestClient(server), contextWithNullLogger()
 }
 
-func contextWithNullLogger() context.Context {
-	return log.NewContextWithLogger(context.Background(), null.NewLogger())
+func contextWithNullLoggerDeluxe() (context.Context, log.Logger) {
+	lgr := null.NewLogger()
+	return log.NewContextWithLogger(context.Background(), lgr), lgr
 }
 
-type mockTokenProvider string
-
-func (p mockTokenProvider) ServerSessionToken() (string, error) {
-	return string(p), nil
+func contextWithNullLogger() context.Context {
+	ctx, _ := contextWithNullLoggerDeluxe()
+	return ctx
 }
 
 func testServer(t GinkgoTInterface, handler http.HandlerFunc) *httptest.Server {
