@@ -523,12 +523,19 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		},
 	}
 
-	retryDelays := []time.Duration{0, 1 * time.Second}
-	if strings.Contains(commonConfig.KafkaTopicPrefix, "tidepool-prod") {
-		// Kakfa topics/partitions aren't cheap, so minimize costs outside of production.
-		retryDelays = append(retryDelays, 2*time.Second, 3*time.Second, 5*time.Second)
+	cfg := &alertsEventsHandlerConfig{Config: platform.NewConfig()}
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("alerts", "retry")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to alerts retry delays config")
 	}
-	eventsRunner := dataEvents.NewCascadingSaramaEventsRunner(runnerCfg, s.Logger(), retryDelays)
+	delays, err := parseCommaSeparatedDurations(reporter.GetWithDefault("delays", "1s"))
+	if err != nil {
+		return errors.Wrap(err, "Unable to read configured alerts retry delays")
+	}
+
+	eventsRunner := dataEvents.NewCascadingSaramaEventsRunner(runnerCfg, s.Logger(), delays)
 	runner := dataEvents.NewSaramaRunner(eventsRunner)
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
@@ -536,4 +543,24 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	s.alertsEventsHandler = runner
 
 	return nil
+}
+
+type alertsEventsHandlerConfig struct {
+	*platform.Config
+	RetryDelaysConfig string `envconfig:"TIDEPOOL_DATA_SERVICE_ALERTS_RETRY_DELAYS" default:"1s"`
+}
+
+func parseCommaSeparatedDurations(s string) ([]time.Duration, error) {
+	out := []time.Duration{}
+	for _, d := range strings.Split(s, ",") {
+		if d == "" {
+			continue
+		}
+		dur, err := time.ParseDuration(d)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, dur)
+	}
+	return out, nil
 }
