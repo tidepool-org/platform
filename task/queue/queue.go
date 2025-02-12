@@ -374,7 +374,9 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 func (q *queue) computeState(tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
-		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
+		if tsk.AvailableTime == nil {
+			tsk.AvailableTime = pointer.FromAny(time.Now())
+		} else if time.Now().After(*tsk.AvailableTime) {
 			tsk.AppendError(errors.New("pending task requires future available time"))
 			tsk.SetFailed()
 		}

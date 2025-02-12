@@ -282,6 +282,12 @@ func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.DeadlineTime = nil
 }
 
+func (t *Task) RepeatAvailableASAP() {
+	t.State = TaskStatePending
+	t.AvailableTime = nil
+	t.DeadlineTime = nil
+}
+
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {
 	t.RepeatAvailableAt(time.Now().Add(availableDuration))
 }
