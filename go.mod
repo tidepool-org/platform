@@ -2,7 +2,7 @@ module github.com/tidepool-org/platform
 
 go 1.23
 
-toolchain go1.23.4
+toolchain go1.23.6
 
 require (
 	github.com/IBM/sarama v1.45.0

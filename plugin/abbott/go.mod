@@ -2,7 +2,7 @@ module github.com/tidepool-org/platform-plugin-abbott
 
 go 1.23
 
-toolchain go1.23.4
+toolchain go1.23.6
 
 require github.com/tidepool-org/platform v0.0.0
 
