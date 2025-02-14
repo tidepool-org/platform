@@ -1,4 +1,4 @@
-module github.com/tidepool-org/platform-plugin-redwood
+module github.com/tidepool-org/platform-plugin-abbott
 
 go 1.23
 

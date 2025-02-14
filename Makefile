@@ -76,7 +76,7 @@ endif
 endif
 endif
 
-PLUGINS=redwood
+PLUGINS=abbott
 
 ifeq ($(shell go env GOWORK),)
 	PLUGIN_VISIBILITY:=public

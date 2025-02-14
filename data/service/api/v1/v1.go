@@ -1,7 +1,7 @@
 package v1
 
 import (
-	redwoodServiceApiV1 "github.com/tidepool-org/platform-plugin-redwood/redwood/service/api/v1"
+	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
@@ -28,7 +28,7 @@ func Routes() []dataService.Route {
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
-	routes = append(routes, redwoodServiceApiV1.Routes()...)
+	routes = append(routes, abbottServiceApiV1.Routes()...)
 
 	return routes
 }

@@ -38,18 +38,18 @@ WORKDIR /home/tidepool
 FROM platform-base-golang AS platform-init
 WORKDIR /build
 COPY Makefile go.* ./
-COPY plugin/redwood/go.* ./plugin/redwood/
+COPY plugin/abbott/go.* ./plugin/abbott/
 COPY plugin/visibility/ ./plugin/visibility/
 
 # platform-init-public
 FROM platform-init AS platform-init-public
-COPY plugin/redwood/redwood/plugin/ ./plugin/redwood/redwood/plugin/
+COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
 RUN make init plugins-visibility
 
 # platform-init-private
 FROM platform-init AS platform-init-private
-COPY private/plugin/redwood/go.* ./private/plugin/redwood/
-COPY private/plugin/redwood/redwood/plugin/ ./private/plugin/redwood/redwood/plugin/
+COPY private/plugin/abbott/go.* ./private/plugin/abbott/
+COPY private/plugin/abbott/abbott/plugin/ ./private/plugin/abbott/abbott/plugin/
 RUN make init plugins-visibility
 
 ### Build

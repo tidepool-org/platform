@@ -5,8 +5,8 @@
 *.env
 .envrc
 env*.sh
-private/plugin/redwood/*.env
-private/plugin/redwood/env*.sh
+private/plugin/abbott/*.env
+private/plugin/abbott/env*.sh
 !version.env
 
 # Debug
@@ -47,7 +47,7 @@ _tmp
 .idea
 .vscode
 .govetignore
-private/plugin/redwood/.govetignore
+private/plugin/abbott/.govetignore
 
 # Documentation
 CHANGELOG.md
@@ -61,9 +61,9 @@ README.md
 .git
 .gitignore
 .gitmodules
-private/plugin/redwood/.git
-private/plugin/redwood/.gitignore
-private/plugin/redwood/Makefile
+private/plugin/abbott/.git
+private/plugin/abbott/.gitignore
+private/plugin/abbott/Makefile
 
 # Docker
 .dockerignore

@@ -25,7 +25,7 @@ require (
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240816214829-611531818c0f
-	github.com/tidepool-org/platform-plugin-redwood v0.0.0
+	github.com/tidepool-org/platform-plugin-abbott v0.0.0
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.2
 	go.uber.org/fx v1.23.0
@@ -111,4 +111,4 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/tidepool-org/platform-plugin-redwood => ./plugin/redwood
+replace github.com/tidepool-org/platform-plugin-abbott => ./plugin/abbott

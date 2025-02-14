@@ -9,7 +9,7 @@ import (
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
-	redwoodProvider "github.com/tidepool-org/platform-plugin-redwood/redwood/provider"
+	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
@@ -494,16 +494,16 @@ func (s *Service) initializeProviders() error {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}
 
-	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
+	abbottProviderDependencies := abbottProvider.ProviderDependencies{
 		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
 		ProviderSessionClient: s.AuthClient(),
 		DataSourceClient:      s.DataSourceClient(),
 		WorkClient:            s.workClient,
 	}
-	if prvdr, prvdrErr := redwoodProvider.NewProvider(redwoodProviderDependencies); prvdrErr != nil || prvdr == nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create redwood provider")
+	if prvdr, prvdrErr := abbottProvider.NewProvider(abbottProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create abbott provider")
 	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add redwood provider")
+		return errors.Wrap(prvdrErr, "unable to add abbott provider")
 	}
 
 	return nil

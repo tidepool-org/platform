@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	redwoodPlugin "github.com/tidepool-org/platform-plugin-redwood/redwood/plugin"
+	abbottPlugin "github.com/tidepool-org/platform-plugin-abbott/abbott/plugin"
 )
 
 func main() {
-	fmt.Println(redwoodPlugin.Visibility())
+	fmt.Println(abbottPlugin.Visibility())
 }

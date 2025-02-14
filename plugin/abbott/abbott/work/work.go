@@ -14,7 +14,7 @@ type DataSourceClient any
 
 type ProviderSessionClient any
 
-type RedwoodClient any
+type AbbottClient any
 
 type WorkClient any
 
@@ -24,7 +24,7 @@ type ProcessorDependencies struct {
 	DataSetClient         DataSetClient
 	DataSourceClient      DataSourceClient
 	ProviderSessionClient ProviderSessionClient
-	RedwoodClient         RedwoodClient
+	AbbottClient          AbbottClient
 	WorkClient            WorkClient
 }
 

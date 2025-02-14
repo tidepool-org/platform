@@ -1,4 +1,4 @@
-[submodule "private/plugin/redwood"]
-	path = private/plugin/redwood
-	url = https://github.com/tidepool-org/platform-plugin-redwood
+[submodule "private/plugin/abbott"]
+	path = private/plugin/abbott
+	url = https://github.com/tidepool-org/platform-plugin-abbott
 	update = none

@@ -8,9 +8,9 @@ import (
 	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
-	redwoodClient "github.com/tidepool-org/platform-plugin-redwood/redwood/client"
-	redwoodProvider "github.com/tidepool-org/platform-plugin-redwood/redwood/provider"
-	redwoodWork "github.com/tidepool-org/platform-plugin-redwood/redwood/work"
+	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
+	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
+	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/clinics"
@@ -55,7 +55,7 @@ type Standard struct {
 	dataRawClient             *dataRawService.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	workClient                *workService.Client
-	redwoodClient             *redwoodClient.Client
+	abbottClient              *abbottClient.Client
 	workCoordinator           *workService.Coordinator
 	userEventsHandler         events.Runner
 	api                       *api.Standard
@@ -112,7 +112,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeWorkClient(); err != nil {
 		return err
 	}
-	if err := s.initializeRedwoodClient(); err != nil {
+	if err := s.initializeAbbottClient(); err != nil {
 		return err
 	}
 	if err := s.initializeWorkCoordinator(); err != nil {
@@ -146,7 +146,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator.Stop()
 		s.workCoordinator = nil
 	}
-	s.redwoodClient = nil
+	s.abbottClient = nil
 	s.workClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
@@ -471,38 +471,38 @@ func (s *Standard) initializeWorkClient() error {
 	return nil
 }
 
-func (s *Standard) initializeRedwoodClient() error {
-	s.Logger().Debug("Loading redwood provider")
+func (s *Standard) initializeAbbottClient() error {
+	s.Logger().Debug("Loading abbott provider")
 
-	redwoodProviderDependencies := redwoodProvider.ProviderDependencies{
+	abbottProviderDependencies := abbottProvider.ProviderDependencies{
 		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
 		ProviderSessionClient: s.AuthClient(),
 		DataSourceClient:      s.dataSourceClient,
 		WorkClient:            s.workClient,
 	}
-	if prvdr, err := redwoodProvider.NewProvider(redwoodProviderDependencies); err != nil {
-		s.Logger().Warn("Unable to create redwood provider")
+	if prvdr, err := abbottProvider.NewProvider(abbottProviderDependencies); err != nil {
+		s.Logger().Warn("Unable to create abbott provider")
 	} else {
-		s.Logger().Debug("Loading redwood client config")
+		s.Logger().Debug("Loading abbott client config")
 
-		cfg := redwoodClient.NewConfig()
+		cfg := abbottClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
 		reporter := s.ConfigReporter().WithScopes("abbott", "client")
 		if err = cfg.LoadFromConfigReporter(reporter); err != nil {
-			return errors.Wrap(err, "unable to load redwood client config")
+			return errors.Wrap(err, "unable to load abbott client config")
 		}
 
-		s.Logger().Debug("Creating redwood client")
+		s.Logger().Debug("Creating abbott client")
 
-		redwoodClientDependencies := redwoodClient.ClientDependencies{
+		abbottClientDependencies := abbottClient.ClientDependencies{
 			Config:            cfg,
 			TokenSourceSource: prvdr,
 		}
-		clnt, clntErr := redwoodClient.NewClient(redwoodClientDependencies)
+		clnt, clntErr := abbottClient.NewClient(abbottClientDependencies)
 		if clntErr != nil {
-			return errors.Wrap(clntErr, "unable to create redwood client")
+			return errors.Wrap(clntErr, "unable to create abbott client")
 		}
-		s.redwoodClient = clnt
+		s.abbottClient = clnt
 	}
 
 	return nil
@@ -517,26 +517,26 @@ func (s *Standard) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Debug("Creating redwood processors")
+	s.Logger().Debug("Creating abbott processors")
 
-	redwoodProcessorDependencies := redwoodWork.ProcessorDependencies{
+	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
 		DataClient:            s.dataStore.NewDataRepository(),
 		DataSetClient:         s.dataClient,
 		DataSourceClient:      s.dataSourceStructuredStore.NewDataSourcesRepository(),
 		ProviderSessionClient: s.AuthClient(),
 		DataRawClient:         s.dataRawClient,
-		RedwoodClient:         s.redwoodClient,
+		AbbottClient:          s.abbottClient,
 		WorkClient:            s.workClient,
 	}
-	redwoodProcessors, err := redwoodWork.NewProcessors(redwoodProcessorDependencies)
+	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
 	if err != nil {
-		return errors.Wrap(err, "unable to create redwood processors")
+		return errors.Wrap(err, "unable to create abbott processors")
 	}
 
-	s.Logger().Debug("Registering redwood processors")
+	s.Logger().Debug("Registering abbott processors")
 
-	if err = s.workCoordinator.RegisterProcessors(redwoodProcessors); err != nil {
-		return errors.Wrap(err, "unable to register redwood processors")
+	if err = s.workCoordinator.RegisterProcessors(abbottProcessors); err != nil {
+		return errors.Wrap(err, "unable to register abbott processors")
 	}
 
 	s.Logger().Debug("Starting work coordinator")
