@@ -184,9 +184,9 @@ go-mod-download:
 		$(TIMING_CMD) go mod download
 
 go-generate: mockgen
-	@echo "go generate -x ./..."
+	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && \
-		GOWORK=off $(TIMING_CMD) go generate -x ./...
+		GOWORK=off $(TIMING_CMD) go generate ./...
 
 generate: go-generate format-write imports-write vet
 

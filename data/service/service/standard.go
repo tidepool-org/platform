@@ -44,14 +44,14 @@ type Standard struct {
 	*service.DEPRECATEDService
 	metricClient              *metricClient.Client
 	permissionClient          *permissionClient.Client
-	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
 	dataStore                 *dataStoreMongo.Store
 	dataRawStructuredStore    *dataRawStoreStructuredMongo.Store
 	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
 	syncTaskStore             *syncTaskMongo.Store
 	workStructuredStore       *workStoreStructuredMongo.Store
-	dataClient                *Client
+	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
 	clinicsClient             *clinics.Client
+	dataClient                *Client
 	dataRawClient             *dataRawService.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	workClient                *workService.Client
@@ -79,9 +79,6 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
-	if err := s.initializeDataDeduplicatorFactory(); err != nil {
-		return err
-	}
 	if err := s.initializeDataStore(); err != nil {
 		return err
 	}
@@ -97,10 +94,13 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeWorkStructuredStore(); err != nil {
 		return err
 	}
-	if err := s.initializeDataClient(); err != nil {
+	if err := s.initializeDataDeduplicatorFactory(); err != nil {
 		return err
 	}
 	if err := s.initializeClinicsClient(); err != nil {
+		return err
+	}
+	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
 	if err := s.initializeDataRawClient(); err != nil {
@@ -134,6 +134,7 @@ func (s *Standard) Terminate() {
 		}
 		s.server = nil
 	}
+	s.api = nil
 	if s.userEventsHandler != nil {
 		s.Logger().Info("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
@@ -141,7 +142,6 @@ func (s *Standard) Terminate() {
 		}
 		s.userEventsHandler = nil
 	}
-	s.api = nil
 	if s.workCoordinator != nil {
 		s.workCoordinator.Stop()
 		s.workCoordinator = nil
@@ -152,6 +152,7 @@ func (s *Standard) Terminate() {
 	s.dataRawClient = nil
 	s.dataClient = nil
 	s.clinicsClient = nil
+	s.dataDeduplicatorFactory = nil
 	if s.workStructuredStore != nil {
 		s.workStructuredStore.Terminate(context.Background())
 		s.workStructuredStore = nil
@@ -172,7 +173,6 @@ func (s *Standard) Terminate() {
 		s.dataStore.Terminate(context.Background())
 		s.dataStore = nil
 	}
-	s.dataDeduplicatorFactory = nil
 	s.permissionClient = nil
 	s.metricClient = nil
 
@@ -243,53 +243,6 @@ func (s *Standard) initializePermissionClient() error {
 		return errors.Wrap(err, "unable to create permission client")
 	}
 	s.permissionClient = clnt
-
-	return nil
-}
-
-func (s *Standard) initializeDataDeduplicatorFactory() error {
-	s.Logger().Debug("Creating device deactivate hash deduplicator")
-
-	deviceDeactivateHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateHash()
-	if err != nil {
-		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
-	}
-
-	s.Logger().Debug("Creating device truncate data set deduplicator")
-
-	deviceTruncateDataSetDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet()
-	if err != nil {
-		return errors.Wrap(err, "unable to create device truncate data set deduplicator")
-	}
-
-	s.Logger().Debug("Creating data set delete origin deduplicator")
-
-	dataSetDeleteOriginDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin()
-	if err != nil {
-		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
-	}
-
-	s.Logger().Debug("Creating none deduplicator")
-
-	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone()
-	if err != nil {
-		return errors.Wrap(err, "unable to create none deduplicator")
-	}
-
-	s.Logger().Debug("Creating data deduplicator factory")
-
-	deduplicators := []dataDeduplicatorFactory.Deduplicator{
-		deviceDeactivateHashDeduplicator,
-		deviceTruncateDataSetDeduplicator,
-		dataSetDeleteOriginDeduplicator,
-		noneDeduplicator,
-	}
-
-	factory, err := dataDeduplicatorFactory.New(deduplicators)
-	if err != nil {
-		return errors.Wrap(err, "unable to create data deduplicator factory")
-	}
-	s.dataDeduplicatorFactory = factory
 
 	return nil
 }
@@ -423,6 +376,71 @@ func (s *Standard) initializeWorkStructuredStore() error {
 	return nil
 }
 
+func (s *Standard) initializeClinicsClient() error {
+	s.Logger().Debug("Creating clinics client")
+
+	clnt, err := clinics.NewClient(s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create clinics client")
+	}
+	s.clinicsClient = &clnt
+
+	return nil
+}
+
+func (s *Standard) initializeDataDeduplicatorFactory() error {
+	s.Logger().Debug("Creating device deactivate hash deduplicator")
+
+	dataRepository := s.dataStore.NewDataRepository()
+	dependencies := dataDeduplicatorDeduplicator.Dependencies{
+		DataSetStore: dataRepository,
+		DataStore:    dataRepository,
+	}
+
+	deviceDeactivateHashDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceDeactivateHash(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create device deactivate hash deduplicator")
+	}
+
+	s.Logger().Debug("Creating device truncate data set deduplicator")
+
+	deviceTruncateDataSetDeduplicator, err := dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create device truncate data set deduplicator")
+	}
+
+	s.Logger().Debug("Creating data set delete origin deduplicator")
+
+	dataSetDeleteOriginDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
+	}
+
+	s.Logger().Debug("Creating none deduplicator")
+
+	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create none deduplicator")
+	}
+
+	s.Logger().Debug("Creating data deduplicator factory")
+
+	deduplicators := []dataDeduplicatorFactory.Deduplicator{
+		deviceDeactivateHashDeduplicator,
+		deviceTruncateDataSetDeduplicator,
+		dataSetDeleteOriginDeduplicator,
+		noneDeduplicator,
+	}
+
+	factory, err := dataDeduplicatorFactory.New(deduplicators)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data deduplicator factory")
+	}
+	s.dataDeduplicatorFactory = factory
+
+	return nil
+}
+
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
@@ -520,13 +538,14 @@ func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating abbott processors")
 
 	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
-		DataClient:            s.dataStore.NewDataRepository(),
-		DataSetClient:         s.dataClient,
-		DataSourceClient:      s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		ProviderSessionClient: s.AuthClient(),
-		DataRawClient:         s.dataRawClient,
-		AbbottClient:          s.abbottClient,
-		WorkClient:            s.workClient,
+		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+		DataClient:              s.dataStore.NewDataRepository(),
+		DataSetClient:           s.dataClient,
+		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
+		ProviderSessionClient:   s.AuthClient(),
+		DataRawClient:           s.dataRawClient,
+		AbbottClient:            s.abbottClient,
+		WorkClient:              s.workClient,
 	}
 	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
 	if err != nil {
@@ -546,14 +565,19 @@ func (s *Standard) initializeWorkCoordinator() error {
 	return nil
 }
 
-func (s *Standard) initializeClinicsClient() error {
-	s.Logger().Debug("Creating clinics client")
+func (s *Standard) initializeUserEventsHandler() error {
+	s.Logger().Debug("Initializing user events handler")
 
-	clnt, err := clinics.NewClient(s.AuthClient())
-	if err != nil {
-		return errors.Wrap(err, "unable to create clinics client")
+	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+
+	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
+	handlers := []eventsCommon.EventHandler{handler}
+	runner := events.NewRunner(handlers)
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
-	s.clinicsClient = &clnt
+	s.userEventsHandler = runner
 
 	return nil
 }
@@ -600,22 +624,6 @@ func (s *Standard) initializeServer() error {
 		return errors.Wrap(err, "unable to create server")
 	}
 	s.server = newServer
-
-	return nil
-}
-
-func (s *Standard) initializeUserEventsHandler() error {
-	s.Logger().Debug("Initializing user events handler")
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
-
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
-	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
-	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
-	if err := runner.Initialize(); err != nil {
-		return errors.Wrap(err, "unable to initialize user events handler runner")
-	}
-	s.userEventsHandler = runner
 
 	return nil
 }

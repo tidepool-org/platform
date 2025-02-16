@@ -54,7 +54,7 @@ func (c *Client) CreateUserDataSet(ctx context.Context, userID string, create *d
 		err = errors.Wrap(err, "unable to get deduplicator")
 	} else if deduplicator == nil {
 		err = errors.Wrap(err, "deduplicator not found")
-	} else if dataSet, err = deduplicator.Open(ctx, repository, dataSet); err != nil {
+	} else if dataSet, err = deduplicator.Open(ctx, dataSet); err != nil {
 		err = errors.Wrap(err, "unable to open")
 	} else {
 		return dataSet, nil

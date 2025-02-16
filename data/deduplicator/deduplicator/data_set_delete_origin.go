@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -15,8 +14,8 @@ type DataSetDeleteOrigin struct {
 	*Base
 }
 
-func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
-	base, err := NewBase(DataSetDeleteOriginName, "1.0.0")
+func NewDataSetDeleteOrigin(dependencies Dependencies) (*DataSetDeleteOrigin, error) {
+	base, err := NewBase(dependencies, DataSetDeleteOriginName, "1.0.0")
 	if err != nil {
 		return nil, err
 	}
@@ -38,12 +37,9 @@ func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *data.DataSet) (b
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
+func (d *DataSetDeleteOrigin) Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
-	}
-	if repository == nil {
-		return nil, errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
@@ -53,15 +49,12 @@ func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.Dat
 		dataSet.Active = true
 	}
 
-	return d.Base.Open(ctx, repository, dataSet)
+	return d.Base.Open(ctx, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
+func (d *DataSetDeleteOrigin) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -75,24 +68,21 @@ func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.
 	}
 
 	if selectors := d.getSelectors(dataSetData); selectors != nil {
-		if err := repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
+		if err := d.DataStore.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 			return err
 		}
-		if err := d.Base.AddData(ctx, repository, dataSet, dataSetData); err != nil {
+		if err := d.Base.AddData(ctx, dataSet, dataSetData); err != nil {
 			return err
 		}
-		return repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
+		return d.DataStore.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 	}
 
-	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
+	return d.Base.AddData(ctx, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
+func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -101,15 +91,12 @@ func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataSto
 		return errors.New("selectors is missing")
 	}
 
-	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
+	return d.DataStore.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (d *DataSetDeleteOrigin) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -119,7 +106,7 @@ func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.Da
 		return nil
 	}
 
-	return d.Base.Close(ctx, repository, dataSet)
+	return d.Base.Close(ctx, dataSet)
 }
 
 func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {

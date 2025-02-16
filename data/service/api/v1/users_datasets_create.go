@@ -97,7 +97,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found", err)
 		return
-	} else if dataSet, err = deduplicator.Open(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
+	} else if dataSet, err = deduplicator.Open(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to open", err)
 		return
 	}

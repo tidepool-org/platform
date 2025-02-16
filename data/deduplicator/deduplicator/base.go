@@ -4,18 +4,54 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 )
 
+type DataSetStore interface {
+	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error)
+	DeleteDataSet(ctx context.Context, dataSet *data.DataSet) error
+}
+
+type DataStore interface {
+	CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error
+	ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+
+	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
+	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
+	DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error
+}
+
+type Dependencies struct {
+	DataSetStore DataSetStore
+	DataStore    DataStore
+}
+
+func (d Dependencies) Validate() error {
+	if d.DataSetStore == nil {
+		return errors.New("data set store is missing")
+	}
+	if d.DataStore == nil {
+		return errors.New("data store is missing")
+	}
+	return nil
+}
+
 type Base struct {
+	Dependencies
 	name    string
 	version string
 }
 
-func NewBase(name string, version string) (*Base, error) {
+func NewBase(dependencies Dependencies, name string, version string) (*Base, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
+	}
 	if name == "" {
 		return nil, errors.New("name is missing")
 	} else if !net.IsValidReverseDomain(name) {
@@ -28,8 +64,9 @@ func NewBase(name string, version string) (*Base, error) {
 	}
 
 	return &Base{
-		name:    name,
-		version: version,
+		Dependencies: dependencies,
+		name:         name,
+		version:      version,
 	}, nil
 }
 
@@ -45,12 +82,9 @@ func (b *Base) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	return dataSet.HasDeduplicatorNameMatch(b.name), nil
 }
 
-func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
+func (b *Base) Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
-	}
-	if repository == nil {
-		return nil, errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
@@ -61,15 +95,12 @@ func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, da
 	update.Deduplicator = data.NewDeduplicatorDescriptor()
 	update.Deduplicator.Name = pointer.FromString(b.name)
 	update.Deduplicator.Version = pointer.FromString(b.version)
-	return repository.UpdateDataSet(ctx, *dataSet.UploadID, update)
+	return b.DataSetStore.UpdateDataSet(ctx, *dataSet.UploadID, update)
 }
 
-func (b *Base) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
+func (b *Base) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -78,15 +109,12 @@ func (b *Base) AddData(ctx context.Context, repository dataStore.DataRepository,
 		return errors.New("data set data is missing")
 	}
 
-	return repository.CreateDataSetData(ctx, dataSet, dataSetData)
+	return b.DataStore.CreateDataSetData(ctx, dataSet, dataSetData)
 }
 
-func (b *Base) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
+func (b *Base) DeleteData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -95,15 +123,12 @@ func (b *Base) DeleteData(ctx context.Context, repository dataStore.DataReposito
 		return errors.New("selectors is missing")
 	}
 
-	return repository.DestroyDataSetData(ctx, dataSet, selectors)
+	return b.DataStore.DestroyDataSetData(ctx, dataSet, selectors)
 }
 
-func (b *Base) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (b *Base) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -111,23 +136,20 @@ func (b *Base) Close(ctx context.Context, repository dataStore.DataRepository, d
 
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(true)
-	if _, err := repository.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
+	if _, err := b.DataSetStore.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
 		return err
 	}
 
-	return repository.ActivateDataSetData(ctx, dataSet, nil)
+	return b.DataStore.ActivateDataSetData(ctx, dataSet, nil)
 }
 
-func (b *Base) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (b *Base) Delete(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	return repository.DeleteDataSet(ctx, dataSet)
+	return b.DataSetStore.DeleteDataSet(ctx, dataSet)
 }
