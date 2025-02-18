@@ -6,8 +6,6 @@ import (
 
 type DataDeduplicatorFactory any
 
-type DataClient any
-
 type DataRawClient any
 
 type DataSetClient any
@@ -22,7 +20,6 @@ type WorkClient any
 
 type ProcessorDependencies struct {
 	DataDeduplicatorFactory DataDeduplicatorFactory
-	DataClient              DataClient
 	DataRawClient           DataRawClient
 	DataSetClient           DataSetClient
 	DataSourceClient        DataSourceClient

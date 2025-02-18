@@ -8,7 +8,6 @@ import (
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -20,6 +19,7 @@ const (
 	FilterCreatedDateFormat       = time.DateOnly
 	FilterDataSetIDsLengthMaximum = 100
 	DataSizeMaximum               = 8 * 1024 * 1024 // Until create directly to S3 is supported
+	MetadataLengthMaximum         = 4 * 1024
 	MediaTypeDefault              = "application/octet-stream"
 )
 
@@ -49,21 +49,21 @@ func (f *Filter) CreatedTime() *time.Time {
 }
 
 type Create struct {
-	Metadata  *metadata.Metadata `json:"metadata,omitempty"`
-	DigestMD5 *string            `json:"digestMD5,omitempty"`
-	MediaType *string            `json:"mediaType,omitempty"`
+	Metadata  map[string]any `json:"metadata,omitempty"`
+	DigestMD5 *string        `json:"digestMD5,omitempty"`
+	MediaType *string        `json:"mediaType,omitempty"`
 }
 
 func (c *Create) Parse(parser structure.ObjectParser) {
-	c.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		c.Metadata = *ptr
+	}
 	c.DigestMD5 = parser.String("digestMD5")
 	c.MediaType = parser.String("mediaType")
 }
 
 func (c *Create) Validate(validator structure.Validator) {
-	if c.Metadata != nil {
-		c.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &c.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", c.MediaType).Using(net.MediaTypeValidator)
 }
@@ -97,17 +97,17 @@ func (u *Update) Validate(validator structure.Validator) {
 }
 
 type Raw struct {
-	ID            string             `json:"id,omitempty"`
-	UserID        string             `json:"userId,omitempty"`
-	DataSetID     string             `json:"dataSetId,omitempty"`
-	Metadata      *metadata.Metadata `json:"metadata,omitempty"`
-	DigestMD5     string             `json:"digestMD5,omitempty"`
-	MediaType     string             `json:"mediaType,omitempty"`
-	Size          int                `json:"size,omitempty"`
-	ProcessedTime *time.Time         `json:"processedTime,omitempty"`
-	CreatedTime   time.Time          `json:"createdTime,omitempty"`
-	ModifiedTime  *time.Time         `json:"modifiedTime,omitempty"`
-	Revision      int                `json:"revision,omitempty"`
+	ID            string         `json:"id,omitempty"`
+	UserID        string         `json:"userId,omitempty"`
+	DataSetID     string         `json:"dataSetId,omitempty"`
+	Metadata      map[string]any `json:"metadata,omitempty"`
+	DigestMD5     string         `json:"digestMD5,omitempty"`
+	MediaType     string         `json:"mediaType,omitempty"`
+	Size          int            `json:"size,omitempty"`
+	ProcessedTime *time.Time     `json:"processedTime,omitempty"`
+	CreatedTime   time.Time      `json:"createdTime,omitempty"`
+	ModifiedTime  *time.Time     `json:"modifiedTime,omitempty"`
+	Revision      int            `json:"revision,omitempty"`
 }
 
 func (r *Raw) Parse(parser structure.ObjectParser) {
@@ -120,7 +120,9 @@ func (r *Raw) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("dataSetId"); ptr != nil {
 		r.DataSetID = *ptr
 	}
-	r.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		r.Metadata = *ptr
+	}
 	if ptr := parser.String("digestMD5"); ptr != nil {
 		r.DigestMD5 = *ptr
 	}
@@ -144,9 +146,7 @@ func (r *Raw) Validate(validator structure.Validator) {
 	validator.String("id", &r.ID).Using(IDValidator)
 	validator.String("userId", &r.UserID).Using(user.IDValidator)
 	validator.String("dataSetId", &r.DataSetID).Using(data.SetIDValidator)
-	if r.Metadata != nil {
-		r.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &r.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 	validator.String("digestMD5", &r.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", &r.MediaType).Using(net.MediaTypeValidator)
 	validator.Int("size", &r.Size).GreaterThanOrEqualTo(0)

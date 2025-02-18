@@ -531,7 +531,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
-	sort.Stable(DataByTime(datumArray))
+	sort.Stable(data.DataByTime(datumArray))
 
 	return datumArray, nil
 }
@@ -867,26 +867,6 @@ func (t *TaskRunner) incrementTaskRetryCount() int {
 func (t *TaskRunner) resetTaskRetryCount() error {
 	delete(t.task.Data, dexcom.DataKeyRetryCount)
 	return nil
-}
-
-type DataByTime data.Data
-
-func (d DataByTime) Len() int {
-	return len(d)
-}
-
-func (d DataByTime) Less(left int, right int) bool {
-	if leftTime := d[left].GetTime(); leftTime == nil {
-		return true
-	} else if rightTime := d[right].GetTime(); rightTime == nil {
-		return false
-	} else {
-		return leftTime.Before(*rightTime)
-	}
-}
-
-func (d DataByTime) Swap(left int, right int) {
-	d[left], d[right] = d[right], d[left]
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {

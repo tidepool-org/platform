@@ -14,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	storeStructured "github.com/tidepool-org/platform/store/structured"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -295,7 +294,7 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 		ProcessingAvailableTime: latestTime(create.ProcessingAvailableTime, now),
 		ProcessingPriority:      create.ProcessingPriority,
 		ProcessingTimeout:       create.ProcessingTimeout,
-		Metadata:                create.Metadata.AsMap(),
+		Metadata:                create.Metadata,
 		PendingTime:             now,
 		State:                   work.StatePending,
 		CreatedTime:             now,
@@ -648,7 +647,7 @@ func (d *Document) AsWork() *work.Work {
 		ProcessingAvailableTime: d.ProcessingAvailableTime,
 		ProcessingPriority:      d.ProcessingPriority,
 		ProcessingTimeout:       d.ProcessingTimeout,
-		Metadata:                metadata.MetadataFromMap(d.Metadata),
+		Metadata:                d.Metadata,
 		PendingTime:             d.PendingTime,
 		ProcessingTime:          d.ProcessingTime,
 		ProcessingTimeoutTime:   d.ProcessingTimeoutTime,

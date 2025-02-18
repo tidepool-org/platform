@@ -19,7 +19,6 @@ import (
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructured "github.com/tidepool-org/platform/store/structured"
@@ -164,7 +163,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	document := &Document{
 		UserID:      userID,
 		DataSetID:   dataSetID,
-		Metadata:    create.Metadata.AsMap(),
+		Metadata:    create.Metadata,
 		DigestMD5:   digestMD5,
 		MediaType:   pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
 		Size:        size,
@@ -502,7 +501,7 @@ func (d *Document) AsRaw() *dataRaw.Raw {
 		ID:           idFromObjectIDAndDate(d.ID, d.CreatedTime),
 		UserID:       d.UserID,
 		DataSetID:    d.DataSetID,
-		Metadata:     metadata.MetadataFromMap(d.Metadata),
+		Metadata:     d.Metadata,
 		DigestMD5:    d.DigestMD5,
 		MediaType:    d.MediaType,
 		Size:         d.Size,

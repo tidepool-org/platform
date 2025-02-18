@@ -539,7 +539,6 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
 		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
-		DataClient:              s.dataStore.NewDataRepository(),
 		DataSetClient:           s.dataClient,
 		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
 		ProviderSessionClient:   s.AuthClient(),

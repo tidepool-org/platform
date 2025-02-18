@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -29,11 +28,15 @@ func Results() []string {
 
 // Allows processor to update the work in the database. Returns the resulting
 // updated work or an error.
+//
+//go:generate mockgen -source=processor.go -destination=test/processor.go -package test ProcessingUpdater
 type ProcessingUpdater interface {
 	ProcessingUpdate(ctx context.Context, processingUpdate ProcessingUpdate) (*Work, error)
 }
 
 // Required interface for a processor of work.
+//
+//go:generate mockgen -source=processor.go -destination=test/processor.go -package test Processor
 type Processor interface {
 
 	// The type of work supported by this processor. Must be in the form of a reverse DNS.
@@ -130,7 +133,7 @@ func (p *ProcessResult) Validate(validator structure.Validator) {
 	}
 }
 
-func (p *ProcessResult) Metadata() *metadata.Metadata {
+func (p *ProcessResult) Metadata() map[string]any {
 	if p.PendingUpdate != nil && p.PendingUpdate.Metadata != nil {
 		return p.PendingUpdate.Metadata
 	}

@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -17,6 +16,7 @@ const (
 	DeduplicationIDLengthMaximum = 1000
 	SerialIDLengthMaximum        = 1000
 	ProcessingTimeoutMaximum     = 24 * 60 * 60 // seconds
+	MetadataLengthMaximum        = 4 * 1024
 
 	TypeQuantitiesLengthMaximum = 100
 
@@ -155,14 +155,14 @@ func (f *Filter) Validate(validator structure.Validator) {
 }
 
 type Create struct {
-	Type                    string             `json:"type,omitempty"`
-	GroupID                 *string            `json:"groupId,omitempty"`
-	DeduplicationID         *string            `json:"deduplicationId,omitempty"`
-	SerialID                *string            `json:"serialId,omitempty"`
-	ProcessingAvailableTime time.Time          `json:"processingAvailableTime,omitempty"`
-	ProcessingPriority      int                `json:"processingPriority,omitempty"`
-	ProcessingTimeout       int                `json:"processingTimeout,omitempty"` // seconds
-	Metadata                *metadata.Metadata `json:"metadata,omitempty"`
+	Type                    string         `json:"type,omitempty"`
+	GroupID                 *string        `json:"groupId,omitempty"`
+	DeduplicationID         *string        `json:"deduplicationId,omitempty"`
+	SerialID                *string        `json:"serialId,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty"`
+	ProcessingPriority      int            `json:"processingPriority,omitempty"`
+	ProcessingTimeout       int            `json:"processingTimeout,omitempty"` // seconds
+	Metadata                map[string]any `json:"metadata,omitempty"`
 }
 
 func ParseCreate(parser structure.ObjectParser) *Create {
@@ -190,7 +190,9 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Int("processingTimeout"); ptr != nil {
 		c.ProcessingTimeout = *ptr
 	}
-	c.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		c.Metadata = *ptr
+	}
 }
 
 func (c *Create) Validate(validator structure.Validator) {
@@ -199,16 +201,14 @@ func (c *Create) Validate(validator structure.Validator) {
 	validator.String("deduplicationId", c.DeduplicationID).NotEmpty().LengthLessThanOrEqualTo(DeduplicationIDLengthMaximum)
 	validator.String("serialId", c.SerialID).NotEmpty().LengthLessThanOrEqualTo(SerialIDLengthMaximum)
 	validator.Int("processingTimeout", &c.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	if c.Metadata != nil {
-		c.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &c.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type PendingUpdate struct {
-	ProcessingAvailableTime time.Time          `json:"processingAvailableTime,omitempty" bson:"processingAvailableTime,omitempty"`
-	ProcessingPriority      int                `json:"processingPriority,omitempty" bson:"processingPriority,omitempty"`
-	ProcessingTimeout       int                `json:"processingTimeout,omitempty" bson:"processingTimeout,omitempty"`
-	Metadata                *metadata.Metadata `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty" bson:"processingAvailableTime,omitempty"`
+	ProcessingPriority      int            `json:"processingPriority,omitempty" bson:"processingPriority,omitempty"`
+	ProcessingTimeout       int            `json:"processingTimeout,omitempty" bson:"processingTimeout,omitempty"`
+	Metadata                map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParsePendingUpdate(parser structure.ObjectParser) *PendingUpdate {
@@ -230,18 +230,18 @@ func (p *PendingUpdate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Int("processingTimeout"); ptr != nil {
 		p.ProcessingTimeout = *ptr
 	}
-	p.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		p.Metadata = *ptr
+	}
 }
 
 func (p *PendingUpdate) Validate(validator structure.Validator) {
 	validator.Int("processingTimeout", &p.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	if p.Metadata != nil {
-		p.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &p.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type ProcessingUpdate struct {
-	Metadata *metadata.Metadata `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
@@ -254,20 +254,20 @@ func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
 }
 
 func (p *ProcessingUpdate) Parse(parser structure.ObjectParser) {
-	p.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		p.Metadata = *ptr
+	}
 }
 
 func (p *ProcessingUpdate) Validate(validator structure.Validator) {
-	if p.Metadata != nil {
-		p.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &p.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type FailingUpdate struct {
 	FailingError      errors.Serializable `json:"failingError,omitempty" bson:"failingError,omitempty"`
 	FailingRetryCount int                 `json:"failingRetryCount,omitempty" bson:"failingRetryCount,omitempty"`
 	FailingRetryTime  time.Time           `json:"failingRetryTime,omitempty" bson:"failingRetryTime,omitempty"`
-	Metadata          *metadata.Metadata  `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata          map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParseFailingUpdate(parser structure.ObjectParser) *FailingUpdate {
@@ -290,20 +290,20 @@ func (f *FailingUpdate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Time("failingRetryTime", time.RFC3339Nano); ptr != nil {
 		f.FailingRetryTime = *ptr
 	}
-	f.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		f.Metadata = *ptr
+	}
 }
 
 func (f *FailingUpdate) Validate(validator structure.Validator) {
 	f.FailingError.Validate(validator.WithReference("failingError"))
 	validator.Int("failingRetryCount", &f.FailingRetryCount).GreaterThanOrEqualTo(0)
-	if f.Metadata != nil {
-		f.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &f.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type FailedUpdate struct {
 	FailedError errors.Serializable `json:"failedError,omitempty" bson:"failedError,omitempty"`
-	Metadata    *metadata.Metadata  `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata    map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParseFailedUpdate(parser structure.ObjectParser) *FailedUpdate {
@@ -320,18 +320,18 @@ func (f *FailedUpdate) Parse(parser structure.ObjectParser) {
 		f.FailedError = errors.Serializable{}
 		f.FailedError.Parse("failedError", parser)
 	}
-	f.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		f.Metadata = *ptr
+	}
 }
 
 func (f *FailedUpdate) Validate(validator structure.Validator) {
 	f.FailedError.Validate(validator.WithReference("failedError"))
-	if f.Metadata != nil {
-		f.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &f.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type SuccessUpdate struct {
-	Metadata *metadata.Metadata `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParseSuccessUpdate(parser structure.ObjectParser) *SuccessUpdate {
@@ -344,13 +344,13 @@ func ParseSuccessUpdate(parser structure.ObjectParser) *SuccessUpdate {
 }
 
 func (s *SuccessUpdate) Parse(parser structure.ObjectParser) {
-	s.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		s.Metadata = *ptr
+	}
 }
 
 func (s *SuccessUpdate) Validate(validator structure.Validator) {
-	if s.Metadata != nil {
-		s.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &s.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type Update struct {
@@ -431,7 +431,7 @@ type Work struct {
 	ProcessingAvailableTime time.Time            `json:"processingAvailableTime,omitempty"`
 	ProcessingPriority      int                  `json:"processingPriority,omitempty"`
 	ProcessingTimeout       int                  `json:"processingTimeout,omitempty"`
-	Metadata                *metadata.Metadata   `json:"metadata,omitempty"`
+	Metadata                map[string]any       `json:"metadata,omitempty"`
 	PendingTime             time.Time            `json:"pendingTime,omitempty"`
 	ProcessingTime          *time.Time           `json:"processingTime,omitempty"`
 	ProcessingTimeoutTime   *time.Time           `json:"processingTimeoutTime,omitempty"`
@@ -468,7 +468,9 @@ func (w *Work) Parse(parser structure.ObjectParser) {
 	if ptr := parser.Int("processingTimeout"); ptr != nil {
 		w.ProcessingTimeout = *ptr
 	}
-	w.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
+	if ptr := parser.Object("metadata"); ptr != nil {
+		w.Metadata = *ptr
+	}
 	if ptr := parser.Time("pendingTime", time.RFC3339Nano); ptr != nil {
 		w.PendingTime = *ptr
 	}
@@ -507,9 +509,7 @@ func (w *Work) Validate(validator structure.Validator) {
 	validator.String("deduplicationId", w.DeduplicationID).NotEmpty().LengthLessThanOrEqualTo(DeduplicationIDLengthMaximum)
 	validator.String("serialId", w.SerialID).NotEmpty().LengthLessThanOrEqualTo(SerialIDLengthMaximum)
 	validator.Int("processingTimeout", &w.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	if w.Metadata != nil {
-		w.Metadata.Validate(validator.WithReference("metadata"))
-	}
+	validator.Object("metadata", &w.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
 	validator.Time("pendingTime", &w.PendingTime).After(w.CreatedTime).BeforeNow(time.Second)
 
 	processingTimeValidator := validator.Time("processingTime", w.ProcessingTime)

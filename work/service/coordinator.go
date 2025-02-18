@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/request"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/work"
@@ -288,11 +287,11 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&processResult); err != nil {
 
 		// Add process result to metadata
-		failedUpdateMetadata := processResult.Metadata().Clone()
+		failedUpdateMetadata := processResult.Metadata()
 		if failedUpdateMetadata == nil {
-			failedUpdateMetadata = metadata.NewMetadata()
+			failedUpdateMetadata = map[string]any{}
 		}
-		failedUpdateMetadata.Set("processResult", processResult)
+		failedUpdateMetadata["processResult"] = processResult
 
 		// Create failed process result
 		failedUpdate := work.FailedUpdate{
