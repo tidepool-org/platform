@@ -56,15 +56,15 @@ func DecodeObject(ctx context.Context, source structure.Source, reader io.Reader
 
 func ParseStreamObject(ctx context.Context, source structure.Source, reader io.Reader, object interface{}) error {
 	if objectParsable, ok := object.(structure.ObjectParsable); ok {
-		return ParseObjectParseableStreamObject(ctx, source, reader, objectParsable)
+		return ParseObjectParsableStreamObject(ctx, source, reader, objectParsable)
 	}
 	if arrayParsable, ok := object.(structure.ArrayParsable); ok {
-		return ParseArrayParseableStreamObject(ctx, source, reader, arrayParsable)
+		return ParseArrayParsableStreamObject(ctx, source, reader, arrayParsable)
 	}
 	return ParseSimpleStreamObject(ctx, reader, object)
 }
 
-func ParseObjectParseableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, objectParsable structure.ObjectParsable) error {
+func ParseObjectParsableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, objectParsable structure.ObjectParsable) error {
 	object := &map[string]interface{}{}
 	if err := ParseSimpleStreamObject(ctx, reader, object); err != nil {
 		return err
@@ -77,7 +77,7 @@ func ParseObjectParseableStreamObject(ctx context.Context, source structure.Sour
 	return parser.Error()
 }
 
-func ParseArrayParseableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, arrayParsable structure.ArrayParsable) error {
+func ParseArrayParsableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, arrayParsable structure.ArrayParsable) error {
 	array := &[]interface{}{}
 	if err := ParseSimpleStreamObject(ctx, reader, array); err != nil {
 		return err

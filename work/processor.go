@@ -36,7 +36,7 @@ type ProcessingUpdater interface {
 // Required interface for a processor of work.
 type Processor interface {
 
-	// The tyoe of work supported by this processor. Must be in the form of a reverse DNS.
+	// The type of work supported by this processor. Must be in the form of a reverse DNS.
 	Type() string
 
 	// The quantity of work supported by this processor. Must be greater than zero.
@@ -60,24 +60,24 @@ type ProcessResult struct {
 	SuccessUpdate *SuccessUpdate `json:"successUpdate,omitempty" bson:"successUpdate,omitempty"`
 }
 
-func NewProcessResultPending(pendingUpdate PendingUpdate) ProcessResult {
-	return ProcessResult{Result: ResultPending, PendingUpdate: &pendingUpdate}
+func NewProcessResultPending(pendingUpdate PendingUpdate) *ProcessResult {
+	return &ProcessResult{Result: ResultPending, PendingUpdate: &pendingUpdate}
 }
 
-func NewProcessResultFailing(failingUpdate FailingUpdate) ProcessResult {
-	return ProcessResult{Result: ResultFailing, FailingUpdate: &failingUpdate}
+func NewProcessResultFailing(failingUpdate FailingUpdate) *ProcessResult {
+	return &ProcessResult{Result: ResultFailing, FailingUpdate: &failingUpdate}
 }
 
-func NewProcessResultFailed(failedUpdate FailedUpdate) ProcessResult {
-	return ProcessResult{Result: ResultFailed, FailedUpdate: &failedUpdate}
+func NewProcessResultFailed(failedUpdate FailedUpdate) *ProcessResult {
+	return &ProcessResult{Result: ResultFailed, FailedUpdate: &failedUpdate}
 }
 
-func NewProcessResultSuccess(successUpdate SuccessUpdate) ProcessResult {
-	return ProcessResult{Result: ResultSuccess, SuccessUpdate: &successUpdate}
+func NewProcessResultSuccess(successUpdate SuccessUpdate) *ProcessResult {
+	return &ProcessResult{Result: ResultSuccess, SuccessUpdate: &successUpdate}
 }
 
-func NewProcessResultDelete() ProcessResult {
-	return ProcessResult{Result: ResultDelete}
+func NewProcessResultDelete() *ProcessResult {
+	return &ProcessResult{Result: ResultDelete}
 }
 
 func (p *ProcessResult) Parse(parser structure.ObjectParser) {

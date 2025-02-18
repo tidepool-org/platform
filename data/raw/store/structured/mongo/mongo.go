@@ -166,7 +166,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		DataSetID:   dataSetID,
 		Metadata:    create.Metadata.AsMap(),
 		DigestMD5:   digestMD5,
-		MediaType:   *pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
+		MediaType:   pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
 		Size:        size,
 		Data:        bsonPrimitive.Binary{Data: data},
 		CreatedTime: now,

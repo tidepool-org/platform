@@ -117,7 +117,7 @@ func (r *reporter) debugMessage(state string, fullKey string, matchKey string, v
 		if value != nil {
 			value = pointer.FromString(fmt.Sprintf("%q", *value))
 		}
-		fmt.Printf("[ConfigReporter] | %10s | %-80s | %-80s | %s\n", state, fullKey, matchKey, *pointer.DefaultString(value, ""))
+		fmt.Printf("[ConfigReporter] | %10s | %-80s | %-80s | %s\n", state, fullKey, matchKey, pointer.DefaultString(value, ""))
 	}
 }
 

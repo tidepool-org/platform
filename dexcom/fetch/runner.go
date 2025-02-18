@@ -453,7 +453,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 	}
 
 	// Clamp data range, if none valid, then indicate nothing to fetch
-	latestDataTime := *pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
+	latestDataTime := pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
 	now := time.Now()
 	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), latestDataTime, now)
 	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), latestDataTime, now)

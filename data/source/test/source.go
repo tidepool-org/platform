@@ -69,7 +69,6 @@ func RandomCreate() *dataSource.Create {
 		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
-	datum.State = pointer.FromString(state)
 	datum.Metadata = metadataTest.RandomMetadata()
 	return datum
 }
@@ -90,9 +89,6 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	}
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
-	}
-	if datum.State != nil {
-		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
 	if datum.Metadata != nil {
 		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)

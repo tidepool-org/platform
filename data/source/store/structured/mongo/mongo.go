@@ -163,7 +163,7 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 		ProviderName:       create.ProviderName,
 		ProviderSessionID:  create.ProviderSessionID,
 		ProviderExternalID: create.ProviderExternalID,
-		State:              create.State,
+		State:              pointer.FromString(dataSource.StateDisconnected),
 		Metadata:           create.Metadata,
 		CreatedTime:        pointer.FromTime(now),
 		Revision:           pointer.FromInt(0),

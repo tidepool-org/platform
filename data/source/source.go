@@ -96,7 +96,6 @@ type Create struct {
 	ProviderName       *string            `json:"providerName,omitempty"`
 	ProviderSessionID  *string            `json:"providerSessionId,omitempty"`
 	ProviderExternalID *string            `json:"providerExternalId,omitempty"`
-	State              *string            `json:"state,omitempty"`
 	Metadata           *metadata.Metadata `json:"metadata,omitempty"`
 }
 
@@ -109,22 +108,14 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderName = parser.String("providerName")
 	c.ProviderSessionID = parser.String("providerSessionId")
 	c.ProviderExternalID = parser.String("providerExternalId")
-	c.State = parser.String("state")
 	c.Metadata = metadata.ParseMetadata(parser.WithReferenceObjectParser("metadata"))
 }
 
 func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	if providerSessionIDValidator := validator.String("providerSessionId", c.ProviderSessionID); c.State == nil {
-		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
-	} else if *c.State != StateDisconnected {
-		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
-	} else {
-		providerSessionIDValidator.NotExists()
-	}
+	validator.String("providerSessionId", c.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
-	validator.String("state", c.State).Exists().OneOf(States()...)
 	if c.Metadata != nil {
 		c.Metadata.Validate(validator.WithReference("metadata"))
 	}
