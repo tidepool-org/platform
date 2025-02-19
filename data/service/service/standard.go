@@ -523,7 +523,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		},
 	}
 
-	cfg := &alertsEventsHandlerConfig{Config: platform.NewConfig()}
+	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
 	reporter := s.ConfigReporter().WithScopes("alerts", "retry")
 	loader := platform.NewConfigReporterLoader(reporter)
@@ -543,11 +543,6 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	s.alertsEventsHandler = runner
 
 	return nil
-}
-
-type alertsEventsHandlerConfig struct {
-	*platform.Config
-	RetryDelaysConfig string `envconfig:"TIDEPOOL_DATA_SERVICE_ALERTS_RETRY_DELAYS" default:"1s"`
 }
 
 func parseCommaSeparatedDurations(s string) ([]time.Duration, error) {
