@@ -91,7 +91,7 @@ func (c *Client) List(ctx context.Context, followedUserID string) ([]*Config, er
 //
 // This method should only be called via an authenticated service session.
 func (c *Client) OverdueCommunications(ctx context.Context) ([]LastCommunication, error) {
-	url := c.client.ConstructURL("v1", "users", "overdue_communications")
+	url := c.client.ConstructURL("v1", "overdue_communications")
 	lastComms := []LastCommunication{}
 	err := c.request(ctx, http.MethodGet, url, nil, &lastComms)
 	if err != nil {

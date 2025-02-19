@@ -25,7 +25,7 @@ func AlertsRoutes() []service.Route {
 		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
 		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
 		service.Get("/v1/users/:userId/followers/alerts", ListAlerts, api.RequireServer),
-		service.Get("/v1/users/overdue_communications", ListOverdueCommunications, api.RequireServer),
+		service.Get("/v1/overdue_communications", ListOverdueCommunications, api.RequireServer),
 	}
 }
 
@@ -190,7 +190,7 @@ func ListOverdueCommunications(dCtx service.Context) {
 	}
 
 	lgr.WithField("found", len(overdue)).WithField("overdue", overdue).
-		Debug("/v1/users/overdue_communications")
+		Debug("/v1/overdue_communications")
 
 	responder := request.MustNewResponder(dCtx.Response(), r)
 	responder.Data(http.StatusOK, overdue)
