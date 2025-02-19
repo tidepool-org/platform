@@ -66,15 +66,17 @@ func (r *CarePartnerRunner) GetRunnerType() string {
 }
 
 func (r *CarePartnerRunner) GetRunnerTimeout() time.Duration {
-	return 30 * time.Second
+	return r.GetRunnerDurationMaximum()
 }
 
 func (r *CarePartnerRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(r.GetRunnerDurationMaximum())
+	return time.Now().Add(3 * r.GetRunnerDurationMaximum())
 }
 
+const RunnerDurationMaximum = 30 * time.Second
+
 func (r *CarePartnerRunner) GetRunnerDurationMaximum() time.Duration {
-	return 30 * time.Second
+	return RunnerDurationMaximum
 }
 
 func (r *CarePartnerRunner) Run(ctx context.Context, tsk *task.Task) {
