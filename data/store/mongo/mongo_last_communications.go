@@ -57,7 +57,9 @@ func (r *lastCommunicationsRepo) filter(lastComm alerts.LastCommunication) map[s
 	}
 }
 
-func (d *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) ([]alerts.LastCommunication, error) {
+func (d *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
+	[]alerts.LastCommunication, error) {
+
 	start := time.Now().Add(-alerts.MinimumNoCommunicationDelay)
 	selector := bson.M{
 		"lastReceivedDeviceData": bson.M{"$lte": start},

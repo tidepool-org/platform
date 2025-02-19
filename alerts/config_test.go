@@ -782,12 +782,12 @@ var _ = Describe("Config", func() {
 				val = validator.New(logTest.NewLogger())
 				b = NoCommunicationAlert{Delay: -1}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value -1ns is not between 0s and 6h0m0s"))
+				Expect(val.Error()).To(MatchError("value -1ns is not between 5m0s and 6h0m0s"))
 
 				val = validator.New(logTest.NewLogger())
 				b = NoCommunicationAlert{Delay: DurationMinutes(time.Hour*6 + time.Second)}
 				b.Validate(val)
-				Expect(val.Error()).To(MatchError("value 6h0m1s is not between 0s and 6h0m0s"))
+				Expect(val.Error()).To(MatchError("value 6h0m1s is not between 5m0s and 6h0m0s"))
 			})
 		})
 	})
