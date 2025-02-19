@@ -57,7 +57,7 @@ func (r *lastCommunicationsRepo) filter(lastComm alerts.LastCommunication) map[s
 	}
 }
 
-func (d *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
+func (r *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
 	[]alerts.LastCommunication, error) {
 
 	start := time.Now().Add(-alerts.MinimumNoCommunicationDelay)
@@ -65,7 +65,7 @@ func (d *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
 		"lastReceivedDeviceData": bson.M{"$lte": start},
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastReceivedDeviceData", Value: 1}})
-	cursor, err := d.Find(ctx, selector, findOptions)
+	cursor, err := r.Find(ctx, selector, findOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to list overdue records")
 	}
