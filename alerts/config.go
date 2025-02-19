@@ -498,7 +498,10 @@ type NoCommunicationAlert struct {
 func (a NoCommunicationAlert) Validate(validator structure.Validator) {
 	a.Base.Validate(validator)
 	dur := a.Delay.Duration()
-	validator.Duration("delay", &dur).InRange(0, 6*time.Hour)
+	if dur != 0 {
+		validator.Duration("delay", &dur).
+			InRange(MinimumNoCommunicationDelay, MaximumNoCommunicationDelay)
+	}
 }
 
 // Evaluate if the time since data was last received warrants a notification.
@@ -525,6 +528,7 @@ func (a *NoCommunicationAlert) Evaluate(ctx context.Context, lastReceived time.T
 const (
 	DefaultNoCommunicationDelay = 5 * time.Minute
 	MinimumNoCommunicationDelay = 5 * time.Minute
+	MaximumNoCommunicationDelay = 6 * time.Hour
 )
 
 const NoCommunicationMessage = "Tidepool is unable to communicate with a user's device"
