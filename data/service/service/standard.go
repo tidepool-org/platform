@@ -530,7 +530,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to alerts retry delays config")
 	}
-	delays, err := parseCommaSeparatedDurations(reporter.GetWithDefault("delays", "1s"))
+	delays, err := parseCommaSeparatedDurations(reporter.GetWithDefault("delays", "0s"))
 	if err != nil {
 		return errors.Wrap(err, "Unable to read configured alerts retry delays")
 	}
