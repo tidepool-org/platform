@@ -495,7 +495,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	}
 
 	alertsRepo := s.dataStore.NewAlertsRepository()
-	dataRepo := s.dataStore.NewAlertsDataRepository()
+	dataRepo := s.dataStore.NewDataRepository()
 	lastCommunicationsRepo := s.dataStore.NewLastCommunicationsRepository()
 
 	alertsEvaluator := alerts.NewEvaluator(alertsRepo, dataRepo, s.PermissionClient(),

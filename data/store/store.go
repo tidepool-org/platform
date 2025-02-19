@@ -65,11 +65,12 @@ type DatumRepository interface {
 	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 }
 
-// DataRepository is the combined interface of DataSetRepository and
-// DatumRepository.
+// DataRepository is the combined interface of DataSetRepository,
+// DatumRepository, and [alerts.DataRepository].
 type DataRepository interface {
 	DataSetRepository
 	DatumRepository
+	alerts.DataRepository
 }
 
 type Filter struct {

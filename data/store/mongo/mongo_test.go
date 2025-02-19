@@ -465,7 +465,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				repository = store.NewDataRepository()
 				summaryRepository = store.NewSummaryRepository()
 				alertsRepository = store.NewAlertsRepository()
-				alertsDataRepository = store.NewAlertsDataRepository()
+				alertsDataRepository = store.NewDataRepository()
 				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
@@ -2427,7 +2427,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
 				testSetData := testDataSetData(testSet)
 				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
-				alertsDataRepository = store.NewAlertsDataRepository()
+				alertsDataRepository = store.NewDataRepository()
 				Expect(alertsDataRepository).ToNot(BeNil())
 
 				params := alerts.GetAlertableDataParams{

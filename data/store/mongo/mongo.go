@@ -76,8 +76,3 @@ func (s *Store) NewLastCommunicationsRepository() alerts.LastCommunicationsRepos
 	r := lastCommunicationsRepo(*s.Store.GetRepository("lastCommunications"))
 	return &r
 }
-
-func (s *Store) NewAlertsDataRepository() alerts.DataRepository {
-	r := alertsDataRepo(*s.Store.GetRepository("deviceData"))
-	return &r
-}
