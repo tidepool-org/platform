@@ -67,7 +67,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.StringArray("providerType", f.ProviderType).NotEmpty().EachOneOf(auth.ProviderTypes()...).EachUnique()
 	validator.StringArray("providerName", f.ProviderName).NotEmpty().EachUsing(auth.ProviderNameValidator).EachUnique()
 	validator.StringArray("providerSessionId", f.ProviderSessionID).NotEmpty().EachUsing(auth.ProviderSessionIDValidator).EachUnique()
-	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternaIDValidator).EachUnique()
+	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternalIDValidator).EachUnique()
 	validator.StringArray("state", f.State).NotEmpty().EachOneOf(States()...).EachUnique()
 }
 
@@ -115,7 +115,7 @@ func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
 	validator.String("providerSessionId", c.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
-	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
+	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	if c.Metadata != nil {
 		c.Metadata.Validate(validator.WithReference("metadata"))
 	}
@@ -161,7 +161,7 @@ func (u *Update) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
 	}
-	validator.String("providerExternalId", u.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
+	validator.String("providerExternalId", u.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.String("state", u.State).OneOf(States()...)
 	if u.Metadata != nil {
 		u.Metadata.Validate(validator.WithReference("metadata"))
@@ -241,7 +241,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.NotExists()
 	}
-	validator.String("providerExternalId", s.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
+	validator.String("providerExternalId", s.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.String("state", s.State).Exists().OneOf(States()...)
 	if s.Metadata != nil {
 		s.Metadata.Validate(validator.WithReference("metadata"))
