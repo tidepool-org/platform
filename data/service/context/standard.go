@@ -26,21 +26,22 @@ import (
 
 type Standard struct {
 	*serviceContext.Responder
-	authClient              auth.Client
-	metricClient            metric.Client
-	permissionClient        permission.Client
-	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               dataStore.Store
-	dataRepository          dataStore.DataRepository
-	summaryRepository       dataStore.SummaryRepository
-	summarizerRegistry      *summary.SummarizerRegistry
-	summaryReporter         *reporters.PatientRealtimeDaysReporter
-	syncTaskStore           syncTaskStore.Store
-	syncTasksRepository     syncTaskStore.SyncTaskRepository
-	dataClient              dataClient.Client
-	clinicsClient           clinics.Client
-	dataSourceClient        dataSource.Client
-	alertsRepository        alerts.Repository
+	authClient                   auth.Client
+	metricClient                 metric.Client
+	permissionClient             permission.Client
+	dataDeduplicatorFactory      deduplicator.Factory
+	dataStore                    dataStore.Store
+	dataRepository               dataStore.DataRepository
+	summaryRepository            dataStore.SummaryRepository
+	summarizerRegistry           *summary.SummarizerRegistry
+	summaryReporter              *reporters.PatientRealtimeDaysReporter
+	syncTaskStore                syncTaskStore.Store
+	syncTasksRepository          syncTaskStore.SyncTaskRepository
+	dataClient                   dataClient.Client
+	clinicsClient                clinics.Client
+	dataSourceClient             dataSource.Client
+	alertsRepository             alerts.Repository
+	lastCommunicationsRepository alerts.LastCommunicationsRepository
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
@@ -129,6 +130,9 @@ func (s *Standard) Close() {
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
+	if s.lastCommunicationsRepository != nil {
+		s.lastCommunicationsRepository = nil
+	}
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -207,4 +211,11 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
+}
+
+func (s *Standard) LastCommunicationsRepository() alerts.LastCommunicationsRepository {
+	if s.lastCommunicationsRepository == nil {
+		s.lastCommunicationsRepository = s.dataStore.NewLastCommunicationsRepository()
+	}
+	return s.lastCommunicationsRepository
 }

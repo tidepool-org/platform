@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/alerts"
+	"github.com/tidepool-org/platform/errors"
 	structuredmongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -16,9 +17,21 @@ import (
 type alertsRepo structuredmongo.Repository
 
 // Upsert will create or update the given Config.
+//
+// Once set, UploadID, UserID, and FollowedUserID cannot be changed. This is to prevent a
+// user from granting themselves access to another data set.
 func (r *alertsRepo) Upsert(ctx context.Context, conf *alerts.Config) error {
 	opts := options.Update().SetUpsert(true)
-	_, err := r.UpdateOne(ctx, r.filter(conf), bson.M{"$set": conf}, opts)
+	filter := bson.D{
+		{Key: "userId", Value: conf.UserID},
+		{Key: "followedUserId", Value: conf.FollowedUserID},
+		{Key: "uploadId", Value: conf.UploadID},
+	}
+	doc := bson.M{
+		"$set":         bson.M{"alerts": conf.Alerts, "activity": conf.Activity},
+		"$setOnInsert": filter,
+	}
+	_, err := r.UpdateOne(ctx, filter, doc, opts)
 	if err != nil {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
@@ -32,6 +45,26 @@ func (r *alertsRepo) Delete(ctx context.Context, cfg *alerts.Config) error {
 		return fmt.Errorf("upserting alerts.Config: %w", err)
 	}
 	return nil
+}
+
+// List will retrieve any Configs that are defined by followers of the given user.
+func (r *alertsRepo) List(ctx context.Context, followedUserID string) ([]*alerts.Config, error) {
+	filter := bson.D{
+		{Key: "followedUserId", Value: followedUserID},
+	}
+	cursor, err := r.Find(ctx, filter, nil)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Unable to list alerts.Config(s) for followed user %s", followedUserID)
+	}
+	defer cursor.Close(ctx)
+	out := []*alerts.Config{}
+	if err := cursor.All(ctx, &out); err != nil {
+		return nil, errors.Wrapf(err, "Unable to decode alerts.Config(s) for followed user %s", followedUserID)
+	}
+	if err := cursor.Err(); err != nil {
+		return nil, errors.Wrapf(err, "Unexpected error for followed user %s", followedUserID)
+	}
+	return out, nil
 }
 
 // Get will retrieve the given Config.
@@ -64,8 +97,8 @@ func (r *alertsRepo) EnsureIndexes() error {
 }
 
 func (r *alertsRepo) filter(cfg *alerts.Config) interface{} {
-	return &alerts.Config{
-		UserID:         cfg.UserID,
-		FollowedUserID: cfg.FollowedUserID,
+	return bson.D{
+		{Key: "userId", Value: cfg.UserID},
+		{Key: "followedUserId", Value: cfg.FollowedUserID},
 	}
 }
