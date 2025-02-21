@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 func NewMeta() interface{} {
@@ -27,6 +28,10 @@ func NewContinuous(units *string) *continuous.Continuous {
 	datum := continuous.New()
 	datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
 	datum.Type = "cbg"
+	datum.Trend = pointer.FromString(test.RandomStringFromArray(continuous.Trends()))
+	datum.TrendRate = pointer.FromFloat64(test.RandomFloat64FromRange(continuous.TrendRateMinimum, continuous.TrendRateMaximum))
+	datum.SampleInterval = pointer.FromInt(test.RandomIntFromRange(continuous.SampleIntervalMinimum, continuous.SampleIntervalMaximum))
+	datum.Backfilled = pointer.FromBool(test.RandomBool())
 	return datum
 }
 
@@ -38,6 +43,8 @@ func CloneContinuous(datum *continuous.Continuous) *continuous.Continuous {
 	clone.Glucose = *dataTypesBloodGlucoseTest.CloneGlucose(&datum.Glucose)
 	clone.Trend = pointer.CloneString(datum.Trend)
 	clone.TrendRate = pointer.CloneFloat64(datum.TrendRate)
+	clone.SampleInterval = pointer.CloneInt(datum.SampleInterval)
+	clone.Backfilled = pointer.CloneBool(datum.Backfilled)
 	return clone
 }
 
@@ -53,6 +60,10 @@ var _ = Describe("Continuous", func() {
 			Expect(datum.Type).To(Equal("cbg"))
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.Value).To(BeNil())
+			Expect(datum.Trend).To(BeNil())
+			Expect(datum.TrendRate).To(BeNil())
+			Expect(datum.SampleInterval).To(BeNil())
+			Expect(datum.Backfilled).To(BeNil())
 		})
 	})
 
@@ -225,6 +236,48 @@ var _ = Describe("Continuous", func() {
 				func(datum *continuous.Continuous, units *string) { datum.Value = pointer.FromFloat64(1000.1) },
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(1000.1, 0.0, 1000.0), "/value", NewMeta()),
 			),
+			Entry("trend missing",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = nil },
+			),
+			Entry("trend empty",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("") },
+				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("", continuous.Trends()), "/trend", NewMeta()),
+			),
+			Entry("trend invalid",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("invalid") },
+				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", continuous.Trends()), "/trend", NewMeta()),
+			),
+			Entry("trend constant",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("constant") },
+			),
+			Entry("trend slowFall",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("slowFall") },
+			),
+			Entry("trend slowRise",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("slowRise") },
+			),
+			Entry("trend moderateFall",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("moderateFall") },
+			),
+			Entry("trend moderateRise",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("moderateRise") },
+			),
+			Entry("trend rapidFall",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("rapidFall") },
+			),
+			Entry("trend rapidRise",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.Trend = pointer.FromString("rapidRise") },
+			),
 			Entry("trend rate missing",
 				pointer.FromString("mg/dl"),
 				func(datum *continuous.Continuous, units *string) { datum.TrendRate = nil },
@@ -247,6 +300,28 @@ var _ = Describe("Continuous", func() {
 				func(datum *continuous.Continuous, units *string) { datum.TrendRate = pointer.FromFloat64(100.1) },
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, -100.0, 100.0), "/trendRate", NewMeta()),
 			),
+			Entry("sample interval missing",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.SampleInterval = nil },
+			),
+			Entry("sample interval out of range (lower)",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.SampleInterval = pointer.FromInt(-1) },
+				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/sampleInterval", NewMeta()),
+			),
+			Entry("sample interval in range (lower)",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.SampleInterval = pointer.FromInt(0) },
+			),
+			Entry("sample interval in range (upper)",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.SampleInterval = pointer.FromInt(86400000) },
+			),
+			Entry("sample interval out of range (upper)",
+				pointer.FromString("mg/dl"),
+				func(datum *continuous.Continuous, units *string) { datum.SampleInterval = pointer.FromInt(86400001) },
+				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(86400001, 0, 86400000), "/sampleInterval", NewMeta()),
+			),
 			Entry("multiple errors",
 				nil,
 				func(datum *continuous.Continuous, units *string) {
@@ -254,11 +329,13 @@ var _ = Describe("Continuous", func() {
 					datum.Value = nil
 					datum.Trend = nil
 					datum.TrendRate = pointer.FromFloat64(-100.1)
+					datum.SampleInterval = pointer.FromInt(-1)
 				},
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-100.1, -100.0, 100.0), "/trendRate", &types.Meta{}),
+				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/sampleInterval", &types.Meta{}),
 			),
 		)
 	})

@@ -9,6 +9,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	KeyIDToken = "id_token"
+)
+
 type OAuthToken struct {
 	AccessToken    string    `json:"accessToken" bson:"accessToken"`
 	TokenType      string    `json:"tokenType,omitempty" bson:"tokenType,omitempty"`
@@ -26,17 +30,12 @@ func NewOAuthTokenFromRawToken(rawToken *oauth2.Token) (*OAuthToken, error) {
 		return nil, errors.New("raw token is missing")
 	}
 
-	var idToken *string
-	if extraIDToken, ok := rawToken.Extra("id_token").(string); ok && extraIDToken != "" {
-		idToken = &extraIDToken
-	}
-
 	return &OAuthToken{
 		AccessToken:    rawToken.AccessToken,
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
 		ExpirationTime: rawToken.Expiry,
-		IDToken:        idToken,
+		IDToken:        GetIDToken(rawToken),
 	}, nil
 }
 
@@ -66,12 +65,13 @@ func (o *OAuthToken) Expire() {
 }
 
 func (o *OAuthToken) RawToken() *oauth2.Token {
-	return &oauth2.Token{
+	rawToken := &oauth2.Token{
 		AccessToken:  o.AccessToken,
 		TokenType:    o.TokenType,
 		RefreshToken: o.RefreshToken,
 		Expiry:       o.ExpirationTime,
 	}
+	return SetIDToken(rawToken, o.IDToken)
 }
 
 func (o *OAuthToken) MatchesRawToken(rawToken *oauth2.Token) bool {
@@ -79,5 +79,20 @@ func (o *OAuthToken) MatchesRawToken(rawToken *oauth2.Token) bool {
 		rawToken.AccessToken == o.AccessToken &&
 		rawToken.TokenType == o.TokenType &&
 		rawToken.RefreshToken == o.RefreshToken &&
-		rawToken.Expiry.Equal(o.ExpirationTime)
+		rawToken.Expiry.Equal(o.ExpirationTime) &&
+		GetIDToken(rawToken) == o.IDToken
+}
+
+func GetIDToken(rawToken *oauth2.Token) *string {
+	if idToken, ok := rawToken.Extra(KeyIDToken).(string); ok && idToken != "" {
+		return &idToken
+	}
+	return nil
+}
+
+func SetIDToken(rawToken *oauth2.Token, idToken *string) *oauth2.Token {
+	if idToken != nil {
+		rawToken = rawToken.WithExtra(map[string]any{KeyIDToken: idToken})
+	}
+	return rawToken
 }

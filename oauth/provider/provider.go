@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"strconv"
 
 	"golang.org/x/oauth2"
 
@@ -48,6 +49,10 @@ func NewProvider(name string, configReporter config.Reporter) (*Provider, error)
 		return nil, errors.New("redirect url is missing")
 	}
 	cfg.Scopes = SplitScopes(configReporter.GetWithDefault("scopes", ""))
+
+	if authStyleInParams, err := strconv.ParseBool(configReporter.GetWithDefault("auth_style_in_params", "")); err == nil && authStyleInParams {
+		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
+	}
 
 	stateSalt := configReporter.GetWithDefault("state_salt", "")
 	if stateSalt == "" {

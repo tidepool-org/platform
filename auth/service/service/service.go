@@ -35,6 +35,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
 	"github.com/tidepool-org/platform/work"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
@@ -488,12 +489,8 @@ func (s *Service) terminateAuthClient() {
 }
 
 func (s *Service) initializeProviders() error {
-	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
-	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
-	}
 
+	// Abbott
 	abbottProviderDependencies := abbottProvider.ProviderDependencies{
 		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
 		ProviderSessionClient: s.AuthClient(),
@@ -504,6 +501,25 @@ func (s *Service) initializeProviders() error {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create abbott provider")
 	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add abbott provider")
+	}
+
+	// Dexcom
+	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	// twiist
+	twiistProviderDependencies := twiistProvider.ProviderDependencies{
+		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+	}
+	if prvdr, prvdrErr := twiistProvider.NewProvider(twiistProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add twiist provider")
 	}
 
 	return nil
