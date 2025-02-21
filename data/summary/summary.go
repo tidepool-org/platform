@@ -42,7 +42,6 @@ func GetSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P typ
 
 type Summarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
-	// TODO: Consider moving
 	GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error)
 	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
