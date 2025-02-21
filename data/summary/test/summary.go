@@ -94,7 +94,7 @@ func RandomCGMSummary(userId string) *types.Summary[*types.CGMPeriods, *types.Gl
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Periods: &types.CGMPeriods{},
+		Periods: &types.CGMPeriods{GlucosePeriods: types.GlucosePeriods{}},
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
@@ -113,7 +113,7 @@ func RandomBGMSummary(userId string) *types.Summary[*types.BGMPeriods, *types.Gl
 			Config: RandomConfig(),
 			Dates:  RandomDates(),
 		},
-		Periods: &types.BGMPeriods{},
+		Periods: &types.BGMPeriods{GlucosePeriods: types.GlucosePeriods{}},
 	}
 
 	for _, period := range []string{"1d", "7d", "14d", "30d"} {
@@ -144,29 +144,24 @@ func RandomContinuousSummary(userId string) *types.Summary[*types.ContinuousPeri
 
 func NewRealtimeBuckets(userId string, startTime time.Time, endTime time.Time, realtimeDays int) []*types.Bucket[*types.ContinuousBucket, types.ContinuousBucket] {
 	totalHours := int(endTime.Sub(startTime).Hours())
-
 	buckets := make([]*types.Bucket[*types.ContinuousBucket, types.ContinuousBucket], totalHours)
 
-	var yesterday time.Time
-	var today time.Time
-	var bucketDate time.Time
 	var flaggedDays int
-	var recordCount int
+	tomorrow := startTime
 
 	for i := 0; i < len(buckets); i++ {
-		bucketDate = startTime.Add(time.Duration(i) * time.Hour)
-		today = bucketDate.Truncate(time.Hour * 24)
+		bucketDate := startTime.Add(time.Duration(i) * -time.Hour)
+		recordCount := 0
 
 		if flaggedDays < realtimeDays {
 			recordCount = test.RandomIntFromRange(1, 12)
 
-			if today.After(yesterday) {
+			if bucketDate.Compare(tomorrow) <= 0 {
 				flaggedDays++
-				yesterday = today
+				tomorrow = time.Date(bucketDate.Year(), bucketDate.Month(), bucketDate.Day()-1,
+					tomorrow.Hour(), tomorrow.Minute(), tomorrow.Second(), tomorrow.Nanosecond(), tomorrow.Location())
 			}
 
-		} else {
-			recordCount = 0
 		}
 
 		buckets[i] = &types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{

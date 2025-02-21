@@ -132,7 +132,7 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[PP, PB, P, PB]) SetOutdated(reason string) {
+func (s *Summary[PP, PB, P, B]) SetOutdated(reason string) {
 	set := mapset.NewSet[string](reason)
 	if len(s.Dates.OutdatedReason) > 0 {
 		set.Append(s.Dates.OutdatedReason...)

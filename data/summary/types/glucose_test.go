@@ -32,13 +32,45 @@ var _ = Describe("Glucose", func() {
 	})
 
 	Context("Range", func() {
+		It("range.UpdateTotal", func() {
+			glucoseRange := Range{}
+			datum := NewGlucoseWithValue(continuous.Type, now, 5)
+
+			By("adding 5 minutes of 5mmol")
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(5.0 * 5.0))
+			Expect(glucoseRange.Records).To(Equal(1))
+			Expect(glucoseRange.Minutes).To(Equal(5))
+			Expect(glucoseRange.Variance).To(Equal(0.0))
+		})
+
+		It("range.UpdateTotal without minutes", func() {
+			glucoseRange := Range{}
+
+			By("adding 1 record of 5mmol")
+			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(5.0))
+			Expect(glucoseRange.Records).To(Equal(1))
+			Expect(glucoseRange.Minutes).To(Equal(0))
+			Expect(glucoseRange.Variance).To(Equal(0.0))
+
+			By("adding 1 record of 10mmol")
+			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(15.0))
+			Expect(glucoseRange.Records).To(Equal(2))
+			Expect(glucoseRange.Minutes).To(Equal(0))
+			Expect(glucoseRange.Variance).To(Equal(0.0))
+		})
+
 		It("range.Update", func() {
 			glucoseRange := Range{}
 			datum := NewGlucoseWithValue(continuous.Type, now, 5)
 
 			By("adding 5 minutes of 5mmol")
 			glucoseRange.Update(datum)
-			Expect(glucoseRange.Glucose).To(Equal(5.0 * 5.0))
+			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
@@ -50,7 +82,7 @@ var _ = Describe("Glucose", func() {
 			By("adding 1 record of 5mmol")
 			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
 			glucoseRange.Update(datum)
-			Expect(glucoseRange.Glucose).To(Equal(5.0))
+			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(0))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
@@ -58,7 +90,7 @@ var _ = Describe("Glucose", func() {
 			By("adding 1 record of 10mmol")
 			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
 			glucoseRange.Update(datum)
-			Expect(glucoseRange.Glucose).To(Equal(15.0))
+			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
@@ -406,75 +438,6 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(8.0 / 12.0))
 		})
 
-		It("ranges.Finalize with minutes <70% of a day", func() {
-			glucoseRanges := GlucoseRanges{
-				Total: Range{
-					Minutes: 60 * 16,
-					Records: 100,
-					Percent: 1.0,
-				},
-				VeryLow: Range{
-					Minutes: 60 * 1,
-					Records: 10,
-					Percent: 1.0,
-				},
-				Low: Range{
-					Minutes: 60 * 2,
-					Records: 20,
-					Percent: 1.0,
-				},
-				Target: Range{
-					Minutes: 60 * 3,
-					Records: 30,
-					Percent: 1.0,
-				},
-				High: Range{
-					Minutes: 60 * 4,
-					Records: 40,
-					Percent: 1.0,
-				},
-				VeryHigh: Range{
-					Minutes: 60 * 5,
-					Records: 50,
-					Percent: 1.0,
-				},
-				ExtremeHigh: Range{
-					Minutes: 60 * 6,
-					Records: 60,
-					Percent: 1.0,
-				},
-				AnyLow: Range{
-					Minutes: 60 * 7,
-					Records: 70,
-					Percent: 1.0,
-				},
-				AnyHigh: Range{
-					Minutes: 70 * 8,
-					Records: 80,
-					Percent: 1.0,
-				},
-			}
-
-			ts := time.Now()
-			s := CalcState{
-				Final:              false,
-				FirstData:          ts.Add(-time.Minute * 60 * 12),
-				LastData:           ts,
-				LastRecordDuration: 5,
-			}
-			glucoseRanges.Finalize(s, 1)
-
-			Expect(glucoseRanges.Total.Percent).To(Equal(16.0 / 24.0))
-			Expect(glucoseRanges.VeryLow.Percent).To(BeZero())
-			Expect(glucoseRanges.Low.Percent).To(BeZero())
-			Expect(glucoseRanges.Target.Percent).To(BeZero())
-			Expect(glucoseRanges.High.Percent).To(BeZero())
-			Expect(glucoseRanges.VeryHigh.Percent).To(BeZero())
-			Expect(glucoseRanges.ExtremeHigh.Percent).To(BeZero())
-			Expect(glucoseRanges.AnyLow.Percent).To(BeZero())
-			Expect(glucoseRanges.AnyHigh.Percent).To(BeZero())
-		})
-
 		It("ranges.Finalize with no minutes", func() {
 			glucoseRanges := GlucoseRanges{
 				Total: Range{
@@ -617,25 +580,26 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
 		})
 
-		It("With a smbg value in a cgm bucket", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
+		// we no longer check this
+		//It("With a smbg value in a cgm bucket", func() {
+		//	datumTime := bucketTime.Add(5 * time.Minute)
+		//	userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
+		//	bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
+		//
+		//	err = userBucket.Update(bgmDatum)
+		//	Expect(err).To(HaveOccurred())
+		//	Expect(err).To(MatchError("record for cgm calculation is of invald type smbg"))
+		//})
 
-			err = userBucket.Update(bgmDatum)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("record for cgm calculation is of invald type smbg"))
-		})
-
-		It("With a cbg value in a bgm bucket", func() {
-			datumTime := bucketTime.Add(5 * time.Minute)
-			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
-			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
-
-			err = userBucket.Update(cgmDatum)
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(MatchError("record for bgm calculation is of invald type cbg"))
-		})
+		//It("With a cbg value in a bgm bucket", func() {
+		//	datumTime := bucketTime.Add(5 * time.Minute)
+		//	userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
+		//	cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
+		//
+		//	err = userBucket.Update(cgmDatum)
+		//	Expect(err).To(HaveOccurred())
+		//	Expect(err).To(MatchError("record for bgm calculation is of invald type cbg"))
+		//})
 
 		It("With two values in a range", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
@@ -895,18 +859,18 @@ var _ = Describe("Glucose", func() {
 			period.Finalize(1)
 
 			// data is generated at 100% per range
-			Expect(period.VeryHigh.Percent).To(Equal(0.0))
-			Expect(period.AnyLow.Percent).To(Equal(0.0))
-			Expect(period.AnyHigh.Percent).To(Equal(0.0))
-			Expect(period.Target.Percent).To(Equal(0.0))
-			Expect(period.Low.Percent).To(Equal(0.0))
-			Expect(period.High.Percent).To(Equal(0.0))
-			Expect(period.VeryLow.Percent).To(Equal(0.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(0.0))
+			Expect(period.VeryHigh.Percent).To(Equal(1.0))
+			Expect(period.AnyLow.Percent).To(Equal(1.0))
+			Expect(period.AnyHigh.Percent).To(Equal(1.0))
+			Expect(period.Target.Percent).To(Equal(1.0))
+			Expect(period.Low.Percent).To(Equal(1.0))
+			Expect(period.High.Percent).To(Equal(1.0))
+			Expect(period.VeryLow.Percent).To(Equal(1.0))
+			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 16.0))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
-			Expect(period.GlucoseManagementIndicator).To(Equal(0.0))
+			Expect(period.GlucoseManagementIndicator).To(Equal(5.5))
 
 			// we only validate these are set here, as this requires more specific validation
 			Expect(period.StandardDeviation).ToNot(Equal(0.0))
@@ -925,18 +889,18 @@ var _ = Describe("Glucose", func() {
 			period.Finalize(7)
 
 			// data is generated at 100% per range
-			Expect(period.VeryHigh.Percent).To(Equal(0.0))
-			Expect(period.AnyLow.Percent).To(Equal(0.0))
-			Expect(period.AnyHigh.Percent).To(Equal(0.0))
-			Expect(period.Target.Percent).To(Equal(0.0))
-			Expect(period.Low.Percent).To(Equal(0.0))
-			Expect(period.High.Percent).To(Equal(0.0))
-			Expect(period.VeryLow.Percent).To(Equal(0.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(0.0))
+			Expect(period.VeryHigh.Percent).To(Equal(1.0))
+			Expect(period.AnyLow.Percent).To(Equal(1.0))
+			Expect(period.AnyHigh.Percent).To(Equal(1.0))
+			Expect(period.Target.Percent).To(Equal(1.0))
+			Expect(period.Low.Percent).To(Equal(1.0))
+			Expect(period.High.Percent).To(Equal(1.0))
+			Expect(period.VeryLow.Percent).To(Equal(1.0))
+			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 23.0 / 7))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
-			Expect(period.GlucoseManagementIndicator).To(Equal(0.0))
+			Expect(period.GlucoseManagementIndicator).To(Equal(5.5))
 
 			// we only validate these are set here, as this requires more specific validation
 			Expect(period.StandardDeviation).ToNot(Equal(0.0))

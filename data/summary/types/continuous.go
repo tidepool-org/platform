@@ -137,9 +137,9 @@ func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cur
 			return err
 		}
 
-		if bucket.Time.Compare(previousBucketTime) <= 0 {
-			return fmt.Errorf("bucket with date %s is before or equal to the last added bucket with date %s, "+
-				"buckets must be in order and unique", bucket.Time, previousBucketTime)
+		if !previousBucketTime.IsZero() && bucket.Time.Compare(previousBucketTime) >= 0 {
+			return fmt.Errorf("bucket with date %s is equal or later than to the last added bucket with date %s, "+
+				"buckets must be in reverse order and unique", bucket.Time, previousBucketTime)
 		}
 		previousBucketTime = bucket.Time
 

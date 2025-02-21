@@ -115,28 +115,32 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 }
 
 func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets *mongo.Cursor) (count int, err error) {
-	bucket := types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
-
-	firstBucketTime := time.Time{}
-	nextDay := time.Time{}
+	tomorrow := time.Time{}
+	previousBucketTime := time.Time{}
 
 	for buckets.Next(ctx) {
+		bucket := types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
 		if err = buckets.Decode(&bucket); err != nil {
 			return 0, err
 		}
 
-		if firstBucketTime.IsZero() {
-			firstBucketTime = bucket.Time
-			nextDay = bucket.Time
+		if !previousBucketTime.IsZero() && bucket.Time.Compare(previousBucketTime) >= 0 {
+			return 0, fmt.Errorf("bucket with date %s is equal or later than to the last added bucket with date %s, "+
+				"buckets must be in reverse order and unique", bucket.Time, previousBucketTime)
+		}
+		previousBucketTime = bucket.Time
+
+		if tomorrow.IsZero() {
+			tomorrow = bucket.Time
 		}
 
 		// if before or equal to nextDay
-		if bucket.Time.Compare(nextDay) <= 0 && bucket.Data.Realtime.Records > 0 {
+		if bucket.Time.Compare(tomorrow) <= 0 && bucket.Data.Realtime.Records > 0 {
 			count += 1
 
-			// set nextDay to the day before today, but in the same offset as the first bucket for day counting
-			nextDay = time.Date(bucket.Time.Year(), bucket.Time.Month(), bucket.Time.Day()-1,
-				firstBucketTime.Hour(), firstBucketTime.Minute(), firstBucketTime.Second(), firstBucketTime.Nanosecond(), firstBucketTime.Location())
+			// set tomorrow, but in the original hour/minute/second as the first bucket for day counting
+			tomorrow = time.Date(bucket.Time.Year(), bucket.Time.Month(), bucket.Time.Day()-1,
+				tomorrow.Hour(), tomorrow.Minute(), tomorrow.Second(), tomorrow.Nanosecond(), tomorrow.Location())
 		}
 	}
 

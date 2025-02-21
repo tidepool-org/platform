@@ -118,6 +118,11 @@ func (r *Buckets[PB, B]) TrimExcessBuckets(ctx context.Context, userId string) e
 		return err
 	}
 
+	// we have no buckets
+	if bucket == nil {
+		return nil
+	}
+
 	oldestTimeToKeep := bucket.Time.Add(-time.Hour * types.HoursAgoToKeep)
 
 	selector := bson.M{
@@ -178,11 +183,11 @@ func (r *Buckets[PB, B]) getOne(ctx context.Context, userId string, sort int) (*
 }
 
 func (r *Buckets[PB, B]) GetNewest(ctx context.Context, userId string) (*types.Bucket[PB, B], error) {
-	return r.getOne(ctx, userId, 1)
+	return r.getOne(ctx, userId, -1)
 }
 
 func (r *Buckets[PB, B]) GetOldest(ctx context.Context, userId string) (*types.Bucket[PB, B], error) {
-	return r.getOne(ctx, userId, -1)
+	return r.getOne(ctx, userId, 1)
 }
 
 func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string) (time.Time, error) {

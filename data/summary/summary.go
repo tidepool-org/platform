@@ -221,6 +221,10 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		return nil, err
 	}
 
+	if result == nil {
+		return nil, err
+	}
+
 	return result.(*types.Summary[PP, PB, P, B]), err
 }
 

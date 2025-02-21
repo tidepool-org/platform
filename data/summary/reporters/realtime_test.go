@@ -99,8 +99,8 @@ var _ = Describe("Reporters", func() {
 		})
 
 		It("with a week of realtime data, with a non-utc, non-dst timezone", func() {
-			loc1 := time.FixedZone("suffering", 12*3600)
-			loc2 := time.FixedZone("pain", 12*3600)
+			loc1 := time.FixedZone("moon", 12*3600)
+			loc2 := time.FixedZone("venus", 12*3600)
 			lastWeekInNZ := time.Now().In(loc2)
 
 			endTime := time.Date(lastWeekInNZ.Year(), lastWeekInNZ.Month(), lastWeekInNZ.Day(), 23, 59, 59, 0, loc2)
@@ -116,12 +116,12 @@ var _ = Describe("Reporters", func() {
 
 			count, err := realtimeReporter.GetNumberOfDaysWithRealtimeData(ctx, bucketsCursor)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(count).To(Equal(3))
+			Expect(count).To(Equal(7))
 		})
 
 		It("with a week of realtime data, with a non-utc, dst timezone", func() {
-			loc1 := time.FixedZone("suffering", 12*3600)
-			loc2 := time.FixedZone("pain", 13*3600)
+			loc1 := time.FixedZone("mars", 12*3600)
+			loc2 := time.FixedZone("neptune", 13*3600)
 			lastWeekInNZ := time.Now().In(loc2)
 
 			endTime := time.Date(lastWeekInNZ.Year(), lastWeekInNZ.Month(), lastWeekInNZ.Day(), 23, 59, 59, 0, loc2)
@@ -137,12 +137,12 @@ var _ = Describe("Reporters", func() {
 
 			count, err := realtimeReporter.GetNumberOfDaysWithRealtimeData(ctx, bucketsCursor)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(count).To(Equal(3))
+			Expect(count).To(Equal(7))
 		})
 
 		It("with a week of realtime data, with a non-utc, dst timezone backwards", func() {
-			loc1 := time.FixedZone("pain", 13*3600)
-			loc2 := time.FixedZone("sadness", 12*3600)
+			loc1 := time.FixedZone("pluto", 13*3600)
+			loc2 := time.FixedZone("mercury", 12*3600)
 
 			lastWeekInNZ := time.Now().In(loc2)
 
@@ -159,7 +159,7 @@ var _ = Describe("Reporters", func() {
 
 			count, err := realtimeReporter.GetNumberOfDaysWithRealtimeData(ctx, bucketsCursor)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(count).To(Equal(3))
+			Expect(count).To(Equal(7))
 		})
 	})
 

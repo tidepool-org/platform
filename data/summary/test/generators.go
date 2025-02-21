@@ -346,15 +346,15 @@ func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTim
 	return dataSetData
 }
 
-//func DatumToWriteModel(d []data.Datum) []mongo.WriteModel {
-//	w := make([]mongo.WriteModel, len(d))
-//
-//	for i := 0; i < len(d); i++ {
-//		w[i] = mongo.NewInsertOneModel().SetDocument(d)
-//	}
-//
-//	return w
-//}
+func SliceToInsertWriteModel[T any](d []T) []mongo.WriteModel {
+	w := make([]mongo.WriteModel, len(d))
+
+	for i := 0; i < len(d); i++ {
+		w[i] = mongo.NewInsertOneModel().SetDocument(d[i])
+	}
+
+	return w
+}
 
 func NewDataSet(userID string, typ string) *upload.Upload {
 	var deviceId = "SummaryTestDevice"

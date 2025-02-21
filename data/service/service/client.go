@@ -78,10 +78,10 @@ func (c *Client) GetMigratableUserIDs(ctx context.Context, t string, pagination 
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error) {
+func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, *types.ContinuousBucket, types.ContinuousStats, types.ContinuousBucket], error) {
+func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }

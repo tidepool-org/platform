@@ -333,20 +333,14 @@ func (p *GlucosePeriod) Finalize(days int) {
 	}
 	p.GlucoseRanges.Finalize(p.state, days)
 
-	// if we have no records or minutes
 	if p.Total.Minutes != 0 {
+		// if we have minutes
 		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
-
-		// we only add GMI if cgm use >70%
-		if p.Total.Percent > 0.7 {
-			p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
-		} else {
-			p.GlucoseManagementIndicator = 0
-		}
-
+		p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
 		p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
 		p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
 	} else if p.Total.Records != 0 {
+		// if we have only records
 		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
 	}
 
@@ -381,9 +375,9 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 			return err
 		}
 
-		if bucket.Time.Compare(previousBucketTime) <= 0 {
-			return fmt.Errorf("bucket with date %s is before or equal to the last added bucket with date %s, "+
-				"buckets must be in order and unique", bucket.Time, previousBucketTime)
+		if !previousBucketTime.IsZero() && bucket.Time.Compare(previousBucketTime) >= 0 {
+			return fmt.Errorf("bucket with date %s is equal or later than the last added bucket with date %s, "+
+				"buckets must be in reverse order and unique", bucket.Time, previousBucketTime)
 		}
 		previousBucketTime = bucket.Time
 

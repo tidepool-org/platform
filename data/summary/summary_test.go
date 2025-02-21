@@ -1,8 +1,10 @@
-package types_test
+package summary_test
 
 import (
 	"context"
 	"time"
+
+	"github.com/tidepool-org/platform/data/summary"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
-	"github.com/tidepool-org/platform/data/summary"
 	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
 	. "github.com/tidepool-org/platform/data/summary/test"
 	. "github.com/tidepool-org/platform/data/summary/types"
