@@ -18,19 +18,19 @@ import (
 // MongoDB collection.
 type lastCommunicationsRepo structuredmongo.Repository
 
-func (r *lastCommunicationsRepo) RecordReceivedDeviceData(ctx context.Context,
+func (l *lastCommunicationsRepo) RecordReceivedDeviceData(ctx context.Context,
 	lastComm alerts.LastCommunication) error {
 
 	opts := options.Update().SetUpsert(true)
-	_, err := r.UpdateOne(ctx, r.filter(lastComm), bson.M{"$set": lastComm}, opts)
+	_, err := l.UpdateOne(ctx, l.filter(lastComm), bson.M{"$set": lastComm}, opts)
 	if err != nil {
 		return fmt.Errorf("upserting alerts.LastCommunication: %w", err)
 	}
 	return nil
 }
 
-func (r *lastCommunicationsRepo) EnsureIndexes() error {
-	repo := structuredmongo.Repository(*r)
+func (l *lastCommunicationsRepo) EnsureIndexes() error {
+	repo := structuredmongo.Repository(*l)
 	return (&repo).CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
 			Keys: bson.D{
@@ -50,14 +50,14 @@ func (r *lastCommunicationsRepo) EnsureIndexes() error {
 	})
 }
 
-func (r *lastCommunicationsRepo) filter(lastComm alerts.LastCommunication) map[string]any {
+func (l *lastCommunicationsRepo) filter(lastComm alerts.LastCommunication) map[string]any {
 	return map[string]any{
 		"userId":    lastComm.UserID,
 		"dataSetId": lastComm.DataSetID,
 	}
 }
 
-func (r *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
+func (l *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
 	[]alerts.LastCommunication, error) {
 
 	start := time.Now().Add(-alerts.MinimumNoCommunicationDelay)
@@ -65,7 +65,7 @@ func (r *lastCommunicationsRepo) OverdueCommunications(ctx context.Context) (
 		"lastReceivedDeviceData": bson.M{"$lte": start},
 	}
 	findOptions := options.Find().SetSort(bson.D{{Key: "lastReceivedDeviceData", Value: 1}})
-	cursor, err := r.Find(ctx, selector, findOptions)
+	cursor, err := l.Find(ctx, selector, findOptions)
 	if err != nil {
 		return nil, errors.Wrapf(err, "Unable to list overdue records")
 	}
