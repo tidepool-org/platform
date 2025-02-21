@@ -3,8 +3,6 @@ package service
 import (
 	"context"
 
-	"github.com/kelseyhightower/envconfig"
-
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
@@ -82,7 +80,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAlertsClient(); err != nil {
 		return err
 	}
-	if err := s.initializePusher(); err != nil {
+	if err := s.initializeAlertsPusher(); err != nil {
 		return err
 	}
 	if err := s.initializePermissionClient(); err != nil {
@@ -410,22 +408,10 @@ func (s *Service) initializeAlertsClient() error {
 	return nil
 }
 
-func (s *Service) initializePusher() error {
+func (s *Service) initializeAlertsPusher() error {
 	var err error
-
-	apns2Config := &struct {
-		SigningKey []byte `envconfig:"TIDEPOOL_TASK_SERVICE_PUSHER_APNS_SIGNING_KEY"`
-		KeyID      string `envconfig:"TIDEPOOL_TASK_SERVICE_PUSHER_APNS_KEY_ID"`
-		BundleID   string `envconfig:"TIDEPOOL_TASK_SERVICE_PUSHER_APNS_BUNDLE_ID"`
-		TeamID     string `envconfig:"TIDEPOOL_TASK_SERVICE_PUSHER_APNS_TEAM_ID"`
-	}{}
-	if err := envconfig.Process("", apns2Config); err != nil {
-		return errors.Wrap(err, "Unable to process APNs pusher config")
-	}
-
 	var pusher events.Pusher
-	pusher, err = push.NewAPNSPusherFromKeyData(apns2Config.SigningKey, apns2Config.KeyID,
-		apns2Config.TeamID, apns2Config.BundleID)
+	pusher, err = alerts.NewPusher()
 	if err != nil {
 		s.Logger().WithError(err).Warn("falling back to logging of push notifications")
 		pusher = push.NewLogPusher(s.Logger())

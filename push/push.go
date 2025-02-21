@@ -34,51 +34,12 @@ type APNSPusher struct {
 	clientMu sync.Mutex
 }
 
-// NewAPNSPusher creates a Pusher for sending device notifications via Apple's
-// APNs.
+// NewAPNSPusher creates an APNSPusher for sending device notifications via Apple's APNs.
 func NewAPNSPusher(client APNS2Client, bundleID string) *APNSPusher {
 	return &APNSPusher{
 		BundleID: bundleID,
 		client:   client,
 	}
-}
-
-// NewAPNSPusherFromKeyData creates an APNSPusher for sending device
-// notifications via Apple's APNs.
-//
-// The signingKey is the raw token signing key received from Apple (.p8 file
-// containing PEM-encoded private key), along with its respective team id, key
-// id, and application bundle id.
-//
-// https://developer.apple.com/documentation/usernotifications/sending-notification-requests-to-apns
-func NewAPNSPusherFromKeyData(signingKey []byte, keyID, teamID, bundleID string) (*APNSPusher, error) {
-	if len(signingKey) == 0 {
-		return nil, errors.New("Unable to build APNSPusher: APNs signing key is blank")
-	}
-
-	if bundleID == "" {
-		return nil, errors.New("Unable to build APNSPusher: bundleID is blank")
-	}
-
-	if keyID == "" {
-		return nil, errors.New("Unable to build APNSPusher: keyID is blank")
-	}
-
-	if teamID == "" {
-		return nil, errors.New("Unable to build APNSPusher: teamID is blank")
-	}
-
-	authKey, err := token.AuthKeyFromBytes(signingKey)
-	if err != nil {
-		return nil, err
-	}
-	token := &token.Token{
-		AuthKey: authKey,
-		KeyID:   keyID,
-		TeamID:  teamID,
-	}
-	client := &apns2Client{Client: apns2.NewTokenClient(token)}
-	return NewAPNSPusher(client, bundleID), nil
 }
 
 func (p *APNSPusher) Push(ctx context.Context, deviceToken *devicetokens.DeviceToken,
@@ -144,6 +105,19 @@ type APNS2Client interface {
 // apns2Client adapts the apns2.Client to APNS2Client so it can be replaced for testing.
 type apns2Client struct {
 	*apns2.Client
+}
+
+func NewAPNS2Client(signingKey []byte, keyID, teamID string) (*apns2Client, error) {
+	authKey, err := token.AuthKeyFromBytes(signingKey)
+	if err != nil {
+		return nil, err
+	}
+	token := &token.Token{
+		AuthKey: authKey,
+		KeyID:   keyID,
+		TeamID:  teamID,
+	}
+	return &apns2Client{apns2.NewTokenClient(token)}, nil
 }
 
 func (c apns2Client) Development() APNS2Client {

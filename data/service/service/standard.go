@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/IBM/sarama"
-	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
@@ -47,7 +46,7 @@ type Standard struct {
 	dataClient                *Client
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
-	pusher                    dataEvents.Pusher
+	alertsPusher              dataEvents.Pusher
 	userEventsHandler         events.Runner
 	alertsEventsHandler       events.Runner
 	api                       *api.Standard
@@ -95,7 +94,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeSaramaLogger(); err != nil {
 		return err
 	}
-	if err := s.initializePusher(); err != nil {
+	if err := s.initializeAlertsPusher(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
@@ -451,27 +450,15 @@ func (s *Standard) initializeSaramaLogger() error {
 	return nil
 }
 
-func (s *Standard) initializePusher() error {
+func (s *Standard) initializeAlertsPusher() error {
 	var err error
-
-	apns2Config := &struct {
-		SigningKey []byte `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_SIGNING_KEY"`
-		KeyID      string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_KEY_ID"`
-		BundleID   string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_BUNDLE_ID"`
-		TeamID     string `envconfig:"TIDEPOOL_DATA_SERVICE_PUSHER_APNS_TEAM_ID"`
-	}{}
-	if err := envconfig.Process("", apns2Config); err != nil {
-		return errors.Wrap(err, "Unable to process APNs pusher config")
-	}
-
 	var pusher dataEvents.Pusher
-	pusher, err = push.NewAPNSPusherFromKeyData(apns2Config.SigningKey, apns2Config.KeyID,
-		apns2Config.TeamID, apns2Config.BundleID)
+	pusher, err = alerts.NewPusher()
 	if err != nil {
-		s.Logger().WithError(err).Warn("falling back to logging of push notifications")
+		s.Logger().WithError(err).Warn("falling back to logging of alerts push notifications")
 		pusher = push.NewLogPusher(s.Logger())
 	}
-	s.pusher = pusher
+	s.alertsPusher = pusher
 
 	return nil
 }
@@ -508,7 +495,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		DeviceTokens:       s.AuthClient(),
 		Logger:             s.Logger(),
 		Permissions:        s.PermissionClient(),
-		Pusher:             s.pusher,
+		Pusher:             s.alertsPusher,
 		LastCommunications: dataEvents.NewLastCommunicationRecorder(lastCommunicationsRepo),
 		TokensProvider:     s.AuthClient(),
 	}

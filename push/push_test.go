@@ -49,50 +49,6 @@ func testDeps() (context.Context, *APNSPusher, *pushTestDeps) {
 }
 
 var _ = Describe("APNSPusher", func() {
-	Describe("NewAPNSPusherFromKeyData", func() {
-		It("errors if key data is empty or blank", func() {
-			_, err := NewAPNSPusherFromKeyData([]byte(""), "key", "team", "bundle")
-			Expect(err).To(MatchError(ContainSubstring("APNs signing key is blank")))
-
-			_, err = NewAPNSPusherFromKeyData(nil, "key", "team", "bundle")
-			Expect(err).To(MatchError(ContainSubstring("APNs signing key is blank")))
-		})
-
-		It("errors if key data is invalid", func() {
-			_, err := NewAPNSPusherFromKeyData([]byte("foo"), "key", "team", "bundle")
-			Expect(err).To(MatchError(ContainSubstring("AuthKey must be a valid .p8 PEM file")))
-		})
-
-		It("errors if bundleID is blank", func() {
-			_, err := NewAPNSPusherFromKeyData([]byte("hi"), "key", "team", "")
-			Expect(err).To(MatchError(ContainSubstring("bundleID is blank")))
-		})
-
-		It("errors if teamID is blank", func() {
-			_, err := NewAPNSPusherFromKeyData([]byte("hi"), "key", "", "bundle")
-			Expect(err).To(MatchError(ContainSubstring("teamID is blank")))
-		})
-
-		It("errors if keyID is blank", func() {
-			_, err := NewAPNSPusherFromKeyData([]byte("hi"), "", "team", "bundle")
-			Expect(err).To(MatchError(ContainSubstring("keyID is blank")))
-		})
-
-		It("succeeds", func() {
-			// random private key for testing
-			data := []byte(`-----BEGIN PRIVATE KEY-----
-MIG2AgEAMBAGByqGSM49AgEGBSuBBAAiBIGeMIGbAgEBBDDNrXT9ZRWPUAAg38Qi
-Z553y7sGqOgMxUCG36eCIcRCy1QiTJBgGDxIhWvkE8Sx4N6hZANiAATrsRyRXLa0
-Tgczq8tmFomMP212HdkPF3gFEl/CkqGHUodR2EdZBW1zVcmuLjIN4zvqVVXMJm/U
-eHZz9xAZ95y3irAfkMuOD/Bw88UYvhKnipOHBeS8BwqyfFQ+NRB6xYU=
------END PRIVATE KEY-----
-`)
-			pusher, err := NewAPNSPusherFromKeyData(data, "key", "team", "bundle")
-			Expect(err).To(Succeed())
-			Expect(pusher).ToNot(Equal(nil))
-		})
-	})
-
 	Describe("Push", func() {
 		It("requires an Apple token", func() {
 			ctx, pusher, deps := testDeps()

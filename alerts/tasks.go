@@ -6,12 +6,10 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/push"
 	"github.com/tidepool-org/platform/task"
 )
 
@@ -200,18 +198,5 @@ func (r *CarePartnerRunner) pushNotifications(ctx context.Context,
 				notification.Sent(time.Now())
 			}
 		}
-	}
-}
-
-// Pusher is a service-agnostic interface for sending push notifications.
-type Pusher interface {
-	// Push a notification to a device.
-	Push(context.Context, *devicetokens.DeviceToken, *push.Notification) error
-}
-
-// ToPushNotification converts Notification to push.Notification.
-func ToPushNotification(notification *Notification) *push.Notification {
-	return &push.Notification{
-		Message: notification.Message,
 	}
 }
