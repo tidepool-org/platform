@@ -57,7 +57,13 @@ func ScheduleNextExecution(tsk *task.Task) {
 }
 
 func GetCadence(data map[string]interface{}) *time.Duration {
-	cadence := data["cadence"].(string)
+	if data == nil {
+		return nil
+	}
+	cadence, ok := data["cadence"].(string)
+	if !ok {
+		return nil
+	}
 	parsed, err := time.ParseDuration(cadence)
 	if err != nil {
 		return nil
