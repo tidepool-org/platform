@@ -29,3 +29,4 @@ _tmp
 # Development
 .gvm_local
 .idea
+*.code-workspace
