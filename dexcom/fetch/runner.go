@@ -274,9 +274,10 @@ func (t *TaskRunner) getDataSource() error {
 }
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
-	update := dataSource.NewUpdate()
-	update.DataSetIDs = pointer.FromStringArray(append(pointer.ToStringArray(t.dataSource.DataSetIDs), *dataSet.UploadID))
-	return t.updateDataSource(update)
+	if !t.dataSource.AddDataSetID(*dataSet.UploadID) {
+		return nil
+	}
+	return t.updateDataSource(&dataSource.Update{DataSetIDs: t.dataSource.DataSetIDs})
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {

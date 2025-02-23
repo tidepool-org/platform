@@ -3,6 +3,7 @@ package source_test
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,7 +18,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -504,8 +504,8 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						valid := metadataTest.RandomMetadata()
-						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = valid
 						expectedDatum.Metadata = valid
 					},
 				),
@@ -615,9 +615,9 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata invalid",
 					func(datum *dataSource.Create) {
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
 				Entry("metadata valid",
 					func(datum *dataSource.Create) {},
@@ -628,13 +628,13 @@ var _ = Describe("Source", func() {
 						datum.ProviderName = nil
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.ProviderExternalID = pointer.FromString("")
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
 			)
 		})
@@ -725,8 +725,8 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := metadataTest.RandomMetadata()
-						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = metadataTest.NewObjectFromMetadataMap(valid, test.ObjectFormatJSON)
 						expectedDatum.Metadata = valid
 					},
 				),
@@ -1040,9 +1040,9 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata invalid",
 					func(datum *dataSource.Update) {
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
 				Entry("metadata valid",
 					func(datum *dataSource.Update) {},
@@ -1189,7 +1189,7 @@ var _ = Describe("Source", func() {
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = pointer.FromString("")
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
@@ -1198,7 +1198,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
@@ -1255,7 +1255,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns false when metdata is not nil", func() {
-				datum.Metadata = metadataTest.RandomMetadata()
+				datum.Metadata = metadataTest.RandomMetadataMap()
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
@@ -1427,8 +1427,8 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := metadataTest.RandomMetadata()
-						object["metadata"] = metadataTest.NewObjectFromMetadata(valid, test.ObjectFormatJSON)
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = metadataTest.NewObjectFromMetadataMap(valid, test.ObjectFormatJSON)
 						expectedDatum.Metadata = valid
 					},
 				),
@@ -1900,9 +1900,9 @@ var _ = Describe("Source", func() {
 				),
 				Entry("metadata invalid",
 					func(datum *dataSource.Source) {
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
 				Entry("metadata valid",
 					func(datum *dataSource.Source) {},
@@ -2110,7 +2110,7 @@ var _ = Describe("Source", func() {
 						datum.ProviderSessionID = pointer.FromString("")
 						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = nil
-						datum.Metadata = metadata.MetadataFromMap(map[string]any{})
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
@@ -2126,7 +2126,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/metadata"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),

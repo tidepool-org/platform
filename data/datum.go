@@ -18,6 +18,7 @@ type Datum interface {
 	IdentityFields() ([]string, error)
 
 	GetOrigin() *origin.Origin
+	SetOrigin(origin *origin.Origin)
 	GetPayload() *metadata.Metadata
 
 	GetType() string
@@ -55,6 +56,12 @@ func (d Data) SetActive(active bool) {
 	}
 }
 
+func (d Data) SetOrigin(origin *origin.Origin) {
+	for _, datum := range d {
+		datum.SetOrigin(origin)
+	}
+}
+
 func (d Data) SetModifiedTime(modifiedTime *time.Time) {
 	for _, datum := range d {
 		datum.SetModifiedTime(modifiedTime)
@@ -73,9 +80,11 @@ type Provenance struct {
 	// ByUserID the userId of the user submitting the data.
 	//
 	// This is a std Tidepool user id.
-	ByUserID string `json:"byUserID,omitempty" bson:"byUserID,omitempty"`
+	ByUserID *string `json:"byUserID,omitempty" bson:"byUserID,omitempty"`
 	// SourceIP address from the HTTP request submitting the data.
-	SourceIP string `json:"sourceIP" bson:"sourceIP"`
+	SourceIP *string `json:"sourceIP,omitempty" bson:"sourceIP,omitempty"`
+	// Reference to raw data
+	DataRaw *DataRawReference `json:"dataRaw,omitempty" bson:"dataRaw,omitempty"`
 }
 
 func ParseProvenance(parser structure.ObjectParser) *Provenance {
@@ -95,10 +104,30 @@ func (p *Provenance) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("clientID"); ptr != nil {
 		p.ClientID = *ptr
 	}
-	if ptr := parser.String("byUserID"); ptr != nil {
-		p.ByUserID = *ptr
+	p.ByUserID = parser.String("byUserID")
+	p.SourceIP = parser.String("sourceIP")
+	p.DataRaw = ParseDataRawReference(parser.WithReferenceObjectParser("dataRaw"))
+}
+
+type DataRawReference struct {
+	ID        string `json:"id,omitempty"`
+	Reference any    `json:"reference,omitempty"`
+}
+
+func ParseDataRawReference(parser structure.ObjectParser) *DataRawReference {
+	if !parser.Exists() {
+		return nil
 	}
-	if ptr := parser.String("sourceIP"); ptr != nil {
-		p.SourceIP = *ptr
+	datum := &DataRawReference{}
+	parser.Parse(datum)
+	return datum
+}
+
+func (d *DataRawReference) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("id"); ptr != nil {
+		d.ID = *ptr
+	}
+	if ptr := parser.Interface("reference"); ptr != nil {
+		d.Reference = *ptr
 	}
 }

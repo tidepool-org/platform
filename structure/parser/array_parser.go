@@ -205,16 +205,24 @@ func (a *Array) Time(reference int, layout string) *time.Time {
 		return nil
 	}
 
-	stringValue, ok := rawValue.(string)
-	if !ok {
-		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotTime(rawValue))
-		return nil
-	}
+	timeValue, timeValueOk := rawValue.(time.Time)
+	if !timeValueOk {
+		if timeProvider, timeProviderOk := rawValue.(timeProvider); timeProviderOk {
+			timeValue = timeProvider.Time()
+		} else {
+			stringValue, stringValueOk := rawValue.(string)
+			if !stringValueOk {
+				a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotTime(rawValue))
+				return nil
+			}
 
-	timeValue, err := time.Parse(layout, stringValue)
-	if err != nil {
-		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-		return nil
+			var err error
+			timeValue, err = time.Parse(layout, stringValue)
+			if err != nil {
+				a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
+				return nil
+			}
+		}
 	}
 
 	return &timeValue

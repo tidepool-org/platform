@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/origin"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
@@ -34,6 +35,8 @@ type Datum struct {
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	SetOriginInvocations                 int
+	SetOriginInputs                      []*origin.Origin
 	GetTimeInvocations                   int
 	GetTimeOutputs                       []*time.Time
 	GetTimeZoneOffsetInvocations         int
@@ -135,6 +138,12 @@ func (d *Datum) GetOrigin() *origin.Origin {
 	output := d.GetOriginOutputs[0]
 	d.GetOriginOutputs = d.GetOriginOutputs[1:]
 	return output
+}
+
+func (d *Datum) SetOrigin(origin *origin.Origin) {
+	d.SetOriginInvocations++
+
+	d.SetOriginInputs = append(d.SetOriginInputs, origin)
 }
 
 func (d *Datum) GetType() string {
@@ -293,8 +302,8 @@ func (d *Datum) GetUploadID() *string {
 func RandomProvenance() *data.Provenance {
 	datum := data.NewProvenance()
 	datum.ClientID = test.RandomString()
-	datum.ByUserID = userTest.RandomID()
-	datum.SourceIP = netTest.RandomFQDN()
+	datum.ByUserID = pointer.FromString(userTest.RandomID())
+	datum.SourceIP = pointer.FromString(netTest.RandomFQDN())
 	return datum
 }
 

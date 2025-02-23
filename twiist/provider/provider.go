@@ -107,7 +107,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		}
 	}
 
-	lgr.WithField("dataSourceId", *src.ID)
+	ctx, lgr = log.ContextAndLoggerWithField(ctx, "dataSourceId", *src.ID)
 
 	// Unexpected association with provider session id, clean up
 	if src.ProviderSessionID != nil {
@@ -169,10 +169,10 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 		State: pointer.FromString(dataSource.StateDisconnected),
 	}
 	for _, src := range srcs {
-		srcLogger := lgr.WithField("dataSourceId", *src.ID)
+		srcCtx, srcLgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", *src.ID) // TODO: Update both context and logger
 
-		if _, err = p.dataSourceClient.Update(ctx, *src.ID, nil, srcUpdate); err != nil {
-			srcLogger.WithError(err).Error("unable to update data source while deleting provider session")
+		if _, err = p.dataSourceClient.Update(srcCtx, *src.ID, nil, srcUpdate); err != nil {
+			srcLgr.WithError(err).Error("unable to update data source while deleting provider session")
 		}
 	}
 

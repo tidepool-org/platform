@@ -51,7 +51,7 @@ func (o *Object) NotEmpty() structure.Object {
 	return o
 }
 
-func (o *Object) LengthLessThanOrEqualTo(limit int) structure.Object {
+func (o *Object) SizeLessThanOrEqualTo(limit int) structure.Object {
 	if o.value != nil && len(*o.value) > 0 {
 		if bites, err := json.Marshal(*o.value); err != nil {
 			o.base.ReportError(ErrorValueNotSerializable())

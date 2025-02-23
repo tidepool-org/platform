@@ -260,6 +260,10 @@ func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
 }
 
+func (b *Base) SetOrigin(origin *origin.Origin) {
+	b.Origin = origin
+}
+
 func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }

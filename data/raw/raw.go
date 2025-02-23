@@ -63,7 +63,7 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 }
 
 func (c *Create) Validate(validator structure.Validator) {
-	validator.Object("metadata", &c.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", c.MediaType).Using(net.MediaTypeValidator)
 }
@@ -146,7 +146,7 @@ func (r *Raw) Validate(validator structure.Validator) {
 	validator.String("id", &r.ID).Using(IDValidator)
 	validator.String("userId", &r.UserID).Using(user.IDValidator)
 	validator.String("dataSetId", &r.DataSetID).Using(data.SetIDValidator)
-	validator.Object("metadata", &r.Metadata).LengthLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &r.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 	validator.String("digestMD5", &r.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
 	validator.String("mediaType", &r.MediaType).Using(net.MediaTypeValidator)
 	validator.Int("size", &r.Size).GreaterThanOrEqualTo(0)

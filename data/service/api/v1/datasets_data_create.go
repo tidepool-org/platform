@@ -156,17 +156,17 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 	}
 
 	if xff := SelectXFF(req.Header); xff != "" {
-		provenance.SourceIP = xff
+		provenance.SourceIP = &xff
 	} else {
 		if host, _, err := net.SplitHostPort(req.RemoteAddr); err != nil {
 			lgr.WithError(err).Warnf("Unable to read SourceIP from request for provenance")
 		} else {
-			provenance.SourceIP = host
+			provenance.SourceIP = &host
 		}
 	}
 
 	if userID := authDetails.UserID(); userID != "" {
-		provenance.ByUserID = userID
+		provenance.ByUserID = &userID
 	} else if shouldHaveJWT(authDetails) && !authDetails.IsService() {
 		lgr.Warnf("Unable to read the request's userID for provenance: userID is empty")
 	}

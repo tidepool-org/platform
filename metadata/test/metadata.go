@@ -5,6 +5,25 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
+func RandomMetadataMap() map[string]any {
+	return RandomMetadata().AsMap()
+}
+
+func CloneMetadataMap(datum map[string]any) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	clone := map[string]any{}
+	for key, value := range datum {
+		clone[key] = value
+	}
+	return clone
+}
+
+func NewObjectFromMetadataMap(datum map[string]any, objectFormat test.ObjectFormat) map[string]interface{} {
+	return datum
+}
+
 func RandomMetadata() *metadata.Metadata {
 	datum := metadata.NewMetadata()
 	for index := test.RandomIntFromRange(1, 3); index > 0; index-- {

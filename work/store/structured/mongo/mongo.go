@@ -87,7 +87,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		pipeline = append(pipeline, bson.M{"$match": bson.M{"type": bson.M{"$in": types}}})
 	}
 
-	// Match either pending available OR processsing/failing with serial id (to remove pending available with matching serial id later)
+	// Match either pending available OR processing/failing with serial id (to remove pending available with matching serial id later)
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"state": "pending", "processingAvailableTime": bson.M{"$lte": now}},
 		bson.M{"state": "processing", "serialId": bson.M{"$exists": true}},
@@ -101,7 +101,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	// Group all documents by serial id
 	pipeline = append(pipeline, bson.M{"$group": bson.M{"_id": "$serialId", "documents": bson.M{"$push": "$$ROOT"}}})
 
-	// Match any without a serial id or any serial id that does not have one in state processsing or failing with retry time in future
+	// Match any without a serial id or any serial id that does not have one in state processing or failing with retry time in future
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"_id": bson.M{"$exists": false}},
 		bson.M{"$nor": bson.A{

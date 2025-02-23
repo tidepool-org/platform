@@ -358,14 +358,14 @@ type coordinatorProcessingUpdater struct {
 
 func (c *coordinatorProcessingUpdater) ProcessingUpdate(ctx context.Context, processingUpdate work.ProcessingUpdate) (*work.Work, error) {
 	condition := &request.Condition{Revision: &c.Identifier.Revision}
-	update := &work.Update{
+	workUpdate := &work.Update{
 		State:            work.StateProcessing,
 		ProcessingUpdate: &processingUpdate,
 	}
-	wrk, err := c.WorkClient.Update(context.WithoutCancel(ctx), c.Identifier.ID, condition, update)
+	wrk, err := c.WorkClient.Update(context.WithoutCancel(ctx), c.Identifier.ID, condition, workUpdate)
 	if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update work when processing")
-	} else {
+	} else if wrk != nil {
 		c.Identifier.Revision = wrk.Revision
 	}
 	return wrk, err

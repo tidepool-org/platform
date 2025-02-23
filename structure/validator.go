@@ -211,7 +211,7 @@ type Object interface {
 	Empty() Object
 	NotEmpty() Object
 
-	LengthLessThanOrEqualTo(limit int) Object
+	SizeLessThanOrEqualTo(limit int) Object
 
 	Using(usingFunc ObjectUsingFunc) Object
 }
