@@ -1,339 +1,353 @@
 package types_test
 
 import (
-	"fmt"
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/summary/types"
-	summaryTest "github.com/tidepool-org/platform/data/summary/types/test"
-	"github.com/tidepool-org/platform/data/test"
+	. "github.com/tidepool-org/platform/data/summary/test"
+	. "github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/pointer"
-	userTest "github.com/tidepool-org/platform/user/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 )
 
-func NewDataSetDataRealtime(typ string, startTime time.Time, hours float64, realtime bool) []data.Datum {
-	requiredRecords := int(hours * 2)
-	dataSetData := make([]data.Datum, requiredRecords)
-	deviceId := "SummaryTestDevice"
-	uploadId := test.RandomSetID()
-
-	glucoseValue := pointer.FromAny(inTargetBloodGlucose)
-
-	// generate X hours of data
-	for count := 0; count < requiredRecords; count += 1 {
-		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
-
-		datum := NewGlucose(&typ, &units, &datumTime, &deviceId, &uploadId)
-		datum.Value = glucoseValue
-
-		if realtime {
-			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
-			datum.ModifiedTime = pointer.FromAny(datumTime.Add(10 * time.Minute))
-		}
-
-		dataSetData[count] = datum
-	}
-
-	return dataSetData
-}
-
-var _ = Describe("Continuous Summary", func() {
+var _ = Describe("Continuous", func() {
 	var userId string
-	var datumTime time.Time
+	var bucketTime time.Time
 	var err error
-	var dataSetContinuousData []data.Datum
 
 	BeforeEach(func() {
-		userId = userTest.RandomID()
-		datumTime = time.Now().UTC().Truncate(24 * time.Hour)
+		now := time.Now()
+		userId = "1234"
+		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC)
 	})
 
-	Context("Create Summary", func() {
-		It("Correctly initializes a summary", func() {
-			summary := types.Create[*types.ContinuousStats](userId)
-			Expect(summary).ToNot(BeNil())
-			Expect(summary.Type).To(Equal("continuous"))
+	Context("Range", func() {
+		// range has no direct functions for continuous, but if it does, tests here.
+	})
 
-			Expect(summary.UserID).To(Equal(userId))
-			Expect(summary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+	Context("Ranges", func() {
+		It("ranges.Add", func() {
+			firstRange := ContinuousRanges{
+				Realtime: Range{
+					Records: 5,
+				},
+				Deferred: Range{
+					Records: 10,
+				},
+				Total: Range{
+					Records: 12,
+				},
+			}
+
+			secondRange := ContinuousRanges{
+				Realtime: Range{
+					Records: 3,
+				},
+				Deferred: Range{
+					Records: 11,
+				},
+				Total: Range{
+					Records: 13,
+				},
+			}
+			firstRange.Add(&secondRange)
+
+			Expect(firstRange.Realtime.Records).To(Equal(8))
+			Expect(firstRange.Deferred.Records).To(Equal(21))
+			Expect(firstRange.Total.Records).To(Equal(25))
+		})
+
+		It("ranges.Finalize", func() {
+			continuousRange := ContinuousRanges{
+				Realtime: Range{
+					Records: 5,
+				},
+				Deferred: Range{
+					Records: 10,
+				},
+				Total: Range{
+					Records: 10,
+				},
+			}
+
+			continuousRange.Finalize()
+
+			Expect(continuousRange.Realtime.Percent).To(Equal(0.5))
+			Expect(continuousRange.Deferred.Percent).To(Equal(1.0))
+
 		})
 	})
 
-	Context("Summary calculations requiring datasets", func() {
-		var userContinuousSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+	Context("bucket.Update", func() {
+		var userBucket *Bucket[*ContinuousBucket, ContinuousBucket]
+		var continuousDatum data.Datum
 
-		Context("AddData Bucket Testing", func() {
-			It("Returns correct hour count when given 2 weeks", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 336, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
+		It("With a realtime value", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			continuousDatum = NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(336))
-			})
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correct hour count when given 1 week", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 168, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.Time).To(Equal(bucketTime))
+			Expect(userBucket.Data.Total.Records).To(Equal(1))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(0))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(1))
+			Expect(userBucket.IsModified()).To(BeTrue())
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(168))
-			})
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correct hour count when given 3 weeks", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 504, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(504))
-			})
-
-			It("Returns correct records when given >60d of data", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 5, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(1*time.Hour), 1, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(24*60*time.Hour), 1, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userContinuousSummary.Stats.Buckets[0].Data.TotalRecords).To(Equal(2))
-
-				for i := 0; i < len(userContinuousSummary.Stats.Buckets); i++ {
-					Expect(userContinuousSummary.Stats.Buckets[i]).ToNot(BeNil())
-				}
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(1440))
-			})
-
-			It("Returns correct records when given data a full 60d ahead of previous data", func() {
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 1, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-				Expect(err).ToNot(HaveOccurred())
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime.Add(24*62*time.Hour), 1, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-				Expect(err).ToNot(HaveOccurred())
-
-				for i := 0; i < len(userContinuousSummary.Stats.Buckets); i++ {
-					Expect(userContinuousSummary.Stats.Buckets[i]).ToNot(BeNil())
-				}
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(1))
-			})
-
-			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
-				var lastRecordTime time.Time
-				var hourlyStatsLen int
-				var newHourlyStatsLen int
-				secondDatumTime := datumTime.AddDate(0, 0, 15)
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 168, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(168))
-
-				By("check total glucose and dates for first batch")
-				hourlyStatsLen = len(userContinuousSummary.Stats.Buckets)
-				for i := hourlyStatsLen - 1; i >= 0; i-- {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
-
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(hourlyStatsLen-i-1) - 30*time.Minute)
-					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, secondDatumTime, 168, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(528)) // 22 days
-
-				By("check total glucose and dates for second batch")
-				newHourlyStatsLen = len(userContinuousSummary.Stats.Buckets)
-				expectedNewHourlyStatsLenStart := newHourlyStatsLen - len(dataSetContinuousData)/2 // 2 per day, need length without the gap
-				for i := newHourlyStatsLen - 1; i >= expectedNewHourlyStatsLenStart; i-- {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
-
-					lastRecordTime = secondDatumTime.Add(-time.Hour*time.Duration(newHourlyStatsLen-i-1) - 30*time.Minute)
-					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-
-				By("check total glucose and dates for gap")
-				expectedGapEnd := newHourlyStatsLen - expectedNewHourlyStatsLenStart
-				for i := hourlyStatsLen; i <= expectedGapEnd; i++ {
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(0))
-				}
-			})
-
-			It("Returns correct stats when given multiple batches in a day", func() {
-				var incrementalDatumTime time.Time
-				var lastRecordTime time.Time
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-
-				dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, datumTime, 144, true)
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(144))
-
-				for i := 1; i <= 24; i++ {
-					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
-					dataSetContinuousData = NewDataSetDataRealtime(continuous.Type, incrementalDatumTime, 1, true)
-
-					err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousData)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(144 + i))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
-				}
-
-				for i := 144; i < len(userContinuousSummary.Stats.Buckets); i++ {
-					f := fmt.Sprintf("hour %d", i)
-					By(f)
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
-
-					lastRecordTime = datumTime.Add(time.Hour*time.Duration(i-143) - time.Minute*30)
-					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-			})
-
-			It("Returns correct hourly stats for days uploaded in reverse", func() {
-				var lastRecordTime time.Time
-				userContinuousSummary = types.Create[*types.ContinuousStats](userId)
-
-				// Datasets use +1 and +2 offset to allow for checking via iteration
-				dataSetContinuousDataOne := NewDataSetDataRealtime(continuous.Type, datumTime.AddDate(0, 0, -2), 24, true)
-				dataSetContinuousDataTwo := NewDataSetDataRealtime(continuous.Type, datumTime.AddDate(0, 0, -1), 24, true)
-				dataSetContinuousDataThree := NewDataSetDataRealtime(continuous.Type, datumTime, 24, true)
-
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataThree)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataTwo)
-				Expect(err).ToNot(HaveOccurred())
-
-				err = types.AddData(&userContinuousSummary.Stats.Buckets, dataSetContinuousDataOne)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(len(userContinuousSummary.Stats.Buckets)).To(Equal(72))
-
-				for i := len(userContinuousSummary.Stats.Buckets) - 1; i >= 0; i-- {
-					By(fmt.Sprintf("hour %d", i+1))
-					Expect(userContinuousSummary.Stats.Buckets[i].Data.TotalRecords).To(Equal(2))
-
-					lastRecordTime = datumTime.Add(-time.Hour*time.Duration(len(userContinuousSummary.Stats.Buckets)-i-1) - 30*time.Minute)
-					Expect(userContinuousSummary.Stats.Buckets[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-			})
+			Expect(userBucket.Data.Total.Records).To(Equal(2))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(0))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(2))
 		})
 
-		Context("GetPatientsWithRealtimeData", func() {
+		It("With a deferred value", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			continuousDatum = NewDeferredGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
 
-			It("with some realtime data", func() {
-				endTime := time.Now().UTC().Truncate(time.Hour * 24)
-				startTime := endTime.AddDate(0, 0, -30)
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
 
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 15)
+			Expect(userBucket.LastData).To(Equal(datumTime))
+			Expect(userBucket.FirstData).To(Equal(datumTime))
+			Expect(userBucket.Time).To(Equal(bucketTime))
+			Expect(userBucket.Data.Total.Records).To(Equal(1))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(1))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(0))
+			Expect(userBucket.IsModified()).To(BeTrue())
 
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
-				Expect(count).To(Equal(15))
-			})
+			err = userBucket.Update(continuousDatum)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("with no realtime data", func() {
-				endTime := time.Now().UTC().Truncate(time.Hour * 24)
-				startTime := endTime.AddDate(0, 0, -30)
+			Expect(userBucket.Data.Total.Records).To(Equal(2))
+			Expect(userBucket.Data.Deferred.Records).To(Equal(2))
+			Expect(userBucket.Data.Realtime.Records).To(Equal(0))
 
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 0)
+		})
+	})
 
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
-				Expect(count).To(Equal(0))
-			})
+	Context("period", func() {
+		var period ContinuousPeriod
 
-			It("with 60d of realtime data", func() {
-				endTime := time.Now().UTC().Truncate(time.Hour * 24)
-				startTime := endTime.AddDate(0, 0, -30)
+		It("Add single bucket to an empty period", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			period = ContinuousPeriod{}
 
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId, startTime, endTime, 60)
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
 
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+			err = period.Update(bucketOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Realtime.Records).To(Equal(1))
+			Expect(period.Deferred.Records).To(Equal(0))
+			Expect(period.Total.Records).To(Equal(1))
+		})
+
+		It("Add duplicate buckets to a period", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			period = ContinuousPeriod{}
+
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = period.Update(bucketOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Realtime.Records).To(Equal(1))
+
+			err = period.Update(bucketOne)
+			Expect(err).To(HaveOccurred())
+			Expect(period.Realtime.Records).To(Equal(1))
+		})
+
+		It("Add two buckets to an empty period on 2 different hours", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			period = ContinuousPeriod{}
+
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
+
+			bucketTwo := NewBucket[*ContinuousBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
+			err = bucketTwo.Update(NewRealtimeGlucose(continuous.Type, datumTime.Add(time.Hour), InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = period.Update(bucketOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Realtime.Records).To(Equal(1))
+			Expect(period.Deferred.Records).To(Equal(0))
+			Expect(period.Total.Records).To(Equal(1))
+
+			err = period.Update(bucketTwo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Realtime.Records).To(Equal(2))
+			Expect(period.Deferred.Records).To(Equal(0))
+			Expect(period.Total.Records).To(Equal(2))
+		})
+
+		It("Finalize a 1d period", func() {
+			period = ContinuousPeriod{}
+			buckets := CreateContinuousBuckets(bucketTime, 24, 12)
+
+			for i := range buckets {
+				err = period.Update(buckets[i])
 				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(30))
+			}
+
+			period.Finalize(1)
+
+			// data is generated at 100% per range
+			Expect(period.Realtime.Percent).To(Equal(1.0))
+			Expect(period.Deferred.Percent).To(Equal(1.0))
+			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
+		})
+
+		It("Finalize a 7d period", func() {
+			period = ContinuousPeriod{}
+			buckets := CreateContinuousBuckets(bucketTime, 24*5, 12)
+
+			for i := range buckets {
+				err = period.Update(buckets[i])
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			period.Finalize(7)
+
+			// data is generated at 100% per range
+			Expect(period.Realtime.Percent).To(Equal(1.0))
+			Expect(period.Deferred.Percent).To(Equal(1.0))
+			Expect(period.AverageDailyRecords).To(Equal((12.0 * 24.0) * 5 / 7))
+		})
+
+		It("Update a finalized period", func() {
+			period = ContinuousPeriod{}
+			period.Finalize(14)
+
+			bucket := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			err = period.Update(bucket)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("ContinuousPeriods", func() {
+		var logger log.Logger
+		var ctx context.Context
+
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+		})
+
+		It("Init", func() {
+			s := ContinuousPeriods{}
+			s.Init()
+
+			Expect(s).ToNot(BeNil())
+		})
+
+		Context("Update", func() {
+
+			It("Update 1d", func() {
+				s := ContinuousPeriods{}
+				s.Init()
+
+				buckets := CreateContinuousBuckets(bucketTime, 24, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24))
+				Expect(s["14d"].Total.Records).To(Equal(24))
+				Expect(s["30d"].Total.Records).To(Equal(24))
 			})
 
-			It("with a week of realtime data, with a non-utc, non-dst timezone", func() {
-				loc1 := time.FixedZone("suffering", 12*3600)
-				loc2 := time.FixedZone("pain", 12*3600)
-				lastWeekInNZ := time.Now().In(loc2)
+			It("Update 2d", func() {
+				s := ContinuousPeriods{}
+				s.Init()
 
-				endTime := time.Date(lastWeekInNZ.Year(), lastWeekInNZ.Month(), lastWeekInNZ.Day(), 23, 59, 59, 0, loc2)
-				startTime := endTime.AddDate(0, 0, -2)
-				startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc1)
-
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId,
-					startTime.AddDate(0, 0, -2),
-					endTime.AddDate(0, 0, 2),
-					7)
-
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+				buckets := CreateContinuousBuckets(bucketTime, 48, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(3))
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 2))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 2))
 			})
 
-			It("with a week of realtime data, with a non-utc, dst timezone", func() {
-				loc1 := time.FixedZone("suffering", 12*3600)
-				loc2 := time.FixedZone("pain", 13*3600)
-				lastWeekInNZ := time.Now().In(loc2)
+			It("Update 7d", func() {
+				s := ContinuousPeriods{}
+				s.Init()
 
-				endTime := time.Date(lastWeekInNZ.Year(), lastWeekInNZ.Month(), lastWeekInNZ.Day(), 23, 59, 59, 0, loc2)
-				startTime := endTime.AddDate(0, 0, -2)
-				startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc1)
-
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId,
-					startTime.AddDate(0, 0, -2),
-					endTime.AddDate(0, 0, 2),
-					7)
-
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+				buckets := CreateContinuousBuckets(bucketTime, 24*7, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(3))
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 7))
 			})
 
-			It("with a week of realtime data, with a non-utc, dst timezone backwards", func() {
-				loc1 := time.FixedZone("pain", 13*3600)
-				loc2 := time.FixedZone("sadness", 12*3600)
+			It("Update 14d", func() {
+				s := ContinuousPeriods{}
+				s.Init()
 
-				lastWeekInNZ := time.Now().In(loc2)
-
-				endTime := time.Date(lastWeekInNZ.Year(), lastWeekInNZ.Month(), lastWeekInNZ.Day(), 23, 59, 59, 0, loc2)
-				startTime := endTime.AddDate(0, 0, -2)
-				startTime = time.Date(startTime.Year(), startTime.Month(), startTime.Day(), 0, 0, 0, 0, loc1)
-
-				userContinuousSummary = summaryTest.NewRealtimeSummary(userId,
-					startTime.AddDate(0, 0, -2),
-					endTime.AddDate(0, 0, 2),
-					7)
-
-				count := userContinuousSummary.Stats.GetNumberOfDaysWithRealtimeData(startTime, endTime)
+				buckets := CreateContinuousBuckets(bucketTime, 24*14, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(count).To(Equal(3))
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 14))
+			})
+
+			It("Update 30d", func() {
+				s := ContinuousPeriods{}
+				s.Init()
+
+				buckets := CreateContinuousBuckets(bucketTime, 24*30, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s).To(Not(BeNil()))
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
+				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
+				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
 		})
 	})
