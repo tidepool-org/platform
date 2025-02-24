@@ -25,6 +25,8 @@ func NewOAuthToken() *OAuthToken {
 	return &OAuthToken{}
 }
 
+// TODO: Does IDToken get returned from refresh token workflow? If not, it will erase any existing IDToken.
+
 func NewOAuthTokenFromRawToken(rawToken *oauth2.Token) (*OAuthToken, error) {
 	if rawToken == nil {
 		return nil, errors.New("raw token is missing")
