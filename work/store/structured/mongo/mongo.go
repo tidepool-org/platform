@@ -106,7 +106,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		bson.M{"_id": bson.M{"$exists": false}},
 		bson.M{"$nor": bson.A{
 			bson.M{"documents.0.state": "processing"},
-			bson.M{"documents.0.state": "failing", "documents.0.failingRetryTime": bson.M{"gt": now}},
+			bson.M{"documents.0.state": "failing", "documents.0.failingRetryTime": bson.M{"$gt": now}},
 		}},
 	}}})
 
