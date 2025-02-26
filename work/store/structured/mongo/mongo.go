@@ -74,8 +74,6 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "poll", poll)
 
 	now := time.Now()
-	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("Poll") }()
-
 	types := slices.Sorted(maps.Keys(poll.TypeQuantities))
 
 	var pipeline bson.A
@@ -155,10 +153,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	// Only need _id and revision
 	pipeline = append(pipeline, bson.M{"$project": bson.M{"_id": true, "revision": true}})
 
-	lgr.WithField("pipeline", pipeline).Debug("Poll")
-
 	// Perform aggregation
-
 	cursor, err := s.Aggregate(ctx, pipeline)
 	lgr = lgr.WithError(err)
 	if err != nil {
@@ -220,12 +215,20 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	if err != nil {
 		lgr.Error("Unable to list poll work")
 		return nil, errors.Wrap(err, "unable to list poll work")
-	} else if documents == nil {
+	} else if documents == nil || len(documents) == 0 {
 		return nil, nil
 	}
 
-	lgr = lgr.WithField("count", len(documents))
-	return documents.AsWork(), nil
+	wrks := documents.AsWork()
+
+	ids := make([]string, len(wrks))
+	for index, wrk := range wrks {
+		ids[index] = wrk.ID
+	}
+
+	lgr.WithFields(log.Fields{"ids": ids, "duration": time.Since(now) / time.Microsecond}).Debug("Poll")
+
+	return wrks, nil
 }
 
 func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.Pagination) ([]*work.Work, error) {
