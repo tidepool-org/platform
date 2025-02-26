@@ -104,7 +104,7 @@ func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
 }
 
 type GlucoseRanges struct {
-	Total       Range `json:"cgmUse" bson:"cgmUse"`
+	Total       Range `json:"total" bson:"total"`
 	VeryLow     Range `json:"inVeryLow" bson:"inVeryLow"`
 	Low         Range `json:"inLow" bson:"inLow"`
 	Target      Range `json:"inTarget" bson:"inTarget"`
@@ -245,16 +245,16 @@ func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) 
 
 type GlucosePeriod struct {
 	GlucoseRanges `json:",inline" bson:",inline"`
-	HoursWithData int `json:"hoursWithData,omitempty" bson:"HWD,omitempty"`
-	DaysWithData  int `json:"daysWithData,omitempty" bson:"DWD,omitempty"`
+	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
+	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
 
-	AverageGlucose             float64 `json:"averageGlucoseMmol,omitempty" bson:"AG,omitempty"`
-	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator,omitempty" bson:"GMI,omitempty"`
+	AverageGlucose             float64 `json:"averageGlucoseMmol,omitempty" bson:"averageGlucoseMmol,omitempty"`
+	GlucoseManagementIndicator float64 `json:"glucoseManagementIndicator,omitempty" bson:"glucoseManagementIndicator,omitempty"`
 
-	CoefficientOfVariation float64 `json:"coefficientOfVariation,omitempty" bson:"CV,omitempty"`
-	StandardDeviation      float64 `json:"standardDeviation,omitempty" bson:"SD,omitempty"`
+	CoefficientOfVariation float64 `json:"coefficientOfVariation,omitempty" bson:"coefficientOfVariation,omitempty"`
+	StandardDeviation      float64 `json:"standardDeviation,omitempty" bson:"standardDeviation,omitempty"`
 
-	AverageDailyRecords float64 `json:"averageDailyRecords,omitempty" bson:"ADR,omitempty,omitempty"`
+	AverageDailyRecords float64 `json:"averageDailyRecords,omitempty" bson:"averageDailyRecords,omitempty,omitempty"`
 
 	Delta *GlucosePeriod `json:"delta,omitempty" bson:"delta,omitempty"`
 
