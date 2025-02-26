@@ -159,6 +159,7 @@ github.com/golang/snappy
 # github.com/google/go-cmp v0.6.0
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
+github.com/google/go-cmp/cmp/cmpopts
 github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
@@ -589,25 +590,6 @@ golang.org/x/tools/internal/stdlib
 golang.org/x/tools/internal/typeparams
 golang.org/x/tools/internal/typesinternal
 golang.org/x/tools/internal/versions
-# gonum.org/v1/gonum v0.15.1
-## explicit; go 1.22
-gonum.org/v1/gonum/blas
-gonum.org/v1/gonum/blas/blas64
-gonum.org/v1/gonum/blas/cblas128
-gonum.org/v1/gonum/blas/gonum
-gonum.org/v1/gonum/floats
-gonum.org/v1/gonum/floats/scalar
-gonum.org/v1/gonum/internal/asm/c128
-gonum.org/v1/gonum/internal/asm/c64
-gonum.org/v1/gonum/internal/asm/f32
-gonum.org/v1/gonum/internal/asm/f64
-gonum.org/v1/gonum/internal/cmplx64
-gonum.org/v1/gonum/internal/math32
-gonum.org/v1/gonum/lapack
-gonum.org/v1/gonum/lapack/gonum
-gonum.org/v1/gonum/lapack/lapack64
-gonum.org/v1/gonum/mat
-gonum.org/v1/gonum/stat
 # google.golang.org/genproto/googleapis/api v0.0.0-20250106144421-5f5ef82da422
 ## explicit; go 1.22
 google.golang.org/genproto/googleapis/api

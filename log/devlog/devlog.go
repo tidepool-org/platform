@@ -83,7 +83,7 @@ func (s *serializer) Serialize(fields log.Fields) error {
 	if len(pairs) > 0 {
 		rest = ": " + strings.Join(pairs, " ")
 	}
-	s.Logger.Printf(msgTime + " " + msgLevel + " " + msg + rest)
+	s.Logger.Printf("%s %s %s%s", msgTime, msgLevel, msg, rest)
 	return nil
 }
 

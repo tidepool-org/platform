@@ -28,6 +28,7 @@ type Store struct {
 func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
+	bucketsRepository := s.NewBucketsRepository()
 	alertsRepository := s.NewAlertsRepository()
 
 	if err := dataRepository.EnsureIndexes(); err != nil {
@@ -35,6 +36,10 @@ func (s *Store) EnsureIndexes() error {
 	}
 
 	if err := summaryRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	if err := bucketsRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
@@ -59,6 +64,12 @@ func (s *Store) NewDataRepository() store.DataRepository {
 func (s *Store) NewSummaryRepository() store.SummaryRepository {
 	return &SummaryRepository{
 		s.Store.GetRepository("summary"),
+	}
+}
+
+func (s *Store) NewBucketsRepository() store.BucketsRepository {
+	return &BucketsRepository{
+		s.Store.GetRepository("buckets"),
 	}
 }
 
