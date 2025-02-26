@@ -204,7 +204,20 @@ func (r *Summaries[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reaso
 	}
 
 	userSummary.SetOutdated(reason)
-	err = r.ReplaceSummary(ctx, userSummary)
+	opts := options.Update().SetUpsert(true)
+	selector := bson.M{
+		"userId": userSummary.UserID,
+		"type":   userSummary.Type,
+	}
+
+	update := bson.M{
+		"$set":      bson.M{"dates.outdatedSince": userSummary.Dates.OutdatedSince},
+		"$addToSet": bson.M{"dates.outdatedReason": reason},
+		//"$setOnInsert": userSummary,
+	}
+
+	_, err = r.UpdateOne(ctx, selector, update, opts)
+
 	if err != nil {
 		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userId, userSummary.Type, err)
 	}
