@@ -33,6 +33,14 @@ import (
 const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Base", func() {
+	Context("constants", func() {
+		It("legacy time format", func() {
+			Expect(types.LegacyTimeFormat).To(Equal("2006-01-02T15:04:05.000Z"))
+		})
+		It("device time format", func() {
+			Expect(types.DeviceTimeFormat).To(Equal("2006-01-02T15:04:05"))
+		})
+	})
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
 			typ := dataTypesTest.NewType()
@@ -904,6 +912,7 @@ var _ = Describe("Base", func() {
 	})
 
 	Context("with new, initialized datum", func() {
+		const currentVersion = types.IdentityFieldsVersion
 		var datumBase *types.Base
 		var datum data.Datum
 
@@ -915,57 +924,84 @@ var _ = Describe("Base", func() {
 		Context("IdentityFields", func() {
 			It("returns error if user id is missing", func() {
 				datumBase.UserID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
 				datumBase.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is missing", func() {
 				datumBase.DeviceID = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("device id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if device id is empty", func() {
 				datumBase.DeviceID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("device id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is missing", func() {
 				datumBase.Time = nil
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("time is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if time is empty", func() {
 				datumBase.Time = pointer.FromTime(time.Time{})
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("time is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if type is empty", func() {
 				datumBase.Type = ""
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).To(MatchError("type is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
+				identityFields, err := datum.IdentityFields(currentVersion)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+			})
+		})
+
+		Context("Legacy IdentityFields", func() {
+			var datum *types.Base
+
+			BeforeEach(func() {
+				datum = dataTypesTest.RandomBase()
+			})
+
+			It("returns the expected empty identity fields", func() {
+				legacyIDFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+				Expect(err).To(BeNil())
+				Expect(legacyIDFields).ToNot(BeEmpty())
+				Expect(legacyIDFields).To(Equal([]string{datum.Type, *datum.DeviceID, (*datum.Time).Format(types.LegacyTimeFormat)}))
+			})
+
+			Context("AppendLegacyTimeVal", func() {
+				It("returns expected time in legacy time format", func() {
+					t, _ := time.Parse(time.RFC3339Nano, "2015-07-31T23:59:59.999Z")
+					vals := []string{}
+					var err error
+					vals, err = types.AppendLegacyTimeVal(vals, &t)
+					Expect(err).To(BeNil())
+					Expect(len(vals)).To(Equal(1))
+					Expect(vals).To(ContainElement("2015-07-31T23:59:59.999Z"))
+				})
 			})
 		})
 
