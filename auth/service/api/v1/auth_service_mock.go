@@ -10,7 +10,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	api "github.com/tidepool-org/hydrophone/client"
-
 	apple "github.com/tidepool-org/platform/apple"
 	appvalidate "github.com/tidepool-org/platform/appvalidate"
 	auth "github.com/tidepool-org/platform/auth"

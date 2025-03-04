@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"sync"
@@ -17,6 +18,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
@@ -238,8 +240,10 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 
 var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var repository dataStore.DataRepository
+	var alertsDataRepository alerts.DataRepository
 	var summaryRepository dataStore.SummaryRepository
 	var alertsRepository alerts.Repository
+	var lastCommunicationsRepository alerts.LastCommunicationsRepository
 	var logger = logTest.NewLogger()
 	var store *dataStoreMongo.Store
 
@@ -266,6 +270,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
 		var alertsCollection *mongo.Collection
+		var recordsCollection *mongo.Collection
 		var collectionsOnce sync.Once
 
 		BeforeEach(func() {
@@ -274,6 +279,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				dataSetCollection = store.GetCollection("deviceDataSets")
 				summaryCollection = store.GetCollection("summary")
 				alertsCollection = store.GetCollection("alerts")
+				recordsCollection = store.GetCollection("lastCommunications")
 			})
 		})
 
@@ -288,6 +294,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			_, err = summaryCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 			_, err = alertsCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = recordsCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 		})
 
@@ -445,14 +453,24 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			})
 		})
 
+		Context("NewLastCommunicationsRepository", func() {
+			It("returns a new repository", func() {
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
+				Expect(lastCommunicationsRepository).ToNot(BeNil())
+			})
+		})
+
 		Context("with a new repository", func() {
 			BeforeEach(func() {
 				repository = store.NewDataRepository()
 				summaryRepository = store.NewSummaryRepository()
 				alertsRepository = store.NewAlertsRepository()
+				alertsDataRepository = store.NewDataRepository()
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
 				Expect(repository).ToNot(BeNil())
 				Expect(summaryRepository).ToNot(BeNil())
 				Expect(alertsRepository).ToNot(BeNil())
+				Expect(alertsDataRepository).ToNot(BeNil())
 			})
 
 			Context("with persisted data sets", func() {
@@ -2409,13 +2427,15 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
 				testSetData := testDataSetData(testSet)
 				Expect(repository.CreateDataSetData(ctx, testSet, testSetData)).To(Succeed())
+				alertsDataRepository = store.NewDataRepository()
+				Expect(alertsDataRepository).ToNot(BeNil())
 
-				params := dataStore.AlertableParams{
+				params := alerts.GetAlertableDataParams{
 					Start:    time.Now().Add(-time.Hour),
 					UserID:   testUserID,
 					UploadID: *testSet.UploadID,
 				}
-				resp, err := repository.GetAlertableData(ctx, params)
+				resp, err := alertsDataRepository.GetAlertableData(ctx, params)
 
 				Expect(err).To(Succeed())
 				Expect(resp).ToNot(BeNil())
@@ -2427,6 +2447,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 		Context("alerts", func() {
 			BeforeEach(func() {
+				var err error
+				ctx := context.Background()
+				all := bson.D{}
+				_, err = alertsCollection.DeleteMany(ctx, all)
+				Expect(err).To(Succeed())
 				alertsRepository = store.NewAlertsRepository()
 				Expect(alertsRepository).ToNot(BeNil())
 			})
@@ -2439,8 +2464,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				ctx := context.Background()
 				filter := bson.M{}
 				if upsertDoc {
-					Expect(alertsRepository.Upsert(ctx, cfg)).
-						To(Succeed())
+					Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
 					filter["userId"] = cfg.UserID
 					filter["followedUserId"] = cfg.FollowedUserID
 				}
@@ -2463,7 +2487,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				It("updates the existing document", func() {
 					ctx, cfg, filter := prep(true)
 
-					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					cfg.Alerts.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
@@ -2471,10 +2495,72 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					res := store.GetCollection("alerts").FindOne(ctx, filter)
 					Expect(res.Err()).To(Succeed())
 					Expect(res.Decode(doc)).To(Succeed())
-					Expect(doc.Low).ToNot(BeNil())
-					Expect(doc.Low.Base.Enabled).To(Equal(true))
+					jsonOut, _ := json.Marshal(doc)
+					Expect(doc.Alerts.Low).ToNot(BeNil(), string(jsonOut))
+					Expect(doc.Alerts.Low.Base.Enabled).To(Equal(true))
 				})
 
+				It("sets userId, followedUserId, and uploadId only on creation", func() {
+					ctx, cfg, filter := prep(false)
+					cfg.UploadID = "something"
+
+					Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
+					doc := &alerts.Config{}
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(Succeed())
+					Expect(res.Decode(doc)).To(Succeed())
+					Expect(doc.UserID).To(Equal("user-id"))
+					Expect(doc.FollowedUserID).To(Equal("followed-user-id"))
+					Expect(doc.UploadID).To(Equal("something"))
+
+					testDelay := 42 * time.Minute
+					doc.Alerts.Low = &alerts.LowAlert{}
+					doc.Alerts.Low.Delay = alerts.DurationMinutes(testDelay)
+					doc.UploadID = "something else"
+					doc.UserID = "new junk"
+					doc.FollowedUserID = "this shouldn't be"
+
+					Expect(alertsRepository.Upsert(ctx, cfg)).To(Succeed())
+					res = store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(Succeed())
+					Expect(res.Decode(doc)).To(Succeed())
+					Expect(doc.UploadID).To(Equal("something"))
+					Expect(doc.FollowedUserID).To(Equal("followed-user-id"))
+					Expect(doc.UserID).To(Equal("user-id"))
+					Expect(doc.Alerts.Low.Delay.Duration()).To(Equal(testDelay))
+				})
+
+				It("updates the Config's Activity", func() {
+					ctx, cfg, filter := prep(true)
+					testSent := time.Now().Add(-3 * time.Minute)
+					testTriggered := time.Now().Add(-5 * time.Minute)
+					cfg.Alerts.Low = &alerts.LowAlert{
+						Base: alerts.Base{
+							Enabled: true,
+							// Activity: alerts.AlertActivity{
+							// 	Triggered: testTriggered,
+							// 	Sent:      testSent,
+							// 	// Resolved is unset, so it should be a zero value.
+							// },
+						},
+					}
+					cfg.Activity.Low.Sent = testSent
+					cfg.Activity.Low.Triggered = testTriggered
+
+					err := alertsRepository.Upsert(ctx, cfg)
+					Expect(err).To(Succeed())
+
+					doc := &alerts.Config{}
+					//raw := map[string]any{}
+					res := store.GetCollection("alerts").FindOne(ctx, filter)
+					Expect(res.Err()).To(Succeed())
+					Expect(res.Decode(doc)).To(Succeed())
+					Expect(doc.Alerts.Low).ToNot(BeNil())
+					Expect(doc.Alerts.Low.Base.Enabled).To(Equal(true))
+					Expect(doc.Activity.Low.Triggered).To(BeTemporally("~", testTriggered, time.Millisecond))
+					Expect(doc.Activity.Low.Sent).To(BeTemporally("~", testSent, time.Millisecond))
+					Expect(doc.Activity.Low.Resolved).To(Equal(time.Time{}))
+				})
 			})
 
 			Describe("Get", func() {
@@ -2493,20 +2579,23 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						UserID:         "879d5cb2-f70d-4b05-8d38-fb6d88ef2ea9",
 						FollowedUserID: "d2ee01db-3458-42ac-95d2-ac2fc571a21d",
 						Alerts: alerts.Alerts{
+							// DataAlerts: alerts.DataAlerts{
 							High: &alerts.HighAlert{
 								Base: alerts.Base{Enabled: true},
 							},
-						}}
+							// },
+						},
+					}
 					Expect(alertsRepository.Upsert(ctx, other)).To(Succeed())
-					cfg.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
+					cfg.Alerts.Low = &alerts.LowAlert{Base: alerts.Base{Enabled: true}}
 					err := alertsRepository.Upsert(ctx, cfg)
 					Expect(err).To(Succeed())
 
 					got, err := alertsRepository.Get(ctx, cfg)
 					Expect(err).To(Succeed())
 					Expect(got).ToNot(BeNil())
-					Expect(got.Low).ToNot(BeNil())
-					Expect(got.Low.Enabled).To(Equal(true))
+					Expect(got.Alerts.Low).ToNot(BeNil())
+					Expect(got.Alerts.Low.Enabled).To(Equal(true))
 					Expect(got.UserID).To(Equal(cfg.UserID))
 					Expect(got.FollowedUserID).To(Equal(cfg.FollowedUserID))
 				})
@@ -2523,6 +2612,70 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					Expect(res.Err()).To(MatchError(mongo.ErrNoDocuments))
 				})
 			})
+
+			Describe("List", func() {
+				It("lists only matching configs", func() {
+					ctx, cfg, _ := prep(true)
+					cfg2 := &alerts.Config{
+						FollowedUserID: "followed-user-id-2",
+						UserID:         "user-id",
+					}
+					Expect(alertsRepository.Upsert(ctx, cfg2)).To(Succeed())
+					cfg3 := &alerts.Config{
+						FollowedUserID: "followed-user-id",
+						UserID:         "user-id-2",
+					}
+					Expect(alertsRepository.Upsert(ctx, cfg3)).To(Succeed())
+
+					got, err := alertsRepository.List(ctx, cfg.FollowedUserID)
+					Expect(err).To(Succeed())
+					Expect(len(got)).To(Equal(2))
+				})
+			})
+		})
+
+		Context("LastCommunicationsRecorder", func() {
+			BeforeEach(func() {
+				lastCommunicationsRepository = store.NewLastCommunicationsRepository()
+				Expect(lastCommunicationsRepository).ToNot(BeNil())
+			})
+
+			Describe("OverdueCommunications", func() {
+				It("retrieves matching records", func() {
+					ctx := context.Background()
+					got, err := lastCommunicationsRepository.OverdueCommunications(ctx)
+					Expect(err).To(Succeed())
+					Expect(len(got)).To(Equal(0))
+				})
+
+				It("retrieves matching records2", func() {
+					ctx := context.Background()
+					testLastComm := alerts.LastCommunication{
+						UserID:                 testUserID,
+						DataSetID:              testDataSetID,
+						LastReceivedDeviceData: time.Unix(123, 456),
+					}
+					Expect(lastCommunicationsRepository.RecordReceivedDeviceData(ctx, testLastComm)).To(Succeed())
+					testLastComm2 := alerts.LastCommunication{
+						UserID:                 testUserID + "2",
+						DataSetID:              testDataSetID + "2",
+						LastReceivedDeviceData: time.Now(),
+					}
+					Expect(lastCommunicationsRepository.RecordReceivedDeviceData(ctx, testLastComm2)).To(Succeed())
+
+					got, err := lastCommunicationsRepository.OverdueCommunications(ctx)
+					Expect(err).To(Succeed())
+					Expect(len(got)).To(Equal(1))
+				})
+
+				It("is true", func() {
+					Expect(true).To(BeTrue())
+				})
+			})
 		})
 	})
 })
+
+var testUserID = mocks.TestUserID1
+
+const testDataSetID = "blah"
