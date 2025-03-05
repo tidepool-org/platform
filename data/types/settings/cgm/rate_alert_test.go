@@ -16,14 +16,6 @@ import (
 )
 
 var _ = Describe("RateAlert", func() {
-	It("RateAlertUnitsMgdLMinute is expected", func() {
-		Expect(dataTypesSettingsCgm.RateAlertUnitsMgdLMinute).To(Equal("mg/dL/minute"))
-	})
-
-	It("RateAlertUnitsMmolLMinute is expected", func() {
-		Expect(dataTypesSettingsCgm.RateAlertUnitsMmolLMinute).To(Equal("mmol/L/minute"))
-	})
-
 	It("FallAlertRateMgdLMinuteMaximum is expected", func() {
 		Expect(dataTypesSettingsCgm.FallAlertRateMgdLMinuteMaximum).To(Equal(10.0))
 	})
@@ -54,10 +46,6 @@ var _ = Describe("RateAlert", func() {
 
 	It("RiseAlertRateMmolLMinuteMinimum is expected", func() {
 		Expect(dataTypesSettingsCgm.RiseAlertRateMmolLMinuteMinimum).To(Equal(0.05551))
-	})
-
-	It("RateAlertUnits returns expected", func() {
-		Expect(dataTypesSettingsCgm.RateAlertUnits()).To(Equal([]string{"mg/dL/minute", "mmol/L/minute"}))
 	})
 
 	Context("RateAlert", func() {
@@ -135,7 +123,7 @@ var _ = Describe("RateAlert", func() {
 						datum.Units = pointer.FromString("invalid")
 						datum.Rate = pointer.FromFloat64(test.RandomFloat64())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL/minute", "mmol/L/minute"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L/minute", "mg/dL/minute"}), "/units"),
 				),
 				Entry("units mg/dL/minute; rate missing",
 					func(datum *dataTypesSettingsCgm.RateAlert) {
@@ -268,7 +256,7 @@ var _ = Describe("RateAlert", func() {
 						datum.Units = pointer.FromString("invalid")
 						datum.Rate = pointer.FromFloat64(test.RandomFloat64())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL/minute", "mmol/L/minute"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L/minute", "mg/dL/minute"}), "/units"),
 				),
 				Entry("units mg/dL/minute; rate missing",
 					func(datum *dataTypesSettingsCgm.FallAlert) {
@@ -467,7 +455,7 @@ var _ = Describe("RateAlert", func() {
 						datum.Units = pointer.FromString("invalid")
 						datum.Rate = pointer.FromFloat64(test.RandomFloat64())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mg/dL/minute", "mmol/L/minute"}), "/units"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L/minute", "mg/dL/minute"}), "/units"),
 				),
 				Entry("units mg/dL/minute; rate missing",
 					func(datum *dataTypesSettingsCgm.RiseAlert) {
