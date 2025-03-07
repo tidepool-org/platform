@@ -144,6 +144,7 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 	if strings.HasPrefix(strings.ToLower(token), "bearer ") {
 		token = token[len("bearer "):]
 	}
+	token, _ = strings.CutPrefix(token, "kc:")
 
 	if token != "" && shouldHaveJWT(authDetails) {
 		claims := &TokenClaims{}
