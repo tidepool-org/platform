@@ -277,6 +277,9 @@ func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types
 }
 
 func (r *Buckets[PB, B]) writeBuckets(ctx context.Context, buckets []mongo.WriteModel) error {
+	if len(buckets) == 0 {
+		return nil
+	}
 	opts := options.BulkWrite()
 	opts.SetOrdered(false)
 	_, err := r.BulkWrite(ctx, buckets, opts)
