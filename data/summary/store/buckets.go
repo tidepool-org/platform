@@ -256,7 +256,7 @@ func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types
 		return nil
 	}
 
-	modifiedBuckets := make([]interface{}, 0, len(buckets))
+	modifiedBuckets := make([]mongo.WriteModel, 0, len(buckets))
 	for _, v := range buckets {
 		if !v.IsModified() {
 			continue
@@ -267,15 +267,18 @@ func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types
 		if v.Type == "" {
 			return errors.New("type is missing")
 		}
-		modifiedBuckets = append(modifiedBuckets, v)
+		if v.Time.IsZero() {
+			return errors.New("time is missing")
+		}
+		modifiedBuckets = append(modifiedBuckets, mongo.NewReplaceOneModel().SetFilter(bson.M{"userId": v.UserId, "type": v.Type, "time": v.Time}).SetReplacement(v).SetUpsert(true))
 	}
 
 	return r.writeBuckets(ctx, modifiedBuckets)
 }
 
-func (r *Buckets[PB, B]) writeBuckets(ctx context.Context, buckets []interface{}) error {
-	opts := options.InsertMany()
+func (r *Buckets[PB, B]) writeBuckets(ctx context.Context, buckets []mongo.WriteModel) error {
+	opts := options.BulkWrite()
 	opts.SetOrdered(false)
-	_, err := r.InsertMany(ctx, buckets, opts)
+	_, err := r.BulkWrite(ctx, buckets, opts)
 	return err
 }
