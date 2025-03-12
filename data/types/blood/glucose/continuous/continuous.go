@@ -76,7 +76,7 @@ func (c *Continuous) Validate(validator structure.Validator) {
 
 	validator.String("trend", c.Trend).OneOf(Trends()...)
 	if trendRateUnitsValidator := validator.String("trendRateUnits", c.TrendRateUnits); c.TrendRate != nil {
-		trendRateUnitsValidator.Exists().OneOf(dataBloodGlucose.RateUnits()...)
+		trendRateUnitsValidator.OneOf(dataBloodGlucose.RateUnits()...)
 	} else {
 		trendRateUnitsValidator.NotExists()
 	}

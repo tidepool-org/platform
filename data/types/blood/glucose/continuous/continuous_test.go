@@ -407,38 +407,6 @@ var _ = Describe("Continuous", func() {
 				nil,
 				func(datum *continuous.Continuous, units *string, rateUnits *string) { datum.TrendRate = nil },
 			),
-			Entry("trend rate units missing; trend rate out of range (lower)",
-				pointer.FromString("mmol/L"),
-				nil,
-				func(datum *continuous.Continuous, units *string, rateUnits *string) {
-					datum.TrendRate = pointer.FromFloat64(-5.51)
-				},
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/trendRateUnits", NewMeta()),
-			),
-			Entry("trend rate units missing; trend rate in range (lower)",
-				pointer.FromString("mmol/L"),
-				nil,
-				func(datum *continuous.Continuous, units *string, rateUnits *string) {
-					datum.TrendRate = pointer.FromFloat64(-5.5)
-				},
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/trendRateUnits", NewMeta()),
-			),
-			Entry("trend rate units missing; trend rate in range (upper)",
-				pointer.FromString("mmol/L"),
-				nil,
-				func(datum *continuous.Continuous, units *string, rateUnits *string) {
-					datum.TrendRate = pointer.FromFloat64(5.5)
-				},
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/trendRateUnits", NewMeta()),
-			),
-			Entry("trend rate units missing; trend rate out of range (upper)",
-				pointer.FromString("mmol/L"),
-				nil,
-				func(datum *continuous.Continuous, units *string, rateUnits *string) {
-					datum.TrendRate = pointer.FromFloat64(5.51)
-				},
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/trendRateUnits", NewMeta()),
-			),
 			Entry("trend rate units invalid; trend rate missing",
 				pointer.FromString("mmol/L"),
 				pointer.FromString("invalid"),
@@ -603,7 +571,6 @@ var _ = Describe("Continuous", func() {
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/value", &types.Meta{}),
-				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/trendRateUnits", &types.Meta{}),
 				errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 86400000), "/sampleInterval", &types.Meta{}),
 			),
 		)
