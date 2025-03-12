@@ -76,6 +76,8 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	if isActivityAndActivityOnly(updatedFields) {
 		lgr.WithField("updatedFields", updatedFields).
 			Debug("alerts config is an activity update, will skip")
+		lgr.WithField("message", msg).Debug("marked")
+		session.MarkMessage(msg, "")
 		return nil
 	}
 
