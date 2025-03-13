@@ -2,7 +2,8 @@ package continuous
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	dataTypesBloodGlucose "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -17,27 +18,34 @@ const (
 	RapidFall    = "rapidFall"
 	RapidRise    = "rapidRise"
 
-	TrendRateMaximum      = 100
-	TrendRateMinimum      = -100
 	SampleIntervalMinimum = 0
 	SampleIntervalMaximum = 24 * 60 * 60 * 1000
 )
 
 func Trends() []string {
-	return []string{ConstantRate, SlowFall, SlowRise, ModerateFall, ModerateRise, RapidFall, RapidRise}
+	return []string{
+		ConstantRate,
+		SlowFall,
+		SlowRise,
+		ModerateFall,
+		ModerateRise,
+		RapidFall,
+		RapidRise,
+	}
 }
 
 type Continuous struct {
-	glucose.Glucose `bson:",inline"`
-	Trend           *string  `json:"trend,omitempty" bson:"trend,omitempty"`
-	TrendRate       *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty"`
-	SampleInterval  *int     `json:"sampleInterval,omitempty" bson:"sampleInterval,omitempty"`
-	Backfilled      *bool    `json:"backfilled,omitempty" bson:"backfilled,omitempty"`
+	dataTypesBloodGlucose.Glucose `bson:",inline"`
+	Trend                         *string  `json:"trend,omitempty" bson:"trend,omitempty"`
+	TrendRateUnits                *string  `json:"trendRateUnits,omitempty" bson:"trendRateUnits,omitempty"`
+	TrendRate                     *float64 `json:"trendRate,omitempty" bson:"trendRate,omitempty"`
+	SampleInterval                *int     `json:"sampleInterval,omitempty" bson:"sampleInterval,omitempty"`
+	Backfilled                    *bool    `json:"backfilled,omitempty" bson:"backfilled,omitempty"`
 }
 
 func New() *Continuous {
 	return &Continuous{
-		Glucose: glucose.New(Type),
+		Glucose: dataTypesBloodGlucose.New(Type),
 	}
 }
 
@@ -49,6 +57,7 @@ func (c *Continuous) Parse(parser structure.ObjectParser) {
 	c.Glucose.Parse(parser)
 
 	c.Trend = parser.String("trend")
+	c.TrendRateUnits = parser.String("trendRateUnits")
 	c.TrendRate = parser.Float64("trendRate")
 	c.SampleInterval = parser.Int("sampleInterval")
 	c.Backfilled = parser.Bool("backfilled")
@@ -66,7 +75,12 @@ func (c *Continuous) Validate(validator structure.Validator) {
 	}
 
 	validator.String("trend", c.Trend).OneOf(Trends()...)
-	validator.Float64("trendRate", c.TrendRate).InRange(TrendRateMinimum, TrendRateMaximum)
+	if trendRateUnitsValidator := validator.String("trendRateUnits", c.TrendRateUnits); c.TrendRate != nil {
+		trendRateUnitsValidator.OneOf(dataBloodGlucose.RateUnits()...)
+	} else {
+		trendRateUnitsValidator.NotExists()
+	}
+	validator.Float64("trendRate", c.TrendRate).InRange(dataBloodGlucose.ValueRangeForRateUnits(c.TrendRateUnits))
 	validator.Int("sampleInterval", c.SampleInterval).InRange(SampleIntervalMinimum, SampleIntervalMaximum)
 }
 
@@ -76,4 +90,10 @@ func (c *Continuous) Normalize(normalizer data.Normalizer) {
 	}
 
 	c.Glucose.Normalize(normalizer)
+
+	if normalizer.Origin() == structure.OriginExternal {
+		rateUnits := c.TrendRateUnits
+		c.TrendRateUnits = dataBloodGlucose.NormalizeRateUnits(rateUnits)
+		c.TrendRate = dataBloodGlucose.NormalizeValueForRateUnits(c.TrendRate, rateUnits)
+	}
 }

@@ -23,7 +23,7 @@ require (
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20250109081043-2ac7fbe5db74
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
-	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
+	github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240816214829-611531818c0f
 	github.com/tidepool-org/platform-plugin-abbott v0.0.0
 	github.com/urfave/cli v1.22.16

@@ -22,6 +22,8 @@ func Routes() []dataService.Route {
 		dataService.Put("/v1/data_sets/:dataSetId", DataSetsUpdate, serviceApi.RequireAuth),
 		dataService.Get("/v1/time", TimeGet),
 		dataService.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, serviceApi.RequireAuth),
+
+		dataService.Get("/v1/partners/:partner/sector", PartnersSector),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)
