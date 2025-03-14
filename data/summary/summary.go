@@ -117,7 +117,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Cont
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
 	result, err := store.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
-		userSummary, err := gs.GetSummary(ctx, userId)
+		userSummary, err := gs.GetSummary(sessionCtx, userId)
 		summaryType := types.GetType[PP, PB]()
 		dataTypes := types.GetDeviceDataType[PP, PB]()
 		if err != nil {
@@ -142,7 +142,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		var status *data.UserDataStatus
-		status, err = gs.dataFetcher.GetLastUpdatedForUser(ctx, userId, dataTypes, userSummary.Dates.LastUpdatedDate)
+		status, err = gs.dataFetcher.GetLastUpdatedForUser(sessionCtx, userId, dataTypes, userSummary.Dates.LastUpdatedDate)
 		if err != nil {
 			return nil, err
 		}
@@ -151,7 +151,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		if status == nil {
 			// user's data is inactive/ancient/deleted, or this summary shouldn't have been created
 			logger.Warnf("User %s has a summary, but no data within range, deleting summary", userId)
-			return nil, gs.summaries.DeleteSummary(ctx, userId)
+			return nil, gs.summaries.DeleteSummary(sessionCtx, userId)
 		}
 
 		// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
@@ -159,43 +159,45 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, summaryType)
 
 			userSummary.SetNotOutdated()
-			return userSummary, gs.summaries.ReplaceSummary(ctx, userSummary)
+			return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
 		}
 
-		if first, err := gs.buckets.ClearInvalidatedBuckets(ctx, userId, status.EarliestModified); err != nil {
-			return nil, err
-		} else if !first.IsZero() {
-			status.FirstData = first
+		if status.EarliestModified.Before(userSummary.Dates.LastData) {
+			if first, err := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userId, status.EarliestModified); err != nil {
+				return nil, err
+			} else if !first.IsZero() {
+				status.FirstData = first
+			}
 		}
 
-		cursor, err := gs.dataFetcher.GetDataRange(ctx, userId, dataTypes, status)
+		cursor, err := gs.dataFetcher.GetDataRange(sessionCtx, userId, dataTypes, status)
 		if err != nil {
 			return nil, err
 		}
-		defer cursor.Close(ctx)
+		defer cursor.Close(sessionCtx)
 
-		err = gs.UpdateBuckets(ctx, userId, summaryType, gs.cursorFactory(cursor))
-		if err != nil {
-			return nil, err
-		}
-
-		err = gs.buckets.TrimExcessBuckets(ctx, userId)
-		if err != nil {
-			return nil, err
-		}
-
-		allBuckets, err := gs.buckets.GetAllBuckets(ctx, userId)
+		err = gs.UpdateBuckets(sessionCtx, userId, summaryType, gs.cursorFactory(cursor))
 		if err != nil {
 			return nil, err
 		}
 
-		err = userSummary.Periods.Update(ctx, allBuckets)
+		err = gs.buckets.TrimExcessBuckets(sessionCtx, userId)
+		if err != nil {
+			return nil, err
+		}
+
+		allBuckets, err := gs.buckets.GetAllBuckets(sessionCtx, userId)
+		if err != nil {
+			return nil, err
+		}
+
+		err = userSummary.Periods.Update(sessionCtx, allBuckets)
 		if err != nil {
 			return nil, err
 		}
 
 		// this filters out users which may have appeared to have relevant data, but was filtered during calculation
-		totalHours, err := gs.buckets.GetTotalHours(ctx, userId)
+		totalHours, err := gs.buckets.GetTotalHours(sessionCtx, userId)
 		if err != nil {
 			return nil, err
 		}
@@ -205,14 +207,14 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			userSummary.Dates.Reset()
 			userSummary.Periods = nil
 		} else {
-			oldest, err := gs.buckets.GetOldestRecordTime(ctx, userId)
+			oldest, err := gs.buckets.GetOldestRecordTime(sessionCtx, userId)
 			if err != nil {
 				return nil, err
 			}
 			userSummary.Dates.Update(status, oldest)
 		}
 
-		err = gs.summaries.ReplaceSummary(ctx, userSummary)
+		err = gs.summaries.ReplaceSummary(sessionCtx, userSummary)
 
 		return userSummary, nil
 	})

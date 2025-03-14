@@ -391,6 +391,20 @@ func NewDataSetData(typ string, userId string, startTime time.Time, hours float6
 	return dataSetData
 }
 
+func NewDataSetDataModifiedTime(typ string, userId string, startTime time.Time, modifiedTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
+	requiredRecords := int(hours * 1)
+	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+
+	for count := 0; count < requiredRecords; count++ {
+		datumTime := startTime.Add(time.Duration(-(count + 1)) * time.Minute * 60)
+		datum := NewGlucoseWithValue(typ, datumTime, glucoseValue)
+		datum.UserID = &userId
+		datum.ModifiedTime = &modifiedTime
+		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
+	}
+	return dataSetData
+}
+
 func NewDatum(typ string) *baseDatum.Base {
 	datum := baseDatum.New(typ)
 	datum.Time = pointer.FromAny(time.Now().UTC())

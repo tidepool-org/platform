@@ -818,7 +818,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
 	if !status.LastUpdated.IsZero() {
 		selector["modifiedTime"] = bson.M{
-			"$gt": status.LastUpdated,
+			"$gte": status.LastUpdated,
 		}
 		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
 			// has blocking sort, but more selective so usually performs better.

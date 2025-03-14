@@ -2,6 +2,7 @@ package summary_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
@@ -503,5 +504,33 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(350))
+	})
+
+	It("cgm summary calc with the same data range twice, with new modifiedTime", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		hourAgo := time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
+		fmt.Println("testing duplicate range")
+
+		deviceData = NewDataSetDataModifiedTime("cbg", userId, datumTime, hourAgo, 7*24, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		cgmSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cgmSummary).ToNot(BeNil())
+
+		buckets := GetBuckets(ctx, userId, cgmBucketsStore)
+		Expect(len(buckets)).To(Equal(7 * 24))
+
+		deviceData = NewDataSetDataModifiedTime("cbg", userId, datumTime, cgmSummary.Dates.LastUpdatedDate.Add(time.Second), 5*24, 5)
+		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		cgmSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cgmSummary).ToNot(BeNil())
+
+		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
+		Expect(len(buckets)).To(Equal(7 * 24))
 	})
 })
