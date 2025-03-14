@@ -129,6 +129,12 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		// user has no usable summary for incremental update
 		if userSummary == nil {
 			userSummary = types.Create[PP, PB](userId)
+
+			// This should be/will be a No-Op, but in case the summary was deleted without deleting buckets
+			err = gs.buckets.Reset(sessionCtx, userId)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		if userSummary.Periods == nil {
