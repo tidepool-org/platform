@@ -480,6 +480,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 	for _, topic := range topics {
 		prefixedTopics = append(prefixedTopics, topicPrefix+topic)
 	}
+	commonConfig.SaramaConfig.ClientID = topicPrefix + "alerts"
 
 	alertsRepo := s.dataStore.NewAlertsRepository()
 	dataRepo := s.dataStore.NewDataRepository()
@@ -502,7 +503,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 
 	runnerCfg := dataEvents.SaramaRunnerConfig{
 		Brokers: commonConfig.KafkaBrokers,
-		GroupID: "alerts",
+		GroupID: topicPrefix + "alerts",
 		Topics:  prefixedTopics,
 		Sarama:  commonConfig.SaramaConfig,
 		MessageConsumer: &dataEvents.AlertsEventsConsumer{
