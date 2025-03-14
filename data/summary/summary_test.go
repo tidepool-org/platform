@@ -255,6 +255,9 @@ var _ = Describe("End to end summary calculations", func() {
 			},
 		}
 
+		b, err := bson.Marshal(summaries[0])
+		fmt.Println(string(b), err)
+
 		count, err := bgmStore.CreateSummaries(ctx, summaries)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(count).To(Equal(1))
@@ -509,7 +512,6 @@ var _ = Describe("End to end summary calculations", func() {
 	It("cgm summary calc with the same data range twice, with new modifiedTime", func() {
 		opts := options.BulkWrite().SetOrdered(false)
 		hourAgo := time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
-		fmt.Println("testing duplicate range")
 
 		deviceData = NewDataSetDataModifiedTime("cbg", userId, datumTime, hourAgo, 7*24, 5)
 		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)

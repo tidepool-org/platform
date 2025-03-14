@@ -7,7 +7,7 @@ import (
 )
 
 type BGMPeriods struct {
-	GlucosePeriods `json:",inline" bson:",inline"`
+	GlucosePeriods
 }
 
 func (*BGMPeriods) GetType() string {
@@ -19,11 +19,17 @@ func (*BGMPeriods) GetDeviceDataTypes() []string {
 }
 
 func (p *BGMPeriods) MarshalJSON() ([]byte, error) {
+	if p == nil {
+		return bson.Marshal(GlucosePeriods{})
+	}
 	return json.Marshal(p.GlucosePeriods)
 }
 
 func (p *BGMPeriods) MarshalBSON() ([]byte, error) {
-	return json.Marshal(p.GlucosePeriods)
+	if p == nil {
+		return bson.Marshal(GlucosePeriods{})
+	}
+	return bson.Marshal(p.GlucosePeriods)
 }
 
 func (p *BGMPeriods) UnmarshalJSON(data []byte) error {
