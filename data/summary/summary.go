@@ -139,6 +139,12 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		if userSummary.Config.SchemaVersion != types.SchemaVersion {
 			userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
 			userSummary.Dates.Reset()
+
+			// Drop all buckets for this user for a full reset
+			err = gs.buckets.Reset(sessionCtx, userId)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		var status *data.UserDataStatus

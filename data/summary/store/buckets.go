@@ -155,6 +155,16 @@ func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId str
 	return r.GetNewestRecordTime(ctx, userId)
 }
 
+func (r *Buckets[PB, B]) Reset(ctx context.Context, userId string) error {
+	selector := bson.M{
+		"userId": userId,
+		"type":   r.Type,
+	}
+
+	_, err := r.DeleteMany(ctx, selector)
+	return err
+}
+
 func (r *Buckets[PB, B]) getOne(ctx context.Context, userId string, sort int) (*types.Bucket[PB, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
