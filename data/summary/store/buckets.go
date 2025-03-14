@@ -135,16 +135,21 @@ func (r *Buckets[PB, B]) TrimExcessBuckets(ctx context.Context, userId string) e
 	return err
 }
 
-func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId string, earliestModified time.Time) (firstData time.Time, err error) {
+func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId string, earliestModified time.Time) (newFirstData time.Time, err error) {
 	selector := bson.M{
 		"userId": userId,
 		"type":   r.Type,
 		"time":   bson.M{"$gte": earliestModified},
 	}
 
-	_, err = r.DeleteMany(ctx, selector)
+	result, err := r.DeleteMany(ctx, selector)
 	if err != nil {
 		return time.Time{}, err
+	}
+
+	// If the query did not delete anything, we should return a 0 just in case this was called unconditionally.
+	if result.DeletedCount == 0 {
+		return time.Time{}, nil
 	}
 
 	return r.GetNewestRecordTime(ctx, userId)

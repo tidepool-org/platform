@@ -162,12 +162,16 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
 		}
 
+		// only attempt to invalidate buckets if there is buckets which exist in the modified range
 		if status.EarliestModified.Before(userSummary.Dates.LastData) {
-			if first, err := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userId, status.EarliestModified); err != nil {
+			if newFirstData, err := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userId, status.EarliestModified); err != nil {
 				return nil, err
-			} else if !first.IsZero() {
-				status.FirstData = first
+			} else if !newFirstData.IsZero() {
+				status.FirstData = newFirstData
 			}
+		} else {
+			// otherwise limit FirstData to previous LastData
+			status.FirstData = userSummary.Dates.LastData
 		}
 
 		cursor, err := gs.dataFetcher.GetDataRange(sessionCtx, userId, dataTypes, status)
