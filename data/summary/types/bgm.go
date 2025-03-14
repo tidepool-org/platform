@@ -2,8 +2,10 @@ package types
 
 import (
 	"encoding/json"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+
 	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 )
 
 type BGMPeriods struct {
