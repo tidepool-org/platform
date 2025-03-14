@@ -24,6 +24,8 @@ func AlertsRoutes() []service.Route {
 		service.Get("/v1/users/:userId/followers/:followerUserId/alerts", GetAlert, api.RequireAuth),
 		service.Post("/v1/users/:userId/followers/:followerUserId/alerts", UpsertAlert, api.RequireAuth),
 		service.Delete("/v1/users/:userId/followers/:followerUserId/alerts", DeleteAlert, api.RequireAuth),
+		service.Get("/v1/users/:userId/followers/alerts", ListAlerts, api.RequireServer),
+		service.Get("/v1/overdue_communications", ListOverdueCommunications, api.RequireServer),
 	}
 }
 
@@ -114,8 +116,8 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	a := &alerts.Alerts{}
-	if err := request.DecodeRequestBody(r.Request, a); err != nil {
+	cfg := &alerts.Config{}
+	if err := request.DecodeRequestBody(r.Request, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorJSONMalformed())
 		return
 	}
@@ -126,12 +128,72 @@ func UpsertAlert(dCtx service.Context) {
 		return
 	}
 
-	cfg := &alerts.Config{UserID: path.UserID, FollowedUserID: path.FollowedUserID, Alerts: *a}
 	if err := repo.Upsert(ctx, cfg); err != nil {
 		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
 		lgr.WithError(err).Error("upserting alerts config")
 		return
 	}
+}
+
+func ListAlerts(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
+	authDetails := request.GetAuthDetails(ctx)
+	repo := dCtx.AlertsRepository()
+	lgr := log.LoggerFromContext(ctx)
+
+	if err := checkAuthentication(authDetails); err != nil {
+		lgr.Debug("authentication failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	pathsUserID := r.PathParam("userId")
+	if err := checkUserIDConsistency(authDetails, pathsUserID); err != nil {
+		lgr.WithFields(log.Fields{"path": pathsUserID, "auth": authDetails.UserID()}).
+			Debug("user id consistency failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+
+	alerts, err := repo.List(ctx, pathsUserID)
+	if err != nil {
+		dCtx.RespondWithInternalServerFailure("listing alerts configs", err)
+		lgr.WithError(err).Error("listing alerts config")
+		return
+	}
+	if len(alerts) == 0 {
+		dCtx.RespondWithError(ErrorUserIDNotFound(pathsUserID))
+		lgr.Debug("no alerts configs found")
+	}
+
+	responder := request.MustNewResponder(dCtx.Response(), r)
+	responder.Data(http.StatusOK, alerts)
+}
+
+func ListOverdueCommunications(dCtx service.Context) {
+	r := dCtx.Request()
+	ctx := r.Context()
+
+	authDetails := request.GetAuthDetails(ctx)
+	lgr := log.LoggerFromContext(ctx)
+	if err := checkAuthentication(authDetails); err != nil {
+		lgr.Debug("authentication failed")
+		dCtx.RespondWithError(platform.ErrorUnauthorized())
+		return
+	}
+	overdue, err := dCtx.LastCommunicationsRepository().OverdueCommunications(ctx)
+	if err != nil {
+		lgr.WithError(err).Debug("Unable to list overdue records")
+		dCtx.RespondWithError(platform.ErrorInternalServerFailure())
+		return
+	}
+
+	lgr.WithField("found", len(overdue)).WithField("overdue", overdue).
+		Debug("/v1/overdue_communications")
+
+	responder := request.MustNewResponder(dCtx.Response(), r)
+	responder.Data(http.StatusOK, overdue)
 }
 
 // checkUserIDConsistency verifies the userIDs in a request.
@@ -150,7 +212,7 @@ func checkUserIDConsistency(details request.AuthDetails, userIDFromPath string) 
 
 // checkAuthentication ensures that the request has an authentication token.
 func checkAuthentication(details request.AuthDetails) error {
-	if details.Token() == "" {
+	if details.HasToken() && details.Token() == "" {
 		return platformerrors.New("unauthorized")
 	}
 	if details.IsUser() {
