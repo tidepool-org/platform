@@ -167,7 +167,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			return nil, gs.summaries.DeleteSummary(sessionCtx, userId)
 		}
 
-		fmt.Printf("User %s status: %+v\n", userId, status)
+		fmt.Printf("User %s status: %+v\n", userId, *status)
 
 		// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
 		if status.EarliestModified.IsZero() {
