@@ -846,8 +846,6 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 }
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
-	var err error
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -870,7 +868,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
-	err = d.getTimeRange(ctx, userId, typ, status)
+	err := d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}

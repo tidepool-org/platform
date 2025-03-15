@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -166,6 +167,8 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			return nil, gs.summaries.DeleteSummary(sessionCtx, userId)
 		}
 
+		fmt.Printf("User %s status: %+v\n", userId, status)
+
 		// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
 		if status.EarliestModified.IsZero() {
 			logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, summaryType)
@@ -179,10 +182,12 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			if newFirstData, err := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userId, status.EarliestModified); err != nil {
 				return nil, err
 			} else if !newFirstData.IsZero() {
+				fmt.Println("setting firstdata to bucket lastdata", newFirstData)
 				status.FirstData = newFirstData
 			}
 		} else {
 			// otherwise limit FirstData to previous LastData
+			fmt.Println("setting firstdata to lastdata", userSummary.Dates.LastData)
 			status.FirstData = userSummary.Dates.LastData
 		}
 
