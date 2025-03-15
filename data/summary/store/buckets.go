@@ -139,7 +139,8 @@ func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId str
 	selector := bson.M{
 		"userId": userId,
 		"type":   r.Type,
-		"time":   bson.M{"$gte": earliestModified},
+		// round earliestModified to the hour, to ensure it correctly deletes a bucket if only the final bucket is modified
+		"time": bson.M{"$gte": earliestModified.UTC().Truncate(time.Hour)},
 	}
 
 	result, err := r.DeleteMany(ctx, selector)
