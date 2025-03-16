@@ -2,7 +2,6 @@ package summary_test
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tidepool-org/platform/data/summary"
@@ -254,9 +253,6 @@ var _ = Describe("End to end summary calculations", func() {
 				},
 			},
 		}
-
-		b, err := bson.Marshal(summaries[0])
-		fmt.Println(string(b), err)
 
 		count, err := bgmStore.CreateSummaries(ctx, summaries)
 		Expect(err).ToNot(HaveOccurred())
