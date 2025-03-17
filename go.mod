@@ -1,8 +1,8 @@
 module github.com/tidepool-org/platform
 
-go 1.23.0
+go 1.24.0
 
-toolchain go1.23.4
+toolchain go1.24.1
 
 require (
 	github.com/IBM/sarama v1.45.0
@@ -25,7 +25,7 @@ require (
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20250113143446-ca59363d82ec
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
-	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
+	github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240816214829-611531818c0f
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.2
