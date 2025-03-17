@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 
+	types2 "github.com/tidepool-org/platform/summary/types"
+
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 )
@@ -54,23 +55,23 @@ func (c *Client) DestroyDataForUserByID(ctx context.Context, userID string) erro
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
+func (c *Client) GetCGMSummary(ctx context.Context, id string) (*types2.Summary[*types2.CGMPeriods, *types2.GlucoseBucket, types2.CGMPeriods, types2.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
+func (c *Client) GetBGMSummary(ctx context.Context, id string) (*types2.Summary[*types2.BGMPeriods, *types2.GlucoseBucket, types2.BGMPeriods, types2.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
+func (c *Client) UpdateCGMSummary(ctx context.Context, id string) (*types2.Summary[*types2.CGMPeriods, *types2.GlucoseBucket, types2.CGMPeriods, types2.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
+func (c *Client) UpdateBGMSummary(ctx context.Context, id string) (*types2.Summary[*types2.BGMPeriods, *types2.GlucoseBucket, types2.BGMPeriods, types2.GlucoseBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
+func (c *Client) GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types2.OutdatedSummariesResponse, error) {
 	panic("Not Implemented!")
 }
 
@@ -78,10 +79,10 @@ func (c *Client) GetMigratableUserIDs(ctx context.Context, t string, pagination 
 	panic("Not Implemented!")
 }
 
-func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
+func (c *Client) GetContinuousSummary(ctx context.Context, id string) (*types2.Summary[*types2.ContinuousPeriods, *types2.ContinuousBucket, types2.ContinuousPeriods, types2.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }
 
-func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
+func (c *Client) UpdateContinuousSummary(ctx context.Context, id string) (*types2.Summary[*types2.ContinuousPeriods, *types2.ContinuousBucket, types2.ContinuousPeriods, types2.ContinuousBucket], error) {
 	panic("Not Implemented!")
 }

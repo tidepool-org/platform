@@ -3,9 +3,10 @@ package context
 import (
 	"net/http"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/clinics"
 
@@ -18,7 +19,6 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"

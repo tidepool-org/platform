@@ -6,11 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
+	"github.com/tidepool-org/platform/summary/types"
+
 	"github.com/tidepool-org/platform/clinics"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/reporters"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"

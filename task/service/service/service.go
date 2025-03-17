@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	summary "github.com/tidepool-org/platform/summary/task"
+
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/ehr/reconcile"
 	"github.com/tidepool-org/platform/ehr/sync"
@@ -27,7 +29,6 @@ import (
 	taskServiceApiV1 "github.com/tidepool-org/platform/task/service/api/v1"
 	"github.com/tidepool-org/platform/task/store"
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
-	summaryUpdate "github.com/tidepool-org/platform/task/summary"
 )
 
 type Service struct {
@@ -308,7 +309,7 @@ func (s *Service) initializeTaskQueue() error {
 
 	s.Logger().Debug("Creating summary update runner")
 
-	summaryUpdateRnnr, summaryUpdateRnnrErr := summaryUpdate.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	summaryUpdateRnnr, summaryUpdateRnnrErr := summary.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryUpdateRnnrErr != nil {
 		return errors.Wrap(summaryUpdateRnnrErr, "unable to create summary update runner")
 	}
@@ -316,7 +317,7 @@ func (s *Service) initializeTaskQueue() error {
 
 	s.Logger().Debug("Creating summary migration runner")
 
-	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
+	summaryMigrationRnnr, summaryMigrationRnnrErr := summary.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
 	if summaryMigrationRnnrErr != nil {
 		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
 	}

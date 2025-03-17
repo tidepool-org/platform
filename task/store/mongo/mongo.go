@@ -17,9 +17,9 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	summary "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
-	"github.com/tidepool-org/platform/task/summary"
 )
 
 var (
