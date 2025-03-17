@@ -5,17 +5,15 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/tidepool-org/platform/summary/types"
-
-	"github.com/tidepool-org/platform/log"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/summary/types"
 )
 
 // TODO: Move interface to data package once upload dependency broken
@@ -25,9 +23,7 @@ type Client interface {
 	data.DataSetAccessor
 
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
-
 	DestroyDataForUserByID(ctx context.Context, userID string) error
-
 	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error)
 	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error)
 	GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error)

@@ -3,12 +3,11 @@ package service
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/summary/types"
-
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/summary/types"
 )
 
 type Client struct {
