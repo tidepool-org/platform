@@ -141,7 +141,7 @@ func translateDeviceToDatum(_ context.Context, device *dexcom.Device) data.Datum
 	datum.DeviceID = TranslateDeviceIDFromTransmitter(device.TransmitterGeneration, device.TransmitterID)
 	datum.Manufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	datum.TransmitterID = pointer.CloneString(device.TransmitterID)
-	//TODO: potenially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
+	//TODO: potentially not true in the future. Currently the v3 API returns only MgdL but it does also have MmolL as valid units although it doesn't return them
 	datum.Units = pointer.FromString(dataBloodGlucose.MgdL)
 
 	defaultAlertSchedule := device.AlertSchedules.Default()
@@ -345,7 +345,7 @@ func translateAlertSettingUnitToRateAlertUnits(unit *string) *string {
 	if unit != nil {
 		switch *unit {
 		case dexcom.AlertSettingUnitMgdLMinute:
-			return pointer.FromString(dataTypesSettingsCgm.RateAlertUnitsMgdLMinute)
+			return pointer.FromString(dataBloodGlucose.MgdLMinute)
 		}
 	}
 	return nil
@@ -389,6 +389,40 @@ func translateEGVToDatum(ctx context.Context, egv *dexcom.EGV) data.Datum {
 	datum.Value = pointer.CloneFloat64(egv.Value)
 	datum.Units = pointer.CloneString(egv.Unit)
 	datum.Payload = metadata.NewMetadata()
+
+	if egv.RateUnit != nil && egv.TrendRate != nil {
+		switch *egv.RateUnit {
+		case dexcom.EGVRateUnitMmolLMinute:
+			datum.TrendRateUnits = pointer.FromString(dataBloodGlucose.MmolLMinute)
+			datum.TrendRate = egv.TrendRate
+		case dexcom.EGVRateUnitMgdLMinute:
+			datum.TrendRateUnits = pointer.FromString(dataBloodGlucose.MgdLMinute)
+			datum.TrendRate = egv.TrendRate
+		case dexcom.EGVRateUnitUnknown:
+			// NOP
+		}
+	}
+
+	if egv.Trend != nil {
+		switch *egv.Trend {
+		case dexcom.EGVTrendDoubleUp:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.RapidRise)
+		case dexcom.EGVTrendSingleUp:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.ModerateRise)
+		case dexcom.EGVTrendFortyFiveUp:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.SlowRise)
+		case dexcom.EGVTrendFlat:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.ConstantRate)
+		case dexcom.EGVTrendFortyFiveDown:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.SlowFall)
+		case dexcom.EGVTrendSingleDown:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.ModerateFall)
+		case dexcom.EGVTrendDoubleDown:
+			datum.Trend = pointer.FromString(dataTypesBloodGlucoseContinuous.RapidFall)
+		case dexcom.EGVTrendUnknown, dexcom.EGVTrendNone, dexcom.EGVTrendNotComputable, dexcom.EGVTrendRateOutOfRange:
+			// NOP
+		}
+	}
 
 	if egv.Status != nil {
 		(*datum.Payload)["status"] = *egv.Status

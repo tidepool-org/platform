@@ -1,6 +1,7 @@
 package test
 
 import (
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -10,7 +11,7 @@ func RandomRateAlert() *dataTypesSettingsCgm.RateAlert {
 	datum := &dataTypesSettingsCgm.RateAlert{}
 	datum.Alert = *RandomAlert()
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64())
-	datum.Units = pointer.FromString(test.RandomStringFromArray(dataTypesSettingsCgm.RateAlertUnits()))
+	datum.Units = pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.RateUnits()))
 	return datum
 }
 
