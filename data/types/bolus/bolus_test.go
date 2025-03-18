@@ -8,7 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
 	dataTypesInsulinTest "github.com/tidepool-org/platform/data/types/insulin/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -23,31 +23,67 @@ const ExpectedTimeFormat = time.RFC3339Nano
 
 var _ = Describe("Bolus", func() {
 	It("Type is expected", func() {
-		Expect(bolus.Type).To(Equal("bolus"))
+		Expect(dataTypesBolus.Type).To(Equal("bolus"))
+	})
+
+	It("DeliveryContextAlgorithm is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextAlgorithm).To(Equal("algorithm"))
+	})
+
+	It("DeliveryContextDevice is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextDevice).To(Equal("device"))
+	})
+
+	It("DeliveryContextOneButton is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextOneButton).To(Equal("oneButton"))
+	})
+
+	It("DeliveryContextRemote is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextRemote).To(Equal("remote"))
+	})
+
+	It("DeliveryContextUndetermined is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextUndetermined).To(Equal("undetermined"))
+	})
+
+	It("DeliveryContextWatch is expected", func() {
+		Expect(dataTypesBolus.DeliveryContextWatch).To(Equal("watch"))
+	})
+
+	It("DeliveryContexts returns expected", func() {
+		Expect(dataTypesBolus.DeliveryContexts()).To(ConsistOf([]string{
+			dataTypesBolus.DeliveryContextAlgorithm,
+			dataTypesBolus.DeliveryContextDevice,
+			dataTypesBolus.DeliveryContextOneButton,
+			dataTypesBolus.DeliveryContextRemote,
+			dataTypesBolus.DeliveryContextUndetermined,
+			dataTypesBolus.DeliveryContextWatch,
+		}))
 	})
 
 	Context("New", func() {
 		It("creates a new datum with all values initialized", func() {
 			subType := dataTypesTest.NewType()
-			datum := bolus.New(subType)
+			datum := dataTypesBolus.New(subType)
 			Expect(datum.Type).To(Equal("bolus"))
 			Expect(datum.SubType).To(Equal(subType))
+			Expect(datum.DeliveryContext).To(BeNil())
 			Expect(datum.InsulinFormulation).To(BeNil())
 		})
 	})
 
 	Context("with new datum", func() {
 		var subType string
-		var datum bolus.Bolus
+		var datum dataTypesBolus.Bolus
 
 		BeforeEach(func() {
 			subType = dataTypesTest.NewType()
-			datum = bolus.New(subType)
+			datum = dataTypesBolus.New(subType)
 		})
 
 		Context("Meta", func() {
 			It("returns the meta with delivery type", func() {
-				Expect(datum.Meta()).To(Equal(&bolus.Meta{Type: "bolus", SubType: subType}))
+				Expect(datum.Meta()).To(Equal(&dataTypesBolus.Meta{Type: "bolus", SubType: subType}))
 			})
 		})
 	})
@@ -59,37 +95,74 @@ var _ = Describe("Bolus", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *bolus.Bolus), expectedErrors ...error) {
+				func(mutator func(datum *dataTypesBolus.Bolus), expectedErrors ...error) {
 					datum := dataTypesBolusTest.RandomBolus()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *bolus.Bolus) {},
+					func(datum *dataTypesBolus.Bolus) {},
 				),
 				Entry("type missing",
-					func(datum *bolus.Bolus) { datum.Type = "" },
+					func(datum *dataTypesBolus.Bolus) { datum.Type = "" },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/type"),
 				),
 				Entry("type invalid",
-					func(datum *bolus.Bolus) { datum.Type = "invalid" },
+					func(datum *dataTypesBolus.Bolus) { datum.Type = "invalid" },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", "bolus"), "/type"),
 				),
 				Entry("type bolus",
-					func(datum *bolus.Bolus) { datum.Type = "bolus" },
+					func(datum *dataTypesBolus.Bolus) { datum.Type = "bolus" },
 				),
 				Entry("sub type missing",
-					func(datum *bolus.Bolus) { datum.SubType = "" },
+					func(datum *dataTypesBolus.Bolus) { datum.SubType = "" },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/subType"),
 				),
 				Entry("sub type valid",
-					func(datum *bolus.Bolus) { datum.SubType = dataTypesTest.NewType() },
+					func(datum *dataTypesBolus.Bolus) { datum.SubType = dataTypesTest.NewType() },
+				),
+				Entry("delivery context missing",
+					func(datum *dataTypesBolus.Bolus) { datum.DeliveryContext = nil },
+				),
+				Entry("delivery context invalid",
+					func(datum *dataTypesBolus.Bolus) { datum.DeliveryContext = pointer.FromString("invalid") },
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataTypesBolus.DeliveryContexts()), "/deliveryContext"),
+				),
+				Entry("delivery context algorithm",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextAlgorithm)
+					},
+				),
+				Entry("delivery context device",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextDevice)
+					},
+				),
+				Entry("delivery context one button",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextOneButton)
+					},
+				),
+				Entry("delivery context remote",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextRemote)
+					},
+				),
+				Entry("delivery context undetermined",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextUndetermined)
+					},
+				),
+				Entry("delivery context watch",
+					func(datum *dataTypesBolus.Bolus) {
+						datum.DeliveryContext = pointer.FromString(dataTypesBolus.DeliveryContextWatch)
+					},
 				),
 				Entry("insulin formulation missing",
-					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
+					func(datum *dataTypesBolus.Bolus) { datum.InsulinFormulation = nil },
 				),
 				Entry("insulin formulation invalid",
-					func(datum *bolus.Bolus) {
+					func(datum *dataTypesBolus.Bolus) {
 						datum.InsulinFormulation.Compounds = nil
 						datum.InsulinFormulation.Name = nil
 						datum.InsulinFormulation.Simple = nil
@@ -97,10 +170,12 @@ var _ = Describe("Bolus", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/insulinFormulation/simple"),
 				),
 				Entry("insulin formulation valid",
-					func(datum *bolus.Bolus) { datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3) },
+					func(datum *dataTypesBolus.Bolus) {
+						datum.InsulinFormulation = dataTypesInsulinTest.RandomFormulation(3)
+					},
 				),
 				Entry("multiple errors",
-					func(datum *bolus.Bolus) {
+					func(datum *dataTypesBolus.Bolus) {
 						datum.Type = "invalid"
 						datum.SubType = ""
 						datum.InsulinFormulation.Compounds = nil
@@ -116,7 +191,7 @@ var _ = Describe("Bolus", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *bolus.Bolus)) {
+				func(mutator func(datum *dataTypesBolus.Bolus)) {
 					for _, origin := range structure.Origins() {
 						datum := dataTypesBolusTest.RandomBolus()
 						mutator(datum)
@@ -130,22 +205,22 @@ var _ = Describe("Bolus", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *bolus.Bolus) {},
+					func(datum *dataTypesBolus.Bolus) {},
 				),
 				Entry("does not modify the datum; type missing",
-					func(datum *bolus.Bolus) { datum.Type = "" },
+					func(datum *dataTypesBolus.Bolus) { datum.Type = "" },
 				),
 				Entry("does not modify the datum; sub type missing",
-					func(datum *bolus.Bolus) { datum.SubType = "" },
+					func(datum *dataTypesBolus.Bolus) { datum.SubType = "" },
 				),
 				Entry("does not modify the datum; insulin formulation missing",
-					func(datum *bolus.Bolus) { datum.InsulinFormulation = nil },
+					func(datum *dataTypesBolus.Bolus) { datum.InsulinFormulation = nil },
 				),
 			)
 		})
 
 		Context("IdentityFields", func() {
-			var datumBolus *bolus.Bolus
+			var datumBolus *dataTypesBolus.Bolus
 			var datum data.Datum
 
 			BeforeEach(func() {
