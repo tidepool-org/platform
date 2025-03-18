@@ -508,6 +508,7 @@ func (s *Standard) initializeAlertsEventsHandler() error {
 		Sarama:  commonConfig.SaramaConfig,
 		MessageConsumer: &dataEvents.AlertsEventsConsumer{
 			Consumer: ec,
+			Logger:   s.Logger(),
 		},
 	}
 

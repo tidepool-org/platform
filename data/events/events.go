@@ -171,6 +171,7 @@ func CappedExponentialBinaryDelay(cap time.Duration) func(int) time.Duration {
 
 type AlertsEventsConsumer struct {
 	Consumer asyncevents.SaramaMessageConsumer
+	Logger   log.Logger
 }
 
 func (c *AlertsEventsConsumer) Consume(ctx context.Context,
@@ -178,6 +179,7 @@ func (c *AlertsEventsConsumer) Consume(ctx context.Context,
 	err := c.Consumer.Consume(ctx, session, message)
 	if err != nil {
 		session.MarkMessage(message, fmt.Sprintf("I have given up after error: %s", err))
+		c.Logger.WithError(err).Info("Unable to consume alerts event")
 		return err
 	}
 	return nil
