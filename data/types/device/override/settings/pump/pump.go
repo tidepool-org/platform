@@ -15,7 +15,7 @@ const (
 	BasalRateScaleFactorMinimum          = 0.1
 	CarbohydrateRatioScaleFactorMaximum  = 10.0
 	CarbohydrateRatioScaleFactorMinimum  = 0.1
-	DurationMaximum                      = 604800 // 7 days in seconds
+	DurationMaximum                      = 604800000 // 7 days in milliseconds
 	DurationMinimum                      = 0
 	InsulinSensitivityScaleFactorMaximum = 10.0
 	InsulinSensitivityScaleFactorMinimum = 0.1
@@ -130,10 +130,6 @@ func (p *Pump) Validate(validator structure.Validator) {
 		}
 	} else if p.BloodGlucoseTarget != nil {
 		unitsValidator.ReportError(structureValidator.ErrorValueNotExists())
-	}
-
-	if p.BloodGlucoseTarget == nil && p.BasalRateScaleFactor == nil && p.CarbohydrateRatioScaleFactor == nil && p.InsulinSensitivityScaleFactor == nil {
-		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("bgTarget", "basalRateScaleFactor", "carbRatioScaleFactor", "insulinSensitivityScaleFactor"))
 	}
 }
 
