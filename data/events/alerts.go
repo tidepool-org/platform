@@ -11,6 +11,7 @@ import (
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 	"github.com/tidepool-org/platform/devicetokens"
@@ -115,13 +116,16 @@ func isActivityAndActivityOnly(updatedFields []string) bool {
 func (c *Consumer) consumeDeviceData(ctx context.Context,
 	session sarama.ConsumerGroupSession, msg *sarama.ConsumerMessage) error {
 
-	datum := &Glucose{}
+	lgr := c.logger(ctx)
+	lgr.Debug("consuming device data message")
+
+	// The actual type should be either a glucose.Glucose or a
+	// dosingdecision.DosingDecision, but they both use types.Base, and that's where the
+	// only fields we need are defined.
+	datum := &types.Base{}
 	if _, err := unmarshalMessageValue(msg.Value, datum); err != nil {
 		return err
 	}
-	lgr := c.logger(ctx)
-	lgr.WithField("data", datum).Info("consuming a device data message")
-
 	if datum.UserID == nil {
 		return errors.New("Unable to retrieve alerts configs: userID is nil")
 	}
@@ -150,7 +154,7 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 	c.pushNotifications(ctx, notes)
 
 	session.MarkMessage(msg, "")
-	lgr.WithField("message", msg).Debug("marked")
+	lgr.WithField("msg", msg).Debug("marked")
 	return nil
 }
 
