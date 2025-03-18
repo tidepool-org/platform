@@ -42,16 +42,6 @@ func (d *DataSetRepository) EnsureIndexes() error {
 		},
 		{
 			Keys: bson.D{
-				{Key: "origin.id", Value: 1},
-				{Key: "type", Value: 1},
-				{Key: "deletedTime", Value: -1},
-				{Key: "_active", Value: 1},
-			},
-			Options: options.Index().
-				SetName("OriginId"),
-		},
-		{
-			Keys: bson.D{
 				{Key: "uploadId", Value: 1},
 			},
 			Options: options.Index().
@@ -330,14 +320,14 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := d.Find(ctx, selector, opts)
 
-	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
-
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to get data sets for user by id")
 	}
 
-	if err = cursor.All(ctx, &dataSets); err != nil {
+	err = cursor.All(ctx, &dataSets)
+	loggerFields := log.Fields{"userId": userID, "dataSetsCount": len(dataSets), "duration": time.Since(now) / time.Microsecond}
+	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("GetDataSetsForUserByID")
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to decode data sets for user by id")
 	}
 

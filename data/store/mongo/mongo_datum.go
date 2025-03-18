@@ -423,7 +423,8 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+		opts := options.Update()
+		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	}
 
 	loggerFields := log.Fields{"userId": dataSet.UserID, "deviceId": *dataSet.DeviceID, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
@@ -911,6 +912,7 @@ func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]
 	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
 	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
 
+	// TODO: maybe reevaluate, scatters / broadcasts on sharded cluster
 	selector := bson.M{
 		"_userId": bson.M{"$ne": -1111},
 		"_active": true,

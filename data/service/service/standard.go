@@ -87,7 +87,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
-	if err := s.initializeUserEventsHandler(); err != nil {
+	if err := s.initializeUserEventsHandler(provider); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -404,14 +404,22 @@ func (s *Standard) initializeServer() error {
 	return nil
 }
 
-func (s *Standard) initializeUserEventsHandler() error {
+func (s *Standard) initializeUserEventsHandler(provider application.Provider) error {
 	s.Logger().Debug("Initializing user events handler")
 	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
-	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
-	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
+	var runner events.Runner
+
+	configReporter := provider.ConfigReporter().WithScopes("user", "events", "handler")
+	if configReporter.GetWithDefault("disable", "") != "true" {
+		ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+		handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
+		handlers := []eventsCommon.EventHandler{handler}
+		runner = events.NewRunner(handlers)
+	} else {
+		runner = events.NewNoopRunner()
+	}
+
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
