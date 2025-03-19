@@ -3,13 +3,14 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/page"
-	"go.mongodb.org/mongo-driver/bson"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/task"
 )
 

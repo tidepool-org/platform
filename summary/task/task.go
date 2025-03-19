@@ -4,15 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/summary/types"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 	"math/rand"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/summary/types"
 	"github.com/tidepool-org/platform/task"
 )
 
