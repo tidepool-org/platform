@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 
-	summary "github.com/tidepool-org/platform/summary/task"
+	summaryTask "github.com/tidepool-org/platform/summary/task"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/ehr/reconcile"
@@ -307,21 +307,23 @@ func (s *Service) initializeTaskQueue() error {
 		runners = append(runners, rnnr)
 	}
 
-	s.Logger().Debug("Creating summary update runner")
-
-	summaryUpdateRnnr, summaryUpdateRnnrErr := summary.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryUpdateRnnrErr != nil {
-		return errors.Wrap(summaryUpdateRnnrErr, "unable to create summary update runner")
+	for _, typ := range summaryTask.SummaryTypes {
+		s.Logger().Debugf("Creating %s summary update runner", typ)
+		summaryUpdateRnnr, summaryUpdateRnnrErr := summaryTask.NewUpdateRunner(s.AuthClient(), s.dataClient, typ)
+		if summaryUpdateRnnrErr != nil {
+			return errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
+		}
+		runners = append(runners, summaryUpdateRnnr)
 	}
-	runners = append(runners, summaryUpdateRnnr)
 
-	s.Logger().Debug("Creating summary migration runner")
-
-	summaryMigrationRnnr, summaryMigrationRnnrErr := summary.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryMigrationRnnrErr != nil {
-		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
+	for _, typ := range summaryTask.SummaryTypes {
+		s.Logger().Debugf("Creating %s summary migration runner", typ)
+		summaryMigrationRnnr, summaryMigrationRnnrErr := summaryTask.NewMigrationRunner(s.AuthClient(), s.dataClient, typ)
+		if summaryMigrationRnnrErr != nil {
+			return errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
+		}
+		runners = append(runners, summaryMigrationRnnr)
 	}
-	runners = append(runners, summaryMigrationRnnr)
 
 	s.Logger().Debug("Creating ehr reconcile runner")
 
