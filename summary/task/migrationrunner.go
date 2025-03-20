@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,12 +24,12 @@ const (
 )
 
 type MigrationRunner struct {
-	authClient  AuthClient
-	dataClient  DataClient
+	authClient  auth.Client
+	dataClient  dataClient.Client
 	summaryType string
 }
 
-func NewMigrationRunner(authClient AuthClient, dataClient DataClient, summaryType string) (*MigrationRunner, error) {
+func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*MigrationRunner, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -44,14 +45,6 @@ func NewMigrationRunner(authClient AuthClient, dataClient DataClient, summaryTyp
 		dataClient:  dataClient,
 		summaryType: summaryType,
 	}, nil
-}
-
-func (r *MigrationRunner) AuthClient() AuthClient {
-	return r.authClient
-}
-
-func (r *MigrationRunner) DataClient() DataClient {
-	return r.dataClient
 }
 
 func (r *MigrationRunner) GetRunnerType() string {
@@ -75,7 +68,7 @@ func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 }
 
 func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
-	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.AuthClient())
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 	if taskRunner, err := NewMigrationTaskRunner(r, tsk); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
 	} else {
@@ -84,7 +77,7 @@ func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 }
 
 type MigrationTaskRunner struct {
-	Provider
+	*MigrationRunner
 	task     *task.Task
 	context  context.Context
 	logger   log.Logger
@@ -92,17 +85,17 @@ type MigrationTaskRunner struct {
 	config   Configuration
 }
 
-func NewMigrationTaskRunner(provider Provider, tsk *task.Task) (*MigrationTaskRunner, error) {
-	if provider == nil {
-		return nil, errors.New("provider is missing")
+func NewMigrationTaskRunner(runner *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
+	if runner == nil {
+		return nil, errors.New("runner is missing")
 	}
 	if tsk == nil {
 		return nil, errors.New("task is missing")
 	}
 
 	return &MigrationTaskRunner{
-		Provider: provider,
-		task:     tsk,
+		MigrationRunner: runner,
+		task:            tsk,
 	}, nil
 }
 
@@ -156,7 +149,7 @@ func (t *MigrationTaskRunner) run() error {
 	typ := t.SummaryType()
 
 	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
-	outdatedUserIds, err := t.DataClient().GetMigratableUserIDs(t.context, typ, pagination)
+	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, typ, pagination)
 	if err != nil {
 		return err
 	}
@@ -168,7 +161,7 @@ func (t *MigrationTaskRunner) run() error {
 	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
-	err = updateSummaries(t.context, t.DataClient(), typ, outdatedUserIds)
+	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds)
 	if err != nil {
 		return err
 	}

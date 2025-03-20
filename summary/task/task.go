@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"math/rand"
 	"time"
 
@@ -11,9 +12,7 @@ import (
 	"golang.org/x/sync/semaphore"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/summary/types"
 	"github.com/tidepool-org/platform/task"
 )
 
@@ -30,25 +29,6 @@ type Configuration struct {
 	Interval MinuteRange `json:"interval" bson:"interval"`
 	Batch    *int        `json:"batch,omitempty" bson:"batch,omitempty"`
 	Version  int         `json:"version" bson:"version"`
-}
-
-type AuthClient interface {
-	ServerSessionToken() (string, error)
-}
-
-type DataClient interface {
-	GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error)
-	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error)
-	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error)
-	UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error)
-	GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
-}
-
-type Provider interface {
-	AuthClient() AuthClient
-	DataClient() DataClient
-	SummaryType() string
-	GetRunnerDurationMaximum() time.Duration
 }
 
 func ValidateConfig(config Configuration, withBatch bool) error {
@@ -130,7 +110,7 @@ func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 	}
 }
 
-func updateSummaries(ctx context.Context, dataClient DataClient, typ string, outdatedUserIds []string) error {
+func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	logger := log.LoggerFromContext(ctx)
 
@@ -162,7 +142,7 @@ func updateSummaries(ctx context.Context, dataClient DataClient, typ string, out
 	return eg.Wait()
 }
 
-func updateSummary(ctx context.Context, dataClient DataClient, typ string, userId string) (err error) {
+func updateSummary(ctx context.Context, dataClient dataClient.Client, typ string, userId string) (err error) {
 	switch typ {
 	case "cgm":
 		_, err = dataClient.UpdateCGMSummary(ctx, userId)

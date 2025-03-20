@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,12 +26,12 @@ const (
 )
 
 type UpdateRunner struct {
-	authClient  AuthClient
-	dataClient  DataClient
+	authClient  auth.Client
+	dataClient  dataClient.Client
 	summaryType string
 }
 
-func NewUpdateRunner(authClient AuthClient, dataClient DataClient, summaryType string) (*UpdateRunner, error) {
+func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*UpdateRunner, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -46,14 +47,6 @@ func NewUpdateRunner(authClient AuthClient, dataClient DataClient, summaryType s
 		dataClient:  dataClient,
 		summaryType: summaryType,
 	}, nil
-}
-
-func (r *UpdateRunner) AuthClient() AuthClient {
-	return r.authClient
-}
-
-func (r *UpdateRunner) DataClient() DataClient {
-	return r.dataClient
 }
 
 func (r *UpdateRunner) GetRunnerType() string {
@@ -77,7 +70,7 @@ func (r *UpdateRunner) GetRunnerDurationMaximum() time.Duration {
 }
 
 func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
-	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.AuthClient())
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 	if taskRunner, err := NewUpdateTaskRunner(r, tsk); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
 	} else {
@@ -86,7 +79,7 @@ func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 }
 
 type UpdateTaskRunner struct {
-	Provider
+	*UpdateRunner
 	task     *task.Task
 	context  context.Context
 	logger   log.Logger
@@ -94,8 +87,8 @@ type UpdateTaskRunner struct {
 	config   Configuration
 }
 
-func NewUpdateTaskRunner(provider Provider, tsk *task.Task) (*UpdateTaskRunner, error) {
-	if provider == nil {
+func NewUpdateTaskRunner(runner *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
+	if runner == nil {
 		return nil, errors.New("provider is missing")
 	}
 	if tsk == nil {
@@ -103,8 +96,8 @@ func NewUpdateTaskRunner(provider Provider, tsk *task.Task) (*UpdateTaskRunner, 
 	}
 
 	return &UpdateTaskRunner{
-		Provider: provider,
-		task:     tsk,
+		UpdateRunner: runner,
+		task:         tsk,
 	}, nil
 }
 
@@ -169,7 +162,7 @@ func (t *UpdateTaskRunner) run() error {
 		}
 
 		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
-		outdatedCGM, err := t.DataClient().GetOutdatedUserIDs(t.context, "cgm", pagination)
+		outdatedCGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
 			return err
 		}
@@ -180,7 +173,7 @@ func (t *UpdateTaskRunner) run() error {
 
 		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedCGM.UserIds), typ)
 
-		err = updateSummaries(t.context, t.DataClient(), typ, outdatedCGM.UserIds)
+		err = updateSummaries(t.context, t.dataClient, typ, outdatedCGM.UserIds)
 		if err != nil {
 			return err
 		}
