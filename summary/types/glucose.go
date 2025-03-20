@@ -333,15 +333,17 @@ func (p *GlucosePeriod) Finalize(days int) {
 	}
 	p.GlucoseRanges.Finalize(p.state, days)
 
-	if p.Total.Minutes != 0 {
-		// if we have minutes
-		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
-		p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
-		p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
-		p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
-	} else if p.Total.Records != 0 {
-		// if we have only records
-		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
+	if p.Total.Glucose != 0 {
+		if p.Total.Minutes != 0 {
+			// if we have minutes
+			p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
+			p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
+			p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
+			p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
+		} else if p.Total.Records != 0 {
+			// if we have only records
+			p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
+		}
 	}
 
 	if p.Total.Records != 0 {
