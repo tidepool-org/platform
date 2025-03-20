@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	dataClient "github.com/tidepool-org/platform/data/client"
 	"math/rand"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"

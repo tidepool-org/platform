@@ -3,12 +3,12 @@ package task
 import (
 	"context"
 	"fmt"
-	dataClient "github.com/tidepool-org/platform/data/client"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/auth"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -49,10 +49,6 @@ func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, su
 
 func (r *MigrationRunner) GetRunnerType() string {
 	return fmt.Sprintf(MigrationType, r.summaryType)
-}
-
-func (r *MigrationRunner) SummaryType() string {
-	return r.summaryType
 }
 
 func (r *MigrationRunner) GetRunnerDeadline() time.Time {
@@ -146,7 +142,7 @@ func (t *MigrationTaskRunner) GetConfig() Configuration {
 func (t *MigrationTaskRunner) run() error {
 	pagination := page.NewPagination()
 	pagination.Size = *t.config.Batch
-	typ := t.SummaryType()
+	typ := t.summaryType
 
 	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
 	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, typ, pagination)

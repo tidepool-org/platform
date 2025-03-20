@@ -3,12 +3,12 @@ package task
 import (
 	"context"
 	"fmt"
-	dataClient "github.com/tidepool-org/platform/data/client"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/auth"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -51,10 +51,6 @@ func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summa
 
 func (r *UpdateRunner) GetRunnerType() string {
 	return fmt.Sprintf(UpdateType, r.summaryType)
-}
-
-func (r *UpdateRunner) SummaryType() string {
-	return r.summaryType
 }
 
 func (r *UpdateRunner) GetRunnerDeadline() time.Time {
@@ -148,7 +144,7 @@ func (t *UpdateTaskRunner) GetConfig() Configuration {
 func (t *UpdateTaskRunner) run() error {
 	pagination := page.NewPagination()
 	pagination.Size = *t.config.Batch
-	typ := t.SummaryType()
+	typ := t.summaryType
 	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 
 	t.logger.Debug("Starting User CGM Summary Update")
