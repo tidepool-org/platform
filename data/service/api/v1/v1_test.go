@@ -4,11 +4,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/summary/reporters"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
-	"github.com/tidepool-org/platform/data/summary/reporters"
 	"github.com/tidepool-org/platform/request"
 )
 
