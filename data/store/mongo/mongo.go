@@ -29,6 +29,7 @@ func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
 	alertsRepository := s.NewAlertsRepository()
+	lastCommunicationsRepository := s.NewLastCommunicationsRepository()
 
 	if err := dataRepository.EnsureIndexes(); err != nil {
 		return err
@@ -39,6 +40,10 @@ func (s *Store) EnsureIndexes() error {
 	}
 
 	if err := alertsRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	if err := lastCommunicationsRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
@@ -64,5 +69,10 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 
 func (s *Store) NewAlertsRepository() alerts.Repository {
 	r := alertsRepo(*s.Store.GetRepository("alerts"))
+	return &r
+}
+
+func (s *Store) NewLastCommunicationsRepository() alerts.LastCommunicationsRepository {
+	r := lastCommunicationsRepo(*s.Store.GetRepository("lastCommunications"))
 	return &r
 }

@@ -2,6 +2,7 @@ package events
 
 import (
 	"errors"
+
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
 )

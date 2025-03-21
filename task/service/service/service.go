@@ -3,21 +3,25 @@ package service
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/clinics"
-	"github.com/tidepool-org/platform/ehr/reconcile"
-	"github.com/tidepool-org/platform/ehr/sync"
-
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/data/events"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
+	"github.com/tidepool-org/platform/ehr/reconcile"
+	"github.com/tidepool-org/platform/ehr/sync"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/push"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
@@ -39,6 +43,9 @@ type Service struct {
 	dexcomClient     dexcom.Client
 	taskQueue        queue.Queue
 	clinicsClient    clinics.Client
+	alertsClient     *alerts.Client
+	pusher           events.Pusher
+	permissionClient permission.Client
 }
 
 func New() *Service {
@@ -68,6 +75,15 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeClinicsClient(); err != nil {
+		return err
+	}
+	if err := s.initializeAlertsClient(); err != nil {
+		return err
+	}
+	if err := s.initializeAlertsPusher(); err != nil {
+		return err
+	}
+	if err := s.initializePermissionClient(); err != nil {
 		return err
 	}
 	if err := s.initializeTaskQueue(); err != nil {
@@ -346,6 +362,17 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, ehrSyncRnnr)
 
+	if s.alertsClient == nil {
+		s.Logger().Info("alerts client is nil; care partner tasks will not run successfully")
+	}
+
+	carePartnerRunner, err := alerts.NewCarePartnerRunner(s.Logger(), s.alertsClient,
+		s.AuthClient(), s.pusher, s.permissionClient, s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create care partner runner")
+	}
+	runners = append(runners, carePartnerRunner)
+
 	for _, r := range runners {
 		r := r
 		if err := taskQueue.RegisterRunner(r); err != nil {
@@ -355,6 +382,63 @@ func (s *Service) initializeTaskQueue() error {
 
 	s.Logger().Debug("Starting task queue")
 	s.taskQueue.Start()
+
+	return nil
+}
+
+func (s *Service) initializeAlertsClient() error {
+	s.Logger().Debug("initializing alerts client")
+
+	platformConfig := platform.NewConfig()
+	platformConfig.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("data", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := platformConfig.Load(loader); err != nil {
+		return errors.Wrap(err, "Unable to load alerts client config")
+	}
+
+	s.Logger().Debug("Creating alerts client")
+
+	platformClient, err := platform.NewClient(platformConfig, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "Unable to create platform client for use in alerts client")
+	}
+	s.alertsClient = alerts.NewClient(platformClient, s.Logger())
+
+	return nil
+}
+
+func (s *Service) initializeAlertsPusher() error {
+	var err error
+	var pusher events.Pusher
+	pusher, err = alerts.NewPusher()
+	if err != nil {
+		s.Logger().WithError(err).Warn("falling back to logging of push notifications")
+		pusher = push.NewLogPusher(s.Logger())
+	}
+	s.pusher = pusher
+
+	return nil
+}
+
+func (s *Service) initializePermissionClient() error {
+	s.Logger().Debug("Loading permission client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
+	}
+
+	s.Logger().Debug("Creating permission client")
+
+	clnt, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create permission client")
+	}
+	s.permissionClient = clnt
 
 	return nil
 }

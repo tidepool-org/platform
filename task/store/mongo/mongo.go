@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/ehr/reconcile"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -81,6 +82,7 @@ func (s *Store) EnsureDefaultTasks() error {
 		repository.EnsureSummaryBackfillTask,
 		repository.EnsureSummaryMigrationTask,
 		repository.EnsureEHRReconcileTask,
+		repository.EnsureCarePartnerTask,
 	}
 
 	for _, f := range fs {
@@ -173,6 +175,11 @@ func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
 
 func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
 	create := reconcile.NewTaskCreate()
+	return t.ensureTask(ctx, create)
+}
+
+func (t *TaskRepository) EnsureCarePartnerTask(ctx context.Context) error {
+	create := alerts.NewCarePartnerTaskCreate()
 	return t.ensureTask(ctx, create)
 }
 

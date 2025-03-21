@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
@@ -178,4 +179,12 @@ func (e *ExternalAccessor) GetUserPermissions(ctx context.Context, requestUserID
 		return e.GetUserPermissionsOutput.Permissions, e.GetUserPermissionsOutput.Error
 	}
 	panic("GetUserPermissions no output")
+}
+
+func NewDeviceTokensClient() *DeviceTokensClient { return &DeviceTokensClient{} }
+
+type DeviceTokensClient struct{}
+
+func (c *DeviceTokensClient) GetDeviceTokens(ctx context.Context, userID string) ([]*devicetokens.DeviceToken, error) {
+	return nil, nil
 }
