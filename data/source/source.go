@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/tidepool-org/platform/metadata"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
