@@ -2,23 +2,17 @@ package task
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/version"
 )
 
 const (
@@ -26,41 +20,35 @@ const (
 	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
-	MigrationWorkerCount                          = 1
-	MigrationType                                 = "org.tidepool.summary.migrate"
+	MigrationType                                 = "org.tidepool.summary.migrate.%s"
 )
 
 type MigrationRunner struct {
-	logger          log.Logger
-	versionReporter version.Reporter
-	authClient      auth.Client
-	dataClient      dataClient.Client
+	authClient  auth.Client
+	dataClient  dataClient.Client
+	summaryType string
 }
 
-func NewMigrationRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*MigrationRunner, error) {
-	if logger == nil {
-		return nil, errors.New("logger is missing")
-	}
-	if versionReporter == nil {
-		return nil, errors.New("version reporter is missing")
-	}
+func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*MigrationRunner, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if summaryType != "cgm" && summaryType != "bgm" && summaryType != "con" {
+		return nil, errors.Newf("summary type \"%s\" not supported by migration runner", summaryType)
+	}
 
 	return &MigrationRunner{
-		logger:          logger,
-		versionReporter: versionReporter,
-		authClient:      authClient,
-		dataClient:      dataClient,
+		authClient:  authClient,
+		dataClient:  dataClient,
+		summaryType: summaryType,
 	}, nil
 }
 
 func (r *MigrationRunner) GetRunnerType() string {
-	return MigrationType
+	return fmt.Sprintf(MigrationType, r.summaryType)
 }
 
 func (r *MigrationRunner) GetRunnerDeadline() time.Time {
@@ -75,27 +63,65 @@ func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 	return MigrationTaskDurationMaximum
 }
 
-func (r *MigrationRunner) GenerateNextTime(interval MinuteRange) time.Duration {
-	Min := time.Duration(interval.Min) * time.Second
-	Max := time.Duration(interval.Max) * time.Second
-
-	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
-	return Min + randTime
+func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
+	if taskRunner, err := NewMigrationTaskRunner(r, tsk); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
+	} else {
+		taskRunner.Run(ctx)
+	}
 }
 
-func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
-	var config TaskConfiguration
+type MigrationTaskRunner struct {
+	*MigrationRunner
+	task     *task.Task
+	context  context.Context
+	logger   log.Logger
+	deadline time.Time
+	config   Configuration
+}
+
+func NewMigrationTaskRunner(runner *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
+	if runner == nil {
+		return nil, errors.New("runner is missing")
+	}
+	if tsk == nil {
+		return nil, errors.New("task is missing")
+	}
+
+	return &MigrationTaskRunner{
+		MigrationRunner: runner,
+		task:            tsk,
+	}, nil
+}
+
+func (t *MigrationTaskRunner) Run(ctx context.Context) {
+	t.context = ctx
+	t.logger = log.LoggerFromContext(t.context)
+	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
+	t.config = t.GetConfig()
+
+	t.task.ClearError()
+	if err := t.run(); err == nil {
+		t.rescheduleTask()
+	} else if !t.task.HasError() {
+		t.rescheduleTaskWithResourceError(err)
+	}
+}
+
+func (t *MigrationTaskRunner) GetConfig() Configuration {
+	var config Configuration
 	var valid bool
-	if raw, ok := tsk.Data["config"]; ok {
+	if raw, ok := t.task.Data["config"]; ok {
 		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
 		// but we require something more specific at this point
 		bs, _ := bson.Marshal(raw)
 		unmarshalError := bson.Unmarshal(bs, &config)
 		if unmarshalError != nil {
-			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
+			t.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
 		} else {
 			if configErr := ValidateConfig(config, true); configErr != nil {
-				r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+				t.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
 			} else {
 				valid = true
 			}
@@ -105,194 +131,51 @@ func (r *MigrationRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	if !valid {
 		config = NewDefaultMigrationConfig()
 
-		if tsk.Data == nil {
-			tsk.Data = make(map[string]interface{})
+		if t.task.Data == nil {
+			t.task.Data = make(map[string]interface{})
 		}
-		tsk.Data["config"] = config
+		t.task.Data["config"] = config
 	}
-
 	return config
 }
 
-func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
-	ctx = log.NewContextWithLogger(ctx, r.logger)
-	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
-
-	tsk.ClearError()
-
-	config := r.GetConfig(tsk)
-
-	if taskRunner, tErr := NewMigrationTaskRunner(r, tsk); tErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-	} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
-	}
-
-	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
-	}
-}
-
-type MigrationTaskRunner struct {
-	*MigrationRunner
-	task      *task.Task
-	context   context.Context
-	validator structure.Validator
-}
-
-func NewMigrationTaskRunner(rnnr *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
-	if rnnr == nil {
-		return nil, errors.New("runner is missing")
-	}
-	if tsk == nil {
-		return nil, errors.New("task is missing")
-	}
-
-	return &MigrationTaskRunner{
-		MigrationRunner: rnnr,
-		task:            tsk,
-	}, nil
-}
-
-func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-
-	t.context = ctx
-	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
-
+func (t *MigrationTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = batch
+	pagination.Size = *t.config.Batch
+	typ := t.summaryType
 
-	t.logger.Info("Searching for User CGM Summaries requiring Migration")
-	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, "cgm", pagination)
+	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
+	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, typ, pagination)
 	if err != nil {
 		return err
 	}
-
-	t.logger.Debug("Starting User CGM Summary Migration")
-	if err := t.UpdateCGMSummaries(outdatedUserIds); err != nil {
-		return err
+	if len(outdatedUserIds) == 0 {
+		t.logger.Infof("No %s Summaries requiring migrations found", typ)
+		return nil
 	}
-	t.logger.Debug("Finished User CGM Summary Migration")
 
-	t.logger.Info("Searching for User BGM Summaries requiring Migration")
-	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "bgm", pagination)
+	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
+
+	t.logger.Debugf("Starting User %s Summary Migration", typ)
+	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds)
 	if err != nil {
 		return err
 	}
-
-	t.logger.Debug("Starting User BGM Summary Migration")
-	if err := t.UpdateBGMSummaries(outdatedUserIds); err != nil {
-		return err
-	}
-	t.logger.Debug("Finished User BGM Summary Migration")
-
-	t.logger.Info("Searching for User Continuous Summaries requiring Migration")
-	outdatedUserIds, err = t.dataClient.GetMigratableUserIDs(t.context, "continuous", pagination)
-	if err != nil {
-		return err
-	}
-
-	t.logger.Debug("Starting User Continuous Summary Migration")
-	if err := t.UpdateContinuousSummaries(outdatedUserIds); err != nil {
-		return err
-	}
-	t.logger.Debug("Finished User Continuous Summary Migration")
+	t.logger.Debugf("Finished User %s Summary Migration", typ)
 
 	return nil
 }
 
-func (t *MigrationTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(MigrationWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Migrating User CGM Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateCGMSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Migrating User CGM Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+func (t *MigrationTaskRunner) rescheduleTaskWithResourceError(err error) {
+	t.rescheduleTaskWithError(ErrorResourceFailureError(err))
 }
 
-func (t *MigrationTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(MigrationWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Migrating User BGM Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateBGMSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Migrating User BGM Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+// Reschedule task for next run. Append error to task.
+func (t *MigrationTaskRunner) rescheduleTaskWithError(err error) {
+	t.task.AppendError(err)
+	t.rescheduleTask()
 }
 
-func (t *MigrationTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(MigrationWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Migrating User Continuous Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Migrating User Continuous Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+func (t *MigrationTaskRunner) rescheduleTask() {
+	t.task.RepeatAvailableAfter(GenerateNextTime(t.config.Interval))
 }

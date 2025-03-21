@@ -2,23 +2,17 @@ package task
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/version"
 )
 
 const (
@@ -27,42 +21,36 @@ const (
 	UpdateTaskDurationMaximum                  = 2 * time.Minute
 	DefaultUpdateWorkerBatchSize               = 250
 	UpdateWorkerCount                          = 10
-	UpdateType                                 = "org.tidepool.summary.update"
-
-	IterLimit = 3
+	UpdateType                                 = "org.tidepool.summary.update.%s"
+	IterLimit                                  = 3
 )
 
 type UpdateRunner struct {
-	logger          log.Logger
-	versionReporter version.Reporter
-	authClient      auth.Client
-	dataClient      dataClient.Client
+	authClient  auth.Client
+	dataClient  dataClient.Client
+	summaryType string
 }
 
-func NewUpdateRunner(logger log.Logger, versionReporter version.Reporter, authClient auth.Client, dataClient dataClient.Client) (*UpdateRunner, error) {
-	if logger == nil {
-		return nil, errors.New("logger is missing")
-	}
-	if versionReporter == nil {
-		return nil, errors.New("version reporter is missing")
-	}
+func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*UpdateRunner, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if summaryType != "cgm" && summaryType != "bgm" && summaryType != "con" {
+		return nil, errors.Newf("summary type \"%s\" not supported by update runner", summaryType)
+	}
 
 	return &UpdateRunner{
-		logger:          logger,
-		versionReporter: versionReporter,
-		authClient:      authClient,
-		dataClient:      dataClient,
+		authClient:  authClient,
+		dataClient:  dataClient,
+		summaryType: summaryType,
 	}, nil
 }
 
 func (r *UpdateRunner) GetRunnerType() string {
-	return UpdateType
+	return fmt.Sprintf(UpdateType, r.summaryType)
 }
 
 func (r *UpdateRunner) GetRunnerDeadline() time.Time {
@@ -77,27 +65,65 @@ func (r *UpdateRunner) GetRunnerDurationMaximum() time.Duration {
 	return UpdateTaskDurationMaximum
 }
 
-func (r *UpdateRunner) GenerateNextTime(interval MinuteRange) time.Duration {
-	Min := time.Duration(interval.Min) * time.Second
-	Max := time.Duration(interval.Max) * time.Second
-
-	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
-	return Min + randTime
+func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
+	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
+	if taskRunner, err := NewUpdateTaskRunner(r, tsk); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
+	} else {
+		taskRunner.Run(ctx)
+	}
 }
 
-func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
-	var config TaskConfiguration
+type UpdateTaskRunner struct {
+	*UpdateRunner
+	task     *task.Task
+	context  context.Context
+	logger   log.Logger
+	deadline time.Time
+	config   Configuration
+}
+
+func NewUpdateTaskRunner(runner *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
+	if runner == nil {
+		return nil, errors.New("provider is missing")
+	}
+	if tsk == nil {
+		return nil, errors.New("task is missing")
+	}
+
+	return &UpdateTaskRunner{
+		UpdateRunner: runner,
+		task:         tsk,
+	}, nil
+}
+
+func (t *UpdateTaskRunner) Run(ctx context.Context) {
+	t.context = ctx
+	t.logger = log.LoggerFromContext(t.context)
+	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
+	t.config = t.GetConfig()
+
+	t.task.ClearError()
+	if err := t.run(); err == nil {
+		t.rescheduleTask()
+	} else if !t.task.HasError() {
+		t.rescheduleTaskWithResourceError(err)
+	}
+}
+
+func (t *UpdateTaskRunner) GetConfig() Configuration {
+	var config Configuration
 	var valid bool
-	if raw, ok := tsk.Data["config"]; ok {
+	if raw, ok := t.task.Data["config"]; ok {
 		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
 		// but we require something more specific at this point
 		bs, _ := bson.Marshal(raw)
 		unmarshalError := bson.Unmarshal(bs, &config)
 		if unmarshalError != nil {
-			r.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
+			t.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
 		} else {
 			if configErr := ValidateConfig(config, true); configErr != nil {
-				r.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
+				t.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
 			} else {
 				valid = true
 			}
@@ -107,66 +133,19 @@ func (r *UpdateRunner) GetConfig(tsk *task.Task) TaskConfiguration {
 	if !valid {
 		config = NewDefaultUpdateConfig()
 
-		if tsk.Data == nil {
-			tsk.Data = make(map[string]interface{})
+		if t.task.Data == nil {
+			t.task.Data = make(map[string]interface{})
 		}
-		tsk.Data["config"] = config
+		t.task.Data["config"] = config
 	}
-
 	return config
 }
 
-func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
-	ctx = log.NewContextWithLogger(ctx, r.logger)
-	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
-
-	tsk.ClearError()
-
-	config := r.GetConfig(tsk)
-
-	if taskRunner, tErr := NewUpdateTaskRunner(r, tsk); tErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to create task runner: %w", tErr))
-	} else if tErr = taskRunner.Run(ctx, *config.Batch); tErr != nil {
-		tsk.AppendError(fmt.Errorf("unable to run task runner: %w", tErr))
-	}
-
-	if !tsk.IsFailed() {
-		tsk.RepeatAvailableAfter(r.GenerateNextTime(config.Interval))
-	}
-}
-
-type UpdateTaskRunner struct {
-	*UpdateRunner
-	task      *task.Task
-	context   context.Context
-	validator structure.Validator
-}
-
-func NewUpdateTaskRunner(rnnr *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
-	if rnnr == nil {
-		return nil, errors.New("runner is missing")
-	}
-	if tsk == nil {
-		return nil, errors.New("task is missing")
-	}
-
-	return &UpdateTaskRunner{
-		UpdateRunner: rnnr,
-		task:         tsk,
-	}, nil
-}
-
-func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-
-	t.context = ctx
-	t.validator = structureValidator.New(log.LoggerFromContext(ctx))
-	targetTime := time.Now().UTC().Add(-1 * time.Minute)
-
+func (t *UpdateTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = batch
+	pagination.Size = *t.config.Batch
+	typ := t.summaryType
+	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 
 	t.logger.Debug("Starting User CGM Summary Update")
 	iCount := 0
@@ -178,13 +157,20 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 			break
 		}
 
-		t.logger.Info("Searching for User CGM Summaries requiring Update")
+		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
 		outdatedCGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
 			return err
 		}
+		if len(outdatedCGM.UserIds) == 0 {
+			t.logger.Infof("No %s Summaries requiring updates found", typ)
+			return nil
+		}
 
-		if err = t.UpdateCGMSummaries(outdatedCGM.UserIds); err != nil {
+		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedCGM.UserIds), typ)
+
+		err = updateSummaries(t.context, t.dataClient, typ, outdatedCGM.UserIds)
+		if err != nil {
 			return err
 		}
 
@@ -195,154 +181,21 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 
 		iCount++
 	}
-	t.logger.Debug("Finished User CGM Summary Update")
-
-	t.logger.Debug("Starting User BGM Summary Update")
-	iCount = 0
-	for {
-		if iCount >= IterLimit {
-			t.logger.Warn("Exiting BGM batch loop early, too many iterations")
-			break
-		}
-
-		t.logger.Info("Searching for User BGM Summaries requiring Update")
-		outdatedBGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "bgm", pagination)
-		if err != nil {
-			return err
-		}
-
-		if err = t.UpdateBGMSummaries(outdatedBGM.UserIds); err != nil {
-			return err
-		}
-
-		if outdatedBGM.End.After(targetTime) || outdatedBGM.End.IsZero() {
-			// we are sufficiently caught up
-			break
-		}
-
-		iCount++
-	}
-	t.logger.Debug("Finished User BGM Summary Update")
-
-	t.logger.Debug("Starting User Continuous Summary Update")
-	iCount = 0
-	for {
-		if iCount >= IterLimit {
-			t.logger.Warn("Exiting Continuous batch loop early, too many iterations")
-			break
-		}
-
-		t.logger.Info("Searching for User Continuous Summaries requiring Update")
-		outdatedContinuous, err := t.dataClient.GetOutdatedUserIDs(t.context, "continuous", pagination)
-		if err != nil {
-			return err
-		}
-
-		if err = t.UpdateContinuousSummaries(outdatedContinuous.UserIds); err != nil {
-			return err
-		}
-
-		if outdatedContinuous.End.After(targetTime) || outdatedContinuous.End.IsZero() {
-			// we are sufficiently caught up
-			break
-		}
-
-		iCount++
-	}
-	t.logger.Debug("Finished User Continuous Summary Update")
+	t.logger.Debugf("Finished User %s Summary Update", typ)
 
 	return nil
 }
 
-func (t *UpdateTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(UpdateWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Updating User CGM Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateCGMSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Updating User CGM Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+func (t *UpdateTaskRunner) rescheduleTaskWithResourceError(err error) {
+	t.rescheduleTaskWithError(ErrorResourceFailureError(err))
 }
 
-func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(UpdateWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Updating User BGM Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateBGMSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Updating User BGM Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+// Reschedule task for next run. Append error to task.
+func (t *UpdateTaskRunner) rescheduleTaskWithError(err error) {
+	t.task.AppendError(err)
+	t.rescheduleTask()
 }
 
-func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
-	eg, ctx := errgroup.WithContext(t.context)
-
-	sem := semaphore.NewWeighted(UpdateWorkerCount)
-	for _, userID := range outdatedUserIds {
-		if err := sem.Acquire(ctx, 1); err != nil {
-			return err
-		}
-
-		// we can't pass arguments to errgroup goroutines
-		// we need to explicitly redefine the variables,
-		// because we're launching the goroutines in a loop
-		userID := userID
-		eg.Go(func() error {
-			defer sem.Release(1)
-			t.logger.WithField("UserID", userID).Debug("Updating User Continuous Summary")
-
-			// update summary
-			_, err := t.dataClient.UpdateContinuousSummary(t.context, userID)
-			if err != nil {
-				return err
-			}
-
-			t.logger.WithField("UserID", userID).Debug("Finished Updating User Continuous Summary")
-
-			return nil
-		})
-	}
-	return eg.Wait()
+func (t *UpdateTaskRunner) rescheduleTask() {
+	t.task.RepeatAvailableAfter(GenerateNextTime(t.config.Interval))
 }

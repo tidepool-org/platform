@@ -1,27 +1,37 @@
 package task
 
 import (
+	"context"
 	"errors"
+	"fmt"
+	"math/rand"
 	"time"
 
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+
+	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 )
 
 const ConfigVersion = 1
 
+var SummaryTypes = []string{"cgm", "bgm", "con"}
+
 type MinuteRange struct {
 	Min int
 	Max int
 }
 
-type TaskConfiguration struct {
+type Configuration struct {
 	Interval MinuteRange `json:"interval" bson:"interval"`
 	Batch    *int        `json:"batch,omitempty" bson:"batch,omitempty"`
 	Version  int         `json:"version" bson:"version"`
 }
 
-func ValidateConfig(config TaskConfiguration, withBatch bool) error {
+func ValidateConfig(config Configuration, withBatch bool) error {
 	if config.Version != ConfigVersion {
 		return errors.New("old version number, must be remade")
 	}
@@ -48,8 +58,16 @@ func ValidateConfig(config TaskConfiguration, withBatch bool) error {
 	return nil
 }
 
-func NewDefaultUpdateConfig() TaskConfiguration {
-	return TaskConfiguration{
+func GenerateNextTime(interval MinuteRange) time.Duration {
+	Min := time.Duration(interval.Min) * time.Second
+	Max := time.Duration(interval.Max) * time.Second
+
+	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
+	return Min + randTime
+}
+
+func NewDefaultUpdateConfig() Configuration {
+	return Configuration{
 		Interval: MinuteRange{
 			int(DefaultUpdateAvailableAfterDurationMinimum.Seconds()),
 			int(DefaultUpdateAvailableAfterDurationMaximum.Seconds())},
@@ -58,10 +76,10 @@ func NewDefaultUpdateConfig() TaskConfiguration {
 	}
 }
 
-func NewDefaultUpdateTaskCreate() *task.TaskCreate {
+func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(UpdateType),
-		Type:          UpdateType,
+		Name:          pointer.FromAny(fmt.Sprintf(UpdateType, summaryType)),
+		Type:          fmt.Sprintf(UpdateType, summaryType),
 		Priority:      5,
 		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]interface{}{
@@ -70,8 +88,8 @@ func NewDefaultUpdateTaskCreate() *task.TaskCreate {
 	}
 }
 
-func NewDefaultMigrationConfig() TaskConfiguration {
-	return TaskConfiguration{
+func NewDefaultMigrationConfig() Configuration {
+	return Configuration{
 		Interval: MinuteRange{
 			int(DefaultMigrationAvailableAfterDurationMinimum.Seconds()),
 			int(DefaultMigrationAvailableAfterDurationMaximum.Seconds())},
@@ -80,14 +98,60 @@ func NewDefaultMigrationConfig() TaskConfiguration {
 	}
 }
 
-func NewDefaultMigrationTaskCreate() *task.TaskCreate {
+func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(MigrationType),
-		Type:          MigrationType,
+		Name:          pointer.FromAny(fmt.Sprintf(MigrationType, summaryType)),
+		Type:          fmt.Sprintf(MigrationType, summaryType),
 		Priority:      5,
 		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]interface{}{
 			"config": NewDefaultMigrationConfig(),
 		},
 	}
+}
+
+func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	logger := log.LoggerFromContext(ctx)
+
+	sem := semaphore.NewWeighted(UpdateWorkerCount)
+	for _, userId := range outdatedUserIds {
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return err
+		}
+
+		// we can't pass arguments to errgroup goroutines
+		// we need to explicitly redefine the variables,
+		// because we're launching the goroutines in a loop
+		userId := userId
+		eg.Go(func() error {
+			defer sem.Release(1)
+			logger.WithField("userId", userId).Debugf("Migrating User %s Summary", typ)
+
+			// update summary
+			err := updateSummary(ctx, dataClient, typ, userId)
+			if err != nil {
+				return err
+			}
+
+			logger.WithField("userId", userId).Debugf("Finished Migrating User %s Summary", typ)
+
+			return nil
+		})
+	}
+	return eg.Wait()
+}
+
+func updateSummary(ctx context.Context, dataClient dataClient.Client, typ string, userId string) (err error) {
+	switch typ {
+	case "cgm":
+		_, err = dataClient.UpdateCGMSummary(ctx, userId)
+	case "bgm":
+		_, err = dataClient.UpdateBGMSummary(ctx, userId)
+	case "con":
+		_, err = dataClient.UpdateContinuousSummary(ctx, userId)
+	default:
+		err = errors.New("summary type unsupported by updateSummary")
+	}
+	return err
 }
