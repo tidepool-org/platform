@@ -1,6 +1,7 @@
 package test
 
 import (
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"time"
 
 	"github.com/onsi/gomega"
