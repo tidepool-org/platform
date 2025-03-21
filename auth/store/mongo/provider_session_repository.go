@@ -73,6 +73,9 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 	if filter.Name != nil {
 		selector["name"] = *filter.Name
 	}
+	if filter.ExternalID != nil {
+		selector["externalId"] = *filter.ExternalID
+	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := p.Find(ctx, selector, opts)
@@ -180,6 +183,11 @@ func (p *ProviderSessionRepository) UpdateProviderSession(ctx context.Context, i
 		set["oauthToken"] = update.OAuthToken
 	} else {
 		unset["oauthToken"] = true
+	}
+	if update.ExternalID != nil {
+		set["externalId"] = update.ExternalID
+	} else {
+		unset["externalId"] = true
 	}
 	changeInfo, err := p.UpdateMany(ctx, bson.M{"id": id}, p.ConstructUpdate(set, unset))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateProviderSession")

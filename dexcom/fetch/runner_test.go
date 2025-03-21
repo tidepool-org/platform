@@ -354,11 +354,11 @@ var _ = Describe("Runner", func() {
 				})
 
 				Context("with provider session", func() {
-					var oauthToken *oauth.Token
+					var oauthToken *auth.OAuthToken
 					var providerSession *auth.ProviderSession
 
 					BeforeEach(func() {
-						oauthToken = &oauth.Token{
+						oauthToken = &auth.OAuthToken{
 							AccessToken:    "test-access-token-1",
 							TokenType:      "Bearer",
 							RefreshToken:   "test-refresh-token-1",
@@ -699,10 +699,10 @@ func mockDexcomClientGetData[T any](mockTokenSource *MockTokenSource, response *
 
 type MockTokenSource struct {
 	Refresh bool
-	token   *oauth.Token
+	token   *auth.OAuthToken
 }
 
-func (m *MockTokenSource) TokenSource(ctx context.Context, token *oauth.Token) (oauth2.TokenSource, error) {
+func (m *MockTokenSource) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {
 	m.token = token
 	return m, nil
 }
