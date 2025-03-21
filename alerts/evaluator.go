@@ -76,7 +76,8 @@ func (e *Evaluator) EvaluateData(ctx context.Context, followedUserID, dataSetID 
 		}
 		for _, config := range configs {
 			lgr := config.LoggerWithFields(e.Logger)
-			notification, needsUpsert := e.genNotificationForConfig(ctx, lgr, config, resp)
+			lgrCtx := log.NewContextWithLogger(ctx, lgr)
+			notification, needsUpsert := e.genNotificationForConfig(lgrCtx, lgr, config, resp)
 			if notification != nil {
 				notifications = append(notifications, notification)
 			}
