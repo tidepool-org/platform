@@ -77,7 +77,7 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	if isActivityAndActivityOnly(updatedFields) {
 		lgr.WithField("updatedFields", updatedFields).
 			Debug("alerts config is an activity update, will skip")
-		lgr.WithField("message", msg).Debug("marked")
+		lgr.WithField("msg.Key", string(msg.Key)).Debug("marked")
 		session.MarkMessage(msg, "")
 		return nil
 	}
@@ -97,7 +97,7 @@ func (c *Consumer) consumeAlertsConfigs(ctx context.Context,
 	c.pushNotifications(ctx, notes)
 
 	session.MarkMessage(msg, "")
-	lgr.WithField("message", msg).Debug("marked")
+	lgr.WithField("msg.Key", string(msg.Key)).Debug("marked")
 	return nil
 }
 
@@ -154,7 +154,7 @@ func (c *Consumer) consumeDeviceData(ctx context.Context,
 	c.pushNotifications(ctx, notes)
 
 	session.MarkMessage(msg, "")
-	lgr.WithField("msg", msg).Debug("marked")
+	lgr.WithField("msg.Key", string(msg.Key)).Debug("marked")
 	return nil
 }
 
