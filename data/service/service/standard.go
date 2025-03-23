@@ -25,6 +25,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
@@ -55,6 +56,7 @@ type Standard struct {
 	dataRawClient             *dataRawService.Client
 	dataSourceClient          *dataSourceServiceClient.Client
 	workClient                *workService.Client
+	summarizerRegistry        *summary.SummarizerRegistry
 	abbottClient              *abbottClient.Client
 	workCoordinator           *workService.Coordinator
 	userEventsHandler         events.Runner
@@ -115,12 +117,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeAbbottClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSummarizerRegistry(); err != nil {
+		return err
+	}
 	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
+
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
@@ -175,6 +181,7 @@ func (s *Standard) Terminate() {
 	}
 	s.permissionClient = nil
 	s.metricClient = nil
+	s.summarizerRegistry = nil
 
 	s.DEPRECATEDService.Terminate()
 }
@@ -526,6 +533,18 @@ func (s *Standard) initializeAbbottClient() error {
 	return nil
 }
 
+func (s *Standard) initializeSummarizerRegistry() error {
+	s.Logger().Debug("Loading summarizer registry")
+
+	summaryRepository := s.dataStore.NewSummaryRepository()
+	dataRepository := s.dataStore.NewDataRepository()
+
+	if s.summarizerRegistry == nil {
+		s.summarizerRegistry = summary.New(summaryRepository.GetStore(), dataRepository)
+	}
+	return nil
+}
+
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
@@ -545,6 +564,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 		DataRawClient:           s.dataRawClient,
 		AbbottClient:            s.abbottClient,
 		WorkClient:              s.workClient,
+		SummarizerRegistry:      s.summarizerRegistry,
 	}
 	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
 	if err != nil {

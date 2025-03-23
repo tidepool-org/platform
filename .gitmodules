@@ -1,4 +1,3 @@
 [submodule "private/plugin/abbott"]
 	path = private/plugin/abbott
 	url = https://github.com/tidepool-org/platform-plugin-abbott
-	update = none
