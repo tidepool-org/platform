@@ -3,14 +3,9 @@ package service
 import (
 	"context"
 
-	summaryTask "github.com/tidepool-org/platform/summary/task"
-
-	"github.com/tidepool-org/platform/clinics"
-	"github.com/tidepool-org/platform/ehr/reconcile"
-	"github.com/tidepool-org/platform/ehr/sync"
-
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
@@ -18,10 +13,13 @@ import (
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
+	"github.com/tidepool-org/platform/ehr/reconcile"
+	"github.com/tidepool-org/platform/ehr/sync"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
@@ -307,23 +305,11 @@ func (s *Service) initializeTaskQueue() error {
 		runners = append(runners, rnnr)
 	}
 
-	for _, typ := range summaryTask.SummaryTypes {
-		s.Logger().Debugf("Creating %s summary update runner", typ)
-		summaryUpdateRnnr, summaryUpdateRnnrErr := summaryTask.NewUpdateRunner(s.AuthClient(), s.dataClient, typ)
-		if summaryUpdateRnnrErr != nil {
-			return errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
-		}
-		runners = append(runners, summaryUpdateRnnr)
+	summaryRunners, err := summaryTask.NewSummaryRunners(s.AuthClient(), s.dataClient, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create summary runners")
 	}
-
-	for _, typ := range summaryTask.SummaryTypes {
-		s.Logger().Debugf("Creating %s summary migration runner", typ)
-		summaryMigrationRnnr, summaryMigrationRnnrErr := summaryTask.NewMigrationRunner(s.AuthClient(), s.dataClient, typ)
-		if summaryMigrationRnnrErr != nil {
-			return errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
-		}
-		runners = append(runners, summaryMigrationRnnr)
-	}
+	runners = append(runners, summaryRunners...)
 
 	s.Logger().Debug("Creating ehr reconcile runner")
 

@@ -3,9 +3,8 @@ package task
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -36,7 +35,7 @@ func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, su
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-	if summaryType != "cgm" && summaryType != "bgm" && summaryType != "con" {
+	if !slices.Contains(SummaryTypes, summaryType) {
 		return nil, errors.Newf("summary type \"%s\" not supported by migration runner", summaryType)
 	}
 
@@ -78,7 +77,6 @@ type MigrationTaskRunner struct {
 	context  context.Context
 	logger   log.Logger
 	deadline time.Time
-	config   Configuration
 }
 
 func NewMigrationTaskRunner(runner *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
@@ -95,11 +93,20 @@ func NewMigrationTaskRunner(runner *MigrationRunner, tsk *task.Task) (*Migration
 	}, nil
 }
 
+func (t *MigrationTaskRunner) getBatch() int {
+	batch, ok := t.task.Data["batch"].(int)
+	if !ok || batch < 1 {
+		batch = DefaultMigrationWorkerBatchSize
+		t.task.Data["batch"] = batch
+	}
+
+	return batch
+}
+
 func (t *MigrationTaskRunner) Run(ctx context.Context) {
 	t.context = ctx
 	t.logger = log.LoggerFromContext(t.context)
 	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
-	t.config = t.GetConfig()
 
 	t.task.ClearError()
 	if err := t.run(); err == nil {
@@ -109,39 +116,9 @@ func (t *MigrationTaskRunner) Run(ctx context.Context) {
 	}
 }
 
-func (t *MigrationTaskRunner) GetConfig() Configuration {
-	var config Configuration
-	var valid bool
-	if raw, ok := t.task.Data["config"]; ok {
-		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
-		// but we require something more specific at this point
-		bs, _ := bson.Marshal(raw)
-		unmarshalError := bson.Unmarshal(bs, &config)
-		if unmarshalError != nil {
-			t.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
-		} else {
-			if configErr := ValidateConfig(config, true); configErr != nil {
-				t.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
-			} else {
-				valid = true
-			}
-		}
-	}
-
-	if !valid {
-		config = NewDefaultMigrationConfig()
-
-		if t.task.Data == nil {
-			t.task.Data = make(map[string]interface{})
-		}
-		t.task.Data["config"] = config
-	}
-	return config
-}
-
 func (t *MigrationTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = *t.config.Batch
+	pagination.Size = t.getBatch()
 	typ := t.summaryType
 
 	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
@@ -177,5 +154,15 @@ func (t *MigrationTaskRunner) rescheduleTaskWithError(err error) {
 }
 
 func (t *MigrationTaskRunner) rescheduleTask() {
-	t.task.RepeatAvailableAfter(GenerateNextTime(t.config.Interval))
+	minSeconds, ok := t.task.Data["MinInterval"].(int)
+	if !ok || minSeconds < 1 {
+		minSeconds = int(DefaultMigrationAvailableAfterDurationMinimum.Seconds())
+		t.task.Data["minInterval"] = minSeconds
+	}
+	maxSeconds, ok := t.task.Data["MaxInterval"].(int)
+	if !ok || maxSeconds < minSeconds {
+		maxSeconds = int(DefaultMigrationAvailableAfterDurationMaximum.Seconds())
+		t.task.Data["maxInterval"] = maxSeconds
+	}
+	t.task.RepeatAvailableAfter(GenerateNextTime(minSeconds, maxSeconds))
 }

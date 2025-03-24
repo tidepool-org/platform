@@ -3,9 +3,8 @@ package task
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -38,7 +37,7 @@ func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summa
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-	if summaryType != "cgm" && summaryType != "bgm" && summaryType != "con" {
+	if slices.Contains(SummaryTypes, summaryType) {
 		return nil, errors.Newf("summary type \"%s\" not supported by update runner", summaryType)
 	}
 
@@ -80,7 +79,6 @@ type UpdateTaskRunner struct {
 	context  context.Context
 	logger   log.Logger
 	deadline time.Time
-	config   Configuration
 }
 
 func NewUpdateTaskRunner(runner *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
@@ -101,7 +99,6 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) {
 	t.context = ctx
 	t.logger = log.LoggerFromContext(t.context)
 	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
-	t.config = t.GetConfig()
 
 	t.task.ClearError()
 	if err := t.run(); err == nil {
@@ -111,75 +108,50 @@ func (t *UpdateTaskRunner) Run(ctx context.Context) {
 	}
 }
 
-func (t *UpdateTaskRunner) GetConfig() Configuration {
-	var config Configuration
-	var valid bool
-	if raw, ok := t.task.Data["config"]; ok {
-		// this is abuse of marshal/unmarshal, this was done with interface{} target when loading the task,
-		// but we require something more specific at this point
-		bs, _ := bson.Marshal(raw)
-		unmarshalError := bson.Unmarshal(bs, &config)
-		if unmarshalError != nil {
-			t.logger.WithField("unmarshalError", unmarshalError).Warn("Task configuration invalid, falling back to defaults.")
-		} else {
-			if configErr := ValidateConfig(config, true); configErr != nil {
-				t.logger.WithField("validationError", configErr).Warn("Task configuration invalid, falling back to defaults.")
-			} else {
-				valid = true
-			}
-		}
+func (t *UpdateTaskRunner) getBatch() int {
+	batch, ok := t.task.Data["batch"].(int)
+	if !ok || batch < 1 {
+		batch = DefaultUpdateWorkerBatchSize
+		t.task.Data["batch"] = batch
 	}
 
-	if !valid {
-		config = NewDefaultUpdateConfig()
-
-		if t.task.Data == nil {
-			t.task.Data = make(map[string]interface{})
-		}
-		t.task.Data["config"] = config
-	}
-	return config
+	return batch
 }
 
 func (t *UpdateTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = *t.config.Batch
-	typ := t.summaryType
+	pagination.Size = t.getBatch()
 	targetTime := time.Now().UTC().Add(-1 * time.Minute)
+	typ := t.summaryType
 
-	t.logger.Debug("Starting User CGM Summary Update")
-	iCount := 0
-	// this loop is a bit odd looking, we are iterating until the end of the previous loop is past the target
-	// this avoids a round trip, and allows the default time zero value to work as a starter
-	for {
-		if iCount >= IterLimit {
-			t.logger.Warn("Exiting CGM batch loop early, too many iterations")
-			break
-		}
+	t.logger.Debugf("Starting User %s Summary Update", typ)
 
+	for i := 1; i <= IterLimit; i++ {
 		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
-		outdatedCGM, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+		outdated, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
 		if err != nil {
 			return err
 		}
-		if len(outdatedCGM.UserIds) == 0 {
+		if len(outdated.UserIds) == 0 {
 			t.logger.Infof("No %s Summaries requiring updates found", typ)
 			return nil
 		}
 
-		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedCGM.UserIds), typ)
+		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdated.UserIds), typ)
 
-		err = updateSummaries(t.context, t.dataClient, typ, outdatedCGM.UserIds)
+		err = updateSummaries(t.context, t.dataClient, typ, outdated.UserIds)
 		if err != nil {
 			return err
 		}
 
-		if outdatedCGM.End.After(targetTime) || outdatedCGM.End.IsZero() {
+		if outdated.End.After(targetTime) || outdated.End.IsZero() {
 			// we are sufficiently caught up
 			break
 		}
 
-		iCount++
+		if i == IterLimit {
+			t.logger.Warnf("Reached iteration limit in updating %s summaries, exiting", typ)
+		}
 	}
 	t.logger.Debugf("Finished User %s Summary Update", typ)
 
@@ -197,5 +169,15 @@ func (t *UpdateTaskRunner) rescheduleTaskWithError(err error) {
 }
 
 func (t *UpdateTaskRunner) rescheduleTask() {
-	t.task.RepeatAvailableAfter(GenerateNextTime(t.config.Interval))
+	minSeconds, ok := t.task.Data["MinInterval"].(int)
+	if !ok || minSeconds < 1 {
+		minSeconds = int(DefaultUpdateAvailableAfterDurationMinimum.Seconds())
+		t.task.Data["minInterval"] = minSeconds
+	}
+	maxSeconds, ok := t.task.Data["MaxInterval"].(int)
+	if !ok || maxSeconds < minSeconds {
+		maxSeconds = int(DefaultUpdateAvailableAfterDurationMaximum.Seconds())
+		t.task.Data["maxInterval"] = maxSeconds
+	}
+	t.task.RepeatAvailableAfter(GenerateNextTime(minSeconds, maxSeconds))
 }
