@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/pointer"
 	"slices"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 )
 
