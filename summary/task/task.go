@@ -47,12 +47,15 @@ func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 	return Min + randTime
 }
 
-func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64) error {
+func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	logger := log.LoggerFromContext(ctx)
 
 	sem := semaphore.NewWeighted(workerCount)
 	for _, userId := range outdatedUserIds {
+		if time.Now().After(deadline) {
+			return context.DeadlineExceeded
+		}
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return err
 		}

@@ -160,7 +160,7 @@ func (t *MigrationTaskRunner) run() error {
 	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
-	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount)
+	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount, t.deadline)
 	if err != nil {
 		return err
 	}
