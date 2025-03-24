@@ -74,6 +74,10 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
+func (p *Provider) ClientID() string {
+	return p.config.ClientID
+}
+
 func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
