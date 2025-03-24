@@ -1,6 +1,6 @@
 module: platform
 type: golang
-goVersion: "1.20"
+goVersion: "1.23"
 runTests: false
 docker: true
 dockerPushToProduction : true
@@ -8,7 +8,7 @@ publishNpm: false
 publishOpenapiBucket: com.diabeloop.backloops.docs
 publishSoupBucket: com.diabeloop.backloops.docs
 securityScan: false
-dockerBuild: 
+dockerBuild:
   platform: 'linux/amd64'
   file: 'Dockerfile.data'
   buildArgs:
