@@ -19,6 +19,7 @@ const (
 	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
+	MigrationWorkerCount                          = 10
 	MigrationType                                 = "org.tidepool.summary.migrate"
 )
 
@@ -79,32 +80,42 @@ func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 
 func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
-	if taskRunner, err := NewMigrationTaskRunner(r, tsk); err != nil {
+	if taskRunner, err := NewMigrationTaskRunner(r.authClient, r.dataClient, r.summaryType, tsk); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
 	} else {
-		taskRunner.Run(ctx)
+		taskRunner.Run(ctx, time.Now().Add(r.GetRunnerDurationMaximum()))
 	}
 }
 
 type MigrationTaskRunner struct {
-	*MigrationRunner
-	task     *task.Task
-	context  context.Context
-	logger   log.Logger
-	deadline time.Time
+	authClient  auth.Client
+	dataClient  dataClient.Client
+	summaryType string
+	task        *task.Task
+	context     context.Context
+	logger      log.Logger
+	deadline    time.Time
 }
 
-func NewMigrationTaskRunner(runner *MigrationRunner, tsk *task.Task) (*MigrationTaskRunner, error) {
-	if runner == nil {
-		return nil, errors.New("runner is missing")
+func NewMigrationTaskRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string, tsk *task.Task) (*MigrationTaskRunner, error) {
+	if authClient == nil {
+		return nil, errors.New("auth client is missing")
+	}
+	if dataClient == nil {
+		return nil, errors.New("data client is missing")
+	}
+	if !slices.Contains(SummaryTypes, summaryType) {
+		return nil, errors.Newf("summary type \"%s\" not supported by migration runner", summaryType)
 	}
 	if tsk == nil {
 		return nil, errors.New("task is missing")
 	}
 
 	return &MigrationTaskRunner{
-		MigrationRunner: runner,
-		task:            tsk,
+		authClient:  authClient,
+		dataClient:  dataClient,
+		summaryType: summaryType,
+		task:        tsk,
 	}, nil
 }
 
@@ -118,10 +129,10 @@ func (t *MigrationTaskRunner) getBatch() int {
 	return batch
 }
 
-func (t *MigrationTaskRunner) Run(ctx context.Context) {
+func (t *MigrationTaskRunner) Run(ctx context.Context, deadline time.Time) {
 	t.context = ctx
 	t.logger = log.LoggerFromContext(t.context)
-	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
+	t.deadline = deadline
 
 	t.task.ClearError()
 	if err := t.run(); err == nil {
@@ -149,7 +160,7 @@ func (t *MigrationTaskRunner) run() error {
 	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
-	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds)
+	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount)
 	if err != nil {
 		return err
 	}

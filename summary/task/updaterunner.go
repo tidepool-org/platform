@@ -81,39 +81,49 @@ func (r *UpdateRunner) GetRunnerDurationMaximum() time.Duration {
 
 func (r *UpdateRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
-	if taskRunner, err := NewUpdateTaskRunner(r, tsk); err != nil {
+	if taskRunner, err := NewUpdateTaskRunner(r.authClient, r.dataClient, r.summaryType, tsk); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
 	} else {
-		taskRunner.Run(ctx)
+		taskRunner.Run(ctx, time.Now().Add(r.GetRunnerDurationMaximum()))
 	}
 }
 
 type UpdateTaskRunner struct {
-	*UpdateRunner
-	task     *task.Task
-	context  context.Context
-	logger   log.Logger
-	deadline time.Time
+	authClient  auth.Client
+	dataClient  dataClient.Client
+	summaryType string
+	task        *task.Task
+	context     context.Context
+	logger      log.Logger
+	deadline    time.Time
 }
 
-func NewUpdateTaskRunner(runner *UpdateRunner, tsk *task.Task) (*UpdateTaskRunner, error) {
-	if runner == nil {
-		return nil, errors.New("provider is missing")
+func NewUpdateTaskRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string, tsk *task.Task) (*UpdateTaskRunner, error) {
+	if authClient == nil {
+		return nil, errors.New("auth client is missing")
+	}
+	if dataClient == nil {
+		return nil, errors.New("data client is missing")
+	}
+	if !slices.Contains(SummaryTypes, summaryType) {
+		return nil, errors.Newf("summary type \"%s\" not supported by migration runner", summaryType)
 	}
 	if tsk == nil {
 		return nil, errors.New("task is missing")
 	}
 
 	return &UpdateTaskRunner{
-		UpdateRunner: runner,
-		task:         tsk,
+		authClient:  authClient,
+		dataClient:  dataClient,
+		summaryType: summaryType,
+		task:        tsk,
 	}, nil
 }
 
-func (t *UpdateTaskRunner) Run(ctx context.Context) {
+func (t *UpdateTaskRunner) Run(ctx context.Context, deadline time.Time) {
 	t.context = ctx
 	t.logger = log.LoggerFromContext(t.context)
-	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
+	t.deadline = deadline
 
 	t.task.ClearError()
 	if err := t.run(); err == nil {
@@ -154,7 +164,7 @@ func (t *UpdateTaskRunner) run() error {
 
 		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdated.UserIds), typ)
 
-		err = updateSummaries(t.context, t.dataClient, typ, outdated.UserIds)
+		err = updateSummaries(t.context, t.dataClient, typ, outdated.UserIds, UpdateWorkerCount)
 		if err != nil {
 			return err
 		}

@@ -17,6 +17,28 @@ import (
 
 var SummaryTypes = []string{"cgm", "bgm", "con"}
 
+func NewSummaryRunners(authClient auth.Client, dataClient dataClient.Client, logger log.Logger) ([]queue.Runner, error) {
+	var runners []queue.Runner
+
+	for _, typ := range SummaryTypes {
+		logger.Debugf("Creating %s summary update runner", typ)
+		summaryUpdateRnnr, summaryUpdateRnnrErr := NewUpdateRunner(authClient, dataClient, typ)
+		if summaryUpdateRnnrErr != nil {
+			return nil, errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
+		}
+		runners = append(runners, summaryUpdateRnnr)
+
+		logger.Debugf("Creating %s summary migration runner", typ)
+		summaryMigrationRnnr, summaryMigrationRnnrErr := NewMigrationRunner(authClient, dataClient, typ)
+		if summaryMigrationRnnrErr != nil {
+			return nil, errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
+		}
+		runners = append(runners, summaryMigrationRnnr)
+	}
+
+	return runners, nil
+}
+
 func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 	Min := time.Duration(minSeconds) * time.Second
 	Max := time.Duration(maxSeconds) * time.Second
@@ -25,11 +47,11 @@ func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 	return Min + randTime
 }
 
-func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string) error {
+func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	logger := log.LoggerFromContext(ctx)
 
-	sem := semaphore.NewWeighted(UpdateWorkerCount)
+	sem := semaphore.NewWeighted(workerCount)
 	for _, userId := range outdatedUserIds {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return err
@@ -69,26 +91,4 @@ func updateSummary(ctx context.Context, dataClient dataClient.Client, typ string
 		err = errors.New("summary type unsupported by updateSummary")
 	}
 	return err
-}
-
-func NewSummaryRunners(authClient auth.Client, dataClient dataClient.Client, logger log.Logger) ([]queue.Runner, error) {
-	var runners []queue.Runner
-
-	for _, typ := range SummaryTypes {
-		logger.Debugf("Creating %s summary update runner", typ)
-		summaryUpdateRnnr, summaryUpdateRnnrErr := NewUpdateRunner(authClient, dataClient, typ)
-		if summaryUpdateRnnrErr != nil {
-			return nil, errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
-		}
-		runners = append(runners, summaryUpdateRnnr)
-
-		logger.Debugf("Creating %s summary migration runner", typ)
-		summaryMigrationRnnr, summaryMigrationRnnrErr := NewMigrationRunner(authClient, dataClient, typ)
-		if summaryMigrationRnnrErr != nil {
-			return nil, errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
-		}
-		runners = append(runners, summaryMigrationRnnr)
-	}
-
-	return runners, nil
 }
