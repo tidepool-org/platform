@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"time"
 
@@ -13,8 +12,6 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 )
 
@@ -26,34 +23,6 @@ func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 
 	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
 	return Min + randTime
-}
-
-func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
-	return &task.TaskCreate{
-		Name:          pointer.FromAny(fmt.Sprintf(UpdateType, summaryType)),
-		Type:          fmt.Sprintf(UpdateType, summaryType),
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"minInterval": DefaultUpdateAvailableAfterDurationMinimum,
-			"maxInterval": DefaultUpdateAvailableAfterDurationMaximum,
-			"batch":       DefaultUpdateWorkerBatchSize,
-		},
-	}
-}
-
-func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
-	return &task.TaskCreate{
-		Name:          pointer.FromAny(fmt.Sprintf(MigrationType, summaryType)),
-		Type:          fmt.Sprintf(MigrationType, summaryType),
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"minInterval": DefaultMigrationAvailableAfterDurationMinimum,
-			"maxInterval": DefaultMigrationAvailableAfterDurationMaximum,
-			"batch":       DefaultMigrationWorkerBatchSize,
-		},
-	}
 }
 
 func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string) error {

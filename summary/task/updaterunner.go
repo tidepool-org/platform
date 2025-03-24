@@ -2,7 +2,7 @@ package task
 
 import (
 	"context"
-	"fmt"
+	"github.com/tidepool-org/platform/pointer"
 	"slices"
 	"time"
 
@@ -20,7 +20,7 @@ const (
 	UpdateTaskDurationMaximum                  = 2 * time.Minute
 	DefaultUpdateWorkerBatchSize               = 250
 	UpdateWorkerCount                          = 10
-	UpdateType                                 = "org.tidepool.summary.update.%s"
+	UpdateType                                 = "org.tidepool.summary.update"
 	IterLimit                                  = 3
 )
 
@@ -28,6 +28,21 @@ type UpdateRunner struct {
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
+}
+
+func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
+	typ := UpdateType + "." + summaryType
+	return &task.TaskCreate{
+		Name:          pointer.FromAny(typ),
+		Type:          typ,
+		Priority:      5,
+		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Data: map[string]interface{}{
+			"minInterval": DefaultUpdateAvailableAfterDurationMinimum,
+			"maxInterval": DefaultUpdateAvailableAfterDurationMaximum,
+			"batch":       DefaultUpdateWorkerBatchSize,
+		},
+	}
 }
 
 func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*UpdateRunner, error) {
@@ -49,7 +64,7 @@ func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summa
 }
 
 func (r *UpdateRunner) GetRunnerType() string {
-	return fmt.Sprintf(UpdateType, r.summaryType)
+	return UpdateType + "." + r.summaryType
 }
 
 func (r *UpdateRunner) GetRunnerDeadline() time.Time {

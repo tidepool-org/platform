@@ -2,7 +2,7 @@ package task
 
 import (
 	"context"
-	"fmt"
+	"github.com/tidepool-org/platform/pointer"
 	"slices"
 	"time"
 
@@ -19,13 +19,28 @@ const (
 	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
-	MigrationType                                 = "org.tidepool.summary.migrate.%s"
+	MigrationType                                 = "org.tidepool.summary.migrate"
 )
 
 type MigrationRunner struct {
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
+}
+
+func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
+	typ := MigrationType + "." + summaryType
+	return &task.TaskCreate{
+		Name:          pointer.FromAny(typ),
+		Type:          typ,
+		Priority:      5,
+		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Data: map[string]interface{}{
+			"minInterval": DefaultMigrationAvailableAfterDurationMinimum,
+			"maxInterval": DefaultMigrationAvailableAfterDurationMaximum,
+			"batch":       DefaultMigrationWorkerBatchSize,
+		},
+	}
 }
 
 func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*MigrationRunner, error) {
@@ -47,7 +62,7 @@ func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, su
 }
 
 func (r *MigrationRunner) GetRunnerType() string {
-	return fmt.Sprintf(MigrationType, r.summaryType)
+	return MigrationType + "." + r.summaryType
 }
 
 func (r *MigrationRunner) GetRunnerDeadline() time.Time {
