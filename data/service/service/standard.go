@@ -126,7 +126,6 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
-
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
