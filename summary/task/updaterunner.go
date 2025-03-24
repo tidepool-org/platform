@@ -52,7 +52,7 @@ func NewUpdateRunner(authClient auth.Client, dataClient dataClient.Client, summa
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
-	if slices.Contains(SummaryTypes, summaryType) {
+	if !slices.Contains(SummaryTypes, summaryType) {
 		return nil, errors.Newf("summary type \"%s\" not supported by update runner", summaryType)
 	}
 
