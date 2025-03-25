@@ -75,7 +75,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		return errors.New("provider session is missing")
 	}
 
-	source, err := p.prepareDataSource(ctx, userID, providerSession)
+	source, err := p.prepareDataSource(ctx, userID)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		return err
 	}
 
-	err = p.connectDataSource(ctx, source, dataSet)
+	err = p.connectDataSource(ctx, source, providerSession, dataSet)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect data source")
 	}
@@ -129,7 +129,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 	return nil
 }
 
-func (p *Provider) prepareDataSource(ctx context.Context, userID string, providerSession *auth.ProviderSession) (*dataSource.Source, error) {
+func (p *Provider) prepareDataSource(ctx context.Context, userID string) (*dataSource.Source, error) {
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
@@ -190,7 +190,7 @@ func (p *Provider) prepareDataSet(ctx context.Context, source *dataSource.Source
 	return dataSet, nil
 }
 
-func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Source, dataSet *data.DataSet) error {
+func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Source, providerSession *auth.ProviderSession, dataSet *data.DataSet) error {
 	var dataSetIDs []string
 	if source.DataSetIDs != nil {
 		dataSetIDs = *source.DataSetIDs
@@ -200,6 +200,7 @@ func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Sou
 	for _, dataSetID := range dataSetIDs {
 		if dataSetID == *dataSet.ID {
 			exists = true
+			break
 		}
 	}
 
@@ -209,8 +210,9 @@ func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Sou
 	}
 
 	update := dataSource.Update{
-		DataSetIDs: pointer.FromStringArray(dataSetIDs),
-		State:      pointer.FromString(dataSource.StateConnected),
+		ProviderSessionID: &providerSession.ID,
+		DataSetIDs:        pointer.FromStringArray(dataSetIDs),
+		State:             pointer.FromString(dataSource.StateConnected),
 	}
 
 	_, err := p.dataSourceClient.Update(ctx, *source.ID, nil, &update)
