@@ -12,7 +12,7 @@ type ServiceAccountAuthorizer interface {
 
 func NewServiceAccountAuthorizer() (ServiceAccountAuthorizer, error) {
 	authorizer := &serviceAccountAuthorizer{}
-	err := envconfig.Process("", &authorizer)
+	err := envconfig.Process("", authorizer)
 	if err != nil {
 		return nil, err
 	}
