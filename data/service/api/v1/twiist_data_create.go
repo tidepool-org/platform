@@ -3,6 +3,8 @@ package v1
 import (
 	"fmt"
 
+	"github.com/tidepool-org/platform/log"
+
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/pointer"
@@ -14,6 +16,8 @@ import (
 func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context)) func(ctx dataService.Context) {
 	return func(dataServiceContext dataService.Context) {
 		req := dataServiceContext.Request()
+		lgr := log.LoggerFromContext(req.Context())
+
 		tidepoolLinkID := req.PathParams["tidepoolLinkId"]
 		if tidepoolLinkID == "" {
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDMissing())
@@ -22,7 +26,8 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 
 		// Authorize the service account
 		authDetails := request.GetAuthDetails(req.Context())
-		if authDetails.IsService() || dataServiceContext.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
+		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
+			lgr.Debugf("the subject is not authorized twiist service account")
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}
@@ -38,10 +43,12 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 
 		dataSources, err := dataServiceContext.DataSourceClient().FindByExternalID(ctx, filter, nil)
 		if err != nil {
+			lgr.WithError(err).Warnf("unable to fetch data source for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)
 			return
 		}
 		if len(dataSources) == 0 {
+			lgr.WithError(err).Warnf("no data source found for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
 			return
 		}
@@ -52,6 +59,7 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 			dataSetID = (*dataSource.DataSetIDs)[len(*dataSource.DataSetIDs)-1]
 		}
 		if dataSetID == "" {
+			lgr.WithError(err).Warnf("no data sets found for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %s", *dataSource.ID), err)
 			return
 		}
