@@ -89,7 +89,6 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		create := dataSource.NewCreate()
 		create.ProviderType = pointer.FromString(p.Type())
 		create.ProviderName = pointer.FromString(p.Name())
-		create.State = pointer.FromString(dataSource.StateDisconnected)
 
 		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {

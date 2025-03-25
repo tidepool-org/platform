@@ -163,7 +163,7 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 		ProviderName:       create.ProviderName,
 		ProviderSessionID:  create.ProviderSessionID,
 		ProviderExternalID: create.ProviderExternalID,
-		State:              create.State,
+		State:              pointer.FromString(dataSource.StateDisconnected),
 		Metadata:           create.Metadata,
 		CreatedTime:        pointer.FromTime(now),
 		Revision:           pointer.FromInt(0),
@@ -289,7 +289,7 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 			}
 		}
 		if update.Metadata != nil {
-			set["metadata"] = *update.Metadata
+			set["metadata"] = update.Metadata
 		}
 		if update.ProviderSessionID != nil {
 			delete(unset, "providerSessionId")
