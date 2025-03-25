@@ -54,7 +54,7 @@ func (p *ProviderSessionFilter) Parse(parser structure.ObjectParser) {
 func (p *ProviderSessionFilter) Validate(validator structure.Validator) {
 	validator.String("type", p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", p.Name).Using(ProviderNameValidator)
-	validator.String("externalId", p.ExternalID).Using(ProviderExternaIDValidator)
+	validator.String("externalId", p.ExternalID).Using(ProviderExternalIDValidator)
 }
 
 func (p *ProviderSessionFilter) MutateRequest(req *http.Request) error {
@@ -108,7 +108,7 @@ func (p *ProviderSessionCreate) Validate(validator structure.Validator) {
 			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
-	validator.String("externalId", p.ExternalID).Using(ProviderExternaIDValidator)
+	validator.String("externalId", p.ExternalID).Using(ProviderExternalIDValidator)
 }
 
 type ProviderSessionUpdate struct {
@@ -133,7 +133,7 @@ func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
 	if p.OAuthToken != nil {
 		p.OAuthToken.Validate(validator.WithReference("oauthToken"))
 	}
-	validator.String("externalId", p.ExternalID).Using(ProviderExternaIDValidator)
+	validator.String("externalId", p.ExternalID).Using(ProviderExternalIDValidator)
 }
 
 func (p *ProviderSessionUpdate) IsEmpty() bool {
@@ -186,21 +186,21 @@ func ValidateProviderName(value string) error {
 	return nil
 }
 
-const ProviderExternaIDLengthMaximum = 100
+const ProviderExternalIDLengthMaximum = 100
 
-func IsValidProviderExternaID(value string) bool {
-	return ValidateProviderExternaID(value) == nil
+func IsValidProviderExternalID(value string) bool {
+	return ValidateProviderExternalID(value) == nil
 }
 
-func ProviderExternaIDValidator(value string, errorReporter structure.ErrorReporter) {
-	errorReporter.ReportError(ValidateProviderExternaID(value))
+func ProviderExternalIDValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateProviderExternalID(value))
 }
 
-func ValidateProviderExternaID(value string) error {
+func ValidateProviderExternalID(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if length := len(value); length > ProviderExternaIDLengthMaximum {
-		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, ProviderExternaIDLengthMaximum)
+	} else if length := len(value); length > ProviderExternalIDLengthMaximum {
+		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, ProviderExternalIDLengthMaximum)
 	}
 	return nil
 }
@@ -275,7 +275,7 @@ func (p *ProviderSession) Validate(validator structure.Validator) {
 			oauthTokenValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
-	validator.String("externalId", p.ExternalID).Using(ProviderExternaIDValidator)
+	validator.String("externalId", p.ExternalID).Using(ProviderExternalIDValidator)
 	validator.Time("createdTime", &p.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", p.ModifiedTime).After(p.CreatedTime).BeforeNow(time.Second)
 }

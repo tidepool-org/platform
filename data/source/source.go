@@ -4,9 +4,8 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"slices"
 	"time"
-
-	"github.com/tidepool-org/platform/metadata"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
@@ -21,6 +20,8 @@ import (
 )
 
 const (
+	MetadataLengthMaximum = 4 * 1024
+
 	StateConnected    = "connected"
 	StateDisconnected = "disconnected"
 	StateError        = "error"
@@ -38,6 +39,7 @@ type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)
 	DeleteAll(ctx context.Context, userID string) error
+
 	FindByExternalID(ctx context.Context, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 
 	Get(ctx context.Context, id string) (*Source, error)
@@ -69,7 +71,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.StringArray("providerType", f.ProviderType).NotEmpty().EachOneOf(auth.ProviderTypes()...).EachUnique()
 	validator.StringArray("providerName", f.ProviderName).NotEmpty().EachUsing(auth.ProviderNameValidator).EachUnique()
 	validator.StringArray("providerSessionId", f.ProviderSessionID).NotEmpty().EachUsing(auth.ProviderSessionIDValidator).EachUnique()
-	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternaIDValidator).EachUnique()
+	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternalIDValidator).EachUnique()
 	validator.StringArray("state", f.State).NotEmpty().EachOneOf(States()...).EachUnique()
 }
 
@@ -94,12 +96,11 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 }
 
 type Create struct {
-	ProviderType       *string            `json:"providerType,omitempty"`
-	ProviderName       *string            `json:"providerName,omitempty"`
-	ProviderSessionID  *string            `json:"providerSessionId,omitempty"`
-	ProviderExternalID *string            `json:"providerExternalId,omitempty"`
-	State              *string            `json:"state,omitempty"`
-	Metadata           *metadata.Metadata `json:"metadata,omitempty"`
+	ProviderType       *string        `json:"providerType,omitempty"`
+	ProviderName       *string        `json:"providerName,omitempty"`
+	ProviderSessionID  *string        `json:"providerSessionId,omitempty"`
+	ProviderExternalID *string        `json:"providerExternalId,omitempty"`
+	Metadata           map[string]any `json:"metadata,omitempty"`
 }
 
 func NewCreate() *Create {
@@ -111,28 +112,24 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderName = parser.String("providerName")
 	c.ProviderSessionID = parser.String("providerSessionId")
 	c.ProviderExternalID = parser.String("providerExternalId")
-	c.State = parser.String("state")
+	if ptr := parser.Object("metadata"); ptr != nil {
+		c.Metadata = *ptr
+	}
 }
 
 func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	if providerSessionIDValidator := validator.String("providerSessionId", c.ProviderSessionID); c.State == nil {
-		providerSessionIDValidator.Using(auth.ProviderSessionIDValidator)
-	} else if *c.State != StateDisconnected {
-		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
-	} else {
-		providerSessionIDValidator.NotExists()
-	}
-	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
-	validator.String("state", c.State).Exists().OneOf(States()...)
+	validator.String("providerSessionId", c.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
+	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
+	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 }
 
 type Update struct {
 	ProviderSessionID  *string              `json:"providerSessionId,omitempty"`
 	ProviderExternalID *string              `json:"providerExternalId,omitempty"`
 	State              *string              `json:"state,omitempty"`
-	Metadata           *metadata.Metadata   `json:"metadata,omitempty"`
+	Metadata           map[string]any       `json:"metadata,omitempty"`
 	Error              *errors.Serializable `json:"error,omitempty"`
 	DataSetIDs         *[]string            `json:"dataSetIds,omitempty"`
 	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty"`
@@ -148,6 +145,9 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 	u.ProviderSessionID = parser.String("providerSessionId")
 	u.ProviderExternalID = parser.String("providerExternalId")
 	u.State = parser.String("state")
+	if ptr := parser.Object("metadata"); ptr != nil {
+		u.Metadata = *ptr
+	}
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
@@ -167,8 +167,9 @@ func (u *Update) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.Exists().Using(auth.ProviderSessionIDValidator)
 	}
-	validator.String("providerExternalId", u.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
+	validator.String("providerExternalId", u.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.String("state", u.State).OneOf(States()...)
+	validator.Object("metadata", &u.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 	if u.Error != nil {
 		u.Error.Validate(validator.WithReference("error"))
 	}
@@ -196,7 +197,7 @@ type Source struct {
 	ProviderSessionID  *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
 	ProviderExternalID *string              `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
 	State              *string              `json:"state,omitempty" bson:"state,omitempty"`
-	Metadata           *metadata.Metadata   `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata           map[string]any       `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	Error              *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
 	DataSetIDs         *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
@@ -215,6 +216,9 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	s.ProviderSessionID = parser.String("providerSessionId")
 	s.ProviderExternalID = parser.String("providerExternalId")
 	s.State = parser.String("state")
+	if ptr := parser.Object("metadata"); ptr != nil {
+		s.Metadata = *ptr
+	}
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
@@ -243,8 +247,9 @@ func (s *Source) Validate(validator structure.Validator) {
 	} else {
 		providerSessionIDValidator.NotExists()
 	}
-	validator.String("providerExternalId", s.ProviderExternalID).Using(auth.ProviderExternaIDValidator)
+	validator.String("providerExternalId", s.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.String("state", s.State).Exists().OneOf(States()...)
+	validator.Object("metadata", &s.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))
 	}
@@ -283,6 +288,12 @@ func (s *Source) Sanitize(details request.AuthDetails) error {
 	return nil
 }
 
+func (s *Source) EnsureMetadata() {
+	if s.Metadata == nil {
+		s.Metadata = map[string]any{}
+	}
+}
+
 func (s *Source) HasError() bool {
 	return s.Error != nil && s.Error.Error != nil
 }
@@ -303,6 +314,17 @@ func (s SourceArray) Sanitize(details request.AuthDetails) error {
 		}
 	}
 	return nil
+}
+
+func (s *Source) AddDataSetID(dataSetID string) bool {
+	if s.DataSetIDs == nil {
+		s.DataSetIDs = &[]string{}
+	}
+	if slices.Contains(*s.DataSetIDs, dataSetID) {
+		return false
+	}
+	*s.DataSetIDs = append(*s.DataSetIDs, dataSetID)
+	return true
 }
 
 func NewID() string {

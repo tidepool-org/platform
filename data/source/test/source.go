@@ -3,8 +3,6 @@ package test
 import (
 	"time"
 
-	metadataTest "github.com/tidepool-org/platform/metadata/test"
-
 	"github.com/onsi/gomega"
 	gomegaGstruct "github.com/onsi/gomega/gstruct"
 	gomegaTypes "github.com/onsi/gomega/types"
@@ -13,6 +11,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	requestTest "github.com/tidepool-org/platform/request/test"
 	"github.com/tidepool-org/platform/test"
@@ -70,7 +69,7 @@ func RandomCreate() *dataSource.Create {
 		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
-	datum.State = pointer.FromString(state)
+	datum.Metadata = metadataTest.RandomMetadataMap()
 	return datum
 }
 
@@ -91,8 +90,8 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
 	}
-	if datum.State != nil {
-		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
+	if datum.Metadata != nil {
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	return object
 }
@@ -106,7 +105,7 @@ func RandomUpdate() *dataSource.Update {
 	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 	datum.State = pointer.FromString(state)
-	datum.Metadata = metadataTest.RandomMetadata()
+	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.Error = errorsTest.RandomSerializable()
 	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
 	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
@@ -123,7 +122,7 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
 	clone.ProviderExternalID = pointer.CloneString(datum.ProviderExternalID)
 	clone.State = pointer.CloneString(datum.State)
-	clone.Metadata = metadataTest.CloneMetadata(datum.Metadata)
+	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
 	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
@@ -147,7 +146,7 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
 	if datum.Metadata != nil {
-		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)
@@ -197,7 +196,7 @@ func RandomSource() *dataSource.Source {
 	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 	datum.State = pointer.FromString(state)
-	datum.Metadata = metadataTest.RandomMetadata()
+	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.Error = errorsTest.RandomSerializable()
 	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
 	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
@@ -221,7 +220,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
 	clone.ProviderExternalID = pointer.CloneString(datum.ProviderExternalID)
 	clone.State = pointer.CloneString(datum.State)
-	clone.Metadata = metadataTest.CloneMetadata(datum.Metadata)
+	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
 	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
@@ -260,7 +259,7 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
 	if datum.Metadata != nil {
-		object["metadata"] = metadataTest.NewObjectFromMetadata(datum.Metadata, objectFormat)
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)

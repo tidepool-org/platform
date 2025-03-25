@@ -183,13 +183,6 @@ var _ = Describe("Mongo", func() {
 						Expect(result).To(BeNil())
 					})
 
-					It("returns an error when the user id is missing", func() {
-						userID = ""
-						result, err := repository.List(ctx, userID, filter, pagination)
-						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
-						Expect(result).To(BeNil())
-					})
-
 					It("returns an error when the user id is invalid", func() {
 						userID = "invalid"
 						result, err := repository.List(ctx, userID, filter, pagination)
@@ -467,7 +460,7 @@ var _ = Describe("Mongo", func() {
 							"ProviderName":       Equal(create.ProviderName),
 							"ProviderSessionID":  Equal(create.ProviderSessionID),
 							"ProviderExternalID": Equal(create.ProviderExternalID),
-							"State":              Equal(create.State),
+							"State":              Equal(pointer.FromString(dataSource.StateDisconnected)),
 							"Metadata":           Equal(create.Metadata),
 							"Error":              BeNil(),
 							"DataSetIDs":         BeNil(),

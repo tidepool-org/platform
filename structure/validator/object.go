@@ -1,6 +1,8 @@
 package validator
 
 import (
+	"encoding/json"
+
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 )
@@ -44,6 +46,17 @@ func (o *Object) NotEmpty() structure.Object {
 	if o.value != nil {
 		if len(*o.value) == 0 {
 			o.base.ReportError(ErrorValueEmpty())
+		}
+	}
+	return o
+}
+
+func (o *Object) SizeLessThanOrEqualTo(limit int) structure.Object {
+	if o.value != nil && len(*o.value) > 0 {
+		if bites, err := json.Marshal(*o.value); err != nil {
+			o.base.ReportError(ErrorValueNotSerializable())
+		} else if size := len(bites); size > limit {
+			o.base.ReportError(ErrorSizeNotLessThanOrEqualTo(size, limit))
 		}
 	}
 	return o
