@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/golang-jwt/jwt/v4"
+
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
@@ -20,6 +22,8 @@ type TokenSourceSource interface {
 type Provider interface {
 	provider.Provider
 	TokenSourceSource
+
+	ParseIDToken(ctx context.Context, token string, claims jwt.Claims) error
 
 	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
 	GetAuthorizationCodeURLWithState(state string) string
@@ -51,11 +55,6 @@ func IsRefreshTokenError(err error) bool {
 	} else {
 		return true
 	}
-}
-
-func GetIdToken(rawToken *oauth2.Token) string {
-	idToken, _ := rawToken.Extra("id_token").(string)
-	return idToken
 }
 
 const ErrorAccessDenied = "access_denied"

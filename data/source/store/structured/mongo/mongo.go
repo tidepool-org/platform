@@ -74,11 +74,6 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
-	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
@@ -94,8 +89,13 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
 	result := dataSource.SourceArray{}
-	query := bson.M{
-		"userId": userID,
+	query := bson.M{}
+
+	if userID != "" {
+		if !user.IsValidID(userID) {
+			return nil, errors.New("user id is invalid")
+		}
+		query["userId"] = userID
 	}
 	if filter.ProviderType != nil {
 		query["providerType"] = bson.M{

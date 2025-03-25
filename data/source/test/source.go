@@ -1,8 +1,9 @@
 package test
 
 import (
-	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"time"
+
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 
 	"github.com/onsi/gomega"
 	gomegaGstruct "github.com/onsi/gomega/gstruct"
