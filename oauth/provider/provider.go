@@ -3,6 +3,11 @@ package provider
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jws"
 
 	"golang.org/x/oauth2"
 
@@ -13,11 +18,13 @@ import (
 )
 
 const ProviderType = "oauth"
+const DefaultJWKSCacheTTL = time.Hour
 
 type Provider struct {
 	name      string
 	config    *oauth2.Config
 	stateSalt string
+	jwks      jwk.Set
 }
 
 func NewProvider(name string, configReporter config.Reporter) (*Provider, error) {
@@ -61,10 +68,26 @@ func NewProvider(name string, configReporter config.Reporter) (*Provider, error)
 		return nil, errors.New("state salt is missing")
 	}
 
+	var jwks jwk.Set
+	jwksURL := configReporter.GetWithDefault("jwks_url", "")
+	if jwksURL != "" {
+		// Provider life-cycle is tied to the application life-cycle. Use a background context
+		// to keep refreshing the cache until the application is terminated.
+		jwkCache := jwk.NewCache(context.Background())
+
+		err := jwkCache.Register(jwksURL)
+		if err != nil {
+			return nil, errors.New("unable to register jwks url")
+		}
+
+		jwks = jwk.NewCachedSet(jwkCache, jwksURL)
+	}
+
 	return &Provider{
 		name:      name,
 		config:    cfg,
 		stateSalt: stateSalt,
+		jwks:      jwks,
 	}, nil
 }
 
@@ -76,12 +99,32 @@ func (p *Provider) Name() string {
 	return p.name
 }
 
+func (p *Provider) BeforeCreate(ctx context.Context, _ string, create *auth.ProviderSessionCreate) error {
+	return nil
+}
+
 func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
 func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
+}
+
+func (p *Provider) ParseIDToken(ctx context.Context, token string, claims jwt.Claims) error {
+	if p.jwks == nil {
+		return errors.Newf("jwks is not defined for provider %s", p.name)
+	}
+
+	// Only verify the signed jwt, bcause the jwt package doesn't support validating with JWK Set
+	_, err := jws.Verify(
+		[]byte(token),
+		jws.WithKeySet(p.jwks, jws.WithInferAlgorithmFromKey(true)),
+	)
+
+	// Parse the JWT with the jwt package for consistency with the rest of codebase
+	_, _, err = jwt.NewParser().ParseUnverified(token, claims)
+	return err
 }
 
 func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {

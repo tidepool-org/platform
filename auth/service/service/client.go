@@ -63,6 +63,11 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
+	if err = prvdr.BeforeCreate(ctx, userID, create); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("Unable to prepare provider session for creation")
+		return nil, err
+	}
+
 	repository := c.authStore.NewProviderSessionRepository()
 
 	providerSession, err := repository.CreateUserProviderSession(ctx, userID, create)
