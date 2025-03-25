@@ -15,6 +15,12 @@ import (
 	"github.com/tidepool-org/platform/task/queue"
 )
 
+const (
+	ConfigMinInterval = "minInterval"
+	ConfigMaxInterval = "maxInterval"
+	ConfigBatch       = "batch"
+)
+
 var SummaryTypes = []string{"cgm", "bgm", "con"}
 
 func NewSummaryRunners(authClient auth.Client, dataClient dataClient.Client, logger log.Logger) ([]queue.Runner, error) {
@@ -22,14 +28,14 @@ func NewSummaryRunners(authClient auth.Client, dataClient dataClient.Client, log
 
 	for _, typ := range SummaryTypes {
 		logger.Debugf("Creating %s summary update runner", typ)
-		summaryUpdateRnnr, summaryUpdateRnnrErr := NewUpdateRunner(authClient, dataClient, typ)
+		summaryUpdateRnnr, summaryUpdateRnnrErr := NewUpdateRunner(logger, authClient, dataClient, typ)
 		if summaryUpdateRnnrErr != nil {
 			return nil, errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
 		}
 		runners = append(runners, summaryUpdateRnnr)
 
 		logger.Debugf("Creating %s summary migration runner", typ)
-		summaryMigrationRnnr, summaryMigrationRnnrErr := NewMigrationRunner(authClient, dataClient, typ)
+		summaryMigrationRnnr, summaryMigrationRnnrErr := NewMigrationRunner(logger, authClient, dataClient, typ)
 		if summaryMigrationRnnrErr != nil {
 			return nil, errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
 		}
@@ -47,11 +53,10 @@ func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 	return Min + randTime
 }
 
-func updateSummaries(ctx context.Context, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time) error {
+func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time) error {
 	eg, ctx := errgroup.WithContext(ctx)
-	logger := log.LoggerFromContext(ctx)
-
 	sem := semaphore.NewWeighted(workerCount)
+
 	for _, userId := range outdatedUserIds {
 		if time.Now().After(deadline) {
 			return context.DeadlineExceeded

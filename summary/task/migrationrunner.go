@@ -27,6 +27,7 @@ type MigrationRunner struct {
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
+	logger      log.Logger
 }
 
 func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
@@ -36,15 +37,18 @@ func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 		Type:          typ,
 		Priority:      5,
 		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"minInterval": DefaultMigrationAvailableAfterDurationMinimum,
-			"maxInterval": DefaultMigrationAvailableAfterDurationMaximum,
-			"batch":       DefaultMigrationWorkerBatchSize,
+		Data: map[string]any{
+			ConfigMinInterval: DefaultMigrationAvailableAfterDurationMinimum,
+			ConfigMaxInterval: DefaultMigrationAvailableAfterDurationMaximum,
+			ConfigBatch:       DefaultMigrationWorkerBatchSize,
 		},
 	}
 }
 
-func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string) (*MigrationRunner, error) {
+func NewMigrationRunner(logger log.Logger, authClient auth.Client, dataClient dataClient.Client, summaryType string) (*MigrationRunner, error) {
+	if logger == nil {
+		return nil, errors.New("logger is missing")
+	}
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -59,6 +63,7 @@ func NewMigrationRunner(authClient auth.Client, dataClient dataClient.Client, su
 		authClient:  authClient,
 		dataClient:  dataClient,
 		summaryType: summaryType,
+		logger:      logger,
 	}, nil
 }
 
@@ -80,24 +85,31 @@ func (r *MigrationRunner) GetRunnerDurationMaximum() time.Duration {
 
 func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
-	if taskRunner, err := NewMigrationTaskRunner(r.authClient, r.dataClient, r.summaryType, tsk); err != nil {
+	deadline := time.Now().Add(r.GetRunnerDurationMaximum())
+	if taskRunner, err := NewMigrationTaskRunner(ctx, r.logger, r.authClient, r.dataClient, r.summaryType, tsk, deadline); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
 	} else {
-		taskRunner.Run(ctx, time.Now().Add(r.GetRunnerDurationMaximum()))
+		taskRunner.Run()
 	}
 }
 
 type MigrationTaskRunner struct {
+	context     context.Context
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
 	task        *task.Task
-	context     context.Context
 	logger      log.Logger
 	deadline    time.Time
 }
 
-func NewMigrationTaskRunner(authClient auth.Client, dataClient dataClient.Client, summaryType string, tsk *task.Task) (*MigrationTaskRunner, error) {
+func NewMigrationTaskRunner(ctx context.Context, logger log.Logger, authClient auth.Client, dataClient dataClient.Client, summaryType string, tsk *task.Task, deadline time.Time) (*MigrationTaskRunner, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if logger == nil {
+		return nil, errors.New("logger is missing")
+	}
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -110,30 +122,31 @@ func NewMigrationTaskRunner(authClient auth.Client, dataClient dataClient.Client
 	if tsk == nil {
 		return nil, errors.New("task is missing")
 	}
+	if deadline.Before(time.Now()) {
+		return nil, errors.New("deadline is invalid")
+	}
 
 	return &MigrationTaskRunner{
+		context:     ctx,
 		authClient:  authClient,
 		dataClient:  dataClient,
 		summaryType: summaryType,
 		task:        tsk,
+		logger:      logger,
 	}, nil
 }
 
 func (t *MigrationTaskRunner) getBatch() int {
-	batch, ok := t.task.Data["batch"].(int)
+	batch, ok := t.task.Data[ConfigBatch].(int)
 	if !ok || batch < 1 {
 		batch = DefaultMigrationWorkerBatchSize
-		t.task.Data["batch"] = batch
+		t.task.Data[ConfigBatch] = batch
 	}
 
 	return batch
 }
 
-func (t *MigrationTaskRunner) Run(ctx context.Context, deadline time.Time) {
-	t.context = ctx
-	t.logger = log.LoggerFromContext(t.context)
-	t.deadline = deadline
-
+func (t *MigrationTaskRunner) Run() {
 	t.task.ClearError()
 	if err := t.run(); err == nil {
 		t.rescheduleTask()
@@ -160,7 +173,7 @@ func (t *MigrationTaskRunner) run() error {
 	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
-	err = updateSummaries(t.context, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount, t.deadline)
+	err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount, t.deadline)
 	if err != nil {
 		return err
 	}
@@ -180,15 +193,15 @@ func (t *MigrationTaskRunner) rescheduleTaskWithError(err error) {
 }
 
 func (t *MigrationTaskRunner) rescheduleTask() {
-	minSeconds, ok := t.task.Data["MinInterval"].(int)
+	minSeconds, ok := t.task.Data[ConfigMinInterval].(int)
 	if !ok || minSeconds < 1 {
 		minSeconds = int(DefaultMigrationAvailableAfterDurationMinimum.Seconds())
-		t.task.Data["minInterval"] = minSeconds
+		t.task.Data[ConfigMinInterval] = minSeconds
 	}
-	maxSeconds, ok := t.task.Data["MaxInterval"].(int)
+	maxSeconds, ok := t.task.Data[ConfigMaxInterval].(int)
 	if !ok || maxSeconds < minSeconds {
 		maxSeconds = int(DefaultMigrationAvailableAfterDurationMaximum.Seconds())
-		t.task.Data["maxInterval"] = maxSeconds
+		t.task.Data[ConfigMaxInterval] = maxSeconds
 	}
 	t.task.RepeatAvailableAfter(GenerateNextTime(minSeconds, maxSeconds))
 }
