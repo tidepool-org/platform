@@ -75,7 +75,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		return errors.New("provider session is missing")
 	}
 
-	source, err := p.prepareDataSource(ctx, userID)
+	source, err := p.prepareDataSource(ctx, userID, providerSession)
 	if err != nil {
 		return err
 	}
@@ -129,7 +129,7 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 	return nil
 }
 
-func (p *Provider) prepareDataSource(ctx context.Context, userID string) (*dataSource.Source, error) {
+func (p *Provider) prepareDataSource(ctx context.Context, userID string, providerSession *auth.ProviderSession) (*dataSource.Source, error) {
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
@@ -165,6 +165,7 @@ func (p *Provider) prepareDataSource(ctx context.Context, userID string) (*dataS
 		create := dataSource.NewCreate()
 		create.ProviderType = pointer.FromString(p.Type())
 		create.ProviderName = pointer.FromString(p.Name())
+		create.ProviderExternalID = providerSession.ExternalID
 
 		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {
@@ -210,9 +211,10 @@ func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Sou
 	}
 
 	update := dataSource.Update{
-		ProviderSessionID: &providerSession.ID,
-		DataSetIDs:        pointer.FromStringArray(dataSetIDs),
-		State:             pointer.FromString(dataSource.StateConnected),
+		DataSetIDs:         pointer.FromStringArray(dataSetIDs),
+		ProviderExternalID: providerSession.ExternalID,
+		ProviderSessionID:  pointer.FromString(providerSession.ID),
+		State:              pointer.FromString(dataSource.StateConnected),
 	}
 
 	_, err := p.dataSourceClient.Update(ctx, *source.ID, nil, &update)
