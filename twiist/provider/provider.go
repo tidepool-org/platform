@@ -20,6 +20,7 @@ import (
 )
 
 const ProviderName = "twiist"
+const MetadataKeyExternalSubjectID = "externalSubjectID"
 
 type Provider struct {
 	*oauthProvider.Provider
@@ -48,16 +49,9 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, dat
 }
 
 func (p *Provider) BeforeCreate(ctx context.Context, _ string, create *auth.ProviderSessionCreate) error {
-	if create.OAuthToken == nil {
-		return errors.New("oauth token is missing")
-	}
-	if create.OAuthToken.IDToken == nil {
-		return errors.New("id token is missing")
-	}
-	claims := &Claims{}
-	err := p.Provider.ParseIDToken(ctx, *create.OAuthToken.IDToken, claims)
+	claims, err := p.getClaimsFromIDToken(ctx, create.OAuthToken)
 	if err != nil {
-		return errors.Wrap(err, "unable to parse id_token")
+		return errors.Wrap(err, "unable to get claims from id token")
 	}
 	if claims.TidepoolLinkID == "" {
 		return errors.New("tidepool_link_id was not found in id_token")
@@ -217,7 +211,24 @@ func (p *Provider) connectDataSource(ctx context.Context, source *dataSource.Sou
 		State:              pointer.FromString(dataSource.StateConnected),
 	}
 
-	_, err := p.dataSourceClient.Update(ctx, *source.ID, nil, &update)
+	// The external id of the data source and provider session is set to the Tidepool Link ID.
+	// The Tidepool Link ID changes every time a user re-links their account. We also need to
+	// keep track of the twiist user id which is different from the Tidepool Link ID, in case
+	// we need to support backfilling of historical data and a user has more than one twiist
+	// accounts. The twiist user id can be found in the id token.
+	claims, err := p.getClaimsFromIDToken(ctx, providerSession.OAuthToken)
+	if err != nil {
+		return errors.Wrap(err, "unable to get claims from id token")
+	}
+	if claims.Subject != "" {
+		update.Metadata = source.Metadata
+		if update.Metadata == nil {
+			update.Metadata = make(map[string]any)
+		}
+		update.Metadata[MetadataKeyExternalSubjectID] = claims.Subject
+	}
+
+	_, err = p.dataSourceClient.Update(ctx, *source.ID, nil, &update)
 	if err != nil {
 		return errors.Wrap(err, "unable to update source with data set id")
 	}
@@ -259,4 +270,20 @@ func (p *Provider) createDataSet(ctx context.Context, source *dataSource.Source)
 	}
 
 	return dataSet, nil
+}
+
+func (p *Provider) getClaimsFromIDToken(ctx context.Context, token *auth.OAuthToken) (*Claims, error) {
+	if token == nil {
+		return nil, errors.New("oauth token is missing")
+	}
+	if token.IDToken == nil {
+		return nil, errors.New("id token is missing")
+	}
+	claims := &Claims{}
+	err := p.Provider.ParseIDToken(ctx, *token.IDToken, claims)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to parse id_token")
+	}
+
+	return claims, nil
 }
