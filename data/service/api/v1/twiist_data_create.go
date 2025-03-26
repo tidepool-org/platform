@@ -40,6 +40,7 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		filter := source.NewFilter()
 		filter.ProviderName = pointer.FromAny([]string{twiistProvider.ProviderName})
 		filter.ProviderExternalID = pointer.FromAny([]string{tidepoolLinkID})
+		filter.State = pointer.FromAny([]string{source.StateConnected})
 
 		dataSources, err := dataServiceContext.DataSourceClient().FindByExternalID(ctx, filter, nil)
 		if err != nil {
@@ -48,7 +49,7 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 			return
 		}
 		if len(dataSources) == 0 {
-			lgr.WithError(err).Warnf("no data source found for tidepool link id %s", tidepoolLinkID)
+			lgr.WithError(err).Warnf("no connected data source found for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
 			return
 		}
