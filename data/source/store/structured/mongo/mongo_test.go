@@ -140,6 +140,9 @@ var _ = Describe("Mongo", func() {
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
 						"Background": Equal(true),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("providerName", "providerExternalId")),
+					}),
 				))
 			})
 		})

@@ -67,6 +67,12 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true),
 		},
+		{
+			Keys: bson.D{
+				{Key: "providerName", Value: 1},
+				{Key: "providerExternalId", Value: 1},
+			},
+		},
 	})
 }
 
