@@ -541,6 +541,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 		DataSetClient:           s.dataClient,
 		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
+		DataStoreClient:         s.dataStore,
 		ProviderSessionClient:   s.AuthClient(),
 		DataRawClient:           s.dataRawClient,
 		AbbottClient:            s.abbottClient,
