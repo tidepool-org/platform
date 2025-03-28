@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/page"
+
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -147,8 +149,8 @@ var _ = Describe("Provider", func() {
 				ID:          "session-id",
 				UserID:      userID,
 				OAuthToken:  token,
-				Type:        auth.ProviderTypeOAuth,
-				Name:        provider.ProviderName,
+				Type:        "oauth",
+				Name:        "twiist",
 				ExternalID:  pointer.FromString(externalID),
 				CreatedTime: time.Now(),
 			}
@@ -196,6 +198,7 @@ var _ = Describe("Provider", func() {
 			dataSource := dataSourceTest.RandomSource()
 			dataSource.UserID = &userID
 			dataSource.DataSetIDs = pointer.FromStringArray([]string{dataSetID})
+			dataSource.State = pointer.FromString(source.StateConnected)
 
 			dataSourceClient.EXPECT().
 				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
@@ -236,6 +239,7 @@ var _ = Describe("Provider", func() {
 			dataSource := dataSourceTest.RandomSource()
 			dataSource.UserID = &userID
 			dataSource.DataSetIDs = pointer.FromStringArray([]string{missingDataSetID})
+			dataSource.State = pointer.FromString(source.StateConnected)
 
 			dataSourceClient.EXPECT().
 				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
@@ -269,6 +273,67 @@ var _ = Describe("Provider", func() {
 				Return(dataSource, nil)
 
 			Expect(prvdr.OnCreate(ctx, userID, session)).To(Succeed())
+		})
+	})
+
+	Describe("OnDelete", func() {
+		var session *auth.ProviderSession
+		var subjectID string
+
+		BeforeEach(func() {
+			subjectID = providerTest.RandomSubjectID()
+			externalID := providerTest.RandomTidepoolLinkID()
+			idToken, err := providerTest.GenerateIDToken(subjectID, externalID, jwks)
+			Expect(err).ToNot(HaveOccurred())
+
+			token := auth.NewOAuthToken()
+			token.IDToken = pointer.FromString(idToken)
+
+			session = &auth.ProviderSession{
+				ID:          "session-id",
+				UserID:      userID,
+				OAuthToken:  token,
+				Type:        "oauth",
+				Name:        "twiist",
+				ExternalID:  pointer.FromString(externalID),
+				CreatedTime: time.Now(),
+			}
+		})
+
+		It("disconnects all data source for the provider", func() {
+			ctx := logInternal.NewContextWithLogger(context.Background(), null.NewLogger())
+			dataSource := dataSourceTest.RandomSource()
+			dataSource.UserID = &userID
+			dataSources := source.SourceArray{dataSourceTest.RandomSource(), dataSourceTest.RandomSource()}
+			for _, s := range dataSources {
+				s.ProviderType = pointer.FromString("oauth")
+				s.ProviderName = pointer.FromString("twiist")
+				s.State = pointer.FromString(source.StateConnected)
+			}
+
+			dataSourceClient.EXPECT().
+				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
+				Do(func(_ context.Context, _ string, filter *source.Filter, _ *page.Pagination) {
+					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"ProviderType": PointTo(ConsistOf("oauth")),
+						"ProviderName": PointTo(ConsistOf("twiist")),
+						"State":        PointTo(ConsistOf("connected")),
+					})))
+				}).
+				Return(dataSources, nil)
+
+			for _, s := range dataSources {
+				dataSourceClient.EXPECT().
+					Update(ctx, gomock.Eq(*s.ID), gomock.Any(), gomock.Any()).
+					Do(func(_ context.Context, id string, condition *request.Condition, update *source.Update) {
+						Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
+							"State": PointTo(Equal("disconnected")),
+						})))
+					}).
+					Return(nil, nil)
+			}
+
+			Expect(prvdr.OnDelete(ctx, userID, session)).To(Succeed())
 		})
 	})
 })

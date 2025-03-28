@@ -29,6 +29,7 @@ type ProviderSessionAccessor interface {
 	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	CreateUserProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error)
 	DeleteAllProviderSessions(ctx context.Context, userID string) error
+	DeleteAllProviderSessionsByExternalID(ctx context.Context, filter ProviderSessionFilter) error
 
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
