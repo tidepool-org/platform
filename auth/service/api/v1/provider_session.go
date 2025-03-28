@@ -25,7 +25,7 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 		rest.Put("/v1/provider_sessions/:id", api.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", api.RequireServer(r.DeleteProviderSession)),
 
-		// Temporary endpoint for provider sessions given a twiist tidepool link id
+		// Temporary endpoint for deleting provider sessions given a twiist tidepool link id
 		rest.Delete("/v1/partners/twiist/links/:tidepoolLinkId", api.RequireAuth(r.DeleteProviderSessionByTidepoolLinkID)),
 	}
 }
