@@ -34,7 +34,7 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.New("task client is missing")
 	}
 
-	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName))
+	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName), nil)
 	if err != nil {
 		return nil, err
 	}

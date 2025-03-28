@@ -27,7 +27,7 @@ type Provider struct {
 	jwks      jwk.Set
 }
 
-func NewProvider(name string, configReporter config.Reporter) (*Provider, error) {
+func NewProvider(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -68,21 +68,6 @@ func NewProvider(name string, configReporter config.Reporter) (*Provider, error)
 		return nil, errors.New("state salt is missing")
 	}
 
-	var jwks jwk.Set
-	jwksURL := configReporter.GetWithDefault("jwks_url", "")
-	if jwksURL != "" {
-		// Provider life-cycle is tied to the application life-cycle. Use a background context
-		// to keep refreshing the cache until the application is terminated.
-		jwkCache := jwk.NewCache(context.Background())
-
-		err := jwkCache.Register(jwksURL)
-		if err != nil {
-			return nil, errors.New("unable to register jwks url")
-		}
-
-		jwks = jwk.NewCachedSet(jwkCache, jwksURL)
-	}
-
 	return &Provider{
 		name:      name,
 		config:    cfg,
@@ -116,11 +101,14 @@ func (p *Provider) ParseIDToken(ctx context.Context, token string, claims jwt.Cl
 		return errors.Newf("jwks is not defined for provider %s", p.name)
 	}
 
-	// Only verify the signed jwt, bcause the jwt package doesn't support validating with JWK Set
+	// Only verify the signed jwt, because the jwt package doesn't support validation with a JWK Set
 	_, err := jws.Verify(
 		[]byte(token),
 		jws.WithKeySet(p.jwks, jws.WithInferAlgorithmFromKey(true)),
 	)
+	if err != nil {
+		return errors.Wrap(err, "unable to verify id token")
+	}
 
 	// Parse the JWT with the jwt package for consistency with the rest of codebase
 	_, _, err = jwt.NewParser().ParseUnverified(token, claims)

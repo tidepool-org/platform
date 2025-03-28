@@ -16,6 +16,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/gowebpki/jcs v1.0.1
+	github.com/hashicorp/go-uuid v1.0.3
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/mitchellh/go-homedir v1.1.0
@@ -31,6 +32,7 @@ require (
 	github.com/urfave/cli v1.22.15
 	go.mongodb.org/mongo-driver v1.16.0
 	go.uber.org/fx v1.22.1
+	go.uber.org/mock v0.5.0
 	golang.org/x/crypto v0.35.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
@@ -68,7 +70,6 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
-	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
 	github.com/jcmturner/gofork v1.7.6 // indirect
