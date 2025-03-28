@@ -160,6 +160,16 @@ func (p *ProviderSessionAccessor) DeleteProviderSession(ctx context.Context, id 
 	return output
 }
 
+func (p *ProviderSessionAccessor) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (p *ProviderSessionAccessor) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (p *ProviderSessionAccessor) Expectations() {
 	gomega.Expect(p.ListUserProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.CreateUserProviderSessionOutputs).To(gomega.BeEmpty())
