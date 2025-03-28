@@ -181,6 +181,10 @@ func (p *Provider) prepareDataSource(ctx context.Context, userID string, provide
 	return source, nil
 }
 
+func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
+	return false
+}
+
 func (p *Provider) prepareDataSet(ctx context.Context, source *dataSource.Source) (*data.DataSet, error) {
 	dataSet, err := p.findDataSet(ctx, source)
 	if err != nil {

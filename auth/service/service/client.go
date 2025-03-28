@@ -153,8 +153,8 @@ func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filt
 	}
 
 	// We are intentionally not calling the repository to make sure we don't run into
-	// a race condition and delete documents repository without calling 'OnDelete' of each
-	// provider for documents added after the loop above has completed.
+	// a race condition and delete documents from the repository without invoking the 'OnDelete'
+	// callback of each provider for documents added after the loop above has completed.
 	return nil
 }
 
