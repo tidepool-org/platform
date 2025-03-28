@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/twiist"
+
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 
 	dataClient "github.com/tidepool-org/platform/data/client"
@@ -50,18 +52,19 @@ func (c *confirmationClientConfig) Load() error {
 
 type Service struct {
 	*serviceService.Service
-	domain             string
-	authStore          *authMongo.Store
-	dataClient         dataClient.Client
-	dataSourceClient   *dataSourceClient.Client
-	confirmationClient confirmationClient.ClientWithResponsesInterface
-	taskClient         task.Client
-	providerFactory    provider.Factory
-	authClient         *Client
-	userEventsHandler  events.Runner
-	deviceCheck        apple.DeviceCheck
-	appValidator       *appvalidate.Validator
-	partnerSecrets     *appvalidate.PartnerSecrets
+	domain                         string
+	authStore                      *authMongo.Store
+	dataClient                     dataClient.Client
+	dataSourceClient               *dataSourceClient.Client
+	confirmationClient             confirmationClient.ClientWithResponsesInterface
+	taskClient                     task.Client
+	providerFactory                provider.Factory
+	authClient                     *Client
+	userEventsHandler              events.Runner
+	deviceCheck                    apple.DeviceCheck
+	appValidator                   *appvalidate.Validator
+	partnerSecrets                 *appvalidate.PartnerSecrets
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func New() *Service {
@@ -123,6 +126,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializePartnerSecrets(); err != nil {
 		return err
 	}
+	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -176,6 +182,10 @@ func (s *Service) AppValidator() *appvalidate.Validator {
 
 func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return s.partnerSecrets
+}
+
+func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+	return s.twiistServiceAccountAuthorizer
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -537,6 +547,18 @@ func (s *Service) initializePartnerSecrets() error {
 		}
 	}
 	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
+	return nil
+}
+
+func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
+	s.Logger().Debug("Initializing twiist service account authorizer")
+
+	var err error
+	s.twiistServiceAccountAuthorizer, err = twiist.NewServiceAccountAuthorizer()
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
+	}
+
 	return nil
 }
 

@@ -3,6 +3,11 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/errors"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/twiist/provider"
+
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
@@ -19,6 +24,9 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 		rest.Get("/v1/provider_sessions/:id", api.RequireServer(r.GetProviderSession)),
 		rest.Put("/v1/provider_sessions/:id", api.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", api.RequireServer(r.DeleteProviderSession)),
+
+		// Temporary endpoint for provider sessions given a twiist tidepool link id
+		rest.Delete("/v1/partners/twiist/links/:tidepoolLinkId", api.RequireAuth(r.DeleteProviderSessionByTidepoolLinkID)),
 	}
 }
 
@@ -146,6 +154,36 @@ func (r *Router) DeleteProviderSession(res rest.ResponseWriter, req *rest.Reques
 	}
 
 	err := r.AuthClient().DeleteProviderSession(req.Context(), id)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Empty(http.StatusOK)
+}
+
+func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	tidepoolLinkID := req.PathParams["tidepoolLinkId"]
+	if tidepoolLinkID == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("tidepoolLinkId"))
+		return
+	}
+
+	// Authorize the service account
+	authDetails := request.GetAuthDetails(req.Context())
+	if !authDetails.IsService() && !r.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
+		responder.Error(http.StatusForbidden, errors.New("auth token is not authorized for requested action"))
+		return
+	}
+
+	filter := auth.ProviderSessionFilter{
+		Type:       pointer.FromString(oauthProvider.ProviderType),
+		Name:       pointer.FromString(provider.ProviderName),
+		ExternalID: pointer.FromString(tidepoolLinkID),
+	}
+	err := r.AuthClient().DeleteAllProviderSessionsByExternalID(req.Context(), filter)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

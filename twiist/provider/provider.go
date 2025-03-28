@@ -118,14 +118,13 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 
 	dataSources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
 	if err != nil {
-		logger.WithError(err).Error("Unable to update list data sources while deleting provider session")
+		logger.WithError(err).Error("Unable to fetch list data sources while deleting provider session")
 		return err
 	}
 	for _, source := range dataSources {
-		if source == nil || source.ID != nil {
+		if source == nil || source.ID == nil {
 			continue
 		}
-
 		_, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
 		if err != nil {
 			logger.WithError(err).WithField("dataSourceId", *source.ID).Error("Unable to update data source while deleting provider session")
