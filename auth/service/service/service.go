@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+
 	dataClient "github.com/tidepool-org/platform/data/client"
 
 	"github.com/kelseyhightower/envconfig"
@@ -394,7 +396,11 @@ func (s *Service) initializeProviderFactory() error {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}
 
-	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.dataClient); prvdrErr != nil {
+	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider"))
+	if err != nil {
+		return errors.Wrap(err, "unable to create twiist jwks")
+	}
+	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataClient, s.DataSourceClient(), twiistJWKS); prvdrErr != nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add twiist provider")

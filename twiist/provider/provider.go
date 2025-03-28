@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/lestrrat-go/jwx/v2/jwk"
+
 	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
@@ -28,15 +30,21 @@ type Provider struct {
 	dataSourceClient dataSource.Client
 }
 
-func New(configReporter config.Reporter, dataSourceClient dataSource.Client, dataClient dataClient.Client) (*Provider, error) {
+func New(configReporter config.Reporter, dataClient dataClient.Client, dataSourceClient dataSource.Client, jwks jwk.Set) (*Provider, error) {
 	if configReporter == nil {
 		return nil, errors.New("config reporter is missing")
+	}
+	if dataClient == nil {
+		return nil, errors.New("data client is missing")
 	}
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
 	}
+	if jwks == nil {
+		return nil, errors.New("jwks is missing")
+	}
 
-	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName))
+	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName), jwks)
 	if err != nil {
 		return nil, err
 	}
@@ -49,6 +57,10 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, dat
 }
 
 func (p *Provider) BeforeCreate(ctx context.Context, _ string, create *auth.ProviderSessionCreate) error {
+	if create == nil {
+		return errors.New("create is missing")
+	}
+
 	claims, err := p.getClaimsFromIDToken(ctx, create.OAuthToken)
 	if err != nil {
 		return errors.Wrap(err, "unable to get claims from id token")
