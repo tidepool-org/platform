@@ -406,7 +406,7 @@ func (s *Service) initializeProviderFactory() error {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}
 
-	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider"))
+	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", twiistProvider.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create twiist jwks")
 	}
