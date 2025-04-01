@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/oauth"
+
 	"github.com/lestrrat-go/jwx/v2/jwk"
 
 	"github.com/tidepool-org/platform/data"
@@ -29,6 +31,9 @@ type Provider struct {
 	dataClient       dataClient.Client
 	dataSourceClient dataSource.Client
 }
+
+// Compile time check for making sure Provider{} is a valid oauth.Provider
+var _ oauth.Provider = &Provider{}
 
 func New(configReporter config.Reporter, dataClient dataClient.Client, dataSourceClient dataSource.Client, jwks jwk.Set) (*Provider, error) {
 	if configReporter == nil {
@@ -134,6 +139,10 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 	return nil
 }
 
+func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
+	return false
+}
+
 func (p *Provider) prepareDataSource(ctx context.Context, userID string, providerSession *auth.ProviderSession) (*dataSource.Source, error) {
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
 
@@ -179,10 +188,6 @@ func (p *Provider) prepareDataSource(ctx context.Context, userID string, provide
 	}
 
 	return source, nil
-}
-
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return false
 }
 
 func (p *Provider) prepareDataSet(ctx context.Context, source *dataSource.Source) (*data.DataSet, error) {

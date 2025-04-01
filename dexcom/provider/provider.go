@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/oauth"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -22,6 +24,9 @@ type Provider struct {
 	dataSourceClient dataSource.Client
 	taskClient       task.Client
 }
+
+// Compile time check for making sure Provider{} is a valid oauth.Provider
+var _ oauth.Provider = &Provider{}
 
 func New(configReporter config.Reporter, dataSourceClient dataSource.Client, taskClient task.Client) (*Provider, error) {
 	if configReporter == nil {
