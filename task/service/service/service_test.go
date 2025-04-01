@@ -35,12 +35,12 @@ var _ = Describe("Service", func() {
 		var dataClientConfig map[string]interface{}
 		var dataSourceClientConfig map[string]interface{}
 		var taskStoreConfig map[string]interface{}
+		var permissionClientConfig map[string]interface{}
 		var taskServiceConfig map[string]interface{}
 		var service *taskServiceService.Service
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
-
 			serverSecret = authTest.NewServiceSecret()
 			sessionToken = authTest.NewSessionToken()
 			server = NewServer()
@@ -69,6 +69,9 @@ var _ = Describe("Service", func() {
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
+			permissionClientConfig = map[string]interface{}{
+				"address": server.URL(),
+			}
 			taskStoreConfig = map[string]interface{}{
 				"addresses": os.Getenv("TIDEPOOL_STORE_ADDRESSES"),
 				"database":  test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
@@ -87,6 +90,9 @@ var _ = Describe("Service", func() {
 				},
 				"task": map[string]interface{}{
 					"store": taskStoreConfig,
+				},
+				"permission": map[string]interface{}{
+					"client": permissionClientConfig,
 				},
 				"secret": authTest.NewServiceSecret(),
 				"server": map[string]interface{}{
