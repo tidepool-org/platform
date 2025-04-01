@@ -379,9 +379,10 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("ranges.Finalize with minutes >70% of a day", func() {
+			totalMinutes := 60.0 * 17.0
 			glucoseRanges := GlucoseRanges{
 				Total: Range{
-					Minutes: 60 * 17,
+					Minutes: int(totalMinutes),
 					Records: 100,
 				},
 				VeryLow: Range{
@@ -418,24 +419,17 @@ var _ = Describe("Glucose", func() {
 				},
 			}
 
-			ts := time.Now()
-			s := CalcState{
-				Final:              false,
-				FirstData:          ts.Add(-time.Minute * 60 * 12),
-				LastData:           ts.Add(-time.Minute * 5),
-				LastRecordDuration: 5,
-			}
-			glucoseRanges.Finalize(s, 1)
+			glucoseRanges.Finalize(1)
 
 			Expect(glucoseRanges.Total.Percent).To(Equal(17.0 / 24.0))
-			Expect(glucoseRanges.VeryLow.Percent).To(Equal(1.0 / 12.0))
-			Expect(glucoseRanges.Low.Percent).To(Equal(2.0 / 12.0))
-			Expect(glucoseRanges.Target.Percent).To(Equal(3.0 / 12.0))
-			Expect(glucoseRanges.High.Percent).To(Equal(4.0 / 12.0))
-			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(5.0 / 12.0))
-			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(6.0 / 12.0))
-			Expect(glucoseRanges.AnyLow.Percent).To(Equal(7.0 / 12.0))
-			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(8.0 / 12.0))
+			Expect(glucoseRanges.VeryLow.Percent).To(Equal(60.0 * 1.0 / totalMinutes))
+			Expect(glucoseRanges.Low.Percent).To(Equal(60.0 * 2.0 / totalMinutes))
+			Expect(glucoseRanges.Target.Percent).To(Equal(60.0 * 3.0 / totalMinutes))
+			Expect(glucoseRanges.High.Percent).To(Equal(60.0 * 4.0 / totalMinutes))
+			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(60.0 * 5.0 / totalMinutes))
+			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(60.0 * 6.0 / totalMinutes))
+			Expect(glucoseRanges.AnyLow.Percent).To(Equal(60.0 * 7.0 / totalMinutes))
+			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(60.0 * 8.0 / totalMinutes))
 		})
 
 		It("ranges.Finalize with no minutes", func() {
@@ -469,16 +463,9 @@ var _ = Describe("Glucose", func() {
 				},
 			}
 
-			ts := time.Now()
-			s := CalcState{
-				Final:              false,
-				FirstData:          ts.Add(-time.Minute * 60 * 12),
-				LastData:           ts,
-				LastRecordDuration: 5,
-			}
-			glucoseRanges.Finalize(s, 1)
+			glucoseRanges.Finalize(1)
 
-			Expect(glucoseRanges.Total.Percent).To(Equal(100.0 / 100.0))
+			Expect(glucoseRanges.Total.Percent).To(Equal(0.0))
 			Expect(glucoseRanges.VeryLow.Percent).To(Equal(10.0 / 100.0))
 			Expect(glucoseRanges.Low.Percent).To(Equal(20.0 / 100.0))
 			Expect(glucoseRanges.Target.Percent).To(Equal(30.0 / 100.0))

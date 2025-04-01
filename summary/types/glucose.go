@@ -127,20 +127,21 @@ func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
 	rs.AnyHigh.Add(&new.AnyHigh)
 }
 
-func (rs *GlucoseRanges) finalizeMinutes(wallMinutes float64, days int) {
+func (rs *GlucoseRanges) finalizeMinutes(days int) {
 	rs.Total.Percent = float64(rs.Total.Minutes) / float64(days*24*60)
-	rs.VeryLow.Percent = float64(rs.VeryLow.Minutes) / wallMinutes
-	rs.Low.Percent = float64(rs.Low.Minutes) / wallMinutes
-	rs.Target.Percent = float64(rs.Target.Minutes) / wallMinutes
-	rs.High.Percent = float64(rs.High.Minutes) / wallMinutes
-	rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / wallMinutes
-	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / wallMinutes
-	rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / wallMinutes
-	rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / wallMinutes
+	rs.VeryLow.Percent = float64(rs.VeryLow.Minutes) / float64(rs.Total.Minutes)
+	rs.Low.Percent = float64(rs.Low.Minutes) / float64(rs.Total.Minutes)
+	rs.Target.Percent = float64(rs.Target.Minutes) / float64(rs.Total.Minutes)
+	rs.High.Percent = float64(rs.High.Minutes) / float64(rs.Total.Minutes)
+	rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / float64(rs.Total.Minutes)
+	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / float64(rs.Total.Minutes)
+	rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / float64(rs.Total.Minutes)
+	rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / float64(rs.Total.Minutes)
 }
 
 func (rs *GlucoseRanges) finalizeRecords() {
-	rs.Total.Percent = float64(rs.Total.Records) / float64(rs.Total.Records)
+	// Total percent is only valid for minutes, when data represents real CGM time
+	rs.Total.Percent = 0
 	rs.VeryLow.Percent = float64(rs.VeryLow.Records) / float64(rs.Total.Records)
 	rs.Low.Percent = float64(rs.Low.Records) / float64(rs.Total.Records)
 	rs.Target.Percent = float64(rs.Target.Records) / float64(rs.Total.Records)
@@ -151,11 +152,10 @@ func (rs *GlucoseRanges) finalizeRecords() {
 	rs.AnyHigh.Percent = float64(rs.AnyHigh.Records) / float64(rs.Total.Records)
 }
 
-func (rs *GlucoseRanges) Finalize(state CalcState, days int) {
+func (rs *GlucoseRanges) Finalize(days int) {
 	if rs.Total.Minutes != 0 {
 		// if our bucket (period, at this point) has minutes
-		wallMinutes := state.LastData.Sub(state.FirstData).Minutes() + float64(state.LastRecordDuration)
-		rs.finalizeMinutes(wallMinutes, days)
+		rs.finalizeMinutes(days)
 	} else if rs.Total.Records != 0 {
 		// otherwise, we only have record counts
 		rs.finalizeRecords()
@@ -331,7 +331,7 @@ func (p *GlucosePeriod) Finalize(days int) {
 	if p.state.Final != false {
 		return
 	}
-	p.GlucoseRanges.Finalize(p.state, days)
+	p.GlucoseRanges.Finalize(days)
 
 	if p.Total.Glucose != 0 {
 		if p.Total.Minutes != 0 {
