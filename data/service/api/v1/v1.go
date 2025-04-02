@@ -20,6 +20,8 @@ func Routes() []service.Route {
 		service.Put("/v1/data_sets/:dataSetId", DataSetsUpdate, api.RequireAuth),
 		service.Get("/v1/time", TimeGet),
 		service.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, api.RequireAuth),
+
+		service.Get("/v1/partners/:partner/sector", PartnersSector),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)

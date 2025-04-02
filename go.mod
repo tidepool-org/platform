@@ -23,16 +23,16 @@ require (
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20240926112325-657da308fce2
 	github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
-	github.com/tidepool-org/go-common v0.12.2-0.20240612192926-de6d5c5a742c
+	github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733
 	github.com/tidepool-org/hydrophone/client v0.0.0-20240613043503-6c32828b1ace
 	github.com/urfave/cli v1.22.15
 	go.mongodb.org/mongo-driver v1.16.0
 	go.uber.org/fx v1.22.1
-	golang.org/x/crypto v0.24.0
+	golang.org/x/crypto v0.32.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
 	golang.org/x/lint v0.0.0-20210508222113-6edffad5e616
 	golang.org/x/oauth2 v0.21.0
-	golang.org/x/sync v0.7.0
+	golang.org/x/sync v0.10.0
 	golang.org/x/tools v0.22.0
 	gonum.org/v1/gonum v0.15.0
 	google.golang.org/grpc v1.65.0
@@ -104,10 +104,10 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/net v0.34.0 // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/term v0.28.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240624140628-dc46fd24d27d // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240624140628-dc46fd24d27d // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
