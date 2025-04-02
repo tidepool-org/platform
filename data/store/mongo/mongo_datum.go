@@ -214,12 +214,11 @@ func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"} // Note we WILL keep the "type" field in the UploadId index as that's a query need in tide-whisperer
-	selector["_active"] = false
+	selector["_active"] = true
 	selector["deletedTime"] = bson.M{"$exists": false}
 
 	findOptions := options.Find()
-	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "origin.id": 1})
+	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "time": 1, "origin.id": 1, "origin.time": 1})
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
@@ -227,8 +226,8 @@ func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.
 		return nil, fmt.Errorf("unable to get newer data set data selectors: %w", err)
 	}
 
-	var newerSelectors *data.Selectors
-	if err = cursor.All(ctx, &newerSelectors); err != nil {
+	newerSelectors := data.NewSelectors()
+	if err = cursor.All(ctx, newerSelectors); err != nil {
 		logger.WithError(err).Error("Unable to decode newer data set data selectors")
 		return nil, fmt.Errorf("unable to decode newer data set data selectors: %w", err)
 	}
