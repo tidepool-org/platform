@@ -16,7 +16,8 @@ const (
 )
 
 type SelectorOrigin struct {
-	ID *string `json:"id,omitempty"`
+	ID   *string `json:"id,omitempty" bson:"id,omitempty"`
+	Time *string `json:"time,omitempty" bson:"time,omitempty"` // Inclusive, currently NOT used in database query
 }
 
 func ParseSelectorOrigin(parser structure.ObjectParser) *SelectorOrigin {
@@ -34,15 +35,38 @@ func NewSelectorOrigin() *SelectorOrigin {
 
 func (s *SelectorOrigin) Parse(parser structure.ObjectParser) {
 	s.ID = parser.String("id")
+	s.Time = parser.String("time")
 }
 
 func (s *SelectorOrigin) Validate(validator structure.Validator) {
 	validator.String("id", s.ID).Exists().NotEmpty().LengthLessThanOrEqualTo(SelectorOriginIDLengthMaximum)
+	validator.String("time", s.Time).AsTime(time.RFC3339Nano).NotZero()
+}
+
+func (s *SelectorOrigin) Includes(other *SelectorOrigin) bool {
+	if s == nil || other == nil { // Must not be missing
+		return false
+	} else if s.ID != nil && (other.ID == nil || *s.ID != *other.ID) { // If id matters, then must include
+		return false
+	} else if s.Time == nil { // If time does not matter, success
+		return true
+	} else if other.Time == nil { // Must exist
+		return false
+	} else if sTime, err := time.Parse(time.RFC3339Nano, *s.Time); err != nil || sTime.IsZero() { // Must parse
+		return false
+	} else if otherTime, err := time.Parse(time.RFC3339Nano, *other.Time); err != nil || otherTime.IsZero() { // Must parse
+		return false
+	} else if sTime.After(otherTime) { // Must include
+		return false
+	} else {
+		return true
+	}
 }
 
 type Selector struct {
-	ID     *string         `json:"id,omitempty"`
-	Origin *SelectorOrigin `json:"origin,omitempty"`
+	ID     *string         `json:"id,omitempty" bson:"id,omitempty"`
+	Time   *time.Time      `json:"time,omitempty" bson:"time,omitempty"` // Inclusive, currently NOT used in database query
+	Origin *SelectorOrigin `json:"origin,omitempty" bson:"origin,omitempty"`
 }
 
 func ParseSelector(parser structure.ObjectParser) *Selector {
@@ -60,6 +84,7 @@ func NewSelector() *Selector {
 
 func (s *Selector) Parse(parser structure.ObjectParser) {
 	s.ID = parser.String("id")
+	s.Time = parser.Time("time", TimeFormat)
 	s.Origin = ParseSelectorOrigin(parser.WithReferenceObjectParser("origin"))
 }
 
@@ -68,8 +93,24 @@ func (s *Selector) Validate(validator structure.Validator) {
 		validator.ReportError(structureValidator.ErrorValuesNotExistForOne("id", "origin"))
 	} else if s.ID != nil {
 		validator.String("id", s.ID).Using(IDValidator)
+		validator.Time("time", s.Time).NotZero()
 	} else {
+		validator.Time("time", s.Time).NotExists()
 		s.Origin.Validate(validator.WithReference("origin"))
+	}
+}
+
+func (s *Selector) Includes(other *Selector) bool {
+	if s == nil || other == nil { // Must not be missing
+		return false
+	} else if s.ID != nil && (other.ID == nil || *s.ID != *other.ID) { // If id matters, then must include
+		return false
+	} else if s.Time != nil && (other.Time == nil || s.Time.After(*other.Time)) { // If time matters, then must include
+		return false
+	} else if s.Origin != nil && (other.Origin == nil || !s.Origin.Includes(other.Origin)) { // If origin matters, then must include
+		return false
+	} else {
+		return true
 	}
 }
 
@@ -105,6 +146,16 @@ func (s *Selectors) Validate(validator structure.Validator) {
 			selectorValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
 	}
+}
+
+func (s *Selectors) Filter(predicate func(*Selector) bool) *Selectors {
+	filtered := Selectors{}
+	for _, selector := range *s {
+		if predicate(selector) {
+			filtered = append(filtered, selector)
+		}
+	}
+	return &filtered
 }
 
 func NewID() string {

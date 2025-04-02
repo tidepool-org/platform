@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -194,6 +195,53 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		return fmt.Errorf("unable to create data set data: %w", err)
 	}
 	return nil
+}
+
+func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["type"] = bson.M{"$ne": "upload"} // Note we WILL keep the "type" field in the UploadId index as that's a query need in tide-whisperer
+	selector["_active"] = false
+	selector["deletedTime"] = bson.M{"$exists": false}
+
+	findOptions := options.Find()
+	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "origin.id": 1})
+
+	cursor, err := d.Find(ctx, selector, findOptions)
+	if err != nil {
+		logger.WithError(err).Error("Unable to get newer data set data selectors")
+		return nil, fmt.Errorf("unable to get newer data set data selectors: %w", err)
+	}
+
+	var newerSelectors *data.Selectors
+	if err = cursor.All(ctx, &newerSelectors); err != nil {
+		logger.WithError(err).Error("Unable to decode newer data set data selectors")
+		return nil, fmt.Errorf("unable to decode newer data set data selectors: %w", err)
+	}
+
+	// Post-process to exclude any not newer
+	newerSelectors = newerSelectors.Filter(func(newerSelector *data.Selector) bool {
+		return slices.ContainsFunc(*selectors, func(selector *data.Selector) bool {
+			return selector.Includes(newerSelector)
+		})
+	})
+
+	logger.WithFields(log.Fields{"newerSelectors": newerSelectors, "duration": time.Since(now) / time.Microsecond}).Debug("NewerDataSetData")
+	return newerSelectors, nil
 }
 
 func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
@@ -538,6 +586,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
+// TODO: Currently does not translate time or origin.time fields. Since origin.time is currently persisted as a string
+// (and not time.Time) we cannot reliably query for it due to potentially variable timezone offsets. Eventually, migrate
+// origin.time to time.Time and add additional qualifiers to the database selector that document origin.time must be
+// greater than or equal to the incoming selector origin.time. For now, we can only query on id and origin.id.
 func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
