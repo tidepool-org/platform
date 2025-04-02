@@ -25,6 +25,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSummaryClient "github.com/tidepool-org/platform/data/summary/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
@@ -54,6 +55,7 @@ type Standard struct {
 	dataClient                *Client
 	dataRawClient             *dataRawService.Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	summaryClient             *dataSummaryClient.Client
 	workClient                *workService.Client
 	abbottClient              *abbottClient.Client
 	workCoordinator           *workService.Coordinator
@@ -109,6 +111,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSummaryClient(); err != nil {
+		return err
+	}
 	if err := s.initializeWorkClient(); err != nil {
 		return err
 	}
@@ -148,6 +153,7 @@ func (s *Standard) Terminate() {
 	}
 	s.abbottClient = nil
 	s.workClient = nil
+	s.summaryClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
 	s.dataClient = nil
@@ -477,6 +483,18 @@ func (s *Standard) initializeDataSourceClient() error {
 	return nil
 }
 
+func (s *Standard) initializeSummaryClient() error {
+	s.Logger().Debug("Creating summary client")
+
+	clnt, err := dataSummaryClient.New(s.dataStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create summary client")
+	}
+	s.summaryClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeWorkClient() error {
 	s.Logger().Debug("Creating work client")
 
@@ -541,7 +559,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 		DataSetClient:           s.dataClient,
 		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		DataStoreClient:         s.dataStore,
+		SummaryClient:           s.summaryClient,
 		ProviderSessionClient:   s.AuthClient(),
 		DataRawClient:           s.dataRawClient,
 		AbbottClient:            s.abbottClient,
