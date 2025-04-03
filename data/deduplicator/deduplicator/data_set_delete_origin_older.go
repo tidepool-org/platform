@@ -43,8 +43,19 @@ func (d *dataSetDeleteOriginOlderProvider) FilterData(ctx context.Context, repos
 		if existingSelectors, err := repository.NewerDataSetData(ctx, dataSet, selectors); err != nil {
 			return nil, err
 		} else if existingSelectors != nil && len(*existingSelectors) > 0 {
+			existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
+			for _, existingSelector := range *existingSelectors {
+				if existingSelector != nil && existingSelector.Origin != nil && existingSelector.Origin.ID != nil {
+					existingSelectorsMap[*existingSelector.Origin.ID] = existingSelector
+				}
+			}
 			dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
-				return !slices.ContainsFunc(*existingSelectors, d.getDatumSelector(datum).Includes)
+				if datumSelector := d.getDatumSelector(datum); datumSelector != nil && datumSelector.Origin != nil && datumSelector.Origin.ID != nil {
+					if existingSelector, ok := existingSelectorsMap[*datumSelector.Origin.ID]; ok && existingSelector != nil {
+						return !datumSelector.Includes(existingSelector)
+					}
+				}
+				return true
 			})
 		}
 	}

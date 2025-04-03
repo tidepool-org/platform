@@ -56,7 +56,7 @@ func (s *SelectorOrigin) Includes(other *SelectorOrigin) bool {
 		return false
 	} else if otherTime, err := time.Parse(time.RFC3339Nano, *other.Time); err != nil || otherTime.IsZero() { // Must parse
 		return false
-	} else if sTime.After(otherTime) { // Must include
+	} else if otherTime.Before(sTime) { // Must include
 		return false
 	} else {
 		return true
@@ -105,7 +105,7 @@ func (s *Selector) Includes(other *Selector) bool {
 		return false
 	} else if s.ID != nil && (other.ID == nil || *s.ID != *other.ID) { // If id matters, then must include
 		return false
-	} else if s.Time != nil && (other.Time == nil || s.Time.After(*other.Time)) { // If time matters, then must include
+	} else if s.Time != nil && (other.Time == nil || other.Time.Before(*s.Time)) { // If time matters, then must include
 		return false
 	} else if s.Origin != nil && (other.Origin == nil || !s.Origin.Includes(other.Origin)) { // If origin matters, then must include
 		return false

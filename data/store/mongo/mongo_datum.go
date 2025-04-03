@@ -584,10 +584,11 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
-// TODO: Currently does not translate time or origin.time fields. Since origin.time is currently persisted as a string
+// FUTURE: Currently does not translate time or origin.time fields. Since origin.time is currently persisted as a string
 // (and not time.Time) we cannot reliably query for it due to potentially variable timezone offsets. Eventually, migrate
 // origin.time to time.Time and add additional qualifiers to the database selector that document origin.time must be
 // greater than or equal to the incoming selector origin.time. For now, we can only query on id and origin.id.
+// See: https://tidepool.atlassian.net/browse/BACK-3548
 func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
