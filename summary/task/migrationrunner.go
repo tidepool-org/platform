@@ -87,7 +87,7 @@ func (r *MigrationRunner) Run(ctx context.Context, tsk *task.Task) {
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, r.authClient)
 	deadline := time.Now().Add(r.GetRunnerDurationMaximum())
 	if taskRunner, err := NewMigrationTaskRunner(ctx, r.logger, r.authClient, r.dataClient, r.summaryType, tsk, deadline); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Warn("Unable to create task runner")
+		r.logger.WithError(err).Warn("Unable to create task runner")
 	} else {
 		taskRunner.Run()
 	}
