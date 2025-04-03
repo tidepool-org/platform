@@ -50,6 +50,7 @@ type DatumRepository interface {
 	EnsureIndexes() error
 
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
+	NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error)
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error

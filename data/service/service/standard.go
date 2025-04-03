@@ -221,6 +221,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
 	}
 
+	s.Logger().Debug("Creating data set delete origin older deduplicator")
+
+	dataSetDeleteOriginOlderDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOriginOlder()
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set delete origin older deduplicator")
+	}
+
 	s.Logger().Debug("Creating none deduplicator")
 
 	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone()
@@ -234,6 +241,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		deviceDeactivateHashDeduplicator,
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
+		dataSetDeleteOriginOlderDeduplicator,
 		noneDeduplicator,
 	}
 
