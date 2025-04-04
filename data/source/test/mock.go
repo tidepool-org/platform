@@ -88,21 +88,6 @@ func (mr *MockClientMockRecorder) DeleteAll(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockClient)(nil).DeleteAll), ctx, userID)
 }
 
-// FindByExternalID mocks base method.
-func (m *MockClient) FindByExternalID(ctx context.Context, filter *source.Filter, pagination *page.Pagination) (source.SourceArray, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindByExternalID", ctx, filter, pagination)
-	ret0, _ := ret[0].(source.SourceArray)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindByExternalID indicates an expected call of FindByExternalID.
-func (mr *MockClientMockRecorder) FindByExternalID(ctx, filter, pagination any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindByExternalID", reflect.TypeOf((*MockClient)(nil).FindByExternalID), ctx, filter, pagination)
-}
-
 // Get mocks base method.
 func (m *MockClient) Get(ctx context.Context, id string) (*source.Source, error) {
 	m.ctrl.T.Helper()
@@ -119,18 +104,18 @@ func (mr *MockClientMockRecorder) Get(ctx, id any) *gomock.Call {
 }
 
 // List mocks base method.
-func (m *MockClient) List(ctx context.Context, userID string, filter *source.Filter, pagination *page.Pagination) (source.SourceArray, error) {
+func (m *MockClient) List(ctx context.Context, filter *source.Filter, pagination *page.Pagination) (source.SourceArray, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "List", ctx, userID, filter, pagination)
+	ret := m.ctrl.Call(m, "List", ctx, filter, pagination)
 	ret0, _ := ret[0].(source.SourceArray)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // List indicates an expected call of List.
-func (mr *MockClientMockRecorder) List(ctx, userID, filter, pagination any) *gomock.Call {
+func (mr *MockClientMockRecorder) List(ctx, filter, pagination any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, userID, filter, pagination)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, filter, pagination)
 }
 
 // Update mocks base method.

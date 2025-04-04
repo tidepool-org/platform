@@ -33,16 +33,18 @@ func New(provider Provider) (*Client, error) {
 
 // FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	if userID == "" {
-		return nil, errors.New("user id is missing")
+func (c *Client) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	if filter == nil || filter.UserID == nil {
+		if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
+			return nil, err
+		}
 	}
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
+	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, *filter.UserID, permission.Owner); err != nil {
 		return nil, err
 	}
 
 	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
-	return repository.List(ctx, userID, filter, pagination)
+	return repository.List(ctx, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
@@ -62,18 +64,6 @@ func (c *Client) DeleteAll(ctx context.Context, userID string) error {
 	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
 	_, err := repository.DestroyAll(ctx, userID)
 	return err
-}
-
-func (c *Client) FindByExternalID(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	if filter == nil || filter.ProviderExternalID == nil || len(*filter.ProviderExternalID) == 0 {
-		return nil, errors.New("provider external id is missing")
-	}
-	if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
-		return nil, err
-	}
-
-	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
-	return repository.List(ctx, "", filter, pagination)
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {

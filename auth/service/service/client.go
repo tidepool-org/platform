@@ -132,9 +132,8 @@ func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filt
 
 	repository := c.authStore.NewProviderSessionRepository()
 
-	hasMore := true
 	pagination := page.NewPagination()
-	for hasMore {
+	for {
 		providerSessions, err := repository.ListProviderSessions(ctx, &filter, pagination)
 		if err != nil {
 			logger.WithError(err).Warn("Unable to list user provider sessions")
@@ -148,7 +147,7 @@ func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filt
 			}
 		}
 		if len(providerSessions) < pagination.Size {
-			hasMore = false
+			break
 		}
 	}
 

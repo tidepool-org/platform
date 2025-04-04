@@ -76,7 +76,7 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 	})
 }
 
-func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataSourcesRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -92,16 +92,13 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
 	result := dataSource.SourceArray{}
 	query := bson.M{}
 
-	if userID != "" {
-		if !user.IsValidID(userID) {
-			return nil, errors.New("user id is invalid")
-		}
-		query["userId"] = userID
+	if filter.UserID != nil {
+		query["userId"] = filter.UserID
 	}
 	if filter.ProviderType != nil {
 		query["providerType"] = bson.M{

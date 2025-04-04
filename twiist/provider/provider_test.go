@@ -159,7 +159,12 @@ var _ = Describe("Provider", func() {
 		It("creates new data source and new data set for new connections", func() {
 			ctx := logInternal.NewContextWithLogger(context.Background(), null.NewLogger())
 			dataSourceClient.EXPECT().
-				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
+				List(ctx, gomock.Any(), gomock.Any()).
+				Do(func(_ context.Context, filter *source.Filter, _ *page.Pagination) {
+					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"UserID": PointTo(Equal(session.UserID)),
+					})))
+				}).
 				Return(nil, nil)
 
 			dataSource := dataSourceTest.RandomSource()
@@ -201,7 +206,12 @@ var _ = Describe("Provider", func() {
 			dataSource.State = pointer.FromString(source.StateConnected)
 
 			dataSourceClient.EXPECT().
-				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
+				List(ctx, gomock.Any(), gomock.Any()).
+				Do(func(_ context.Context, filter *source.Filter, _ *page.Pagination) {
+					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"UserID": PointTo(Equal(session.UserID)),
+					})))
+				}).
 				Return(source.SourceArray{dataSource}, nil)
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(*dataSource.ID), gomock.Any(), gomock.Any()).
@@ -242,7 +252,12 @@ var _ = Describe("Provider", func() {
 			dataSource.State = pointer.FromString(source.StateConnected)
 
 			dataSourceClient.EXPECT().
-				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
+				List(ctx, gomock.Any(), gomock.Any()).
+				Do(func(_ context.Context, filter *source.Filter, _ *page.Pagination) {
+					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"UserID": PointTo(Equal(session.UserID)),
+					})))
+				}).
 				Return(source.SourceArray{dataSource}, nil)
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(*dataSource.ID), gomock.Any(), gomock.Any()).
@@ -300,7 +315,7 @@ var _ = Describe("Provider", func() {
 			}
 		})
 
-		It("disconnects all data source for the provider", func() {
+		It("disconnects all data sources for the provider", func() {
 			ctx := logInternal.NewContextWithLogger(context.Background(), null.NewLogger())
 			dataSource := dataSourceTest.RandomSource()
 			dataSource.UserID = &userID
@@ -312,12 +327,13 @@ var _ = Describe("Provider", func() {
 			}
 
 			dataSourceClient.EXPECT().
-				List(ctx, gomock.Eq(session.UserID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, _ string, filter *source.Filter, _ *page.Pagination) {
+				List(ctx, gomock.Any(), gomock.Any()).
+				Do(func(_ context.Context, filter *source.Filter, _ *page.Pagination) {
 					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"ProviderType": PointTo(ConsistOf("oauth")),
 						"ProviderName": PointTo(ConsistOf("twiist")),
 						"State":        PointTo(ConsistOf("connected")),
+						"UserID":       PointTo(Equal(userID)),
 					})))
 				}).
 				Return(dataSources, nil)
