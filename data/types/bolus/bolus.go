@@ -76,8 +76,6 @@ func (b *Bolus) Validate(validator structure.Validator) {
 	if b.InsulinFormulation != nil {
 		b.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
-
-	validator.String("deliveryContext", b.DeliveryContext).OneOf(DeliveryContexts()...)
 }
 
 func (b *Bolus) Normalize(normalizer data.Normalizer) {
