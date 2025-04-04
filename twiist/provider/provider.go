@@ -117,11 +117,12 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession 
 	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
 	filter.State = pointer.FromStringArray([]string{dataSource.StateConnected})
+	filter.UserID = pointer.FromString(userID)
 
 	update := dataSource.NewUpdate()
 	update.State = pointer.FromString(dataSource.StateDisconnected)
 
-	dataSources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
+	dataSources, err := p.dataSourceClient.List(ctx, filter, nil)
 	if err != nil {
 		logger.WithError(err).Error("Unable to fetch list data sources while deleting provider session")
 		return err
@@ -149,7 +150,8 @@ func (p *Provider) prepareDataSource(ctx context.Context, userID string, provide
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
-	sources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
+	filter.UserID = pointer.FromString(userID)
+	sources, err := p.dataSourceClient.List(ctx, filter, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to fetch data sources")
 	}
@@ -278,7 +280,6 @@ func (p *Provider) createDataSet(ctx context.Context, source *dataSource.Source)
 	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
 	dataSetCreate.Deduplicator = data.NewDeduplicatorDescriptor()
 	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.DataSetDeleteOriginName)
-	dataSetCreate.Deduplicator.Version = pointer.FromString("1.0.0")
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray(twiist.DeviceManufacturers)
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM, data.DeviceTagBGM, data.DeviceTagInsulinPump})
 	dataSetCreate.Time = pointer.FromTime(time.Now())

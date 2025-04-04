@@ -38,11 +38,9 @@ func States() []string {
 //go:generate mockgen -destination=./test/mock.go -package test . Client
 
 type Client interface {
-	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (SourceArray, error)
+	List(ctx context.Context, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)
 	DeleteAll(ctx context.Context, userID string) error
-
-	FindByExternalID(ctx context.Context, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 
 	Get(ctx context.Context, id string) (*Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *Update) (*Source, error)
@@ -55,6 +53,7 @@ type Filter struct {
 	ProviderSessionID  *[]string `json:"providerSessionId,omitempty"`
 	ProviderExternalID *[]string `json:"providerExternalId,omitempty"`
 	State              *[]string `json:"state,omitempty"`
+	UserID             *string   `json:"userId,omitempty"`
 }
 
 func NewFilter() *Filter {
@@ -67,6 +66,9 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.ProviderSessionID = parser.StringArray("providerSessionId")
 	f.ProviderExternalID = parser.StringArray("providerExternalId")
 	f.State = parser.StringArray("state")
+	// The user id ought to be provided in the request path.
+	// Ignore user ids provided in the query parameters
+	_ = parser.String("userId")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
@@ -75,6 +77,7 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.StringArray("providerSessionId", f.ProviderSessionID).NotEmpty().EachUsing(auth.ProviderSessionIDValidator).EachUnique()
 	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternalIDValidator).EachUnique()
 	validator.StringArray("state", f.State).NotEmpty().EachOneOf(States()...).EachUnique()
+	validator.String("userId", f.UserID).Using(user.IDValidator)
 }
 
 func (f *Filter) MutateRequest(req *http.Request) error {

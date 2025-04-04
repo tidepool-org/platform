@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -18,7 +17,6 @@ import (
 )
 
 const ProviderType = "oauth"
-const DefaultJWKSCacheTTL = time.Hour
 
 type Provider struct {
 	name      string

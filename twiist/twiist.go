@@ -1,6 +1,6 @@
 package twiist
 
-const DataSetClientName = "org.tidepool.twiist.data"
-const DataSetClientVersion = "1.0.0"
+const DataSetClientName = "com.sequelmedtech.tidepool-service"
+const DataSetClientVersion = "3.0.0"
 
-var DeviceManufacturers = []string{"Sequel Med Tech"}
+var DeviceManufacturers = []string{"Sequel"}

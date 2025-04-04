@@ -64,7 +64,8 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
-	sources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
+	filter.UserID = pointer.FromString(userID)
+	sources, err := p.dataSourceClient.List(ctx, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
 	}

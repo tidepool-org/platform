@@ -42,7 +42,7 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		filter.ProviderExternalID = pointer.FromAny([]string{tidepoolLinkID})
 		filter.State = pointer.FromAny([]string{source.StateConnected})
 
-		dataSources, err := dataServiceContext.DataSourceClient().FindByExternalID(ctx, filter, nil)
+		dataSources, err := dataServiceContext.DataSourceClient().List(ctx, filter, nil)
 		if err != nil {
 			lgr.WithError(err).Warnf("unable to fetch data source for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)
