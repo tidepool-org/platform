@@ -10,7 +10,6 @@ import (
 )
 
 type ListInput struct {
-	UserID     string
 	Filter     *dataSource.Filter
 	Pagination *page.Pagination
 }
@@ -65,7 +64,7 @@ type DataRepository struct {
 	*test.Closer
 	ListInvocations       int
 	ListInputs            []ListInput
-	ListStub              func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
+	ListStub              func(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	ListOutputs           []ListOutput
 	ListOutput            *ListOutput
 	CreateInvocations     int
@@ -101,11 +100,11 @@ func NewDataSourcesRepository() *DataRepository {
 	}
 }
 
-func (d *DataRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (d *DataRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	d.ListInvocations++
-	d.ListInputs = append(d.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
+	d.ListInputs = append(d.ListInputs, ListInput{Filter: filter, Pagination: pagination})
 	if d.ListStub != nil {
-		return d.ListStub(ctx, userID, filter, pagination)
+		return d.ListStub(ctx, filter, pagination)
 	}
 	if len(d.ListOutputs) > 0 {
 		output := d.ListOutputs[0]

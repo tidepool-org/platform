@@ -22,9 +22,17 @@ func RandomProviderTypes() []string {
 }
 
 func RandomProviderName() string {
-	return test.RandomStringFromRangeAndCharset(1, 100, test.CharsetAlphaNumeric)
+	return test.RandomStringFromRangeAndCharset(1, auth.ProviderNameLengthMaximum, test.CharsetAlphaNumeric)
 }
 
 func RandomProviderNames() []string {
 	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 2, RandomProviderName)
+}
+
+func RandomProviderExternalID() string {
+	return test.RandomStringFromRangeAndCharset(1, auth.ProviderExternalIDLengthMaximum, test.CharsetAlphaNumeric)
+}
+
+func RandomProviderExternalIDs() []string {
+	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 2, RandomProviderExternalID)
 }

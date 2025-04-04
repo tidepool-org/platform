@@ -67,17 +67,18 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true),
 		},
+		{
+			Keys: bson.D{
+				{Key: "providerName", Value: 1},
+				{Key: "providerExternalId", Value: 1},
+			},
+		},
 	})
 }
 
-func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataSourcesRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
 	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
@@ -91,11 +92,13 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
 	result := dataSource.SourceArray{}
-	query := bson.M{
-		"userId": userID,
+	query := bson.M{}
+
+	if filter.UserID != nil {
+		query["userId"] = filter.UserID
 	}
 	if filter.ProviderType != nil {
 		query["providerType"] = bson.M{
@@ -110,6 +113,11 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	if filter.ProviderSessionID != nil {
 		query["providerSessionId"] = bson.M{
 			"$in": *filter.ProviderSessionID,
+		}
+	}
+	if filter.ProviderExternalID != nil {
+		query["providerExternalId"] = bson.M{
+			"$in": *filter.ProviderExternalID,
 		}
 	}
 	if filter.State != nil {
@@ -153,13 +161,15 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
 	doc := &dataSource.Source{
-		UserID:            pointer.FromString(userID),
-		ProviderType:      create.ProviderType,
-		ProviderName:      create.ProviderName,
-		ProviderSessionID: create.ProviderSessionID,
-		State:             create.State,
-		CreatedTime:       pointer.FromTime(now),
-		Revision:          pointer.FromInt(0),
+		UserID:             pointer.FromString(userID),
+		ProviderType:       create.ProviderType,
+		ProviderName:       create.ProviderName,
+		ProviderSessionID:  create.ProviderSessionID,
+		ProviderExternalID: create.ProviderExternalID,
+		State:              pointer.FromString(dataSource.StateDisconnected),
+		Metadata:           create.Metadata,
+		CreatedTime:        pointer.FromTime(now),
+		Revision:           pointer.FromInt(0),
 	}
 
 	var id string
@@ -281,9 +291,15 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 				unset["error"] = true
 			}
 		}
+		if update.Metadata != nil {
+			set["metadata"] = update.Metadata
+		}
 		if update.ProviderSessionID != nil {
 			delete(unset, "providerSessionId")
 			set["providerSessionId"] = *update.ProviderSessionID
+		}
+		if update.ProviderExternalID != nil {
+			set["providerExternalId"] = *update.ProviderExternalID
 		}
 		if update.Error != nil {
 			delete(unset, "error")

@@ -3,6 +3,8 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
@@ -54,7 +56,8 @@ func ListSources(dataServiceContext dataService.Context) {
 		return
 	}
 
-	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), userID, filter, pagination)
+	filter.UserID = pointer.FromString(userID)
+	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

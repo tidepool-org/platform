@@ -1,9 +1,12 @@
 package store
 
 import (
+	"context"
+
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/devicetokens"
+	"github.com/tidepool-org/platform/page"
 )
 
 type Store interface {
@@ -15,6 +18,7 @@ type Store interface {
 
 type ProviderSessionRepository interface {
 	auth.ProviderSessionAccessor
+	ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error)
 }
 
 type RestrictedTokenRepository interface {

@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 	"sort"
 	"time"
@@ -140,6 +141,9 @@ var _ = Describe("Mongo", func() {
 						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId")),
 						"Background": Equal(true),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("providerName", "providerExternalId")),
+					}),
 				))
 			})
 		})
@@ -173,40 +177,34 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						filter = dataSource.NewFilter()
+						filter.UserID = pointer.FromString(userID)
 						pagination = page.NewPagination()
 					})
 
 					It("returns an error when the context is missing", func() {
 						ctx = nil
-						result, err := repository.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
-					It("returns an error when the user id is missing", func() {
-						userID = ""
-						result, err := repository.List(ctx, userID, filter, pagination)
-						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
-						Expect(result).To(BeNil())
-					})
-
 					It("returns an error when the user id is invalid", func() {
-						userID = "invalid"
-						result, err := repository.List(ctx, userID, filter, pagination)
-						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
+						filter.UserID = pointer.FromString("invalid")
+						result, err := repository.List(ctx, filter, pagination)
+						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the filter is invalid", func() {
 						filter.ProviderType = pointer.FromStringArray([]string{""})
-						result, err := repository.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the pagination is invalid", func() {
 						pagination.Page = -1
-						result, err := repository.List(ctx, userID, filter, pagination)
+						result, err := repository.List(ctx, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
 						Expect(result).To(BeNil())
 					})
@@ -215,12 +213,14 @@ var _ = Describe("Mongo", func() {
 						var providerType string
 						var providerName string
 						var providerSessionID string
+						var providerExternalID string
 						var allResult dataSource.SourceArray
 
 						BeforeEach(func() {
 							providerType = auth.ProviderTypeOAuth
 							providerName = authTest.RandomProviderName()
 							providerSessionID = authTest.RandomProviderSessionID()
+							providerExternalID = authTest.RandomProviderExternalID()
 							allResult = dataSource.SourceArray{}
 							for index, randomResult := range dataSourceTest.RandomSourceArray(12, 12) {
 								if index < 4 {
@@ -235,10 +235,13 @@ var _ = Describe("Mongo", func() {
 								}
 								if (index/2)%2 == 0 {
 									randomResult.ProviderSessionID = pointer.FromString(providerSessionID)
+									randomResult.ProviderExternalID = pointer.FromString(providerExternalID)
 								}
 								userResult := dataSourceTest.CloneSource(randomResult)
 								userResult.ID = pointer.FromString(dataSourceTest.RandomID())
 								userResult.UserID = pointer.FromString(userID)
+								// Make all results sortable
+								userResult.CreatedTime = pointer.FromAny(userResult.CreatedTime.Add(time.Millisecond))
 								allResult = append(allResult, randomResult, userResult)
 							}
 							rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -247,165 +250,170 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns no result when the user id is unknown", func() {
-							userID = userTest.RandomID()
-							Expect(repository.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
+							filter.UserID = pointer.FromString(userTest.RandomID())
+							Expect(repository.List(ctx, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 0})
 						})
 
 						It("returns expected result when the filter is missing", func() {
 							filter = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
-								func(s *dataSource.Source) bool { return *s.UserID == userID },
+							Expect(repository.List(ctx, filter, pagination)).To(HaveExactElements(SelectAndSort(allResult,
+								func(s *dataSource.Source) bool { return true },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "pagination": pagination, "count": 12})
+							fmt.Println(len(allResult))
+							logger.AssertDebug("List", log.Fields{"pagination": pagination, "count": 24})
 						})
 
 						It("returns expected result when the filter provider type is missing", func() {
 							filter.ProviderType = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider type is specified", func() {
 							filter.ProviderType = pointer.FromStringArray([]string{providerType})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider name is missing", func() {
 							filter.ProviderName = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider name is specified", func() {
 							filter.ProviderName = pointer.FromStringArray([]string{providerName})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderName == providerName
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 6})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 6})
 						})
 
 						It("returns expected result when the filter provider session id is missing", func() {
 							filter.ProviderSessionID = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider session id is specified", func() {
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 6})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 6})
 						})
 
 						It("returns expected result when the filter state is missing", func() {
 							filter.State = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter state is set to connected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateConnected
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateDisconnected
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateError})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateError
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to both connected and disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 8})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
 						})
 
 						It("returns expected result when the filter state is set to both disconnected and error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected, dataSource.StateError})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateDisconnected || *s.State == dataSource.StateError)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 8})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
 						})
 
 						It("returns expected result when the filter state is set to all states", func() {
 							filter.State = pointer.FromStringArray(dataSource.States())
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider type, provider name, provider session id, and state is set to connected and disconnected", func() {
 							filter.ProviderType = pointer.FromStringArray([]string{providerType})
 							filter.ProviderName = pointer.FromStringArray([]string{providerName})
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
+							filter.ProviderExternalID = pointer.FromStringArray([]string{providerExternalID})
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
-									return *s.UserID == userID && *s.ProviderName == providerName && s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
+									return *s.UserID == userID && *s.ProviderName == providerName &&
+										s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID &&
+										s.ProviderExternalID != nil && *s.ProviderExternalID == providerExternalID &&
+										(*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 2})
 						})
 
 						It("returns expected result when the pagination is missing", func() {
 							pagination = nil
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "count": 12})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "count": 12})
 						})
 
 						It("returns expected result when the pagination limits result", func() {
 							pagination.Page = 1
 							pagination.Size = 2
-							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)[2:4]))
-							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
+							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 2})
 						})
 					})
 				})
@@ -454,20 +462,22 @@ var _ = Describe("Mongo", func() {
 
 					It("returns the result after creating", func() {
 						matchAllFields := MatchAllFields(Fields{
-							"ID":                PointTo(Not(BeEmpty())),
-							"UserID":            PointTo(Equal(userID)),
-							"ProviderType":      Equal(create.ProviderType),
-							"ProviderName":      Equal(create.ProviderName),
-							"ProviderSessionID": Equal(create.ProviderSessionID),
-							"State":             Equal(create.State),
-							"Error":             BeNil(),
-							"DataSetIDs":        BeNil(),
-							"EarliestDataTime":  BeNil(),
-							"LatestDataTime":    BeNil(),
-							"LastImportTime":    BeNil(),
-							"CreatedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
-							"ModifiedTime":      BeNil(),
-							"Revision":          PointTo(Equal(0)),
+							"ID":                 PointTo(Not(BeEmpty())),
+							"UserID":             PointTo(Equal(userID)),
+							"ProviderType":       Equal(create.ProviderType),
+							"ProviderName":       Equal(create.ProviderName),
+							"ProviderSessionID":  Equal(create.ProviderSessionID),
+							"ProviderExternalID": Equal(create.ProviderExternalID),
+							"State":              Equal(pointer.FromString(dataSource.StateDisconnected)),
+							"Metadata":           Equal(create.Metadata),
+							"Error":              BeNil(),
+							"DataSetIDs":         BeNil(),
+							"EarliestDataTime":   BeNil(),
+							"LatestDataTime":     BeNil(),
+							"LastImportTime":     BeNil(),
+							"CreatedTime":        PointTo(BeTemporally("~", time.Now(), time.Second)),
+							"ModifiedTime":       BeNil(),
+							"Revision":           PointTo(Equal(0)),
 						})
 						result, err := repository.Create(ctx, userID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -696,23 +706,26 @@ var _ = Describe("Mongo", func() {
 						Context("with updates", func() {
 							It("returns updated result when the id exists and state is connected without error", func() {
 								update.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+								update.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 								update.State = pointer.FromString(dataSource.StateConnected)
 								update.Error = nil
 								matchAllFields := MatchAllFields(Fields{
-									"ID":                PointTo(Equal(id)),
-									"UserID":            Equal(original.UserID),
-									"ProviderType":      Equal(original.ProviderType),
-									"ProviderName":      Equal(original.ProviderName),
-									"ProviderSessionID": Equal(update.ProviderSessionID),
-									"State":             Equal(update.State),
-									"Error":             Equal(update.Error),
-									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  Equal(update.EarliestDataTime),
-									"LatestDataTime":    Equal(update.LatestDataTime),
-									"LastImportTime":    Equal(update.LastImportTime),
-									"CreatedTime":       Equal(original.CreatedTime),
-									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"ID":                 PointTo(Equal(id)),
+									"UserID":             Equal(original.UserID),
+									"ProviderType":       Equal(original.ProviderType),
+									"ProviderName":       Equal(original.ProviderName),
+									"ProviderSessionID":  Equal(update.ProviderSessionID),
+									"ProviderExternalID": Equal(update.ProviderExternalID),
+									"State":              Equal(update.State),
+									"Metadata":           Equal(update.Metadata),
+									"Error":              Equal(update.Error),
+									"DataSetIDs":         Equal(update.DataSetIDs),
+									"EarliestDataTime":   Equal(update.EarliestDataTime),
+									"LatestDataTime":     Equal(update.LatestDataTime),
+									"LastImportTime":     Equal(update.LastImportTime),
+									"CreatedTime":        Equal(original.CreatedTime),
+									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":           PointTo(Equal(*original.Revision + 1)),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
@@ -729,23 +742,26 @@ var _ = Describe("Mongo", func() {
 
 							It("returns updated result when the id exists and state is disconnected without error", func() {
 								update.ProviderSessionID = nil
+								update.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 								update.State = pointer.FromString(dataSource.StateDisconnected)
 								update.Error = nil
 								matchAllFields := MatchAllFields(Fields{
-									"ID":                PointTo(Equal(id)),
-									"UserID":            Equal(original.UserID),
-									"ProviderType":      Equal(original.ProviderType),
-									"ProviderName":      Equal(original.ProviderName),
-									"ProviderSessionID": BeNil(),
-									"State":             Equal(update.State),
-									"Error":             Equal(update.Error),
-									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  Equal(update.EarliestDataTime),
-									"LatestDataTime":    Equal(update.LatestDataTime),
-									"LastImportTime":    Equal(update.LastImportTime),
-									"CreatedTime":       Equal(original.CreatedTime),
-									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"ID":                 PointTo(Equal(id)),
+									"UserID":             Equal(original.UserID),
+									"ProviderType":       Equal(original.ProviderType),
+									"ProviderName":       Equal(original.ProviderName),
+									"ProviderSessionID":  BeNil(),
+									"ProviderExternalID": Equal(update.ProviderExternalID),
+									"State":              Equal(update.State),
+									"Metadata":           Equal(update.Metadata),
+									"Error":              Equal(update.Error),
+									"DataSetIDs":         Equal(update.DataSetIDs),
+									"EarliestDataTime":   Equal(update.EarliestDataTime),
+									"LatestDataTime":     Equal(update.LatestDataTime),
+									"LastImportTime":     Equal(update.LastImportTime),
+									"CreatedTime":        Equal(original.CreatedTime),
+									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":           PointTo(Equal(*original.Revision + 1)),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())
@@ -762,22 +778,25 @@ var _ = Describe("Mongo", func() {
 
 							It("returns updated result when the id exists and state is error with error", func() {
 								update.ProviderSessionID = nil
+								update.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 								update.State = pointer.FromString(dataSource.StateError)
 								matchAllFields := MatchAllFields(Fields{
-									"ID":                PointTo(Equal(id)),
-									"UserID":            Equal(original.UserID),
-									"ProviderType":      Equal(original.ProviderType),
-									"ProviderName":      Equal(original.ProviderName),
-									"ProviderSessionID": Equal(original.ProviderSessionID),
-									"State":             Equal(update.State),
-									"Error":             Equal(update.Error),
-									"DataSetIDs":        Equal(update.DataSetIDs),
-									"EarliestDataTime":  Equal(update.EarliestDataTime),
-									"LatestDataTime":    Equal(update.LatestDataTime),
-									"LastImportTime":    Equal(update.LastImportTime),
-									"CreatedTime":       Equal(original.CreatedTime),
-									"ModifiedTime":      PointTo(BeTemporally("~", time.Now(), time.Second)),
-									"Revision":          PointTo(Equal(*original.Revision + 1)),
+									"ID":                 PointTo(Equal(id)),
+									"UserID":             Equal(original.UserID),
+									"ProviderType":       Equal(original.ProviderType),
+									"ProviderName":       Equal(original.ProviderName),
+									"ProviderSessionID":  Equal(original.ProviderSessionID),
+									"ProviderExternalID": Equal(update.ProviderExternalID),
+									"State":              Equal(update.State),
+									"Metadata":           Equal(update.Metadata),
+									"Error":              Equal(update.Error),
+									"DataSetIDs":         Equal(update.DataSetIDs),
+									"EarliestDataTime":   Equal(update.EarliestDataTime),
+									"LatestDataTime":     Equal(update.LatestDataTime),
+									"LastImportTime":     Equal(update.LastImportTime),
+									"CreatedTime":        Equal(original.CreatedTime),
+									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
+									"Revision":           PointTo(Equal(*original.Revision + 1)),
 								})
 								result, err := repository.Update(ctx, id, condition, update)
 								Expect(err).ToNot(HaveOccurred())

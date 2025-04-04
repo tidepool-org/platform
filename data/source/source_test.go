@@ -3,6 +3,7 @@ package source_test
 import (
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -17,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -109,6 +111,20 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderSessionID = pointer.FromStringArray(valid)
 					},
 				),
+				Entry("provider external id invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
+						object["providerExternalId"] = true
+						expectedDatum.ProviderExternalID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerExternalId"),
+				),
+				Entry("provider external id valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
+						valid := authTest.RandomProviderExternalIDs()
+						object["providerExternalId"] = valid
+						expectedDatum.ProviderExternalID = pointer.FromStringArray(valid)
+					},
+				),
 				Entry("state invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
 						object["state"] = true
@@ -128,15 +144,18 @@ var _ = Describe("Source", func() {
 						object["providerType"] = true
 						object["providerName"] = true
 						object["providerSessionId"] = true
+						object["providerExternalId"] = true
 						object["state"] = true
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderSessionID = nil
+						expectedDatum.ProviderExternalID = nil
 						expectedDatum.State = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/state"),
 				),
 			)
@@ -220,7 +239,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider name valid",
 					func(datum *dataSource.Filter) {
-						datum.ProviderName = pointer.FromStringArray(authTest.RandomProviderTypes())
+						datum.ProviderName = pointer.FromStringArray(authTest.RandomProviderNames())
 					},
 				),
 				Entry("provider session id missing",
@@ -254,6 +273,44 @@ var _ = Describe("Source", func() {
 				Entry("provider session id valid",
 					func(datum *dataSource.Filter) {
 						datum.ProviderSessionID = pointer.FromStringArray([]string{authTest.RandomProviderSessionID()})
+					},
+				),
+				Entry("provider external id missing",
+					func(datum *dataSource.Filter) { datum.ProviderExternalID = nil },
+				),
+				Entry("provider external id empty",
+					func(datum *dataSource.Filter) {
+						datum.ProviderExternalID = pointer.FromStringArray([]string{})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
+				),
+				Entry("provider external id element empty",
+					func(datum *dataSource.Filter) {
+						datum.ProviderExternalID = pointer.FromStringArray([]string{""})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId/0"),
+				),
+				Entry("provider external id element length in range (upper)",
+					func(datum *dataSource.Filter) {
+						datum.ProviderExternalID = pointer.FromStringArray([]string{test.RandomStringFromRangeAndCharset(100, 100, test.CharsetAlphaNumeric)})
+					},
+				),
+				Entry("provider external id element length out of range (upper)",
+					func(datum *dataSource.Filter) {
+						datum.ProviderExternalID = pointer.FromStringArray([]string{test.RandomStringFromRangeAndCharset(101, 101, test.CharsetAlphaNumeric)})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/providerExternalId/0"),
+				),
+				Entry("provider external id element duplicate",
+					func(datum *dataSource.Filter) {
+						providerExternalID := authTest.RandomProviderExternalID()
+						datum.ProviderExternalID = pointer.FromStringArray([]string{providerExternalID, providerExternalID})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/providerExternalId/1"),
+				),
+				Entry("provider external id valid",
+					func(datum *dataSource.Filter) {
+						datum.ProviderExternalID = pointer.FromStringArray(authTest.RandomProviderExternalIDs())
 					},
 				),
 				Entry("state missing",
@@ -294,11 +351,13 @@ var _ = Describe("Source", func() {
 						datum.ProviderType = pointer.FromStringArray([]string{})
 						datum.ProviderName = pointer.FromStringArray([]string{})
 						datum.ProviderSessionID = pointer.FromStringArray([]string{})
+						datum.ProviderExternalID = pointer.FromStringArray([]string{})
 						datum.State = pointer.FromStringArray([]string{})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/state"),
 				),
 			)
@@ -325,10 +384,11 @@ var _ = Describe("Source", func() {
 				It("sets request query as expected", func() {
 					Expect(filter.MutateRequest(req)).To(Succeed())
 					Expect(req.URL.Query()).To(Equal(url.Values{
-						"providerType":      *filter.ProviderType,
-						"providerName":      *filter.ProviderName,
-						"providerSessionId": *filter.ProviderSessionID,
-						"state":             *filter.State,
+						"providerType":       *filter.ProviderType,
+						"providerName":       *filter.ProviderName,
+						"providerSessionId":  *filter.ProviderSessionID,
+						"providerExternalId": *filter.ProviderExternalID,
+						"state":              *filter.State,
 					}))
 				})
 
@@ -336,6 +396,7 @@ var _ = Describe("Source", func() {
 					filter.ProviderType = nil
 					filter.ProviderName = nil
 					filter.ProviderSessionID = nil
+					filter.ProviderExternalID = nil
 					filter.State = nil
 					Expect(filter.MutateRequest(req)).To(Succeed())
 					Expect(req.URL.Query()).To(BeEmpty())
@@ -420,18 +481,32 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
 					},
 				),
-				Entry("state invalid type",
+				Entry("provider external id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						object["state"] = true
-						expectedDatum.State = nil
+						object["providerExternalId"] = true
+						expectedDatum.ProviderExternalID = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
 				),
-				Entry("state valid",
+				Entry("provider external id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						valid := dataSourceTest.RandomState()
-						object["state"] = valid
-						expectedDatum.State = pointer.FromString(valid)
+						valid := authTest.RandomProviderExternalID()
+						object["providerExternalId"] = valid
+						expectedDatum.ProviderExternalID = pointer.FromString(valid)
+					},
+				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = valid
+						expectedDatum.Metadata = valid
 					},
 				),
 				Entry("multiple",
@@ -439,16 +514,19 @@ var _ = Describe("Source", func() {
 						object["providerType"] = true
 						object["providerName"] = true
 						object["providerSessionId"] = true
-						object["state"] = true
+						object["providerExternalId"] = true
+						object["metadata"] = true
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderSessionID = nil
-						expectedDatum.State = nil
+						expectedDatum.ProviderExternalID = nil
+						expectedDatum.Metadata = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 				),
 			)
 		})
@@ -507,142 +585,41 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider name valid",
 					func(datum *dataSource.Create) {
-						datum.ProviderName = pointer.FromString(authTest.RandomProviderType())
+						datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
 					},
 				),
-				Entry("state missing; provider session id missing",
+				Entry("provider external id missing",
+					func(datum *dataSource.Create) { datum.ProviderExternalID = nil },
+				),
+				Entry("provider external id empty",
 					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = nil
-						datum.State = nil
+						datum.ProviderExternalID = pointer.FromString("")
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 				),
-				Entry("state missing; provider session id empty",
+				Entry("provider external id length in range (upper)",
 					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("")
-						datum.State = nil
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(100, 100, test.CharsetAlphaNumeric))
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
-				Entry("state missing; provider session id invalid",
+				Entry("provider external id length out of range (upper)",
 					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("invalid")
-						datum.State = nil
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(101, 101, test.CharsetAlphaNumeric))
 					},
-					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/providerExternalId"),
 				),
-				Entry("state missing; provider session id valid",
+				Entry("provider external id valid",
 					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = nil
+						datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
 				),
-				Entry("state connected; provider session id missing",
+				Entry("metadata invalid",
 					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = nil
-						datum.State = pointer.FromString(dataSource.StateConnected)
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
-				Entry("state connected; provider session id empty",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("")
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
-				),
-				Entry("state connected; provider session id invalid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("invalid")
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
-				),
-				Entry("state connected; provider session id valid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-				),
-				Entry("state disconnected; provider session id missing",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = nil
-						datum.State = pointer.FromString(dataSource.StateDisconnected)
-					},
-				),
-				Entry("state disconnected; provider session id empty",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("")
-						datum.State = pointer.FromString(dataSource.StateDisconnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
-				),
-				Entry("state disconnected; provider session id invalid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("invalid")
-						datum.State = pointer.FromString(dataSource.StateDisconnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
-				),
-				Entry("state disconnected; provider session id valid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = pointer.FromString(dataSource.StateDisconnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
-				),
-				Entry("state error; provider session id missing",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = nil
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
-				),
-				Entry("state error; provider session id empty",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("")
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
-				),
-				Entry("state error; provider session id invalid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString("invalid")
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-					errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
-				),
-				Entry("state error; provider session id valid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = pointer.FromString(dataSource.StateConnected)
-					},
-				),
-				Entry("state missing",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = nil
-						datum.State = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
-				),
-				Entry("state empty",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = pointer.FromString("")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
-				),
-				Entry("state invalid",
-					func(datum *dataSource.Create) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-						datum.State = pointer.FromString("invalid")
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
-				),
-				Entry("state valid",
+				Entry("metadata valid",
 					func(datum *dataSource.Create) {},
 				),
 				Entry("multiple errors",
@@ -650,12 +627,14 @@ var _ = Describe("Source", func() {
 						datum.ProviderType = nil
 						datum.ProviderName = nil
 						datum.ProviderSessionID = pointer.FromString("")
-						datum.State = nil
+						datum.ProviderExternalID = pointer.FromString("")
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
 			)
 		})
@@ -709,6 +688,20 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
 					},
 				),
+				Entry("provider external id invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						object["providerExternalId"] = true
+						expectedDatum.ProviderExternalID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
+				),
+				Entry("provider external id valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						valid := authTest.RandomProviderExternalID()
+						object["providerExternalId"] = valid
+						expectedDatum.ProviderExternalID = pointer.FromString(valid)
+					},
+				),
 				Entry("state invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						object["state"] = true
@@ -721,6 +714,20 @@ var _ = Describe("Source", func() {
 						valid := dataSourceTest.RandomState()
 						object["state"] = valid
 						expectedDatum.State = pointer.FromString(valid)
+					},
+				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = metadataTest.NewObjectFromMetadataMap(valid, test.ObjectFormatJSON)
+						expectedDatum.Metadata = valid
 					},
 				),
 				Entry("error invalid type",
@@ -817,14 +824,18 @@ var _ = Describe("Source", func() {
 				Entry("multiple",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
 						object["providerSessionId"] = true
+						object["providerExternalId"] = true
 						object["state"] = true
+						object["metadata"] = true
 						object["error"] = true
 						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
 						object["latestDataTime"] = true
 						object["lastImportTime"] = true
 						expectedDatum.ProviderSessionID = nil
+						expectedDatum.ProviderExternalID = nil
 						expectedDatum.State = nil
+						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
 						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
@@ -832,7 +843,9 @@ var _ = Describe("Source", func() {
 						expectedDatum.LastImportTime = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
@@ -960,6 +973,33 @@ var _ = Describe("Source", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
 				),
+				Entry("provider external id missing",
+					func(datum *dataSource.Update) {
+						datum.ProviderExternalID = nil
+					},
+				),
+				Entry("provider external id empty",
+					func(datum *dataSource.Update) {
+						datum.ProviderExternalID = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
+				),
+				Entry("provider external id length in range (upper)",
+					func(datum *dataSource.Update) {
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(100, 100, test.CharsetAlphaNumeric))
+					},
+				),
+				Entry("provider external id length out of range (upper)",
+					func(datum *dataSource.Update) {
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(101, 101, test.CharsetAlphaNumeric))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/providerExternalId"),
+				),
+				Entry("provider external id valid",
+					func(datum *dataSource.Update) {
+						datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
+					},
+				),
 				Entry("state missing",
 					func(datum *dataSource.Update) {
 						datum.ProviderSessionID = nil
@@ -997,6 +1037,15 @@ var _ = Describe("Source", func() {
 						datum.ProviderSessionID = nil
 						datum.State = pointer.FromString("error")
 					},
+				),
+				Entry("metadata invalid",
+					func(datum *dataSource.Update) {
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(datum *dataSource.Update) {},
 				),
 				Entry("error missing",
 					func(datum *dataSource.Update) {
@@ -1138,14 +1187,18 @@ var _ = Describe("Source", func() {
 				Entry("multiple errors",
 					func(datum *dataSource.Update) {
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = pointer.FromString("")
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
 						datum.LastImportTime = pointer.FromTime(time.Time{})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
@@ -1191,8 +1244,18 @@ var _ = Describe("Source", func() {
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
+			It("returns false when provider external id is not nil", func() {
+				datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
+				Expect(datum.IsEmpty()).To(BeFalse())
+			})
+
 			It("returns false when state is not nil", func() {
 				datum.State = pointer.FromString(dataSourceTest.RandomState())
+				Expect(datum.IsEmpty()).To(BeFalse())
+			})
+
+			It("returns false when metdata is not nil", func() {
+				datum.Metadata = metadataTest.RandomMetadataMap()
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
@@ -1327,6 +1390,20 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderSessionID = pointer.FromString(valid)
 					},
 				),
+				Entry("provider external id invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						object["providerExternalId"] = true
+						expectedDatum.ProviderExternalID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
+				),
+				Entry("provider external id valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						valid := authTest.RandomProviderExternalID()
+						object["providerExternalId"] = valid
+						expectedDatum.ProviderExternalID = pointer.FromString(valid)
+					},
+				),
 				Entry("state invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
 						object["state"] = true
@@ -1339,6 +1416,20 @@ var _ = Describe("Source", func() {
 						valid := dataSourceTest.RandomState()
 						object["state"] = valid
 						expectedDatum.State = pointer.FromString(valid)
+					},
+				),
+				Entry("metadata invalid type",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						object["metadata"] = true
+						expectedDatum.Metadata = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
+				),
+				Entry("metadata valid",
+					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
+						valid := metadataTest.RandomMetadataMap()
+						object["metadata"] = metadataTest.NewObjectFromMetadataMap(valid, test.ObjectFormatJSON)
+						expectedDatum.Metadata = valid
 					},
 				),
 				Entry("error invalid type",
@@ -1495,7 +1586,9 @@ var _ = Describe("Source", func() {
 						object["providerType"] = true
 						object["providerName"] = true
 						object["providerSessionId"] = true
+						object["providerExternalId"] = true
 						object["state"] = true
+						object["metadata"] = true
 						object["error"] = true
 						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
@@ -1509,7 +1602,9 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderSessionID = nil
+						expectedDatum.ProviderExternalID = nil
 						expectedDatum.State = nil
+						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
 						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
@@ -1524,7 +1619,9 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
@@ -1751,6 +1848,33 @@ var _ = Describe("Source", func() {
 						datum.State = pointer.FromString(dataSource.StateConnected)
 					},
 				),
+				Entry("provider external id missing",
+					func(datum *dataSource.Source) {
+						datum.ProviderExternalID = nil
+					},
+				),
+				Entry("provider external id empty",
+					func(datum *dataSource.Source) {
+						datum.ProviderExternalID = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
+				),
+				Entry("provider external id length in range (upper)",
+					func(datum *dataSource.Source) {
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(100, 100, test.CharsetAlphaNumeric))
+					},
+				),
+				Entry("provider external id length out of range (upper)",
+					func(datum *dataSource.Source) {
+						datum.ProviderExternalID = pointer.FromString(test.RandomStringFromRangeAndCharset(101, 101, test.CharsetAlphaNumeric))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(101, 100), "/providerExternalId"),
+				),
+				Entry("provider external id valid",
+					func(datum *dataSource.Source) {
+						datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
+					},
+				),
 				Entry("state missing",
 					func(datum *dataSource.Source) {
 						datum.State = nil
@@ -1772,6 +1896,15 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
 				),
 				Entry("state valid",
+					func(datum *dataSource.Source) {},
+				),
+				Entry("metadata invalid",
+					func(datum *dataSource.Source) {
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
+				),
+				Entry("metadata valid",
 					func(datum *dataSource.Source) {},
 				),
 				Entry("error missing",
@@ -1975,7 +2108,9 @@ var _ = Describe("Source", func() {
 						datum.ProviderType = nil
 						datum.ProviderName = nil
 						datum.ProviderSessionID = pointer.FromString("")
+						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = nil
+						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 						datum.DataSetIDs = pointer.FromStringArray([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
@@ -1989,7 +2124,9 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/state"),
+					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
