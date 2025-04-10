@@ -7,9 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/dosingdecision"
-
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
@@ -23,6 +20,7 @@ type Store interface {
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
 	NewAlertsRepository() alerts.Repository
+	NewLastCommunicationsRepository() alerts.LastCommunicationsRepository
 }
 
 // DataSetRepository is the interface for interacting and modifying
@@ -66,16 +64,14 @@ type DatumRepository interface {
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
 	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
-
-	// GetAlertableData queries for the data used to evaluate alerts configurations.
-	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
 }
 
-// DataRepository is the combined interface of DataSetRepository and
-// DatumRepository.
+// DataRepository is the combined interface of DataSetRepository,
+// DatumRepository, and [alerts.DataRepository].
 type DataRepository interface {
 	DataSetRepository
 	DatumRepository
+	alerts.DataRepository
 }
 
 type Filter struct {
@@ -98,20 +94,4 @@ type SummaryRepository interface {
 	EnsureIndexes() error
 
 	GetStore() *storeStructuredMongo.Repository
-}
-
-type AlertableParams struct {
-	// UserID of the user that owns the data.
-	UserID string
-	// UploadID of the device data set to query.
-	UploadID string
-	// Start limits the data to those recorded after this time.
-	Start time.Time
-	// End limits the data to those recorded before this time.
-	End time.Time
-}
-
-type AlertableResponse struct {
-	Glucose         []*glucose.Glucose
-	DosingDecisions []*dosingdecision.DosingDecision
 }

@@ -2,15 +2,16 @@ package service
 
 import (
 	"context"
-	"log"
-	"os"
-
-	"github.com/tidepool-org/platform/clinics"
+	"strings"
+	"time"
 
 	"github.com/IBM/sarama"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -22,11 +23,12 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/push"
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -44,7 +46,9 @@ type Standard struct {
 	dataClient                *Client
 	clinicsClient             *clinics.Client
 	dataSourceClient          *dataSourceServiceClient.Client
+	alertsPusher              dataEvents.Pusher
 	userEventsHandler         events.Runner
+	alertsEventsHandler       events.Runner
 	api                       *api.Standard
 	server                    *server.Standard
 }
@@ -87,7 +91,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSaramaLogger(); err != nil {
+		return err
+	}
+	if err := s.initializeAlertsPusher(); err != nil {
+		return err
+	}
 	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
+	if err := s.initializeAlertsEventsHandler(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -109,6 +122,13 @@ func (s *Standard) Terminate() {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
 		s.userEventsHandler = nil
+	}
+	if s.alertsEventsHandler != nil {
+		s.Logger().Info("Terminating the alertsEventsHandler")
+		if err := s.alertsEventsHandler.Terminate(); err != nil {
+			s.Logger().Errorf("Error while terminating the alertsEventsHandler: %v", err)
+		}
+		s.alertsEventsHandler = nil
 	}
 	s.api = nil
 	s.dataClient = nil
@@ -139,6 +159,9 @@ func (s *Standard) Run() error {
 	errs := make(chan error)
 	go func() {
 		errs <- s.userEventsHandler.Run()
+	}()
+	go func() {
+		errs <- s.alertsEventsHandler.Run()
 	}()
 	go func() {
 		errs <- s.server.Serve()
@@ -414,9 +437,8 @@ func (s *Standard) initializeServer() error {
 
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -426,4 +448,111 @@ func (s *Standard) initializeUserEventsHandler() error {
 	s.userEventsHandler = runner
 
 	return nil
+}
+
+func (s *Standard) initializeSaramaLogger() error {
+	// Multiple properties of Standard use the sarama package. This is
+	// intended to be the one place that the sarama Logger is initialized,
+	// before any of the properties that need it are run.
+	sarama.Logger = log.NewSarama(s.Logger())
+	return nil
+}
+
+func (s *Standard) initializeAlertsPusher() error {
+	var err error
+	var pusher dataEvents.Pusher
+	pusher, err = alerts.NewPusher()
+	if err != nil {
+		s.Logger().WithError(err).Warn("falling back to logging of alerts push notifications")
+		pusher = push.NewLogPusher(s.Logger())
+	}
+	s.alertsPusher = pusher
+
+	return nil
+}
+
+func (s *Standard) initializeAlertsEventsHandler() error {
+	s.Logger().Debug("Initializing alerts events handler")
+
+	commonConfig := eventsCommon.NewConfig()
+	if err := commonConfig.LoadFromEnv(); err != nil {
+		return err
+	}
+
+	topics := []string{"data.alerts", "data.deviceData.alerts"}
+	// Some kafka topics use a `<env>-` as a prefix. But MongoDB CDC topics are created with
+	// `<env>.`. This code is using CDC topics, so ensuring that a `.` is used for alerts events
+	// lines everything up as expected.
+	topicPrefix := strings.ReplaceAll(commonConfig.KafkaTopicPrefix, "-", ".")
+	prefixedTopics := make([]string, 0, len(topics))
+	for _, topic := range topics {
+		prefixedTopics = append(prefixedTopics, topicPrefix+topic)
+	}
+	commonConfig.SaramaConfig.ClientID = topicPrefix + "alerts"
+
+	alertsRepo := s.dataStore.NewAlertsRepository()
+	dataRepo := s.dataStore.NewDataRepository()
+	lastCommunicationsRepo := s.dataStore.NewLastCommunicationsRepository()
+
+	alertsEvaluator := alerts.NewEvaluator(alertsRepo, dataRepo, s.PermissionClient(),
+		s.Logger(), s.AuthClient())
+
+	ec := &dataEvents.Consumer{
+		Alerts:             alertsRepo,
+		Evaluator:          alertsEvaluator,
+		Data:               dataRepo,
+		DeviceTokens:       s.AuthClient(),
+		Logger:             s.Logger(),
+		Permissions:        s.PermissionClient(),
+		Pusher:             s.alertsPusher,
+		LastCommunications: dataEvents.NewLastCommunicationRecorder(lastCommunicationsRepo),
+		TokensProvider:     s.AuthClient(),
+	}
+
+	runnerCfg := dataEvents.SaramaRunnerConfig{
+		Brokers: commonConfig.KafkaBrokers,
+		GroupID: topicPrefix + "alerts",
+		Topics:  prefixedTopics,
+		Sarama:  commonConfig.SaramaConfig,
+		MessageConsumer: &dataEvents.AlertsEventsConsumer{
+			Consumer: ec,
+			Logger:   s.Logger(),
+		},
+	}
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("alerts", "retry")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to alerts retry delays config")
+	}
+	delays, err := parseCommaSeparatedDurations(reporter.GetWithDefault("delays", "0s"))
+	if err != nil {
+		return errors.Wrap(err, "Unable to read configured alerts retry delays")
+	}
+
+	eventsRunner := dataEvents.NewCascadingSaramaEventsRunner(runnerCfg, s.Logger(), delays)
+	runner := dataEvents.NewSaramaRunner(eventsRunner)
+	if err := runner.Initialize(); err != nil {
+		return errors.Wrap(err, "Unable to initialize alerts events handler runner")
+	}
+	s.alertsEventsHandler = runner
+
+	return nil
+}
+
+func parseCommaSeparatedDurations(s string) ([]time.Duration, error) {
+	out := []time.Duration{}
+	for _, d := range strings.Split(s, ",") {
+		if d == "" {
+			continue
+		}
+		dur, err := time.ParseDuration(d)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, dur)
+	}
+	return out, nil
 }

@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -470,6 +472,64 @@ var _ = Describe("Client", func() {
 						Expect(details.IsService()).To(BeTrue())
 						Expect(details.UserID()).To(BeEmpty())
 					})
+				})
+			})
+
+			Describe("GetDeviceTokens", func() {
+				var testUserID = "test-user-id"
+				var testUserIDBadResponse = "test-user-id-bad-response"
+				var testTokens = map[string]any{
+					testUserID: []*devicetokens.DeviceToken{{
+						Apple: &devicetokens.AppleDeviceToken{
+							Token:       []byte("blah"),
+							Environment: "sandbox",
+						},
+					}},
+					testUserIDBadResponse: []map[string]any{
+						{
+							"Apple": "",
+						},
+					},
+				}
+
+				It("returns a token", func() {
+					body, err := json.Marshal(testTokens[testUserID])
+					Expect(err).To(Succeed())
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest("GET", "/v1/users/"+testUserID+"/device_tokens"),
+							RespondWith(http.StatusOK, body)),
+					)
+
+					tokens, err := client.GetDeviceTokens(ctx, testUserID)
+					Expect(err).To(Succeed())
+					Expect(tokens).To(HaveLen(1))
+					Expect([]byte(tokens[0].Apple.Token)).To(Equal([]byte("blah")))
+					Expect(tokens[0].Apple.Environment).To(Equal("sandbox"))
+				})
+
+				It("returns an error when receiving malformed responses", func() {
+					body, err := json.Marshal(testTokens[testUserIDBadResponse])
+					Expect(err).To(Succeed())
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest("GET", "/v1/users/"+testUserIDBadResponse+"/device_tokens"),
+							RespondWith(http.StatusOK, body)),
+					)
+
+					_, err = client.GetDeviceTokens(ctx, testUserIDBadResponse)
+					Expect(err).To(HaveOccurred())
+				})
+
+				It("returns an error on non-200 responses", func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest("GET", "/v1/users/"+testUserID+"/device_tokens"),
+							RespondWith(http.StatusBadRequest, nil)),
+					)
+					_, err := client.GetDeviceTokens(ctx, testUserID)
+					Expect(err).To(HaveOccurred())
+					Expect(err).To(MatchError(ContainSubstring("Unable to request device token data")))
 				})
 			})
 		})

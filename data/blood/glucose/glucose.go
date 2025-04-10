@@ -115,3 +115,7 @@ func NormalizeValueForRateUnits(value *float64, rateUnits *string) *float64 {
 	}
 	return value
 }
+
+func IsMmolL(units string) bool {
+	return units == MmolL || units == Mmoll
+}

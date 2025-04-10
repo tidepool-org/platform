@@ -8,6 +8,7 @@ import (
 
 	"github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/data/types/upload"
@@ -193,11 +194,11 @@ type DistinctUserIDsOutput struct {
 
 type GetAlertableDataInput struct {
 	Context context.Context
-	Params  dataStore.AlertableParams
+	Params  alerts.GetAlertableDataParams
 }
 
 type GetAlertableDataOutput struct {
-	Response *dataStore.AlertableResponse
+	Response *alerts.GetAlertableDataResponse
 	Error    error
 }
 
@@ -554,7 +555,7 @@ func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]s
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
+func (d *DataRepository) GetAlertableData(ctx context.Context, params alerts.GetAlertableDataParams) (*alerts.GetAlertableDataResponse, error) {
 	d.GetAlertableDataInvocations++
 
 	d.GetAlertableDataInputs = append(d.GetAlertableDataInputs, GetAlertableDataInput{Context: ctx, Params: params})

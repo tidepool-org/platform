@@ -1,6 +1,7 @@
 # github.com/IBM/sarama v1.43.2
 ## explicit; go 1.19
 github.com/IBM/sarama
+github.com/IBM/sarama/mocks
 # github.com/ant0ine/go-json-rest v3.3.2+incompatible
 ## explicit
 github.com/ant0ine/go-json-rest/rest
@@ -360,14 +361,20 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
+# github.com/sideshow/apns2 v0.23.0
+## explicit; go 1.15
+github.com/sideshow/apns2
+github.com/sideshow/apns2/payload
+github.com/sideshow/apns2/token
 # github.com/tidepool-org/clinic/client v0.0.0-20240926112325-657da308fce2
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
 # github.com/tidepool-org/devices/api v0.0.0-20240806072455-2b18f22c9cf5
 ## explicit; go 1.22
 github.com/tidepool-org/devices/api
-# github.com/tidepool-org/go-common v0.12.2-0.20250129210214-bd36b59b9733
+# github.com/tidepool-org/go-common v0.12.2
 ## explicit; go 1.22
+github.com/tidepool-org/go-common/asyncevents
 github.com/tidepool-org/go-common/clients
 github.com/tidepool-org/go-common/clients/disc
 github.com/tidepool-org/go-common/clients/hakken

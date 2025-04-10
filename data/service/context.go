@@ -29,6 +29,7 @@ type Context interface {
 	SummaryRepository() dataStore.SummaryRepository
 	SyncTaskRepository() syncTaskStore.SyncTaskRepository
 	AlertsRepository() alerts.Repository
+	LastCommunicationsRepository() alerts.LastCommunicationsRepository
 
 	SummarizerRegistry() *summary.SummarizerRegistry
 	SummaryReporter() *reporters.PatientRealtimeDaysReporter

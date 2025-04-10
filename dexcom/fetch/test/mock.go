@@ -10,7 +10,6 @@ import (
 	time "time"
 
 	gomock "github.com/golang/mock/gomock"
-
 	auth "github.com/tidepool-org/platform/auth"
 	data "github.com/tidepool-org/platform/data"
 	source "github.com/tidepool-org/platform/data/source"

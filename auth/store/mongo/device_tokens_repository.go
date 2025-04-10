@@ -16,6 +16,20 @@ import (
 // MongoDB collection.
 type deviceTokenRepo structuredmongo.Repository
 
+func (r *deviceTokenRepo) GetAllByUserID(ctx context.Context, userID string) ([]*devicetokens.Document, error) {
+	f := bson.M{"userId": userID}
+	cursor, err := r.Find(ctx, f, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+	var docs []*devicetokens.Document
+	if err := cursor.All(ctx, &docs); err != nil {
+		return nil, err
+	}
+	return docs, nil
+}
+
 // Upsert will create or update the given Config.
 func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document) error {
 	// The presence of UserID and TokenID should be enforced with a mongodb
@@ -24,7 +38,7 @@ func (r *deviceTokenRepo) Upsert(ctx context.Context, doc *devicetokens.Document
 		return errors.New("UserID is empty")
 	}
 	if doc.TokenKey == "" {
-		return errors.New("TokenID is empty")
+		return errors.New("TokenKey is empty")
 	}
 
 	opts := options.Update().SetUpsert(true)
