@@ -38,9 +38,10 @@ func (c *Client) List(ctx context.Context, filter *dataSource.Filter, pagination
 		if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
 			return nil, err
 		}
-	}
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, *filter.UserID, permission.Owner); err != nil {
-		return nil, err
+	} else {
+		if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, *filter.UserID, permission.Owner); err != nil {
+			return nil, err
+		}
 	}
 
 	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
