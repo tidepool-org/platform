@@ -3,11 +3,11 @@ package reconcile_test
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	api "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/log"

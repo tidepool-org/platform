@@ -34,6 +34,7 @@ var _ = Describe("Service", func() {
 		var server *Server
 		var authClientConfig map[string]interface{}
 		var authStoreConfig map[string]interface{}
+		var dataClientConfig map[string]interface{}
 		var dataSourceClientConfig map[string]interface{}
 		var taskClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
@@ -66,6 +67,10 @@ var _ = Describe("Service", func() {
 				"database":  test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				"tls":       "false",
 			}
+			dataClientConfig = map[string]interface{}{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+			}
 			dataSourceClientConfig = map[string]interface{}{
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
@@ -79,6 +84,9 @@ var _ = Describe("Service", func() {
 				"auth": map[string]interface{}{
 					"client": authClientConfig,
 					"store":  authStoreConfig,
+				},
+				"data": map[string]interface{}{
+					"client": dataClientConfig,
 				},
 				"data_source": map[string]interface{}{
 					"client": dataSourceClientConfig,

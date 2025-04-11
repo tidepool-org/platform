@@ -33,13 +33,19 @@ func New(provider Provider) (*Client, error) {
 
 // FUTURE: Return ErrorResourceNotFoundWithID(userID) if userID does not exist at all
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, userID, permission.Owner); err != nil {
-		return nil, err
+func (c *Client) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	if filter == nil || filter.UserID == nil {
+		if err := c.AuthClient().EnsureAuthorizedService(ctx); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := c.AuthClient().EnsureAuthorizedUser(ctx, *filter.UserID, permission.Owner); err != nil {
+			return nil, err
+		}
 	}
 
 	repository := c.DataSourceStructuredStore().NewDataSourcesRepository()
-	return repository.List(ctx, userID, filter, pagination)
+	return repository.List(ctx, filter, pagination)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {

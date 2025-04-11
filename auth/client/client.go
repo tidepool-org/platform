@@ -133,6 +133,10 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) e
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
 }
 
+func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
+	return errors.New("not implemented")
+}
+
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

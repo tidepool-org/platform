@@ -51,3 +51,21 @@ func ErrorDataSetClosed(dataSetID string) *service.Error {
 		Detail: fmt.Sprintf("Data set with id %s is closed for new data", dataSetID),
 	}
 }
+
+func ErrorTidepoolLinkIDMissing() *service.Error {
+	return &service.Error{
+		Code:   "tidepool-link-id-missing",
+		Status: http.StatusBadRequest,
+		Title:  "tidepool link id is missing",
+		Detail: "Tidepool link id is missing",
+	}
+}
+
+func ErrorTidepoolLinkIDNotFound() *service.Error {
+	return &service.Error{
+		Code:   "tidepool-link-id-not-found",
+		Status: http.StatusNotFound,
+		Title:  "tidepool link id not found",
+		Detail: "Tidepool link id not found",
+	}
+}

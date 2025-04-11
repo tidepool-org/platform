@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/tidepool-org/platform/twiist"
+
 	"github.com/tidepool-org/platform/data/summary/reporters"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -222,5 +224,9 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
 	panic("not implemented")
 }
