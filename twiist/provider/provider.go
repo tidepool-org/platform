@@ -279,7 +279,7 @@ func (p *Provider) createDataSet(ctx context.Context, source *dataSource.Source)
 	}
 	dataSetCreate.DataSetType = pointer.FromString(data.DataSetTypeContinuous)
 	dataSetCreate.Deduplicator = data.NewDeduplicatorDescriptor()
-	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.DataSetDeleteOriginName)
+	dataSetCreate.Deduplicator.Name = pointer.FromString(dataDeduplicatorDeduplicator.DataSetDeleteOriginOlderName)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray(twiist.DeviceManufacturers)
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM, data.DeviceTagBGM, data.DeviceTagInsulinPump})
 	dataSetCreate.Time = pointer.FromTime(time.Now())

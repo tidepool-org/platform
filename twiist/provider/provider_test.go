@@ -178,6 +178,22 @@ var _ = Describe("Provider", func() {
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 			dataClient.EXPECT().
 				CreateUserDataSet(ctx, gomock.Eq(session.UserID), gomock.Any()).
+				Do(func(_ context.Context, _ string, create *data.DataSetCreate) {
+					Expect(create).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"Client": PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name":    PointTo(Equal("com.sequelmedtech.tidepool-service")),
+							"Version": PointTo(Equal("3.0.0")),
+						})),
+						"DataSetType": PointTo(Equal("continuous")),
+						"Deduplicator": PointTo(MatchFields(IgnoreExtras, Fields{
+							"Name": PointTo(Equal("org.tidepool.deduplicator.dataset.delete.origin.older")),
+						})),
+						"DeviceManufacturers": PointTo(ConsistOf(Equal("Sequel"))),
+						"DeviceTags":          PointTo(ConsistOf("cgm", "bgm", "insulin-pump")),
+						"Time":                PointTo(BeTemporally("<=", time.Now())),
+						"TimeProcessing":      PointTo(Equal("none")),
+					})))
+				}).
 				Return(&dataSet, nil)
 
 			dataSourceClient.EXPECT().
