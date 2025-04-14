@@ -6,24 +6,26 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
-const DataSetDeleteOriginName = "org.tidepool.deduplicator.dataset.delete.origin"
+const (
+	DataSetDeleteOriginName    = "org.tidepool.deduplicator.dataset.delete.origin"
+	DataSetDeleteOriginVersion = "1.0.0"
+)
 
 type DataSetDeleteOrigin struct {
-	*Base
+	*DataSetDeleteOriginBase
 }
 
 func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
-	base, err := NewBase(DataSetDeleteOriginName, "1.0.0")
+	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(DataSetDeleteOriginName, DataSetDeleteOriginVersion, &dataSetDeleteOriginProvider{})
 	if err != nil {
 		return nil, err
 	}
 
 	return &DataSetDeleteOrigin{
-		Base: base,
+		DataSetDeleteOriginBase: dataSetDeleteOriginBase,
 	}, nil
 }
 
@@ -32,106 +34,23 @@ func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *dataTypesUpload.
 }
 
 func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
+	if found, err := d.DataSetDeleteOriginBase.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if repository == nil {
-		return nil, errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return nil, errors.New("data set is missing")
-	}
+type dataSetDeleteOriginProvider struct{}
 
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.SetActive(true)
-	}
-
-	return d.Base.Open(ctx, repository, dataSet)
+func (d *dataSetDeleteOriginProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (data.Data, error) {
+	return dataSetData, nil
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-	if dataSetData == nil {
-		return errors.New("data set data is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSetData.SetActive(true)
-	}
-
-	if selectors := d.getSelectors(dataSetData); selectors != nil {
-		if err := repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
-			return err
-		}
-		if err := d.Base.AddData(ctx, repository, dataSet, dataSetData); err != nil {
-			return err
-		}
-		return repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
-	}
-
-	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
-}
-
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-	if selectors == nil {
-		return errors.New("selectors is missing")
-	}
-
-	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
-}
-
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		return nil
-	}
-
-	return d.Base.Close(ctx, repository, dataSet)
-}
-
-func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {
+func (d *dataSetDeleteOriginProvider) GetDataSelectors(dataSetData data.Data) *data.Selectors {
 	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
-		if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
-			selector := &data.Selector{
-				Origin: &data.SelectorOrigin{
-					ID: pointer.CloneString(origin.ID),
-				},
-			}
+		if selector := d.getDatumSelector(dataSetDatum); selector != nil {
 			selectors = append(selectors, selector)
 		}
 	}
@@ -139,4 +58,15 @@ func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selector
 		return nil
 	}
 	return &selectors
+}
+
+func (d *dataSetDeleteOriginProvider) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
+	if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
+		return &data.Selector{
+			Origin: &data.SelectorOrigin{
+				ID: pointer.CloneString(origin.ID),
+			},
+		}
+	}
+	return nil
 }
