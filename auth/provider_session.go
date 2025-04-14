@@ -205,6 +205,8 @@ func ValidateProviderExternaID(value string) error {
 	return nil
 }
 
+// TODO: BACK-3620 - Consider adding ExternalAccountID to data source and provider session to accommodate ExternalID used by twiist to represent session
+
 type ProviderSession struct {
 	ID           string      `json:"id" bson:"id"`
 	UserID       string      `json:"userId" bson:"userId"`

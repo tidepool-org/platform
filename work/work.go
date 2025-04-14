@@ -11,6 +11,8 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+// TODO: BACK-3612 - Add unit tests for work package for reasonable coverage
+
 const (
 	GroupIDLengthMaximum         = 1000
 	DeduplicationIDLengthMaximum = 1000

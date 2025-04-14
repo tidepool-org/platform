@@ -57,7 +57,9 @@ func (s *Store) EnsureIndexes() error {
 				SetPartialFilterExpression(bson.D{{Key: "deduplicationId", Value: bson.M{"$exists": true}}}).
 				SetUnique(true),
 		},
-		// TODO: Test performance, add appropriate indexes
+		// TODO: BACK-3587 - Determine and configure Mongo database for work store
+		// TODO: BACK-3605 - Load test performance of work system to ensure minimum viability
+		// TODO: BACK-3591 - Ensure appropriate Mongo collection indexes for work store
 	})
 }
 

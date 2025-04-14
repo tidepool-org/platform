@@ -49,7 +49,8 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 
 func (s *Store) EnsureIndexes() error {
 	return s.CreateAllIndexes(context.Background(), []mongo.IndexModel{
-		// TODO: Test performance, add appropriate indexes
+		// TODO: BACK-3588 - Determine and configure Mongo database for raw data store
+		// TODO: BACK-3592 - Ensure appropriate Mongo collection indexes for raw data store
 	})
 }
 
@@ -144,7 +145,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		return nil, errors.Wrap(err, "unable to read data")
 	}
 
-	// TODO: How to report this back as a Bad Request
+	// TODO: BACK-3629 - Respond with HTTP 400 Bad Request when raw data request body exceeds maximum size
 
 	size := len(data)
 	if size > dataRaw.DataSizeMaximum {
@@ -152,7 +153,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		return nil, errors.New("data size exceeds maximum allowed size")
 	}
 
-	// TODO: How to report this back as a Bad Request
+	// TODO: BACK-3630 - Respond with HTTP 400 Bad Request when raw data request-specified MD5 digest does not match calculated
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 	if create.DigestMD5 != nil && *create.DigestMD5 != digestMD5 {
