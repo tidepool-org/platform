@@ -802,7 +802,7 @@ var _ = Describe("CGM", Label("mongodb", "slow", "integration"), func() {
 					test.RandomContinuousSummary(userIdFive),
 				}
 
-				// mark 1 outdated per type
+				// mark 1 for migration per type
 				cgmSummaries[0].Config.SchemaVersion = types.SchemaVersion - 1
 				cgmSummaries[0].Dates.OutdatedSince = nil
 				cgmSummaries[1].Config.SchemaVersion = types.SchemaVersion
