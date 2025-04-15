@@ -228,6 +228,7 @@ func (t *MigrationTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User CGM Summaries Migrations")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User CGM Summaries Migrations")
@@ -258,6 +259,7 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User BGM Summaries Migrations")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User BGM Summaries Migrations")
@@ -288,6 +290,7 @@ func (t *MigrationTaskRunner) UpdateContinuousSummaries(userIDs []string) error 
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User Continuous Summaries Migrations")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User Continuous Summaries Migrations")

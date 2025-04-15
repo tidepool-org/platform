@@ -288,6 +288,7 @@ func (t *UpdateTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Error("Error Updating User CGM summaries")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User CGM summaries")
@@ -328,6 +329,7 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Error("Error Updating User BGM summaries")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User BGM summaries")
@@ -368,6 +370,7 @@ func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) e
 		return nil
 	})
 	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Error("Error Updating User Continuous summaries")
 		return err
 	}
 	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User Continuous summaries")
