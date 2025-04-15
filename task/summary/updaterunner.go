@@ -257,6 +257,7 @@ func (t *UpdateTaskRunner) Run(ctx context.Context, batch int) error {
 func (t *UpdateTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(UpdateWorkerCount)
 		for _, userID := range outdatedUserIds {
@@ -286,12 +287,17 @@ func (t *UpdateTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User CGM summaries")
+	return nil
 }
 
 func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(UpdateWorkerCount)
 		for _, userID := range outdatedUserIds {
@@ -321,12 +327,17 @@ func (t *UpdateTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User BGM summaries")
+	return nil
 }
 
 func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(UpdateWorkerCount)
 		for _, userID := range outdatedUserIds {
@@ -356,5 +367,9 @@ func (t *UpdateTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) e
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished Updating User Continuous summaries")
+	return nil
 }

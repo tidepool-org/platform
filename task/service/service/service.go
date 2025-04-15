@@ -34,8 +34,9 @@ import (
 
 // taskConfig is mainly used to disable certain tasks (for shadowing)
 type taskConfig struct {
-	DisableDexcom bool `envconfig:"TIDEPOOL_TASK_DISABLE_DEXCOM"`
-	DisableClinic bool `envconfig:"TIDEPOOL_TASK_DISABLE_CLINIC"`
+	// Already have the var set to true in the configmap, but make it default true just in case
+	DisableDexcom bool `envconfig:"TIDEPOOL_TASK_DISABLE_DEXCOM" default:"true"`
+	DisableClinic bool `envconfig:"TIDEPOOL_TASK_DISABLE_CLINIC" default:"true"`
 }
 
 type Service struct {
