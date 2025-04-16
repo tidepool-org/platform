@@ -6,13 +6,14 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/request"
 )
 
 type Source struct {
-	token             *oauth.Token
+	token             *auth.OAuthToken
 	tokenSourceSource oauth.TokenSourceSource
 	tokenSource       oauth2.TokenSource
 	httpClient        *http.Client
@@ -22,7 +23,7 @@ func NewSource() (*Source, error) {
 	return &Source{}, nil
 }
 
-func NewSourceWithToken(tkn *oauth.Token) (*Source, error) {
+func NewSourceWithToken(tkn *auth.OAuthToken) (*Source, error) {
 	if tkn == nil {
 		return nil, errors.New("token is missing")
 	}
@@ -59,7 +60,7 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 	return s.httpClient, nil
 }
 
-func (s *Source) RefreshedToken() (*oauth.Token, error) {
+func (s *Source) RefreshedToken() (*auth.OAuthToken, error) {
 	if s.tokenSource == nil {
 		return nil, errors.New("token source is missing")
 	}
@@ -76,7 +77,7 @@ func (s *Source) RefreshedToken() (*oauth.Token, error) {
 		return nil, nil
 	}
 
-	tkn, err := oauth.NewTokenFromRawToken(tknSrcTkn)
+	tkn, err := auth.NewOAuthTokenFromRawToken(tknSrcTkn)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create token")
 	}

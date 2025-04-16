@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
