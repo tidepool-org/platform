@@ -93,6 +93,8 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
 }
 
+// TODO: BACK-3618 - Remove ProviderSessionID property from dataSource.Create as it is always created in a disconnected state
+
 type Create struct {
 	ProviderType       *string        `json:"providerType,omitempty"`
 	ProviderName       *string        `json:"providerName,omitempty"`
@@ -186,6 +188,8 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 func (u *Update) IsEmpty() bool {
 	return u.ProviderSessionID == nil && u.ProviderExternalID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }
+
+// TODO: BACK-3620 - Consider adding ExternalAccountID to data source and provider session to accommodate ExternalID used by twiist to represent session
 
 type Source struct {
 	ID                 *string              `json:"id,omitempty" bson:"id,omitempty"`

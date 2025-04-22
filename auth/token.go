@@ -25,7 +25,7 @@ func NewOAuthToken() *OAuthToken {
 	return &OAuthToken{}
 }
 
-// TODO: Does IDToken get returned from refresh token workflow? If not, it will erase any existing IDToken.
+// TODO: Does Abbott OAuth flow remove existing IDToken when OAuthToken refreshed
 
 func NewOAuthTokenFromRawToken(rawToken *oauth2.Token) (*OAuthToken, error) {
 	if rawToken == nil {

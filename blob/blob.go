@@ -31,8 +31,6 @@ func Statuses() []string {
 	}
 }
 
-// FUTURE: Add DeleteAll
-
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (BlobArray, error)
 	Create(ctx context.Context, userID string, content *Content) (*Blob, error)
@@ -220,14 +218,14 @@ func (f *DeviceLogsFilter) Validate(validator structure.Validator) {
 }
 
 func (f *DeviceLogsFilter) MutateRequest(req *http.Request) error {
-	parameters := map[string][]string{}
+	parameters := map[string]string{}
 	if f.StartAtTime != nil {
-		parameters["startAtTime"] = []string{f.StartAtTime.Format(time.RFC3339Nano)}
+		parameters["startAtTime"] = f.StartAtTime.Format(time.RFC3339Nano)
 	}
 	if f.EndAtTime != nil {
-		parameters["endAtTime"] = []string{f.EndAtTime.Format(time.RFC3339Nano)}
+		parameters["endAtTime"] = f.EndAtTime.Format(time.RFC3339Nano)
 	}
-	return request.NewArrayParametersMutator(parameters).MutateRequest(req)
+	return request.NewParametersMutator(parameters).MutateRequest(req)
 }
 
 func NewID() string {

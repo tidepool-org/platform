@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 )
 
@@ -13,8 +14,12 @@ type Normalizer struct {
 }
 
 func New(logger log.Logger) *Normalizer {
+	return NewNormalizer(structureBase.New(logger).WithSource(structure.NewPointerSource()))
+}
+
+func NewNormalizer(base *structureBase.Base) *Normalizer {
 	return &Normalizer{
-		normalizer: structureNormalizer.New(logger),
+		normalizer: structureNormalizer.NewNormalizer(base),
 		data:       &[]data.Datum{},
 	}
 }

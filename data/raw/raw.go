@@ -15,6 +15,8 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
+// TODO: BACK-3613 - Add unit tests for data/raw package for reasonable coverage
+
 const (
 	FilterCreatedDateFormat       = time.DateOnly
 	FilterDataSetIDsLengthMaximum = 100
