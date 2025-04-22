@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/tidepool-org/platform/data"
-	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataSummary "github.com/tidepool-org/platform/data/summary"
 )
 
@@ -13,16 +12,13 @@ type Client struct {
 	summarizerRegistry *dataSummary.SummarizerRegistry
 }
 
-func New(dataStore *dataStoreMongo.Store) (*Client, error) {
-	if dataStore == nil {
-		return nil, errors.New("data store is missing")
+func New(summarizerRegistry *dataSummary.SummarizerRegistry) (*Client, error) {
+	if summarizerRegistry == nil {
+		return nil, errors.New("summarizer registry missing")
 	}
 
 	return &Client{
-		summarizerRegistry: dataSummary.New(
-			dataStore.NewSummaryRepository().GetStore(),
-			dataStore.NewDataRepository(),
-		),
+		summarizerRegistry: summarizerRegistry,
 	}, nil
 }
 

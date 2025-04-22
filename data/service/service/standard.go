@@ -25,6 +25,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataSummary "github.com/tidepool-org/platform/data/summary"
 	dataSummaryClient "github.com/tidepool-org/platform/data/summary/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
@@ -473,7 +474,6 @@ func (s *Standard) initializeDataRawClient() error {
 
 func (s *Standard) initializeDataSourceClient() error {
 	s.Logger().Debug("Creating data client")
-
 	clnt, err := dataSourceServiceClient.New(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create source data client")
@@ -484,9 +484,14 @@ func (s *Standard) initializeDataSourceClient() error {
 }
 
 func (s *Standard) initializeSummaryClient() error {
-	s.Logger().Debug("Creating summary client")
+	s.Logger().Debug("Creating summarizer registry")
+	summarizerRegistry := dataSummary.New(
+		s.dataStore.NewSummaryRepository().GetStore(),
+		s.dataStore.NewDataRepository(),
+	)
 
-	clnt, err := dataSummaryClient.New(s.dataStore)
+	s.Logger().Debug("Creating summary client")
+	clnt, err := dataSummaryClient.New(summarizerRegistry)
 	if err != nil {
 		return errors.Wrap(err, "unable to create summary client")
 	}
