@@ -7,8 +7,8 @@ import (
 
 	prescriptionApplicationTest "github.com/tidepool-org/platform/prescription/application/test"
 
-	"github.com/golang/mock/gomock"
 	clinic "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/prescription"
