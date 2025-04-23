@@ -3,6 +3,8 @@ package client_test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/pointer"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -91,6 +93,7 @@ var _ = Describe("Client", func() {
 
 				BeforeEach(func() {
 					filter = dataSourceTest.RandomFilter()
+					filter.UserID = pointer.FromString(userID)
 					pagination = pageTest.RandomPagination()
 				})
 
@@ -101,7 +104,7 @@ var _ = Describe("Client", func() {
 				It("return an error when the user client ensure authorized user returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					authClient.EnsureAuthorizedUserOutputs = []authTest.EnsureAuthorizedUserOutput{{AuthorizedUserID: "", Error: responseErr}}
-					result, err := client.List(ctx, userID, filter, pagination)
+					result, err := client.List(ctx, filter, pagination)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
 				})
@@ -112,13 +115,13 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(dataSourceStructuredRepository.ListInputs).To(Equal([]dataSourceStoreStructuredTest.ListInput{{UserID: userID, Filter: filter, Pagination: pagination}}))
+						Expect(dataSourceStructuredRepository.ListInputs).To(Equal([]dataSourceStoreStructuredTest.ListInput{{Filter: filter, Pagination: pagination}}))
 					})
 
 					It("returns an error when the data source structured repository list returns an error", func() {
 						responseErr := errorsTest.RandomError()
 						dataSourceStructuredRepository.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: nil, Error: responseErr}}
-						result, err := client.List(ctx, userID, filter, pagination)
+						result, err := client.List(ctx, filter, pagination)
 						errorsTest.ExpectEqual(err, responseErr)
 						Expect(result).To(BeNil())
 					})
@@ -126,7 +129,7 @@ var _ = Describe("Client", func() {
 					It("returns successfully when the data source structured repository list returns successfully", func() {
 						responseResult := dataSourceTest.RandomSourceArray(1, 3)
 						dataSourceStructuredRepository.ListOutputs = []dataSourceStoreStructuredTest.ListOutput{{SourceArray: responseResult, Error: nil}}
-						result, err := client.List(ctx, userID, filter, pagination)
+						result, err := client.List(ctx, filter, pagination)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(Equal(responseResult))
 					})

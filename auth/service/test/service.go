@@ -3,6 +3,8 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/twiist"
+
 	"github.com/onsi/gomega"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -94,6 +96,10 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 }
 
 func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return nil
+}
+
+func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
 	return nil
 }
 

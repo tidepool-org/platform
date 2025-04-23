@@ -211,6 +211,8 @@ type Object interface {
 	Empty() Object
 	NotEmpty() Object
 
+	SizeLessThanOrEqualTo(limit int) Object
+
 	Using(usingFunc ObjectUsingFunc) Object
 }
 
@@ -228,5 +230,6 @@ type Array interface {
 
 type Bytes interface {
 	NotEmpty() Bytes
+
 	LengthLessThanOrEqualTo(limit int) Bytes
 }

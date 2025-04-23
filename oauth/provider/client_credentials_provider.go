@@ -7,9 +7,9 @@ import (
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/oauth"
 )
 
 const ClientCredentialsProviderType = "oauth_client_credentials"
@@ -63,15 +63,15 @@ func (c *ClientCredentialsProvider) Name() string {
 	return c.name
 }
 
-func (c *ClientCredentialsProvider) OnCreate(ctx context.Context, userID string, providerSessionID string) error {
+func (c *ClientCredentialsProvider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (c *ClientCredentialsProvider) OnDelete(ctx context.Context, userID string, providerSessionID string) error {
+func (c *ClientCredentialsProvider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (c *ClientCredentialsProvider) TokenSource(ctx context.Context, token *oauth.Token) (oauth2.TokenSource, error) {
+func (c *ClientCredentialsProvider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {
 	if token != nil {
 		return nil, errors.New("token is not missing")
 	}
