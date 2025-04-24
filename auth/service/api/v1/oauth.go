@@ -279,15 +279,10 @@ func (r *Router) providerCookiePath(prvdr provider.Provider) string {
 
 const htmlOnRedirect = `
 <html>
-	<body onload="closeOrRedirect()">
+	<body onload="redirect()">
 		<script>
-			function closeOrRedirect() {
-				var isIframe = window.location !== window.parent.location;
-				if (isIframe) {
-					window.close();
-				} else {
-					window.location.replace('%s');
-				}
+			function redirect() {
+				window.location.replace('%s');
 			}
 		</script>
 	</body>
