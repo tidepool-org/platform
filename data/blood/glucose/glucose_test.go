@@ -156,6 +156,25 @@ var _ = Describe("Glucose", func() {
 		})
 	})
 
+	Context("NormalizeValueForUnitsWithFullPrecision", func() {
+		DescribeTable("given value and units",
+			func(value *float64, units *string, expectedValue *float64) {
+				actualValue := glucose.NormalizeValueForUnitsWithFullPrecision(value, units)
+				Expect(actualValue).To(Equal(expectedValue))
+			},
+			Entry("returns nil for nil value", nil, pointer.FromString("mmol/L"), nil),
+			Entry("returns unchanged value for nil units", pointer.FromFloat64(10.0), nil, pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for unknown units", pointer.FromFloat64(10.0), pointer.FromString("unknown"), pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for mmol/L units", pointer.FromFloat64(10.0), pointer.FromString("mmol/L"), pointer.FromFloat64(10.0)),
+			Entry("returns unchanged value for mmol/l units", pointer.FromFloat64(10.0), pointer.FromString("mmol/l"), pointer.FromFloat64(10.0)),
+			Entry("returns converted value for mg/dL units", pointer.FromFloat64(140.0), pointer.FromString("mg/dL"), pointer.FromFloat64(7.771047187463747)),
+			Entry("returns converted value for mg/dL units", pointer.FromFloat64(100.0), pointer.FromString("mg/dL"), pointer.FromFloat64(5.550747991045533)),
+			Entry("returns converted value for mg/dl units", pointer.FromFloat64(80.0), pointer.FromString("mg/dl"), pointer.FromFloat64(4.440598392836427)),
+			Entry("returns converted value for mg/dl units", pointer.FromFloat64(69.0), pointer.FromString("mg/dl"), pointer.FromFloat64(3.830016113821418)),
+			Entry("returns converted value for mg/dl units", pointer.FromFloat64(50.0), pointer.FromString("mg/dl"), pointer.FromFloat64(2.7753739955227665)),
+		)
+	})
+
 	DescribeTable("ValueRangeForRateUnits",
 		func(rateUnits *string, expectedLower float64, expectedUpper float64) {
 			actualLower, actualUpper := glucose.ValueRangeForRateUnits(rateUnits)
@@ -195,6 +214,7 @@ var _ = Describe("Glucose", func() {
 					Expect(*actualValue).To(Equal(*expectedValue))
 				}
 			},
+
 			Entry("returns nil for nil value", nil, pointer.FromString("mmol/L/minute"), nil),
 			Entry("returns unchanged value for nil units", pointer.FromFloat64(1.0), nil, pointer.FromFloat64(1.0)),
 			Entry("returns unchanged value for unknown units", pointer.FromFloat64(1.0), pointer.FromString("unknown"), pointer.FromFloat64(1.0)),

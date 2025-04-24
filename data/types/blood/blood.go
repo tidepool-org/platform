@@ -5,14 +5,16 @@ import (
 
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/structure"
 )
 
 type Blood struct {
 	types.Base `bson:",inline"`
 
-	Units *string  `json:"units,omitempty" bson:"units,omitempty"`
-	Value *float64 `json:"value,omitempty" bson:"value,omitempty"`
+	Units *string            `json:"units,omitempty" bson:"units,omitempty"`
+	Value *float64           `json:"value,omitempty" bson:"value,omitempty"`
+	Raw   *metadata.Metadata `json:"raw,omitempty" bson:"raw,omitempty"`
 }
 
 func New(typ string) Blood {
@@ -28,18 +30,66 @@ func (b *Blood) Parse(parser structure.ObjectParser) {
 	b.Value = parser.Float64("value")
 }
 
-func (b *Blood) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Blood) IdentityFields(version int) ([]string, error) {
+	if version == types.LegacyIdentityFieldsVersion {
+		return b.Base.IdentityFields(version)
+	}
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
-
 	if b.Units == nil {
 		return nil, errors.New("units is missing")
 	}
 	if b.Value == nil {
 		return nil, errors.New("value is missing")
 	}
-
 	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil
+}
+
+func (b *Blood) GetRawValueAndUnits() (*float64, *string, error) {
+	if b.Raw == nil {
+		return nil, nil, errors.New("raw data is missing")
+	}
+
+	rUnits := b.Raw.Get("units")
+	if rUnits == nil {
+		return nil, nil, errors.New("raw units are missing")
+	}
+
+	units, ok := rUnits.(string)
+	if !ok {
+		return nil, nil, errors.New("raw units are invalid")
+	}
+
+	rValue := b.Raw.Get("value")
+	if rValue == nil {
+		return nil, nil, errors.New("raw value is missing")
+	}
+
+	value, ok := rValue.(float64)
+	if !ok {
+		return nil, nil, errors.New("raw value is invalid")
+	}
+
+	return &value, &units, nil
+
+}
+
+func (b *Blood) SetRawValueAndUnits(value *float64, units *string) {
+	if b.Raw == nil {
+		b.Raw = metadata.NewMetadata()
+	}
+
+	if units != nil {
+		b.Raw.Set("units", *units)
+	} else {
+		b.Raw.Delete("units")
+	}
+
+	if value != nil {
+		b.Raw.Set("value", *value)
+	} else {
+		b.Raw.Delete("value")
+	}
 }
