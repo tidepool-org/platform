@@ -1,8 +1,7 @@
 package calculator_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -20,6 +19,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/calculator"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -1818,7 +1818,7 @@ var _ = Describe("Calculator", func() {
 			It("does not modify datum if bolus is missing", func() {
 				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
 				expectedDatum := CloneCalculator(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
@@ -1831,7 +1831,7 @@ var _ = Describe("Calculator", func() {
 				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
 				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
@@ -1846,7 +1846,7 @@ var _ = Describe("Calculator", func() {
 				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
 				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
@@ -1861,7 +1861,7 @@ var _ = Describe("Calculator", func() {
 				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
 				datum.Bolus = data.DatumAsPointer(datumBolus)
 				expectedDatum := CloneCalculator(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
@@ -1877,7 +1877,7 @@ var _ = Describe("Calculator", func() {
 						datum := NewCalculator(units)
 						mutator(datum, units)
 						expectedDatum := CloneCalculator(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -1905,7 +1905,7 @@ var _ = Describe("Calculator", func() {
 					datum := NewCalculator(units)
 					mutator(datum, units)
 					expectedDatum := CloneCalculator(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -1955,7 +1955,7 @@ var _ = Describe("Calculator", func() {
 						datum := NewCalculator(units)
 						mutator(datum, units)
 						expectedDatum := CloneCalculator(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

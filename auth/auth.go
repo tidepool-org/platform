@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -13,33 +14,40 @@ const (
 	TidepoolRestrictedTokenParameterKey = "restricted_token"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -source=./auth.go -destination=./test/mock.go -package test -aux_files=github.com/tidepool-org/platform/auth=provider_session.go,github.com/tidepool-org/platform/auth=restricted_token.go
+
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor
 	ExternalAccessor
+	permission.Client
 }
 
 type ExternalAccessor interface {
 	ServerSessionToken() (string, error)
-	ValidateSessionToken(ctx context.Context, token string) (request.Details, error)
+	ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error)
 	EnsureAuthorized(ctx context.Context) error
 	EnsureAuthorizedService(ctx context.Context) error
 	EnsureAuthorizedUser(ctx context.Context, targetUserID string, permission string) (string, error)
 }
 
-type contextKey string
-
-const serverSessionTokenContextKey contextKey = "serverSessionToken"
-
-func NewContextWithServerSessionToken(ctx context.Context, serverSessionToken string) context.Context {
-	return context.WithValue(ctx, serverSessionTokenContextKey, serverSessionToken)
+type ServerSessionTokenProvider interface {
+	ServerSessionToken() (string, error)
 }
 
-func ServerSessionTokenFromContext(ctx context.Context) string {
+func NewContextWithServerSessionTokenProvider(ctx context.Context, serverSessionTokenProvider ServerSessionTokenProvider) context.Context {
+	return context.WithValue(ctx, serverSessionTokenProviderContextKey, serverSessionTokenProvider)
+}
+
+func ServerSessionTokenProviderFromContext(ctx context.Context) ServerSessionTokenProvider {
 	if ctx != nil {
-		if serverSessionToken, ok := ctx.Value(serverSessionTokenContextKey).(string); ok {
-			return serverSessionToken
+		if serverSessionTokenProvider, ok := ctx.Value(serverSessionTokenProviderContextKey).(ServerSessionTokenProvider); ok {
+			return serverSessionTokenProvider
 		}
 	}
-	return ""
+	return nil
 }
+
+type contextKey string
+
+const serverSessionTokenProviderContextKey contextKey = "serverSessionTokenProvider"

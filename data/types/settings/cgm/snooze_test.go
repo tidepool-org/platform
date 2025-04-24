@@ -3,13 +3,13 @@ package cgm_test
 import (
 	"math"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -94,7 +94,7 @@ var _ = Describe("Snooze", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.Snooze), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomSnooze()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.Snooze) {},

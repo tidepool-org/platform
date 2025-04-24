@@ -1,8 +1,7 @@
 package reservoirchange_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -15,6 +14,7 @@ import (
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -203,7 +203,7 @@ var _ = Describe("Change", func() {
 			It("does not modify datum if status is missing", func() {
 				datum := NewReservoirChangeWithStatusID()
 				expectedDatum := CloneReservoirChange(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())
@@ -216,7 +216,7 @@ var _ = Describe("Change", func() {
 				datum := NewReservoirChangeWithStatusID()
 				datum.Status = data.DatumAsPointer(datumStatus)
 				expectedDatum := CloneReservoirChange(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer)
 				Expect(normalizer.Error()).To(BeNil())

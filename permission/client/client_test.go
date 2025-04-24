@@ -4,9 +4,11 @@ import (
 	"context"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -57,25 +59,30 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with server and new client", func() {
+		var serverSessionTokenProviderController *gomock.Controller
+		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var server *Server
 		var requestHandlers []http.HandlerFunc
 		var responseHeaders http.Header
 		var logger *logTest.Logger
 		var sessionToken string
-		var details request.Details
+		var details request.AuthDetails
 		var ctx context.Context
 		var client *permissionClient.Client
 
 		BeforeEach(func() {
+			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
 			server = NewServer()
 			requestHandlers = nil
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			logger = logTest.NewLogger()
 			sessionToken = authTest.NewSessionToken()
-			details = request.NewDetails(request.MethodSessionToken, "", sessionToken)
+			serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
+			details = request.NewAuthDetails(request.MethodSessionToken, "", sessionToken)
 			ctx = context.Background()
 			ctx = log.NewContextWithLogger(ctx, logger)
-			ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
+			ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)
 		})
 
 		JustBeforeEach(func() {
@@ -85,13 +92,14 @@ var _ = Describe("Client", func() {
 			client, err = permissionClient.New(config, authorizeAs)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(client).ToNot(BeNil())
-			ctx = request.NewContextWithDetails(ctx, details)
+			ctx = request.NewContextWithAuthDetails(ctx, details)
 		})
 
 		AfterEach(func() {
 			if server != nil {
 				server.Close()
 			}
+			serverSessionTokenProviderController.Finish()
 		})
 
 		Context("GetUserPermissions", func() {

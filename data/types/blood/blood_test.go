@@ -5,10 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood"
 	dataTypesBloodTest "github.com/tidepool-org/platform/data/types/blood/test"
@@ -89,35 +89,37 @@ var _ = Describe("Blood", func() {
 		})
 
 		Context("IdentityFields", func() {
-			var datum *blood.Blood
+			var datumBlood *blood.Blood
+			var datum data.Datum
 
 			BeforeEach(func() {
-				datum = dataTypesBloodTest.NewBlood()
+				datumBlood = dataTypesBloodTest.NewBlood()
+				datum = datumBlood
 			})
 
 			It("returns error if user id is missing", func() {
-				datum.UserID = nil
+				datumBlood.UserID = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.FromString("")
+				datumBlood.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if units is missing", func() {
-				datum.Units = nil
+				datumBlood.Units = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("units is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if value is missing", func() {
-				datum.Value = nil
+				datumBlood.Value = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("value is missing"))
 				Expect(identityFields).To(BeEmpty())
@@ -126,7 +128,7 @@ var _ = Describe("Blood", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, *datum.Units, strconv.FormatFloat(*datum.Value, 'f', -1, 64)}))
+				Expect(identityFields).To(Equal([]string{*datumBlood.UserID, *datumBlood.DeviceID, (*datumBlood.Time).Format(ExpectedTimeFormat), datumBlood.Type, *datumBlood.Units, strconv.FormatFloat(*datumBlood.Value, 'f', -1, 64)}))
 			})
 		})
 	})

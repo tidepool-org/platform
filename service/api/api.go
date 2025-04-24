@@ -63,7 +63,7 @@ func (a *API) InitializeMiddleware() error {
 	if err != nil {
 		return err
 	}
-	authMiddleware, err := middleware.NewAuth(a.Secret(), a.AuthClient())
+	authMiddleware, err := middleware.NewAuthenticator(a.Secret(), a.AuthClient())
 	if err != nil {
 		return err
 	}

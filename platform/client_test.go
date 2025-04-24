@@ -5,16 +5,22 @@ import (
 	"io"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"go.uber.org/mock/gomock"
+
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/errors"
+	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -82,6 +88,60 @@ var _ = Describe("Client", func() {
 			})
 		})
 
+		Context("NewLegacyClient", func() {
+			It("returns an error if config is missing", func() {
+				clnt, err := platform.NewLegacyClient(nil, platform.AuthorizeAsUser)
+				Expect(err).To(MatchError("config is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if config is invalid", func() {
+				config.Address = ""
+				clnt, err := platform.NewLegacyClient(config, platform.AuthorizeAsUser)
+				Expect(err).To(MatchError("config is invalid; address is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if authorize as is invalid", func() {
+				clnt, err := platform.NewLegacyClient(config, platform.AuthorizeAs(-1))
+				Expect(err).To(MatchError("authorize as is invalid"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns success", func() {
+				clnt, err := platform.NewLegacyClient(config, platform.AuthorizeAsUser)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+		})
+
+		Context("NewClientWithErrorResponseParser", func() {
+			It("returns an error if config is missing", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(nil, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("config is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if config is invalid", func() {
+				config.Address = ""
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("config is invalid; address is missing"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns an error if authorize as is invalid", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAs(-1), client.NewSerializableErrorResponseParser())
+				Expect(err).To(MatchError("authorize as is invalid"))
+				Expect(clnt).To(BeNil())
+			})
+
+			It("returns success", func() {
+				clnt, err := platform.NewClientWithErrorResponseParser(config, platform.AuthorizeAsUser, client.NewSerializableErrorResponseParser())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(clnt).ToNot(BeNil())
+			})
+		})
+
 		Context("with new client authorize as service", func() {
 			var clnt *platform.Client
 
@@ -119,21 +179,37 @@ var _ = Describe("Client", func() {
 						serviceSecret = ""
 					})
 
-					Context("with server session token", func() {
-						var sessionToken string
+					Context("with server session token provider", func() {
+						var serverSessionTokenProviderController *gomock.Controller
+						var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 
 						BeforeEach(func() {
-							sessionToken = authTest.NewSessionToken()
-							ctx = auth.NewContextWithServerSessionToken(ctx, sessionToken)
+							serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+							serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+							ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)
 						})
 
-						It("returns the expected mutators", func() {
+						AfterEach(func() {
+							serverSessionTokenProviderController.Finish()
+						})
+
+						It("returns the expected mutators if the server session token is available", func() {
+							sessionToken := authTest.NewSessionToken()
+							serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 							mutators, err := clnt.Mutators(ctx)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(mutators).To(ConsistOf(
 								platform.NewSessionTokenHeaderMutator(sessionToken),
 								platform.NewTraceMutator(ctx),
 							))
+						})
+
+						It("returns an error", func() {
+							sessionTokenErr := errorsTest.RandomError()
+							serverSessionTokenProvider.EXPECT().ServerSessionToken().Return("", sessionTokenErr).AnyTimes()
+							mutators, err := clnt.Mutators(ctx)
+							Expect(err).To(Equal(sessionTokenErr))
+							Expect(mutators).To(BeNil())
 						})
 					})
 
@@ -242,10 +318,33 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							reader, err := clnt.RequestStream(ctx, method, url, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(reader).To(BeNil())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -305,8 +404,30 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolServiceSecretHeaderKey, serviceSecret),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							err := clnt.RequestData(ctx, method, url, nil, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -321,7 +442,7 @@ var _ = Describe("Client", func() {
 			BeforeEach(func() {
 				serviceSecret = ""
 				sessionToken = authTest.NewSessionToken()
-				ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetAlphaNumeric), sessionToken))
 			})
 
 			JustBeforeEach(func() {
@@ -345,7 +466,7 @@ var _ = Describe("Client", func() {
 				})
 
 				It("returns an error if details are not in context", func() {
-					mutators, err := clnt.Mutators(request.NewContextWithDetails(ctx, nil))
+					mutators, err := clnt.Mutators(request.NewContextWithAuthDetails(ctx, nil))
 					Expect(err).To(MatchError("details is missing"))
 					Expect(mutators).To(BeNil())
 				})
@@ -457,10 +578,33 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							reader, err = clnt.RequestStream(ctx, method, url, mutators, nil, inspector)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(reader).ToNot(BeNil())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							reader, err := clnt.RequestStream(ctx, method, url, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
+							Expect(reader).To(BeNil())
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
@@ -520,8 +664,30 @@ var _ = Describe("Client", func() {
 
 						It("returns success", func() {
 							mutators := []request.RequestMutator{request.NewHeaderMutator(headerKey, headerValue)}
-							inspector := request.NewHeadersInspector()
+							inspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
 							Expect(clnt.RequestData(ctx, method, url, mutators, nil, nil, inspector)).To(Succeed())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+
+					Context("with an non-200 response with deserializable error body", func() {
+						var responseErr error
+
+						BeforeEach(func() {
+							responseErr = errors.Append(structureValidator.ErrorValueNotEmpty(), structureValidator.ErrorValueBoolNotTrue(), structureValidator.ErrorValueIntNotOneOf(1, []int{0, 2, 4}))
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest(method, path),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV(auth.TidepoolSessionTokenHeaderKey, sessionToken),
+									RespondWithJSONEncoded(http.StatusBadRequest, errors.NewSerializable(responseErr)),
+								),
+							)
+						})
+
+						It("returns an error", func() {
+							err := clnt.RequestData(ctx, method, url, nil, nil, nil)
+							errorsTest.ExpectEqual(err, responseErr)
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})

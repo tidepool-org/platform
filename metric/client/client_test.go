@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
@@ -63,13 +63,6 @@ var _ = Describe("Client", func() {
 			config.Address = ""
 			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
-		It("returns an error if config user agent is missing", func() {
-			config.UserAgent = ""
-			clnt, err := metricClient.New(config, platform.AuthorizeAsUser, name, versionReporter)
-			Expect(err).To(MatchError("config is invalid; user agent is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
@@ -134,7 +127,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), token))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase), token))
 				})
 
 				Context("as user", func() {
@@ -222,7 +215,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					token = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
 					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
-					ctx = request.NewContextWithDetails(ctx, request.NewDetails(request.MethodSessionToken, "", token))
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodSessionToken, "", token))
 				})
 
 				Context("with an unauthorized response", func() {

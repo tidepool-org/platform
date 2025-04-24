@@ -5,24 +5,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus/testutil"
-	"go.mongodb.org/mongo-driver/bson"
-
-	"github.com/tidepool-org/platform/errors"
-	errorsTest "github.com/tidepool-org/platform/errors/test"
-	"github.com/tidepool-org/platform/log"
-	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/task"
-
-	"go.mongodb.org/mongo-driver/mongo"
-
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	"github.com/tidepool-org/platform/task"
 	taskStore "github.com/tidepool-org/platform/task/store"
 	taskStoreMongo "github.com/tidepool-org/platform/task/store/mongo"
 )
@@ -137,7 +134,7 @@ var _ = Describe("Mongo", func() {
 
 				BeforeEach(func() {
 					var err error
-					tsk, err = task.NewTask(&task.TaskCreate{
+					tsk, err = task.NewTask(context.Background(), &task.TaskCreate{
 						Name:           pointer.FromString("test"),
 						Type:           "fetch",
 						Priority:       0,
@@ -164,7 +161,7 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						taskStoreMongo.TasksStateTotal.Reset()
 						var err error
-						updated, err = task.NewTask(&task.TaskCreate{
+						updated, err = task.NewTask(context.Background(), &task.TaskCreate{
 							Name:           pointer.FromString("updated"),
 							Type:           "fetch",
 							Priority:       0,
@@ -179,14 +176,14 @@ var _ = Describe("Mongo", func() {
 					It("returns an error when the context is missing", func() {
 						ctx = nil
 						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(err).To(MatchError("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the updated task is missing", func() {
 						updated = nil
 						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						errorsTest.ExpectEqual(err, errors.New("task is missing"))
+						Expect(err).To(MatchError("task is missing"))
 						Expect(result).To(BeNil())
 					})
 

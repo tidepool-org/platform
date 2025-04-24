@@ -3,16 +3,16 @@ package prescription_test
 import (
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/prescription"
+	"github.com/tidepool-org/platform/prescription/test"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
 	test2 "github.com/tidepool-org/platform/test"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/prescription"
-	"github.com/tidepool-org/platform/prescription/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -130,7 +130,7 @@ var _ = Describe("Revision", func() {
 			})
 
 			It("sets the modified time correctly", func() {
-				Expect(revision.Attributes.CreatedTime).To(BeTemporally("~", time.Now()))
+				Expect(revision.Attributes.CreatedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified userID correctly", func() {
@@ -145,13 +145,13 @@ var _ = Describe("Revision", func() {
 
 		BeforeEach(func() {
 			revision = test.RandomRevision()
-			validate = validator.New()
+			validate = validator.New(logTest.NewLogger())
 			Expect(validate.Validate(revision)).ToNot(HaveOccurred())
 		})
 
 		Context("Validate", func() {
 			BeforeEach(func() {
-				validate = validator.New()
+				validate = validator.New(logTest.NewLogger())
 			})
 
 			It("fails when revision id is negative", func() {
@@ -187,14 +187,14 @@ var _ = Describe("Revision", func() {
 
 		BeforeEach(func() {
 			attr = test.RandomAttribtues()
-			validate = validator.New()
+			validate = validator.New(logTest.NewLogger())
 			Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 		})
 
 		Describe("Validate", func() {
 			When("state is 'submitted'", func() {
 				BeforeEach(func() {
-					validate = validator.New()
+					validate = validator.New(logTest.NewLogger())
 					attr.State = prescription.StateSubmitted
 				})
 
@@ -332,6 +332,11 @@ var _ = Describe("Revision", func() {
 					Expect(validate.Validate(attr)).To(HaveOccurred())
 				})
 
+				It("doesn't fail when phone number is not set", func() {
+					attr.PhoneNumber = nil
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
 				It("fails with invalid initial settings", func() {
 					attr.InitialSettings.BasalRateMaximum.Value = pointer.FromFloat64(10000.0)
 					Expect(validate.Validate(attr)).To(HaveOccurred())
@@ -364,6 +369,11 @@ var _ = Describe("Revision", func() {
 					attr.Training = pointer.FromString(prescription.TrainingInModule)
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 					attr.Training = pointer.FromString(prescription.TrainingInPerson)
+					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
+				})
+
+				It("doesn't fail when training is not set", func() {
+					attr.Training = nil
 					Expect(validate.Validate(attr)).ToNot(HaveOccurred())
 				})
 
@@ -472,7 +482,7 @@ var _ = Describe("Revision", func() {
 
 		BeforeEach(func() {
 			weight = test.RandomWeight()
-			validate = validator.New()
+			validate = validator.New(logTest.NewLogger())
 		})
 
 		Describe("Validate", func() {

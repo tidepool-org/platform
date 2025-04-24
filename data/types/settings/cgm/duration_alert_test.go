@@ -3,13 +3,13 @@ package cgm_test
 import (
 	"math"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -103,7 +103,7 @@ var _ = Describe("DurationAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.DurationAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomDurationAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.DurationAlert) {},
@@ -251,7 +251,7 @@ var _ = Describe("DurationAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.NoDataAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomNoDataAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.NoDataAlert) {},
@@ -489,7 +489,7 @@ var _ = Describe("DurationAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.OutOfRangeAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.OutOfRangeAlert) {},

@@ -1,8 +1,7 @@
 package pump_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -10,6 +9,7 @@ import (
 	pumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -78,7 +78,7 @@ var _ = Describe("Basal", func() {
 						datum := pumpTest.NewBasal()
 						mutator(datum)
 						expectedDatum := pumpTest.CloneBasal(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

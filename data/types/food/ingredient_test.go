@@ -1,19 +1,19 @@
 package food_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesFoodTest "github.com/tidepool-org/platform/data/types/food/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Ingredient", func() {
@@ -63,13 +63,13 @@ var _ = Describe("Ingredient", func() {
 
 		Context("ParseIngredient", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesFood.ParseIngredient(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesFood.ParseIngredient(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesFoodTest.RandomIngredient(3)
 				object := dataTypesFoodTest.NewObjectFromIngredient(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesFood.ParseIngredient(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -95,7 +95,7 @@ var _ = Describe("Ingredient", func() {
 					object := dataTypesFoodTest.NewObjectFromIngredient(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesFood.NewIngredient()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -260,13 +260,13 @@ var _ = Describe("Ingredient", func() {
 
 		Context("ParseIngredientArray", func() {
 			It("returns nil when the array is missing", func() {
-				Expect(dataTypesFood.ParseIngredientArray(structureParser.NewArray(nil))).To(BeNil())
+				Expect(dataTypesFood.ParseIngredientArray(structureParser.NewArray(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the array is valid", func() {
 				datum := dataTypesFoodTest.RandomIngredientArray(3)
 				array := dataTypesFoodTest.NewArrayFromIngredientArray(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				Expect(dataTypesFood.ParseIngredientArray(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -287,7 +287,7 @@ var _ = Describe("Ingredient", func() {
 					array := dataTypesFoodTest.NewArrayFromIngredientArray(expectedDatum, test.ObjectFormatJSON)
 					mutator(array, expectedDatum)
 					datum := dataTypesFood.NewIngredientArray()
-					errorsTest.ExpectEqual(structureParser.NewArray(&array).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewArray(logTest.NewLogger(), &array).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",

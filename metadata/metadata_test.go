@@ -1,11 +1,11 @@
 package metadata_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -42,13 +42,13 @@ var _ = Describe("Metadata", func() {
 
 		Context("ParseMetadata", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(metadata.ParseMetadata(structureParser.NewObject(nil))).To(BeNil())
+				Expect(metadata.ParseMetadata(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := metadataTest.RandomMetadata()
 				object := metadataTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(metadata.ParseMetadata(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -67,7 +67,7 @@ var _ = Describe("Metadata", func() {
 					object := metadataTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &metadata.Metadata{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -81,7 +81,7 @@ var _ = Describe("Metadata", func() {
 				func(mutator func(datum *metadata.Metadata), expectedErrors ...error) {
 					datum := metadataTest.RandomMetadata()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *metadata.Metadata) {},
@@ -183,13 +183,13 @@ var _ = Describe("Metadata", func() {
 	Context("MetadataArray", func() {
 		Context("ParseMetadataArray", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(metadata.ParseMetadataArray(structureParser.NewArray(nil))).To(BeNil())
+				Expect(metadata.ParseMetadataArray(structureParser.NewArray(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := metadataTest.RandomMetadataArray()
 				array := metadataTest.NewArrayFromMetadataArray(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				Expect(metadata.ParseMetadataArray(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -203,7 +203,7 @@ var _ = Describe("Metadata", func() {
 
 		Context("Parse", func() {
 			It("successfully parses a nil array", func() {
-				parser := structureParser.NewArray(nil)
+				parser := structureParser.NewArray(logTest.NewLogger(), nil)
 				datum := metadata.NewMetadataArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(metadata.NewMetadataArray()))
@@ -211,7 +211,7 @@ var _ = Describe("Metadata", func() {
 			})
 
 			It("successfully parses an empty array", func() {
-				parser := structureParser.NewArray(&[]interface{}{})
+				parser := structureParser.NewArray(logTest.NewLogger(), &[]interface{}{})
 				datum := metadata.NewMetadataArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(metadata.NewMetadataArray()))
@@ -221,7 +221,7 @@ var _ = Describe("Metadata", func() {
 			It("successfully parses a non-empty array", func() {
 				expectedDatum := metadataTest.RandomMetadataArray()
 				array := metadataTest.NewArrayFromMetadataArray(expectedDatum, test.ObjectFormatJSON)
-				parser := structureParser.NewArray(&array)
+				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				datum := metadata.NewMetadataArray()
 				datum.Parse(parser)
 				Expect(datum).To(Equal(expectedDatum))
@@ -234,7 +234,7 @@ var _ = Describe("Metadata", func() {
 				func(mutator func(datum *metadata.MetadataArray), expectedErrors ...error) {
 					datum := metadataTest.RandomMetadataArray()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *metadata.MetadataArray) {},

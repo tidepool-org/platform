@@ -1,7 +1,9 @@
 package factory_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	"context"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -10,6 +12,8 @@ import (
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -48,6 +52,7 @@ var _ = Describe("Factory", func() {
 	Context("with a new factory", func() {
 		var factory *dataDeduplicatorFactory.Factory
 		var dataSet *dataTypesUpload.Upload
+		var ctx context.Context
 
 		BeforeEach(func() {
 			var err error
@@ -56,23 +61,25 @@ var _ = Describe("Factory", func() {
 			Expect(factory).ToNot(BeNil())
 			dataSet = dataTypesUploadTest.RandomUpload()
 			Expect(dataSet).ToNot(BeNil())
+			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		})
 
 		Context("New", func() {
 			It("returns an error when the data set is missing", func() {
-				deduplicator, err := factory.New(nil)
+				deduplicator, err := factory.New(ctx, nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(deduplicator).To(BeNil())
 			})
 
 			It("returns an error when the data set is invalid", func() {
 				dataSet.DeviceModel = pointer.FromString("")
-				deduplicator, err := factory.New(dataSet)
+				deduplicator, err := factory.New(ctx, dataSet)
 				Expect(err).To(MatchError("data set is invalid; value is empty"))
 				Expect(deduplicator).To(BeNil())
 			})
 
 			When("the data set has a deduplicator name", func() {
+
 				BeforeEach(func() {
 					dataSet.Deduplicator = &data.DeduplicatorDescriptor{
 						Name: pointer.FromString(netTest.RandomReverseDomain()),
@@ -80,15 +87,15 @@ var _ = Describe("Factory", func() {
 				})
 
 				AfterEach(func() {
-					Expect(secondDeduplicator.GetInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
-					Expect(firstDeduplicator.GetInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
+					Expect(secondDeduplicator.GetInputs).To(Equal([]dataDeduplicatorFactoryTest.GetInput{{Context: ctx, DataSet: dataSet}}))
+					Expect(firstDeduplicator.GetInputs).To(Equal([]dataDeduplicatorFactoryTest.GetInput{{Context: ctx, DataSet: dataSet}}))
 				})
 
 				It("returns an error when a deduplicator returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: responseErr}}
-					deduplicator, err := factory.New(dataSet)
+					deduplicator, err := factory.New(ctx, dataSet)
 					Expect(err).To(Equal(responseErr))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -96,13 +103,13 @@ var _ = Describe("Factory", func() {
 				It("returns successfully when a deduplicator returns successfully", func() {
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: true, Error: nil}}
-					Expect(factory.New(dataSet)).To(Equal(secondDeduplicator))
+					Expect(factory.New(ctx, dataSet)).To(Equal(secondDeduplicator))
 				})
 
 				It("returns an error when no deduplicator returns successfully", func() {
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
-					deduplicator, err := factory.New(dataSet)
+					deduplicator, err := factory.New(ctx, dataSet)
 					Expect(err).To(MatchError("deduplicator not found"))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -110,15 +117,15 @@ var _ = Describe("Factory", func() {
 
 			newAssertions := func() {
 				AfterEach(func() {
-					Expect(secondDeduplicator.NewInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
-					Expect(firstDeduplicator.NewInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
+					Expect(secondDeduplicator.NewInputs).To(Equal([]dataDeduplicatorFactoryTest.NewInput{{Context: ctx, DataSet: dataSet}}))
+					Expect(firstDeduplicator.NewInputs).To(Equal([]dataDeduplicatorFactoryTest.NewInput{{Context: ctx, DataSet: dataSet}}))
 				})
 
 				It("returns an error when a deduplicator returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					firstDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: false, Error: nil}}
 					secondDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: false, Error: responseErr}}
-					deduplicator, err := factory.New(dataSet)
+					deduplicator, err := factory.New(ctx, dataSet)
 					Expect(err).To(Equal(responseErr))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -126,13 +133,13 @@ var _ = Describe("Factory", func() {
 				It("returns successfully when a deduplicator returns successfully", func() {
 					firstDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: false, Error: nil}}
 					secondDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: true, Error: nil}}
-					Expect(factory.New(dataSet)).To(Equal(secondDeduplicator))
+					Expect(factory.New(ctx, dataSet)).To(Equal(secondDeduplicator))
 				})
 
 				It("returns an error when no deduplicator returns successfully", func() {
 					firstDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: false, Error: nil}}
 					secondDeduplicator.NewOutputs = []dataDeduplicatorFactoryTest.NewOutput{{Found: false, Error: nil}}
-					deduplicator, err := factory.New(dataSet)
+					deduplicator, err := factory.New(ctx, dataSet)
 					Expect(err).To(MatchError("deduplicator not found"))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -157,29 +164,29 @@ var _ = Describe("Factory", func() {
 
 		Context("Get", func() {
 			It("returns an error when the data set is missing", func() {
-				deduplicator, err := factory.Get(nil)
+				deduplicator, err := factory.Get(ctx, nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(deduplicator).To(BeNil())
 			})
 
 			It("returns an error when the data set is invalid", func() {
 				dataSet.DeviceModel = pointer.FromString("")
-				deduplicator, err := factory.Get(dataSet)
+				deduplicator, err := factory.Get(ctx, dataSet)
 				Expect(err).To(MatchError("data set is invalid; value is empty"))
 				Expect(deduplicator).To(BeNil())
 			})
 
 			When("the data set has a deduplicator name", func() {
 				AfterEach(func() {
-					Expect(secondDeduplicator.GetInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
-					Expect(firstDeduplicator.GetInputs).To(Equal([]*dataTypesUpload.Upload{dataSet}))
+					Expect(secondDeduplicator.GetInputs).To(Equal([]dataDeduplicatorFactoryTest.GetInput{{Context: ctx, DataSet: dataSet}}))
+					Expect(firstDeduplicator.GetInputs).To(Equal([]dataDeduplicatorFactoryTest.GetInput{{Context: ctx, DataSet: dataSet}}))
 				})
 
 				It("returns an error when a deduplicator returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: responseErr}}
-					deduplicator, err := factory.Get(dataSet)
+					deduplicator, err := factory.Get(ctx, dataSet)
 					Expect(err).To(Equal(responseErr))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -187,13 +194,13 @@ var _ = Describe("Factory", func() {
 				It("returns successfully when a deduplicator returns successfully", func() {
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: true, Error: nil}}
-					Expect(factory.Get(dataSet)).To(Equal(secondDeduplicator))
+					Expect(factory.Get(ctx, dataSet)).To(Equal(secondDeduplicator))
 				})
 
 				It("returns an error when no deduplicator returns successfully", func() {
 					firstDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
 					secondDeduplicator.GetOutputs = []dataDeduplicatorFactoryTest.GetOutput{{Found: false, Error: nil}}
-					deduplicator, err := factory.Get(dataSet)
+					deduplicator, err := factory.Get(ctx, dataSet)
 					Expect(err).To(MatchError("deduplicator not found"))
 					Expect(deduplicator).To(BeNil())
 				})
@@ -201,12 +208,12 @@ var _ = Describe("Factory", func() {
 
 			It("returns successfully without a deduplicator when the data set does not have a deduplicator", func() {
 				dataSet.Deduplicator = nil
-				Expect(factory.Get(dataSet)).To(BeNil())
+				Expect(factory.Get(ctx, dataSet)).To(BeNil())
 			})
 
 			It("returns successfully without a deduplicator  when the data set does not have a deduplicator name", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(factory.Get(dataSet)).To(BeNil())
+				Expect(factory.Get(ctx, dataSet)).To(BeNil())
 			})
 		})
 	})

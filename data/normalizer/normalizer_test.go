@@ -3,7 +3,7 @@ package normalizer_test
 import (
 	"fmt"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -11,6 +11,7 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 )
@@ -18,7 +19,7 @@ import (
 var _ = Describe("Normalizer", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
-			Expect(dataNormalizer.New()).ToNot(BeNil())
+			Expect(dataNormalizer.New(logTest.NewLogger())).ToNot(BeNil())
 		})
 	})
 
@@ -26,7 +27,7 @@ var _ = Describe("Normalizer", func() {
 		var normalizer *dataNormalizer.Normalizer
 
 		BeforeEach(func() {
-			normalizer = dataNormalizer.New()
+			normalizer = dataNormalizer.New(logTest.NewLogger())
 			Expect(normalizer).ToNot(BeNil())
 		})
 

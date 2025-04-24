@@ -1,6 +1,9 @@
 package test
 
-import "github.com/tidepool-org/platform/log"
+import (
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/logger"
+)
 
 type Logger struct {
 	*Serializer
@@ -9,9 +12,9 @@ type Logger struct {
 
 func NewLogger() *Logger {
 	serializer := NewSerializer()
-	logger, _ := log.NewLogger(serializer, log.DefaultLevelRanks(), log.DebugLevel)
+	lgr, _ := logger.New(serializer, log.DefaultLevelRanks(), log.DebugLevel)
 	return &Logger{
 		Serializer: serializer,
-		Logger:     logger,
+		Logger:     lgr,
 	}
 }

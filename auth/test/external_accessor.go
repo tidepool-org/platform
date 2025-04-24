@@ -3,6 +3,7 @@ package test
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -12,8 +13,8 @@ type ServerSessionTokenOutput struct {
 }
 
 type ValidateSessionTokenOutput struct {
-	Details request.Details
-	Error   error
+	AuthDetails request.AuthDetails
+	Error       error
 }
 
 type EnsureAuthorizedUserInput struct {
@@ -26,6 +27,11 @@ type EnsureAuthorizedUserOutput struct {
 	Error            error
 }
 
+type UserPermissionsOutput struct {
+	Permissions permission.Permissions
+	Error       error
+}
+
 type ExternalAccessor struct {
 	ServerSessionTokenInvocations      int
 	ServerSessionTokenStub             func() (string, error)
@@ -33,7 +39,7 @@ type ExternalAccessor struct {
 	ServerSessionTokenOutput           *ServerSessionTokenOutput
 	ValidateSessionTokenInvocations    int
 	ValidateSessionTokenInputs         []string
-	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.Details, error)
+	ValidateSessionTokenStub           func(ctx context.Context, token string) (request.AuthDetails, error)
 	ValidateSessionTokenOutputs        []ValidateSessionTokenOutput
 	ValidateSessionTokenOutput         *ValidateSessionTokenOutput
 	EnsureAuthorizedInvocations        int
@@ -49,6 +55,9 @@ type ExternalAccessor struct {
 	EnsureAuthorizedUserStub           func(ctx context.Context, targetUserID string, authorizedPermission string) (string, error)
 	EnsureAuthorizedUserOutputs        []EnsureAuthorizedUserOutput
 	EnsureAuthorizedUserOutput         *EnsureAuthorizedUserOutput
+	GetUserPermissionsOutputs          []UserPermissionsOutput
+	GetUserPermissionsOutput           *UserPermissionsOutput
+	GetUserPermissionsStub             func(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error)
 }
 
 func NewExternalAccessor() *ExternalAccessor {
@@ -71,7 +80,7 @@ func (e *ExternalAccessor) ServerSessionToken() (string, error) {
 	panic("ServerSessionToken has no output")
 }
 
-func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.Details, error) {
+func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	e.ValidateSessionTokenInvocations++
 	e.ValidateSessionTokenInputs = append(e.ValidateSessionTokenInputs, token)
 	if e.ValidateSessionTokenStub != nil {
@@ -80,10 +89,10 @@ func (e *ExternalAccessor) ValidateSessionToken(ctx context.Context, token strin
 	if len(e.ValidateSessionTokenOutputs) > 0 {
 		output := e.ValidateSessionTokenOutputs[0]
 		e.ValidateSessionTokenOutputs = e.ValidateSessionTokenOutputs[1:]
-		return output.Details, output.Error
+		return output.AuthDetails, output.Error
 	}
 	if e.ValidateSessionTokenOutput != nil {
-		return e.ValidateSessionTokenOutput.Details, e.ValidateSessionTokenOutput.Error
+		return e.ValidateSessionTokenOutput.AuthDetails, e.ValidateSessionTokenOutput.Error
 	}
 	panic("ValidateSessionToken has no output")
 }
@@ -153,4 +162,20 @@ func (e *ExternalAccessor) AssertOutputsEmpty() {
 	if len(e.EnsureAuthorizedUserOutputs) > 0 {
 		panic("EnsureAuthorizedUserOutputs is not empty")
 	}
+}
+
+func (e *ExternalAccessor) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
+	if e.GetUserPermissionsStub != nil {
+		return e.GetUserPermissionsStub(ctx, requestUserID, targetUserID)
+	}
+	if len(e.GetUserPermissionsOutputs) > 0 {
+		output := e.GetUserPermissionsOutputs[0]
+		e.GetUserPermissionsOutputs = e.GetUserPermissionsOutputs[1:]
+		e.GetUserPermissionsOutput = &output
+		return output.Permissions, output.Error
+	}
+	if e.GetUserPermissionsOutput != nil {
+		return e.GetUserPermissionsOutput.Permissions, e.GetUserPermissionsOutput.Error
+	}
+	panic("GetUserPermissions no output")
 }

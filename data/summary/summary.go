@@ -2,498 +2,296 @@ package summary
 
 import (
 	"context"
-	"math"
-	"strings"
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/summary/fetcher"
+	"github.com/tidepool-org/platform/data/summary/store"
+	"github.com/tidepool-org/platform/data/summary/types"
+	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/log"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"github.com/tidepool-org/platform/data/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/page"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
 const (
-	lowBloodGlucose      = 3.9
-	veryLowBloodGlucose  = 3.0
-	highBloodGlucose     = 10.0
-	veryHighBloodGlucose = 13.9
-	summaryGlucoseUnits  = "mmol/L"
-	daysAgoToKeep        = 14
+	backfillBatch       = 50000
+	backfillInsertBatch = 10000
 )
 
-// Glucose reimplementation with only the fields we need, to avoid inheriting Base, which does
-// not belong in this collection
-type Glucose struct {
-	Units *string  `json:"units" bson:"units"`
-	Value *float64 `json:"value" bson:"value"`
+type SummarizerRegistry struct {
+	summarizers map[string]any
 }
 
-type Stats struct {
-	DeviceID string    `json:"deviceId" bson:"deviceId"`
-	Date     time.Time `json:"date" bson:"date"`
-
-	TargetMinutes int `json:"targetMinutes" bson:"targetMinutes"`
-	TargetRecords int `json:"targetRecords" bson:"targetRecords"`
-
-	LowMinutes int `json:"lowMinutes" bson:"lowMinutes"`
-	LowRecords int `json:"lowRecords" bson:"lowRecords"`
-
-	VeryLowMinutes int `json:"veryLowMinutes" bson:"veryLowMinutes"`
-	VeryLowRecords int `json:"veryLowRecords" bson:"veryLowRecords"`
-
-	HighMinutes int `json:"highMinutes" bson:"highMinutes"`
-	HighRecords int `json:"highRecords" bson:"highRecords"`
-
-	VeryHighMinutes int `json:"veryHighMinutes" bson:"veryHighMinutes"`
-	VeryHighRecords int `json:"veryHighRecords" bson:"veryHighRecords"`
-
-	TotalGlucose    float64   `json:"totalGlucose" bson:"totalGlucose"`
-	TotalCGMMinutes int       `json:"totalCGMMinutes" bson:"totalCGMMinutes"`
-	TotalCGMRecords int       `json:"totalCGMRecords" bson:"totalCGMRecords"`
-	LastRecordTime  time.Time `json:"lastRecordTime" bson:"lastRecordTime"`
+func New(summaryRepository *storeStructuredMongo.Repository, fetcher fetcher.DeviceDataFetcher) *SummarizerRegistry {
+	registry := &SummarizerRegistry{summarizers: make(map[string]any)}
+	addSummarizer(registry, NewBGMSummarizer(summaryRepository, fetcher))
+	addSummarizer(registry, NewCGMSummarizer(summaryRepository, fetcher))
+	addSummarizer(registry, NewContinuousSummarizer(summaryRepository, fetcher))
+	return registry
 }
 
-func NewStats(deviceID string, date time.Time) *Stats {
-	return &Stats{
-		DeviceID: deviceID,
-		Date:     date,
-
-		TargetMinutes: 0,
-		TargetRecords: 0,
-
-		LowMinutes: 0,
-		LowRecords: 0,
-
-		VeryLowMinutes: 0,
-		VeryLowRecords: 0,
-
-		HighMinutes: 0,
-		HighRecords: 0,
-
-		VeryHighMinutes: 0,
-		VeryHighRecords: 0,
-
-		TotalGlucose:    0,
-		TotalCGMMinutes: 0,
-		TotalCGMRecords: 0,
-	}
+func addSummarizer[A types.StatsPt[T], T types.Stats](reg *SummarizerRegistry, summarizer Summarizer[A, T]) {
+	typ := types.GetTypeString[A, T]()
+	reg.summarizers[typ] = summarizer
 }
 
-type UserLastUpdated struct {
-	LastData   time.Time
-	LastUpload time.Time
+func GetSummarizer[A types.StatsPt[T], T types.Stats](reg *SummarizerRegistry) Summarizer[A, T] {
+	typ := types.GetTypeString[A, T]()
+	summarizer := reg.summarizers[typ]
+	return summarizer.(Summarizer[A, T])
 }
 
-type WeightingInput struct {
-	StartTime        time.Time
-	EndTime          time.Time
-	LastData         time.Time
-	OldPercentCGMUse float64
-	NewPercentCGMUse float64
+type Summarizer[A types.StatsPt[T], T types.Stats] interface {
+	GetSummary(ctx context.Context, userId string) (*types.Summary[A, T], error)
+	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
+	UpdateSummary(ctx context.Context, userId string) (*types.Summary[A, T], error)
+	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
+	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
+	BackfillSummaries(ctx context.Context) (int, error)
 }
 
-type Period struct {
-	TimeCGMUsePercent *float64 `json:"timeCGMUsePercent" bson:"timeCGMUsePercent"`
-	TimeCGMUseMinutes *int     `json:"timeCGMUseMinutes" bson:"timeCGMUseMinutes"`
-	TimeCGMUseRecords *int     `json:"timeCGMUseRecords" bson:"timeCGMUseRecords"`
+// Compile time interface check
+var _ Summarizer[*types.CGMStats, types.CGMStats] = &GlucoseSummarizer[*types.CGMStats, types.CGMStats]{}
+var _ Summarizer[*types.BGMStats, types.BGMStats] = &GlucoseSummarizer[*types.BGMStats, types.BGMStats]{}
+var _ Summarizer[*types.ContinuousStats, types.ContinuousStats] = &GlucoseSummarizer[*types.ContinuousStats, types.ContinuousStats]{}
 
-	// actual values
-	AverageGlucose             *Glucose `json:"avgGlucose" bson:"avgGlucose"`
-	GlucoseManagementIndicator *float64 `json:"glucoseManagementIndicator" bson:"glucoseManagementIndicator"`
-
-	TimeInTargetPercent *float64 `json:"timeInTargetPercent" bson:"timeInTargetPercent"`
-	TimeInTargetMinutes *int     `json:"timeInTargetMinutes" bson:"timeInTargetMinutes"`
-	TimeInTargetRecords *int     `json:"timeInTargetRecords" bson:"timeInTargetRecords"`
-
-	TimeInLowPercent *float64 `json:"timeInLowPercent" bson:"timeInLowPercent"`
-	TimeInLowMinutes *int     `json:"timeInLowMinutes" bson:"timeInLowMinutes"`
-	TimeInLowRecords *int     `json:"timeInLowRecords" bson:"timeInLowRecords"`
-
-	TimeInVeryLowPercent *float64 `json:"timeInVeryLowPercent" bson:"timeInVeryLowPercent"`
-	TimeInVeryLowMinutes *int     `json:"timeInVeryLowMinutes" bson:"timeInVeryLowMinutes"`
-	TimeInVeryLowRecords *int     `json:"timeInVeryLowRecords" bson:"timeInVeryLowRecords"`
-
-	TimeInHighPercent *float64 `json:"timeInHighPercent" bson:"timeInHighPercent"`
-	TimeInHighMinutes *int     `json:"timeInHighMinutes" bson:"timeInHighMinutes"`
-	TimeInHighRecords *int     `json:"timeInHighRecords" bson:"timeInHighRecords"`
-
-	TimeInVeryHighPercent *float64 `json:"timeInVeryHighPercent" bson:"timeInVeryHighPercent"`
-	TimeInVeryHighMinutes *int     `json:"timeInVeryHighMinutes" bson:"timeInVeryHighMinutes"`
-	TimeInVeryHighRecords *int     `json:"timeInVeryHighRecords" bson:"timeInVeryHighRecords"`
+func CreateGlucoseDatum() data.Datum {
+	return &glucoseDatum.Glucose{}
 }
 
-type Summary struct {
-	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
-	UserID string             `json:"userId" bson:"userId"`
-
-	DailyStats []*Stats           `json:"dailyStats" bson:"dailyStats"`
-	Periods    map[string]*Period `json:"periods" bson:"periods"`
-
-	// date tracking
-	LastUpdatedDate *time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	FirstData       *time.Time `json:"firstData" bson:"firstData"`
-	LastData        *time.Time `json:"lastData" bson:"lastData"`
-	LastUploadDate  *time.Time `json:"lastUploadDate" bson:"lastUploadDate"`
-	OutdatedSince   *time.Time `json:"outdatedSince" bson:"outdatedSince"`
-
-	TotalDays *int `json:"totalDays" bson:"totalDays"`
-
-	// these are just constants right now.
-	HighGlucoseThreshold     *float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
-	VeryHighGlucoseThreshold *float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
-	LowGlucoseThreshold      *float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
-	VeryLowGlucoseThreshold  *float64 `json:"VeryLowGlucoseThreshold" bson:"VeryLowGlucoseThreshold"`
+type GlucoseSummarizer[A types.StatsPt[T], T types.Stats] struct {
+	cursorFactory fetcher.DataCursorFactory
+	dataFetcher   fetcher.DeviceDataFetcher
+	summaries     *store.Repo[A, T]
 }
 
-func New(id string) *Summary {
-	return &Summary{
-		UserID:        id,
-		OutdatedSince: &time.Time{},
-		Periods:       make(map[string]*Period),
-		DailyStats:    make([]*Stats, 0),
-	}
-}
-
-// GetDuration assumes all except freestyle is 5 minutes
-func GetDuration(dataSet *continuous.Continuous) int {
-	if dataSet.DeviceID != nil {
-		if strings.Contains(*dataSet.DeviceID, "AbbottFreeStyleLibre") {
-			return 15
-		}
-	}
-	return 5
-}
-
-func CalculateGMI(averageGlucose float64) float64 {
-	gmi := 12.71 + 4.70587*averageGlucose
-	gmi = (0.09148 * gmi) + 2.152
-	gmi = math.Round(gmi*10) / 10
-	return gmi
-}
-
-func (userSummary *Summary) StoreWinningStats(stats map[string]*Stats) error {
-	var winningStats *Stats
-	var dayCount int
-	var oldestDay time.Time
-	var oldestDayToKeep time.Time
-	var existingDay = false
-
-	if len(stats) < 1 {
-		return errors.New("candidate stats empty")
-	}
-
-	// find stats with most samples
-	for deviceID := range stats {
-		if winningStats != nil {
-			if stats[deviceID].TotalCGMMinutes > winningStats.TotalCGMMinutes {
-				winningStats = stats[deviceID]
-			}
-		} else {
-			winningStats = stats[deviceID]
-		}
-	}
-
-	// update existing day if one does exist
-	if len(userSummary.DailyStats) > 1 {
-		for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-			if userSummary.DailyStats[i].Date.Equal(winningStats.Date) {
-				userSummary.DailyStats[i] = winningStats
-				existingDay = true
-				break
-			}
-		}
-	}
-	if existingDay == false {
-		userSummary.DailyStats = append(userSummary.DailyStats, winningStats)
-	}
-
-	// remove extra days to cap at 14 days of stats
-	dayCount = len(userSummary.DailyStats)
-	if dayCount > daysAgoToKeep {
-		userSummary.DailyStats = userSummary.DailyStats[dayCount-daysAgoToKeep:]
-	}
-
-	// remove any stats that are older than 14 days from the last stat
-	oldestDay = (*userSummary.DailyStats[0]).Date
-	oldestDayToKeep = userSummary.DailyStats[len(userSummary.DailyStats)-1].Date.AddDate(0, 0, -daysAgoToKeep)
-	if oldestDay.Before(oldestDayToKeep) {
-		// we don't check the last entry because we just added/updated it
-		for i := len(userSummary.DailyStats) - 2; i >= 0; i-- {
-			if userSummary.DailyStats[i].Date.Before(oldestDayToKeep) {
-				userSummary.DailyStats = userSummary.DailyStats[i+1:]
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-func (userSummary *Summary) CalculateStats(userData []*continuous.Continuous) error {
-	stats := make(map[string]*Stats)
-
-	var normalizedValue float64
-	var duration int
-	var deviceID string
-	var recordTime time.Time
-	var lastDay time.Time
-	var currentDay time.Time
-	var err error
-	var deviceIDExists bool
-
-	if len(userData) < 1 {
-		return errors.New("userData is empty, nothing to calculate stats for")
-	}
-
-	for _, r := range userData {
-		if r.DeviceID != nil {
-			deviceID = *r.DeviceID
-		} else {
-			deviceID = ""
-		}
-
-		recordTime = *r.Time
-
-		// truncate time is not timezone/DST safe here, even if we do expect UTC
-		currentDay = time.Date(recordTime.Year(), recordTime.Month(), recordTime.Day(),
-			0, 0, 0, 0, recordTime.Location())
-
-		// check if data is in the past somehow, it would currently corrupt stats, this shouldn't be possible
-		// but the check is cheap insurance
-		if len(userSummary.DailyStats) > 0 {
-			if recordTime.Before((*userSummary.DailyStats[len(userSummary.DailyStats)-1]).Date) {
-				return errors.Newf("CalculateStats given data before oldest stats for user %s", userSummary.UserID)
-			}
-		}
-
-		// pick winner for the day, if we are now on the next day
-		if !lastDay.IsZero() && !currentDay.Equal(lastDay) {
-			err = userSummary.StoreWinningStats(stats)
-			if err != nil {
-				return err
-			}
-			stats = make(map[string]*Stats)
-		}
-		lastDay = currentDay
-
-		_, deviceIDExists = stats[deviceID]
-		if !deviceIDExists {
-			// create new deviceId in map
-			stats[deviceID] = NewStats(deviceID, recordTime.Truncate(24*time.Hour))
-
-			// overwrite with stats if they already exist
-			// NOTE we search the entire list, not just the last entry, in case we are given backfilled data
-			// NOTE2 this may have a rare race condition with multiple devices, as we never store the losing
-			// device, resulting in larger batches always winning, even if less complete over time.
-			if len(userSummary.DailyStats) > 1 {
-				for i := len(userSummary.DailyStats) - 1; i >= 0; i-- {
-					if userSummary.DailyStats[i].Date.Equal(currentDay) && userSummary.DailyStats[i].DeviceID == deviceID {
-						stats[deviceID] = userSummary.DailyStats[i]
-						break
-					}
-				}
-			}
-		}
-
-		normalizedValue = *glucose.NormalizeValueForUnits(r.Value, pointer.FromString(summaryGlucoseUnits))
-		duration = GetDuration(r)
-
-		if normalizedValue <= veryLowBloodGlucose {
-			stats[deviceID].VeryLowMinutes += duration
-			stats[deviceID].VeryLowRecords++
-		} else if normalizedValue >= veryHighBloodGlucose {
-			stats[deviceID].VeryHighMinutes += duration
-			stats[deviceID].VeryHighRecords++
-		} else if normalizedValue <= lowBloodGlucose {
-			stats[deviceID].LowMinutes += duration
-			stats[deviceID].LowRecords++
-		} else if normalizedValue >= highBloodGlucose {
-			stats[deviceID].HighMinutes += duration
-			stats[deviceID].HighRecords++
-		} else {
-			stats[deviceID].TargetMinutes += duration
-			stats[deviceID].TargetRecords++
-		}
-
-		stats[deviceID].TotalCGMMinutes += duration
-		stats[deviceID].TotalCGMRecords++
-		stats[deviceID].TotalGlucose += normalizedValue
-		stats[deviceID].LastRecordTime = recordTime
-	}
-	// store
-	err = userSummary.StoreWinningStats(stats)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (userSummary *Summary) CalculateSummary() error {
-	var timeCGMUsePercent float64
-	var timeInTargetPercent float64
-	var timeInLowPercent float64
-	var timeInVeryLowPercent float64
-	var timeInHighPercent float64
-	var timeInVeryHighPercent float64
-	var glucoseManagementIndicator *float64
-	var averageGlucose float64
-
-	totalStats := NewStats("summary", time.Time{})
-
-	for _, stats := range userSummary.DailyStats {
-		totalStats.TargetMinutes += stats.TargetMinutes
-		totalStats.TargetRecords += stats.TargetRecords
-
-		totalStats.LowMinutes += stats.LowMinutes
-		totalStats.LowRecords += stats.LowRecords
-
-		totalStats.VeryLowMinutes += stats.VeryLowMinutes
-		totalStats.VeryLowRecords += stats.VeryLowRecords
-
-		totalStats.HighMinutes += stats.HighMinutes
-		totalStats.HighRecords += stats.HighRecords
-
-		totalStats.VeryHighMinutes += stats.VeryHighMinutes
-		totalStats.VeryHighRecords += stats.VeryHighRecords
-
-		totalStats.TotalGlucose += stats.TotalGlucose
-		totalStats.TotalCGMMinutes += stats.TotalCGMMinutes
-		totalStats.TotalCGMRecords += stats.TotalCGMRecords
-	}
-
-	// remove partial day (data end) from total time for more accurate TimeCGMUse
-	totalMinutes := float64(daysAgoToKeep * 1440)
-	lastRecordTime := userSummary.DailyStats[len(userSummary.DailyStats)-1].LastRecordTime
-	tomorrow := time.Date(lastRecordTime.Year(), lastRecordTime.Month(), lastRecordTime.Day()+1,
-		0, 0, 0, 0, lastRecordTime.Location())
-	totalMinutes = totalMinutes - tomorrow.Sub(lastRecordTime).Minutes()
-
-	userSummary.LastData = &lastRecordTime
-	userSummary.FirstData = &userSummary.DailyStats[0].Date
-
-	userSummary.TotalDays = pointer.FromInt(len(userSummary.DailyStats))
-
-	// calculate derived summary stats
-	timeCGMUsePercent = float64(totalStats.TotalCGMMinutes) / totalMinutes
-	timeInTargetPercent = float64(totalStats.TargetMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInLowPercent = float64(totalStats.LowMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInVeryLowPercent = float64(totalStats.VeryLowMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInHighPercent = float64(totalStats.HighMinutes) / float64(totalStats.TotalCGMMinutes)
-	timeInVeryHighPercent = float64(totalStats.VeryHighMinutes) / float64(totalStats.TotalCGMMinutes)
-	averageGlucose = totalStats.TotalGlucose / float64(totalStats.TotalCGMRecords)
-
-	// we only add GMI if cgm use >70%, otherwise clear it
-	glucoseManagementIndicator = nil
-	if timeCGMUsePercent > 0.7 {
-		glucoseManagementIndicator = pointer.FromFloat64(CalculateGMI(averageGlucose))
-	}
-
-	// ensure periods exists, just in case
-	if userSummary.Periods == nil {
-		userSummary.Periods = make(map[string]*Period)
-	}
-
-	// statically place stats into the 14-day period slot for now.
-	userSummary.Periods["14d"] = &Period{
-		TimeCGMUsePercent: &timeCGMUsePercent,
-		TimeCGMUseMinutes: &totalStats.TotalCGMMinutes,
-		TimeCGMUseRecords: &totalStats.TotalCGMRecords,
-
-		AverageGlucose: &Glucose{
-			Value: pointer.FromFloat64(averageGlucose),
-			Units: pointer.FromString(summaryGlucoseUnits),
+func NewBGMSummarizer(collection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.BGMStats, types.BGMStats] {
+	return &GlucoseSummarizer[*types.BGMStats, types.BGMStats]{
+		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
+			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
 		},
-		GlucoseManagementIndicator: glucoseManagementIndicator,
-
-		TimeInTargetPercent: &timeInTargetPercent,
-		TimeInTargetMinutes: &totalStats.TargetMinutes,
-		TimeInTargetRecords: &totalStats.TargetRecords,
-
-		TimeInLowPercent: &timeInLowPercent,
-		TimeInLowMinutes: &totalStats.LowMinutes,
-		TimeInLowRecords: &totalStats.LowRecords,
-
-		TimeInVeryLowPercent: &timeInVeryLowPercent,
-		TimeInVeryLowMinutes: &totalStats.VeryLowMinutes,
-		TimeInVeryLowRecords: &totalStats.VeryLowRecords,
-
-		TimeInHighPercent: &timeInHighPercent,
-		TimeInHighMinutes: &totalStats.HighMinutes,
-		TimeInHighRecords: &totalStats.HighRecords,
-
-		TimeInVeryHighPercent: &timeInVeryHighPercent,
-		TimeInVeryHighMinutes: &totalStats.VeryHighMinutes,
-		TimeInVeryHighRecords: &totalStats.VeryHighRecords,
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.BGMStats](collection),
 	}
-
-	return nil
 }
 
-func (userSummary *Summary) Update(ctx context.Context, status *UserLastUpdated, userData []*continuous.Continuous) error {
-	var err error
-	logger := log.LoggerFromContext(ctx)
+func NewCGMSummarizer(collection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.CGMStats, types.CGMStats] {
+	return &GlucoseSummarizer[*types.CGMStats, types.CGMStats]{
+		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
+			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+		},
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.CGMStats](collection),
+	}
+}
 
-	if ctx == nil {
-		return errors.New("context is missing")
+func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher) Summarizer[*types.ContinuousStats, types.ContinuousStats] {
+	return &GlucoseSummarizer[*types.ContinuousStats, types.ContinuousStats]{
+		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
+			defaultCursor := fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+			return fetcher.NewContinuousDeviceDataCursor(defaultCursor, dataFetcher, CreateGlucoseDatum)
+		},
+		dataFetcher: dataFetcher,
+		summaries:   store.New[*types.ContinuousStats](collection),
+	}
+}
+
+func (gs *GlucoseSummarizer[A, T]) DeleteSummaries(ctx context.Context, userId string) error {
+	return gs.summaries.DeleteSummary(ctx, userId)
+}
+
+func (gs *GlucoseSummarizer[A, T]) GetSummary(ctx context.Context, userId string) (*types.Summary[A, T], error) {
+	return gs.summaries.GetSummary(ctx, userId)
+}
+
+func (gs *GlucoseSummarizer[A, T]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+	return gs.summaries.SetOutdated(ctx, userId, reason)
+}
+
+func (gs *GlucoseSummarizer[A, T]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
+	return gs.summaries.GetOutdatedUserIDs(ctx, pagination)
+}
+
+func (gs *GlucoseSummarizer[A, T]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
+	return gs.summaries.GetMigratableUserIDs(ctx, pagination)
+}
+
+func (gs *GlucoseSummarizer[A, T]) BackfillSummaries(ctx context.Context) (int, error) {
+	var empty struct{}
+
+	distinctDataUserIDs, err := gs.dataFetcher.DistinctUserIDs(ctx, types.GetDeviceDataTypeStrings[A]())
+	if err != nil {
+		return 0, err
 	}
 
-	if userSummary == nil {
-		return errors.New("userSummary is missing")
+	distinctSummaryIDs, err := gs.summaries.DistinctSummaryIDs(ctx)
+	if err != nil {
+		return 0, err
 	}
 
-	// prepare state of existing summary
-	timestamp := time.Now().UTC()
-	userSummary.LastUpdatedDate = &timestamp
-	userSummary.LastUploadDate = &status.LastUpload
-	userSummary.OutdatedSince = nil
+	distinctSummaryIDMap := make(map[string]struct{})
+	for _, v := range distinctSummaryIDs {
+		distinctSummaryIDMap[v] = empty
+	}
 
-	// remove any past values that squeeze through the string date query that feeds this function
-	// this mostly occurs when different sources use different time precisions (s vs ms vs ns)
-	// resulting in $gt 00:00:01.275Z pulling in 00:00:01Z, which is before.
-	if userSummary.LastData != nil {
-		var skip int
-		for i := 0; i < len(userData); i++ {
-			recordTime := *userData[i].Time
+	userIDsReqBackfill := make([]string, 0, backfillBatch)
+	for _, userID := range distinctDataUserIDs {
+		if _, exists := distinctSummaryIDMap[userID]; !exists {
+			userIDsReqBackfill = append(userIDsReqBackfill, userID)
+		}
 
-			if recordTime.Before(*userSummary.LastData) {
-				skip = i + 1
-			} else {
-				break
+		if len(userIDsReqBackfill) >= backfillBatch {
+			break
+		}
+	}
+
+	summaries := make([]*types.Summary[A, T], 0, len(userIDsReqBackfill))
+	for _, userID := range userIDsReqBackfill {
+		s := types.Create[A](userID)
+		s.SetOutdated(types.OutdatedReasonBackfill)
+		summaries = append(summaries, s)
+
+		if len(summaries) >= backfillInsertBatch {
+			count, err := gs.summaries.CreateSummaries(ctx, summaries)
+			if err != nil {
+				return count, err
 			}
-		}
-
-		if skip > 0 {
-			logger.Debugf("New CGM data for userid %s is before last calculated data, skipping first %d records", userSummary.UserID, skip)
-			userData = userData[skip:]
+			summaries = nil
 		}
 	}
 
-	// don't recalculate if there is no new data/this was double called
-	if len(userData) < 1 {
-		logger.Debugf("No new records for userid %v summary calculation, aborting.", userSummary.UserID)
-		return nil
+	if len(summaries) > 0 {
+		return gs.summaries.CreateSummaries(ctx, summaries)
 	}
 
-	err = userSummary.CalculateStats(userData)
+	return 0, nil
+}
+
+func (gs *GlucoseSummarizer[A, T]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[A, T], error) {
+	logger := log.LoggerFromContext(ctx)
+	userSummary, err := gs.GetSummary(ctx, userId)
+	summaryType := types.GetDeviceDataTypeStrings[A]()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = userSummary.CalculateSummary()
+	logger.Debugf("Starting %s summary calculation for %s", types.GetTypeString[A](), userId)
+
+	// user has no usable summary for incremental update
+	if userSummary == nil {
+		userSummary = types.Create[A](userId)
+	}
+
+	if userSummary.Stats == nil {
+		userSummary.Stats = new(T)
+		userSummary.Stats.Init()
+	}
+
+	if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
+		userSummary.Dates.Reset()
+	}
+
+	var status *data.UserDataStatus
+	status, err = gs.dataFetcher.GetLastUpdatedForUser(ctx, userId, summaryType, userSummary.Dates.LastUpdatedDate)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	// add static stuff
-	userSummary.LowGlucoseThreshold = pointer.FromFloat64(lowBloodGlucose)
-	userSummary.VeryLowGlucoseThreshold = pointer.FromFloat64(veryLowBloodGlucose)
-	userSummary.HighGlucoseThreshold = pointer.FromFloat64(highBloodGlucose)
-	userSummary.VeryHighGlucoseThreshold = pointer.FromFloat64(veryHighBloodGlucose)
+	// this filters out users which cannot be updated, as they have no data of type T, but were called for update
+	if status == nil {
+		// user's data is inactive/ancient/deleted, or this summary shouldn't have been created
+		logger.Warnf("User %s has a summary, but no data within range, deleting summary", userId)
+		return nil, gs.summaries.DeleteSummary(ctx, userId)
+	}
 
-	return nil
+	// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
+	if status.EarliestModified.IsZero() {
+		logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, summaryType)
+
+		userSummary.SetNotOutdated()
+		return userSummary, gs.summaries.ReplaceSummary(ctx, userSummary)
+	}
+
+	if first := userSummary.Stats.ClearInvalidatedBuckets(status.EarliestModified); !first.IsZero() {
+		status.FirstData = first
+	}
+
+	cursor, err := gs.dataFetcher.GetDataRange(ctx, userId, summaryType, status)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	err = userSummary.Stats.Update(ctx, gs.cursorFactory(cursor))
+	if err != nil {
+		return nil, err
+	}
+
+	// this filters out users which may have appeared to have relevant data, but was filtered during calculation
+	if userSummary.Stats.GetBucketsLen() == 0 {
+		logger.Warnf("User %s has a summary, but no valid data within range, creating placeholder summary", userId)
+		userSummary.Dates.Reset()
+		userSummary.Stats = nil
+	} else {
+		userSummary.Dates.Update(status, userSummary.Stats.GetBucketDate(0))
+	}
+
+	err = gs.summaries.ReplaceSummary(ctx, userSummary)
+
+	return userSummary, err
+}
+
+func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
+	outdatedSinceMap := make(map[string]*time.Time)
+	lgr := log.LoggerFromContext(ctx)
+
+	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
+		summarizer := GetSummarizer[*types.CGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set cgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
+	}
+
+	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
+		summarizer := GetSummarizer[*types.BGMStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set bgm summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
+	}
+
+	if _, ok := updatesSummary[types.SummaryTypeContinuous]; ok {
+		summarizer := GetSummarizer[*types.ContinuousStats](registry)
+		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
+		if err != nil {
+			lgr.WithError(err).Error("Unable to set continuous summary outdated")
+		}
+		outdatedSinceMap[types.SummaryTypeContinuous] = outdatedSince
+	}
+
+	return outdatedSinceMap
+}
+
+func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
+	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
+	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
+
+	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
+	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
+	if datum.IsActive() {
+		typ := datum.GetType()
+		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
+			updatesSummary[types.DeviceDataToSummaryTypes[typ]] = struct{}{}
+
+			// Currently, both types update continuous summaries, this may need to be a separate check in the future.
+			updatesSummary[types.SummaryTypeContinuous] = struct{}{}
+		}
+	}
 }

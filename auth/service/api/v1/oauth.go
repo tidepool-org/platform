@@ -34,7 +34,7 @@ func (r *Router) OAuthRoutes() []*rest.Route {
 func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	if details == nil || details.Method() != request.MethodRestrictedToken {
 		r.htmlOnError(res, req, request.ErrorUnauthenticated())
@@ -66,11 +66,15 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	prvdr, err := r.oauthProvider(req)
 	if err != nil {
 		responder.Error(request.StatusCodeForError(err), err)
+		return
+	}
+	if !prvdr.SupportsUserInitiatedAccountUnlinking() {
+		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking is not supported"))
 		return
 	}
 

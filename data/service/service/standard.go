@@ -5,7 +5,11 @@ import (
 	"log"
 	"os"
 
-	"github.com/Shopify/sarama"
+	"github.com/tidepool-org/platform/twiist"
+
+	"github.com/tidepool-org/platform/clinics"
+
+	"github.com/IBM/sarama"
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/application"
@@ -33,17 +37,19 @@ import (
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient              *metricClient.Client
-	permissionClient          *permissionClient.Client
-	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
-	dataStore                 *dataStoreMongo.Store
-	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
-	syncTaskStore             *syncTaskMongo.Store
-	dataClient                *Client
-	dataSourceClient          *dataSourceServiceClient.Client
-	userEventsHandler         events.Runner
-	api                       *api.Standard
-	server                    *server.Standard
+	metricClient                   *metricClient.Client
+	permissionClient               *permissionClient.Client
+	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
+	dataStore                      *dataStoreMongo.Store
+	dataSourceStructuredStore      *dataSourceStoreStructuredMongo.Store
+	syncTaskStore                  *syncTaskMongo.Store
+	dataClient                     *Client
+	clinicsClient                  *clinics.Client
+	dataSourceClient               *dataSourceServiceClient.Client
+	userEventsHandler              events.Runner
+	api                            *api.Standard
+	server                         *server.Standard
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func NewStandard() *Standard {
@@ -78,10 +84,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
+	if err := s.initializeClinicsClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
+		return err
+	}
+	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
 	if err := s.initializeAPI(); err != nil {
@@ -154,7 +166,9 @@ func (s *Standard) initializeMetricClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("metric", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("metric", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load metric client config")
 	}
 
@@ -174,7 +188,9 @@ func (s *Standard) initializePermissionClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("permission", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load permission client config")
 	}
 
@@ -211,6 +227,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
 	}
 
+	s.Logger().Debug("Creating data set delete origin older deduplicator")
+
+	dataSetDeleteOriginOlderDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOriginOlder()
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set delete origin older deduplicator")
+	}
+
 	s.Logger().Debug("Creating none deduplicator")
 
 	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone()
@@ -224,6 +247,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		deviceDeactivateHashDeduplicator,
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
+		dataSetDeleteOriginOlderDeduplicator,
 		noneDeduplicator,
 	}
 
@@ -337,12 +361,36 @@ func (s *Standard) initializeDataSourceClient() error {
 	return nil
 }
 
+func (s *Standard) initializeClinicsClient() error {
+	s.Logger().Debug("Creating clinics client")
+
+	clnt, err := clinics.NewClient(s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create clinics client")
+	}
+	s.clinicsClient = &clnt
+
+	return nil
+}
+
+func (s *Standard) initializeTwiistServiceAccountAuthorizer() error {
+	s.Logger().Debug("Initializing twiist service account authorizer")
+
+	var err error
+	s.twiistServiceAccountAuthorizer, err = twiist.NewServiceAccountAuthorizer()
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient)
+		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}

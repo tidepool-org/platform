@@ -5,11 +5,12 @@ import (
 	"net/url"
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
 	pageTest "github.com/tidepool-org/platform/page/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -62,7 +63,7 @@ var _ = Describe("Pagination", func() {
 			Context("Parse", func() {
 				It("parses the page", func() {
 					object := map[string]interface{}{"page": 2}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(2))
 					Expect(datum.Size).To(Equal(original.Size))
@@ -71,7 +72,7 @@ var _ = Describe("Pagination", func() {
 
 				It("parses the size", func() {
 					object := map[string]interface{}{"size": 10}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(original.Page))
 					Expect(datum.Size).To(Equal(10))
@@ -80,7 +81,7 @@ var _ = Describe("Pagination", func() {
 
 				It("parses the page and size", func() {
 					object := map[string]interface{}{"page": 2, "size": 10}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(2))
 					Expect(datum.Size).To(Equal(10))
@@ -89,7 +90,7 @@ var _ = Describe("Pagination", func() {
 
 				It("reports an error if page is not an int", func() {
 					object := map[string]interface{}{"page": false, "size": 10}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(original.Page))
 					Expect(datum.Size).To(Equal(10))
@@ -99,7 +100,7 @@ var _ = Describe("Pagination", func() {
 
 				It("reports an error if size is not an int", func() {
 					object := map[string]interface{}{"page": 2, "size": false}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(2))
 					Expect(datum.Size).To(Equal(original.Size))
@@ -109,7 +110,7 @@ var _ = Describe("Pagination", func() {
 
 				It("reports an error if page and size are not ints", func() {
 					object := map[string]interface{}{"page": false, "size": false}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					datum.Parse(parser)
 					Expect(datum.Page).To(Equal(original.Page))
 					Expect(datum.Size).To(Equal(original.Size))
@@ -127,7 +128,7 @@ var _ = Describe("Pagination", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("succeeds with defaults", func() {

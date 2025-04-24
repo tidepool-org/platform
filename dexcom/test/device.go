@@ -1,8 +1,6 @@
 package test
 
 import (
-	"math"
-
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -10,7 +8,10 @@ import (
 
 func RandomDevicesResponse() *dexcom.DevicesResponse {
 	datum := dexcom.NewDevicesResponse()
-	datum.Devices = RandomDevices(0, 3)
+	datum.RecordType = pointer.FromString(dexcom.DevicesResponseRecordType)
+	datum.RecordVersion = pointer.FromString(dexcom.DevicesResponseRecordVersion)
+	datum.UserID = pointer.FromString(test.RandomString())
+	datum.Records = RandomDevices(1, 3)
 	return datum
 }
 
@@ -19,8 +20,31 @@ func CloneDevicesResponse(datum *dexcom.DevicesResponse) *dexcom.DevicesResponse
 		return nil
 	}
 	clone := dexcom.NewDevicesResponse()
-	clone.Devices = CloneDevices(datum.Devices)
+	clone.RecordType = pointer.CloneString(datum.RecordType)
+	clone.RecordVersion = pointer.CloneString(datum.RecordVersion)
+	clone.UserID = pointer.CloneString(datum.UserID)
+	clone.Records = CloneDevices(datum.Records)
 	return clone
+}
+
+func NewObjectFromDevicesResponse(datum *dexcom.DevicesResponse, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.RecordType != nil {
+		object["recordType"] = test.NewObjectFromString(*datum.RecordType, objectFormat)
+	}
+	if datum.RecordVersion != nil {
+		object["recordVersion"] = test.NewObjectFromString(*datum.RecordVersion, objectFormat)
+	}
+	if datum.UserID != nil {
+		object["userId"] = test.NewObjectFromString(*datum.UserID, objectFormat)
+	}
+	if datum.Records != nil {
+		object["records"] = NewArrayFromDevices(datum.Records, objectFormat)
+	}
+	return object
 }
 
 func RandomDevices(minimumLength int, maximumLength int) *dexcom.Devices {
@@ -36,29 +60,31 @@ func CloneDevices(datum *dexcom.Devices) *dexcom.Devices {
 		return nil
 	}
 	clone := make(dexcom.Devices, len(*datum))
-	for index, d := range *datum {
-		clone[index] = CloneDevice(d)
+	for index, datum := range *datum {
+		clone[index] = CloneDevice(datum)
 	}
 	return &clone
+}
+
+func NewArrayFromDevices(datumArray *dexcom.Devices, objectFormat test.ObjectFormat) []interface{} {
+	if datumArray == nil {
+		return nil
+	}
+	array := make([]interface{}, len(*datumArray))
+	for index, datum := range *datumArray {
+		array[index] = NewObjectFromDevice(datum, objectFormat)
+	}
+	return array
 }
 
 func RandomDevice() *dexcom.Device {
 	datum := dexcom.NewDevice()
 	datum.LastUploadDate = RandomTime()
-	datum.AlertScheduleList = RandomAlertSchedules(1, 3)
-	datum.UDI = pointer.FromString(RandomUDI())
-	datum.SerialNumber = pointer.FromString(RandomSerialNumber())
+	datum.AlertSchedules = RandomAlertSchedules(1, 3)
 	datum.TransmitterID = pointer.FromString(RandomTransmitterID())
 	datum.TransmitterGeneration = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceTransmitterGenerations()))
 	datum.DisplayDevice = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayDevices()))
-	datum.SoftwareVersion = pointer.FromString(RandomSoftwareVersion())
-	datum.SoftwareNumber = pointer.FromString(RandomSoftwareNumber())
-	datum.Language = pointer.FromString(RandomLanguage())
-	datum.IsMmolDisplayMode = pointer.FromBool(test.RandomBool())
-	datum.IsBlindedMode = pointer.FromBool(test.RandomBool())
-	datum.Is24HourMode = pointer.FromBool(test.RandomBool())
-	datum.DisplayTimeOffset = pointer.FromInt(test.RandomIntFromRange(-math.MaxInt32, math.MaxInt32))
-	datum.SystemTimeOffset = pointer.FromInt(test.RandomIntFromRange(-math.MaxInt32, math.MaxInt32))
+	datum.DisplayApp = pointer.FromString(test.RandomStringFromArray(dexcom.DeviceDisplayApps()))
 	return datum
 }
 
@@ -68,39 +94,36 @@ func CloneDevice(datum *dexcom.Device) *dexcom.Device {
 	}
 	clone := dexcom.NewDevice()
 	clone.LastUploadDate = CloneTime(datum.LastUploadDate)
-	clone.AlertScheduleList = CloneAlertSchedules(datum.AlertScheduleList)
-	clone.UDI = pointer.CloneString(datum.UDI)
-	clone.SerialNumber = pointer.CloneString(datum.SerialNumber)
+	clone.AlertSchedules = CloneAlertSchedules(datum.AlertSchedules)
 	clone.TransmitterID = pointer.CloneString(datum.TransmitterID)
 	clone.TransmitterGeneration = pointer.CloneString(datum.TransmitterGeneration)
 	clone.DisplayDevice = pointer.CloneString(datum.DisplayDevice)
-	clone.SoftwareVersion = pointer.CloneString(datum.SoftwareVersion)
-	clone.SoftwareNumber = pointer.CloneString(datum.SoftwareNumber)
-	clone.Language = pointer.CloneString(datum.Language)
-	clone.IsMmolDisplayMode = pointer.CloneBool(datum.IsMmolDisplayMode)
-	clone.IsBlindedMode = pointer.CloneBool(datum.IsBlindedMode)
-	clone.Is24HourMode = pointer.CloneBool(datum.Is24HourMode)
-	clone.DisplayTimeOffset = pointer.CloneInt(datum.DisplayTimeOffset)
-	clone.SystemTimeOffset = pointer.CloneInt(datum.SystemTimeOffset)
+	clone.DisplayApp = pointer.CloneString(datum.DisplayApp)
 	return clone
 }
 
-func RandomUDI() string {
-	return test.RandomString()
-}
-
-func RandomSerialNumber() string {
-	return test.RandomString()
-}
-
-func RandomSoftwareVersion() string {
-	return test.RandomString()
-}
-
-func RandomSoftwareNumber() string {
-	return test.RandomString()
-}
-
-func RandomLanguage() string {
-	return test.RandomString()
+func NewObjectFromDevice(datum *dexcom.Device, objectFormat test.ObjectFormat) map[string]interface{} {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]interface{}{}
+	if datum.LastUploadDate != nil {
+		object["lastUploadDate"] = test.NewObjectFromString(datum.LastUploadDate.String(), objectFormat)
+	}
+	if datum.AlertSchedules != nil {
+		object["alertSchedules"] = NewArrayFromAlertSchedules(datum.AlertSchedules, objectFormat)
+	}
+	if datum.TransmitterGeneration != nil {
+		object["transmitterGeneration"] = test.NewObjectFromString(*datum.TransmitterGeneration, objectFormat)
+	}
+	if datum.TransmitterID != nil {
+		object["transmitterId"] = test.NewObjectFromString(*datum.TransmitterID, objectFormat)
+	}
+	if datum.DisplayDevice != nil {
+		object["displayDevice"] = test.NewObjectFromString(*datum.DisplayDevice, objectFormat)
+	}
+	if datum.DisplayApp != nil {
+		object["displayApp"] = test.NewObjectFromString(*datum.DisplayApp, objectFormat)
+	}
+	return object
 }

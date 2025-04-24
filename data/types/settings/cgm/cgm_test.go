@@ -3,8 +3,7 @@ package cgm_test
 import (
 	"sort"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
@@ -14,6 +13,7 @@ import (
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureTest "github.com/tidepool-org/platform/structure/test"
@@ -65,7 +65,7 @@ var _ = Describe("CGM", func() {
 	})
 
 	It("TransmitterIDExpressionString is expected", func() {
-		Expect(dataTypesSettingsCgm.TransmitterIDExpressionString).To(Equal("^[0-9A-Z]{5,6}$"))
+		Expect(dataTypesSettingsCgm.TransmitterIDExpressionString).To(Equal("^[0-9a-zA-Z]{5,64}$"))
 	})
 
 	Context("New", func() {
@@ -307,7 +307,6 @@ var _ = Describe("CGM", func() {
 				Entry("transmitted id empty",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.CGM, units *string) { datum.TransmitterID = pointer.FromString("") },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", NewMeta()),
 				),
 				Entry("transmitted id invalid length",
 					pointer.FromString("mmol/L"),
@@ -468,7 +467,6 @@ var _ = Describe("CGM", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/name", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/serialNumber", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/softwareVersion", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/transmitterId", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/defaultAlerts/enabled", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/scheduledAlerts/0/days", &dataTypes.Meta{Type: "invalidType"}),
@@ -486,7 +484,7 @@ var _ = Describe("CGM", func() {
 					datum := dataTypesSettingsCgmTest.RandomCGM(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesSettingsCgmTest.CloneCGM(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 					Expect(normalizer.Error()).To(BeNil())
@@ -564,7 +562,7 @@ var _ = Describe("CGM", func() {
 						datum := dataTypesSettingsCgmTest.RandomCGM(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneCGM(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())
@@ -600,6 +598,9 @@ var _ = Describe("CGM", func() {
 	})
 
 	Context("IsValidTransmitterID, TransmitterIDValidator, ValidateTransmitterID", func() {
+
+		const dexcomStyleHashID = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"
+
 		DescribeTable("validates the transmitter id",
 			func(value string, expectedErrors ...error) {
 				Expect(dataTypesSettingsCgm.IsValidTransmitterID(value)).To(Equal(len(expectedErrors) == 0))
@@ -608,13 +609,13 @@ var _ = Describe("CGM", func() {
 				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
 				errorsTest.ExpectEqual(dataTypesSettingsCgm.ValidateTransmitterID(value), expectedErrors...)
 			},
-			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
+			Entry("is empty", ""),
 			Entry("is valid", test.RandomStringFromRangeAndCharset(5, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
+			Entry("is valid when dexcom hash", dexcomStyleHashID),
+
 			Entry("has invalid length; out of range (lower)", "ABCD", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCD")),
 			Entry("has invalid length; in range (lower)", test.RandomStringFromRangeAndCharset(5, 5, dataTypesSettingsCgmTest.CharsetTransmitterID)),
-			Entry("has invalid length; in range (upper)", test.RandomStringFromRangeAndCharset(6, 6, dataTypesSettingsCgmTest.CharsetTransmitterID)),
-			Entry("has invalid length; out of range (upper)", "ABCDEFG", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("ABCDEFG")),
-			Entry("has invalid characters; lowercase", "abcdef", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("abcdef")),
+			Entry("has invalid length; in range (upper)", dexcomStyleHashID+"m", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid(dexcomStyleHashID+"m")),
 			Entry("has invalid characters; symbols", "@#$%^&", dataTypesSettingsCgm.ErrorValueStringAsTransmitterIDNotValid("@#$%^&")),
 		)
 	})

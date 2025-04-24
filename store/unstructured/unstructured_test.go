@@ -1,11 +1,11 @@
 package unstructured_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -29,7 +29,7 @@ var _ = Describe("Unstructured", func() {
 				func(mutator func(datum *storeUnstructured.Options), expectedErrors ...error) {
 					datum := storeUnstructuredTest.RandomOptions()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *storeUnstructured.Options) {},

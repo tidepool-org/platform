@@ -67,35 +67,38 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetBackground(true),
 		},
+		{
+			Keys: bson.D{
+				{Key: "providerName", Value: 1},
+				{Key: "providerExternalId", Value: 1},
+			},
+		},
 	})
 }
 
-func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataSourcesRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(userID) {
-		return nil, errors.New("user id is invalid")
-	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
 	result := dataSource.SourceArray{}
-	query := bson.M{
-		"userId": userID,
+	query := bson.M{}
+
+	if filter.UserID != nil {
+		query["userId"] = filter.UserID
 	}
 	if filter.ProviderType != nil {
 		query["providerType"] = bson.M{
@@ -110,6 +113,11 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	if filter.ProviderSessionID != nil {
 		query["providerSessionId"] = bson.M{
 			"$in": *filter.ProviderSessionID,
+		}
+	}
+	if filter.ProviderExternalID != nil {
+		query["providerExternalId"] = bson.M{
+			"$in": *filter.ProviderExternalID,
 		}
 	}
 	if filter.State != nil {
@@ -145,7 +153,7 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -153,13 +161,15 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
 	doc := &dataSource.Source{
-		UserID:            pointer.FromString(userID),
-		ProviderType:      create.ProviderType,
-		ProviderName:      create.ProviderName,
-		ProviderSessionID: create.ProviderSessionID,
-		State:             create.State,
-		CreatedTime:       pointer.FromTime(now),
-		Revision:          pointer.FromInt(0),
+		UserID:             pointer.FromString(userID),
+		ProviderType:       create.ProviderType,
+		ProviderName:       create.ProviderName,
+		ProviderSessionID:  create.ProviderSessionID,
+		ProviderExternalID: create.ProviderExternalID,
+		State:              pointer.FromString(dataSource.StateDisconnected),
+		Metadata:           create.Metadata,
+		CreatedTime:        pointer.FromTime(now),
+		Revision:           pointer.FromInt(0),
 	}
 
 	var id string
@@ -248,12 +258,12 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -271,19 +281,25 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 			"modifiedTime": now,
 		}
 		unset := bson.M{}
-		if update.ProviderSessionID != nil {
-			set["providerSessionId"] = *update.ProviderSessionID
-		}
 		if update.State != nil {
 			set["state"] = *update.State
 			switch *update.State {
 			case dataSource.StateDisconnected:
-				delete(set, "providerSessionId")
 				unset["providerSessionId"] = true
 				unset["error"] = true
 			case dataSource.StateConnected:
 				unset["error"] = true
 			}
+		}
+		if update.Metadata != nil {
+			set["metadata"] = update.Metadata
+		}
+		if update.ProviderSessionID != nil {
+			delete(unset, "providerSessionId")
+			set["providerSessionId"] = *update.ProviderSessionID
+		}
+		if update.ProviderExternalID != nil {
+			set["providerExternalId"] = *update.ProviderExternalID
 		}
 		if update.Error != nil {
 			delete(unset, "error")
@@ -337,7 +353,7 @@ func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, conditio
 	}
 	if condition == nil {
 		condition = request.NewCondition()
-	} else if err := structureValidator.New().Validate(condition); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return false, errors.Wrap(err, "condition is invalid")
 	}
 

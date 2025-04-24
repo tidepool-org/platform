@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -127,13 +128,13 @@ type RestrictedToken struct {
 	ModifiedTime   *time.Time `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
-func NewRestrictedToken(userID string, create *RestrictedTokenCreate) (*RestrictedToken, error) {
+func NewRestrictedToken(ctx context.Context, userID string, create *RestrictedTokenCreate) (*RestrictedToken, error) {
 	if userID == "" {
 		return nil, errors.New("user id is missing")
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -197,7 +198,7 @@ func (r *RestrictedToken) Authenticates(req *http.Request) bool {
 	return true
 }
 
-func (r *RestrictedToken) Sanitize(details request.Details) error {
+func (r *RestrictedToken) Sanitize(details request.AuthDetails) error {
 	if details != nil && (details.IsService() || details.UserID() == r.UserID) {
 		return nil
 	}
@@ -206,7 +207,7 @@ func (r *RestrictedToken) Sanitize(details request.Details) error {
 
 type RestrictedTokens []*RestrictedToken
 
-func (r RestrictedTokens) Sanitize(details request.Details) error {
+func (r RestrictedTokens) Sanitize(details request.AuthDetails) error {
 	for _, restrictedToken := range r {
 		if err := restrictedToken.Sanitize(details); err != nil {
 			return err

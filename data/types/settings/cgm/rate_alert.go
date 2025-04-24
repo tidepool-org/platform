@@ -3,29 +3,20 @@ package cgm
 import (
 	"math"
 
+	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	RateAlertUnitsMgdLMinute  = "mg/dL/minute"
-	RateAlertUnitsMmolLMinute = "mmol/L/minute"
-
 	FallAlertRateMgdLMinuteMaximum  = 10.0
-	FallAlertRateMgdLMinuteMinimum  = 1.0
+	FallAlertRateMgdLMinuteMinimum  = 0.0
 	FallAlertRateMmolLMinuteMaximum = 0.55507
 	FallAlertRateMmolLMinuteMinimum = 0.05551
 	RiseAlertRateMgdLMinuteMaximum  = 10.0
-	RiseAlertRateMgdLMinuteMinimum  = 1.0
+	RiseAlertRateMgdLMinuteMinimum  = 0.0
 	RiseAlertRateMmolLMinuteMaximum = 0.55507
 	RiseAlertRateMmolLMinuteMinimum = 0.05551
 )
-
-func RateAlertUnits() []string {
-	return []string{
-		RateAlertUnitsMgdLMinute,
-		RateAlertUnitsMmolLMinute,
-	}
-}
 
 type RateAlert struct {
 	Alert `bson:",inline"`
@@ -42,7 +33,7 @@ func (r *RateAlert) Parse(parser structure.ObjectParser) {
 func (r *RateAlert) Validate(validator structure.Validator) {
 	r.Alert.Validate(validator)
 	if unitsValidator := validator.String("units", r.Units); r.Rate != nil {
-		unitsValidator.Exists().OneOf(RateAlertUnits()...)
+		unitsValidator.Exists().OneOf(dataBloodGlucose.RateUnits()...)
 	} else {
 		unitsValidator.NotExists()
 	}
@@ -73,9 +64,9 @@ func (f *FallAlert) Validate(validator structure.Validator) {
 func FallAlertRateRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case RateAlertUnitsMgdLMinute:
+		case dataBloodGlucose.MgdLMinute:
 			return FallAlertRateMgdLMinuteMinimum, FallAlertRateMgdLMinuteMaximum
-		case RateAlertUnitsMmolLMinute:
+		case dataBloodGlucose.MmolLMinute:
 			return FallAlertRateMmolLMinuteMinimum, FallAlertRateMmolLMinuteMaximum
 		}
 	}
@@ -107,9 +98,9 @@ func (r *RiseAlert) Validate(validator structure.Validator) {
 func RiseAlertRateRangeForUnits(units *string) (float64, float64) {
 	if units != nil {
 		switch *units {
-		case RateAlertUnitsMgdLMinute:
+		case dataBloodGlucose.MgdLMinute:
 			return RiseAlertRateMgdLMinuteMinimum, RiseAlertRateMgdLMinuteMaximum
-		case RateAlertUnitsMmolLMinute:
+		case dataBloodGlucose.MmolLMinute:
 			return RiseAlertRateMmolLMinuteMinimum, RiseAlertRateMmolLMinuteMaximum
 		}
 	}

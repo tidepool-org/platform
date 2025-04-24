@@ -1,11 +1,12 @@
 package base_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
@@ -15,13 +16,14 @@ import (
 var _ = Describe("Base", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
-			Expect(structureBase.New()).ToNot(BeNil())
+			Expect(structureBase.New(logTest.NewLogger())).ToNot(BeNil())
 		})
 	})
 
 	Context("with source, meta, and new base", func() {
 		var src *structureTest.Source
 		var meta interface{}
+		var logger *logTest.Logger
 		var base *structureBase.Base
 
 		BeforeEach(func() {
@@ -29,12 +31,19 @@ var _ = Describe("Base", func() {
 			src.ParameterOutput = pointer.FromString(errorsTest.NewSourceParameter())
 			src.PointerOutput = pointer.FromString(errorsTest.NewSourcePointer())
 			meta = errorsTest.NewMeta()
-			base = structureBase.New()
+			logger = logTest.NewLogger()
+			base = structureBase.New(logger)
 			Expect(base).ToNot(BeNil())
 		})
 
 		AfterEach(func() {
 			src.Expectations()
+		})
+
+		Context("Logger", func() {
+			It("returns the logger", func() {
+				Expect(base.Logger()).To(BeIdenticalTo(logger))
+			})
 		})
 
 		Context("Origin", func() {

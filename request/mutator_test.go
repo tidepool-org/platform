@@ -3,7 +3,7 @@ package request_test
 import (
 	"net/http"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/request"
@@ -66,7 +66,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the header even if there are already headers", func() {
-					existingKey := testHttp.NewHeaderKey()
+					existingKey := generateNewUniqueKey(testHttp.NewHeaderKey, map[string]any{key: struct{}{}})
 					existingValue := testHttp.NewHeaderValue()
 					request.Header.Add(existingKey, existingValue)
 					Expect(mutator.MutateRequest(request)).To(Succeed())
@@ -140,7 +140,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameter even if there are already parameters", func() {
-					existingKey := testHttp.NewParameterKey()
+					existingKey := generateNewUniqueKey(testHttp.NewParameterKey, map[string]any{key: struct{}{}})
 					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
@@ -217,7 +217,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameters even if there are already parameters", func() {
-					existingKey := testHttp.NewParameterKey()
+					existingKey := generateNewUniqueKey(testHttp.NewParameterKey, parameters)
 					existingValue := testHttp.NewParameterValue()
 					query := request.URL.Query()
 					query.Add(existingKey, existingValue)
@@ -306,7 +306,7 @@ var _ = Describe("Mutator", func() {
 				})
 
 				It("adds the parameters even if there are already parameters", func() {
-					existingKey := testHttp.NewParameterKey()
+					existingKey := generateNewUniqueKey(testHttp.NewParameterKey, parameters)
 					existingValue := test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
 					query := request.URL.Query()
 					query[existingKey] = existingValue

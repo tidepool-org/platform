@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -15,6 +16,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+//go:generate mockgen --build_flags=--mod=mod -source=./task.go -destination=./test/mock.go -package test Client
 type Client interface {
 	TaskAccessor
 }
@@ -181,6 +183,7 @@ type Task struct {
 	Priority       int                    `json:"priority,omitempty" bson:"priority,omitempty"`
 	Data           map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
 	AvailableTime  *time.Time             `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
+	DeadlineTime   *time.Time             `json:"deadlineTime,omitempty" bson:"deadlineTime,omitempty"`
 	ExpirationTime *time.Time             `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
 	State          string                 `json:"state,omitempty" bson:"state,omitempty"`
 	Error          *errors.Serializable   `json:"error,omitempty" bson:"error,omitempty"`
@@ -190,10 +193,10 @@ type Task struct {
 	ModifiedTime   *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 }
 
-func NewTask(create *TaskCreate) (*Task, error) {
+func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -266,7 +269,7 @@ func (t *Task) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
-func (t *Task) Sanitize(details request.Details) error {
+func (t *Task) Sanitize(details request.AuthDetails) error {
 	if details != nil && details.IsService() {
 		return nil
 	}
@@ -276,6 +279,7 @@ func (t *Task) Sanitize(details request.Details) error {
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.State = TaskStatePending
 	t.AvailableTime = pointer.FromTime(availableTime)
+	t.DeadlineTime = nil
 }
 
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {
@@ -302,6 +306,13 @@ func (t *Task) HasError() bool {
 	return t.Error != nil && t.Error.Error != nil
 }
 
+func (t *Task) GetError() error {
+	if t.Error != nil {
+		return t.Error.Error
+	}
+	return nil
+}
+
 func (t *Task) AppendError(err error) {
 	if err != nil {
 		if t.Error == nil {
@@ -317,7 +328,7 @@ func (t *Task) ClearError() {
 
 type Tasks []*Task
 
-func (t Tasks) Sanitize(details request.Details) error {
+func (t Tasks) Sanitize(details request.AuthDetails) error {
 	for _, tsk := range t {
 		if err := tsk.Sanitize(details); err != nil {
 			return err

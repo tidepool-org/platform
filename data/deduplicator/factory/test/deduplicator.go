@@ -1,13 +1,25 @@
 package test
 
 import (
+	"context"
+
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
+type NewInput struct {
+	Context context.Context
+	DataSet *dataTypesUpload.Upload
+}
+
 type NewOutput struct {
 	Found bool
 	Error error
+}
+
+type GetInput struct {
+	Context context.Context
+	DataSet *dataTypesUpload.Upload
 }
 
 type GetOutput struct {
@@ -18,13 +30,13 @@ type GetOutput struct {
 type Deduplicator struct {
 	*dataDeduplicatorTest.Deduplicator
 	NewInvocations int
-	NewInputs      []*dataTypesUpload.Upload
-	NewStub        func(dataSet *dataTypesUpload.Upload) (bool, error)
+	NewInputs      []NewInput
+	NewStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
 	NewOutputs     []NewOutput
 	NewOutput      *NewOutput
 	GetInvocations int
-	GetInputs      []*dataTypesUpload.Upload
-	GetStub        func(dataSet *dataTypesUpload.Upload) (bool, error)
+	GetInputs      []GetInput
+	GetStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
 	GetOutputs     []GetOutput
 	GetOutput      *GetOutput
 }
@@ -35,11 +47,11 @@ func NewDeduplicator() *Deduplicator {
 	}
 }
 
-func (d *Deduplicator) New(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *Deduplicator) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	d.NewInvocations++
-	d.NewInputs = append(d.NewInputs, dataSet)
+	d.NewInputs = append(d.NewInputs, NewInput{Context: ctx, DataSet: dataSet})
 	if d.NewStub != nil {
-		return d.NewStub(dataSet)
+		return d.NewStub(ctx, dataSet)
 	}
 	if len(d.NewOutputs) > 0 {
 		output := d.NewOutputs[0]
@@ -52,11 +64,11 @@ func (d *Deduplicator) New(dataSet *dataTypesUpload.Upload) (bool, error) {
 	panic("New has no output")
 }
 
-func (d *Deduplicator) Get(dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *Deduplicator) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
 	d.GetInvocations++
-	d.GetInputs = append(d.GetInputs, dataSet)
+	d.GetInputs = append(d.GetInputs, GetInput{Context: ctx, DataSet: dataSet})
 	if d.GetStub != nil {
-		return d.GetStub(dataSet)
+		return d.GetStub(ctx, dataSet)
 	}
 	if len(d.GetOutputs) > 0 {
 		output := d.GetOutputs[0]

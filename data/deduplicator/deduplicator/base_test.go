@@ -3,7 +3,7 @@ package deduplicator_test
 import (
 	"context"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
@@ -77,55 +77,55 @@ var _ = Describe("Base", func() {
 
 		Context("New", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.New(nil)
+				found, err := deduplicator.New(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator is missing", func() {
 				dataSet.Deduplicator = nil
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name is missing", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.New(dataSet)).To(BeFalse())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns true when the deduplicator name matches", func() {
-				Expect(deduplicator.New(dataSet)).To(BeTrue())
+				Expect(deduplicator.New(context.Background(), dataSet)).To(BeTrue())
 			})
 		})
 
 		Context("Get", func() {
 			It("returns an error when the data set is missing", func() {
-				found, err := deduplicator.Get(nil)
+				found, err := deduplicator.Get(context.Background(), nil)
 				Expect(err).To(MatchError("data set is missing"))
 				Expect(found).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator is missing", func() {
 				dataSet.Deduplicator = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name is missing", func() {
 				dataSet.Deduplicator.Name = nil
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns false when the deduplicator name does not match", func() {
 				dataSet.Deduplicator.Name = pointer.FromString(netTest.RandomReverseDomain())
-				Expect(deduplicator.Get(dataSet)).To(BeFalse())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeFalse())
 			})
 
 			It("returns true when the deduplicator name matches", func() {
-				Expect(deduplicator.Get(dataSet)).To(BeTrue())
+				Expect(deduplicator.Get(context.Background(), dataSet)).To(BeTrue())
 			})
 		})
 
@@ -161,7 +161,7 @@ var _ = Describe("Base", func() {
 					Expect(result).To(BeNil())
 				})
 
-				When("update data set is invoked", func() {
+				When("UpdateDataSet is invoked", func() {
 					var update *data.DataSetUpdate
 
 					BeforeEach(func() {
@@ -337,7 +337,7 @@ var _ = Describe("Base", func() {
 					Expect(deduplicator.Close(ctx, repository, nil)).To(MatchError("data set is missing"))
 				})
 
-				When("update data set is invoked", func() {
+				When("UpdateDataSet is invoked", func() {
 					AfterEach(func() {
 						Expect(repository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})

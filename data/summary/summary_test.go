@@ -2,795 +2,910 @@ package summary_test
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/data"
+	dataStore "github.com/tidepool-org/platform/data/store"
+	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
+	dataStoreSummary "github.com/tidepool-org/platform/data/summary/store"
+	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/data/test"
+	baseDatum "github.com/tidepool-org/platform/data/types"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/data/types/food"
+	"github.com/tidepool-org/platform/data/types/upload"
+	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	dataTypesBloodGlucoseTest "github.com/tidepool-org/platform/data/types/blood/glucose/test"
 	"github.com/tidepool-org/platform/pointer"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-const (
-	veryLowBloodGlucose  = 3.0
-	lowBloodGlucose      = 3.9
-	highBloodGlucose     = 10.0
-	veryHighBloodGlucose = 13.9
-	units                = "mmol/L"
-	requestedAvgGlucose  = 7.0
-)
+const units = "mmol/L"
 
-func NewContinuous(units *string, datumTime *time.Time, deviceID *string) *continuous.Continuous {
-	datum := continuous.New()
-	datum.Glucose = *dataTypesBloodGlucoseTest.NewGlucose(units)
-	datum.Type = "cbg"
+func NewDataSet(userID string, typ string) *upload.Upload {
+	var deviceId = "SummaryTestDevice"
+	var timestamp = time.Now().UTC().Truncate(time.Millisecond)
+
+	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet.DataSetType = &typ
+	dataSet.Active = true
+	dataSet.ArchivedDataSetID = nil
+	dataSet.ArchivedTime = nil
+	dataSet.CreatedTime = &timestamp
+	dataSet.CreatedUserID = nil
+	dataSet.DeletedTime = nil
+	dataSet.DeletedUserID = nil
+	dataSet.DeviceID = &deviceId
+	dataSet.Location.GPS.Origin.Time = nil
+	dataSet.ModifiedTime = &timestamp
+	dataSet.ModifiedUserID = nil
+	dataSet.Origin.Time = nil
+	dataSet.UserID = &userID
+	return dataSet
+}
+
+func NewDataSetData(typ string, userId string, startTime time.Time, hours float64, glucoseValue float64) []mongo.WriteModel {
+	requiredRecords := int(hours * 1)
+	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+	var uploadId = test.RandomSetID()
+	var deviceId = "SummaryTestDevice"
+
+	for count := 0; count < requiredRecords; count++ {
+		datumTime := startTime.Add(time.Duration(-(count + 1)) * time.Minute * 60)
+		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, uploadId, glucoseValue)
+		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
+	}
+	return dataSetData
+}
+
+func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTime time.Time, hours float64, realtime bool) []mongo.WriteModel {
+	requiredRecords := int(hours * 2)
+
+	var dataSetData = make([]mongo.WriteModel, requiredRecords)
+	var glucoseValue = 5.0
+	var deviceId = "SummaryTestDevice"
+
+	// generate X hours of data
+	for count := 0; count < requiredRecords; count += 1 {
+		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
+
+		datum := NewGlucose(typ, units, &datumTime, deviceId, userId, uploadId, glucoseValue)
+		datum.Value = pointer.FromFloat64(glucoseValue)
+
+		if realtime {
+			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+			datum.ModifiedTime = pointer.FromAny(datumTime.Add(10 * time.Minute))
+		}
+
+		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
+	}
+
+	return dataSetData
+}
+
+func NewDatum(typ string) *baseDatum.Base {
+	datum := baseDatum.New(typ)
+	datum.Time = pointer.FromAny(time.Now().UTC())
+	datum.Active = true
+	Expect(datum.GetType()).To(Equal(typ))
+	return &datum
+}
+
+func NewOldDatum(typ string) *baseDatum.Base {
+	datum := NewDatum(typ)
+	datum.Active = true
+	datum.Time = pointer.FromAny(time.Now().UTC().AddDate(0, -24, -1))
+	return datum
+}
+
+func NewNewDatum(typ string) *baseDatum.Base {
+	datum := NewDatum(typ)
+	datum.Active = true
+	datum.Time = pointer.FromAny(time.Now().UTC().AddDate(0, 0, 2))
+	return datum
+}
+
+func NewGlucose(typ string, units string, datumTime *time.Time, deviceID string, userID string, uploadId string, value float64) *glucose.Glucose {
+	timestamp := time.Now().UTC().Truncate(time.Millisecond)
+
+	datum := glucose.New(typ)
+	datum.Units = &units
 
 	datum.Active = true
 	datum.ArchivedDataSetID = nil
 	datum.ArchivedTime = nil
-	datum.CreatedTime = nil
+	datum.CreatedTime = &timestamp
 	datum.CreatedUserID = nil
 	datum.DeletedTime = nil
 	datum.DeletedUserID = nil
-	datum.DeviceID = deviceID
-	datum.ModifiedTime = nil
+	datum.DeviceID = &deviceID
+	datum.ModifiedTime = &timestamp
 	datum.ModifiedUserID = nil
 	datum.Time = datumTime
+	datum.UserID = &userID
+	datum.Value = &value
+	datum.UploadID = &uploadId
 
-	return datum
-}
-
-func NewDataSetCGMDataAvg(deviceID string, startTime time.Time, days float64, reqAvg float64) []*continuous.Continuous {
-	requiredRecords := int(days * 288)
-
-	var dataSetData = make([]*continuous.Continuous, requiredRecords)
-
-	// generate X days of data
-	for count := 0; count < requiredRecords; count += 2 {
-		randValue := 1 + rand.Float64()*(reqAvg-1)
-		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
-
-		// this adds 2 entries, one for each side of the average so that the calculated average is the requested value
-		for i, glucoseValue := range glucoseValues {
-			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
-
-			datum := NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
-			datum.Glucose.Value = pointer.FromFloat64(glucoseValue)
-
-			dataSetData[requiredRecords-count-i-1] = datum
-		}
-	}
-
-	return dataSetData
-}
-
-type DataRanges struct {
-	Min      float64
-	Max      float64
-	Padding  float64
-	VeryLow  float64
-	Low      float64
-	High     float64
-	VeryHigh float64
-}
-
-func NewDataRanges() DataRanges {
-	return DataRanges{
-		Min:      1,
-		Max:      20,
-		Padding:  0.01,
-		VeryLow:  veryLowBloodGlucose,
-		Low:      lowBloodGlucose,
-		High:     highBloodGlucose,
-		VeryHigh: veryHighBloodGlucose,
-	}
-}
-
-func NewDataRangesSingle(value float64) DataRanges {
-	return DataRanges{
-		Min:      value,
-		Max:      value,
-		Padding:  0,
-		VeryLow:  value,
-		Low:      value,
-		High:     value,
-		VeryHigh: value,
-	}
-}
-
-// creates a dataset with random values evenly divided between ranges
-// NOTE: only generates 98.9% CGMUse, due to needing to be divisible by 5
-func NewDataSetCGMDataRanges(deviceID string, startTime time.Time, days float64, ranges DataRanges) []*continuous.Continuous {
-	requiredRecords := int(days * 285)
-
-	var dataSetData = make([]*continuous.Continuous, requiredRecords)
-
-	glucoseBrackets := [5][2]float64{
-		{ranges.Min, ranges.VeryLow - ranges.Padding},
-		{ranges.VeryLow, ranges.Low - ranges.Padding},
-		{ranges.Low, ranges.High - ranges.Padding},
-		{ranges.High, ranges.VeryHigh - ranges.Padding},
-		{ranges.VeryHigh, ranges.Max},
-	}
-
-	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += 5 {
-		for i, bracket := range glucoseBrackets {
-			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
-
-			datum := NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
-			datum.Glucose.Value = pointer.FromFloat64(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
-
-			dataSetData[requiredRecords-count-i-1] = datum
-		}
-	}
-
-	return dataSetData
+	return &datum
 }
 
 var _ = Describe("Summary", func() {
-	var ctx context.Context
-	var logger *logTest.Logger
-	var userID string
-	var datumTime time.Time
-	var deviceID string
-	var err error
-	var dataSetCGMData []*continuous.Continuous
+	Context("MaybeUpdateSummary", func() {
+		var empty struct{}
+		var logger log.Logger
+		var ctx context.Context
+		var registry *summary.SummarizerRegistry
+		var store *dataStoreMongo.Store
+		var summaryRepository *storeStructuredMongo.Repository
+		var dataStore dataStore.DataRepository
+		var userId string
+		var cgmStore *dataStoreSummary.Repo[*types.CGMStats, types.CGMStats]
+		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
+		var continuousStore *dataStoreSummary.Repo[*types.ContinuousStats, types.ContinuousStats]
 
-	BeforeEach(func() {
-		logger = logTest.NewLogger()
-		ctx = log.NewContextWithLogger(context.Background(), logger)
-		userID = userTest.RandomID()
-		deviceID = "SummaryTestDevice"
-		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+
+			store = GetSuiteStore()
+
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			dataStore = store.NewDataRepository()
+			registry = summary.New(summaryRepository, dataStore)
+			userId = userTest.RandomID()
+
+			cgmStore = dataStoreSummary.New[*types.CGMStats](summaryRepository)
+			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
+			continuousStore = dataStoreSummary.New[*types.ContinuousStats](summaryRepository)
+		})
+
+		It("with all summary types outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"cgm":        empty,
+				"bgm":        empty,
+				"continuous": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(HaveLen(3))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
+
+			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeCGM]))
+
+			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
+		})
+
+		It("with cgm summary type outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"cgm": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(HaveLen(1))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeCGM))
+
+			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeCGM]))
+
+			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userBgmSummary).To(BeNil())
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userContinuousSummary).To(BeNil())
+		})
+
+		It("with bgm summary type outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"bgm": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(HaveLen(1))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeBGM))
+
+			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userCgmSummary).To(BeNil())
+
+			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeBGM]))
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userContinuousSummary).To(BeNil())
+		})
+
+		It("with continuous summary type outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"continuous": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(HaveLen(1))
+			Expect(outdatedSinceMap).To(HaveKey(types.SummaryTypeContinuous))
+
+			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userCgmSummary).To(BeNil())
+
+			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userBgmSummary).To(BeNil())
+
+			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[types.SummaryTypeContinuous]))
+		})
+
+		It("with unknown summary type outdated", func() {
+			updatesSummary := map[string]struct{}{
+				"food": empty,
+			}
+
+			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, types.OutdatedReasonDataAdded)
+			Expect(outdatedSinceMap).To(BeEmpty())
+		})
 	})
 
-	Context("GetDuration", func() {
-		var libreDatum *continuous.Continuous
-		var otherDatum *continuous.Continuous
+	Context("CheckDatumUpdatesSummary", func() {
+		It("with non-summary type", func() {
+			var updatesSummary map[string]struct{}
+			datum := NewDatum(food.Type)
 
-		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
-			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
-
-			duration := summary.GetDuration(libreDatum)
-			Expect(duration).To(Equal(15))
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(BeEmpty())
 		})
 
-		It("Returns correct duration for other devices", func() {
-			otherDatum = NewContinuous(pointer.FromString(units), &datumTime, &deviceID)
+		It("with too old summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewOldDatum(continuous.Type)
 
-			duration := summary.GetDuration(otherDatum)
-			Expect(duration).To(Equal(5))
-		})
-	})
-
-	Context("CalculateGMI", func() {
-		// input and output examples sourced from https://diabetesjournals.org/care/article/41/11/2275/36593/
-		It("Returns correct GMI for medical example 1", func() {
-			gmi := summary.CalculateGMI(5.55)
-			Expect(gmi).To(Equal(5.7))
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(0))
 		})
 
-		It("Returns correct GMI for medical example 2", func() {
-			gmi := summary.CalculateGMI(6.9375)
-			Expect(gmi).To(Equal(6.3))
+		It("with future summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewNewDatum(continuous.Type)
+
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(0))
 		})
 
-		It("Returns correct GMI for medical example 3", func() {
-			gmi := summary.CalculateGMI(8.325)
-			Expect(gmi).To(Equal(6.9))
+		It("with CGM summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewDatum(continuous.Type)
+
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(2))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeCGM))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
 		})
 
-		It("Returns correct GMI for medical example 4", func() {
-			gmi := summary.CalculateGMI(9.722)
-			Expect(gmi).To(Equal(7.5))
+		It("with BGM summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewDatum(selfmonitored.Type)
+
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(2))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeBGM))
+			Expect(updatesSummary).To(HaveKey(types.SummaryTypeContinuous))
 		})
 
-		It("Returns correct GMI for medical example 5", func() {
-			gmi := summary.CalculateGMI(11.11)
-			Expect(gmi).To(Equal(8.1))
+		It("with inactive BGM summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewDatum(selfmonitored.Type)
+			datum.Active = false
+
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(0))
 		})
 
-		It("Returns correct GMI for medical example 6", func() {
-			gmi := summary.CalculateGMI(12.4875)
-			Expect(gmi).To(Equal(8.7))
-		})
+		It("with inactive CGM summary affecting record", func() {
+			updatesSummary := make(map[string]struct{})
+			datum := NewDatum(continuous.Type)
+			datum.Active = false
 
-		It("Returns correct GMI for medical example 7", func() {
-			gmi := summary.CalculateGMI(13.875)
-			Expect(gmi).To(Equal(9.3))
-		})
-
-		It("Returns correct GMI for medical example 8", func() {
-			gmi := summary.CalculateGMI(15.2625)
-			Expect(gmi).To(Equal(9.9))
-		})
-
-		It("Returns correct GMI for medical example 9", func() {
-			gmi := summary.CalculateGMI(16.65)
-			Expect(gmi).To(Equal(10.5))
-		})
-
-		It("Returns correct GMI for medical example 10", func() {
-			gmi := summary.CalculateGMI(19.425)
-			Expect(gmi).To(Equal(11.7))
+			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			Expect(updatesSummary).To(HaveLen(0))
 		})
 	})
 
-	Context("Summary calculations requiring datasets", func() {
-		var userSummary *summary.Summary
-		Context("CalculateStats", func() {
-			It("Returns correct day count when given 2 weeks", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
+	Context("BackfillSummaries", func() {
+		var err error
+		var logger log.Logger
+		var ctx context.Context
+		var store *dataStoreMongo.Store
+		var dataCollection *mongo.Collection
+		var datumTime time.Time
+		var deviceData []mongo.WriteModel
+		var opts *options.BulkWriteOptions
+		var registry *summary.SummarizerRegistry
+		var dataStore dataStore.DataRepository
+		var summaryRepository *storeStructuredMongo.Repository
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
 
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(14))
-			})
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+			store = GetSuiteStore()
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correct day count when given 1 week", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 7, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(7))
-			})
-
-			It("Returns correct day count when given 3 weeks", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 21, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(14))
-			})
-
-			It("Returns correct stats when given 1 week, then 1 week more than 2 weeks ahead", func() {
-				var lastRecordTime time.Time
-				secondDatumTime := datumTime.AddDate(0, 0, 15)
-				secondRequestedAvgGlucose := requestedAvgGlucose - 4
-				userSummary = summary.New(userID)
-
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 7, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(7))
-
-				By("check total glucose and dates for first batch")
-				for i := 0; i < 7; i++ {
-					Expect(userSummary.DailyStats[i].TotalGlucose).To(Equal(requestedAvgGlucose * 288))
-
-					lastRecordTime = datumTime.Add(-((time.Hour * 24 * time.Duration(6-i)) + time.Minute*5))
-					Expect(userSummary.DailyStats[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, secondDatumTime, 7, secondRequestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(7))
-
-				By("check total glucose and dates for second batch")
-				for i := 0; i < 7; i++ {
-					Expect(userSummary.DailyStats[i].TotalGlucose).To(Equal(secondRequestedAvgGlucose * 288))
-
-					lastRecordTime = secondDatumTime.Add(-((time.Hour * 24 * time.Duration(6-i)) + time.Minute*5))
-					Expect(userSummary.DailyStats[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-			})
-
-			It("Returns correct stats when given multiple batches in a day", func() {
-				var incrementalDatumTime time.Time
-				userSummary = summary.New(userID)
-
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 6, requestedAvgGlucose)
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(6))
-
-				for i := 1; i <= 24; i++ {
-					incrementalDatumTime = datumTime.Add(time.Duration(i) * time.Hour)
-					dataSetCGMData = NewDataSetCGMDataAvg(deviceID, incrementalDatumTime, float64(12)/float64(288), float64(i))
-
-					err = userSummary.CalculateStats(dataSetCGMData)
-
-					Expect(err).ToNot(HaveOccurred())
-					Expect(len(userSummary.DailyStats)).To(Equal(7))
-					Expect(userSummary.DailyStats[6].TotalCGMRecords).To(Equal(12 * i))
-				}
-
-				for i := 0; i < 6; i++ {
-					f := fmt.Sprintf("day %d", i)
-					By(f)
-					Expect(userSummary.DailyStats[i].TotalCGMRecords).To(Equal(288))
-					Expect(userSummary.DailyStats[i].TotalCGMMinutes).To(Equal(1440))
-
-					lastRecordTime := datumTime.Add(-((time.Hour * 24 * time.Duration(5-i)) + time.Minute*5))
-					Expect(userSummary.DailyStats[i].LastRecordTime).To(Equal(lastRecordTime))
-					Expect(userSummary.DailyStats[i].TotalGlucose).To(Equal(requestedAvgGlucose * 288))
-				}
-
-				// check last day
-				Expect(userSummary.DailyStats[6].TotalCGMRecords).To(Equal(288))
-
-				averageGlucose := userSummary.DailyStats[6].TotalGlucose / float64(userSummary.DailyStats[6].TotalCGMRecords)
-				Expect(averageGlucose).To(Equal(12.5)) // (1+24)/2
-			})
-
-			It("Returns correct daily stats for days with different averages", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMDataOne := NewDataSetCGMDataAvg(deviceID, datumTime.AddDate(0, 0, -2), 1, requestedAvgGlucose)
-				dataSetCGMDataTwo := NewDataSetCGMDataAvg(deviceID, datumTime.AddDate(0, 0, -1), 1, requestedAvgGlucose+1)
-				dataSetCGMDataThree := NewDataSetCGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose+2)
-				dataSetCGMData = append(dataSetCGMDataOne, dataSetCGMDataTwo...)
-				dataSetCGMData = append(dataSetCGMData, dataSetCGMDataThree...)
-
-				err = userSummary.CalculateStats(dataSetCGMData)
-
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(len(userSummary.DailyStats)).To(Equal(3))
-
-				for i := 0; i < 3; i++ {
-					f := fmt.Sprintf("day %d", i)
-					By(f)
-					Expect(userSummary.DailyStats[i].TotalCGMRecords).To(Equal(288))
-					Expect(userSummary.DailyStats[i].TotalCGMMinutes).To(Equal(1440))
-
-					lastRecordTime := datumTime.Add(-((time.Hour * 24 * time.Duration(2-i)) + time.Minute*5))
-					Expect(userSummary.DailyStats[i].LastRecordTime).To(Equal(lastRecordTime))
-
-					Expect(userSummary.DailyStats[i].TotalGlucose).To(Equal((requestedAvgGlucose + float64(i)) * 288))
-				}
-			})
-
-			It("Returns correct daily stats for days with different Time in Range", func() {
-				userSummary = summary.New(userID)
-				veryLowRange := NewDataRangesSingle(veryLowBloodGlucose - 0.5)
-				lowRange := NewDataRangesSingle(lowBloodGlucose - 0.5)
-				inRange := NewDataRangesSingle((highBloodGlucose + lowBloodGlucose) / 2)
-				highRange := NewDataRangesSingle(highBloodGlucose + 0.5)
-				veryHighRange := NewDataRangesSingle(veryHighBloodGlucose + 0.5)
-
-				dataSetCGMDataOne := NewDataSetCGMDataRanges(deviceID, datumTime.AddDate(0, 0, -4), 1, veryLowRange)
-				dataSetCGMDataTwo := NewDataSetCGMDataRanges(deviceID, datumTime.AddDate(0, 0, -3), 1, lowRange)
-				dataSetCGMDataThree := NewDataSetCGMDataRanges(deviceID, datumTime.AddDate(0, 0, -2), 1, inRange)
-				dataSetCGMDataFour := NewDataSetCGMDataRanges(deviceID, datumTime.AddDate(0, 0, -1), 1, highRange)
-				dataSetCGMDataFive := NewDataSetCGMDataRanges(deviceID, datumTime.AddDate(0, 0, 0), 1, veryHighRange)
-
-				// we do this a different way (multiple calls) than the last unit test for extra pattern coverage
-				err = userSummary.CalculateStats(dataSetCGMDataOne)
-				Expect(err).ToNot(HaveOccurred())
-				err = userSummary.CalculateStats(dataSetCGMDataTwo)
-				Expect(err).ToNot(HaveOccurred())
-				err = userSummary.CalculateStats(dataSetCGMDataThree)
-				Expect(err).ToNot(HaveOccurred())
-				err = userSummary.CalculateStats(dataSetCGMDataFour)
-				Expect(err).ToNot(HaveOccurred())
-				err = userSummary.CalculateStats(dataSetCGMDataFive)
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(len(userSummary.DailyStats)).To(Equal(5))
-
-				By("check record counters for insurance")
-				for i := 0; i < 5; i++ {
-					f := fmt.Sprintf("day %d", i)
-					By(f)
-					Expect(userSummary.DailyStats[i].TotalCGMRecords).To(Equal(285))
-					Expect(userSummary.DailyStats[i].TotalCGMMinutes).To(Equal(1425))
-
-					lastRecordTime := datumTime.Add(-((time.Hour * 24 * time.Duration(4-i)) + time.Minute*5))
-					Expect(userSummary.DailyStats[i].LastRecordTime).To(Equal(lastRecordTime))
-				}
-
-				By("very low minutes")
-				Expect(userSummary.DailyStats[0].VeryLowMinutes).To(Equal(1425))
-				Expect(userSummary.DailyStats[0].LowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[0].TargetMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[0].HighMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[0].VeryHighMinutes).To(Equal(0))
-
-				By("very low records")
-				Expect(userSummary.DailyStats[0].VeryLowRecords).To(Equal(285))
-				Expect(userSummary.DailyStats[0].LowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[0].TargetRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[0].HighRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[0].VeryHighRecords).To(Equal(0))
-
-				By("low minutes")
-				Expect(userSummary.DailyStats[1].VeryLowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[1].LowMinutes).To(Equal(1425))
-				Expect(userSummary.DailyStats[1].TargetMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[1].HighMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[1].VeryHighMinutes).To(Equal(0))
-
-				By("low records")
-				Expect(userSummary.DailyStats[1].VeryLowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[1].LowRecords).To(Equal(285))
-				Expect(userSummary.DailyStats[1].TargetRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[1].HighRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[1].VeryHighRecords).To(Equal(0))
-
-				By("in-range minutes")
-				Expect(userSummary.DailyStats[2].VeryLowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[2].LowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[2].TargetMinutes).To(Equal(1425))
-				Expect(userSummary.DailyStats[2].HighMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[2].VeryHighMinutes).To(Equal(0))
-
-				By("in-range records")
-				Expect(userSummary.DailyStats[2].VeryLowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[2].LowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[2].TargetRecords).To(Equal(285))
-				Expect(userSummary.DailyStats[2].HighRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[2].VeryHighRecords).To(Equal(0))
-
-				By("high minutes")
-				Expect(userSummary.DailyStats[3].VeryLowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[3].LowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[3].TargetMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[3].HighMinutes).To(Equal(1425))
-				Expect(userSummary.DailyStats[3].VeryHighMinutes).To(Equal(0))
-
-				By("high records")
-				Expect(userSummary.DailyStats[3].VeryLowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[3].LowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[3].TargetRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[3].HighRecords).To(Equal(285))
-				Expect(userSummary.DailyStats[3].VeryHighRecords).To(Equal(0))
-
-				By("very high minutes")
-				Expect(userSummary.DailyStats[4].VeryLowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[4].LowMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[4].TargetMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[4].HighMinutes).To(Equal(0))
-				Expect(userSummary.DailyStats[4].VeryHighMinutes).To(Equal(1425))
-
-				By("very high records")
-				Expect(userSummary.DailyStats[4].VeryLowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[4].LowRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[4].TargetRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[4].HighRecords).To(Equal(0))
-				Expect(userSummary.DailyStats[4].VeryHighRecords).To(Equal(285))
-			})
+			dataCollection = store.GetCollection("deviceData")
+			datumTime = time.Now().UTC().Truncate(time.Hour)
+			opts = options.BulkWrite().SetOrdered(false)
+			dataStore = store.NewDataRepository()
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			registry = summary.New(summaryRepository, dataStore)
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
 		})
 
-		Context("StoreWinningStats", func() {
-			It("Stores the right stats with competing devices", func() {
-				stats := make(map[string]*summary.Stats)
-				userSummary = summary.New(userID)
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
 
-				stats["worst"] = &summary.Stats{
-					DeviceID:        "worse",
-					TotalCGMMinutes: 100,
-				}
-				stats["best"] = &summary.Stats{
-					DeviceID:        "best",
-					TotalCGMMinutes: 1000,
-				}
-				stats["worst"] = &summary.Stats{
-					DeviceID:        "worst",
-					TotalCGMMinutes: 10,
-				}
-
-				err = userSummary.StoreWinningStats(stats)
-
-				Expect(userSummary.DailyStats[0].DeviceID).To(Equal("best"))
-			})
-
-			// stateful cases are checked as part of the CalculateSummary, as there is already
-			// heavy state created for those, and the process is relatively heavy.
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("CalculateSummary", func() {
-			It("Returns correct time in range for stats", func() {
-				userSummary = summary.New(userID)
-				ranges := NewDataRanges()
-				dataSetCGMData = NewDataSetCGMDataRanges(deviceID, datumTime, 14, ranges)
+		It("backfill continuous summaries", func() {
+			userIdOne := userTest.RandomID()
+			userIdTwo := userTest.RandomID()
 
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(14))
+			deviceData = NewDataSetData(continuous.Type, userIdOne, datumTime, 2, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.CalculateSummary()
-				Expect(err).ToNot(HaveOccurred())
+			deviceData = NewDataSetData(selfmonitored.Type, userIdTwo, datumTime, 2, 5)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				Expect(*userSummary.TotalDays).To(Equal(14))
+			count, err := continuousSummarizer.BackfillSummaries(ctx)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(2))
 
-				Expect(*userSummary.Periods["14d"].TimeInTargetPercent).To(Equal(0.200))
-				Expect(*userSummary.Periods["14d"].TimeInTargetMinutes).To(Equal(3990))
-				Expect(*userSummary.Periods["14d"].TimeInTargetRecords).To(Equal(798))
+			userSummary, err := continuousSummarizer.GetSummary(ctx, userIdOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary.UserID).To(Equal(userIdOne))
+			Expect(userSummary.Type).To(Equal(types.SummaryTypeContinuous))
 
-				Expect(*userSummary.Periods["14d"].TimeInVeryLowPercent).To(Equal(0.200))
-				Expect(*userSummary.Periods["14d"].TimeInVeryLowMinutes).To(Equal(3990))
-				Expect(*userSummary.Periods["14d"].TimeInVeryLowRecords).To(Equal(798))
+			userSummary, err = continuousSummarizer.GetSummary(ctx, userIdTwo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary.UserID).To(Equal(userIdTwo))
+			Expect(userSummary.Type).To(Equal(types.SummaryTypeContinuous))
+		})
+	})
 
-				Expect(*userSummary.Periods["14d"].TimeInLowPercent).To(Equal(0.200))
-				Expect(*userSummary.Periods["14d"].TimeInLowMinutes).To(Equal(3990))
-				Expect(*userSummary.Periods["14d"].TimeInLowRecords).To(Equal(798))
+	Context("end to end summary calculation", func() {
+		var err error
+		var logger log.Logger
+		var ctx context.Context
+		var registry *summary.SummarizerRegistry
+		var store *dataStoreMongo.Store
+		var summaryRepository *storeStructuredMongo.Repository
+		var dataStore dataStore.DataRepository
+		var userId string
+		//var cgmStore *dataStoreSummary.Repo[types.CGMStats, *types.CGMStats]
+		var bgmStore *dataStoreSummary.Repo[*types.BGMStats, types.BGMStats]
+		var cgmSummarizer summary.Summarizer[*types.CGMStats, types.CGMStats]
+		var bgmSummarizer summary.Summarizer[*types.BGMStats, types.BGMStats]
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
+		var dataCollection *mongo.Collection
+		var datumTime time.Time
+		var deviceData []mongo.WriteModel
 
-				Expect(*userSummary.Periods["14d"].TimeInHighPercent).To(Equal(0.200))
-				Expect(*userSummary.Periods["14d"].TimeInHighMinutes).To(Equal(3990))
-				Expect(*userSummary.Periods["14d"].TimeInHighRecords).To(Equal(798))
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
 
-				Expect(*userSummary.Periods["14d"].TimeInVeryHighPercent).To(Equal(0.200))
-				Expect(*userSummary.Periods["14d"].TimeInVeryHighMinutes).To(Equal(3990))
-				Expect(*userSummary.Periods["14d"].TimeInVeryHighRecords).To(Equal(798))
+			store = GetSuiteStore()
 
-				// ranges calc only generates 98.9% of a day, count needs to be divisible by 5
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.989, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(19950))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(3990))
-			})
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			dataCollection = store.GetCollection("deviceData")
+			dataStore = store.NewDataRepository()
+			registry = summary.New(summaryRepository, dataStore)
+			userId = userTest.RandomID()
 
-			It("Returns correct average glucose for stats", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
-				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+			//cgmStore = dataStoreSummary.New[types.CGMStats, *types.CGMStats](summaryRepository)
+			bgmStore = dataStoreSummary.New[*types.BGMStats](summaryRepository)
 
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(14))
+			cgmSummarizer = summary.GetSummarizer[*types.CGMStats](registry)
+			bgmSummarizer = summary.GetSummarizer[*types.BGMStats](registry)
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
 
-				err = userSummary.CalculateSummary()
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(Equal(expectedGMI))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(20160))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(4032))
-			})
-
-			It("Correctly removes GMI when CGM use drop below 0.7", func() {
-				userSummary = summary.New(userID)
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
-				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
-
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(14))
-
-				err = userSummary.CalculateSummary()
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(Equal(expectedGMI))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(20160))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(4032))
-
-				// start the real test
-				dataSetCGMData = NewDataSetCGMDataAvg(deviceID, datumTime.AddDate(0, 0, 20), 1, requestedAvgGlucose)
-
-				err = userSummary.CalculateStats(dataSetCGMData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userSummary.DailyStats)).To(Equal(1))
-
-				err = userSummary.CalculateSummary()
-				Expect(err).ToNot(HaveOccurred())
-
-				Expect(*userSummary.TotalDays).To(Equal(1))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(Equal(requestedAvgGlucose))
-				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.0714, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseMinutes).To(Equal(1440))
-				Expect(*userSummary.Periods["14d"].TimeCGMUseRecords).To(Equal(288))
-			})
-
+			datumTime = time.Now().UTC().Truncate(time.Hour)
 		})
 
-		Context("Update", func() {
-			var userData []*continuous.Continuous
-			var status *summary.UserLastUpdated
-			var newDatumTime time.Time
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correctly calculated summary with no rolling", func() {
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
-				userSummary = summary.New(userID)
-				userSummary.OutdatedSince = &datumTime
-				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+		})
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+		It("repeat out of order cgm summary calc", func() {
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correctly calculated summary with rolling <100% cgm use", func() {
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 7, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 7)
-				userSummary.OutdatedSince = &datumTime
-				expectedGMI := summary.CalculateGMI(requestedAvgGlucose)
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(5*time.Hour), 5, 10)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(7))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.001))
-				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
-				Expect(userSummary.OutdatedSince).To(BeNil())
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(10))
 
-				// start the actual test
-				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
-				userSummary.OutdatedSince = &datumTime
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(15*time.Hour), 5, 2)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				status = &summary.UserLastUpdated{
-					LastData:   newDatumTime,
-					LastUpload: newDatumTime,
-				}
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(20))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(15))
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(20*time.Hour), 5, 7)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correctly calculated summary with rolling 100% cgm use", func() {
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 7)
-				userSummary.OutdatedSince = &datumTime
-				expectedGMIFirst := summary.CalculateGMI(requestedAvgGlucose - 4)
-				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose)
+			deviceData = NewDataSetData("cbg", userId, datumTime.Add(23*time.Hour), 2, 7)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(28))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(22))
+		})
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMIFirst, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
+		It("repeat out of order bgm summary calc", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
 
-				// start the actual test
-				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
-				userSummary.OutdatedSince = &datumTime
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				status = &summary.UserLastUpdated{
-					LastData:   newDatumTime,
-					LastUpload: newDatumTime,
-				}
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(5*time.Hour), 5, 10)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-			It("Returns correctly non-rolling summary with two 2 week sets", func() {
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 1, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 14)
-				userSummary.OutdatedSince = &datumTime
-				expectedGMISecond := summary.CalculateGMI(requestedAvgGlucose + 4)
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(10))
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(15*time.Hour), 5, 2)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(1))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.07142, 0.001))
-				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
-				Expect(userSummary.OutdatedSince).To(BeNil())
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(20))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(15))
 
-				// start the actual test
-				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 14, requestedAvgGlucose+4)
-				userSummary.OutdatedSince = &datumTime
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(20*time.Hour), 5, 7)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				status = &summary.UserLastUpdated{
-					LastData:   newDatumTime,
-					LastUpload: newDatumTime,
-				}
+			deviceData = NewDataSetData("smbg", userId, datumTime.Add(23*time.Hour), 2, 7)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMISecond, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(28))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(22))
+		})
 
-			It("Returns correctly calculated summary with rolling dropping cgm use", func() {
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose-4)
-				userSummary = summary.New(userID)
-				newDatumTime = datumTime.AddDate(0, 0, 15)
-				userSummary.OutdatedSince = &datumTime
-				expectedGMI := summary.CalculateGMI(requestedAvgGlucose - 4)
+		It("summary calc with very old data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+			deviceData = NewDataSetData("smbg", userId, datumTime.AddDate(-3, 0, 0), 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(14))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose-4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 1.0, 0.001))
-				Expect(*userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNumerically("~", expectedGMI, 0.001))
-				Expect(userSummary.OutdatedSince).To(BeNil())
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).To(BeNil())
+		})
 
-				// start the actual test
-				userData = NewDataSetCGMDataAvg(deviceID, newDatumTime, 7, requestedAvgGlucose+4)
-				userSummary.OutdatedSince = &datumTime
+		It("summary calc with jellyfish created summary", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
 
-				status = &summary.UserLastUpdated{
-					LastData:   newDatumTime,
-					LastUpload: newDatumTime,
-				}
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(7))
-				Expect(*userSummary.Periods["14d"].AverageGlucose.Value).To(BeNumerically("~", requestedAvgGlucose+4, 0.001))
-				Expect(*userSummary.Periods["14d"].TimeCGMUsePercent).To(BeNumerically("~", 0.5, 0.001))
-				Expect(userSummary.Periods["14d"].GlucoseManagementIndicator).To(BeNil())
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			summaries := make([]*types.Summary[*types.BGMStats, types.BGMStats], 1)
 
-			It("Returns correctly calculated summary with userData records before summary LastData", func() {
-				summaryLastData := datumTime.AddDate(0, 0, -7)
-				userData = NewDataSetCGMDataAvg(deviceID, datumTime, 14, requestedAvgGlucose)
-				userSummary = summary.New(userID)
-				userSummary.OutdatedSince = &datumTime
-				userSummary.LastData = &summaryLastData
+			// we don't use types.Create as we want to create a sparse jellyfish style upsert
+			summaries[0] = &types.Summary[*types.BGMStats, types.BGMStats]{
+				Type:   types.SummaryTypeBGM,
+				UserID: userId,
+				Dates: types.Dates{
+					OutdatedSince:    &time.Time{},
+					HasOutdatedSince: true,
+					OutdatedReason:   []string{"LEGACY_DATA_ADDED"},
+				},
+			}
 
-				status = &summary.UserLastUpdated{
-					LastData:   datumTime,
-					LastUpload: datumTime,
-				}
+			count, err := bgmStore.CreateSummaries(ctx, summaries)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(1))
 
-				err = userSummary.Update(ctx, status, userData)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(*userSummary.TotalDays).To(Equal(7))
-				Expect(userSummary.OutdatedSince).To(BeNil())
-			})
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(5))
+			Expect(*userSummary.Stats.Periods["7d"].TotalRecords).To(Equal(5))
+			Expect(userSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", types.OutdatedReasonSchemaMigration))
+		})
+
+		It("summary calc with no data correctly deletes summaries", func() {
+			var cgmSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			var bgmSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			var t *time.Time
+
+			// create bgm summary
+			t, err = bgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+
+			// check that it exists in the db
+			bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+			Expect(bgmSummary.Dates.OutdatedSince).To(Equal(t))
+
+			// create cgm summary
+			t, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+			// check that it exists in the db
+			cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).ToNot(BeNil())
+			Expect(cgmSummary.Dates.OutdatedSince).To(Equal(t))
+
+			// update bgm summary, which should delete it
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).To(BeNil())
+
+			// confirm its truly gone
+			bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).To(BeNil())
+
+			// update cgm summary, which should delete it
+			cgmSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).To(BeNil())
+
+			// confirm its truly gone
+			cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cgmSummary).To(BeNil())
+		})
+
+		It("summary calc with no new data correctly leaves summary unchanged", func() {
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			var userSummaryNew *types.Summary[*types.CGMStats, types.CGMStats]
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetData("cbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			// update once for real
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Stats.TotalHours).To(Equal(5))
+
+			_, err = cgmSummarizer.SetOutdated(ctx, userId, types.OutdatedReasonUploadCompleted)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummaryNew, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummaryNew).ToNot(BeNil())
+
+			// ensure unchanged
+			userSummaryNew.ID = userSummary.ID
+			Expect(userSummaryNew).To(BeComparableTo(userSummary))
+		})
+
+		It("summary calc with realtime data", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+
+			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
+				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(2))
+				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(0))
+			}
+		})
+
+		It("summary calc with deferred data", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, false)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(10))
+
+			for i := 0; i < len(userSummary.Stats.Buckets); i++ {
+				Expect(userSummary.Stats.Buckets[i].Data.RealtimeRecords).To(Equal(0))
+				Expect(userSummary.Stats.Buckets[i].Data.DeferredRecords).To(Equal(2))
+			}
+		})
+
+		It("summary calc with non-continuous data", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
+		})
+
+		It("summary calc with non-continuous data multiple times", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			deferredDatumTime := time.Now().UTC().Truncate(24*time.Hour).AddDate(0, 0, -2)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeNormal)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, deferredDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(userSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
+			Expect(userSummary.Dates.OutdatedSince).To(BeNil())
+			Expect(userSummary.Dates.LastData).To(BeNil())
+			Expect(userSummary.Stats).To(BeNil())
+		})
+
+		It("continuous summary calc with >batch of realtime data", func() {
+			var userSummary *types.Summary[*types.ContinuousStats, types.ContinuousStats]
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 200, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(200))
+		})
+
+		It("bgm summary calc with >batch of data", func() {
+			var userSummary *types.Summary[*types.BGMStats, types.BGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("smbg", userId, datumTime, 350, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(350))
+		})
+
+		It("cgm summary calc with >batch of data", func() {
+			var userSummary *types.Summary[*types.CGMStats, types.CGMStats]
+			opts := options.BulkWrite().SetOrdered(false)
+
+			deviceData = NewDataSetData("cbg", userId, datumTime, 350, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			userSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(userSummary).ToNot(BeNil())
+			Expect(len(userSummary.Stats.Buckets)).To(Equal(350))
+		})
+	})
+
+	Context("PatientRealtimeDaysReporter", func() {
+		var err error
+		var logger log.Logger
+		var ctx context.Context
+		var registry *summary.SummarizerRegistry
+		var store *dataStoreMongo.Store
+		var summaryRepository *storeStructuredMongo.Repository
+		var dataStore dataStore.DataRepository
+		var userId string
+		var continuousSummarizer summary.Summarizer[*types.ContinuousStats, types.ContinuousStats]
+		var dataCollection *mongo.Collection
+		var realtimeReporter *reporters.PatientRealtimeDaysReporter
+		var deviceData []mongo.WriteModel
+
+		BeforeEach(func() {
+			logger = logTest.NewLogger()
+			ctx = log.NewContextWithLogger(context.Background(), logger)
+
+			store = GetSuiteStore()
+
+			summaryRepository = store.NewSummaryRepository().GetStore()
+			dataCollection = store.GetCollection("deviceData")
+			dataStore = store.NewDataRepository()
+			registry = summary.New(summaryRepository, dataStore)
+			userId = userTest.RandomID()
+
+			continuousSummarizer = summary.GetSummarizer[*types.ContinuousStats](registry)
+			realtimeReporter = reporters.NewReporter(registry)
+		})
+
+		AfterEach(func() {
+			_, err = summaryRepository.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = dataCollection.DeleteMany(ctx, bson.D{})
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("realtime reporter run with mix of users", func() {
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
+			userIdTwo := userTest.RandomID()
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			uploadRecord = NewDataSet(userIdTwo, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			deviceData = NewDataSetData("smbg", userIdTwo, realtimeDatumTime, 10, 5)
+			_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = continuousSummarizer.UpdateSummary(ctx, userIdTwo)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := realtimeReporter.GetRealtimeDaysForUsers(ctx, []string{userId, userIdTwo}, realtimeDatumTime.AddDate(0, -1, 0), realtimeDatumTime)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result[userId]).To(Equal(1))
+			Expect(result[userIdTwo]).To(Equal(0))
+		})
+
+		It("run with a user that doesnt have a summary at all", func() {
+			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
+			userIdTwo := userTest.RandomID()
+
+			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
+			err = dataStore.CreateDataSet(ctx, uploadRecord)
+			Expect(err).ToNot(HaveOccurred())
+
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetDataRealtime("smbg", userId, *uploadRecord.UploadID, realtimeDatumTime, 10, true)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = continuousSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+
+			result, err := realtimeReporter.GetRealtimeDaysForUsers(ctx, []string{userId, userIdTwo}, realtimeDatumTime.AddDate(0, -1, 0), realtimeDatumTime)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(result[userId]).To(Equal(1))
+			Expect(result[userIdTwo]).To(Equal(0))
 		})
 	})
 })

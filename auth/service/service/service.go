@@ -5,16 +5,20 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/twiist"
+
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+
+	dataClient "github.com/tidepool-org/platform/data/client"
+
 	"github.com/kelseyhightower/envconfig"
-
-	"github.com/tidepool-org/platform/apple"
-	"github.com/tidepool-org/platform/auth"
-
 	eventsCommon "github.com/tidepool-org/go-common/events"
-
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/appvalidate"
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/auth/client"
 	authEvents "github.com/tidepool-org/platform/auth/events"
 	"github.com/tidepool-org/platform/auth/service"
@@ -35,6 +39,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
 )
 
 type confirmationClientConfig struct {
@@ -47,15 +52,19 @@ func (c *confirmationClientConfig) Load() error {
 
 type Service struct {
 	*serviceService.Service
-	domain             string
-	authStore          *authMongo.Store
-	dataSourceClient   *dataSourceClient.Client
-	confirmationClient confirmationClient.ClientWithResponsesInterface
-	taskClient         task.Client
-	providerFactory    provider.Factory
-	authClient         *Client
-	userEventsHandler  events.Runner
-	deviceCheck        apple.DeviceCheck
+	domain                         string
+	authStore                      *authMongo.Store
+	dataClient                     dataClient.Client
+	dataSourceClient               *dataSourceClient.Client
+	confirmationClient             confirmationClient.ClientWithResponsesInterface
+	taskClient                     task.Client
+	providerFactory                provider.Factory
+	authClient                     *Client
+	userEventsHandler              events.Runner
+	deviceCheck                    apple.DeviceCheck
+	appValidator                   *appvalidate.Validator
+	partnerSecrets                 *appvalidate.PartnerSecrets
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func New() *Service {
@@ -90,6 +99,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
+	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
@@ -106,6 +118,15 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeDeviceCheck(); err != nil {
+		return err
+	}
+	if err := s.initializeAppValidate(); err != nil {
+		return err
+	}
+	if err := s.initializePartnerSecrets(); err != nil {
+		return err
+	}
+	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -129,6 +150,9 @@ func (s *Service) Domain() string {
 }
 
 func (s *Service) AuthStore() store.Store {
+	if s.authStore == nil {
+		return nil
+	}
 	return s.authStore
 }
 
@@ -150,6 +174,18 @@ func (s *Service) ProviderFactory() provider.Factory {
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
+}
+
+func (s *Service) AppValidator() *appvalidate.Validator {
+	return s.appValidator
+}
+
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	return s.partnerSecrets
+}
+
+func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+	return s.twiistServiceAccountAuthorizer
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -245,7 +281,9 @@ func (s *Service) initializeDataSourceClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("data_source", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("data_source", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load data source client config")
 	}
 
@@ -256,6 +294,28 @@ func (s *Service) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to create data source client")
 	}
 	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Service) initializeDataClient() error {
+	s.Logger().Debug("Loading data client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("data", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load data client config")
+	}
+
+	s.Logger().Debug("Creating data client")
+
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data client")
+	}
+	s.dataClient = clnt
 
 	return nil
 }
@@ -306,7 +366,9 @@ func (s *Service) initializeTaskClient() error {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("task", "client")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("task", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load task client config")
 	}
 
@@ -344,6 +406,16 @@ func (s *Service) initializeProviderFactory() error {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}
 
+	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", twiistProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create twiist jwks")
+	}
+	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataClient, s.DataSourceClient(), twiistJWKS); prvdrErr != nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
+	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add twiist provider")
+	}
+
 	return nil
 }
 
@@ -359,7 +431,9 @@ func (s *Service) initializeAuthClient() error {
 
 	cfg := client.NewExternalConfig()
 	cfg.UserAgent = s.UserAgent()
-	if err := cfg.Load(s.ConfigReporter().WithScopes("auth", "client", "external")); err != nil {
+	reporter := s.ConfigReporter().WithScopes("auth", "client", "external")
+	loader := client.NewExternalConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
 
@@ -423,6 +497,67 @@ func (s *Service) initializeDeviceCheck() error {
 		Timeout: 2 * time.Second,
 	}
 	s.deviceCheck = apple.NewDeviceCheck(cfg, httpClient)
+
+	return nil
+}
+
+func (s *Service) initializeAppValidate() error {
+	s.Logger().Debug("Initializing app validate")
+	cfg, err := appvalidate.NewValidatorConfig()
+	if err != nil {
+		return err
+	}
+	s.Logger().Infof("Initialized AppValidate with: %#v", *cfg)
+	authStore := s.AuthStore()
+	if authStore == nil {
+		return errors.New("auth store should be initialized before app validate")
+	}
+	validator, err := appvalidate.NewValidator(authStore.NewAppValidateRepository(), appvalidate.NewChallengeGenerator(), *cfg)
+	if err != nil {
+		return err
+	}
+	s.appValidator = validator
+	return nil
+}
+
+func (s *Service) initializePartnerSecrets() error {
+	s.Logger().Debug("Initializing partner secrets")
+	var err error
+	var coastalSecrets *appvalidate.CoastalSecrets
+	var palmtreeSecrets *appvalidate.PalmTreeSecrets
+
+	// We are OK with partner secrets being missing so we only log any errors.
+	coastalCfg, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
+	if err != nil {
+		s.Logger().Warnf("error initializing Coastal config: %v", err)
+	} else {
+		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalCfg)
+		if err != nil {
+			s.Logger().Warnf("error initializing Coastal secrets: %v", err)
+		}
+	}
+
+	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
+	if err != nil {
+		s.Logger().Warnf("error initializing Palmtree config: %v", err)
+	} else {
+		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmtreeCfg)
+		if err != nil {
+			s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
+		}
+	}
+	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
+	return nil
+}
+
+func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
+	s.Logger().Debug("Initializing twiist service account authorizer")
+
+	var err error
+	s.twiistServiceAccountAuthorizer, err = twiist.NewServiceAccountAuthorizer()
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
+	}
 
 	return nil
 }

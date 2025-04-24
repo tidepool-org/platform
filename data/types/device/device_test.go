@@ -3,10 +3,10 @@ package device_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -93,28 +93,30 @@ var _ = Describe("Device", func() {
 		})
 
 		Context("IdentityFields", func() {
-			var datum *device.Device
+			var datumDevice *device.Device
+			var datum data.Datum
 
 			BeforeEach(func() {
-				datum = dataTypesDeviceTest.RandomDevice()
+				datumDevice = dataTypesDeviceTest.RandomDevice()
+				datum = datumDevice
 			})
 
 			It("returns error if user id is missing", func() {
-				datum.UserID = nil
+				datumDevice.UserID = nil
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is missing"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if user id is empty", func() {
-				datum.UserID = pointer.FromString("")
+				datumDevice.UserID = pointer.FromString("")
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("user id is empty"))
 				Expect(identityFields).To(BeEmpty())
 			})
 
 			It("returns error if sub type is empty", func() {
-				datum.SubType = ""
+				datumDevice.SubType = ""
 				identityFields, err := datum.IdentityFields()
 				Expect(err).To(MatchError("sub type is empty"))
 				Expect(identityFields).To(BeEmpty())
@@ -123,7 +125,7 @@ var _ = Describe("Device", func() {
 			It("returns the expected identity fields", func() {
 				identityFields, err := datum.IdentityFields()
 				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datum.UserID, *datum.DeviceID, (*datum.Time).Format(ExpectedTimeFormat), datum.Type, datum.SubType}))
+				Expect(identityFields).To(Equal([]string{*datumDevice.UserID, *datumDevice.DeviceID, (*datumDevice.Time).Format(ExpectedTimeFormat), datumDevice.Type, datumDevice.SubType}))
 			})
 		})
 	})

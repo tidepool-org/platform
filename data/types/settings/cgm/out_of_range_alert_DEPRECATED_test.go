@@ -1,8 +1,7 @@
 package cgm_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -10,6 +9,7 @@ import (
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -18,7 +18,7 @@ import (
 var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 	It("OutOfRangeAlertDEPRECATEDThresholds returns expected", func() {
 		Expect(dataTypesSettingsCgm.OutOfRangeAlertDEPRECATEDThresholds()).To(Equal([]int{
-			1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
+			0, 60000, 1200000, 1500000, 1800000, 2100000, 2400000, 2700000, 3000000, 3300000,
 			3600000, 3900000, 4200000, 4500000, 4800000, 5100000, 5400000, 5700000,
 			6000000, 6300000, 6600000, 6900000, 7200000, 7500000, 7800000, 8100000,
 			8400000, 8700000, 9000000, 9300000, 9600000, 9900000, 10200000,
@@ -74,6 +74,16 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 						datum.Threshold = pointer.FromInt(1200000)
 					},
 				),
+				Entry("threshold valid (0)",
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
+						datum.Threshold = pointer.FromInt(0)
+					},
+				),
+				Entry("threshold valid (60000)",
+					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
+						datum.Threshold = pointer.FromInt(60000)
+					},
+				),
 				Entry("multiple errors",
 					func(datum *dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED) {
 						datum.Enabled = nil
@@ -92,7 +102,7 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomOutOfRangeAlertDEPRECATED()
 						mutator(datum)
 						expectedDatum := dataTypesSettingsCgmTest.CloneOutOfRangeAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

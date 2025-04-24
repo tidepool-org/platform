@@ -1,7 +1,7 @@
 package permission_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/permission"
@@ -29,6 +29,12 @@ var _ = Describe("permission", func() {
 	Context("Read", func() {
 		It("has the expected permissions", func() {
 			Expect(permission.Read).To(Equal("view"))
+		})
+	})
+
+	Context("Follow", func() {
+		It("has the expected permissions", func() {
+			Expect(permission.Follow).To(Equal("follow"))
 		})
 	})
 })

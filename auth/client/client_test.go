@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
@@ -23,6 +25,8 @@ import (
 )
 
 var _ = Describe("Client", func() {
+	var serverSessionTokenProviderController *gomock.Controller
+	var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 	var serverTokenSecret string
 	var serverTokenTimeout int
 	var name string
@@ -32,14 +36,21 @@ var _ = Describe("Client", func() {
 	var ctx context.Context
 
 	BeforeEach(func() {
+		serverSessionTokenProviderController = gomock.NewController(GinkgoT())
+		serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
 		serverTokenSecret = authTest.NewServiceSecret()
 		serverTokenTimeout = testHttp.NewTimeout()
 		name = test.RandomStringFromRangeAndCharset(4, 16, test.CharsetAlphaNumeric)
 		logger = logTest.NewLogger()
 		Expect(logger).ToNot(BeNil())
 		serverToken = authTest.NewSessionToken()
+		serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(serverToken, nil).AnyTimes()
 		token = authTest.NewSessionToken()
-		ctx = auth.NewContextWithServerSessionToken(log.NewContextWithLogger(context.Background(), logTest.NewLogger()), serverToken)
+		ctx = auth.NewContextWithServerSessionTokenProvider(log.NewContextWithLogger(context.Background(), logTest.NewLogger()), serverSessionTokenProvider)
+	})
+
+	AfterEach(func() {
+		serverSessionTokenProviderController.Finish()
 	})
 
 	Context("NewClient", func() {

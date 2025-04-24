@@ -13,6 +13,7 @@ import (
 	configEnv "github.com/tidepool-org/platform/config/env"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/devlog"
 	logJson "github.com/tidepool-org/platform/log/json"
 	"github.com/tidepool-org/platform/sync"
 	"github.com/tidepool-org/platform/version"
@@ -88,8 +89,8 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 	}
 
 	name := filepath.Base(os.Args[0])
-	if strings.EqualFold(name, "debug") {
-		name = configReporter.WithScopes(name).GetWithDefault("name", name)
+	if strings.EqualFold(name, "debug") || strings.HasPrefix(name, "__debug_bin") {
+		name = configReporter.WithScopes("debug").GetWithDefault("name", name)
 	}
 
 	configReporter = configReporter.WithScopes(name).WithScopes(scopes...)
@@ -101,7 +102,16 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 
 	level := configReporter.WithScopes("logger").GetWithDefault("level", "warn")
 
-	logger, err := logJson.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
+	var logger log.Logger
+	var loggerPackage = configReporter.WithScopes("logger").GetWithDefault("package", "json")
+	switch loggerPackage {
+	case "json":
+		logger, err = logJson.NewLogger(writer, log.DefaultLevelRanks(), log.Level(level))
+	case "devlog":
+		logger, err = devlog.New(writer, log.DefaultLevelRanks(), log.Level(level))
+	default:
+		err = errors.Newf("unrecognized logger package: %s", loggerPackage)
+	}
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create logger")
 	}

@@ -29,7 +29,7 @@ func New(cfg *platform.Config, authorizeAs platform.AuthorizeAs, name string, ve
 		return nil, errors.New("version reporter is missing")
 	}
 
-	clnt, err := platform.NewClient(cfg, authorizeAs)
+	clnt, err := platform.NewLegacyClient(cfg, authorizeAs)
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +52,7 @@ func (c *Client) RecordMetric(ctx context.Context, metric string, data ...map[st
 	data = append(data, map[string]string{"sourceVersion": c.versionReporter.Base()})
 
 	var requestURL string
-	if details := request.DetailsFromContext(ctx); details.IsService() {
+	if details := request.GetAuthDetails(ctx); details.IsService() {
 		requestURL = c.client.ConstructURL("metrics", "server", c.name, metric)
 	} else {
 		requestURL = c.client.ConstructURL("metrics", "thisuser", metric)

@@ -1,4 +1,4 @@
-//Package jose provides high level functions for producing (signing, encrypting and
+// Package jose provides high level functions for producing (signing, encrypting and
 // compressing) or consuming (decoding) Json Web Tokens using Java Object Signing and Encryption spec
 package jose
 
@@ -79,6 +79,42 @@ func RegisterJwc(alg JwcAlgorithm) {
 	jwcCompressors[alg.Name()] = alg
 }
 
+// DeregisterJwa deregister existing key management algorithm
+func DeregisterJwa(alg string) JwaAlgorithm {
+	jwa := jwaAlgorithms[alg]
+
+	delete(jwaAlgorithms, alg)
+
+	return jwa
+}
+
+// DeregisterJws deregister existing signing algorithm
+func DeregisterJws(alg string) JwsAlgorithm {
+	jws := jwsHashers[alg]
+
+	delete(jwsHashers, alg)
+
+	return jws
+}
+
+// DeregisterJws deregister existing encryption algorithm
+func DeregisterJwe(alg string) JweEncryption {
+	jwe := jweEncryptors[alg]
+
+	delete(jweEncryptors, alg)
+
+	return jwe
+}
+
+// DeregisterJwc deregister existing compression algorithm
+func DeregisterJwc(alg string) JwcAlgorithm {
+	jwc := jwcCompressors[alg]
+
+	delete(jwcCompressors, alg)
+
+	return jwc
+}
+
 // JweEncryption is a contract for implementing encryption algorithm
 type JweEncryption interface {
 	Encrypt(aad, plainText, cek []byte) (iv, cipherText, authTag []byte, err error)
@@ -104,7 +140,7 @@ type JwsAlgorithm interface {
 // JwcAlgorithm is a contract for implementing compression algorithm
 type JwcAlgorithm interface {
 	Compress(plainText []byte) []byte
-	Decompress(compressedText []byte) []byte
+	Decompress(compressedText []byte) ([]byte, error)
 	Name() string
 }
 
@@ -391,7 +427,9 @@ func decrypt(parts [][]byte, key interface{}) (plainText []byte, headers map[str
 							return nil, nil, errors.New(fmt.Sprintf("jwt.decrypt(): Unknown compression algorithm '%v'", zip))
 						}
 
-						plainBytes = zipAlg.Decompress(plainBytes)
+						if plainBytes, err = zipAlg.Decompress(plainBytes); err != nil {
+							return nil, nil, err
+						}
 					}
 
 					return plainBytes, jwtHeader, nil
@@ -421,4 +459,29 @@ func retrieveActualKey(headers map[string]interface{}, payload string, key inter
 	}
 
 	return key, nil
+}
+
+func Alg(key interface{}, jws string) func(headers map[string]interface{}, payload string) interface{} {
+	return func(headers map[string]interface{}, payload string) interface{} {
+		alg := headers["alg"].(string)
+
+		if jws == alg {
+			return key
+		}
+
+		return errors.New("Expected alg to be '" + jws + "' but got '" + alg + "'")
+	}
+}
+
+func Enc(key interface{}, jwa string, jwe string) func(headers map[string]interface{}, payload string) interface{} {
+	return func(headers map[string]interface{}, payload string) interface{} {
+		alg := headers["alg"].(string)
+		enc := headers["enc"].(string)
+
+		if jwa == alg && jwe == enc {
+			return key
+		}
+
+		return errors.New("Expected alg to be '" + jwa + "' and enc to be '" + jwe + "' but got '" + alg + "' and '" + enc + "'")
+	}
 }

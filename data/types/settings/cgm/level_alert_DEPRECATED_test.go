@@ -1,8 +1,7 @@
 package cgm_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
@@ -11,6 +10,7 @@ import (
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -22,7 +22,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 	})
 
 	It("HighLevelAlertDEPRECATEDLevelMgdLMinimum returns expected", func() {
-		Expect(dataTypesSettingsCgm.HighLevelAlertDEPRECATEDLevelMgdLMinimum).To(Equal(float64(120)))
+		Expect(dataTypesSettingsCgm.HighLevelAlertDEPRECATEDLevelMgdLMinimum).To(Equal(float64(100)))
 	})
 
 	It("HighLevelAlertDEPRECATEDLevelMmolLMaximum returns expected", func() {
@@ -30,11 +30,11 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 	})
 
 	It("HighLevelAlertDEPRECATEDLevelMmolLMinimum returns expected", func() {
-		Expect(dataTypesSettingsCgm.HighLevelAlertDEPRECATEDLevelMmolLMinimum).To(Equal(6.66090))
+		Expect(dataTypesSettingsCgm.HighLevelAlertDEPRECATEDLevelMmolLMinimum).To(Equal(5.55075))
 	})
 
 	It("LowLevelAlertDEPRECATEDLevelMgdLMaximum returns expected", func() {
-		Expect(dataTypesSettingsCgm.LowLevelAlertDEPRECATEDLevelMgdLMaximum).To(Equal(float64(100)))
+		Expect(dataTypesSettingsCgm.LowLevelAlertDEPRECATEDLevelMgdLMaximum).To(Equal(float64(150)))
 	})
 
 	It("LowLevelAlertDEPRECATEDLevelMgdLMinimum returns expected", func() {
@@ -42,7 +42,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 	})
 
 	It("LowLevelAlertDEPRECATEDLevelMmolLMaximum returns expected", func() {
-		Expect(dataTypesSettingsCgm.LowLevelAlertDEPRECATEDLevelMmolLMaximum).To(Equal(5.55075))
+		Expect(dataTypesSettingsCgm.LowLevelAlertDEPRECATEDLevelMmolLMaximum).To(Equal(8.32612))
 	})
 
 	It("LowLevelAlertDEPRECATEDLevelMmolLMinimum returns expected", func() {
@@ -111,13 +111,13 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units missing; level out of range (lower)",
 					nil,
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66089)
+						datum.Level = pointer.FromFloat64(5.55074)
 					},
 				),
 				Entry("units missing; level in range (lower)",
 					nil,
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66090)
+						datum.Level = pointer.FromFloat64(5.55075)
 					},
 				),
 				Entry("units missing; level in range (upper)",
@@ -140,13 +140,13 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units invalid; level out of range (lower)",
 					pointer.FromString("invalid"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66089)
+						datum.Level = pointer.FromFloat64(5.55074)
 					},
 				),
 				Entry("units invalid; level in range (lower)",
 					pointer.FromString("invalid"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66090)
+						datum.Level = pointer.FromFloat64(5.55075)
 					},
 				),
 				Entry("units invalid; level in range (upper)",
@@ -169,14 +169,14 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mmol/L; level out of range (lower)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66089)
+						datum.Level = pointer.FromFloat64(5.55074)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(6.66089, 6.66090, 22.20299), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(5.55074, 5.55075, 22.20299), "/level"),
 				),
 				Entry("units mmol/L; level in range (lower)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66090)
+						datum.Level = pointer.FromFloat64(5.55075)
 					},
 				),
 				Entry("units mmol/L; level in range (upper)",
@@ -190,7 +190,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(22.20300)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(22.20300, 6.66090, 22.20299), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(22.20300, 5.55075, 22.20299), "/level"),
 				),
 				Entry("units mmol/l; level missing",
 					pointer.FromString("mmol/l"),
@@ -200,14 +200,14 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mmol/l; level out of range (lower)",
 					pointer.FromString("mmol/l"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66089)
+						datum.Level = pointer.FromFloat64(5.55074)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(6.66089, 6.66090, 22.20299), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(5.55074, 5.55075, 22.20299), "/level"),
 				),
 				Entry("units mmol/l; level in range (lower)",
 					pointer.FromString("mmol/l"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(6.66090)
+						datum.Level = pointer.FromFloat64(5.55075)
 					},
 				),
 				Entry("units mmol/l; level in range (upper)",
@@ -221,7 +221,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(22.20300)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(22.20300, 6.66090, 22.20299), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(22.20300, 5.55075, 22.20299), "/level"),
 				),
 				Entry("units mg/dL; level missing",
 					pointer.FromString("mg/dL"),
@@ -231,14 +231,14 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mg/dL; level out of range (lower)",
 					pointer.FromString("mg/dL"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(119)
+						datum.Level = pointer.FromFloat64(99)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(119, 120, 400), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(99, 100, 400), "/level"),
 				),
 				Entry("units mg/dL; level in range (lower)",
 					pointer.FromString("mg/dL"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(120)
+						datum.Level = pointer.FromFloat64(100)
 					},
 				),
 				Entry("units mg/dL; level in range (upper)",
@@ -252,7 +252,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(401)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(401, 120, 400), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(401, 100, 400), "/level"),
 				),
 				Entry("units mg/dl; level missing",
 					pointer.FromString("mg/dl"),
@@ -262,14 +262,14 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mg/dl; level out of range (lower)",
 					pointer.FromString("mg/dl"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(119)
+						datum.Level = pointer.FromFloat64(99)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(119, 120, 400), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(99, 100, 400), "/level"),
 				),
 				Entry("units mg/dl; level in range (lower)",
 					pointer.FromString("mg/dl"),
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(120)
+						datum.Level = pointer.FromFloat64(100)
 					},
 				),
 				Entry("units mg/dl; level in range (upper)",
@@ -283,7 +283,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.HighLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(401)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(401, 120, 400), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(401, 100, 400), "/level"),
 				),
 				Entry("snooze missing",
 					nil,
@@ -324,7 +324,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -367,7 +367,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -409,7 +409,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomHighLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneHighLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -507,13 +507,13 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units missing; level in range (upper)",
 					nil,
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(100)
+						datum.Level = pointer.FromFloat64(150)
 					},
 				),
 				Entry("units missing; level out of range (upper)",
 					nil,
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(101)
+						datum.Level = pointer.FromFloat64(151)
 					},
 				),
 				Entry("units invalid; level missing",
@@ -536,13 +536,13 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units invalid; level in range (upper)",
 					pointer.FromString("invalid"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(100)
+						datum.Level = pointer.FromFloat64(150)
 					},
 				),
 				Entry("units invalid; level out of range (upper)",
 					pointer.FromString("invalid"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(101)
+						datum.Level = pointer.FromFloat64(151)
 					},
 				),
 				Entry("units mmol/L; level missing",
@@ -555,7 +555,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(3.27493)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(3.27493, 3.27494, 5.55075), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(3.27493, 3.27494, 8.32612), "/level"),
 				),
 				Entry("units mmol/L; level in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -566,15 +566,15 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mmol/L; level in range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(5.55075)
+						datum.Level = pointer.FromFloat64(8.32612)
 					},
 				),
 				Entry("units mmol/L; level out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(5.55076)
+						datum.Level = pointer.FromFloat64(8.32613)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(5.55076, 3.27494, 5.55075), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(8.32613, 3.27494, 8.32612), "/level"),
 				),
 				Entry("units mmol/l; level missing",
 					pointer.FromString("mmol/l"),
@@ -586,7 +586,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(3.27493)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(3.27493, 3.27494, 5.55075), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(3.27493, 3.27494, 8.32612), "/level"),
 				),
 				Entry("units mmol/l; level in range (lower)",
 					pointer.FromString("mmol/l"),
@@ -597,15 +597,15 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mmol/l; level in range (upper)",
 					pointer.FromString("mmol/l"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(5.55075)
+						datum.Level = pointer.FromFloat64(8.32612)
 					},
 				),
 				Entry("units mmol/l; level out of range (upper)",
 					pointer.FromString("mmol/l"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(5.55076)
+						datum.Level = pointer.FromFloat64(8.32613)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(5.55076, 3.27494, 5.55075), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(8.32613, 3.27494, 8.32612), "/level"),
 				),
 				Entry("units mg/dL; level missing",
 					pointer.FromString("mg/dL"),
@@ -617,7 +617,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(58)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(58, 59, 100), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(58, 59, 150), "/level"),
 				),
 				Entry("units mg/dL; level in range (lower)",
 					pointer.FromString("mg/dL"),
@@ -628,15 +628,15 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mg/dL; level in range (upper)",
 					pointer.FromString("mg/dL"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(100)
+						datum.Level = pointer.FromFloat64(150)
 					},
 				),
 				Entry("units mg/dL; level out of range (upper)",
 					pointer.FromString("mg/dL"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(101)
+						datum.Level = pointer.FromFloat64(151)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(101, 59, 100), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(151, 59, 150), "/level"),
 				),
 				Entry("units mg/dl; level missing",
 					pointer.FromString("mg/dl"),
@@ -648,7 +648,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
 						datum.Level = pointer.FromFloat64(58)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(58, 59, 100), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(58, 59, 150), "/level"),
 				),
 				Entry("units mg/dl; level in range (lower)",
 					pointer.FromString("mg/dl"),
@@ -659,15 +659,15 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 				Entry("units mg/dl; level in range (upper)",
 					pointer.FromString("mg/dl"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(100)
+						datum.Level = pointer.FromFloat64(150)
 					},
 				),
 				Entry("units mg/dl; level out of range (upper)",
 					pointer.FromString("mg/dl"),
 					func(datum *dataTypesSettingsCgm.LowLevelAlertDEPRECATED, units *string) {
-						datum.Level = pointer.FromFloat64(101)
+						datum.Level = pointer.FromFloat64(151)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(101, 59, 100), "/level"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(151, 59, 150), "/level"),
 				),
 				Entry("snooze missing",
 					nil,
@@ -708,7 +708,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())
@@ -751,7 +751,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 					datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 					mutator(datum, units)
 					expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
 					Expect(normalizer.Error()).To(BeNil())
@@ -793,7 +793,7 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 						datum := dataTypesSettingsCgmTest.RandomLowLevelAlertDEPRECATED(units)
 						mutator(datum, units)
 						expectedDatum := dataTypesSettingsCgmTest.CloneLowLevelAlertDEPRECATED(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
 						Expect(normalizer.Error()).To(BeNil())

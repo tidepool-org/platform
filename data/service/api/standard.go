@@ -3,6 +3,8 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/twiist"
+
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -19,18 +21,19 @@ import (
 
 type Standard struct {
 	*api.API
-	metricClient            metric.Client
-	permissionClient        permission.Client
-	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               dataStore.Store
-	syncTaskStore           syncTaskStore.Store
-	dataClient              dataClient.Client
-	dataSourceClient        dataSource.Client
+	metricClient                   metric.Client
+	permissionClient               permission.Client
+	dataDeduplicatorFactory        deduplicator.Factory
+	dataStore                      dataStore.Store
+	syncTaskStore                  syncTaskStore.Store
+	dataClient                     dataClient.Client
+	dataSourceClient               dataSource.Client
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -52,6 +55,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
 	}
+	if twiistServiceAccountAuthorizer == nil {
+		return nil, errors.New("twiist service account authorizer is missing")
+	}
 
 	a, err := api.New(svc)
 	if err != nil {
@@ -59,32 +65,29 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	}
 
 	return &Standard{
-		API:                     a,
-		metricClient:            metricClient,
-		permissionClient:        permissionClient,
-		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStore:               store,
-		syncTaskStore:           syncTaskStore,
-		dataClient:              dataClient,
-		dataSourceClient:        dataSourceClient,
+		API:                            a,
+		metricClient:                   metricClient,
+		permissionClient:               permissionClient,
+		dataDeduplicatorFactory:        dataDeduplicatorFactory,
+		dataStore:                      store,
+		syncTaskStore:                  syncTaskStore,
+		dataClient:                     dataClient,
+		dataSourceClient:               dataSourceClient,
+		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
 
 func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error {
 	baseRoutes := []dataService.Route{
-		dataService.MakeRoute("GET", "/status", s.StatusGet),
-		dataService.MakeRoute("GET", "/version", s.VersionGet),
+		dataService.Get("/status", s.StatusGet),
+		dataService.Get("/version", s.VersionGet),
 	}
 
 	routes = append(baseRoutes, routes...)
 
 	var contextRoutes []*rest.Route
 	for _, route := range routes {
-		contextRoutes = append(contextRoutes, &rest.Route{
-			HttpMethod: route.Method,
-			PathExp:    route.Path,
-			Func:       s.withContext(route.Handler),
-		})
+		contextRoutes = append(contextRoutes, route.ToRestRoute(s.withContext))
 	}
 
 	router, err := rest.MakeRouter(contextRoutes...)
@@ -100,5 +103,5 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, handler)
+		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, s.twiistServiceAccountAuthorizer, handler)
 }

@@ -1,8 +1,7 @@
 package pump_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -11,6 +10,7 @@ import (
 	dataTypesStatusPumpTest "github.com/tidepool-org/platform/data/types/status/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -76,7 +76,7 @@ var _ = Describe("Pump", func() {
 					object := dataTypesStatusPumpTest.NewObjectFromPump(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesStatusPump.New()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -185,7 +185,7 @@ var _ = Describe("Pump", func() {
 						datum := dataTypesStatusPumpTest.RandomPump()
 						mutator(datum)
 						expectedDatum := dataTypesStatusPumpTest.ClonePump(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

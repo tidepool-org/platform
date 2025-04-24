@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/clinics"
 
@@ -18,7 +18,7 @@ import (
 	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -99,7 +99,7 @@ var _ = Describe("V1", func() {
 			var req *rest.Request
 			var ctx context.Context
 			var handlerFunc rest.HandlerFunc
-			var details request.Details
+			var details request.AuthDetails
 
 			BeforeEach(func() {
 				res = testRest.NewResponseWriter()
@@ -140,11 +140,11 @@ var _ = Describe("V1", func() {
 
 					JustBeforeEach(func() {
 						if asService {
-							details = request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret())
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret())
 						} else {
-							details = request.NewDetails(request.MethodSessionToken, userID, "")
+							details = request.NewAuthDetails(request.MethodSessionToken, userID, "")
 						}
-						req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
+						req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 					})
 
 					JustAfterEach(func() {
@@ -198,7 +198,7 @@ var _ = Describe("V1", func() {
 
 							Context("with missing required attribute when state is 'submitted'", func() {
 								BeforeEach(func() {
-									create.PhoneNumber = nil
+									create.FirstName = nil
 									integrityHash := prescription.MustGenerateIntegrityHash(prescription.NewIntegrityAttributesFromRevisionCreate(*create))
 									create.RevisionHash = integrityHash.Hash
 									body, err := json.Marshal(create)
@@ -208,7 +208,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("returns bad request with validation error", func() {
-									expectedErrorBody := "{\"code\":\"value-empty\",\"title\":\"value is empty\",\"detail\":\"value is empty\",\"source\":{\"pointer\":\"/phoneNumber\"}}\n"
+									expectedErrorBody := "{\"code\":\"value-not-exists\",\"title\":\"value does not exist\",\"detail\":\"value does not exist\",\"source\":{\"pointer\":\"/firstName\"}}\n"
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
 									Expect(res.WriteInputs).To(HaveLen(1))

@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"encoding/json"
-	"io/ioutil"
 	"math/rand"
+	"os"
 	"strconv"
 	"time"
 
@@ -209,7 +209,7 @@ func (t *Tool) loadBenchmarks() error {
 func (t *Tool) loadBenchmarksFile(benchmarksFile string) (Benchmarks, error) {
 	t.Logger().Debugf("Loading benchmarks file %q", benchmarksFile)
 
-	content, err := ioutil.ReadFile(benchmarksFile)
+	content, err := os.ReadFile(benchmarksFile)
 	if err != nil {
 		return nil, errors.Newf("unable to read content from benchmarks file %q", benchmarksFile)
 	}
@@ -338,7 +338,7 @@ func (t *Tool) benchmarkJellyfishMetaFindByInternalID(ctx context.Context, repos
 	}
 
 	var results map[string]interface{}
-	if err := repository.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := repository.(*dataStoreMongo.DataRepository).DatumRepository.FindOne(context.Background(), selector).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
@@ -368,7 +368,7 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, repository 
 
 	var results map[string]interface{}
 	opts := options.FindOne().SetSort(bson.M{"time": 1})
-	if err := repository.(*dataStoreMongo.DataRepository).FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
+	if err := repository.(*dataStoreMongo.DataRepository).DatumRepository.FindOne(context.Background(), selector, opts).Decode(&results); err != nil && err != mongo.ErrNoDocuments {
 		return err
 	}
 
@@ -730,7 +730,7 @@ func (t *Tool) benchmarkTideWhispererDBHasMedtronicDirectData(ctx context.Contex
 		"deviceManufacturers": "Medtronic",
 	}
 	opts := options.Count().SetLimit(1)
-	_, err := repository.(*dataStoreMongo.DataRepository).CountDocuments(context.Background(), selector, opts)
+	_, err := repository.(*dataStoreMongo.DataRepository).DataSetRepository.CountDocuments(context.Background(), selector, opts)
 	return err
 }
 
@@ -790,7 +790,7 @@ func (t *Tool) benchmarkTideWhispererDBGetDeviceData(ctx context.Context, reposi
 	if input.Limit != nil {
 		opts = opts.SetLimit(int64(*input.Limit))
 	}
-	iter, err := repository.(*dataStoreMongo.DataRepository).Find(context.Background(), selector, opts)
+	iter, err := repository.(*dataStoreMongo.DataRepository).DatumRepository.Find(context.Background(), selector, opts)
 	if err != nil {
 		return errors.New("cannot create query on data repository")
 	}

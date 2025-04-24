@@ -1,290 +1,498 @@
 package dexcom_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/dexcom"
+	dexcomTest "github.com/tidepool-org/platform/dexcom/test"
+	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
-	structureTest "github.com/tidepool-org/platform/structure/test"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Alert", func() {
-	It("AlertScheduleSettingsStartTimeDefault is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsStartTimeDefault).To(Equal("00:00"))
+	It("AlertsResponseRecordType returns expected", func() {
+		Expect(dexcom.AlertsResponseRecordType).To(Equal("alert"))
 	})
 
-	It("AlertScheduleSettingsEndTimeDefault is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsEndTimeDefault).To(Equal("00:00"))
+	It("AlertsResponseRecordVersion returns expected", func() {
+		Expect(dexcom.AlertsResponseRecordVersion).To(Equal("3.0"))
 	})
 
-	It("AlertScheduleSettingsDaySunday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySunday).To(Equal("sunday"))
+	It("AlertNameUnknown returns expected", func() {
+		Expect(dexcom.AlertNameUnknown).To(Equal("unknown"))
 	})
 
-	It("AlertScheduleSettingsDayMonday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayMonday).To(Equal("monday"))
+	It("AlertNameHigh returns expected", func() {
+		Expect(dexcom.AlertNameHigh).To(Equal("high"))
 	})
 
-	It("AlertScheduleSettingsDayTuesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayTuesday).To(Equal("tuesday"))
+	It("AlertNameLow returns expected", func() {
+		Expect(dexcom.AlertNameLow).To(Equal("low"))
 	})
 
-	It("AlertScheduleSettingsDayWednesday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayWednesday).To(Equal("wednesday"))
+	It("AlertNameRise returns expected", func() {
+		Expect(dexcom.AlertNameRise).To(Equal("rise"))
 	})
 
-	It("AlertScheduleSettingsDayThursday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayThursday).To(Equal("thursday"))
+	It("AlertNameFall returns expected", func() {
+		Expect(dexcom.AlertNameFall).To(Equal("fall"))
 	})
 
-	It("AlertScheduleSettingsDayFriday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDayFriday).To(Equal("friday"))
+	It("AlertNameOutOfRange returns expected", func() {
+		Expect(dexcom.AlertNameOutOfRange).To(Equal("outOfRange"))
 	})
 
-	It("AlertScheduleSettingsDaySaturday is expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDaySaturday).To(Equal("saturday"))
+	It("AlertNameUrgentLow returns expected", func() {
+		Expect(dexcom.AlertNameUrgentLow).To(Equal("urgentLow"))
 	})
 
-	It("AlertSettingAlertNameFall is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameFall).To(Equal("fall"))
+	It("AlertNameUrgentLowSoon returns expected", func() {
+		Expect(dexcom.AlertNameUrgentLowSoon).To(Equal("urgentLowSoon"))
 	})
 
-	It("AlertSettingAlertNameHigh is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameHigh).To(Equal("high"))
+	It("AlertNameNoReadings returns expected", func() {
+		Expect(dexcom.AlertNameNoReadings).To(Equal("noReadings"))
 	})
 
-	It("AlertSettingAlertNameLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameLow).To(Equal("low"))
+	It("AlertNameFixedLow returns expected", func() {
+		Expect(dexcom.AlertNameFixedLow).To(Equal("fixedLow"))
 	})
 
-	It("AlertSettingAlertNameNoReadings is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameNoReadings).To(Equal("noReadings"))
+	It("AlertStateUnknown returns expected", func() {
+		Expect(dexcom.AlertStateUnknown).To(Equal("unknown"))
 	})
 
-	It("AlertSettingAlertNameOutOfRange is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameOutOfRange).To(Equal("outOfRange"))
+	It("AlertStateInactive returns expected", func() {
+		Expect(dexcom.AlertStateInactive).To(Equal("inactive"))
 	})
 
-	It("AlertSettingAlertNameRise is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameRise).To(Equal("rise"))
+	It("AlertStateActiveSnoozed returns expected", func() {
+		Expect(dexcom.AlertStateActiveSnoozed).To(Equal("activeSnoozed"))
 	})
 
-	It("AlertSettingAlertNameUrgentLow is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLow).To(Equal("urgentLow"))
+	It("AlertStateActiveAlarming returns expected", func() {
+		Expect(dexcom.AlertStateActiveAlarming).To(Equal("activeAlarming"))
 	})
 
-	It("AlertSettingAlertNameUrgentLowSoon is expected", func() {
-		Expect(dexcom.AlertSettingAlertNameUrgentLowSoon).To(Equal("urgentLowSoon"))
+	It("AlertNames returns expected", func() {
+		Expect(dexcom.AlertNames()).To(Equal([]string{"unknown", "high", "low", "rise", "fall", "outOfRange", "urgentLow", "urgentLowSoon", "noReadings", "fixedLow"}))
 	})
 
-	It("AlertSettingSnoozeMinutesMaximum is expected", func() {
-		Expect(dexcom.AlertSettingSnoozeMinutesMaximum).To(Equal(600.0))
+	It("AlertStates returns expected", func() {
+		Expect(dexcom.AlertStates()).To(Equal([]string{"unknown", "inactive", "activeSnoozed", "activeAlarming"}))
 	})
 
-	It("AlertSettingSnoozeMinutesMinimum is expected", func() {
-		Expect(dexcom.AlertSettingSnoozeMinutesMinimum).To(Equal(0.0))
+	Context("ParseAlertsResponse", func() {
+		It("returns nil if the object is nil", func() {
+			parser := structureParser.NewObject(logTest.NewLogger(), nil)
+			Expect(dexcom.ParseAlertsResponse(parser)).To(BeNil())
+		})
+
+		It("returns the parsed object", func() {
+			expectedDatum := dexcomTest.RandomAlertsResponse()
+			object := dexcomTest.NewObjectFromAlertsResponse(expectedDatum, test.ObjectFormatJSON)
+			parser := structureParser.NewObject(logTest.NewLogger(), &object)
+			Expect(dexcom.ParseAlertsResponse(parser)).To(Equal(expectedDatum))
+		})
 	})
 
-	It("AlertSettingUnitMinutes is expected", func() {
-		Expect(dexcom.AlertSettingUnitMinutes).To(Equal("minutes"))
+	Context("AlertsResponse", func() {
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse), expectedErrors ...error) {
+					expectedDatum := dexcomTest.RandomAlertsResponse()
+					object := dexcomTest.NewObjectFromAlertsResponse(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					for index, expectedError := range expectedErrors {
+						expectedErrors[index] = errors.WithMeta(expectedError, expectedDatum)
+					}
+					datum := &dexcom.AlertsResponse{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {},
+				),
+				Entry("recordType invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {
+						object["recordType"] = true
+						expectedDatum.RecordType = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/recordType"),
+				),
+				Entry("recordVersion invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {
+						object["recordVersion"] = true
+						expectedDatum.RecordVersion = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/recordVersion"),
+				),
+				Entry("userId invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {
+						object["userId"] = true
+						expectedDatum.UserID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/userId"),
+				),
+				Entry("records invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {
+						object["records"] = true
+						expectedDatum.Records = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/records"),
+				),
+				Entry("records element invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.AlertsResponse) {
+						object["records"] = []interface{}{false}
+						expectedDatum.Records = &dexcom.Alerts{nil}
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/records/0"),
+				),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *dexcom.AlertsResponse), expectedErrors ...error) {
+					datum := dexcomTest.RandomAlertsResponse()
+					mutator(datum)
+					for index, expectedError := range expectedErrors {
+						expectedErrors[index] = errors.WithMeta(expectedError, datum)
+					}
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *dexcom.AlertsResponse) {},
+				),
+				Entry("recordType missing",
+					func(datum *dexcom.AlertsResponse) {
+						datum.RecordType = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/recordType"),
+				),
+				Entry("recordType invalid",
+					func(datum *dexcom.AlertsResponse) {
+						datum.RecordType = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", dexcom.AlertsResponseRecordType), "/recordType"),
+				),
+				Entry("recordVersion missing",
+					func(datum *dexcom.AlertsResponse) {
+						datum.RecordVersion = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/recordVersion"),
+				),
+				Entry("recordVersion invalid",
+					func(datum *dexcom.AlertsResponse) {
+						datum.RecordVersion = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotEqualTo("invalid", dexcom.AlertsResponseRecordVersion), "/recordVersion"),
+				),
+				Entry("userId missing",
+					func(datum *dexcom.AlertsResponse) {
+						datum.UserID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userId"),
+				),
+				Entry("userId empty",
+					func(datum *dexcom.AlertsResponse) {
+						datum.UserID = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/userId"),
+				),
+				Entry("records missing",
+					func(datum *dexcom.AlertsResponse) {
+						datum.Records = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/records"),
+				),
+				Entry("records invalid does not report an error",
+					func(datum *dexcom.AlertsResponse) {
+						(*datum.Records)[0].RecordID = nil
+					},
+				),
+				Entry("multiple errors",
+					func(datum *dexcom.AlertsResponse) {
+						datum.RecordType = nil
+						datum.RecordVersion = nil
+						datum.UserID = nil
+						datum.Records = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/recordType"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/recordVersion"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/records"),
+				),
+			)
+		})
 	})
 
-	It("AlertSettingUnitMgdL is expected", func() {
-		Expect(dexcom.AlertSettingUnitMgdL).To(Equal("mg/dL"))
+	Context("ParseAlert", func() {
+		It("returns nil if the object is nil", func() {
+			parser := structureParser.NewObject(logTest.NewLogger(), nil)
+			Expect(dexcom.ParseAlert(parser)).To(BeNil())
+		})
+
+		It("returns the parsed object", func() {
+			expectedDatum := dexcomTest.RandomAlert()
+			object := dexcomTest.NewObjectFromAlert(expectedDatum, test.ObjectFormatJSON)
+			parser := structureParser.NewObject(logTest.NewLogger(), &object)
+			Expect(dexcom.ParseAlert(parser)).To(Equal(expectedDatum))
+		})
 	})
 
-	It("AlertSettingUnitMgdLMinute is expected", func() {
-		Expect(dexcom.AlertSettingUnitMgdLMinute).To(Equal("mg/dL/min"))
-	})
+	Context("Alert", func() {
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]interface{}, expectedDatum *dexcom.Alert), expectedErrors ...error) {
+					expectedDatum := dexcomTest.RandomAlert()
+					object := dexcomTest.NewObjectFromAlert(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					for index, expectedError := range expectedErrors {
+						expectedErrors[index] = errors.WithMeta(expectedError, expectedDatum)
+					}
+					datum := &dexcom.Alert{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
+					Expect(datum).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {},
+				),
+				Entry("recordId invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["recordId"] = true
+						expectedDatum.RecordID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/recordId"),
+				),
+				Entry("systemTime invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["systemTime"] = true
+						expectedDatum.SystemTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/systemTime"),
+				),
+				Entry("systemTime invalid time",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["systemTime"] = "invalid"
+						expectedDatum.SystemTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/systemTime"),
+				),
+				Entry("displayTime invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["displayTime"] = true
+						expectedDatum.DisplayTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/displayTime"),
+				),
+				Entry("displayTime invalid time",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["displayTime"] = "invalid"
+						expectedDatum.DisplayTime = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("invalid", time.RFC3339Nano), "/displayTime"),
+				),
+				Entry("alertName invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["alertName"] = true
+						expectedDatum.AlertName = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/alertName"),
+				),
+				Entry("alertState invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["alertState"] = true
+						expectedDatum.AlertState = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/alertState"),
+				),
+				Entry("transmitterGeneration invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["transmitterGeneration"] = true
+						expectedDatum.TransmitterGeneration = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/transmitterGeneration"),
+				),
+				Entry("transmitterId invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["transmitterId"] = true
+						expectedDatum.TransmitterID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/transmitterId"),
+				),
+				Entry("displayDevice invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["displayDevice"] = true
+						expectedDatum.DisplayDevice = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/displayDevice"),
+				),
+				Entry("displayApp invalid type",
+					func(object map[string]interface{}, expectedDatum *dexcom.Alert) {
+						object["displayApp"] = true
+						expectedDatum.DisplayApp = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/displayApp"),
+				),
+			)
+		})
 
-	It("AlertSettingValueFallMgdLMinuteMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinuteMaximum).To(Equal(10.0))
-	})
-
-	It("AlertSettingValueFallMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueFallMgdLMinuteMinimum).To(Equal(1.0))
-	})
-
-	It("AlertSettingValueHighMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueHighMgdLMaximum).To(Equal(400.0))
-	})
-
-	It("AlertSettingValueHighMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueHighMgdLMinimum).To(Equal(100.0))
-	})
-
-	It("AlertSettingValueLowMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueLowMgdLMaximum).To(Equal(150.0))
-	})
-
-	It("AlertSettingValueLowMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueLowMgdLMinimum).To(Equal(50.0))
-	})
-
-	It("AlertSettingValueNoReadingsMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMaximum).To(Equal(360.0))
-	})
-
-	It("AlertSettingValueNoReadingsMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueNoReadingsMgdLMinimum).To(Equal(0.0))
-	})
-
-	It("AlertSettingValueOutOfRangeMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMaximum).To(Equal(360.0))
-	})
-
-	It("AlertSettingValueOutOfRangeMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueOutOfRangeMgdLMinimum).To(Equal(0.0))
-	})
-
-	It("AlertSettingValueRiseMgdLMinuteMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMaximum).To(Equal(10.0))
-	})
-
-	It("AlertSettingValueRiseMgdLMinuteMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueRiseMgdLMinuteMinimum).To(Equal(1.0))
-	})
-
-	It("AlertSettingValueUrgentLowMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowMgdLMaximum).To(Equal(80.0))
-	})
-
-	It("AlertSettingValueUrgentLowMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowMgdLMinimum).To(Equal(40.0))
-	})
-
-	It("AlertSettingValueUrgentLowSoonMgdLMaximum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMaximum).To(Equal(80.0))
-	})
-
-	It("AlertSettingValueUrgentLowSoonMgdLMinimum is expected", func() {
-		Expect(dexcom.AlertSettingValueUrgentLowSoonMgdLMinimum).To(Equal(40.0))
-	})
-
-	It("AlertScheduleSettingsDays returns expected", func() {
-		Expect(dexcom.AlertScheduleSettingsDays()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
-	})
-
-	Context("AlertScheduleSettingsDayIndex", func() {
-		DescribeTable("return the expected index when the day",
-			func(day string, expectedIndex int) {
-				Expect(dexcom.AlertScheduleSettingsDayIndex(day)).To(Equal(expectedIndex))
-			},
-			Entry("is an empty string", "", 0),
-			Entry("is sunday", "sunday", 1),
-			Entry("is monday", "monday", 2),
-			Entry("is tuesday", "tuesday", 3),
-			Entry("is wednesday", "wednesday", 4),
-			Entry("is thursday", "thursday", 5),
-			Entry("is friday", "friday", 6),
-			Entry("is saturday", "saturday", 7),
-			Entry("is an invalid string", "invalid", 0),
-		)
-	})
-
-	It("AlertSettingAlertNames returns expected", func() {
-		Expect(dexcom.AlertSettingAlertNames()).To(Equal([]string{"fall", "high", "low", "noReadings", "outOfRange", "rise", "urgentLow", "urgentLowSoon"}))
-	})
-
-	It("AlertSettingUnitFalls returns expected", func() {
-		Expect(dexcom.AlertSettingUnitFalls()).To(Equal([]string{"mg/dL/min"}))
-	})
-
-	It("AlertSettingUnitHighs returns expected", func() {
-		Expect(dexcom.AlertSettingUnitHighs()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitLows returns expected", func() {
-		Expect(dexcom.AlertSettingUnitLows()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitNoReadings returns expected", func() {
-		Expect(dexcom.AlertSettingUnitNoReadings()).To(Equal([]string{"minutes"}))
-	})
-
-	It("AlertSettingUnitOutOfRanges returns expected", func() {
-		Expect(dexcom.AlertSettingUnitOutOfRanges()).To(Equal([]string{"minutes"}))
-	})
-
-	It("AlertSettingUnitRises returns expected", func() {
-		Expect(dexcom.AlertSettingUnitRises()).To(Equal([]string{"mg/dL/min"}))
-	})
-
-	It("AlertSettingUnitUrgentLows returns expected", func() {
-		Expect(dexcom.AlertSettingUnitUrgentLows()).To(Equal([]string{"mg/dL"}))
-	})
-
-	It("AlertSettingUnitUrgentLowSoons returns expected", func() {
-		Expect(dexcom.AlertSettingUnitUrgentLowSoons()).To(Equal([]string{"mg/dL"}))
-	})
-
-	Context("ParseAlertScheduleSettingsTime", func() {
-		DescribeTable("return the expected results when the input",
-			func(value string, expectedHour int, expectedMinute int, expectedOK bool) {
-				hour, minute, ok := dexcom.ParseAlertScheduleSettingsTime(value)
-				Expect(ok).To(Equal(expectedOK))
-				Expect(hour).To(Equal(expectedHour))
-				Expect(minute).To(Equal(expectedMinute))
-			},
-			Entry("is an empty string", "", 0, 0, false),
-			Entry("contains non-numbers", "a$: b", 0, 0, false),
-			Entry("does not exactly match format", "1;23", 0, 0, false),
-			Entry("has hour in range (lower)", "00:00", 0, 0, true),
-			Entry("has hour in range (upper)", "23:59", 23, 59, true),
-			Entry("has hour out of range (upper)", "24:00", 0, 0, false),
-			Entry("has minute in range (lower)", "00:00", 0, 0, true),
-			Entry("has minute in range (upper)", "23:59", 23, 59, true),
-			Entry("has minute out of range (upper)", "23:60", 0, 0, false),
-
-			Entry("is 12hr format with AM postfix", "8:00 Am", 8, 0, true),
-			Entry("is 12hr format with AM postfix", "08:00 aM", 8, 0, true),
-			Entry("is 12hr format with PM postfix", "9:00 Pm", 21, 0, true),
-			Entry("is 12hr format with PM postfix and extra padding", "09:00   pm", 21, 0, true),
-			Entry("is 12hr format with minutes", "11:59   pM", 23, 59, true),
-		)
-	})
-
-	Context("IsValidAlertScheduleSettingsTime, AlertScheduleSettingsTimeValidator, and ValidateAlertScheduleSettingsTime", func() {
-		DescribeTable("return the expected results when the input",
-			func(value string, expectedErrors ...error) {
-				Expect(dexcom.IsValidAlertScheduleSettingsTime(value)).To(Equal(len(expectedErrors) == 0))
-				errorReporter := structureTest.NewErrorReporter()
-				dexcom.AlertScheduleSettingsTimeValidator(value, errorReporter)
-				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
-				errorsTest.ExpectEqual(dexcom.ValidateAlertScheduleSettingsTime(value), expectedErrors...)
-			},
-			Entry("is an empty string", "", structureValidator.ErrorValueEmpty()),
-			Entry("contains non-numbers", "a$: b", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("a$: b")),
-			Entry("does not exactly match format", "1;23", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("1;23")),
-			Entry("has hour in range (lower)", "00:00"),
-			Entry("has hour in range (upper)", "23:59"),
-			Entry("has hour out of range (upper)", "24:00", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("24:00")),
-			Entry("has minute in range (lower)", "00:00"),
-			Entry("has minute in range (upper)", "23:59"),
-			Entry("has minute out of range (upper)", "23:60", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("23:60")),
-		)
-	})
-
-	Context("Errors", func() {
-		DescribeTable("have expected details when error",
-			errorsTest.ExpectErrorDetails,
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as alert schedule settings time`),
-			Entry("is ErrorValueStringAsAlertScheduleSettingsTimeNotValid with non-empty string", dexcom.ErrorValueStringAsAlertScheduleSettingsTimeNotValid("XX:XX"), "value-not-valid", "value is not valid", `value "XX:XX" is not valid as alert schedule settings time`),
-		)
-	})
-	Context("AlertSchedules can be", func() {
-		DescribeTable("empty",
-			func(value *dexcom.AlertSchedules) {
-				Expect(value).ToNot(BeNil())
-				testValidator := structureValidator.New()
-				value.Validate(testValidator)
-				Expect(testValidator.HasError()).To(BeFalse())
-				Expect(len(*value)).To(Equal(0))
-			},
-			Entry("valid if empty", dexcom.NewAlertSchedules()),
-		)
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *dexcom.Alert), expectedErrors ...error) {
+					datum := dexcomTest.RandomAlert()
+					mutator(datum)
+					for index, expectedError := range expectedErrors {
+						expectedErrors[index] = errors.WithMeta(expectedError, datum)
+					}
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *dexcom.Alert) {},
+				),
+				Entry("recordId missing",
+					func(datum *dexcom.Alert) {
+						datum.RecordID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/recordId"),
+				),
+				Entry("recordId empty",
+					func(datum *dexcom.Alert) {
+						datum.RecordID = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/recordId"),
+				),
+				Entry("systemTime missing",
+					func(datum *dexcom.Alert) {
+						datum.SystemTime = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/systemTime"),
+				),
+				Entry("systemTime zero",
+					func(datum *dexcom.Alert) {
+						datum.SystemTime.Time = time.Time{}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/systemTime"),
+				),
+				Entry("displayTime missing",
+					func(datum *dexcom.Alert) {
+						datum.DisplayTime = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayTime"),
+				),
+				Entry("displayTime zero",
+					func(datum *dexcom.Alert) {
+						datum.DisplayTime.Time = time.Time{}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/displayTime"),
+				),
+				Entry("alertName missing",
+					func(datum *dexcom.Alert) {
+						datum.AlertName = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/alertName"),
+				),
+				Entry("alertName invalid",
+					func(datum *dexcom.Alert) {
+						datum.AlertName = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dexcom.AlertNames()), "/alertName"),
+				),
+				Entry("alertState missing",
+					func(datum *dexcom.Alert) {
+						datum.AlertState = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/alertState"),
+				),
+				Entry("alertState invalid",
+					func(datum *dexcom.Alert) {
+						datum.AlertState = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dexcom.AlertStates()), "/alertState"),
+				),
+				Entry("transmitterGeneration missing",
+					func(datum *dexcom.Alert) {
+						datum.TransmitterGeneration = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/transmitterGeneration"),
+				),
+				Entry("transmitterGeneration invalid",
+					func(datum *dexcom.Alert) {
+						datum.TransmitterGeneration = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dexcom.DeviceTransmitterGenerations()), "/transmitterGeneration"),
+				),
+				Entry("transmitterId missing",
+					func(datum *dexcom.Alert) {
+						datum.TransmitterID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/transmitterId"),
+				),
+				Entry("transmitterId invalid",
+					func(datum *dexcom.Alert) {
+						datum.TransmitterID = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(dexcom.ErrorValueStringAsTransmitterIDNotValid("invalid"), "/transmitterId"),
+				),
+				Entry("transmitterId empty",
+					func(datum *dexcom.Alert) {
+						datum.TransmitterID = pointer.FromString("")
+					},
+				),
+				Entry("displayDevice missing",
+					func(datum *dexcom.Alert) {
+						datum.DisplayDevice = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayDevice"),
+				),
+				Entry("displayDevice invalid",
+					func(datum *dexcom.Alert) {
+						datum.DisplayDevice = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dexcom.DeviceDisplayDevices()), "/displayDevice"),
+				),
+				Entry("displayApp missing",
+					func(datum *dexcom.Alert) {
+						datum.DisplayApp = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayApp"),
+				),
+				Entry("displayApp invalid",
+					func(datum *dexcom.Alert) {
+						datum.DisplayApp = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dexcom.DeviceDisplayApps()), "/displayApp"),
+				),
+				Entry("multiple errors",
+					func(datum *dexcom.Alert) {
+						datum.SystemTime = nil
+						datum.DisplayTime = nil
+						datum.AlertName = nil
+						datum.AlertState = nil
+						datum.TransmitterGeneration = nil
+						datum.TransmitterID = nil
+						datum.DisplayDevice = nil
+						datum.DisplayApp = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/systemTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/alertName"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/alertState"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/transmitterGeneration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/transmitterId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayDevice"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/displayApp"),
+				),
+			)
+		})
 	})
 })

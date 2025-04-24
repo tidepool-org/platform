@@ -7,6 +7,7 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 
 	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/log"
 
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 
@@ -20,7 +21,7 @@ import (
 
 func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -36,7 +37,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	validator := structureValidator.New().WithReference("initialSettings")
+	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -57,7 +58,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -90,7 +91,7 @@ func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Requ
 
 func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := req.PathParam("userId")
@@ -122,7 +123,7 @@ func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Reques
 
 func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -147,7 +148,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -157,7 +158,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 
 func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := req.PathParam("userId")
@@ -181,7 +182,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 		return
 	}
 
-	if prescr == nil || len(prescr) == 0 {
+	if len(prescr) == 0 {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
 		return
 	}
@@ -191,7 +192,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 
 func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -218,7 +219,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -236,7 +237,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	validator := structureValidator.New().WithReference("initialSettings")
+	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -260,7 +261,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -289,7 +290,7 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
 	userID := details.UserID()
@@ -317,7 +318,7 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 	responder.Data(http.StatusOK, prescr)
 }
 
-func (r *Router) canAccessPrescriptionsForRequestUserID(details request.Details, requestedUserID string) bool {
+func (r *Router) canAccessPrescriptionsForRequestUserID(details request.AuthDetails, requestedUserID string) bool {
 	currentUserID := details.UserID()
 	return details.IsService() || currentUserID == requestedUserID
 }

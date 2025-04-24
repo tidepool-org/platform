@@ -84,6 +84,26 @@ func ExpectNormalizedValue(value *float64, expectedValue *float64, units *string
 	}
 }
 
+func ExpectNormalizedRateUnits(value *string, expectedValue *string) {
+	if expectedValue != nil {
+		gomega.Expect(value).ToNot(gomega.BeNil())
+		gomega.Expect(*value).To(gomega.Equal(*dataBloodGlucose.NormalizeRateUnits(expectedValue)))
+		*expectedValue = *value
+	} else {
+		gomega.Expect(value).To(gomega.BeNil())
+	}
+}
+
+func ExpectNormalizedRateValue(value *float64, expectedValue *float64, units *string) {
+	if expectedValue != nil {
+		gomega.Expect(value).ToNot(gomega.BeNil())
+		gomega.Expect(*value).To(gomega.Equal(*dataBloodGlucose.NormalizeValueForRateUnits(expectedValue, units)))
+		*expectedValue = *value
+	} else {
+		gomega.Expect(value).To(gomega.BeNil())
+	}
+}
+
 func ExpectNormalizedTarget(datum *dataBloodGlucose.Target, expectedDatum *dataBloodGlucose.Target, units *string) {
 	gomega.Expect(datum).ToNot(gomega.BeNil())
 	gomega.Expect(expectedDatum).ToNot(gomega.BeNil())

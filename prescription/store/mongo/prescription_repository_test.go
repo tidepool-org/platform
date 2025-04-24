@@ -5,26 +5,13 @@ import (
 	"sort"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.uber.org/fx"
-
-	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
-
-	logNull "github.com/tidepool-org/platform/log/null"
-
-	"github.com/tidepool-org/platform/user"
-
 	"syreclabs.com/go/faker"
-
-	userTest "github.com/tidepool-org/platform/user/test"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -34,48 +21,29 @@ import (
 	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 	prescriptionStoreMongo "github.com/tidepool-org/platform/prescription/store/mongo"
 	"github.com/tidepool-org/platform/prescription/test"
+	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var _ = Describe("PrescriptionRepository", func() {
-	var mongoConfig *structuredMongo.Config
+var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration"), func() {
 	var store *prescriptionStoreMongo.PrescriptionStore
 	var logger *logTest.Logger
 	var repository prescriptionStore.PrescriptionRepository
 
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
-		mongoConfig = storeStructuredMongoTest.NewConfig()
-	})
-
-	AfterEach(func() {
-		if store != nil {
-			store.Terminate(context.Background())
-		}
+		store = GetSuiteStore()
 	})
 
 	Context("with a new store", func() {
 		var collection *mongo.Collection
 
 		BeforeEach(func() {
-			err := fx.New(
-				fx.NopLogger,
-				fx.Supply(mongoConfig),
-				fx.Provide(logNull.NewLogger),
-				fx.Provide(structuredMongo.NewStore),
-				fx.Provide(prescriptionStoreMongo.NewStore),
-				fx.Invoke(func(str prescriptionStore.Store) {
-					store = str.(*prescriptionStoreMongo.PrescriptionStore)
-				}),
-			).Start(context.Background())
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store).ToNot(BeNil())
+			collection = store.GetCollection("prescriptions")
+		})
 
-			clientOptions := options.Client().ApplyURI(mongoConfig.AsConnectionString())
-			client, err := mongo.Connect(context.Background(), clientOptions)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(client).ToNot(BeNil())
-
-			collection = client.Database(mongoConfig.Database).Collection(mongoConfig.CollectionPrefix + "prescriptions")
+		AfterEach(func() {
+			collection.DeleteMany(context.Background(), bson.D{})
 		})
 
 		Context("CreateIndexes", func() {
@@ -225,6 +193,19 @@ var _ = Describe("PrescriptionRepository", func() {
 					AfterEach(func() {
 						_, err := collection.DeleteMany(nil, bson.M{"id": bson.M{"$in": ids}})
 						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns prescriptions sorted by modified time in descending order", func() {
+						lastModifiedTime := time.Now().AddDate(10000, 0, 0)
+
+						filter, err := prescription.NewClinicFilter(clinicID)
+						Expect(err).ToNot(HaveOccurred())
+						result, err := repository.ListPrescriptions(ctx, filter, nil)
+						Expect(err).ToNot(HaveOccurred())
+						for _, prescr := range result {
+							Expect(prescr.ModifiedTime).To(BeTemporally("<=", lastModifiedTime))
+							lastModifiedTime = prescr.ModifiedTime
+						}
 					})
 
 					It("returns the correct prescriptions by clinic id", func() {
@@ -614,6 +595,13 @@ var _ = Describe("PrescriptionRepository", func() {
 						Expect(result).ToNot(BeNil())
 					})
 
+					It("resets modified time", func() {
+						result, err := repository.AddRevision(ctx, prescrID, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(result).ToNot(BeNil())
+						Expect(result.ModifiedTime).To(BeTemporally(">", prescr.ModifiedTime, time.Microsecond))
+					})
+
 					It("adds a revision to the list of revisions", func() {
 						result, err := repository.AddRevision(ctx, prescrID, create)
 						Expect(err).ToNot(HaveOccurred())
@@ -863,8 +851,9 @@ var _ = Describe("PrescriptionRepository", func() {
 
 func ExpectPrescriptionIdsToMatch(actual prescription.Prescriptions, expected []primitive.ObjectID) {
 	Expect(actual).To(HaveLen(len(expected)))
-
+	var actualIds []primitive.ObjectID
 	for i := 0; i < len(expected); i++ {
-		Expect(actual[i].ID).To(Equal(expected[i]))
+		actualIds = append(actualIds, actual[i].ID)
 	}
+	Expect(actualIds).To(ConsistOf(expected))
 }

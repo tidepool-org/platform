@@ -1,3 +1,8 @@
+/*
+ Copyright 2021 The CloudEvents Authors
+ SPDX-License-Identifier: Apache-2.0
+*/
+
 package kafka_sarama
 
 import (
@@ -5,8 +10,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/Shopify/sarama"
-
+	"github.com/IBM/sarama"
 	"github.com/cloudevents/sdk-go/v2/binding"
 	"github.com/cloudevents/sdk-go/v2/protocol"
 )
@@ -32,30 +36,66 @@ func NewReceiver() *Receiver {
 	}
 }
 
-func (r *Receiver) Setup(sess sarama.ConsumerGroupSession) error {
+func (r *Receiver) Setup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
 func (r *Receiver) Cleanup(sarama.ConsumerGroupSession) error {
+	return nil
+}
+
+func (r *Receiver) Close(context.Context) error {
 	r.once.Do(func() {
 		close(r.incoming)
 	})
 	return nil
 }
 
+// ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
+// Also the method should return when `session.Context()` is done.
+// Refer - https://github.com/Shopify/sarama/blob/5e2c2ef0e429f895c86152189f625bfdad7d3452/examples/consumergroup/main.go#L177
 func (r *Receiver) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
-	for message := range claim.Messages() {
-		m := NewMessageFromConsumerMessage(message)
+	// NOTE:
+	// Do not move the code below to a goroutine.
+	// The `ConsumeClaim` itself is called within a goroutine, see:
+	// https://github.com/Shopify/sarama/blob/main/consumer_group.go#L27-L29
+	for {
+		select {
+		case msg, ok := <-claim.Messages():
+			if !ok {
+				return nil
+			}
+			m := NewMessageFromConsumerMessage(msg)
+			msgErrObj := msgErr{
+				msg: binding.WithFinish(m, func(err error) {
+					if protocol.IsACK(err) {
+						session.MarkMessage(msg, "")
+					}
+				}),
+			}
 
-		r.incoming <- msgErr{
-			msg: binding.WithFinish(m, func(err error) {
-				if protocol.IsACK(err) {
-					session.MarkMessage(message, "")
-				}
-			}),
+			// Need to use select clause here, otherwise r.incoming <- msgErrObj can become a blocking operation,
+			// resulting in never reaching outside block's case <-session.Context().Done()
+			select {
+			case r.incoming <- msgErrObj:
+				// do nothing
+			case <-session.Context().Done():
+				return nil
+			}
+
+		// Should return when `session.Context()` is done.
+		// If not, will raise `ErrRebalanceInProgress` or `read tcp <ip>:<port>: i/o timeout` when kafka rebalance. see:
+		// https://github.com/Shopify/sarama/issues/1192
+		// https://github.com/Shopify/sarama/issues/2118
+		// Also checked Shopify/sarama code which calls this ConsumeClaim method, and don't see if there is any difference
+		// whether this method returns error or not. If it returns the error, as per current implementation, it could
+		// get printed in logs and later drained when the ConsumerGroup gets closed.
+		// For now, to be on safer side, returning nil instead of session.Context().Err() as suggested in
+		// https://github.com/Shopify/sarama/blob/5e2c2ef0e429f895c86152189f625bfdad7d3452/examples/consumergroup/main.go
+		case <-session.Context().Done():
+			return nil
 		}
 	}
-	return nil
 }
 
 func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
@@ -71,6 +111,7 @@ func (r *Receiver) Receive(ctx context.Context) (binding.Message, error) {
 }
 
 var _ protocol.Receiver = (*Receiver)(nil)
+var _ protocol.Closer = (*Receiver)(nil)
 
 type Consumer struct {
 	Receiver
@@ -138,6 +179,7 @@ func (c *Consumer) OpenInbound(ctx context.Context) error {
 }
 
 func (c *Consumer) startConsumerGroupLoop(cg sarama.ConsumerGroup, ctx context.Context, errs chan<- error) {
+	defer c.Receiver.Close(ctx)
 	// Need to be wrapped in a for loop
 	// https://godoc.org/github.com/Shopify/sarama#ConsumerGroup
 	for {
@@ -152,7 +194,9 @@ func (c *Consumer) startConsumerGroupLoop(cg sarama.ConsumerGroup, ctx context.C
 			return
 		// Something else happened
 		default:
-			if err == nil || err == sarama.ErrClosedClient || err == sarama.ErrClosedConsumerGroup {
+			if err == nil {
+				continue
+			} else if err == sarama.ErrClosedClient || err == sarama.ErrClosedConsumerGroup {
 				// Consumer group closed correctly, we can close that loop
 				return
 			} else {

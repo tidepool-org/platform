@@ -1,8 +1,7 @@
 package pump_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -12,6 +11,7 @@ import (
 	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -41,7 +41,7 @@ var _ = Describe("OverridePreset", func() {
 	})
 
 	It("DurationMaximum is expected", func() {
-		Expect(dataTypesSettingsPump.DurationMaximum).To(Equal(604800))
+		Expect(dataTypesSettingsPump.DurationMaximum).To(Equal(604800000))
 	})
 
 	It("DurationMinimum is expected", func() {
@@ -86,13 +86,13 @@ var _ = Describe("OverridePreset", func() {
 
 		Context("ParseOverridePreset", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesSettingsPump.ParseOverridePreset(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesSettingsPump.ParseOverridePreset(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesSettingsPumpTest.RandomOverridePreset(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
 				object := dataTypesSettingsPumpTest.NewObjectFromOverridePreset(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesSettingsPump.ParseOverridePreset(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -118,7 +118,7 @@ var _ = Describe("OverridePreset", func() {
 					object := dataTypesSettingsPumpTest.NewObjectFromOverridePreset(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesSettingsPump.NewOverridePreset()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -193,7 +193,7 @@ var _ = Describe("OverridePreset", func() {
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
 						datum.Duration = pointer.FromInt(-1)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
 				),
 				Entry("duration; in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -204,15 +204,15 @@ var _ = Describe("OverridePreset", func() {
 				Entry("duration; in range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
-						datum.Duration = pointer.FromInt(604800)
+						datum.Duration = pointer.FromInt(604800000)
 					},
 				),
 				Entry("duration; out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *dataTypesSettingsPump.OverridePreset, unitsBloodGlucose *string) {
-						datum.Duration = pointer.FromInt(604801)
+						datum.Duration = pointer.FromInt(604800001)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604801, 0, 604800), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/duration"),
 				),
 				Entry("units mmol/L; blood glucose target missing",
 					pointer.FromString("mmol/L"),
@@ -389,7 +389,7 @@ var _ = Describe("OverridePreset", func() {
 						datum.InsulinSensitivityScaleFactor = pointer.FromFloat64(0.09)
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/abbreviation"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800), "/duration"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/duration"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/basalRateScaleFactor"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/carbRatioScaleFactor"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(0.09, 0.1, 10.0), "/insulinSensitivityScaleFactor"),
@@ -403,7 +403,7 @@ var _ = Describe("OverridePreset", func() {
 					datum := dataTypesSettingsPumpTest.RandomOverridePreset(unitsBloodGlucose)
 					mutator(datum, unitsBloodGlucose)
 					expectedDatum := dataTypesSettingsPumpTest.CloneOverridePreset(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), unitsBloodGlucose)
 					Expect(normalizer.Error()).To(BeNil())
@@ -469,7 +469,7 @@ var _ = Describe("OverridePreset", func() {
 						datum := dataTypesSettingsPumpTest.RandomOverridePreset(unitsBloodGlucose)
 						mutator(datum, unitsBloodGlucose)
 						expectedDatum := dataTypesSettingsPumpTest.CloneOverridePreset(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), unitsBloodGlucose)
 						Expect(normalizer.Error()).To(BeNil())
@@ -524,13 +524,13 @@ var _ = Describe("OverridePreset", func() {
 
 		Context("ParseOverridePresetMap", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesSettingsPump.ParseOverridePresetMap(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesSettingsPump.ParseOverridePresetMap(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesSettingsPumpTest.RandomOverridePresetMap(pointer.FromString(dataBloodGlucoseTest.RandomUnits()))
 				object := dataTypesSettingsPumpTest.NewObjectFromOverridePresetMap(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesSettingsPump.ParseOverridePresetMap(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -549,7 +549,7 @@ var _ = Describe("OverridePreset", func() {
 					object := dataTypesSettingsPumpTest.NewObjectFromOverridePresetMap(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesSettingsPump.NewOverridePresetMap()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -643,7 +643,7 @@ var _ = Describe("OverridePreset", func() {
 					datum := dataTypesSettingsPumpTest.RandomOverridePresetMap(unitsBloodGlucose)
 					mutator(datum, unitsBloodGlucose)
 					expectedDatum := dataTypesSettingsPumpTest.CloneOverridePresetMap(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), unitsBloodGlucose)
 					Expect(normalizer.Error()).To(BeNil())
@@ -717,7 +717,7 @@ var _ = Describe("OverridePreset", func() {
 						datum := dataTypesSettingsPumpTest.RandomOverridePresetMap(unitsBloodGlucose)
 						mutator(datum, unitsBloodGlucose)
 						expectedDatum := dataTypesSettingsPumpTest.CloneOverridePresetMap(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), unitsBloodGlucose)
 						Expect(normalizer.Error()).To(BeNil())

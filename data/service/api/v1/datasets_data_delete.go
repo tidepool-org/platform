@@ -29,7 +29,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
 		if err != nil {
@@ -57,7 +57,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet); getErr != nil {
+	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet); getErr != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 		return
 	} else if deduplicator == nil {

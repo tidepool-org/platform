@@ -2,27 +2,51 @@ package v1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/tidepool-org/platform/clinics"
 	dataService "github.com/tidepool-org/platform/data/service"
-
+	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/data/summary/reporters"
+	"github.com/tidepool-org/platform/data/summary/types"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/service/api"
 )
 
 func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.MakeRoute("GET", "/v1/summaries/:userId", Authenticate(GetSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries/:userId", Authenticate(UpdateSummary)),
-		dataService.MakeRoute("POST", "/v1/summaries", Authenticate(BackfillSummaries)),
-		dataService.MakeRoute("GET", "/v1/summaries", Authenticate(GetOutdatedUserIDs)),
+		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
+
+		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
+
+		dataService.Post("/v1/summaries/backfill/cgm", BackfillSummaries[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/bgm", BackfillSummaries[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Post("/v1/summaries/backfill/continuous", BackfillSummaries[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
+
+		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
+
+		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[types.CGMStats, *types.CGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[types.BGMStats, *types.BGMStats], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[types.ContinuousStats, *types.ContinuousStats], api.RequireAuth),
+
+		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}
 }
 
 func CheckPermissions(ctx context.Context, dataServiceContext dataService.Context, id string) bool {
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 
 	if !details.IsService() {
 		permissions, err := dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), id)
@@ -42,11 +66,10 @@ func CheckPermissions(ctx context.Context, dataServiceContext dataService.Contex
 	return true
 }
 
-func GetSummary(dataServiceContext dataService.Context) {
+func GetSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -56,22 +79,64 @@ func GetSummary(dataServiceContext dataService.Context) {
 		return
 	}
 
-	summary, err := dataClient.GetSummary(ctx, id)
-
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
+	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
-		responder.Empty(http.StatusNotFound)
+	} else if userSummary == nil {
+		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetTypeString[A](), id))
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
-func UpdateSummary(dataServiceContext dataService.Context) {
+func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
+
+	responder := request.MustNewResponder(res, req)
+
+	clinicId := req.PathParam("clinicId")
+
+	filter := reporters.NewPatientRealtimeDaysFilter()
+	if err := request.DecodeRequestQuery(req.Request, filter); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	details := request.GetAuthDetails(ctx)
+
+	if filter.StartTime.After(*filter.EndTime) {
+		responder.Error(http.StatusBadRequest, errors.New("startTime is after endTime"))
+		return
+	}
+
+	endOfHour := time.Now().Truncate(time.Hour).Add(time.Second * 3599)
+	if filter.StartTime.Before(endOfHour.AddDate(0, 0, -60)) {
+		responder.Error(http.StatusBadRequest, errors.New("startTime is too old ( >60d ago ) "))
+		return
+	}
+
+	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
+		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime, filter.PatientFilters)
+	if err != nil {
+		if errors.Code(err) == clinics.ErrorCodeClinicClientFailure {
+			res := errors.Meta(err).(*http.Response)
+			responder.Reader(res.StatusCode, res.Body)
+		} else {
+			responder.Error(http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	responder.Data(http.StatusOK, response)
+}
+
+func UpdateSummary[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
 
 	responder := request.MustNewResponder(res, req)
 
@@ -81,30 +146,29 @@ func UpdateSummary(dataServiceContext dataService.Context) {
 		return
 	}
 
-	summary, err := dataClient.UpdateSummary(ctx, id)
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
+	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
-	} else if summary == nil {
-		responder.Empty(http.StatusNotFound)
 	} else {
-		responder.Data(http.StatusOK, summary)
+		responder.Data(http.StatusOK, userSummary)
 	}
 }
 
-func BackfillSummaries(dataServiceContext dataService.Context) {
+func BackfillSummaries[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
 
-	status, err := dataClient.BackfillSummaries(ctx)
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
+	status, err := summarizer.BackfillSummaries(ctx)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -113,15 +177,14 @@ func BackfillSummaries(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, status)
 }
 
-func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
+func GetOutdatedUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-	dataClient := dataServiceContext.DataClient()
 
 	responder := request.MustNewResponder(res, req)
 
-	if details := request.DetailsFromContext(ctx); !details.IsService() {
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
 		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 		return
 	}
@@ -132,7 +195,36 @@ func GetOutdatedUserIDs(dataServiceContext dataService.Context) {
 		return
 	}
 
-	userIDs, err := dataClient.GetOutdatedUserIDs(ctx, pagination)
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
+	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, response)
+}
+
+func GetMigratableUserIDs[T types.Stats, A types.StatsPt[T]](dataServiceContext dataService.Context) {
+	ctx := dataServiceContext.Request().Context()
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	responder := request.MustNewResponder(res, req)
+
+	if details := request.GetAuthDetails(ctx); !details.IsService() {
+		dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+		return
+	}
+
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	summarizer := summary.GetSummarizer[A](dataServiceContext.SummarizerRegistry())
+	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

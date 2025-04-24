@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"strconv"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -37,7 +37,7 @@ var _ = Describe("Condition", func() {
 					object := requestTest.NewObjectFromCondition(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &request.Condition{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -72,7 +72,7 @@ var _ = Describe("Condition", func() {
 				func(mutator func(datum *request.Condition), expectedErrors ...error) {
 					datum := requestTest.RandomCondition()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *request.Condition) {},

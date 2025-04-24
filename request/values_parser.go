@@ -1,10 +1,12 @@
 package request
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -16,8 +18,8 @@ type Values struct {
 	parsed map[string]int
 }
 
-func NewValues(values *map[string][]string) *Values {
-	return NewValuesParser(structureBase.New().WithSource(structure.NewParameterSource()), values)
+func NewValues(logger log.Logger, values *map[string][]string) *Values {
+	return NewValuesParser(structureBase.New(logger).WithSource(structure.NewParameterSource()), values)
 }
 
 func NewValuesParser(base *structureBase.Base, values *map[string][]string) *Values {
@@ -31,6 +33,10 @@ func NewValuesParser(base *structureBase.Base, values *map[string][]string) *Val
 		values: values,
 		parsed: parsed,
 	}
+}
+
+func (v *Values) Logger() log.Logger {
+	return v.base.Logger()
 }
 
 func (v *Values) Origin() structure.Origin {
@@ -192,24 +198,6 @@ func (v *Values) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
-// ForgivingTime is a parser added specifically to handle https://tidepool.atlassian.net/browse/BACK-1161
-// It should be deprecated once Dexcom fixes their API.
-func (v *Values) ForgivingTime(reference string, layout string) *time.Time {
-	rawValue, ok := v.raw(reference)
-	if !ok {
-		return nil
-	}
-
-	forgivingTime := structure.ForgivingTimeString(rawValue)
-	timeValue, err := time.Parse(layout, forgivingTime)
-	if err != nil {
-		v.base.WithReference(reference).ReportError(structureParser.ErrorValueTimeNotParsable(rawValue, layout))
-		return nil
-	}
-
-	return &timeValue
-}
-
 func (v *Values) Object(reference string) *map[string]interface{} {
 	rawValue, ok := v.raw(reference)
 	if !ok {
@@ -228,6 +216,22 @@ func (v *Values) Array(reference string) *[]interface{} {
 
 	v.base.WithReference(reference).ReportError(structureParser.ErrorTypeNotArray(rawValue))
 	return nil
+}
+
+func (v *Values) JSON(reference string, target any) {
+	rawValue, ok := v.raw(reference)
+	if !ok {
+		return
+	}
+
+	if rawValue == "" {
+		return
+	}
+
+	err := json.Unmarshal([]byte(rawValue), target)
+	if err != nil {
+		v.base.WithReference(reference).ReportError(structureParser.ErrorTypeNotJSON(rawValue, err))
+	}
 }
 
 func (v *Values) Interface(reference string) *interface{} {

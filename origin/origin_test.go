@@ -3,11 +3,11 @@ package origin_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/origin"
@@ -81,13 +81,13 @@ var _ = Describe("Origin", func() {
 
 		Context("ParseOrigin", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(origin.ParseOrigin(structureParser.NewObject(nil))).To(BeNil())
+				Expect(origin.ParseOrigin(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := originTest.RandomOrigin()
 				object := originTest.NewObjectFromOrigin(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(origin.ParseOrigin(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -106,7 +106,7 @@ var _ = Describe("Origin", func() {
 					object := originTest.NewObjectFromOrigin(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &origin.Origin{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -142,7 +142,7 @@ var _ = Describe("Origin", func() {
 				func(mutator func(datum *origin.Origin), expectedErrors ...error) {
 					datum := originTest.RandomOrigin()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *origin.Origin) {},

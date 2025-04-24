@@ -12,7 +12,7 @@ import (
 )
 
 type Sanitizable interface {
-	Sanitize(details Details) error
+	Sanitize(details AuthDetails) error
 }
 
 type Responder struct {
@@ -151,7 +151,7 @@ func (r *Responder) mutateResponse(mutators []ResponseMutator) error {
 
 func (r *Responder) sanitize(data interface{}) error {
 	if sanitizable, ok := data.(Sanitizable); ok {
-		return sanitizable.Sanitize(DetailsFromContext(r.req.Context()))
+		return sanitizable.Sanitize(GetAuthDetails(r.req.Context()))
 	}
 	return nil
 }

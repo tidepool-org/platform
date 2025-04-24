@@ -13,12 +13,15 @@ import (
 	"github.com/tidepool-org/platform/service"
 )
 
-type Auth struct {
+// Authenticator provides a middleware to authenticate credentials.
+//
+// Requests without any credentials will pass.
+type Authenticator struct {
 	serviceSecret string
 	authClient    auth.Client
 }
 
-func NewAuth(serviceSecret string, authClient auth.Client) (*Auth, error) {
+func NewAuthenticator(serviceSecret string, authClient auth.Client) (*Authenticator, error) {
 	if serviceSecret == "" {
 		return nil, errors.New("service secret is missing")
 	}
@@ -26,13 +29,13 @@ func NewAuth(serviceSecret string, authClient auth.Client) (*Auth, error) {
 		return nil, errors.New("auth client is missing")
 	}
 
-	return &Auth{
+	return &Authenticator{
 		serviceSecret: serviceSecret,
 		authClient:    authClient,
 	}, nil
 }
 
-func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
+func (a *Authenticator) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	return func(res rest.ResponseWriter, req *rest.Request) {
 		if handlerFunc != nil && res != nil && req != nil {
 			oldRequest := req.Request
@@ -42,11 +45,7 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 
 			lgr := log.LoggerFromContext(req.Context())
 
-			if serverSessionToken, err := a.authClient.ServerSessionToken(); err == nil {
-				req.Request = req.WithContext(auth.NewContextWithServerSessionToken(req.Context(), serverSessionToken))
-			} else {
-				lgr.WithError(err).Warn("Unable to obtain server session token in auth middleware")
-			}
+			req.Request = req.WithContext(auth.NewContextWithServerSessionTokenProvider(req.Context(), a.authClient))
 
 			if details, err := a.authenticate(req); err != nil {
 				// TODO: Sleep exponential fallback based upon IP and occurrences in period
@@ -64,7 +63,7 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 					}
 				}
 
-				req.Request = req.WithContext(request.NewContextWithDetails(req.Context(), details))
+				req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 				if details.HasToken() {
 					req.Request = req.WithContext(log.NewContextWithLogger(req.Context(), lgr.WithField("tokenHash", crypto.HexEncodedMD5Hash(details.Token()))))
 				}
@@ -75,7 +74,7 @@ func (a *Auth) MiddlewareFunc(handlerFunc rest.HandlerFunc) rest.HandlerFunc {
 	}
 }
 
-func (a *Auth) authenticate(req *rest.Request) (request.Details, error) {
+func (a *Authenticator) authenticate(req *rest.Request) (request.AuthDetails, error) {
 	details, err := a.authenticateServiceSecret(req)
 	if err != nil || details != nil {
 		return details, err
@@ -94,7 +93,7 @@ func (a *Auth) authenticate(req *rest.Request) (request.Details, error) {
 	return a.authenticateRestrictedToken(req)
 }
 
-func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, error) {
+func (a *Authenticator) authenticateServiceSecret(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolServiceSecretHeaderKey]
 	if !found {
 		return nil, nil
@@ -106,10 +105,10 @@ func (a *Auth) authenticateServiceSecret(req *rest.Request) (request.Details, er
 		return nil, request.ErrorUnauthorized()
 	}
 
-	return request.NewDetails(request.MethodServiceSecret, "", ""), nil
+	return request.NewAuthDetails(request.MethodServiceSecret, "", ""), nil
 }
 
-func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, error) {
+func (a *Authenticator) authenticateAccessToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolAuthorizationHeaderKey]
 	if !found {
 		return nil, nil
@@ -127,10 +126,10 @@ func (a *Auth) authenticateAccessToken(req *rest.Request) (request.Details, erro
 		return nil, nil
 	}
 
-	return request.NewDetails(request.MethodAccessToken, details.UserID(), details.Token()), nil
+	return request.NewAuthDetails(request.MethodAccessToken, details.UserID(), details.Token()), nil
 }
 
-func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, error) {
+func (a *Authenticator) authenticateSessionToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.Header[auth.TidepoolSessionTokenHeaderKey]
 	if !found {
 		return nil, nil
@@ -146,7 +145,7 @@ func (a *Auth) authenticateSessionToken(req *rest.Request) (request.Details, err
 	return details, nil
 }
 
-func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.Details, error) {
+func (a *Authenticator) authenticateRestrictedToken(req *rest.Request) (request.AuthDetails, error) {
 	values, found := req.URL.Query()[auth.TidepoolRestrictedTokenParameterKey]
 	if !found {
 		return nil, nil
@@ -159,5 +158,5 @@ func (a *Auth) authenticateRestrictedToken(req *rest.Request) (request.Details, 
 		return nil, nil
 	}
 
-	return request.NewDetails(request.MethodRestrictedToken, restrictedToken.UserID, restrictedToken.ID), nil
+	return request.NewAuthDetails(request.MethodRestrictedToken, restrictedToken.UserID, restrictedToken.ID), nil
 }

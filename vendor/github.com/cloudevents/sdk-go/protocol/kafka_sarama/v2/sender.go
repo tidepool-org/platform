@@ -1,9 +1,14 @@
+/*
+ Copyright 2021 The CloudEvents Authors
+ SPDX-License-Identifier: Apache-2.0
+*/
+
 package kafka_sarama
 
 import (
 	"context"
 
-	"github.com/Shopify/sarama"
+	"github.com/IBM/sarama"
 
 	"github.com/cloudevents/sdk-go/v2/binding"
 )
@@ -34,6 +39,11 @@ func NewSenderFromClient(client sarama.Client, topic string, options ...SenderOp
 	}
 
 	return makeSender(producer, topic, options...), nil
+}
+
+// NewSenderFromSyncProducer returns a binding.Sender that sends messages to a specific topic using sarama.SyncProducer
+func NewSenderFromSyncProducer(topic string, syncProducer sarama.SyncProducer, options ...SenderOptionFunc) (*Sender, error) {
+	return makeSender(syncProducer, topic, options...), nil
 }
 
 func makeSender(syncProducer sarama.SyncProducer, topic string, options ...SenderOptionFunc) *Sender {

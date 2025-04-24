@@ -4,13 +4,12 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
@@ -63,6 +62,17 @@ type CreateDataSetDataInput struct {
 	Context     context.Context
 	DataSet     *upload.Upload
 	DataSetData []data.Datum
+}
+
+type NewerDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
+type NewerDataSetDataOutput struct {
+	Selectors *data.Selectors
+	Error     error
 }
 
 type ActivateDataSetDataInput struct {
@@ -137,36 +147,28 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
-type CalculateSummaryInput struct {
-	Context context.Context
-	Summary *summary.Summary
-}
-
-type CalculateSummaryOutput struct {
-	Summary *summary.Summary
-	Error   error
-}
-
 type GetLastUpdatedForUserInput struct {
-	Context context.Context
-	ID      string
+	Context     context.Context
+	UserID      string
+	Typ         []string
+	LastUpdated time.Time
 }
 
 type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *summary.UserLastUpdated
+	UserLastUpdated *data.UserDataStatus
 	Error           error
 }
 
-type GetCGMDataRangeInput struct {
-	Context   context.Context
-	ID        string
-	StartTime time.Time
-	EndTime   time.Time
+type GetDataRangeInput struct {
+	Context context.Context
+	UserId  string
+	Typ     []string
+	Status  *data.UserDataStatus
 }
 
-type GetCGMDataRangeOutput struct {
-	Continuous []*continuous.Continuous
-	Error      error
+type GetDataRangeOutput struct {
+	Error  error
+	Cursor *mongo.Cursor
 }
 
 type GetUsersWithBGDataSinceInput struct {
@@ -179,13 +181,24 @@ type GetUsersWithBGDataSinceOutput struct {
 	Error   error
 }
 
-type DistinctCGMUserIDsInput struct {
+type DistinctUserIDsInput struct {
 	Context context.Context
+	Typ     []string
 }
 
-type DistinctCGMUserIDsOutput struct {
+type DistinctUserIDsOutput struct {
 	UserIDs []string
 	Error   error
+}
+
+type GetAlertableDataInput struct {
+	Context context.Context
+	Params  dataStore.AlertableParams
+}
+
+type GetAlertableDataOutput struct {
+	Response *dataStore.AlertableResponse
+	Error    error
 }
 
 type DataRepository struct {
@@ -208,6 +221,9 @@ type DataRepository struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
+	NewerDataSetDataInvocations                          int
+	NewerDataSetDataInputs                               []NewerDataSetDataInput
+	NewerDataSetDataOutputs                              []NewerDataSetDataOutput
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
@@ -242,13 +258,9 @@ type DataRepository struct {
 	GetDataSetInputs                                     []GetDataSetInput
 	GetDataSetOutputs                                    []GetDataSetOutput
 
-	GetCGMDataRangeInvocations int
-	GetCGMDataRangeInputs      []GetCGMDataRangeInput
-	GetCGMDataRangeOutputs     []GetCGMDataRangeOutput
-
-	CalculateSummaryInvocations int
-	CalculateSummaryInputs      []CalculateSummaryInput
-	CalculateSummaryOutputs     []CalculateSummaryOutput
+	GetDataRangeInvocations int
+	GetDataRangeInputs      []GetDataRangeInput
+	GetDataRangeOutputs     []GetDataRangeOutput
 
 	GetLastUpdatedForUserInvocations int
 	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
@@ -258,9 +270,13 @@ type DataRepository struct {
 	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
 	GetUsersWithBGDataSinceOutputs     []GetUsersWithBGDataSinceOutput
 
-	DistinctCGMUserIDsInvocations int
-	DistinctCGMUserIDsInputs      []DistinctCGMUserIDsInput
-	DistinctCGMUserIDsOutputs     []DistinctCGMUserIDsOutput
+	DistinctUserIDsInvocations int
+	DistinctUserIDsInputs      []DistinctUserIDsInput
+	DistinctUserIDsOutputs     []DistinctUserIDsOutput
+
+	GetAlertableDataInvocations int
+	GetAlertableDataInputs      []GetAlertableDataInput
+	GetAlertableDataOutputs     []GetAlertableDataOutput
 }
 
 func NewDataRepository() *DataRepository {
@@ -344,6 +360,18 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	output := d.CreateDataSetDataOutputs[0]
 	d.CreateDataSetDataOutputs = d.CreateDataSetDataOutputs[1:]
 	return output
+}
+
+func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+	d.NewerDataSetDataInvocations++
+
+	d.NewerDataSetDataInputs = append(d.NewerDataSetDataInputs, NewerDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.NewerDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.NewerDataSetDataOutputs[0]
+	d.NewerDataSetDataOutputs = d.NewerDataSetDataOutputs[1:]
+	return output.Selectors, output.Error
 }
 
 func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
@@ -478,10 +506,10 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error) {
+func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	d.GetLastUpdatedForUserInvocations++
 
-	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, ID: id})
+	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
 
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
 
@@ -490,16 +518,16 @@ func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, id string) (
 	return output.UserLastUpdated, output.Error
 }
 
-func (d *DataRepository) GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error) {
-	d.GetCGMDataRangeInvocations++
+func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
+	d.GetDataRangeInvocations++
 
-	d.GetCGMDataRangeInputs = append(d.GetCGMDataRangeInputs, GetCGMDataRangeInput{Context: ctx, ID: id, StartTime: startTime, EndTime: endTime})
+	d.GetDataRangeInputs = append(d.GetDataRangeInputs, GetDataRangeInput{Context: ctx, UserId: userId, Typ: typ, Status: status})
 
-	gomega.Expect(d.GetCGMDataRangeOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetDataRangeOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetCGMDataRangeOutputs[0]
-	d.GetCGMDataRangeOutputs = d.GetCGMDataRangeOutputs[1:]
-	return output.Continuous, output.Error
+	output := d.GetDataRangeOutputs[0]
+	d.GetDataRangeOutputs = d.GetDataRangeOutputs[1:]
+	return output.Cursor, output.Error
 }
 
 func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdated time.Time) ([]string, error) {
@@ -514,16 +542,28 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctCGMUserIDs(ctx context.Context) ([]string, error) {
-	d.DistinctCGMUserIDsInvocations++
+func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
+	d.DistinctUserIDsInvocations++
 
-	d.DistinctCGMUserIDsInputs = append(d.DistinctCGMUserIDsInputs, DistinctCGMUserIDsInput{Context: ctx})
+	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
 
-	gomega.Expect(d.DistinctCGMUserIDsOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.DistinctUserIDsOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.DistinctCGMUserIDsOutputs[0]
-	d.DistinctCGMUserIDsOutputs = d.DistinctCGMUserIDsOutputs[1:]
+	output := d.DistinctUserIDsOutputs[0]
+	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
 	return output.UserIDs, output.Error
+}
+
+func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
+	d.GetAlertableDataInvocations++
+
+	d.GetAlertableDataInputs = append(d.GetAlertableDataInputs, GetAlertableDataInput{Context: ctx, Params: params})
+
+	gomega.Expect(d.GetAlertableDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetAlertableDataOutputs[0]
+	d.GetAlertableDataOutputs = d.GetAlertableDataOutputs[1:]
+	return output.Response, output.Error
 }
 
 func (d *DataRepository) Expectations() {
@@ -546,7 +586,6 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DistinctCGMUserIDsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.CalculateSummaryOutputs).To(gomega.BeEmpty())
 }

@@ -3,12 +3,12 @@ package user_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -51,7 +51,7 @@ var _ = Describe("User", func() {
 					object := userTest.NewObjectFromUser(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &user.User{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(userTest.MatchUser(expectedDatum))
 				},
 				Entry("succeeds",
@@ -154,7 +154,7 @@ var _ = Describe("User", func() {
 				func(mutator func(datum *user.User), expectedErrors ...error) {
 					datum := userTest.RandomUser()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *user.User) {},
@@ -285,17 +285,17 @@ var _ = Describe("User", func() {
 					original.EmailVerified = nil
 					original.TermsAccepted = nil
 					original.Roles = nil
-					datum.Sanitize(request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
 					Expect(datum).To(Equal(original))
 				})
 
 				It("does not sanitize renditions if details is service", func() {
-					datum.Sanitize(request.NewDetails(request.MethodSessionToken, *original.UserID, authTest.NewSessionToken()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, *original.UserID, authTest.NewSessionToken()))
 					Expect(datum).To(Equal(original))
 				})
 
 				It("does not sanitize renditions if details is service", func() {
-					datum.Sanitize(request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
 					Expect(datum).To(Equal(original))
 				})
 			})
@@ -330,12 +330,12 @@ var _ = Describe("User", func() {
 					original[index].TermsAccepted = nil
 					original[index].Roles = nil
 				}
-				datum.Sanitize(request.NewDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+				datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
 				Expect(datum).To(Equal(original))
 			})
 
 			It("does not sanitize renditions if details is service", func() {
-				datum.Sanitize(request.NewDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
+				datum.Sanitize(request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewServiceSecret()))
 				Expect(datum).To(Equal(original))
 			})
 		})

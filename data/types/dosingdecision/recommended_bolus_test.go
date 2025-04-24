@@ -1,14 +1,14 @@
 package dosingdecision_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataTypesDosingDecision "github.com/tidepool-org/platform/data/types/dosingdecision"
 	dataTypesDosingDecisionTest "github.com/tidepool-org/platform/data/types/dosingdecision/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -50,13 +50,13 @@ var _ = Describe("RecommendedBolus", func() {
 
 		Context("ParseRecommendedBolus", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(dataTypesDosingDecision.ParseRecommendedBolus(structureParser.NewObject(nil))).To(BeNil())
+				Expect(dataTypesDosingDecision.ParseRecommendedBolus(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := dataTypesDosingDecisionTest.RandomRecommendedBolus()
 				object := dataTypesDosingDecisionTest.NewObjectFromRecommendedBolus(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(dataTypesDosingDecision.ParseRecommendedBolus(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -77,7 +77,7 @@ var _ = Describe("RecommendedBolus", func() {
 					object := dataTypesDosingDecisionTest.NewObjectFromRecommendedBolus(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := dataTypesDosingDecision.NewRecommendedBolus()
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",

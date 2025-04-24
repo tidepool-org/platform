@@ -3,13 +3,13 @@ package location_test
 import (
 	"math"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/location"
 	locationTest "github.com/tidepool-org/platform/location/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -71,13 +71,13 @@ var _ = Describe("Elevation", func() {
 
 		Context("ParseElevation", func() {
 			It("returns nil when the object is missing", func() {
-				Expect(location.ParseElevation(structureParser.NewObject(nil))).To(BeNil())
+				Expect(location.ParseElevation(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 			})
 
 			It("returns new datum when the object is valid", func() {
 				datum := locationTest.RandomElevation()
 				object := locationTest.NewObjectFromElevation(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(&object)
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(location.ParseElevation(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
 			})
@@ -96,7 +96,7 @@ var _ = Describe("Elevation", func() {
 					object := locationTest.NewObjectFromElevation(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &location.Elevation{}
-					errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
@@ -120,7 +120,7 @@ var _ = Describe("Elevation", func() {
 				func(mutator func(datum *location.Elevation), expectedErrors ...error) {
 					datum := locationTest.RandomElevation()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *location.Elevation) {},

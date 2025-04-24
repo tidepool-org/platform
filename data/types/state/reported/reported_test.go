@@ -3,8 +3,7 @@ package reported_test
 import (
 	"math/rand"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
@@ -12,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/state/reported"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -144,7 +144,7 @@ var _ = Describe("Reported", func() {
 						datum := NewReported()
 						mutator(datum)
 						expectedDatum := CloneReported(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

@@ -17,13 +17,9 @@ import (
 )
 
 const (
-	ArchivedTimeFormat      = time.RFC3339Nano
 	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
 	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	CreatedTimeFormat       = time.RFC3339Nano
-	DeletedTimeFormat       = time.RFC3339Nano
 	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	ModifiedTimeFormat      = time.RFC3339Nano
 	NoteLengthMaximum       = 1000
 	NotesLengthMaximum      = 100
 	TagLengthMaximum        = 100
@@ -57,6 +53,7 @@ type Base struct {
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
+	Provenance        *data.Provenance              `json:"-" bson:"provenance,omitempty"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *time.Time                    `json:"time,omitempty" bson:"time,omitempty"`
@@ -183,6 +180,13 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
+	if b.Notes != nil {
+		// notes from dexcom API fetch were set to be empty and would silently fail
+		if len(*b.Notes) == 0 {
+			b.Notes = nil
+		}
+	}
+
 	validator.StringArray("notes", b.Notes).NotEmpty().LengthLessThanOrEqualTo(NotesLengthMaximum).Each(func(stringValidator structure.String) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(NoteLengthMaximum)
 	})
@@ -267,6 +271,30 @@ func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
 
+func (b *Base) GetTime() *time.Time {
+	return b.Time
+}
+
+func (b *Base) GetTimeZoneOffset() *int {
+	return b.TimeZoneOffset
+}
+
+func (b *Base) GetUploadID() *string {
+	return b.UploadID
+}
+
+func (b *Base) GetType() string {
+	return b.Type
+}
+
+func (b *Base) IsActive() bool {
+	return b.Active
+}
+
+func (b *Base) SetType(typ string) {
+	b.Type = typ
+}
+
 func (b *Base) SetUserID(userID *string) {
 	b.UserID = userID
 }
@@ -281,6 +309,10 @@ func (b *Base) SetActive(active bool) {
 
 func (b *Base) SetDeviceID(deviceID *string) {
 	b.DeviceID = deviceID
+}
+
+func (b *Base) GetCreatedTime() *time.Time {
+	return b.CreatedTime
 }
 
 func (b *Base) SetCreatedTime(createdTime *time.Time) {
@@ -307,24 +339,16 @@ func (b *Base) SetDeletedUserID(deletedUserID *string) {
 	b.DeletedUserID = deletedUserID
 }
 
-func (b *Base) UpdatesSummary() bool {
-	// two years has a bit of padding, to allow for some calculation delay
-	twoYearsPast := time.Now().UTC().AddDate(0, -23, -20)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	if b.Type == "cbg" && b.Time.Before(oneDayFuture) && b.Time.After(twoYearsPast) {
-		return true
-	}
-
-	return false
-}
-
 func (b *Base) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
 	return b.Deduplicator
 }
 
 func (b *Base) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.DeduplicatorDescriptor) {
 	b.Deduplicator = deduplicatorDescriptor
+}
+
+func (b *Base) SetProvenance(provenance *data.Provenance) {
+	b.Provenance = provenance
 }
 
 func latestTime(tms ...time.Time) time.Time {

@@ -10,12 +10,12 @@ import (
 
 const (
 	HighLevelAlertDEPRECATEDLevelMgdLMaximum  float64 = 400
-	HighLevelAlertDEPRECATEDLevelMgdLMinimum  float64 = 120
+	HighLevelAlertDEPRECATEDLevelMgdLMinimum  float64 = 100
 	HighLevelAlertDEPRECATEDLevelMmolLMaximum float64 = 22.20299
-	HighLevelAlertDEPRECATEDLevelMmolLMinimum float64 = 6.66090
-	LowLevelAlertDEPRECATEDLevelMgdLMaximum   float64 = 100
+	HighLevelAlertDEPRECATEDLevelMmolLMinimum float64 = 5.55075
+	LowLevelAlertDEPRECATEDLevelMgdLMaximum   float64 = 150
 	LowLevelAlertDEPRECATEDLevelMgdLMinimum   float64 = 59
-	LowLevelAlertDEPRECATEDLevelMmolLMaximum  float64 = 5.55075
+	LowLevelAlertDEPRECATEDLevelMmolLMaximum  float64 = 8.32612
 	LowLevelAlertDEPRECATEDLevelMmolLMinimum  float64 = 3.27494
 )
 

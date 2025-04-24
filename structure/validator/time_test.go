@@ -3,10 +3,11 @@ package validator_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -17,7 +18,7 @@ var _ = Describe("Time", func() {
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New().WithSource(structure.NewPointerSource())
+		base = structureBase.New(logTest.NewLogger()).WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewTime", func() {

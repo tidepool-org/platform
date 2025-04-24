@@ -63,6 +63,11 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
+	if err = prvdr.BeforeCreate(ctx, userID, create); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("Unable to prepare provider session for creation")
+		return nil, err
+	}
+
 	repository := c.authStore.NewProviderSessionRepository()
 
 	providerSession, err := repository.CreateUserProviderSession(ctx, userID, create)
@@ -70,9 +75,17 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
-	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession.ID); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).WithField("providerSessionId", providerSession.ID).Error("unable to finalize creation of provider session")
-		repository.DeleteProviderSession(ctx, providerSession.ID)
+	ctx = log.ContextWithFields(ctx, log.Fields{
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
+	})
+
+	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
+		c.deleteProviderSession(ctx, repository, providerSession)
 		return nil, err
 	}
 
@@ -89,31 +102,59 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) e
 		logger.WithError(err).Warn("Unable to list user provider sessions")
 	} else {
 		for _, providerSession := range providerSessions {
-			c.deleteProviderSession(ctx, repository, providerSession)
+			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
+
+			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
+				logger.WithError(err).Warn("Unable to delete provider session")
+			}
 		}
 	}
 
-	return repository.DeleteAllProviderSessions(ctx, userID)
+	return nil
 }
 
-func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) {
-	ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSession", providerSession)
-
-	var prvdr provider.Provider
-	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
-	if err != nil {
-		logger.WithError(err).Warn("Unable to get provider")
+func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
+	if filter.ExternalID == nil || *filter.ExternalID == "" {
+		return errors.New("external id is missing")
+	}
+	if filter.Name == nil || *filter.Name == "" {
+		return errors.New("provider name is missing")
+	}
+	if filter.Type == nil || *filter.Type == "" {
+		return errors.New("provider type is missing")
 	}
 
-	if err = repository.DeleteProviderSession(ctx, providerSession.ID); err != nil {
-		logger.WithError(err).Warn("Unable to delete provider session")
-	}
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
+		"externalId":   *filter.ExternalID,
+		"providerName": *filter.Name,
+		"providerType": *filter.Type,
+	})
 
-	if prvdr != nil {
-		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession.ID); err != nil {
-			logger.WithError(err).Warn("Unable to delete provider session from provider")
+	repository := c.authStore.NewProviderSessionRepository()
+
+	pagination := page.NewPagination()
+	for {
+		providerSessions, err := repository.ListProviderSessions(ctx, &filter, pagination)
+		if err != nil {
+			logger.WithError(err).Warn("Unable to list user provider sessions")
+			return err
+		}
+		for _, providerSession := range providerSessions {
+			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
+
+			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
+				logger.WithError(err).Warn("Unable to delete provider session")
+			}
+		}
+		if len(providerSessions) < pagination.Size {
+			break
 		}
 	}
+
+	// We are intentionally not calling the repository to make sure we don't run into
+	// a race condition and delete documents from the repository without invoking the 'OnDelete'
+	// callback of each provider for documents added after the loop above has completed.
+	return nil
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
@@ -137,16 +178,29 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 		return nil
 	}
 
+	return c.deleteProviderSession(ctx, repository, providerSession)
+}
+
+func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) error {
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
+		"providerSessionId":         providerSession.ID,
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
+	})
+
 	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
 	if err != nil {
-		return err
+		logger.WithError(err).Warn("Unable to get provider")
+	} else if prvdr != nil {
+		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession); err != nil {
+			logger.WithError(err).Warn("Unable to finalize deletion of provider session")
+			return err
+		}
 	}
 
-	if err = repository.DeleteProviderSession(ctx, id); err != nil {
-		return err
-	}
-
-	return prvdr.OnDelete(ctx, providerSession.UserID, providerSession.ID)
+	return repository.DeleteProviderSession(ctx, providerSession.ID)
 }
 
 func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {

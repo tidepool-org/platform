@@ -3,8 +3,11 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data/summary"
+
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
@@ -35,7 +38,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	details := request.DetailsFromContext(ctx)
+	details := request.GetAuthDetails(ctx)
 	if !details.IsService() {
 		var permissions permission.Permissions
 		permissions, err = dataServiceContext.PermissionClient().GetUserPermissions(ctx, details.UserID(), *dataSet.UserID)
@@ -79,7 +82,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	if update.State != nil && *update.State == "closed" {
-		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(dataSet)
+		deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet)
 		if getErr != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to get deduplicator", getErr)
 			return
@@ -90,6 +93,14 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}
+
+		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
+		updatesSummary := make(map[string]struct{})
+		for _, typ := range types.AllSummaryTypes {
+			updatesSummary[typ] = struct{}{}
+		}
+
+		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

@@ -2,6 +2,7 @@ package normalizer
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
 	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 )
@@ -11,9 +12,9 @@ type Normalizer struct {
 	data       *[]data.Datum
 }
 
-func New() *Normalizer {
+func New(logger log.Logger) *Normalizer {
 	return &Normalizer{
-		normalizer: structureNormalizer.New(),
+		normalizer: structureNormalizer.New(logger),
 		data:       &[]data.Datum{},
 	}
 }

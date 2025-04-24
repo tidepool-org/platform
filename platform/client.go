@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
@@ -17,7 +16,6 @@ type AuthorizeAs int
 const (
 	AuthorizeAsService AuthorizeAs = iota
 	AuthorizeAsUser
-	DefaultTimeout = 60 * time.Second
 )
 
 type Client struct {
@@ -27,7 +25,19 @@ type Client struct {
 	httpClient    *http.Client
 }
 
+// Modern platform-based services encode all errors with detailed information in the
+// response body. Deserialize those errors and pass onward.
 func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
+	return NewClientWithErrorResponseParser(cfg, authorizeAs, client.NewSerializableErrorResponseParser())
+}
+
+// Legacy services (shoreline, highwater, gatekeeper, etc.) do not serialize their errors
+// in the response body in a manner that platform can parse.
+func NewLegacyClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
+	return NewClientWithErrorResponseParser(cfg, authorizeAs, nil)
+}
+
+func NewClientWithErrorResponseParser(cfg *Config, authorizeAs AuthorizeAs, errorResponseParser client.ErrorResponseParser) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	} else if err := cfg.Validate(); err != nil {
@@ -37,7 +47,7 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 		return nil, errors.New("authorize as is invalid")
 	}
 
-	clnt, err := client.New(cfg.Config)
+	clnt, err := client.NewWithErrorParser(cfg.Config, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}
@@ -48,22 +58,12 @@ func NewClient(cfg *Config, authorizeAs AuthorizeAs) (*Client, error) {
 	// 		return errors.New("service secret is missing")
 	// 	}
 	// }
-	var timeout time.Duration
-	if cfg.Timeout != nil {
-		timeout = *cfg.Timeout
-	} else {
-		timeout = DefaultTimeout
-	}
-
-	httpClient := &http.Client{
-		Timeout: timeout,
-	}
 
 	return &Client{
 		Client:        clnt,
 		authorizeAs:   authorizeAs,
 		serviceSecret: cfg.ServiceSecret,
-		httpClient:    httpClient,
+		httpClient:    &http.Client{},
 	}, nil
 }
 
@@ -80,13 +80,17 @@ func (c *Client) Mutators(ctx context.Context) ([]request.RequestMutator, error)
 	if c.IsAuthorizeAsService() {
 		if c.serviceSecret != "" {
 			authorizationMutator = NewServiceSecretHeaderMutator(c.serviceSecret)
-		} else if serverSessionToken := auth.ServerSessionTokenFromContext(ctx); serverSessionToken != "" {
-			authorizationMutator = NewSessionTokenHeaderMutator(serverSessionToken)
+		} else if serverSessionTokenProvider := auth.ServerSessionTokenProviderFromContext(ctx); serverSessionTokenProvider != nil {
+			if serverSessionToken, err := serverSessionTokenProvider.ServerSessionToken(); err != nil {
+				return nil, err
+			} else {
+				authorizationMutator = NewSessionTokenHeaderMutator(serverSessionToken)
+			}
 		} else {
 			return nil, errors.New("service secret is missing")
 		}
 	} else {
-		details := request.DetailsFromContext(ctx)
+		details := request.GetAuthDetails(ctx)
 		if details == nil {
 			return nil, errors.New("details is missing")
 		}

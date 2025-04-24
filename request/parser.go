@@ -1,15 +1,18 @@
 package request
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/structure"
 	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
@@ -26,10 +29,10 @@ func DecodeRequestBody(req *http.Request, object interface{}) error {
 	}
 
 	defer req.Body.Close()
-	return DecodeObject(structure.NewPointerSource(), req.Body, object)
+	return DecodeObject(req.Context(), structure.NewPointerSource(), req.Body, object)
 }
 
-func DecodeResponseBody(res *http.Response, object interface{}) error {
+func DecodeResponseBody(ctx context.Context, res *http.Response, object interface{}) error {
 	if res == nil {
 		return errors.New("response is missing")
 	}
@@ -38,56 +41,56 @@ func DecodeResponseBody(res *http.Response, object interface{}) error {
 	}
 
 	defer res.Body.Close()
-	return DecodeObject(structure.NewPointerSource(), res.Body, object)
+	return DecodeObject(ctx, structure.NewPointerSource(), res.Body, object)
 }
 
-func DecodeObject(source structure.Source, reader io.Reader, object interface{}) error {
-	if err := ParseStreamObject(source, reader, object); err != nil {
+func DecodeObject(ctx context.Context, source structure.Source, reader io.Reader, object interface{}) error {
+	if err := ParseStreamObject(ctx, source, reader, object); err != nil {
 		return err
 	}
-	if err := ValidateObjects(source, object); err != nil {
+	if err := ValidateObjects(ctx, source, object); err != nil {
 		return err
 	}
-	return NormalizeObjects(source, object)
+	return NormalizeObjects(ctx, source, object)
 }
 
-func ParseStreamObject(source structure.Source, reader io.Reader, object interface{}) error {
+func ParseStreamObject(ctx context.Context, source structure.Source, reader io.Reader, object interface{}) error {
 	if objectParsable, ok := object.(structure.ObjectParsable); ok {
-		return ParseObjectParseableStreamObject(source, reader, objectParsable)
+		return ParseObjectParseableStreamObject(ctx, source, reader, objectParsable)
 	}
 	if arrayParsable, ok := object.(structure.ArrayParsable); ok {
-		return ParseArrayParseableStreamObject(source, reader, arrayParsable)
+		return ParseArrayParseableStreamObject(ctx, source, reader, arrayParsable)
 	}
-	return ParseSimpleStreamObject(reader, object)
+	return ParseSimpleStreamObject(ctx, reader, object)
 }
 
-func ParseObjectParseableStreamObject(source structure.Source, reader io.Reader, objectParsable structure.ObjectParsable) error {
+func ParseObjectParseableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, objectParsable structure.ObjectParsable) error {
 	object := &map[string]interface{}{}
-	if err := ParseSimpleStreamObject(reader, object); err != nil {
+	if err := ParseSimpleStreamObject(ctx, reader, object); err != nil {
 		return err
 	}
 
-	parser := structureParser.NewObject(object).WithSource(source)
+	parser := structureParser.NewObject(log.LoggerFromContext(ctx), object).WithSource(source)
 	objectParsable.Parse(parser)
 	parser.NotParsed()
 
 	return parser.Error()
 }
 
-func ParseArrayParseableStreamObject(source structure.Source, reader io.Reader, arrayParsable structure.ArrayParsable) error {
+func ParseArrayParseableStreamObject(ctx context.Context, source structure.Source, reader io.Reader, arrayParsable structure.ArrayParsable) error {
 	array := &[]interface{}{}
-	if err := ParseSimpleStreamObject(reader, array); err != nil {
+	if err := ParseSimpleStreamObject(ctx, reader, array); err != nil {
 		return err
 	}
 
-	parser := structureParser.NewArray(array).WithSource(source)
+	parser := structureParser.NewArray(log.LoggerFromContext(ctx), array).WithSource(source)
 	arrayParsable.Parse(parser)
 	parser.NotParsed()
 
 	return parser.Error()
 }
 
-func ParseSimpleStreamObject(reader io.Reader, object interface{}) error {
+func ParseSimpleStreamObject(ctx context.Context, reader io.Reader, object interface{}) error {
 	if reader == nil {
 		return errors.New("reader is missing")
 	}
@@ -105,7 +108,7 @@ func ParseSimpleStreamObject(reader io.Reader, object interface{}) error {
 	return nil
 }
 
-func ValidateObjects(source structure.Source, objects ...interface{}) error {
+func ValidateObjects(ctx context.Context, source structure.Source, objects ...interface{}) error {
 	validatables := []structure.Validatable{}
 	for _, object := range objects {
 		if validatable, ok := object.(structure.Validatable); ok {
@@ -113,14 +116,14 @@ func ValidateObjects(source structure.Source, objects ...interface{}) error {
 		}
 	}
 
-	validator := structureValidator.New().WithSource(source)
+	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithSource(source)
 	for _, validatable := range validatables {
 		validatable.Validate(validator)
 	}
 	return validator.Error()
 }
 
-func NormalizeObjects(source structure.Source, objects ...interface{}) error {
+func NormalizeObjects(ctx context.Context, source structure.Source, objects ...interface{}) error {
 	normalizables := []structure.Normalizable{}
 	for _, object := range objects {
 		if normalizable, ok := object.(structure.Normalizable); ok {
@@ -128,7 +131,7 @@ func NormalizeObjects(source structure.Source, objects ...interface{}) error {
 		}
 	}
 
-	normalizer := structureNormalizer.New().WithSource(source)
+	normalizer := structureNormalizer.New(log.LoggerFromContext(ctx)).WithSource(source)
 	for _, normalizable := range normalizables {
 		normalizable.Normalize(normalizer)
 	}
@@ -148,26 +151,26 @@ func DecodeRequestQuery(req *http.Request, objectParsables ...structure.ObjectPa
 		return errors.New("unable to parse request query")
 	}
 
-	return DecodeValues((map[string][]string)(values), objectParsables...)
+	return DecodeValues(req.Context(), (map[string][]string)(values), objectParsables...)
 }
 
-func DecodeValues(values map[string][]string, objectParsables ...structure.ObjectParsable) error {
+func DecodeValues(ctx context.Context, values map[string][]string, objectParsables ...structure.ObjectParsable) error {
 	objects := []interface{}{}
 	for _, object := range objectParsables {
 		objects = append(objects, object)
 	}
 
-	if err := ParseValuesObjects(values, objectParsables...); err != nil {
+	if err := ParseValuesObjects(ctx, values, objectParsables...); err != nil {
 		return err
 	}
-	if err := ValidateObjects(structure.NewParameterSource(), objects...); err != nil {
+	if err := ValidateObjects(ctx, structure.NewParameterSource(), objects...); err != nil {
 		return err
 	}
-	return NormalizeObjects(structure.NewParameterSource(), objects...)
+	return NormalizeObjects(ctx, structure.NewParameterSource(), objects...)
 }
 
-func ParseValuesObjects(values map[string][]string, objectParsables ...structure.ObjectParsable) error {
-	parser := NewValues(&values)
+func ParseValuesObjects(ctx context.Context, values map[string][]string, objectParsables ...structure.ObjectParsable) error {
+	parser := NewValues(log.LoggerFromContext(ctx), &values)
 	for _, objectParsable := range objectParsables {
 		objectParsable.Parse(parser)
 	}
@@ -203,6 +206,15 @@ func ParseMediaTypeHeader(header http.Header, key string) (*string, error) {
 	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
 		return nil, err
 	} else if value, valid := net.NormalizeMediaType(*stringValue); valid {
+		return &value, nil
+	}
+	return nil, ErrorHeaderInvalid(key)
+}
+
+func ParseTimeHeader(header http.Header, key string, layout string) (*time.Time, error) {
+	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
+		return nil, err
+	} else if value, valueErr := time.Parse(layout, *stringValue); valueErr == nil {
 		return &value, nil
 	}
 	return nil, ErrorHeaderInvalid(key)

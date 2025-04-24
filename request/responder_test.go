@@ -8,7 +8,7 @@ import (
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
@@ -32,7 +32,7 @@ func NewData() *Data {
 	}
 }
 
-func (d *Data) Sanitize(details request.Details) error {
+func (d *Data) Sanitize(details request.AuthDetails) error {
 	return d.SanitizeError
 }
 

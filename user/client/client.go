@@ -34,7 +34,9 @@ func NewDefaultClient(p Params) (user.Client, error) {
 
 	cfg := platform.NewConfig()
 	cfg.UserAgent = p.UserAgent
-	if err := cfg.Load(p.ConfigReporter.WithScopes("user", "client")); err != nil {
+	reporter := p.ConfigReporter.WithScopes("user", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
 		return nil, errors.Wrap(err, "unable to get user client config")
 	}
 
@@ -49,7 +51,7 @@ func NewDefaultClient(p Params) (user.Client, error) {
 }
 
 func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, error) {
-	client, err := platform.NewClient(config, authorizeAs)
+	client, err := platform.NewLegacyClient(config, authorizeAs)
 	if err != nil {
 		return nil, err
 	}

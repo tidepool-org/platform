@@ -4,10 +4,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/alerts"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/dosingdecision"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -19,9 +22,13 @@ type Store interface {
 
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
+	NewAlertsRepository() alerts.Repository
 }
 
-type DataRepository interface {
+// DataSetRepository is the interface for interacting and modifying
+// the "parent" datum document, formerly the documents where type
+// = "upload".
+type DataSetRepository interface {
 	EnsureIndexes() error
 
 	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
@@ -29,8 +36,21 @@ type DataRepository interface {
 	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
 	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+	DestroyDataForUserByID(ctx context.Context, userID string) error
+
+	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
+	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
+}
+
+// DatumRepository is the interface for interacting and modifying
+// the "children" data documents, documents where type != "upload" and
+// whose "parent" is the datum whose type = "upload". It can be thought of as
+// the DataSet's data.
+type DatumRepository interface {
+	EnsureIndexes() error
 
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
+	NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error)
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
@@ -41,13 +61,21 @@ type DataRepository interface {
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
-
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 
-	GetCGMDataRange(ctx context.Context, id string, startTime time.Time, endTime time.Time) ([]*continuous.Continuous, error)
-	GetLastUpdatedForUser(ctx context.Context, id string) (*summary.UserLastUpdated, error)
-	DistinctCGMUserIDs(ctx context.Context) ([]string, error)
+	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
+	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
+	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
+
+	// GetAlertableData queries for the data used to evaluate alerts configurations.
+	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
+}
+
+// DataRepository is the combined interface of DataSetRepository and
+// DatumRepository.
+type DataRepository interface {
+	DataSetRepository
+	DatumRepository
 }
 
 type Filter struct {
@@ -69,11 +97,21 @@ func (f *Filter) Validate(validator structure.Validator) {}
 type SummaryRepository interface {
 	EnsureIndexes() error
 
-	GetSummary(ctx context.Context, id string) (*summary.Summary, error)
-	DeleteSummary(ctx context.Context, id string) error
-	SetOutdated(ctx context.Context, id string) (*time.Time, error)
-	GetOutdatedUserIDs(ctx context.Context, page *page.Pagination) ([]string, error)
-	UpdateSummary(ctx context.Context, summary *summary.Summary) (*summary.Summary, error)
-	DistinctSummaryIDs(ctx context.Context) ([]string, error)
-	CreateSummaries(ctx context.Context, summaries []*summary.Summary) (int, error)
+	GetStore() *storeStructuredMongo.Repository
+}
+
+type AlertableParams struct {
+	// UserID of the user that owns the data.
+	UserID string
+	// UploadID of the device data set to query.
+	UploadID string
+	// Start limits the data to those recorded after this time.
+	Start time.Time
+	// End limits the data to those recorded before this time.
+	End time.Time
+}
+
+type AlertableResponse struct {
+	Glucose         []*glucose.Glucose
+	DosingDecisions []*dosingdecision.DosingDecision
 }

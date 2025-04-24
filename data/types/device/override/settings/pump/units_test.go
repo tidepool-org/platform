@@ -1,8 +1,7 @@
 package pump_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
@@ -11,6 +10,7 @@ import (
 	dataTypesDeviceOverrideSettingsPumpTest "github.com/tidepool-org/platform/data/types/device/override/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -43,13 +43,13 @@ var _ = Describe("Units", func() {
 
 	Context("ParseUnits", func() {
 		It("returns nil when the object is missing", func() {
-			Expect(dataTypesDeviceOverrideSettingsPump.ParseUnits(structureParser.NewObject(nil))).To(BeNil())
+			Expect(dataTypesDeviceOverrideSettingsPump.ParseUnits(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
 		})
 
 		It("returns new datum when the object is valid", func() {
 			datum := dataTypesDeviceOverrideSettingsPumpTest.RandomUnits()
 			object := dataTypesDeviceOverrideSettingsPumpTest.NewObjectFromUnits(datum, test.ObjectFormatJSON)
-			parser := structureParser.NewObject(&object)
+			parser := structureParser.NewObject(logTest.NewLogger(), &object)
 			Expect(dataTypesDeviceOverrideSettingsPump.ParseUnits(parser)).To(Equal(datum))
 			Expect(parser.Error()).ToNot(HaveOccurred())
 		})
@@ -68,7 +68,7 @@ var _ = Describe("Units", func() {
 				object := dataTypesDeviceOverrideSettingsPumpTest.NewObjectFromUnits(expectedDatum, test.ObjectFormatJSON)
 				mutator(object, expectedDatum)
 				datum := &dataTypesDeviceOverrideSettingsPump.Units{}
-				errorsTest.ExpectEqual(structureParser.NewObject(&object).Parse(datum), expectedErrors...)
+				errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 				Expect(datum).To(Equal(expectedDatum))
 			},
 			Entry("succeeds",
@@ -134,7 +134,7 @@ var _ = Describe("Units", func() {
 					datum := dataTypesDeviceOverrideSettingsPumpTest.RandomUnits()
 					mutator(datum)
 					expectedDatum := dataTypesDeviceOverrideSettingsPumpTest.CloneUnits(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
@@ -162,7 +162,7 @@ var _ = Describe("Units", func() {
 				datum := dataTypesDeviceOverrideSettingsPumpTest.RandomUnits()
 				mutator(datum)
 				expectedDatum := dataTypesDeviceOverrideSettingsPumpTest.CloneUnits(datum)
-				normalizer := dataNormalizer.New()
+				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
@@ -210,7 +210,7 @@ var _ = Describe("Units", func() {
 					datum := dataTypesDeviceOverrideSettingsPumpTest.RandomUnits()
 					mutator(datum)
 					expectedDatum := dataTypesDeviceOverrideSettingsPumpTest.CloneUnits(datum)
-					normalizer := dataNormalizer.New()
+					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())

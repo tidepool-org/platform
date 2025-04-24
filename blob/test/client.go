@@ -29,6 +29,27 @@ type CreateOutput struct {
 	Error error
 }
 
+type CreateDeviceLogsInput struct {
+	UserID  string
+	Content *blob.DeviceLogsContent
+}
+
+type CreateDeviceLogsOutput struct {
+	Blob  *blob.DeviceLogsBlob
+	Error error
+}
+
+type ListDeviceLogsInput struct {
+	UserID     string
+	Filter     *blob.DeviceLogsFilter
+	Pagination *page.Pagination
+}
+
+type ListDeviceLogsOutput struct {
+	DeviceLogs blob.DeviceLogsBlobArray
+	Error      error
+}
+
 type GetOutput struct {
 	Blob  *blob.Blob
 	Error error
@@ -36,6 +57,16 @@ type GetOutput struct {
 
 type GetContentOutput struct {
 	Content *blob.Content
+	Error   error
+}
+
+type GetDeviceLogsBlobOutput struct {
+	Blob  *blob.DeviceLogsBlob
+	Error error
+}
+
+type GetDeviceLogsContentOutput struct {
+	Content *blob.DeviceLogsContent
 	Error   error
 }
 
@@ -50,36 +81,52 @@ type DeleteOutput struct {
 }
 
 type Client struct {
-	ListInvocations       int
-	ListInputs            []ListInput
-	ListStub              func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
-	ListOutputs           []ListOutput
-	ListOutput            *ListOutput
-	CreateInvocations     int
-	CreateInputs          []CreateInput
-	CreateStub            func(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error)
-	CreateOutputs         []CreateOutput
-	CreateOutput          *CreateOutput
-	DeleteAllInvocations  int
-	DeleteAllInputs       []string
-	DeleteAllStub         func(ctx context.Context, id string) error
-	DeleteAllOutputs      []error
-	DeleteAllOutput       *error
-	GetInvocations        int
-	GetInputs             []string
-	GetStub               func(ctx context.Context, id string) (*blob.Blob, error)
-	GetOutputs            []GetOutput
-	GetOutput             *GetOutput
-	GetContentInvocations int
-	GetContentInputs      []string
-	GetContentStub        func(ctx context.Context, id string) (*blob.Content, error)
-	GetContentOutputs     []GetContentOutput
-	GetContentOutput      *GetContentOutput
-	DeleteInvocations     int
-	DeleteInputs          []DeleteInput
-	DeleteStub            func(ctx context.Context, id string, condition *request.Condition) (bool, error)
-	DeleteOutputs         []DeleteOutput
-	DeleteOutput          *DeleteOutput
+	ListInvocations             int
+	ListInputs                  []ListInput
+	ListStub                    func(ctx context.Context, userID string, filter *blob.Filter, pagination *page.Pagination) (blob.BlobArray, error)
+	ListOutputs                 []ListOutput
+	ListOutput                  *ListOutput
+	ListDeviceLogsInvocations   int
+	ListDeviceLogsInputs        []ListDeviceLogsInput
+	ListDeviceLogsStub          func(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error)
+	ListDeviceLogsOutputs       []ListDeviceLogsOutput
+	ListDeviceLogsOutput        *ListDeviceLogsOutput
+	CreateInvocations           int
+	CreateInputs                []CreateInput
+	CreateDeviceLogsInvocations int
+	CreateDeviceLogsInputs      []CreateDeviceLogsInput
+	CreateStub                  func(ctx context.Context, userID string, content *blob.Content) (*blob.Blob, error)
+	CreateOutputs               []CreateOutput
+	CreateOutput                *CreateOutput
+	CreatDeviceLogsStub         func(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error)
+	CreateDeviceLogsOutputs     []CreateDeviceLogsOutput
+	CreateDeviceLogsOutput      *CreateDeviceLogsOutput
+	DeleteAllInvocations        int
+	DeleteAllInputs             []string
+	DeleteAllStub               func(ctx context.Context, id string) error
+	DeleteAllOutputs            []error
+	DeleteAllOutput             *error
+	GetInvocations              int
+	GetInputs                   []string
+	GetStub                     func(ctx context.Context, id string) (*blob.Blob, error)
+	GetOutputs                  []GetOutput
+	GetOutput                   *GetOutput
+	GetContentInvocations       int
+	GetContentInputs            []string
+	GetContentStub              func(ctx context.Context, id string) (*blob.Content, error)
+	GetContentOutputs           []GetContentOutput
+	GetContentOutput            *GetContentOutput
+	GetDeviceLogsBlobStub       func(ctx context.Context, id string) (*blob.DeviceLogsContent, error)
+	GetDeviceLogsBlobOutputs    []GetDeviceLogsBlobOutput
+	GetDeviceLogsBlobOutput     *GetDeviceLogsBlobOutput
+	GetDeviceLogsContentStub    func(ctx context.Context, id string) (*blob.DeviceLogsContent, error)
+	GetDeviceLogsContentOutputs []GetDeviceLogsContentOutput
+	GetDeviceLogsContentOutput  *GetDeviceLogsContentOutput
+	DeleteInvocations           int
+	DeleteInputs                []DeleteInput
+	DeleteStub                  func(ctx context.Context, id string, condition *request.Condition) (bool, error)
+	DeleteOutputs               []DeleteOutput
+	DeleteOutput                *DeleteOutput
 }
 
 func NewClient() *Client {
@@ -118,6 +165,72 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 		return c.CreateOutput.Blob, c.CreateOutput.Error
 	}
 	panic("Create has no output")
+}
+
+func (c *Client) ListDeviceLogs(ctx context.Context, userID string, filter *blob.DeviceLogsFilter, pagination *page.Pagination) (blob.DeviceLogsBlobArray, error) {
+	c.ListDeviceLogsInvocations++
+	c.ListDeviceLogsInputs = append(c.ListDeviceLogsInputs, ListDeviceLogsInput{UserID: userID, Filter: filter, Pagination: pagination})
+	if c.ListDeviceLogsStub != nil {
+		return c.ListDeviceLogsStub(ctx, userID, filter, pagination)
+	}
+	if len(c.ListDeviceLogsOutputs) > 0 {
+		output := c.ListDeviceLogsOutputs[0]
+		c.ListDeviceLogsOutputs = c.ListDeviceLogsOutputs[1:]
+		return output.DeviceLogs, output.Error
+	}
+	if c.ListDeviceLogsOutput != nil {
+		return c.ListDeviceLogsOutput.DeviceLogs, c.ListOutput.Error
+	}
+	panic("List has no output")
+}
+
+func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (*blob.DeviceLogsContent, error) {
+	if c.GetDeviceLogsContentStub != nil {
+		return c.GetDeviceLogsContentStub(ctx, deviceLogID)
+	}
+	if len(c.GetDeviceLogsContentOutputs) > 0 {
+		output := c.GetDeviceLogsContentOutputs[0]
+		c.GetDeviceLogsContentOutputs = c.GetDeviceLogsContentOutputs[1:]
+		c.GetDeviceLogsContentOutput = &output
+		return output.Content, output.Error
+	}
+	if c.GetDeviceLogsContentOutput != nil {
+		return c.GetDeviceLogsContentOutput.Content, c.GetDeviceLogsContentOutput.Error
+	}
+	panic("GetDeviceLogsContent has no output")
+}
+
+func (c *Client) GetDeviceLogsBlob(ctx context.Context, deviceLogID string) (*blob.DeviceLogsBlob, error) {
+	if c.GetDeviceLogsBlobStub != nil {
+		return c.GetDeviceLogsBlob(ctx, deviceLogID)
+	}
+	if len(c.GetDeviceLogsBlobOutputs) > 0 {
+		output := c.GetDeviceLogsBlobOutputs[0]
+		c.GetDeviceLogsBlobOutputs = c.GetDeviceLogsBlobOutputs[1:]
+		c.GetDeviceLogsBlobOutput = &output
+		return output.Blob, output.Error
+	}
+	if c.GetDeviceLogsBlobOutput != nil {
+		return c.GetDeviceLogsBlobOutput.Blob, c.GetDeviceLogsBlobOutput.Error
+	}
+	panic("GetDeviceLogsBlob has no output")
+}
+
+func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *blob.DeviceLogsContent) (*blob.DeviceLogsBlob, error) {
+	c.CreateDeviceLogsInvocations++
+	c.CreateDeviceLogsInputs = append(c.CreateDeviceLogsInputs, CreateDeviceLogsInput{UserID: userID, Content: content})
+	if c.CreatDeviceLogsStub != nil {
+		return c.CreatDeviceLogsStub(ctx, userID, content)
+	}
+	if len(c.CreateDeviceLogsOutputs) > 0 {
+		output := c.CreateDeviceLogsOutputs[0]
+		c.CreateDeviceLogsOutputs = c.CreateDeviceLogsOutputs[1:]
+		return output.Blob, output.Error
+	}
+	if c.CreateDeviceLogsOutput != nil {
+		return c.CreateDeviceLogsOutput.Blob, c.CreateDeviceLogsOutput.Error
+	}
+	panic("CreateDeviceLogs has no output")
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {

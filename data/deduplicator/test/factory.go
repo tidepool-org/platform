@@ -1,13 +1,25 @@
 package test
 
 import (
+	"context"
+
 	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
 	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 )
 
+type NewInput struct {
+	Context context.Context
+	DataSet *dataTypesUpload.Upload
+}
+
 type NewOutput struct {
 	Deduplicator dataDeduplicator.Deduplicator
 	Error        error
+}
+
+type GetInput struct {
+	Context context.Context
+	DataSet *dataTypesUpload.Upload
 }
 
 type GetOutput struct {
@@ -17,13 +29,13 @@ type GetOutput struct {
 
 type Factory struct {
 	NewInvocations int
-	NewInputs      []*dataTypesUpload.Upload
-	NewStub        func(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	NewInputs      []NewInput
+	NewStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
 	NewOutputs     []NewOutput
 	NewOutput      *NewOutput
 	GetInvocations int
-	GetInputs      []*dataTypesUpload.Upload
-	GetStub        func(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
+	GetInputs      []GetInput
+	GetStub        func(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error)
 	GetOutputs     []GetOutput
 	GetOutput      *GetOutput
 }
@@ -32,11 +44,11 @@ func NewFactory() *Factory {
 	return &Factory{}
 }
 
-func (f *Factory) New(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
 	f.NewInvocations++
-	f.NewInputs = append(f.NewInputs, dataSet)
+	f.NewInputs = append(f.NewInputs, NewInput{Context: ctx, DataSet: dataSet})
 	if f.NewStub != nil {
-		return f.NewStub(dataSet)
+		return f.NewStub(ctx, dataSet)
 	}
 	if len(f.NewOutputs) > 0 {
 		output := f.NewOutputs[0]
@@ -49,11 +61,11 @@ func (f *Factory) New(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Dedupli
 	panic("New has no output")
 }
 
-func (f *Factory) Get(dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
 	f.GetInvocations++
-	f.GetInputs = append(f.GetInputs, dataSet)
+	f.GetInputs = append(f.GetInputs, GetInput{Context: ctx, DataSet: dataSet})
 	if f.GetStub != nil {
-		return f.GetStub(dataSet)
+		return f.GetStub(ctx, dataSet)
 	}
 	if len(f.GetOutputs) > 0 {
 		output := f.GetOutputs[0]

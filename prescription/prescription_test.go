@@ -4,20 +4,19 @@ import (
 	"fmt"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"syreclabs.com/go/faker"
 
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/prescription"
+	"github.com/tidepool-org/platform/prescription/test"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/structure/validator"
-	userTest "github.com/tidepool-org/platform/user/test"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
-
-	"github.com/tidepool-org/platform/prescription/test"
 	"github.com/tidepool-org/platform/user"
-
-	"github.com/tidepool-org/platform/prescription"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Prescription", func() {
@@ -71,7 +70,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the created time correctly", func() {
-				Expect(prescr.CreatedTime).To(BeTemporally("~", time.Now()))
+				Expect(prescr.CreatedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("does not set the deleted time", func() {
@@ -87,7 +86,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(prescr.ModifiedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified user id", func() {
@@ -229,7 +228,7 @@ var _ = Describe("Prescription", func() {
 			})
 
 			It("sets the modified time", func() {
-				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now()))
+				Expect(update.ModifiedTime).To(BeTemporally("~", time.Now(), 10*time.Millisecond))
 			})
 
 			It("sets the modified user id", func() {
@@ -253,7 +252,7 @@ var _ = Describe("Prescription", func() {
 					filter, err = prescription.NewPatientFilter(*usr.UserID)
 					Expect(err).ToNot(HaveOccurred())
 
-					validate = validator.New()
+					validate = validator.New(logTest.NewLogger())
 					Expect(validate.Validate(filter)).ToNot(HaveOccurred())
 				})
 
@@ -353,7 +352,7 @@ var _ = Describe("Prescription", func() {
 					filter, err = prescription.NewClinicFilter(clinicID)
 					Expect(err).ToNot(HaveOccurred())
 
-					validate = validator.New()
+					validate = validator.New(logTest.NewLogger())
 					Expect(validate.Validate(filter)).ToNot(HaveOccurred())
 				})
 

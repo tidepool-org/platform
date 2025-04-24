@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -26,11 +25,8 @@ func NewConfig() *Config {
 	}
 }
 
-func (c *Config) Load(configReporter config.Reporter) error {
-	if err := c.Config.Load(configReporter); err != nil {
-		return err
-	}
-	return c.ExternalConfig.Load(configReporter.WithScopes("external"))
+func (c *Config) Load(loader ConfigLoader) error {
+	return loader.Load(c)
 }
 
 func (c *Config) Validate() error {
@@ -85,12 +81,12 @@ func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, fi
 	}
 	if filter == nil {
 		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -112,7 +108,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -135,6 +131,10 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) e
 
 	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
+	return errors.New("not implemented")
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
@@ -166,7 +166,7 @@ func (c *Client) UpdateProviderSession(ctx context.Context, id string, update *a
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -203,12 +203,12 @@ func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, fi
 	}
 	if filter == nil {
 		filter = auth.NewRestrictedTokenFilter()
-	} else if err := structureValidator.New().Validate(filter); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
 	if pagination == nil {
 		pagination = page.NewPagination()
-	} else if err := structureValidator.New().Validate(pagination); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
@@ -242,7 +242,7 @@ func (c *Client) CreateUserRestrictedToken(ctx context.Context, userID string, c
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
-	} else if err := structureValidator.New().Validate(create); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
@@ -284,7 +284,7 @@ func (c *Client) UpdateRestrictedToken(ctx context.Context, id string, update *a
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
-	} else if err := structureValidator.New().Validate(update); err != nil {
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
@@ -310,4 +310,35 @@ func (c *Client) DeleteRestrictedToken(ctx context.Context, id string) error {
 
 	url := c.client.ConstructURL("v1", "restricted_tokens", id)
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+type ConfigLoader interface {
+	Load(*Config) error
+}
+
+// configHybridLoader combines an ExternalConfigLoader with a platform.ConfigLoader.
+//
+// Whereas we usually have different implementations, in this case, it's just
+// two other loaders together, so no need for multiple other implementations
+// here.
+type configHybridLoader struct {
+	ExternalConfigLoader
+	platform.ConfigLoader
+}
+
+func NewConfigLoader(ext ExternalConfigLoader, plt platform.ConfigLoader) *configHybridLoader {
+	return &configHybridLoader{
+		ExternalConfigLoader: ext,
+		ConfigLoader:         plt,
+	}
+}
+
+func (l *configHybridLoader) Load(cfg *Config) error {
+	if err := l.ExternalConfigLoader.Load(cfg.ExternalConfig); err != nil {
+		return err
+	}
+	if err := l.ConfigLoader.Load(cfg.Config); err != nil {
+		return err
+	}
+	return nil
 }

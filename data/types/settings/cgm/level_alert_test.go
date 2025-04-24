@@ -3,13 +3,13 @@ package cgm_test
 import (
 	"math"
 
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	dataTypesSettingsCgm "github.com/tidepool-org/platform/data/types/settings/cgm"
 	dataTypesSettingsCgmTest "github.com/tidepool-org/platform/data/types/settings/cgm/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -101,7 +101,7 @@ var _ = Describe("LevelAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.LevelAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomLevelAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.LevelAlert) {},
@@ -234,7 +234,7 @@ var _ = Describe("LevelAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.HighAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomHighAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.HighAlert) {},
@@ -433,7 +433,7 @@ var _ = Describe("LevelAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.LowAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomLowAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.LowAlert) {},
@@ -632,7 +632,7 @@ var _ = Describe("LevelAlert", func() {
 				func(mutator func(datum *dataTypesSettingsCgm.UrgentLowAlert), expectedErrors ...error) {
 					datum := dataTypesSettingsCgmTest.RandomUrgentLowAlert()
 					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New().Validate(datum), expectedErrors...)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
 				Entry("succeeds",
 					func(datum *dataTypesSettingsCgm.UrgentLowAlert) {},

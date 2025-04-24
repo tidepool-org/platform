@@ -7,8 +7,8 @@ import (
 
 	prescriptionApplicationTest "github.com/tidepool-org/platform/prescription/application/test"
 
-	"github.com/golang/mock/gomock"
 	clinic "github.com/tidepool-org/clinic/client"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/prescription"
@@ -16,7 +16,7 @@ import (
 	prescriptionStoreTest "github.com/tidepool-org/platform/prescription/store/test"
 	prescriptionTest "github.com/tidepool-org/platform/prescription/test"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
@@ -112,7 +112,7 @@ var _ = Describe("PrescriptionService", func() {
 	Context("Claim Prescription", func() {
 		It("uses the clinic service to share the patient account with the clinic", func() {
 			prescr := prescriptionTest.RandomPrescription()
-			patient := clinic.Patient{Id: clinic.TidepoolUserId(prescr.PatientUserID)}
+			patient := clinic.Patient{Id: &prescr.PatientUserID}
 			claim := &prescription.Claim{
 				PatientID:  prescr.PatientUserID,
 				AccessCode: prescr.AccessCode,

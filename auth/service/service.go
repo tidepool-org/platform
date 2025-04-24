@@ -3,10 +3,12 @@ package service
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/twiist"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
@@ -26,6 +28,12 @@ type Service interface {
 	DeviceCheck() apple.DeviceCheck
 
 	Status(context.Context) *Status
+
+	AppValidator() *appvalidate.Validator
+
+	PartnerSecrets() *appvalidate.PartnerSecrets
+
+	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
 }
 
 type Status struct {

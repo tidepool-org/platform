@@ -1,15 +1,15 @@
 package prescription_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/structure"
-	"github.com/tidepool-org/platform/structure/validator"
-
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/test"
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/structure/validator"
 )
 
 var _ = Describe("Calculator", func() {
@@ -18,13 +18,13 @@ var _ = Describe("Calculator", func() {
 
 	BeforeEach(func() {
 		calculator = test.RandomCalculator()
-		validate = validator.New()
+		validate = validator.New(logTest.NewLogger())
 		Expect(validate.Validate(calculator)).ToNot(HaveOccurred())
 	})
 
 	Describe("Validate", func() {
 		BeforeEach(func() {
-			validate = validator.New()
+			validate = validator.New(logTest.NewLogger())
 		})
 
 		It("doesn't fail with nil method", func() {

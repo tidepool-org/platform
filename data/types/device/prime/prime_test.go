@@ -1,20 +1,20 @@
 package prime_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/ginkgo/extensions/table"
-	. "github.com/onsi/gomega"
-
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	"github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/data/types/device/prime"
 	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
 func NewMeta() interface{} {
@@ -222,7 +222,7 @@ var _ = Describe("Status", func() {
 						datum := NewPrime()
 						mutator(datum)
 						expectedDatum := ClonePrime(datum)
-						normalizer := dataNormalizer.New()
+						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
 						Expect(normalizer.Error()).To(BeNil())

@@ -3,11 +3,12 @@ package parser_test
 import (
 	"time"
 
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/structure"
 	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -15,15 +16,17 @@ import (
 )
 
 var _ = Describe("Object", func() {
+	var logger *logTest.Logger
 	var base *structureBase.Base
 
 	BeforeEach(func() {
-		base = structureBase.New().WithSource(structure.NewPointerSource())
+		logger = logTest.NewLogger()
+		base = structureBase.New(logger).WithSource(structure.NewPointerSource())
 	})
 
 	Context("NewObject", func() {
 		It("returns successfully", func() {
-			Expect(structureParser.NewObject(nil)).ToNot(BeNil())
+			Expect(structureParser.NewObject(logTest.NewLogger(), nil)).ToNot(BeNil())
 		})
 	})
 
@@ -39,6 +42,12 @@ var _ = Describe("Object", func() {
 		BeforeEach(func() {
 			parser = structureParser.NewObjectParser(base, nil)
 			Expect(parser).ToNot(BeNil())
+		})
+
+		Context("Logger", func() {
+			It("returns the logger", func() {
+				Expect(parser.Logger()).To(BeIdenticalTo(logger))
+			})
 		})
 
 		Context("Origin", func() {
@@ -569,54 +578,6 @@ var _ = Describe("Object", func() {
 			value := parser.Time("three", time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
-			Expect(base.Error()).ToNot(HaveOccurred())
-		})
-	})
-
-	Context("ForgivingTime", func() {
-		var now time.Time
-		var parser *structureParser.Object
-
-		BeforeEach(func() {
-			now = time.Now()
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
-				"zero":  false,
-				"one":   "abc",
-				"two":   now.Format(time.RFC3339Nano),
-				"three": "2020-02-01T00:13",
-			})
-			Expect(parser).ToNot(BeNil())
-		})
-
-		It("with key not found in the object returns nil", func() {
-			Expect(parser.ForgivingTime("unknown", time.RFC3339Nano)).To(BeNil())
-			Expect(base.Error()).ToNot(HaveOccurred())
-		})
-
-		It("with key with different type returns nil and reports an ErrorCodeTypeNotTime", func() {
-			Expect(parser.ForgivingTime("zero", time.RFC3339Nano)).To(BeNil())
-			Expect(base.Error()).To(HaveOccurred())
-			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(false), "/zero"))
-		})
-
-		It("with key with different type returns nil and reports an ErrorCodeTimeNotParsable", func() {
-			Expect(parser.ForgivingTime("one", time.RFC3339Nano)).To(BeNil())
-			Expect(base.Error()).To(HaveOccurred())
-			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorValueTimeNotParsable("abc", time.RFC3339Nano), "/one"))
-		})
-
-		It("with key with string type returns value", func() {
-			value := parser.ForgivingTime("two", time.RFC3339Nano)
-			Expect(value).ToNot(BeNil())
-			Expect(*value).To(BeTemporally("==", now))
-			Expect(base.Error()).ToNot(HaveOccurred())
-		})
-
-		It("with key with partial string type returns value", func() {
-			value := parser.ForgivingTime("three", "2006-01-02T15:04:05")
-			expectedValue, _ := time.Parse("2006-01-02T15:04:05", "2020-02-01T00:13:00")
-			Expect(value).ToNot(BeNil())
-			Expect(*value).To(BeTemporally("==", expectedValue))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})

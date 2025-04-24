@@ -1,11 +1,12 @@
 package store_test
 
 import (
-	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data/store"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -33,7 +34,7 @@ var _ = Describe("Store", func() {
 			Context("Parse", func() {
 				It("parses deleted missing", func() {
 					object := map[string]interface{}{}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					filter.Parse(parser)
 					Expect(filter.Deleted).To(BeFalse())
 					Expect(parser.Error()).ToNot(HaveOccurred())
@@ -41,7 +42,7 @@ var _ = Describe("Store", func() {
 
 				It("parses deleted false", func() {
 					object := map[string]interface{}{"deleted": false}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					filter.Parse(parser)
 					Expect(filter.Deleted).To(BeFalse())
 					Expect(parser.Error()).ToNot(HaveOccurred())
@@ -49,7 +50,7 @@ var _ = Describe("Store", func() {
 
 				It("parses deleted true", func() {
 					object := map[string]interface{}{"deleted": true}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					filter.Parse(parser)
 					Expect(filter.Deleted).To(BeTrue())
 					Expect(parser.Error()).ToNot(HaveOccurred())
@@ -57,7 +58,7 @@ var _ = Describe("Store", func() {
 
 				It("reports an error if page is not a bool", func() {
 					object := map[string]interface{}{"deleted": "invalid"}
-					parser := structureParser.NewObject(&object)
+					parser := structureParser.NewObject(logTest.NewLogger(), &object)
 					filter.Parse(parser)
 					Expect(filter.Deleted).To(BeFalse())
 					Expect(parser.Error()).To(HaveOccurred())
@@ -69,7 +70,7 @@ var _ = Describe("Store", func() {
 				var validator *structureValidator.Validator
 
 				BeforeEach(func() {
-					validator = structureValidator.New()
+					validator = structureValidator.New(logTest.NewLogger())
 				})
 
 				It("succeeds with deleted default", func() {
