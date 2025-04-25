@@ -207,6 +207,7 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 func (t *MigrationTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(MigrationWorkerCount)
 		for _, userID := range userIDs {
@@ -226,12 +227,18 @@ func (t *MigrationTaskRunner) UpdateCGMSummaries(userIDs []string) error {
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User CGM Summaries Migrations")
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User CGM Summaries Migrations")
+	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(MigrationWorkerCount)
 		for _, userID := range userIDs {
@@ -251,12 +258,18 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(userIDs []string) error {
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User BGM Summaries Migrations")
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User BGM Summaries Migrations")
+	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateContinuousSummaries(userIDs []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	eg.Go(func() error {
 		sem := semaphore.NewWeighted(MigrationWorkerCount)
 		for _, userID := range userIDs {
@@ -276,7 +289,12 @@ func (t *MigrationTaskRunner) UpdateContinuousSummaries(userIDs []string) error 
 
 		return nil
 	})
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		t.logger.WithError(err).WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Error("Error during User Continuous Summaries Migrations")
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(userIDs)).Info("Finished User Continuous Summaries Migrations")
+	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateCGMUserSummary(userID string) error {
