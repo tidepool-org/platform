@@ -368,10 +368,6 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Name": Equal("OriginId"),
-					}),
-					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Name": Equal("UploadId"),
 					}),
@@ -416,9 +412,9 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name":       Equal("UserIDTypeUnique"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "config.schemaVersion", "dates.lastUpdatedDate")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "dates.lastUpdatedDate", "config.schemaVersion")),
 						"Background": Equal(false),
-						"Name":       Equal("OutdatedSinceSchemaLastUpdated"),
+						"Name":       Equal("OutdatedAndSchemaMigration"),
 					}),
 				))
 			})

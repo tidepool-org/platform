@@ -49,7 +49,7 @@ var _ = Describe("Service", func() {
 			server = NewServer()
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest("POST", "/auth/serverlogin"),
+					VerifyRequest("POST", "/serverlogin"), // by default the path prefix is empty to the auth service unless set in the env var TIDEPOOL_AUTH_CLIENT_EXTERNAL_PATH_PREFIX
 					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),
