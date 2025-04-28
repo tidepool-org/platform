@@ -29,7 +29,7 @@ func (c *ChallengeCreate) Validate(v structure.Validator) {
 	v.String("keyId", &c.KeyID).NotEmpty()
 }
 
-//go:generate mockgen -source=challenge.go -destination=test/challenge.go -package=test ChallengeGenerator
+//go:generate mockgen -source=challenge.go -destination=test/challenge_mocks.go -package=test ChallengeGenerator
 type ChallengeGenerator interface {
 	GenerateChallenge(size int) (string, error)
 }

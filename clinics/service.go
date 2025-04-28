@@ -20,7 +20,7 @@ const ErrorCodeClinicClientFailure = "clinic-client-failure"
 
 var ClientModule = fx.Provide(NewClient)
 
-//go:generate mockgen -source=service.go -destination=test/service.go -package test Client
+//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
 	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)

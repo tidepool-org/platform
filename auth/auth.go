@@ -14,7 +14,7 @@ const (
 	TidepoolRestrictedTokenParameterKey = "restricted_token"
 )
 
-//go:generate mockgen -source=auth.go -destination=test/mock.go -package test Client
+//go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor
@@ -28,6 +28,10 @@ type ExternalAccessor interface {
 	EnsureAuthorized(ctx context.Context) error
 	EnsureAuthorizedService(ctx context.Context) error
 	EnsureAuthorizedUser(ctx context.Context, targetUserID string, permission string) (string, error)
+}
+
+type ServiceAccountAuthorizer interface {
+	IsServiceAccountAuthorized(userID string) bool
 }
 
 type ServerSessionTokenProvider interface {

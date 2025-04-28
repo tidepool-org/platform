@@ -47,7 +47,7 @@ var _ = Describe("None", func() {
 		})
 
 		Context("NewNone", func() {
-			It("returns succesfully", func() {
+			It("returns successfully", func() {
 				Expect(dataDeduplicatorDeduplicator.NewNone(dependencies)).ToNot(BeNil())
 			})
 		})

@@ -60,14 +60,9 @@ func NewObjectFromFilter(datum *dataSource.Filter, objectFormat test.ObjectForma
 }
 
 func RandomCreate() *dataSource.Create {
-	state := RandomState()
 	datum := &dataSource.Create{}
 	datum.ProviderType = pointer.FromString(authTest.RandomProviderType())
 	datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
-	switch state {
-	case dataSource.StateConnected, dataSource.StateError:
-		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 	datum.Metadata = metadataTest.RandomMetadataMap()
 	return datum
@@ -83,9 +78,6 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	}
 	if datum.ProviderName != nil {
 		object["providerName"] = test.NewObjectFromString(*datum.ProviderName, objectFormat)
-	}
-	if datum.ProviderSessionID != nil {
-		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
 	}
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)

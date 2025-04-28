@@ -30,7 +30,7 @@ func RandomProviderNames() []string {
 }
 
 func RandomProviderExternalID() string {
-	return test.RandomStringFromRangeAndCharset(1, auth.ProviderExternaIDLengthMaximum, test.CharsetAlphaNumeric)
+	return test.RandomStringFromRangeAndCharset(1, auth.ProviderExternalIDLengthMaximum, test.CharsetAlphaNumeric)
 }
 
 func RandomProviderExternalIDs() []string {

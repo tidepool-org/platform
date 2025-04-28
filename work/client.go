@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client.go -package test Client
+//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test Client
 type Client interface {
 	Poll(ctx context.Context, poll *Poll) ([]*Work, error)
 	List(ctx context.Context, filter *Filter, pagination *page.Pagination) ([]*Work, error)

@@ -4,24 +4,30 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
-const DataSetDeleteOriginName = "org.tidepool.deduplicator.dataset.delete.origin"
+const (
+	DataSetDeleteOriginName    = "org.tidepool.deduplicator.dataset.delete.origin"
+	DataSetDeleteOriginVersion = "1.0.0"
+)
 
 type DataSetDeleteOrigin struct {
-	*Base
+	*DataSetDeleteOriginBase
 }
 
 func NewDataSetDeleteOrigin(dependencies Dependencies) (*DataSetDeleteOrigin, error) {
-	base, err := NewBase(dependencies, DataSetDeleteOriginName, "1.0.0")
+	dataSetDeleteOriginDependencies := DataSetDeleteOriginDependencies{
+		Dependencies: dependencies,
+		DataFilter:   &dataSetDeleteOriginDataFilter{},
+	}
+	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(dataSetDeleteOriginDependencies, DataSetDeleteOriginName, DataSetDeleteOriginVersion)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DataSetDeleteOrigin{
-		Base: base,
+		DataSetDeleteOriginBase: dataSetDeleteOriginBase,
 	}, nil
 }
 
@@ -30,94 +36,23 @@ func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *data.DataSet) (b
 }
 
 func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
-	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
+	if found, err := d.DataSetDeleteOriginBase.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-func (d *DataSetDeleteOrigin) Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return nil, errors.New("data set is missing")
-	}
+type dataSetDeleteOriginDataFilter struct{}
 
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.Active = true
-	}
-
-	return d.Base.Open(ctx, dataSet)
+func (d *dataSetDeleteOriginDataFilter) FilterData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
+	return dataSetData, nil
 }
 
-func (d *DataSetDeleteOrigin) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-	if dataSetData == nil {
-		return errors.New("data set data is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSetData.SetActive(true)
-	}
-
-	if selectors := d.getSelectors(dataSetData); selectors != nil {
-		if err := d.DataStore.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
-			return err
-		}
-		if err := d.Base.AddData(ctx, dataSet, dataSetData); err != nil {
-			return err
-		}
-		return d.DataStore.DestroyDeletedDataSetData(ctx, dataSet, selectors)
-	}
-
-	return d.Base.AddData(ctx, dataSet, dataSetData)
-}
-
-func (d *DataSetDeleteOrigin) DeleteData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-	if selectors == nil {
-		return errors.New("selectors is missing")
-	}
-
-	return d.DataStore.ArchiveDataSetData(ctx, dataSet, selectors)
-}
-
-func (d *DataSetDeleteOrigin) Close(ctx context.Context, dataSet *data.DataSet) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		return nil
-	}
-
-	return d.Base.Close(ctx, dataSet)
-}
-
-func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selectors {
+func (d *dataSetDeleteOriginDataFilter) GetDataSelectors(dataSetData data.Data) *data.Selectors {
 	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
-		if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
-			selector := &data.Selector{
-				Origin: &data.SelectorOrigin{
-					ID: pointer.CloneString(origin.ID),
-				},
-			}
+		if selector := d.getDatumSelector(dataSetDatum); selector != nil {
 			selectors = append(selectors, selector)
 		}
 	}
@@ -125,4 +60,15 @@ func (d *DataSetDeleteOrigin) getSelectors(dataSetData data.Data) *data.Selector
 		return nil
 	}
 	return &selectors
+}
+
+func (d *dataSetDeleteOriginDataFilter) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
+	if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
+		return &data.Selector{
+			Origin: &data.SelectorOrigin{
+				ID: pointer.CloneString(origin.ID),
+			},
+		}
+	}
+	return nil
 }

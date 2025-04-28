@@ -28,7 +28,7 @@ func ProviderTypes() []string {
 type ProviderSessionAccessor interface {
 	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	CreateUserProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error)
-	DeleteAllProviderSessions(ctx context.Context, userID string) error
+	DeleteUserProviderSessions(ctx context.Context, userID string) error
 
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
@@ -186,21 +186,21 @@ func ValidateProviderName(value string) error {
 	return nil
 }
 
-const ProviderExternaIDLengthMaximum = 100
+const ProviderExternalIDLengthMaximum = 100
 
-func IsValidProviderExternaID(value string) bool {
-	return ValidateProviderExternaID(value) == nil
+func IsValidProviderExternalID(value string) bool {
+	return ValidateProviderExternalID(value) == nil
 }
 
 func ProviderExternalIDValidator(value string, errorReporter structure.ErrorReporter) {
-	errorReporter.ReportError(ValidateProviderExternaID(value))
+	errorReporter.ReportError(ValidateProviderExternalID(value))
 }
 
-func ValidateProviderExternaID(value string) error {
+func ValidateProviderExternalID(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if length := len(value); length > ProviderExternaIDLengthMaximum {
-		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, ProviderExternaIDLengthMaximum)
+	} else if length := len(value); length > ProviderExternalIDLengthMaximum {
+		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, ProviderExternalIDLengthMaximum)
 	}
 	return nil
 }

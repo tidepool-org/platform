@@ -1088,7 +1088,7 @@ var _ = Describe("Blob", func() {
 	})
 
 	Context("NewID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(blob.NewID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 

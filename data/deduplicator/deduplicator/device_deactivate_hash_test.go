@@ -43,7 +43,7 @@ var _ = Describe("DeviceDeactivateHash", func() {
 		})
 
 		Context("NewDeviceDeactivateHash", func() {
-			It("returns succesfully", func() {
+			It("returns successfully", func() {
 				Expect(dataDeduplicatorDeduplicator.NewDeviceDeactivateHash(dependencies)).ToNot(BeNil())
 			})
 		})

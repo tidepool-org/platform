@@ -68,6 +68,16 @@ func (d Data) SetModifiedTime(modifiedTime *time.Time) {
 	}
 }
 
+func (d Data) Filter(predicate func(Datum) bool) Data {
+	filtered := Data{}
+	for _, datum := range d {
+		if predicate(datum) {
+			filtered = append(filtered, datum)
+		}
+	}
+	return filtered
+}
+
 // Provenance of a document.
 //
 // Useful for determining additional actions to take. For example, if the

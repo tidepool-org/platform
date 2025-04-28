@@ -467,20 +467,6 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderName = pointer.FromString(valid)
 					},
 				),
-				Entry("provider session id invalid type",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						object["providerSessionId"] = true
-						expectedDatum.ProviderSessionID = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
-				),
-				Entry("provider session id valid",
-					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
-						valid := authTest.RandomProviderSessionID()
-						object["providerSessionId"] = valid
-						expectedDatum.ProviderSessionID = pointer.FromString(valid)
-					},
-				),
 				Entry("provider external id invalid type",
 					func(object map[string]interface{}, expectedDatum *dataSource.Create) {
 						object["providerExternalId"] = true
@@ -518,13 +504,11 @@ var _ = Describe("Source", func() {
 						object["metadata"] = true
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
-						expectedDatum.ProviderSessionID = nil
 						expectedDatum.ProviderExternalID = nil
 						expectedDatum.Metadata = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 				),
@@ -626,13 +610,11 @@ var _ = Describe("Source", func() {
 					func(datum *dataSource.Create) {
 						datum.ProviderType = nil
 						datum.ProviderName = nil
-						datum.ProviderSessionID = pointer.FromString("")
 						datum.ProviderExternalID = pointer.FromString("")
 						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataLengthMaximum)}
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerName"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataLengthMaximum), "/metadata"),
 				),
@@ -1254,7 +1236,7 @@ var _ = Describe("Source", func() {
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns false when metdata is not nil", func() {
+			It("returns false when metadata is not nil", func() {
 				datum.Metadata = metadataTest.RandomMetadataMap()
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
@@ -2281,7 +2263,7 @@ var _ = Describe("Source", func() {
 	})
 
 	Context("NewID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(dataSource.NewID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 

@@ -19,7 +19,7 @@ func NewNoopMailer() clients.MailerClient {
 	return &NoopMailer{}
 }
 
-//go:generate mockgen -source=mailer.go -destination=mock.go -package test MailerClient
+//go:generate mockgen -source=mailer.go -destination=mailer_mocks.go -package=test MailerClient
 type MailerClient interface {
 	clients.MailerClient
 }

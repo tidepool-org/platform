@@ -224,7 +224,7 @@ func (s *Service) terminateDataSourceClient() {
 func (s *Service) initializeDexcomClient() error {
 	s.Logger().Debug("Loading dexcom provider")
 
-	if prvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient()); err != nil {
+	if prvdr, err := dexcomProvider.NewProvider(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient()); err != nil {
 		s.Logger().Warn("Unable to create dexcom provider")
 	} else {
 		s.Logger().Debug("Loading dexcom client config")

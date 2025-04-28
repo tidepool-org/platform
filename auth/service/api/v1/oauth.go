@@ -70,6 +70,9 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 	if err != nil {
 		responder.Error(request.StatusCodeForError(err), err)
 		return
+	} else if !prvdr.SupportsUserInitiatedAccountUnlinking() {
+		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking not supported"))
+		return
 	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()

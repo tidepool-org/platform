@@ -4,6 +4,9 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/golang-jwt/jwt/v4"
+	"github.com/lestrrat-go/jwx/v2/jwk"
+	"github.com/lestrrat-go/jwx/v2/jws"
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
@@ -17,9 +20,10 @@ type Provider struct {
 	name      string
 	config    *oauth2.Config
 	stateSalt string
+	jwks      jwk.Set
 }
 
-func NewProvider(name string, configReporter config.Reporter) (*Provider, error) {
+func NewProvider(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -63,6 +67,7 @@ func NewProvider(name string, configReporter config.Reporter) (*Provider, error)
 		name:      name,
 		config:    cfg,
 		stateSalt: stateSalt,
+		jwks:      jwks,
 	}, nil
 }
 
@@ -78,12 +83,34 @@ func (p *Provider) ClientID() string {
 	return p.config.ClientID
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
+}
+
+func (p *Provider) ParseToken(token string, claims jwt.Claims) error {
+	if token == "" {
+		return errors.New("token is missing")
+	}
+	if claims == nil {
+		return errors.New("claims are missing")
+	}
+
+	if p.jwks == nil {
+		return errors.Newf("jwks is not defined for provider %s", p.name)
+	}
+
+	// Only verify the signed JWT, because the jwt package doesn't support validation with a JWK Set
+	if _, err := jws.Verify([]byte(token), jws.WithKeySet(p.jwks, jws.WithInferAlgorithmFromKey(true))); err != nil {
+		return errors.Wrap(err, "unable to verify id token with jwks")
+	}
+
+	// Parse the JWT with the jwt package for consistency with the rest of codebase
+	_, _, err := jwt.NewParser().ParseUnverified(token, claims)
+	return err
 }
 
 func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error) {
