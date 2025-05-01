@@ -1,4 +1,4 @@
-package test
+package load
 
 import (
 	"context"
@@ -9,14 +9,14 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/work"
+	work "github.com/tidepool-org/platform/work"
 )
 
 const (
-	Quantity                     = 1
-	Frequency                    = 5 * time.Second
-	ProcessingAvailableTimeDelay = 5 * time.Second
-	ProcessingTimeout            = 5 * 60
+	quantity                     = 1
+	frequency                    = 5 * time.Second
+	processingAvailableTimeDelay = 5 * time.Second
+	processingTimeout            = 5 * 60
 
 	groupPrefix = "org.tidepool.work.test.load"
 
@@ -39,7 +39,7 @@ func workGroupIDFromSessionID(sessionID string) string {
 // TypeSleepy - will sleep for a random amount of time from 0 - `sleepMaxMillis` and then returns `ResultDelete`
 var TypeSleepy = domainName("sleepy")
 
-// TypeDopey - has to be told what to do, by default returns `ResultDelete`
+// TypeDopey - has to be told what to do or by default returns `ResultDelete`
 var TypeDopey = domainName("dopey")
 
 type loadProcessor struct {
@@ -60,11 +60,11 @@ func (p *loadProcessor) Type() string {
 }
 
 func (p *loadProcessor) Quantity() int {
-	return Quantity
+	return quantity
 }
 
 func (p *loadProcessor) Frequency() time.Duration {
-	return Frequency
+	return frequency
 }
 
 func (p *loadProcessor) getProcessResult(wrk *work.Work, result any, errMsg *string) *work.ProcessResult {
@@ -128,7 +128,7 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 	}
 }
 
-func NewLoadWorkCreate(create *work.Create) (*work.Create, error) {
+func newLoadWorkCreate(create *work.Create) (*work.Create, error) {
 
 	if create.GroupID == nil || *create.GroupID == "" {
 		return nil, errors.New("group id is missing")
@@ -138,11 +138,11 @@ func NewLoadWorkCreate(create *work.Create) (*work.Create, error) {
 		return nil, errors.New("invalid work type")
 	}
 
-	availableTime := time.Now().Add(ProcessingAvailableTimeDelay)
+	availableTime := time.Now().Add(processingAvailableTimeDelay)
 	if !create.ProcessingAvailableTime.IsZero() {
-		availableTime = create.ProcessingAvailableTime.Add(ProcessingAvailableTimeDelay)
+		availableTime = create.ProcessingAvailableTime.Add(processingAvailableTimeDelay)
 	}
-	timeout := ProcessingTimeout
+	timeout := processingTimeout
 	if create.ProcessingTimeout != 0 {
 		timeout = create.ProcessingTimeout
 	}

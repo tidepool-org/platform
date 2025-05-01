@@ -1,17 +1,18 @@
-package test
+package load
 
 import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	request "github.com/tidepool-org/platform/request"
+	serviceApi "github.com/tidepool-org/platform/service/api"
 	work "github.com/tidepool-org/platform/work"
 )
 
-func WorkRoutes() []dataService.Route {
+func Routes() []dataService.Route {
 	return []dataService.Route{
-		dataService.Post("/v1/work", CreateWorkHandler),
-		dataService.Delete("/v1/work/:groupId", DeleteWorkHandler),
+		dataService.Post("/v1/work", CreateWorkHandler, serviceApi.RequireAuth),
+		dataService.Delete("/v1/work/:groupId", DeleteWorkHandler, serviceApi.RequireAuth),
 	}
 }
 
@@ -51,7 +52,7 @@ func CreateWorkHandler(dataServiceContext dataService.Context) {
 		return
 	}
 
-	wc, err := NewLoadWorkCreate(create)
+	wc, err := newLoadWorkCreate(create)
 	if err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
