@@ -75,7 +75,8 @@ func (c *Client) GetDataSet(ctx context.Context, id string) (*data.DataSet, erro
 }
 
 func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
-	panic("Not Implemented!")
+	repository := c.dataStore.NewDataRepository()
+	return repository.UpdateDataSet(ctx, id, update)
 }
 
 func (c *Client) DeleteDataSet(ctx context.Context, id string) error {
