@@ -21,6 +21,7 @@ func Routes() []service.Route {
 		service.Get("/v1/time", TimeGet),
 		service.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, api.RequireAuth),
 
+		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireUser),
 		service.Get("/v1/partners/:partner/sector", PartnersSector),
 	}
 

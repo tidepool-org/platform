@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"

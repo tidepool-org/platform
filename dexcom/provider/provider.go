@@ -3,6 +3,9 @@ package provider
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/oauth"
+
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
@@ -22,6 +25,9 @@ type Provider struct {
 	taskClient       task.Client
 }
 
+// Compile time check for making sure Provider{} is a valid oauth.Provider
+var _ oauth.Provider = &Provider{}
+
 func New(configReporter config.Reporter, dataSourceClient dataSource.Client, taskClient task.Client) (*Provider, error) {
 	if configReporter == nil {
 		return nil, errors.New("config reporter is missing")
@@ -33,7 +39,7 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.New("task client is missing")
 	}
 
-	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName))
+	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45,12 +51,12 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 	}, nil
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionID string) error {
+func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
-	if providerSessionID == "" {
-		return errors.New("provider session id is missing")
+	if providerSession == nil {
+		return errors.New("provider session is missing")
 	}
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
@@ -58,7 +64,8 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
-	sources, err := p.dataSourceClient.List(ctx, userID, filter, nil)
+	filter.UserID = pointer.FromString(userID)
+	sources, err := p.dataSourceClient.List(ctx, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
 	}
@@ -88,7 +95,6 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		create := dataSource.NewCreate()
 		create.ProviderType = pointer.FromString(p.Type())
 		create.ProviderName = pointer.FromString(p.Name())
-		create.State = pointer.FromString(dataSource.StateDisconnected)
 
 		source, err = p.dataSourceClient.Create(ctx, userID, create)
 		if err != nil {
@@ -96,7 +102,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 		}
 	}
 
-	taskCreate, err := fetch.NewTaskCreate(providerSessionID, *source.ID)
+	taskCreate, err := fetch.NewTaskCreate(providerSession.ID, *source.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task create")
 	}
@@ -108,7 +114,7 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 
 	// Update data source to connected after task successfully created
 	update := dataSource.NewUpdate()
-	update.ProviderSessionID = pointer.FromString(providerSessionID)
+	update.ProviderSessionID = pointer.FromString(providerSession.ID)
 	update.State = pointer.FromString(dataSource.StateConnected)
 	if _, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update); err != nil {
 
@@ -123,18 +129,18 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSessionI
 	return nil
 }
 
-func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionID string) error {
+func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
-	if providerSessionID == "" {
-		return errors.New("provider session id is missing")
+	if providerSession == nil {
+		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "providerSessionId": providerSessionID})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "providerSessionId": providerSession.ID})
 
 	taskFilter := task.NewTaskFilter()
-	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSessionID))
+	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSession.ID))
 	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
 		logger.WithError(err).Error("unable to list tasks while deleting provider session")
@@ -155,4 +161,8 @@ func (p *Provider) OnDelete(ctx context.Context, userID string, providerSessionI
 		}
 	}
 	return nil
+}
+
+func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
+	return true
 }
