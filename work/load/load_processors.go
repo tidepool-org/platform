@@ -120,7 +120,7 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 	case TypeSleepy:
 		waitMillis := rand.IntN(500)
 		time.Sleep(time.Duration(waitMillis) * time.Millisecond)
-		return *p.getProcessResult(wrk, work.ResultDelete, nil)
+		return *p.getProcessResult(wrk, work.ResultSuccess, nil)
 	case TypeDopey:
 		return *p.getProcessResult(wrk, p.chooseDopeyResult(wrk), nil)
 	default:
@@ -128,14 +128,22 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 	}
 }
 
-func newLoadWorkCreate(create *work.Create) (*work.Create, error) {
+type LoadItem struct {
+	LoadProcessID          string       `json:"loadProcessId"`
+	SessionID              string       `json:"sessionId"`
+	SecondsOffsetFromStart int64        `json:"secondsOffsetFromStart"`
+	Create                 *work.Create `json:"create"`
+}
 
-	if create.GroupID == nil || *create.GroupID == "" {
-		return nil, errors.New("group id is missing")
+func NewLoadWorkCreate(sessionID string, loadProcessID string, create *work.Create) (*work.Create, error) {
+	if sessionID == "" {
+		return nil, errors.New("session id is missing")
 	}
-	groupID := *create.GroupID
+	if loadProcessID == "" {
+		return nil, errors.New("load process id is missing")
+	}
 	if create.Type != TypeSleepy && create.Type != TypeDopey {
-		return nil, errors.New("invalid work type")
+		return nil, fmt.Errorf("invalid work type %s", create.Type)
 	}
 
 	availableTime := time.Now().Add(processingAvailableTimeDelay)
@@ -148,7 +156,7 @@ func newLoadWorkCreate(create *work.Create) (*work.Create, error) {
 	}
 
 	metadata := map[string]any{
-		metadataDataSessionID: *create.GroupID,
+		metadataDataSessionID: sessionID,
 	}
 
 	if create.Metadata != nil && create.Metadata[metadataProcessResult] != nil {
@@ -157,9 +165,9 @@ func newLoadWorkCreate(create *work.Create) (*work.Create, error) {
 
 	return &work.Create{
 		Type:                    create.Type,
-		GroupID:                 pointer.FromString(workGroupIDFromSessionID(groupID)),
-		DeduplicationID:         pointer.FromString(groupID),
-		SerialID:                pointer.FromString(workSerialIDFromSessionID(create.Type, groupID)),
+		GroupID:                 pointer.FromString(workGroupIDFromSessionID(sessionID)),
+		DeduplicationID:         pointer.FromString(fmt.Sprintf("%s:%s", sessionID, loadProcessID)),
+		SerialID:                pointer.FromString(workSerialIDFromSessionID(create.Type, sessionID)),
 		ProcessingAvailableTime: availableTime,
 		ProcessingTimeout:       timeout,
 		Metadata:                metadata,

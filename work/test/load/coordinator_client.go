@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/work"
+	workLoad "github.com/tidepool-org/platform/work/load"
 	workService "github.com/tidepool-org/platform/work/service"
 )
 
@@ -21,11 +22,6 @@ type CoordinatorClient struct {
 	groupWorkItems map[string][]*work.Work
 	runFilePath    string
 	runStart       time.Time
-}
-
-type Data struct {
-	OffsetFromStart int64        `json:"offsetFromStart"`
-	Create          *work.Create `json:"create"`
 }
 
 func NewCoordinatorClient(authClient auth.Client, workClient work.Client) (*CoordinatorClient, error) {
@@ -40,7 +36,7 @@ func NewCoordinatorClient(authClient auth.Client, workClient work.Client) (*Coor
 	}
 	workCoordinator.coordinator = coordinator
 
-	lp, err := NewLoadProcessors()
+	lp, err := workLoad.NewLoadProcessors()
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load processors")
 	}
@@ -67,12 +63,12 @@ func (c *CoordinatorClient) Run(ctx context.Context, runFilePath string) error {
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", runFilePath)
 	}
-	var allData []Data
+	var allData []workLoad.LoadItem
 	json.Unmarshal(jsonData, &allData)
 
 	c.runStart = time.Now()
 	for _, data := range allData {
-		data.Create.ProcessingAvailableTime = c.runStart.Add(time.Second * time.Duration(data.OffsetFromStart))
+		data.Create.ProcessingAvailableTime = c.runStart.Add(time.Second * time.Duration(data.SecondsOffsetFromStart))
 		workItem, err := c.workClient.Create(ctx, data.Create)
 		if err != nil {
 			return errors.Wrapf(err, "error creating work %v", data.Create)

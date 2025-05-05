@@ -1,23 +1,35 @@
 [
     {
-        "offsetFromStart": 1,
+        "sessionId":"load-test-source-1",
+        "loadProcessId":"load-process-1",
+        "secondsOffsetFromStart": 1,
         "create": {
-            "type": "sleepy",
-            "groupId": "load-test-1"
+            "type": "org.tidepool.work.test.load.sleepy"
         }
     },
     {
-        "offsetFromStart": 2,
+        "sessionId":"load-test-source-1",
+        "loadProcessId":"load-process-2",
+        "secondsOffsetFromStart": 2,
         "create": {
-            "type": "sleepy",
-            "groupId": "load-test-1"
+            "type": "org.tidepool.work.test.load.sleepy"
         }
     },
     {
-        "offsetFromStart": 3,
+        "sessionId":"load-test-source-1",
+        "loadProcessId":"load-process-3",
+        "secondsOffsetFromStart": 3,
         "create": {
-            "type": "sleepy",
-            "groupId": "load-test-1"
+            "type": "org.tidepool.work.test.load.sleepy"
+        }
+    },
+    {
+        "sessionId":"load-test-source-1",
+        "loadProcessId":"load-process-1",
+        "secondsOffsetFromStart": 1,
+        "create": {
+            "type": "org.tidepool.work.test.load.dopey",
+            "metadata" : {"processResult":"failed"}
         }
     }
 ]
