@@ -1,0 +1,39 @@
+[
+    {
+        "secondsOffsetFromStart": 1,
+        "create": {
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
+        }
+    },
+    {
+        "secondsOffsetFromStart": 2,
+        "create": {
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
+        }
+    },
+    {
+        "secondsOffsetFromStart": 3,
+        "create": {
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
+        }
+    },
+    {
+        "secondsOffsetFromStart": 1,
+        "create": {
+            "type": "org.tidepool.work.test.load.dopey",
+            "metadata" : {"processResult":"failed"},
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
+        }
+    }
+]

@@ -5,6 +5,7 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
+	workService "github.com/tidepool-org/platform/work/service"
 )
 
 func Routes() []dataService.Route {
@@ -31,6 +32,9 @@ func Routes() []dataService.Route {
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
+
+	// TODO: optional inclusion of work load testing Routes
+	routes = append(routes, workService.LoadTestRoutes()...)
 
 	return routes
 }
