@@ -68,7 +68,7 @@ func createHandler(dataServiceContext dataService.Context) {
 	for _, item := range items {
 		item.Create.ProcessingAvailableTime = start.Add(time.Second * time.Duration(item.SecondsOffsetFromStart))
 
-		wc, err := workLoad.NewLoadWorkCreate(item.SessionID, item.LoadProcessID, item.Create)
+		wc, err := workLoad.NewLoadWorkCreate(item.Create)
 		if err != nil {
 			responder.Error(http.StatusBadRequest, fmt.Errorf("error creating work.Create %s", err.Error()))
 			return

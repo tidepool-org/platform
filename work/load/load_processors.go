@@ -18,22 +18,11 @@ const (
 	processingAvailableTimeDelay = 5 * time.Second
 	processingTimeout            = 5 * 60
 
-	groupPrefix = "org.tidepool.work.test.load"
-
-	metadataProcessResult = "processResult"
-	metadataDataSessionID = "sessionId"
+	MetadataProcessResult = "processResult"
 )
 
-func workSerialIDFromSessionID(wrkType string, sessionID string) string {
-	return fmt.Sprintf("%s:%s", domainName(wrkType), sessionID)
-}
-
 func domainName(subdomain string) string {
-	return fmt.Sprintf("%s.%s", groupPrefix, subdomain)
-}
-
-func workGroupIDFromSessionID(sessionID string) string {
-	return fmt.Sprintf("%s:%s", groupPrefix, sessionID)
+	return fmt.Sprintf("org.tidepool.work.test.load.%s", subdomain)
 }
 
 // TypeSleepy - will sleep for a random amount of time from 0 - `sleepMaxMillis` and then returns `ResultDelete`
@@ -101,7 +90,7 @@ func (p *loadProcessor) chooseDopeyResult(wrk *work.Work) string {
 		work.ResultFailed,
 		work.ResultSuccess,
 	}
-	if result := wrk.Metadata[metadataProcessResult]; result != nil {
+	if result := wrk.Metadata[MetadataProcessResult]; result != nil {
 		if resultStr, ok := result.(string); ok {
 			if resultStr == "random" {
 				var indexnum int = rand.IntN(len(possibleWorkResults) - 1)
@@ -129,18 +118,13 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 }
 
 type LoadItem struct {
-	LoadProcessID          string       `json:"loadProcessId"`
-	SessionID              string       `json:"sessionId"`
 	SecondsOffsetFromStart int64        `json:"secondsOffsetFromStart"`
 	Create                 *work.Create `json:"create"`
 }
 
-func NewLoadWorkCreate(sessionID string, loadProcessID string, create *work.Create) (*work.Create, error) {
-	if sessionID == "" {
-		return nil, errors.New("session id is missing")
-	}
-	if loadProcessID == "" {
-		return nil, errors.New("load process id is missing")
+func NewLoadWorkCreate(create *work.Create) (*work.Create, error) {
+	if create == nil {
+		return nil, errors.New("create is missing")
 	}
 	if create.Type != TypeSleepy && create.Type != TypeDopey {
 		return nil, fmt.Errorf("invalid work type %s", create.Type)
@@ -155,19 +139,18 @@ func NewLoadWorkCreate(sessionID string, loadProcessID string, create *work.Crea
 		timeout = create.ProcessingTimeout
 	}
 
-	metadata := map[string]any{
-		metadataDataSessionID: sessionID,
-	}
+	metadata := map[string]any{}
 
-	if create.Metadata != nil && create.Metadata[metadataProcessResult] != nil {
-		metadata[metadataProcessResult] = create.Metadata[metadataProcessResult]
+	if create.Metadata != nil && create.Metadata[MetadataProcessResult] != nil {
+		metadata[MetadataProcessResult] = create.Metadata[MetadataProcessResult]
 	}
 
 	return &work.Create{
-		Type:                    create.Type,
-		GroupID:                 pointer.FromString(workGroupIDFromSessionID(sessionID)),
-		DeduplicationID:         pointer.FromString(fmt.Sprintf("%s:%s", sessionID, loadProcessID)),
-		SerialID:                pointer.FromString(workSerialIDFromSessionID(create.Type, sessionID)),
+		Type:            create.Type,
+		GroupID:         create.GroupID,
+		DeduplicationID: create.DeduplicationID,
+		// TODO: try and run with same serial ID at the same time
+		SerialID:                create.SerialID,
 		ProcessingAvailableTime: availableTime,
 		ProcessingTimeout:       timeout,
 		Metadata:                metadata,

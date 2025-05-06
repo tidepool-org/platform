@@ -1,35 +1,39 @@
 [
     {
-        "sessionId":"load-test-source-1",
-        "loadProcessId":"load-process-1",
         "secondsOffsetFromStart": 1,
         "create": {
-            "type": "org.tidepool.work.test.load.sleepy"
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
         }
     },
     {
-        "sessionId":"load-test-source-1",
-        "loadProcessId":"load-process-2",
         "secondsOffsetFromStart": 2,
         "create": {
-            "type": "org.tidepool.work.test.load.sleepy"
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
         }
     },
     {
-        "sessionId":"load-test-source-1",
-        "loadProcessId":"load-process-3",
         "secondsOffsetFromStart": 3,
         "create": {
-            "type": "org.tidepool.work.test.load.sleepy"
+            "type": "org.tidepool.work.test.load.sleepy",
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
         }
     },
     {
-        "sessionId":"load-test-source-1",
-        "loadProcessId":"load-process-1",
         "secondsOffsetFromStart": 1,
         "create": {
             "type": "org.tidepool.work.test.load.dopey",
-            "metadata" : {"processResult":"failed"}
+            "metadata" : {"processResult":"failed"},
+            "groupId":"group-1", 
+            "deduplicationId":"deduplication-1",
+            "serialId":"serial-1"
         }
     }
 ]
