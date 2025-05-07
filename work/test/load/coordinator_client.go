@@ -1,16 +1,15 @@
-package load
+package workTestLoad
 
 import (
 	"context"
 	"encoding/json"
-	"io"
 	"log"
 	"os"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/log/null"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/work"
 	workLoad "github.com/tidepool-org/platform/work/load"
 	workService "github.com/tidepool-org/platform/work/service"
@@ -25,7 +24,7 @@ type CoordinatorClient struct {
 }
 
 func NewCoordinatorClient(authClient auth.Client, workClient work.Client) (*CoordinatorClient, error) {
-	logger := null.NewLogger()
+	logger := logNull.NewLogger()
 	workCoordinator := &CoordinatorClient{
 		workClient:     workClient,
 		groupWorkItems: map[string][]*work.Work{},
@@ -54,21 +53,18 @@ func (c *CoordinatorClient) Run(ctx context.Context, runFilePath string) error {
 	c.coordinator.Start()
 	c.runFilePath = runFilePath
 
-	jsonFile, err := os.Open(runFilePath)
-	if err != nil {
-		return errors.Wrapf(err, "unable open run file %s", runFilePath)
-	}
-	defer jsonFile.Close()
-	jsonData, err := io.ReadAll(jsonFile)
+	jsonData, err := os.ReadFile(runFilePath)
 	if err != nil {
 		return errors.Wrapf(err, "read file %s", runFilePath)
 	}
 	var allData []workLoad.LoadItem
-	json.Unmarshal(jsonData, &allData)
+	if err := json.Unmarshal(jsonData, &allData); err != nil {
+		return errors.Wrapf(err, "error unmarshalling load items")
+	}
 
 	c.runStart = time.Now()
 	for _, data := range allData {
-		data.Create.ProcessingAvailableTime = c.runStart.Add(time.Second * time.Duration(data.SecondsOffsetFromStart))
+		data.Create.ProcessingAvailableTime = c.runStart.Add(time.Millisecond * time.Duration(data.OffsetMilliseconds))
 		workItem, err := c.workClient.Create(ctx, data.Create)
 		if err != nil {
 			return errors.Wrapf(err, "error creating work %v", data.Create)

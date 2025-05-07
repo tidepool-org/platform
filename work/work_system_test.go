@@ -10,7 +10,7 @@ import (
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/work"
 	workTest "github.com/tidepool-org/platform/work/test"
-	workLoadTest "github.com/tidepool-org/platform/work/test/load"
+	workTestLoad "github.com/tidepool-org/platform/work/test/load"
 )
 
 var _ = Describe("Work System", func() {
@@ -18,7 +18,7 @@ var _ = Describe("Work System", func() {
 	var workClient *workTest.MockClient
 	var workController *gomock.Controller
 	var ctx context.Context
-	var coordinator *workLoadTest.CoordinatorClient
+	var coordinator *workTestLoad.CoordinatorClient
 	var err error
 
 	BeforeEach(func() {
@@ -26,7 +26,7 @@ var _ = Describe("Work System", func() {
 		workController = gomock.NewController(GinkgoT())
 		workClient = workTest.NewMockClient(workController)
 		ctx = context.Background()
-		coordinator, err = workLoadTest.NewCoordinatorClient(authClient, workClient)
+		coordinator, err = workTestLoad.NewCoordinatorClient(authClient, workClient)
 		Expect(err).To(BeNil())
 	})
 

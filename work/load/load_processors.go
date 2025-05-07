@@ -1,4 +1,4 @@
-package load
+package work_load
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
-	work "github.com/tidepool-org/platform/work"
+	"github.com/tidepool-org/platform/work"
 )
 
 const (
@@ -19,6 +19,8 @@ const (
 	processingTimeout            = 5 * 60
 
 	MetadataProcessResult = "processResult"
+	MetadataSleep         = "randomSleep"
+	randomResult          = "random"
 )
 
 func domainName(subdomain string) string {
@@ -32,31 +34,38 @@ var TypeSleepy = domainName("sleepy")
 var TypeDopey = domainName("dopey")
 
 type loadProcessor struct {
-	pType string
+	typ       string
+	quantity  int
+	frequency time.Duration
 }
 
-func newLoadProcessor(pType string) (*loadProcessor, error) {
-	if pType != TypeSleepy && pType != TypeDopey {
-		return nil, errors.Newf("type %s is invalid. Must be one of [%s,%s]", pType, TypeSleepy, TypeDopey)
-	}
+func newLoadProcessor(typ string, quantity int, frequency time.Duration) (*loadProcessor, error) {
 	return &loadProcessor{
-		pType: pType,
+		typ:       typ,
+		quantity:  quantity,
+		frequency: frequency,
 	}, nil
 }
 
 func (p *loadProcessor) Type() string {
-	return p.pType
+	return p.typ
 }
 
 func (p *loadProcessor) Quantity() int {
-	return quantity
+	return p.quantity
 }
 
 func (p *loadProcessor) Frequency() time.Duration {
-	return frequency
+	return p.frequency
 }
 
 func (p *loadProcessor) getProcessResult(wrk *work.Work, result any, errMsg *string) *work.ProcessResult {
+
+	if result.(string) == randomResult {
+		indexnum := rand.IntN(len(work.Results()) - 1)
+		result = work.Results()[indexnum]
+	}
+
 	switch result.(string) {
 	case work.ResultFailing:
 
@@ -66,8 +75,9 @@ func (p *loadProcessor) getProcessResult(wrk *work.Work, result any, errMsg *str
 		}
 
 		return work.NewProcessResultFailing(work.FailingUpdate{
-			FailingError: *errors.NewSerializable(errors.New(msg)),
-			Metadata:     wrk.Metadata,
+			FailingError:      *errors.NewSerializable(errors.New(msg)),
+			FailingRetryCount: 2,
+			Metadata:          wrk.Metadata,
 		})
 	case work.ResultFailed:
 		return work.NewProcessResultFailed(work.FailedUpdate{
@@ -78,94 +88,69 @@ func (p *loadProcessor) getProcessResult(wrk *work.Work, result any, errMsg *str
 		return work.NewProcessResultSuccess(work.SuccessUpdate{
 			Metadata: wrk.Metadata,
 		})
+	case work.ResultPending:
+		return work.NewProcessResultPending(work.PendingUpdate{
+			Metadata: wrk.Metadata,
+		})
 	default:
 		return work.NewProcessResultDelete()
 	}
 }
 
-func (p *loadProcessor) chooseDopeyResult(wrk *work.Work) string {
-	possibleWorkResults := []string{
-		work.ResultDelete,
-		work.ResultFailing,
-		work.ResultFailed,
-		work.ResultSuccess,
-	}
+func (p *loadProcessor) getResult(wrk *work.Work) string {
 	if result := wrk.Metadata[MetadataProcessResult]; result != nil {
 		if resultStr, ok := result.(string); ok {
-			if resultStr == "random" {
-				var indexnum int = rand.IntN(len(possibleWorkResults) - 1)
-				return possibleWorkResults[indexnum]
-			}
-			if slices.Contains(possibleWorkResults, resultStr) {
+			if slices.Contains(work.Results(), resultStr) {
 				return resultStr
 			}
 		}
 	}
-	return work.ResultDelete
+	return randomResult
 }
 
 func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
 	switch wrk.Type {
-	case TypeSleepy:
-		waitMillis := rand.IntN(500)
-		time.Sleep(time.Duration(waitMillis) * time.Millisecond)
-		return *p.getProcessResult(wrk, work.ResultSuccess, nil)
-	case TypeDopey:
-		return *p.getProcessResult(wrk, p.chooseDopeyResult(wrk), nil)
+	case TypeSleepy, TypeDopey:
+		if sleep := wrk.Metadata[MetadataSleep]; sleep != nil {
+			waitMillis := rand.IntN(500)
+			time.Sleep(time.Duration(waitMillis) * time.Millisecond)
+		}
+		return *p.getProcessResult(wrk, p.getResult(wrk), nil)
 	default:
 		return *p.getProcessResult(wrk, work.ResultFailed, pointer.FromString(fmt.Sprintf("[%s] not an expected work type", wrk.Type)))
 	}
 }
 
 type LoadItem struct {
-	SecondsOffsetFromStart int64        `json:"secondsOffsetFromStart"`
-	Create                 *work.Create `json:"create"`
+	OffsetMilliseconds int64        `json:"offsetMilliseconds"`
+	Create             *work.Create `json:"create"`
 }
 
-func NewLoadWorkCreate(create *work.Create) (*work.Create, error) {
+func Validate(create *work.Create) error {
 	if create == nil {
-		return nil, errors.New("create is missing")
+		return errors.New("create is missing")
+	}
+	if create.GroupID == nil {
+		return errors.New("create is missing groupId")
 	}
 	if create.Type != TypeSleepy && create.Type != TypeDopey {
-		return nil, fmt.Errorf("invalid work type %s", create.Type)
+		return fmt.Errorf("invalid work type %s", create.Type)
 	}
-
-	availableTime := time.Now().Add(processingAvailableTimeDelay)
-	if !create.ProcessingAvailableTime.IsZero() {
-		availableTime = create.ProcessingAvailableTime.Add(processingAvailableTimeDelay)
+	if create.ProcessingAvailableTime.IsZero() {
+		return errors.New("processingAvailableTime needs to be set")
 	}
-	timeout := processingTimeout
-	if create.ProcessingTimeout != 0 {
-		timeout = create.ProcessingTimeout
-	}
-
-	metadata := map[string]any{}
-
-	if create.Metadata != nil && create.Metadata[MetadataProcessResult] != nil {
-		metadata[MetadataProcessResult] = create.Metadata[MetadataProcessResult]
-	}
-
-	return &work.Create{
-		Type:            create.Type,
-		GroupID:         create.GroupID,
-		DeduplicationID: create.DeduplicationID,
-		// TODO: try and run with same serial ID at the same time
-		SerialID:                create.SerialID,
-		ProcessingAvailableTime: availableTime,
-		ProcessingTimeout:       timeout,
-		Metadata:                metadata,
-	}, nil
+	return nil
 }
 
 func NewLoadProcessors() ([]work.Processor, error) {
 	var processors []work.Processor
-	if sleepyProcessor, err := newLoadProcessor(TypeSleepy); err != nil {
+	if sleepyProcessor, err := newLoadProcessor(TypeSleepy, quantity, frequency); err != nil {
 		return nil, err
 	} else {
 		processors = append(processors, sleepyProcessor)
 	}
 
-	if dopeyProcessor, err := newLoadProcessor(TypeDopey); err != nil {
+	if dopeyProcessor, err := newLoadProcessor(TypeDopey, quantity, frequency); err != nil {
 		return nil, err
 	} else {
 		processors = append(processors, dopeyProcessor)
