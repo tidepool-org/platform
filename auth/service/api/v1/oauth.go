@@ -239,15 +239,10 @@ func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err err
 
 const htmlOnRedirect = `
 <html>
-	<body onload="closeOrRedirect()">
+	<body onload="redirect()">
 		<script>
-			function closeOrRedirect() {
-				var isIframe = window.location !== window.parent.location;
-				if (isIframe) {
-					window.close();
-				} else {
-					window.location.replace('%s');
-				}
+			function redirect() {
+				window.location.replace('%s');
 			}
 		</script>
 	</body>
