@@ -201,8 +201,43 @@ func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
 	rs.AnyHigh.CalculateDelta(&current.AnyHigh, &previous.AnyHigh)
 }
 
+type MinMax struct {
+	Min float64 `json:"min,omitempty" bson:"min,omitempty"`
+	Max float64 `json:"max,omitempty" bson:"max,omitempty"`
+}
+
+func (m *MinMax) Update(record *glucoseDatum.Glucose) {
+	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
+
+	// we need to catch the starting min value of 0 which will always be impossibly low
+	if m.Min == 0 || normalizedValue < m.Min {
+		m.Min = normalizedValue
+	}
+
+	if m.Max == 0 || normalizedValue > m.Max {
+		m.Max = normalizedValue
+	}
+}
+
+func (m *MinMax) Add(new *MinMax) {
+	if m.Min == 0 || new.Min < m.Min {
+		m.Min = new.Min
+	}
+
+	if m.Max == 0 || new.Max > m.Max {
+		m.Max = new.Max
+	}
+}
+
+func (m *MinMax) CalculateDelta(current *MinMax, previous *MinMax) {
+	m.Min = current.Min - previous.Min
+	m.Max = current.Max - previous.Max
+}
+
 type GlucoseBucket struct {
-	GlucoseRanges      `json:",inline" bson:",inline"`
+	GlucoseRanges `json:",inline" bson:",inline"`
+	MinMax        `json:",inline" bson:",inline"`
+
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
 }
 
@@ -237,6 +272,7 @@ func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) 
 		return false, nil
 	}
 
+	b.MinMax.Update(record)
 	b.GlucoseRanges.Update(record)
 	b.LastRecordDuration = GetDuration(record)
 
@@ -245,6 +281,8 @@ func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) 
 
 type GlucosePeriod struct {
 	GlucoseRanges `json:",inline" bson:",inline"`
+	MinMax        `json:",inline" bson:",inline"`
+
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
 
@@ -263,6 +301,7 @@ type GlucosePeriod struct {
 
 func (p *GlucosePeriod) CalculateDelta(current *GlucosePeriod, previous *GlucosePeriod) {
 	p.GlucoseRanges.CalculateDelta(&current.GlucoseRanges, &previous.GlucoseRanges)
+	p.MinMax.CalculateDelta(&current.MinMax, &previous.MinMax)
 
 	Delta(&current.AverageGlucose, &previous.AverageGlucose, &p.AverageGlucose)
 	Delta(&current.GlucoseManagementIndicator, &previous.GlucoseManagementIndicator, &p.GlucoseManagementIndicator)
@@ -322,7 +361,8 @@ func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 		}
 	}
 
-	p.Add(&bucket.Data.GlucoseRanges)
+	p.MinMax.Add(&bucket.Data.MinMax)
+	p.GlucoseRanges.Add(&bucket.Data.GlucoseRanges)
 
 	return nil
 }
