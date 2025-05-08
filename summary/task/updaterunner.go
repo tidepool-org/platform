@@ -164,7 +164,7 @@ func (t *UpdateTaskRunner) run() error {
 
 	for i := 1; i <= IterLimit; i++ {
 		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
-		outdated, err := t.dataClient.GetOutdatedUserIDs(t.context, "cgm", pagination)
+		outdated, err := t.dataClient.GetOutdatedUserIDs(t.context, typ, pagination)
 		if err != nil {
 			return err
 		}
