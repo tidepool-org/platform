@@ -1,4 +1,4 @@
-package work_load
+package workTestLoadService
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/request"
+	workTestLoad "github.com/tidepool-org/platform/work/test/load"
 )
 
 func LoadTestRoutes() []dataService.Route {
@@ -54,7 +55,7 @@ func createHandler(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	items := []LoadItem{}
+	items := []workTestLoad.LoadItem{}
 	if err := request.DecodeRequestBody(req.Request, &items); err != nil {
 		responder.Error(http.StatusBadRequest, fmt.Errorf("error decoding work load test request body %w", err))
 		return

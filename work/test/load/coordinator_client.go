@@ -35,7 +35,7 @@ func NewCoordinatorClient(authClient auth.Client, workClient work.Client) (*Coor
 	}
 	workCoordinator.coordinator = coordinator
 
-	lp, err := workLoad.NewLoadProcessors()
+	lp, err := workLoad.NewLoadProcessors(workClient, workCoordinator.coordinator.RegisterProcessor)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load processors")
 	}

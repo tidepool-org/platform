@@ -38,9 +38,9 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
-	workLoad "github.com/tidepool-org/platform/work/load"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
+	workLoad "github.com/tidepool-org/platform/work/test/load"
 )
 
 type Standard struct {

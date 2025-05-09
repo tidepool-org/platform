@@ -13,7 +13,7 @@ import (
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
-	workLoad "github.com/tidepool-org/platform/work/load"
+	workLoad "github.com/tidepool-org/platform/work/test/load"
 	"github.com/urfave/cli"
 )
 
@@ -27,6 +27,7 @@ func main() {
 	var generateCount int64
 	var generateResult string
 	var generateGroupID string
+	var generateTimeout int
 
 	var baseURLFlag = &cli.StringFlag{
 		Name:        "urlBase",
@@ -133,11 +134,20 @@ func main() {
 					Value:       "test_group_1",
 					Required:    false,
 				},
+				&cli.IntFlag{
+					Name:        "timeout",
+					Usage:       "processing timeout",
+					Destination: &generateTimeout,
+					Value:       5,
+					Required:    false,
+				},
 				outputDirFlag,
 			},
 			Before: func(ctx *cli.Context) error {
-				if !slices.Contains(work.Results(), generateResult) {
-					return fmt.Errorf("results must be one of %s", work.Results())
+				if generateResult != "random" {
+					if !slices.Contains(work.Results(), generateResult) {
+						return fmt.Errorf("results must be one of %s", work.Results())
+					}
 				}
 				return nil
 			},
@@ -174,9 +184,10 @@ func main() {
 					items = append(items, workLoad.LoadItem{
 						OffsetMilliseconds: calcOffset(),
 						Create: &work.Create{
-							Type:     getRandomType(),
-							GroupID:  pointer.FromString(generateGroupID),
-							Metadata: getMetadata(),
+							Type:              getRandomType(),
+							GroupID:           pointer.FromString(generateGroupID),
+							Metadata:          getMetadata(),
+							ProcessingTimeout: generateTimeout,
 						},
 					})
 				}
