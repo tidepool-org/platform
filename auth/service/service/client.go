@@ -131,32 +131,25 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, filter auth.Prov
 		return errors.New("filter external id is missing")
 	}
 
-	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
-		"name":       *filter.Name,
-		"type":       *filter.Type,
-		"externalId": *filter.ExternalID,
-	})
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "filter", filter)
 
 	repository := c.authStore.NewProviderSessionRepository()
-
-	pagination := *page.NewPagination()
-	for {
+	if err := page.Paginate(func(pagination page.Pagination) (bool, error) {
 		providerSessions, err := repository.ListAllProviderSessions(ctx, filter, pagination)
 		if err != nil {
-			logger.WithError(err).Warn("Unable to list user provider sessions")
-			return err
+			logger.WithError(err).Warn("Unable to list all provider sessions")
+			return false, errors.Wrap(err, "unable to list all provider sessions")
 		}
 		for _, providerSession := range providerSessions {
 			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
 
 			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
-				logger.WithError(err).Warn("Unable to delete provider session")
+				logger.WithError(err).Warn("Unable to delete all provider session")
 			}
 		}
-		if len(providerSessions) < pagination.Size {
-			break
-		}
-		pagination.Page++
+		return len(providerSessions) < pagination.Size, nil
+	}); err != nil {
+		return err
 	}
 
 	// We are intentionally not calling the repository to make sure we don't run into

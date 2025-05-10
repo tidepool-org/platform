@@ -6,7 +6,6 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/errors"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -173,7 +172,7 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 	// Authorize the service account
 	authDetails := request.GetAuthDetails(req.Context())
 	if !authDetails.IsService() && !r.TwiistServiceAccountAuthorizer().IsServiceAccountAuthorized(authDetails.UserID()) {
-		responder.Error(http.StatusForbidden, errors.New("auth token is not authorized for requested action"))
+		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
 
