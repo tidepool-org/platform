@@ -14,6 +14,8 @@ import (
 	reflect "reflect"
 
 	api "github.com/tidepool-org/hydrophone/client"
+	gomock "go.uber.org/mock/gomock"
+
 	apple "github.com/tidepool-org/platform/apple"
 	appvalidate "github.com/tidepool-org/platform/appvalidate"
 	auth "github.com/tidepool-org/platform/auth"
@@ -25,7 +27,6 @@ import (
 	task "github.com/tidepool-org/platform/task"
 	twiist "github.com/tidepool-org/platform/twiist"
 	version "github.com/tidepool-org/platform/version"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockAuthService is a mock of Service interface.
