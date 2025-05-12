@@ -25,7 +25,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/bolus"
-	"github.com/tidepool-org/platform/data/types/insulin"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
@@ -239,6 +238,7 @@ func DataSetDatumAsInterface(dataSetDatum data.Datum) interface{} {
 var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 	var repository dataStore.DataRepository
 	var summaryRepository dataStore.SummaryRepository
+	var bucketsRepository dataStore.BucketsRepository
 	var alertsRepository alerts.Repository
 	var logger = logTest.NewLogger()
 	var store *dataStoreMongo.Store
@@ -265,6 +265,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 		var collection *mongo.Collection
 		var dataSetCollection *mongo.Collection
 		var summaryCollection *mongo.Collection
+		var bucketsCollection *mongo.Collection
 		var alertsCollection *mongo.Collection
 		var collectionsOnce sync.Once
 
@@ -273,6 +274,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				collection = store.GetCollection("deviceData")
 				dataSetCollection = store.GetCollection("deviceDataSets")
 				summaryCollection = store.GetCollection("summary")
+				bucketsCollection = store.GetCollection("buckets")
 				alertsCollection = store.GetCollection("alerts")
 			})
 		})
@@ -286,6 +288,8 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			_, err = dataSetCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 			_, err = summaryCollection.DeleteMany(ctx, all)
+			Expect(err).To(Succeed())
+			_, err = bucketsCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
 			_, err = alertsCollection.DeleteMany(ctx, all)
 			Expect(err).To(Succeed())
@@ -416,9 +420,30 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name":       Equal("UserIDTypeUnique"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "config.schemaVersion", "dates.lastUpdatedDate")),
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "dates.lastUpdatedDate", "config.schemaVersion")),
 						"Background": Equal(false),
-						"Name":       Equal("OutdatedSinceSchemaLastUpdated"),
+						"Name":       Equal("OutdatedAndSchemaMigration"),
+					}),
+				))
+			})
+
+			It("bucket indexes return successfully", func() {
+				cursor, err := bucketsCollection.Indexes().List(context.Background())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cursor).ToNot(BeNil())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				err = cursor.All(context.Background(), &indexes)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(indexes).To(ConsistOf(
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("userId", "type", "-time")),
+						"Background": Equal(false),
+						"Unique":     Equal(false),
+						"Name":       Equal("UserIdTypeTime"),
 					}),
 				))
 			})
@@ -435,6 +460,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 			It("returns a new repository", func() {
 				summaryRepository = store.NewSummaryRepository()
 				Expect(summaryRepository).ToNot(BeNil())
+			})
+		})
+
+		Context("NewBucketsRepository", func() {
+			It("returns a new repository", func() {
+				bucketsRepository = store.NewBucketsRepository()
+				Expect(bucketsRepository).ToNot(BeNil())
 			})
 		})
 
@@ -1212,103 +1244,6 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								Expect(status).To(BeNil())
 							})
 
-						})
-					})
-
-					Context("DistinctUserIDs", func() {
-						It("returns an error if context is missing", func() {
-							userIds, err := repository.DistinctUserIDs(nil, []string{continuous.Type})
-							Expect(userIds).To(BeNil())
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("context is missing"))
-						})
-
-						It("returns an error if typ is empty", func() {
-							userIds, err := repository.DistinctUserIDs(ctx, []string{})
-							Expect(userIds).To(BeNil())
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("typ is empty"))
-						})
-
-						It("returns an error if typ is upload", func() {
-							userIds, err := repository.DistinctUserIDs(ctx, []string{upload.Type})
-							Expect(userIds).To(BeNil())
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
-						})
-
-						Context("with database access", func() {
-							var userIdOne string
-							var userIdTwo string
-							var userIdThree string
-
-							BeforeEach(func() {
-								userIdOne = userTest.RandomID()
-								dataSetOne := NewDataSet(userIdOne, deviceID)
-								dataSetDataOne := NewDataSetData(deviceID)
-
-								userIdTwo = userTest.RandomID()
-								dataSetTwo := NewDataSet(userIdTwo, deviceID)
-								dataSetDataTwo := NewDataSetData(deviceID)
-
-								userIdThree = userTest.RandomID()
-								dataSetThree := NewDataSet(userIdThree, deviceID)
-								dataSetDataThree := NewDataSetData(deviceID)
-
-								dataSetDataOne[0].SetType(selfmonitored.Type)
-								dataSetDataOne[0].SetActive(false)
-								for i := 1; i < len(dataSetDataOne); i++ {
-									dataSetDataOne[i].SetType(continuous.Type)
-									dataSetDataOne[i].SetActive(true)
-								}
-
-								dataSetDataTwo[0].SetType(selfmonitored.Type)
-								dataSetDataTwo[0].SetActive(true)
-								for i := 1; i < len(dataSetDataTwo); i++ {
-									dataSetDataTwo[i].SetType(continuous.Type)
-									dataSetDataTwo[i].SetActive(true)
-								}
-
-								for i := 0; i < len(dataSetDataThree); i++ {
-									dataSetDataThree[i].SetType(insulin.Type)
-									dataSetDataThree[i].SetActive(true)
-								}
-
-								Expect(repository.CreateDataSetData(ctx, dataSetOne, dataSetDataOne)).To(Succeed())
-								Expect(repository.CreateDataSetData(ctx, dataSetTwo, dataSetDataTwo)).To(Succeed())
-								Expect(repository.CreateDataSetData(ctx, dataSetThree, dataSetDataThree)).To(Succeed())
-							})
-
-							It("correctly identifies distinct users", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, []string{continuous.Type})
-								Expect(userIds).ToNot(BeNil())
-								Expect(err).ToNot(HaveOccurred())
-								Expect(userIds).To(HaveLen(2))
-								Expect(userIds).To(ConsistOf([]string{userIdOne, userIdTwo}))
-							})
-
-							It("correctly identifies distinct users with inactive data", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, []string{selfmonitored.Type})
-								Expect(userIds).ToNot(BeNil())
-								Expect(err).ToNot(HaveOccurred())
-								Expect(userIds).To(HaveLen(1))
-								Expect(userIds[0]).To(Equal(userIdTwo))
-							})
-
-							It("correctly identifies distinct users with different-type data", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, []string{bolus.Type})
-								Expect(userIds).ToNot(BeNil())
-								Expect(err).ToNot(HaveOccurred())
-								Expect(userIds).To(HaveLen(0))
-							})
-
-							It("correctly identifies distinct users with multiple types", func() {
-								userIds, err := repository.DistinctUserIDs(ctx, []string{selfmonitored.Type, insulin.Type})
-								Expect(userIds).ToNot(BeNil())
-								Expect(err).ToNot(HaveOccurred())
-								Expect(userIds).To(HaveLen(2))
-								Expect(userIds).To(ConsistOf([]string{userIdThree, userIdTwo}))
-							})
 						})
 					})
 

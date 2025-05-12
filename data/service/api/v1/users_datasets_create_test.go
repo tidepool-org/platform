@@ -5,7 +5,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
 
 	"github.com/tidepool-org/platform/clinics"
 
@@ -24,7 +25,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
-	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/data/types/upload"
 	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
