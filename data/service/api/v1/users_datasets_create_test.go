@@ -5,11 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/reporters"
-
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -17,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
@@ -35,7 +31,10 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
@@ -222,5 +221,9 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
 	panic("not implemented")
 }

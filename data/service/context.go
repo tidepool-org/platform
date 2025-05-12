@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 type Context interface {
@@ -36,6 +37,8 @@ type Context interface {
 
 	ClinicsClient() clinics.Client
 	DataSourceClient() dataSource.Client
+
+	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
 }
 
 type HandlerFunc func(context Context)

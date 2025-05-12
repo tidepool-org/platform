@@ -110,6 +110,9 @@ github.com/davecgh/go-spew/spew
 # github.com/deckarep/golang-set/v2 v2.8.0
 ## explicit; go 1.18
 github.com/deckarep/golang-set/v2
+# github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.0
+## explicit; go 1.17
+github.com/decred/dcrd/dcrec/secp256k1/v4
 # github.com/dvsekhvalnov/jose2go v1.8.0
 ## explicit; go 1.15
 github.com/dvsekhvalnov/jose2go
@@ -146,6 +149,17 @@ github.com/go-logr/logr/funcr
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
+# github.com/goccy/go-json v0.10.3
+## explicit; go 1.19
+github.com/goccy/go-json
+github.com/goccy/go-json/internal/decoder
+github.com/goccy/go-json/internal/encoder
+github.com/goccy/go-json/internal/encoder/vm
+github.com/goccy/go-json/internal/encoder/vm_color
+github.com/goccy/go-json/internal/encoder/vm_color_indent
+github.com/goccy/go-json/internal/encoder/vm_indent
+github.com/goccy/go-json/internal/errors
+github.com/goccy/go-json/internal/runtime
 # github.com/golang-jwt/jwt/v4 v4.5.1
 ## explicit; go 1.16
 github.com/golang-jwt/jwt/v4
@@ -257,6 +271,36 @@ github.com/klauspost/compress/zstd/internal/xxhash
 # github.com/kylelemons/godebug v1.1.0
 ## explicit; go 1.11
 github.com/kylelemons/godebug/diff
+# github.com/lestrrat-go/blackmagic v1.0.2
+## explicit; go 1.16
+github.com/lestrrat-go/blackmagic
+# github.com/lestrrat-go/httpcc v1.0.1
+## explicit; go 1.16
+github.com/lestrrat-go/httpcc
+# github.com/lestrrat-go/httprc v1.0.6
+## explicit; go 1.17
+github.com/lestrrat-go/httprc
+# github.com/lestrrat-go/iter v1.0.2
+## explicit; go 1.13
+github.com/lestrrat-go/iter/arrayiter
+github.com/lestrrat-go/iter/mapiter
+# github.com/lestrrat-go/jwx/v2 v2.1.4
+## explicit; go 1.20
+github.com/lestrrat-go/jwx/v2/cert
+github.com/lestrrat-go/jwx/v2/internal/base64
+github.com/lestrrat-go/jwx/v2/internal/ecutil
+github.com/lestrrat-go/jwx/v2/internal/iter
+github.com/lestrrat-go/jwx/v2/internal/json
+github.com/lestrrat-go/jwx/v2/internal/keyconv
+github.com/lestrrat-go/jwx/v2/internal/pool
+github.com/lestrrat-go/jwx/v2/jwa
+github.com/lestrrat-go/jwx/v2/jwk
+github.com/lestrrat-go/jwx/v2/jwk/internal/x509
+github.com/lestrrat-go/jwx/v2/jws
+github.com/lestrrat-go/jwx/v2/x25519
+# github.com/lestrrat-go/option v1.0.1
+## explicit; go 1.16
+github.com/lestrrat-go/option
 # github.com/mattn/go-colorable v0.1.14
 ## explicit; go 1.18
 github.com/mattn/go-colorable
@@ -369,6 +413,15 @@ github.com/rinchsan/device-check-go
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
+# github.com/segmentio/asm v1.2.0
+## explicit; go 1.18
+github.com/segmentio/asm/base64
+github.com/segmentio/asm/cpu
+github.com/segmentio/asm/cpu/arm
+github.com/segmentio/asm/cpu/arm64
+github.com/segmentio/asm/cpu/cpuid
+github.com/segmentio/asm/cpu/x86
+github.com/segmentio/asm/internal/unsafebytes
 # github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
@@ -478,6 +531,9 @@ go.uber.org/fx/internal/fxclock
 go.uber.org/fx/internal/fxlog
 go.uber.org/fx/internal/fxreflect
 go.uber.org/fx/internal/lifecycle
+# go.uber.org/mock v0.5.2
+## explicit; go 1.23
+go.uber.org/mock/gomock
 # go.uber.org/multierr v1.11.0
 ## explicit; go 1.19
 go.uber.org/multierr
@@ -494,6 +550,10 @@ go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/zapcore
 # golang.org/x/crypto v0.36.0
 ## explicit; go 1.23.0
+golang.org/x/crypto/cryptobyte
+golang.org/x/crypto/cryptobyte/asn1
+golang.org/x/crypto/curve25519
+golang.org/x/crypto/ed25519
 golang.org/x/crypto/md4
 golang.org/x/crypto/ocsp
 golang.org/x/crypto/pbkdf2
@@ -539,6 +599,7 @@ golang.org/x/sync/semaphore
 golang.org/x/sync/singleflight
 # golang.org/x/sys v0.31.0
 ## explicit; go 1.23.0
+golang.org/x/sys/cpu
 golang.org/x/sys/plan9
 golang.org/x/sys/unix
 golang.org/x/sys/windows

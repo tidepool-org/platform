@@ -64,6 +64,17 @@ type CreateDataSetDataInput struct {
 	DataSetData []data.Datum
 }
 
+type NewerDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
+type NewerDataSetDataOutput struct {
+	Selectors *data.Selectors
+	Error     error
+}
+
 type ActivateDataSetDataInput struct {
 	Context   context.Context
 	DataSet   *upload.Upload
@@ -200,6 +211,9 @@ type DataRepository struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
+	NewerDataSetDataInvocations                          int
+	NewerDataSetDataInputs                               []NewerDataSetDataInput
+	NewerDataSetDataOutputs                              []NewerDataSetDataOutput
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
@@ -332,6 +346,18 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	output := d.CreateDataSetDataOutputs[0]
 	d.CreateDataSetDataOutputs = d.CreateDataSetDataOutputs[1:]
 	return output
+}
+
+func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+	d.NewerDataSetDataInvocations++
+
+	d.NewerDataSetDataInputs = append(d.NewerDataSetDataInputs, NewerDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.NewerDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.NewerDataSetDataOutputs[0]
+	d.NewerDataSetDataOutputs = d.NewerDataSetDataOutputs[1:]
+	return output.Selectors, output.Error
 }
 
 func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {

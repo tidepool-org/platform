@@ -445,6 +445,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Unique":     Equal(false),
 						"Name":       Equal("UserIdTypeTime"),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "dates.lastUpdatedDate", "config.schemaVersion")),
+						"Background": Equal(false),
+						"Name":       Equal("OutdatedAndSchemaMigration"),
+					}),
 				))
 			})
 		})
