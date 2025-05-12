@@ -2,9 +2,7 @@
 
 The Tidepool Platform API.
 
-[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg&branch=master)](https://app.travis-ci.com/tidepool-org/platform)
-[![Code Climate](https://codeclimate.com/github/tidepool-org/platform/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/platform)
-[![Issue Count](https://codeclimate.com/github/tidepool-org/platform/badges/issue_count.svg)](https://codeclimate.com/github/tidepool-org/platform)
+[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg?branch=master)](https://app.travis-ci.com/tidepool-org/platform)
 
 # Setup
 
@@ -99,7 +97,7 @@ The environment variable `WATCH` indicates which package hierarchy to test. If n
 WATCH=user make test-watch
 ```
 
-* To run `gofmt`, `goimports`, `go vet`, and `golint`:
+* To run `gofmt`, `goimports`, and `go vet`:
 
 ```
 make pre-commit
@@ -162,7 +160,6 @@ If you previously noted any changes or issues of concern, perform any explicit t
 ```
 go get -u <dependacy>   # e.g. go get -u github.com/onsi/gomega
 go mod tidy
-go mod vendor
 ```
 
 ## Review

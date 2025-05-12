@@ -28,7 +28,7 @@ VERSION_PACKAGE:=$(REPOSITORY_PACKAGE)/application
 GO_BUILD_FLAGS:=-buildvcs=false
 GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
-FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -not -name '*_test.go' -type f -exec grep -E -l '^\s*func\s+main\s*(\s*)' {} \;
+FIND_MAIN_CMD:=find . -path './$(BUILD)*' -not -path './.gvm_local/*' -name '*.go' -not -name '*_test.go' -type f -exec grep -E -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
 GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS) -o
@@ -73,38 +73,36 @@ bindir:
 
 CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
-	cd vendor/github.com/githubnemo/CompileDaemon && go install -mod=vendor .
-endif
-
-esc:
-ifeq ($(shell which esc),)
-	cd vendor/github.com/mjibson/esc && go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install github.com/githubnemo/CompileDaemon" && \
+		go install github.com/githubnemo/CompileDaemon
 endif
 
 mockgen:
 ifeq ($(shell which mockgen),)
-	go install go.uber.org/mock/mockgen@v0.5.2
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install go.uber.org/mock/mockgen" && \
+		go install go.uber.org/mock/mockgen
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
-	cd vendor/github.com/onsi/ginkgo/v2/ginkgo && go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install github.com/onsi/ginkgo/v2/ginkgo" && \
+		go install github.com/onsi/ginkgo/v2/ginkgo
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
-	cd vendor/golang.org/x/tools/cmd/goimports && go install -mod=vendor .
-endif
-
-golint:
-ifeq ($(shell which golint),)
-	cd vendor/golang.org/x/lint/golint && go install -mod=vendor .
+	@cd $(ROOT_DIRECTORY) && \
+		echo "go install golang.org/x/tools/cmd/goimports" && \
+		go install golang.org/x/tools/cmd/goimports
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
-buildable: bindir CompileDaemon esc ginkgo goimports golint
+buildable: bindir CompileDaemon ginkgo goimports
 
-generate: esc mockgen
+generate: mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && go generate ./...
 
@@ -115,13 +113,13 @@ ci-generate: generate format-write-changed imports-write-changed
 format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec gofmt -d -e -s {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec gofmt -e -s -w {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write-changed:
@@ -131,13 +129,13 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -not -path '**/test/mock.go' -not -name '*mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -not -path '**/test/mock.go' -not -name '*mock.go' -not -name '**_gen.go' -name '*.go' -type f -exec goimports -d -e -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
 	@echo "goimports -e -w -local 'github.com/tidepool-org/platform'"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
+		O=`find . -not -path './.gvm_local/*' -name '*.go' -type f -exec goimports -e -w -local 'github.com/tidepool-org/platform' {} \; 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write-changed: goimports
@@ -153,19 +151,6 @@ vet: tmp
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
 
-lint: golint tmp
-	@echo "golint"
-	@cd $(ROOT_DIRECTORY) && \
-		find . -not -path './.gvm_local/*' -not -path './vendor/*' -name '*.go' -type f | sort -d | xargs -I {} golint {} | grep -v 'exported.*should have comment.*or be unexported' 2> _tmp/golint.out > _tmp/golint.out || [ $${?} == 1 ] && \
-		diff .golintignore _tmp/golint.out || \
-		exit 0
-
-lint-ignore:
-	@cd $(ROOT_DIRECTORY) && cp _tmp/golint.out .golintignore
-
-pre-build: format imports vet
-# pre-build: format imports vet lint
-
 build-list:
 	@cd $(ROOT_DIRECTORY) && $(FIND_MAIN_CMD)
 
@@ -176,7 +161,7 @@ build:
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude='*_test.go' -include='Makefile' -recursive=true
 
-ci-build: pre-build build
+ci-build: build
 
 ci-build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make ci-build' -color -directory='.' -exclude-dir='.git' -include='Makefile' -recursive=true
@@ -363,13 +348,12 @@ clean-test:
 clean-all: clean
 
 pre-commit: format imports vet
-# pre-commit: format imports vet lint
 
 gopath-implode:
 	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
 
-.PHONY: default tmp bindir CompileDaemon esc ginkgo goimports golint buildable \
-	format format-write imports vet vet-ignore lint lint-ignore pre-build build-list build ci-build \
+.PHONY: default tmp bindir CompileDaemon ginkgo goimports buildable \
+	format format-write imports vet vet-ignore build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
 	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \

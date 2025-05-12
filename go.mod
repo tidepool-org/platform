@@ -13,7 +13,6 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang-jwt/jwt/v4 v4.5.1
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gowebpki/jcs v1.0.1
@@ -21,10 +20,9 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/mjibson/esc v0.2.0
 	github.com/onsi/ginkgo/v2 v2.23.0
 	github.com/onsi/gomega v1.36.2
-	github.com/prometheus/client_golang v1.21.1
+	github.com/prometheus/client_golang v1.20.5
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
@@ -64,6 +62,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.26.3 // indirect
@@ -91,7 +90,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.63.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
