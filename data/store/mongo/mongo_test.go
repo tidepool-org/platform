@@ -412,6 +412,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Background": Equal(false),
 						"Name":       Equal("OutdatedSinceSchemaLastUpdated"),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("type", "dates.outdatedSince", "dates.lastUpdatedDate", "config.schemaVersion")),
+						"Background": Equal(false),
+						"Name":       Equal("OutdatedAndSchemaMigration"),
+					}),
 				))
 			})
 		})
