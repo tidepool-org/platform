@@ -4,11 +4,8 @@ WORKDIR /go/src/github.com/tidepool-org/platform
 RUN apk --no-cache update && \
     apk --no-cache upgrade && \
     apk --no-cache add make git ca-certificates tzdata && \
-    go install github.com/githubnemo/CompileDaemon@v1.4.0 && \
-    adduser -D tidepool && \
-    chown -R tidepool /go/src/github.com/tidepool-org/platform
-USER tidepool
-COPY --chown=tidepool . .
+    go install github.com/githubnemo/CompileDaemon@v1.4.0
+COPY . .
 ENV SERVICE=services/auth
 RUN ["make", "service-build"]
 CMD ["make", "service-start"]
