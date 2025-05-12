@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,25 +9,29 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
-	"slices"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
-	workLoad "github.com/tidepool-org/platform/work/test/load"
+	workLoad "github.com/tidepool-org/platform/work/load"
 	"github.com/urfave/cli"
 )
 
 func main() {
 
 	var filePath string
+	var groupID string
 	var outputDir string
 	var urlBase string
 
 	var generateDurationSeconds int64
 	var generateCount int64
 	var generateResult string
-	var generateGroupID string
+	var generateActions string
+	var generateErrors bool
 	var generateTimeout int
 
 	var baseURLFlag = &cli.StringFlag{
@@ -57,6 +62,12 @@ func main() {
 					Usage:       "path to the load test file",
 					Destination: &filePath,
 				},
+				&cli.StringFlag{
+					Name:        "groupId",
+					Usage:       "groupId for this test run",
+					Destination: &groupID,
+					Required:    false,
+				},
 				outputDirFlag,
 			},
 			Before: func(ctx *cli.Context) error {
@@ -68,17 +79,35 @@ func main() {
 						os.Mkdir(outputDir, 0755)
 					}
 				}
+				if groupID == "" {
+					groupID = fmt.Sprintf("group-id-%s", data.NewID())
+				}
 				return nil
 			},
 			Action: func(ctx *cli.Context) error {
 
-				testData, err := os.Open(filePath)
+				testDataContent, err := os.ReadFile(filePath)
 				if err != nil {
 					return fmt.Errorf("error opening %s %s", filePath, err.Error())
 				}
-				defer testData.Close()
 
-				res, err := http.Post(fmt.Sprintf("%s/v1/work/load", urlBase), "application/json", testData)
+				var items []workLoad.LoadItem
+				err = json.Unmarshal(testDataContent, &items)
+				if err != nil {
+					return fmt.Errorf("unable to load testing data: %s", err.Error())
+				}
+
+				for i := range items {
+					items[i].Create.GroupID = pointer.FromString(groupID)
+				}
+
+				var buf bytes.Buffer
+				err = json.NewEncoder(&buf).Encode(items)
+				if err != nil {
+					return fmt.Errorf("unable to load testing data: %s", err.Error())
+				}
+
+				res, err := http.Post(fmt.Sprintf("%s/v1/work/load", urlBase), "application/json", &buf)
 
 				if err != nil {
 					return fmt.Errorf("unable to issue work load test API request: %s", err.Error())
@@ -94,10 +123,11 @@ func main() {
 					return fmt.Errorf("unsuccessful work load test API response: %v: %v", res.Status, string(bodyData))
 				}
 				if outputDir != "" {
-					outputFile := fmt.Sprintf("%s/work_%s_created.json", outputDir, time.Now().Format(time.DateTime))
+					outputFile := fmt.Sprintf("%s/%s_work_%s_created.json", outputDir, groupID, time.Now().Format(time.DateTime))
+					log.Printf("run data [%s]", outputFile)
 					os.WriteFile(outputFile, bodyData, os.ModePerm)
 				}
-				fmt.Printf("%s", res.Status)
+				log.Printf("%s", res.Status)
 				return nil
 			},
 		},
@@ -110,7 +140,7 @@ func main() {
 					Name:        "seconds",
 					Usage:       "number of seconds the load test will run over",
 					Destination: &generateDurationSeconds,
-					Value:       60,
+					Value:       5,
 					Required:    false,
 				},
 				&cli.Int64Flag{
@@ -120,37 +150,29 @@ func main() {
 					Value:       100,
 					Required:    false,
 				},
-				&cli.StringFlag{
-					Name:        "result",
-					Usage:       "expected result of work item",
-					Destination: &generateResult,
-					Value:       work.ResultSuccess,
-					Required:    false,
-				},
-				&cli.StringFlag{
-					Name:        "group",
-					Usage:       "group id",
-					Destination: &generateGroupID,
-					Value:       "test_group_1",
-					Required:    false,
-				},
 				&cli.IntFlag{
 					Name:        "timeout",
 					Usage:       "processing timeout",
 					Destination: &generateTimeout,
-					Value:       5,
+					Value:       15,
+					Required:    false,
+				},
+				&cli.StringFlag{
+					Name:        "actions",
+					Usage:       "comma sperated list of actions",
+					Destination: &generateActions,
+					Value:       "sleep",
+					Required:    false,
+				},
+				&cli.BoolFlag{
+					Name:        "errors",
+					Usage:       "include error results",
+					Destination: &generateErrors,
 					Required:    false,
 				},
 				outputDirFlag,
 			},
-			Before: func(ctx *cli.Context) error {
-				if generateResult != "random" {
-					if !slices.Contains(work.Results(), generateResult) {
-						return fmt.Errorf("results must be one of %s", work.Results())
-					}
-				}
-				return nil
-			},
+
 			Action: func(ctx *cli.Context) error {
 
 				items := []workLoad.LoadItem{}
@@ -162,14 +184,75 @@ func main() {
 					return workLoad.TypeSleepy
 				}
 
-				var getMetadata = func() map[string]any {
-					metadata := map[string]any{
-						workLoad.MetadataProcessResult: generateResult,
+				var getRandomResult = func(errors bool) string {
+					if !errors {
+						if rand.IntN(2) == 0 {
+							return work.ResultSuccess
+						}
+						return work.ResultDelete
 					}
-					if rand.IntN(2) == 0 {
-						metadata[workLoad.MetadataSleep] = true
+					i := rand.IntN(len(work.Results()))
+					return work.Results()[i]
+				}
+
+				var getActions = func(actionNames []string) workLoad.Actions {
+					actions := workLoad.Actions{}
+
+					for _, name := range actionNames {
+
+						actionName := strings.Trim(name, " ")
+						var actionData any
+						if strings.Contains(actionName, ":") {
+							parts := strings.Split(actionName, ":")
+							actionName = parts[0]
+							if len(parts) > 1 {
+								actionData = parts[1]
+							}
+						}
+
+						action := workLoad.Action{
+							"action": actionName,
+						}
+						switch actionName {
+						case workLoad.SleepAction:
+							action[workLoad.SleepDelay] = 1000
+							if actionData != nil {
+								delay, err := strconv.Atoi(actionData.(string))
+								if err == nil {
+									action[workLoad.SleepDelay] = delay
+								}
+							}
+						case workLoad.ResultAction:
+							action[workLoad.ResultAction] = work.ResultSuccess
+							if actionData != nil {
+								action[workLoad.ResultAction] = actionData
+							}
+
+						case workLoad.CreateAction:
+							action["create"] = work.Create{
+								Type: getRandomType(),
+								Metadata: map[string]any{
+									//TODO: need ability to specify createWork actions
+									"actions": workLoad.Actions{
+										workLoad.Action{"action": workLoad.SleepAction, "delay": rand.IntN(4000)},
+										workLoad.Action{"action": workLoad.ResultAction, "result": getRandomResult(generateErrors)},
+									},
+								},
+								ProcessingTimeout: generateTimeout,
+							}
+						case workLoad.RegisterAction:
+							action[workLoad.RegisterType] = workLoad.DomainName("other")
+							if actionData != nil {
+								subdomain, ok := actionData.(string)
+								if ok {
+									action[workLoad.ResultAction] = workLoad.DomainName(subdomain)
+								}
+							}
+
+						}
+						actions = append(actions, action)
 					}
-					return metadata
+					return actions
 				}
 
 				var calcOffset = func() int64 {
@@ -180,13 +263,15 @@ func main() {
 				}
 
 				for range int(generateCount) {
+					actionNames := strings.Split(generateActions, ",")
 
 					items = append(items, workLoad.LoadItem{
 						OffsetMilliseconds: calcOffset(),
 						Create: &work.Create{
-							Type:              getRandomType(),
-							GroupID:           pointer.FromString(generateGroupID),
-							Metadata:          getMetadata(),
+							Type: getRandomType(),
+							Metadata: map[string]any{
+								"actions": getActions(actionNames),
+							},
 							ProcessingTimeout: generateTimeout,
 						},
 					})

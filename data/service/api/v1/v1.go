@@ -5,7 +5,7 @@ import (
 
 	dataService "github.com/tidepool-org/platform/data/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
-	workLoadService "github.com/tidepool-org/platform/work/test/load/service"
+	workLoadService "github.com/tidepool-org/platform/work/load"
 )
 
 func Routes() []dataService.Route {

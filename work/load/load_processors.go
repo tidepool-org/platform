@@ -2,11 +2,15 @@ package work_load
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand/v2"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
+	logNull "github.com/tidepool-org/platform/log/null"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	"github.com/tidepool-org/platform/work"
 	"github.com/tidepool-org/platform/work/service"
 )
@@ -15,39 +19,9 @@ const (
 	quantity  = 1
 	frequency = 5 * time.Second
 
-	// wait and delete
-	// wait and success
-	// wait and run next
-	// wait and run self
+	MetadataActions = "actions"
 
-	// run and next
-
-	MetadataActions        = "actions"
-	MetadataActionMetadata = "actionMetadata"
-	MetadataFailingData    = "failingData"
-
-	//required metadata
-	// action key - is array of objects
-	// type e.g. deploy, next type of work, return this status, reschedule this
-
-	// delay - do some work  (how long)
-	// create - add another work item ()
-	// return result (resturnSuccess)
-	// failing & pending how many time to run before changing state
-	// look in metadata to see what is needed, failing needs retry time
-
-	// {
-	// 	action:
-	// 	metadata:{}
-	// }
-	//
-
-	// MetadataProcessResult = "processResult"
-	// MetadataSleep         = "randomSleep"
-	// randomResult          = "random"
-
-	Action = "action"
-
+	ActionKey      = "action"
 	SleepAction    = "sleep"
 	ResultAction   = "result"
 	CreateAction   = "createWork"
@@ -55,17 +29,17 @@ const (
 
 	SleepDelay   = "delay"
 	RegisterType = "type"
+	CreateType   = "type"
 )
 
-func domainName(subdomain string) string {
-	return fmt.Sprintf("org.tidepool.work.test.load.%s", subdomain)
+const domainPrefix = "org.tidepool.work.test.load"
+
+func DomainName(subdomain string) string {
+	return fmt.Sprintf("%s.%s", domainPrefix, subdomain)
 }
 
-// TypeSleepy - will sleep for a random amount of time from 0 - `sleepMaxMillis` and then returns `ResultDelete`
-var TypeSleepy = domainName("sleepy")
-
-// TypeDopey - has to be told what to do or by default returns `ResultDelete`
-var TypeDopey = domainName("dopey")
+var TypeSleepy = DomainName("sleepy")
+var TypeDopey = DomainName("dopey")
 
 type loadProcessor struct {
 	typ                   string
@@ -98,13 +72,13 @@ func (p *loadProcessor) Frequency() time.Duration {
 	return p.frequency
 }
 
-func (p *loadProcessor) returnResult(name string, metadata map[string]any) *work.ProcessResult {
+func (p *loadProcessor) returnResult(name string, metadata map[string]any, err error) *work.ProcessResult {
 	switch name {
-	case work.StateSuccess:
+	case work.ResultSuccess:
 		return work.NewProcessResultSuccess(work.SuccessUpdate{
 			Metadata: metadata,
 		})
-	case work.StatePending:
+	case work.ResultPending:
 
 		timeout, ok := metadata["pendingTimeout"].(int)
 		if !ok {
@@ -127,16 +101,20 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any) *work
 			ProcessingPriority:      priority,
 			ProcessingAvailableTime: time.Now().Add(time.Millisecond * time.Duration(offset)),
 		})
-	case work.StateFailed:
-		msg, ok := metadata["failedMessage"].(string)
-		if !ok {
-			msg = "failure from return result"
+	case work.ResultFailed:
+		if err == nil {
+			msg, ok := metadata["failedMessage"].(string)
+			if !ok {
+				msg = "failure from return result"
+			}
+			err = errors.New(msg)
 		}
+
 		return work.NewProcessResultFailed(work.FailedUpdate{
-			FailedError: *errors.NewSerializable(errors.New(msg)),
+			FailedError: *errors.NewSerializable(err),
 			Metadata:    metadata,
 		})
-	case work.StateFailing:
+	case work.ResultFailing:
 		msg, ok := metadata["failingMessage"].(string)
 		if !ok {
 			msg = "failing from return result"
@@ -155,91 +133,105 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any) *work
 			FailingRetryTime:  time.Now().Add(time.Millisecond * time.Duration(offset)),
 			Metadata:          metadata,
 		})
+	case work.ResultDelete:
+		return work.NewProcessResultDelete()
 
 	default:
 		return work.NewProcessResultFailed(work.FailedUpdate{
-			FailedError: *errors.NewSerializable(fmt.Errorf("unknown result type %s ", name)),
+			FailedError: *errors.NewSerializable(fmt.Errorf("unknown result type %s", name)),
 			Metadata:    metadata,
 		})
 	}
 }
 
-func (p *loadProcessor) performAction(ctx context.Context, name string, metadata map[string]any) *work.ProcessResult {
+func (p *loadProcessor) performAction(ctx context.Context, groupID *string, name string, metadata map[string]any) *work.ProcessResult {
 
 	switch name {
 
 	case SleepAction:
-		delayMillisecond, ok := metadata[SleepDelay].(int)
+		delayMillisecond, ok := metadata[SleepDelay].(float64)
 		if !ok {
-			delayMillisecond = rand.IntN(1000)
+			delayMillisecond = float64(rand.IntN(1000))
 		}
 		time.Sleep(time.Duration(delayMillisecond) * time.Millisecond)
 		return nil
 	case ResultAction:
 		result, ok := metadata["result"].(string)
 		if !ok {
-			return p.returnResult(work.ResultFailed, metadata)
+			return p.returnResult(work.ResultFailed, metadata, errors.New("result not found"))
 		}
-		return p.returnResult(result, metadata)
+		return p.returnResult(result, metadata, nil)
 	case CreateAction:
 		if p.coordinator == nil {
-			p.returnResult(work.ResultFailed, metadata)
+			p.returnResult(work.ResultFailed, metadata, errors.New("coordinator not set"))
 		}
-		create, ok := metadata["create"].(work.Create)
-		if !ok {
-			p.returnResult(work.ResultFailed, metadata)
+		createObj := metadata["create"].(map[string]any)
+		parser := structureParser.NewObject(logNull.NewLogger(), &createObj)
+
+		create := work.ParseCreate(parser)
+		if create.GroupID == nil {
+			create.GroupID = groupID
 		}
-		_, err := p.workClient.Create(ctx, &create)
+		_, err := p.workClient.Create(ctx, create)
 		if err != nil {
-			p.returnResult(work.ResultFailed, metadata)
+			p.returnResult(work.ResultFailed, metadata, err)
 		}
 		return nil
 	case RegisterAction:
 		//TODO: register a new processor
 		registerType, ok := metadata[RegisterType].(string)
 		if !ok {
-			p.returnResult(work.ResultFailed, metadata)
+			p.returnResult(work.ResultFailed, metadata, fmt.Errorf("%s has invalid type", RegisterAction))
 		}
-
 		newProcessor, err := newLoadProcessor(registerType, quantity, frequency, p.workClient, p.registerProcessorFunc)
 		if err != nil {
-			p.returnResult(work.ResultFailed, metadata)
+			p.returnResult(work.ResultFailed, metadata, err)
 		}
 
 		if err := p.registerProcessorFunc(newProcessor); err != nil {
-			p.returnResult(work.ResultFailed, metadata)
+			p.returnResult(work.ResultFailed, metadata, err)
 		}
+		return nil
 	}
 
-	return p.returnResult(work.ResultFailed, metadata)
+	return p.returnResult(work.ResultFailed, metadata, fmt.Errorf("unknown action name %s", name))
 }
 
 func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
+	if strings.Contains(wrk.Type, domainPrefix) {
+		p.returnResult(work.ResultFailed, wrk.Metadata, errors.New("invalid work type"))
+	}
+	metadataActions := wrk.Metadata[MetadataActions]
 
-	if wrk.Type != TypeSleepy && wrk.Type != TypeDopey {
-		p.returnResult(work.ResultFailed, wrk.Metadata)
+	jsonData, err := json.Marshal(metadataActions)
+	if err != nil {
+		p.returnResult(work.ResultFailed, wrk.Metadata, err)
 	}
 
-	actions, ok := wrk.Metadata[MetadataActions].([]map[string]any)
-	if !ok {
-		return *p.returnResult(work.ResultSuccess, wrk.Metadata)
+	actions := Actions{}
+	if err := json.Unmarshal(jsonData, &actions); err != nil {
+		p.returnResult(work.ResultFailed, wrk.Metadata, err)
 	}
 
-	for _, actionData := range actions {
-		name, ok := actionData[Action].(string)
+	for _, action := range actions {
+		name, ok := action[ActionKey].(string)
 		if ok {
-			if result := p.performAction(ctx, name, actionData); result != nil {
+			if result := p.performAction(ctx, wrk.GroupID, name, action); result != nil {
 				return *result
 			}
 		}
 	}
-	return *p.returnResult(work.ResultDelete, wrk.Metadata)
+	return *p.returnResult(work.ResultSuccess, wrk.Metadata, nil)
 }
 
 type LoadItem struct {
 	OffsetMilliseconds int64        `json:"offsetMilliseconds"`
 	Create             *work.Create `json:"create"`
 }
+
+type Actions []Action
+
+type Action map[string]any
 
 func NewLoadProcessors(workClient work.Client, registerProcessorFunc func(processor work.Processor) error) ([]work.Processor, error) {
 	var processors []work.Processor
