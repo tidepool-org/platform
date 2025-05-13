@@ -7,13 +7,14 @@ import (
 	"slices"
 	"time"
 
+	"github.com/tidepool-org/platform/summary/types"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary/types"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -871,7 +872,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
 	if !status.LastUpdated.IsZero() {
 		selector["modifiedTime"] = bson.M{
-			"$gt": status.LastUpdated,
+			"$gte": status.LastUpdated,
 		}
 		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
 			// has blocking sort, but more selective so usually performs better.
@@ -899,8 +900,6 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 }
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
-	var err error
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -923,7 +922,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
-	err = d.getTimeRange(ctx, userId, typ, status)
+	err := d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}
@@ -944,48 +943,4 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	}
 
 	return status, nil
-}
-
-func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-
-	if len(typ) == 0 {
-		return nil, errors.New("typ is empty")
-	}
-
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
-	// allow for a small margin on the pastCutoff to allow for calculation delay
-	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
-	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
-
-	// TODO: maybe reevaluate, scatters / broadcasts on sharded cluster
-	selector := bson.M{
-		"_userId": bson.M{"$ne": -1111},
-		"_active": true,
-		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
-	}
-
-	if len(typ) > 1 {
-		selector["type"] = bson.M{"$in": typ}
-	} else {
-		selector["type"] = typ[0]
-	}
-
-	result, err := d.Distinct(ctx, "_userId", selector)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching distinct userIDs: %w", err)
-	}
-
-	userIDs := make([]string, 0, len(result))
-	for _, v := range result {
-		userIDs = append(userIDs, v.(string))
-	}
-
-	return userIDs, nil
 }

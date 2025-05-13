@@ -3,11 +3,11 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/summary"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/types"
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary/types"
 	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"

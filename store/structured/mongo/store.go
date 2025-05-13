@@ -105,3 +105,7 @@ func (o *Store) Terminate(ctx context.Context) error {
 
 	return o.client.Disconnect(ctx)
 }
+
+func (o *Store) GetClient() *mongo.Client {
+	return o.client
+}
