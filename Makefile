@@ -225,39 +225,6 @@ go-ci-test: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 go-ci-test: GOTEST_PKGS = ./...
 go-ci-test: go-test
 
-deploy: clean-deploy deploy-services deploy-migrations deploy-tools
-
-deploy-services:
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 _bin/services); do $(MAKE) bundle-deploy DEPLOY=$${SERVICE} SOURCE=services/$${SERVICE}; done
-endif
-
-deploy-migrations:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=migrations SOURCE=migrations
-endif
-
-deploy-tools:
-ifdef TRAVIS_TAG
-	@$(MAKE) bundle-deploy DEPLOY=tools SOURCE=tools
-endif
-
-ci-deploy: deploy
-
-bundle-deploy:
-ifdef DEPLOY
-ifdef TRAVIS_TAG
-	@cd $(ROOT_DIRECTORY) && \
-		DEPLOY_TAG=$(DEPLOY)-$(TRAVIS_TAG) && \
-		DEPLOY_DIR=deploy/$(DEPLOY)/$${DEPLOY_TAG} && \
-		mkdir -p $${DEPLOY_DIR}/_bin/$(SOURCE) && \
-		cp -R _bin/$(SOURCE)/* $${DEPLOY_DIR}/_bin/$(SOURCE)/ && \
-		find $(SOURCE) -type f -name 'README.md' -exec cp {} $${DEPLOY_DIR}/_bin/{} \; && \
-		cp $(SOURCE)/start.sh $${DEPLOY_DIR}/ && \
-		tar -c -z -f $${DEPLOY_DIR}.tar.gz -C deploy/$(DEPLOY)/ $${DEPLOY_TAG}
-endif
-endif
-
 docker:
 ifdef DOCKER
 	@echo "$(DOCKER_PASSWORD)" | docker login --username "$(DOCKER_USERNAME)" --password-stdin
@@ -327,7 +294,7 @@ endif
 
 ci-docker: docker
 
-clean: clean-bin clean-cover clean-debug clean-deploy clean-test
+clean: clean-bin clean-cover clean-debug clean-test
 	@cd $(ROOT_DIRECTORY) && rm -rf _tmp
 
 clean-bin:
@@ -339,9 +306,6 @@ clean-cover:
 clean-debug:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "debug" -o -name "__debug_bin*" -delete
 
-clean-deploy:
-	@cd $(ROOT_DIRECTORY) && rm -rf deploy
-
 clean-test:
 	@cd $(ROOT_DIRECTORY) && find . -type f -name "*.test" -o -name "*.report" -delete
 
@@ -349,13 +313,9 @@ clean-all: clean
 
 pre-commit: format imports vet
 
-gopath-implode:
-	cd $(REPOSITORY_GOPATH) && rm -rf bin pkg && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type f -delete && find src -not -path "src/$(REPOSITORY_PACKAGE)/*" -type d -empty -delete
-
 .PHONY: default tmp bindir CompileDaemon ginkgo goimports buildable \
 	format format-write imports vet vet-ignore build-list build ci-build \
 	service-build service-start service-restart service-restart-all test test-watch ci-test c-test-watch \
-	deploy deploy-services deploy-migrations deploy-tools ci-deploy bundle-deploy \
 	docker docker-build docker-push ci-docker \
-	clean clean-bin clean-cover clean-debug clean-deploy clean-all pre-commit \
-	gopath-implode go-test go-ci-test
+	clean clean-bin clean-cover clean-debug clean-all pre-commit \
+	go-test go-ci-test
