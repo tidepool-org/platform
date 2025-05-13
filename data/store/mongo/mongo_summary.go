@@ -29,11 +29,11 @@ func (d *SummaryRepository) EnsureIndexes() error {
 			Keys: bson.D{
 				{Key: "type", Value: 1},
 				{Key: "dates.outdatedSince", Value: 1},
-				{Key: "dates.lastUpdatedDate", Value: 1},
 				{Key: "config.schemaVersion", Value: 1},
+				{Key: "dates.lastUpdatedDate", Value: 1},
 			},
 			Options: options.Index().
-				SetName("OutdatedAndSchemaMigration"),
+				SetName("OutdatedSinceSchemaLastUpdated"),
 		},
 		{
 			Keys: bson.D{
