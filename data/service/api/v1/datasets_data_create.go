@@ -149,7 +149,8 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 	if token != "" && shouldHaveJWT(authDetails) {
 		claims := &TokenClaims{}
 		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
-			lgr.WithError(err).Warn("Unable to parse access token for provenance")
+			// temp comment out because makes realtime viewing rough
+			// lgr.WithError(err).Warn("Unable to parse access token for provenance")
 		} else {
 			provenance.ClientID = claims.ClientID
 		}

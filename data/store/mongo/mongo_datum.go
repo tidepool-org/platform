@@ -471,7 +471,8 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 			"modifiedTime":      timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset))
+		opts := options.Update()
+		updateInfo, err = d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset), opts)
 	}
 
 	loggerFields := log.Fields{"userId": dataSet.UserID, "deviceId": *dataSet.DeviceID, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
