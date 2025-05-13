@@ -4,25 +4,64 @@
 # Environment
 *.env
 .envrc
+env*.sh
+!version.env
 
-# Debug binaries
+# Debug
 debug
 __debug_bin*
 
-# Test output
-*.test
-ginkgo.report
-
-# Test coverage output
+# Test
 *.coverprofile
+*.test
 coverprofile.out
+ginkgo.report
+test
+*_test.go
+*/test
+*/*_test.go
+*/*/test
+*/*/*_test.go
+*/*/*/test
+*/*/*/*_test.go
+*/*/*/*/test
+*/*/*/*/*_test.go
+*/*/*/*/*/test
+*/*/*/*/*/*_test.go
+*/*/*/*/*/*/test
+*/*/*/*/*/*/*_test.go
+*/*/*/*/*/*/*/test
+*/*/*/*/*/*/*/*_test.go
 
-# Project directories
-/_bin/
-/_data/
-/_log/
-/_tmp/
-/deploy/
+# Project
+vendor
+_bin
+_data
+_log
+_tmp
 
-# Development environments
-/.idea
+# Development
+.gvm_local
+.idea
+.vscode
+.govetignore
+*.code-workspace
+
+# Documentation
+CHANGELOG.md
+LICENSE
+README.md
+*/README.md
+*/*/README.md
+*/*/*/README.md
+
+# Git
+.git
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Travis
+.travis.yml

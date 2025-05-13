@@ -8,7 +8,7 @@ import (
 	"github.com/urfave/cli"
 
 	"github.com/tidepool-org/platform/application"
-	"github.com/tidepool-org/platform/tools/tapi/api"
+	"github.com/tidepool-org/platform/services/tools/tapi/api"
 )
 
 var environmentEndpointMap = map[string]string{
