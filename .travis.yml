@@ -30,12 +30,6 @@ addons:
     sources:
       - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse'
         key_url: 'https://pgp.mongodb.com/server-6.0.asc'
-  artifacts:
-    s3_region: us-west-2
-    paths:
-      - $(git ls-files -o deploy/*/*-*.tar.gz | tr "\n" ":")
-    target_paths:
-      - /
 
 script:
-  - make ci-generate ci-build go-ci-test ci-deploy ci-docker TIMING_CMD="time -p"
+  - make ci-generate ci-build go-ci-test ci-docker TIMING_CMD="time -p"
