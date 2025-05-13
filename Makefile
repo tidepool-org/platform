@@ -83,7 +83,7 @@ endif
 
 mockgen:
 ifeq ($(shell which mockgen),)
-	go install go.uber.org/mock/mockgen@v0.5.0
+	go install go.uber.org/mock/mockgen@v0.5.2
 endif
 
 ginkgo:

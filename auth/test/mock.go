@@ -174,18 +174,18 @@ func (mr *MockClientMockRecorder) EnsureAuthorizedService(ctx any) *gomock.Call 
 }
 
 // EnsureAuthorizedUser mocks base method.
-func (m *MockClient) EnsureAuthorizedUser(ctx context.Context, targetUserID, permission string) (string, error) {
+func (m *MockClient) EnsureAuthorizedUser(ctx context.Context, targetUserID, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnsureAuthorizedUser", ctx, targetUserID, permission)
+	ret := m.ctrl.Call(m, "EnsureAuthorizedUser", ctx, targetUserID, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // EnsureAuthorizedUser indicates an expected call of EnsureAuthorizedUser.
-func (mr *MockClientMockRecorder) EnsureAuthorizedUser(ctx, targetUserID, permission any) *gomock.Call {
+func (mr *MockClientMockRecorder) EnsureAuthorizedUser(ctx, targetUserID, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureAuthorizedUser", reflect.TypeOf((*MockClient)(nil).EnsureAuthorizedUser), ctx, targetUserID, permission)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureAuthorizedUser", reflect.TypeOf((*MockClient)(nil).EnsureAuthorizedUser), ctx, targetUserID, arg2)
 }
 
 // GetProviderSession mocks base method.
@@ -376,18 +376,18 @@ func (mr *MockExternalAccessorMockRecorder) EnsureAuthorizedService(ctx any) *go
 }
 
 // EnsureAuthorizedUser mocks base method.
-func (m *MockExternalAccessor) EnsureAuthorizedUser(ctx context.Context, targetUserID, permission string) (string, error) {
+func (m *MockExternalAccessor) EnsureAuthorizedUser(ctx context.Context, targetUserID, arg2 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EnsureAuthorizedUser", ctx, targetUserID, permission)
+	ret := m.ctrl.Call(m, "EnsureAuthorizedUser", ctx, targetUserID, arg2)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // EnsureAuthorizedUser indicates an expected call of EnsureAuthorizedUser.
-func (mr *MockExternalAccessorMockRecorder) EnsureAuthorizedUser(ctx, targetUserID, permission any) *gomock.Call {
+func (mr *MockExternalAccessorMockRecorder) EnsureAuthorizedUser(ctx, targetUserID, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureAuthorizedUser", reflect.TypeOf((*MockExternalAccessor)(nil).EnsureAuthorizedUser), ctx, targetUserID, permission)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureAuthorizedUser", reflect.TypeOf((*MockExternalAccessor)(nil).EnsureAuthorizedUser), ctx, targetUserID, arg2)
 }
 
 // ServerSessionToken mocks base method.
