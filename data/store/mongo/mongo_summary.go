@@ -51,3 +51,26 @@ func (d *SummaryRepository) EnsureIndexes() error {
 func (d *SummaryRepository) GetStore() *storeStructuredMongo.Repository {
 	return d.Repository
 }
+
+type BucketsRepository struct {
+	*storeStructuredMongo.Repository
+}
+
+func (d *BucketsRepository) EnsureIndexes() error {
+	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "type", Value: 1},
+				{Key: "time", Value: -1},
+			},
+			Options: options.Index().
+				// This could be made unique without issue, but the performance cost is probably not worth it.
+				SetName("UserIdTypeTime"),
+		},
+	})
+}
+
+func (d *BucketsRepository) GetStore() *storeStructuredMongo.Repository {
+	return d.Repository
+}

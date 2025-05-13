@@ -7,14 +7,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/types"
+
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/golang-jwt/jwt/v4"
 
 	"github.com/tidepool-org/platform/data"
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/types"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
