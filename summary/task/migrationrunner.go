@@ -207,6 +207,7 @@ func (t *MigrationTaskRunner) Run(ctx context.Context, batch int) error {
 func (t *MigrationTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	sem := semaphore.NewWeighted(MigrationWorkerCount)
 	for _, userID := range outdatedUserIds {
 		if err := sem.Acquire(ctx, 1); err != nil {
@@ -232,12 +233,17 @@ func (t *MigrationTaskRunner) UpdateCGMSummaries(outdatedUserIds []string) error
 			return nil
 		})
 	}
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished User CGM Summaries Migrations")
+	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	sem := semaphore.NewWeighted(MigrationWorkerCount)
 	for _, userID := range outdatedUserIds {
 		if err := sem.Acquire(ctx, 1); err != nil {
@@ -263,12 +269,17 @@ func (t *MigrationTaskRunner) UpdateBGMSummaries(outdatedUserIds []string) error
 			return nil
 		})
 	}
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished User BGM Summaries Migrations")
+	return nil
 }
 
 func (t *MigrationTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string) error {
 	eg, ctx := errgroup.WithContext(t.context)
 
+	start := time.Now()
 	sem := semaphore.NewWeighted(MigrationWorkerCount)
 	for _, userID := range outdatedUserIds {
 		if err := sem.Acquire(ctx, 1); err != nil {
@@ -294,5 +305,9 @@ func (t *MigrationTaskRunner) UpdateContinuousSummaries(outdatedUserIds []string
 			return nil
 		})
 	}
-	return eg.Wait()
+	if err := eg.Wait(); err != nil {
+		return err
+	}
+	t.logger.WithField("durationMillis", time.Now().Sub(start).Milliseconds()).WithField("numUsers", len(outdatedUserIds)).Info("Finished User Continuous Summaries Migrations")
+	return nil
 }

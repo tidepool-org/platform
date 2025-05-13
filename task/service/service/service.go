@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/kelseyhightower/envconfig"
+
 	summary "github.com/tidepool-org/platform/summary/task"
 
 	"github.com/tidepool-org/platform/clinics"
@@ -31,6 +33,13 @@ import (
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
 )
 
+// taskConfig is mainly used to disable certain tasks (for shadowing)
+type taskConfig struct {
+	// Already have the var set to true in the configmap, but make it default true just in case
+	DisableDexcom bool `envconfig:"TIDEPOOL_TASK_DISABLE_DEXCOM" default:"true"`
+	DisableClinic bool `envconfig:"TIDEPOOL_TASK_DISABLE_CLINIC" default:"true"`
+}
+
 type Service struct {
 	*serviceService.Authenticated
 	taskStore        store.Store
@@ -40,6 +49,7 @@ type Service struct {
 	dexcomClient     dexcom.Client
 	taskQueue        queue.Queue
 	clinicsClient    clinics.Client
+	cfg              taskConfig
 }
 
 func New() *Service {
@@ -50,6 +60,10 @@ func New() *Service {
 
 func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.Authenticated.Initialize(provider); err != nil {
+		return err
+	}
+
+	if err := envconfig.Process("", &s.cfg); err != nil {
 		return err
 	}
 
@@ -223,6 +237,10 @@ func (s *Service) terminateDataSourceClient() {
 }
 
 func (s *Service) initializeDexcomClient() error {
+	if s.cfg.DisableDexcom {
+		s.Logger().Debug("Skipping creating dexcom provider")
+		return nil
+	}
 	s.Logger().Debug("Loading dexcom provider")
 
 	dxcmPrvdr, err := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataSourceClient, s.TaskClient())
@@ -259,6 +277,11 @@ func (s *Service) terminateDexcomClient() {
 }
 
 func (s *Service) initializeClinicsClient() error {
+	if s.cfg.DisableClinic {
+		s.Logger().Debug("Skipping creating clinics client")
+		return nil
+	}
+
 	s.Logger().Debug("Creating clinics client")
 
 	clnt, err := clinics.NewClient(s.AuthClient())
@@ -295,16 +318,16 @@ func (s *Service) initializeTaskQueue() error {
 	s.taskQueue = taskQueue
 
 	var runners []queue.Runner
+	if !s.cfg.DisableDexcom {
+		if s.dexcomClient != nil {
+			s.Logger().Debug("Creating dexcom fetch runner")
 
-	if s.dexcomClient != nil {
-		s.Logger().Debug("Creating dexcom fetch runner")
-
-		rnnr, rnnrErr := dexcomFetch.NewRunner(s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
-		if rnnrErr != nil {
-			return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
+			rnnr, rnnrErr := dexcomFetch.NewRunner(s.AuthClient(), s.dataClient, s.dataSourceClient, s.dexcomClient)
+			if rnnrErr != nil {
+				return errors.Wrap(rnnrErr, "unable to create dexcom fetch runner")
+			}
+			runners = append(runners, rnnr)
 		}
-
-		runners = append(runners, rnnr)
 	}
 
 	s.Logger().Debug("Creating summary update runner")
@@ -323,21 +346,23 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, summaryMigrationRnnr)
 
-	s.Logger().Debug("Creating ehr reconcile runner")
+	if !s.cfg.DisableClinic {
+		s.Logger().Debug("Creating ehr reconcile runner")
 
-	ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "unable to create ehr reconcile runner")
+		ehrReconcileRnnr, err := reconcile.NewRunner(s.AuthClient(), s.clinicsClient, s.taskClient, s.Logger())
+		if err != nil {
+			return errors.Wrap(err, "unable to create ehr reconcile runner")
+		}
+		runners = append(runners, ehrReconcileRnnr)
+
+		s.Logger().Debug("Creating ehr sync runner")
+
+		ehrSyncRnnr, err := sync.NewRunner(s.clinicsClient, s.Logger())
+		if err != nil {
+			return errors.Wrap(err, "unable to create ehr sync runner")
+		}
+		runners = append(runners, ehrSyncRnnr)
 	}
-	runners = append(runners, ehrReconcileRnnr)
-
-	s.Logger().Debug("Creating ehr sync runner")
-
-	ehrSyncRnnr, err := sync.NewRunner(s.clinicsClient, s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "unable to create ehr sync runner")
-	}
-	runners = append(runners, ehrSyncRnnr)
 
 	for _, r := range runners {
 		r := r

@@ -47,7 +47,7 @@ var _ = Describe("Service", func() {
 			server = NewServer()
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest(http.MethodPost, "/auth/serverlogin"),
+					VerifyRequest(http.MethodPost, "/serverlogin"),
 					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),
