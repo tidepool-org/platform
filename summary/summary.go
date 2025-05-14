@@ -230,7 +230,9 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			userSummary.Dates.Update(status, oldest)
 		}
 
-		return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
+		err = gs.summaries.ReplaceSummary(sessionCtx, userSummary)
+
+		return userSummary, nil
 	})
 	if err != nil {
 		return nil, err
