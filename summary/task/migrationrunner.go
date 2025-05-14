@@ -19,7 +19,7 @@ const (
 	DefaultMigrationAvailableAfterDurationMaximum = 5 * time.Minute
 	MigrationTaskDurationMaximum                  = 4 * time.Minute
 	DefaultMigrationWorkerBatchSize               = 500
-	MigrationWorkerCount                          = 10
+	MigrationWorkerCount                          = 1
 	MigrationType                                 = "org.tidepool.summary.migrate"
 )
 
