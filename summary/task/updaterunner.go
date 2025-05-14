@@ -115,7 +115,7 @@ func NewUpdateTaskRunner(ctx context.Context, logger log.Logger, authClient auth
 		return nil, errors.New("data client is missing")
 	}
 	if !slices.Contains(SummaryTypes, summaryType) {
-		return nil, errors.Newf("summary type \"%s\" not supported by migration runner", summaryType)
+		return nil, errors.Newf("summary type \"%s\" not supported by update runner", summaryType)
 	}
 	if tsk == nil {
 		return nil, errors.New("task is missing")
@@ -173,9 +173,9 @@ func (t *UpdateTaskRunner) run() error {
 			return nil
 		}
 
-		t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdated.UserIds), typ)
+		t.logger.Infof("Found batch of %d %s Summaries to Update", len(outdated.UserIds), typ)
 
-		err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdated.UserIds, UpdateWorkerCount, t.deadline)
+		err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdated.UserIds, UpdateWorkerCount, t.deadline, "Updating")
 		if err != nil {
 			return err
 		}

@@ -53,7 +53,7 @@ func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
 	return Min + randTime
 }
 
-func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time) error {
+func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time, callerType string) error {
 	eg, ctx := errgroup.WithContext(ctx)
 	sem := semaphore.NewWeighted(workerCount)
 
@@ -71,7 +71,7 @@ func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClie
 		userId := userId
 		eg.Go(func() error {
 			defer sem.Release(1)
-			logger.WithField("userId", userId).Debugf("Migrating User %s Summary", typ)
+			logger.WithField("userId", userId).Debugf("%s User %s Summary", callerType, typ)
 
 			// update summary
 			err := updateSummary(ctx, dataClient, typ, userId)
@@ -79,7 +79,7 @@ func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClie
 				return err
 			}
 
-			logger.WithField("userId", userId).Debugf("Finished Migrating User %s Summary", typ)
+			logger.WithField("userId", userId).Debugf("Finished %s User %s Summary", callerType, typ)
 
 			return nil
 		})
