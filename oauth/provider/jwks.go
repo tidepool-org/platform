@@ -10,21 +10,18 @@ import (
 )
 
 func NewJWKS(configReporter config.Reporter) (jwk.Set, error) {
-	var jwks jwk.Set
 	jwksURL := configReporter.GetWithDefault("jwks_url", "")
-
-	if jwksURL != "" {
-		// Provider life-cycle is tied to the application life-cycle. Use a background context
-		// to keep refreshing the cache until the application is terminated.
-		jwkCache := jwk.NewCache(context.Background())
-
-		err := jwkCache.Register(jwksURL)
-		if err != nil {
-			return nil, errors.New("unable to register jwks url")
-		}
-
-		jwks = jwk.NewCachedSet(jwkCache, jwksURL)
+	if jwksURL == "" {
+		return nil, nil
 	}
 
-	return jwks, nil
+	// Provider life-cycle is tied to the application life-cycle. Use a background context
+	// to keep refreshing the cache until the application is terminated.
+	jwkCache := jwk.NewCache(context.Background())
+
+	if err := jwkCache.Register(jwksURL); err != nil {
+		return nil, errors.New("unable to register jwks url")
+	}
+
+	return jwk.NewCachedSet(jwkCache, jwksURL), nil
 }
