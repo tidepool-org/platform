@@ -9,8 +9,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataDeduplicatorFactoryTest "github.com/tidepool-org/platform/data/deduplicator/factory/test"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -51,7 +50,7 @@ var _ = Describe("Factory", func() {
 
 	Context("with a new factory", func() {
 		var factory *dataDeduplicatorFactory.Factory
-		var dataSet *dataTypesUpload.Upload
+		var dataSet *data.DataSet
 		var ctx context.Context
 
 		BeforeEach(func() {
@@ -59,7 +58,7 @@ var _ = Describe("Factory", func() {
 			factory, err = dataDeduplicatorFactory.New(deduplicators)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(factory).ToNot(BeNil())
-			dataSet = dataTypesUploadTest.RandomUpload()
+			dataSet = dataTest.RandomDataSet()
 			Expect(dataSet).ToNot(BeNil())
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		})

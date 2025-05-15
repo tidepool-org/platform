@@ -2,7 +2,6 @@ package mongo_test
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sync"
 	"time"
@@ -10,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -26,8 +26,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
@@ -37,20 +35,16 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-func NewDataSet(userID string, deviceID string) *upload.Upload {
-	dataSet := dataTypesUploadTest.RandomUpload()
+func NewDataSet(userID string, deviceID string) *data.DataSet {
+	dataSet := dataTest.RandomDataSet()
 	dataSet.Active = true
-	dataSet.ArchivedDataSetID = nil
-	dataSet.ArchivedTime = nil
 	dataSet.CreatedTime = nil
 	dataSet.CreatedUserID = nil
 	dataSet.DeletedTime = nil
 	dataSet.DeletedUserID = nil
 	dataSet.DeviceID = pointer.FromAny(deviceID)
-	dataSet.Location.GPS.Origin.Time = nil
 	dataSet.ModifiedTime = nil
 	dataSet.ModifiedUserID = nil
-	dataSet.Origin.Time = nil
 	dataSet.UserID = pointer.FromAny(userID)
 	return dataSet
 }
@@ -89,14 +83,14 @@ func CloneDataSetData(dataSetData data.Data) data.Data {
 	return clonedDataSetData
 }
 
-func ValidateDataSet(collection *mongo.Collection, query bson.M, filter bson.M, expectedDataSets ...*upload.Upload) {
+func ValidateDataSet(collection *mongo.Collection, query bson.M, filter bson.M, expectedDataSets ...*data.DataSet) {
 	actualDataSets := getDataSets(collection, query, filter)
 	clearModifiedTimes(expectedDataSets...)
 	clearModifiedTimes(actualDataSets...)
 	Expect(actualDataSets).To(ConsistOf(DataSetsAsInterface(expectedDataSets)...))
 }
 
-func ValidateDataSetWithModifiedThreshold(collection *mongo.Collection, query bson.M, filter bson.M, modifiedTimeThreshold time.Duration, expectedDataSets ...*upload.Upload) {
+func ValidateDataSetWithModifiedThreshold(collection *mongo.Collection, query bson.M, filter bson.M, modifiedTimeThreshold time.Duration, expectedDataSets ...*data.DataSet) {
 	actualDataSets := getDataSets(collection, query, filter)
 	// Check the modified times manually
 	// Double Loop / O(M*N) but the number of entries is small so don't care.
@@ -122,16 +116,16 @@ func ValidateDataSetWithModifiedThreshold(collection *mongo.Collection, query bs
 }
 
 // clearModifiedTimes sets all the supplied data's ModifiedTime to nil.
-func clearModifiedTimes(dataSets ...*upload.Upload) {
+func clearModifiedTimes(dataSets ...*data.DataSet) {
 	for _, dataSet := range dataSets {
-		dataSet.SetModifiedTime(nil)
+		dataSet.ModifiedTime = nil
 	}
 }
 
-func getDataSets(collection *mongo.Collection, query bson.M, filter bson.M) []*upload.Upload {
+func getDataSets(collection *mongo.Collection, query bson.M, filter bson.M) []*data.DataSet {
 	query["type"] = "upload"
 	filter["_id"] = 0
-	var actualDataSets []*upload.Upload
+	var actualDataSets []*data.DataSet
 	opts := options.Find().SetProjection(filter)
 	cursor, err := collection.Find(context.Background(), query, opts)
 	Expect(err).ToNot(HaveOccurred())
@@ -140,7 +134,7 @@ func getDataSets(collection *mongo.Collection, query bson.M, filter bson.M) []*u
 	return actualDataSets
 }
 
-func DataSetsAsInterface(dataSets []*upload.Upload) []interface{} {
+func DataSetsAsInterface(dataSets []*data.DataSet) []interface{} {
 	var dataSetsAsInterface []interface{}
 	for _, dataSet := range dataSets {
 		dataSetsAsInterface = append(dataSetsAsInterface, dataSet)
@@ -201,7 +195,6 @@ func ValidateDataSetDataWithModifiedThreshold(collection *mongo.Collection, quer
 }
 
 func getDataSetData(collection *mongo.Collection, query bson.M, filter bson.M) []bson.M {
-	query["type"] = bson.M{"$ne": "upload"}
 	filter["_id"] = 0
 	filter["revision"] = 0
 	var actualDataSetData []bson.M
@@ -496,10 +489,10 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var ctx context.Context
 				var userID string
 				var deviceID string
-				var dataSet *upload.Upload
-				var dataSetExistingOther *upload.Upload
-				var dataSetExistingOne *upload.Upload
-				var dataSetExistingTwo *upload.Upload
+				var dataSet *data.DataSet
+				var dataSetExistingOther *data.DataSet
+				var dataSetExistingOne *data.DataSet
+				var dataSetExistingTwo *data.DataSet
 
 				preparePersistedDataSets := func() {
 					createdTimeOther, _ := time.Parse(time.RFC3339, "2016-09-01T12:00:00Z")
@@ -577,26 +570,26 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						})
 
 						It("succeeds if it successfully finds the user data sets", func() {
-							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 						})
 
 						It("succeeds if the filter is not specified", func() {
-							Expect(repository.GetDataSetsForUserByID(ctx, userID, nil, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							Expect(repository.GetDataSetsForUserByID(ctx, userID, nil, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 						})
 
 						It("succeeds if the pagination is not specified", func() {
-							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, nil)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, nil)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 						})
 
 						It("succeeds if the pagination size is not default", func() {
 							pagination.Size = 2
-							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet}))
+							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSet}))
 						})
 
 						It("succeeds if the pagination page and size is not default", func() {
 							pagination.Page = 1
 							pagination.Size = 2
-							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingTwo}))
+							Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingTwo}))
 						})
 
 						It("succeeds if it successfully does not find another user data sets", func() {
@@ -615,12 +608,12 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("succeeds if it successfully finds the non-deleted user data sets", func() {
-								Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSetExistingTwo}))
+								Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSetExistingTwo}))
 							})
 
 							It("succeeds if it successfully finds all the user data sets", func() {
 								filter.Deleted = true
-								Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*upload.Upload{dataSetExistingOne, dataSet, dataSetExistingTwo}))
+								Expect(repository.GetDataSetsForUserByID(ctx, userID, filter, pagination)).To(ConsistOf([]*data.DataSet{dataSetExistingOne, dataSet, dataSetExistingTwo}))
 							})
 						})
 					})
@@ -714,7 +707,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							Expect(dataSet.ByUser).To(BeNil())
 
 							// Make sure the values are set in the db as well.
-							var result *upload.Upload
+							var result *data.DataSet
 							err := dataSetCollection.FindOne(context.Background(), bson.M{"uploadId": dataSet.UploadID}).Decode(&result)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(*result.CreatedTime).To(Equal(*dataSet.CreatedTime))
@@ -808,7 +801,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								newTime, err := time.Parse(time.RFC3339, "2022-01-01T11:00:00Z")
 								Expect(err).ToNot(HaveOccurred())
 								dataSet.Time = pointer.FromTime(newTime)
-								dataSet.SetModifiedTime(pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond)))
+								dataSet.ModifiedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
 								update.Time = pointer.FromTime(newTime)
 								_, err = repository.UpdateDataSet(ctx, id, update)
 								Expect(err).ToNot(HaveOccurred())
@@ -856,14 +849,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 					preparePersistedDataSetsData := func() {
 						preparePersistedDataSets()
-						// Insert in BOTH collections to mimic the
-						// migration where dataSet will be in deviceData
-						// and deviceDataSets. This is because while
-						// migration happens an update to a dataset will
-						// only succeed if it is still in the old deviceData collection.
-						_, err := collection.InsertOne(context.Background(), dataSet)
-						Expect(err).ToNot(HaveOccurred())
-						_, err = dataSetCollection.InsertOne(context.Background(), dataSet)
+						_, err := dataSetCollection.InsertOne(context.Background(), dataSet)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(repository.CreateDataSetData(ctx, dataSetExistingOther, dataSetExistingOtherData)).To(Succeed())
 						Expect(repository.CreateDataSetData(ctx, dataSetExistingOne, dataSetExistingOneData)).To(Succeed())
@@ -1204,12 +1190,6 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
-						})
-
-						It("returns an error if typ is upload", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{upload.Type}, time.Time{})
-							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError(fmt.Errorf("unexpected type: %v", upload.Type)))
 						})
 
 						Context("with database access", func() {
@@ -2251,7 +2231,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 						Context("with database access", func() {
 							var destroyDeviceID string
-							var destroyDataSet *upload.Upload
+							var destroyDataSet *data.DataSet
 							var destroyDataSetData data.Data
 
 							BeforeEach(func() {
@@ -2262,14 +2242,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 								destroyDataSet.CreatedTime = pointer.FromTime(createdTime)
 								destroyDataSet.ModifiedTime = pointer.FromTime(createdTime)
-								// Insert in BOTH collections to mimic the
-								// migration where dataSet will be in deviceData
-								// and deviceDataSets. This is because while
-								// migration happens an update to a dataset will
-								// only succeed if it is still in the old deviceData collection.
-								_, err := collection.InsertOne(context.Background(), destroyDataSet)
-								Expect(err).ToNot(HaveOccurred())
-								_, err = dataSetCollection.InsertOne(context.Background(), destroyDataSet)
+								_, err := dataSetCollection.InsertOne(context.Background(), destroyDataSet)
 								Expect(err).ToNot(HaveOccurred())
 								destroyDataSetData = NewDataSetData(destroyDeviceID)
 								Expect(repository.CreateDataSetData(ctx, destroyDataSet, destroyDataSetData)).To(Succeed())
@@ -2300,19 +2273,19 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 		})
 
 		Context("GetAlertableData", func() {
-			testDataSet := func(userID, deviceID string) *upload.Upload {
+			testDataSet := func(userID, deviceID string) *data.DataSet {
 				GinkgoHelper()
 				collection = store.GetCollection("deviceData")
 				dataSetCollection = store.GetCollection("deviceDataSets")
-				upload := NewDataSet(userID, deviceID)
+				dataSet := NewDataSet(userID, deviceID)
 				creationTime := time.Now().Add(-24 * time.Hour)
-				upload.Active = true
-				upload.CreatedTime = pointer.FromTime(creationTime)
-				upload.ModifiedTime = pointer.FromTime(creationTime)
-				return upload
+				dataSet.Active = true
+				dataSet.CreatedTime = pointer.FromTime(creationTime)
+				dataSet.ModifiedTime = pointer.FromTime(creationTime)
+				return dataSet
 			}
 
-			testDataSetData := func(upload *upload.Upload) []data.Datum {
+			testDataSetData := func(dataSet *data.DataSet) []data.Datum {
 				requiredRecords := test.RandomIntFromRange(6, 8)
 				recordInterval := 5 * time.Minute
 				t := time.Now().UTC().Add(-time.Duration(requiredRecords) * recordInterval)
@@ -2323,16 +2296,16 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					datumTime := t.Add(time.Duration(count) * recordInterval)
 					datum.Time = pointer.FromAny(datumTime)
 					datum.Active = true
-					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
-					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					datum.DeviceID = pointer.FromAny(*dataSet.DeviceID)
+					datum.UploadID = pointer.FromAny(*dataSet.UploadID)
 					dataSetData = append(dataSetData, datum)
 
 					datum = dataTypesTest.RandomBase()
 					datum.Type = "dosingDecision"
 					datum.Time = pointer.FromAny(datumTime)
 					datum.Active = true
-					datum.DeviceID = pointer.FromAny(*upload.DeviceID)
-					datum.UploadID = pointer.FromAny(*upload.UploadID)
+					datum.DeviceID = pointer.FromAny(*dataSet.DeviceID)
+					datum.UploadID = pointer.FromAny(*dataSet.UploadID)
 					dataSetData = append(dataSetData, datum)
 				}
 				return dataSetData

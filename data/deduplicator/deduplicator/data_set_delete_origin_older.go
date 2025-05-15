@@ -8,7 +8,6 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -34,7 +33,7 @@ func NewDataSetDeleteOriginOlder() (*DataSetDeleteOriginOlder, error) {
 
 type dataSetDeleteOriginOlderProvider struct{}
 
-func (d *dataSetDeleteOriginOlderProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (data.Data, error) {
+func (d *dataSetDeleteOriginOlderProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
 	filterableDataSetData := dataSetData.Filter(func(datum data.Datum) bool {
 		return slices.Contains(filterableDataSetDataTypes, datum.GetType())
 	})

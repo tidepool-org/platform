@@ -11,8 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data/test"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/summary/types"
 )
@@ -354,24 +352,20 @@ func SliceToInsertWriteModel[T any](d []T) []mongo.WriteModel {
 	return w
 }
 
-func NewDataSet(userID string, typ string) *upload.Upload {
+func NewDataSet(userID string, typ string) *data.DataSet {
 	var deviceId = "SummaryTestDevice"
 	var timestamp = time.Now().UTC().Truncate(time.Millisecond)
 
-	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet := test.RandomDataSet()
 	dataSet.DataSetType = &typ
 	dataSet.Active = true
-	dataSet.ArchivedDataSetID = nil
-	dataSet.ArchivedTime = nil
 	dataSet.CreatedTime = &timestamp
 	dataSet.CreatedUserID = nil
 	dataSet.DeletedTime = nil
 	dataSet.DeletedUserID = nil
 	dataSet.DeviceID = &deviceId
-	dataSet.Location.GPS.Origin.Time = nil
 	dataSet.ModifiedTime = &timestamp
 	dataSet.ModifiedUserID = nil
-	dataSet.Origin.Time = nil
 	dataSet.UserID = &userID
 	return dataSet
 }

@@ -10,7 +10,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/test"
 )
@@ -23,7 +22,7 @@ type GetDataSetsForUserByIDInput struct {
 }
 
 type GetDataSetsForUserByIDOutput struct {
-	DataSets []*upload.Upload
+	DataSets []*data.DataSet
 	Error    error
 }
 
@@ -33,13 +32,13 @@ type GetDataSetByIDInput struct {
 }
 
 type GetDataSetByIDOutput struct {
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 	Error   error
 }
 
 type CreateDataSetInput struct {
 	Context context.Context
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 }
 
 type UpdateDataSetInput struct {
@@ -49,24 +48,24 @@ type UpdateDataSetInput struct {
 }
 
 type UpdateDataSetOutput struct {
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 	Error   error
 }
 
 type DeleteDataSetInput struct {
 	Context context.Context
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 }
 
 type CreateDataSetDataInput struct {
 	Context     context.Context
-	DataSet     *upload.Upload
+	DataSet     *data.DataSet
 	DataSetData []data.Datum
 }
 
 type NewerDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
@@ -77,47 +76,47 @@ type NewerDataSetDataOutput struct {
 
 type ActivateDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
 type ArchiveDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
 type DeleteDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
 type DestroyDeletedDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
 type DestroyDataSetDataInput struct {
 	Context   context.Context
-	DataSet   *upload.Upload
+	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
 type ArchiveDeviceDataUsingHashesFromDataSetInput struct {
 	Context context.Context
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 }
 
 type UnarchiveDeviceDataUsingHashesFromDataSetInput struct {
 	Context context.Context
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 }
 
 type DeleteOtherDataSetDataInput struct {
 	Context context.Context
-	DataSet *upload.Upload
+	DataSet *data.DataSet
 }
 
 type DestroyDataForUserByIDInput struct {
@@ -276,7 +275,7 @@ func (d *DataRepository) EnsureIndexes() error {
 	return nil
 }
 
-func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStore.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *dataStore.Filter, pagination *page.Pagination) ([]*data.DataSet, error) {
 	d.GetDataSetsForUserByIDInvocations++
 
 	d.GetDataSetsForUserByIDInputs = append(d.GetDataSetsForUserByIDInputs, GetDataSetsForUserByIDInput{Context: ctx, UserID: userID, Filter: filter, Pagination: pagination})
@@ -288,7 +287,7 @@ func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID stri
 	return output.DataSets, output.Error
 }
 
-func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	d.GetDataSetByIDInvocations++
 
 	d.GetDataSetByIDInputs = append(d.GetDataSetByIDInputs, GetDataSetByIDInput{Context: ctx, DataSetID: dataSetID})
@@ -300,7 +299,7 @@ func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	d.CreateDataSetInvocations++
 
 	d.CreateDataSetInputs = append(d.CreateDataSetInputs, CreateDataSetInput{Context: ctx, DataSet: dataSet})
@@ -312,7 +311,7 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *upload.Uplo
 	return output
 }
 
-func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error) {
+func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
 	d.UpdateDataSetInvocations++
 
 	d.UpdateDataSetInputs = append(d.UpdateDataSetInputs, UpdateDataSetInput{Context: ctx, ID: id, Update: update})
@@ -324,7 +323,7 @@ func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *d
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	d.DeleteDataSetInvocations++
 
 	d.DeleteDataSetInputs = append(d.DeleteDataSetInputs, DeleteDataSetInput{Context: ctx, DataSet: dataSet})
@@ -336,7 +335,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *upload.Uplo
 	return output
 }
 
-func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
+func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error {
 	d.CreateDataSetDataInvocations++
 
 	d.CreateDataSetDataInputs = append(d.CreateDataSetDataInputs, CreateDataSetDataInput{Context: ctx, DataSet: dataSet, DataSetData: dataSetData})
@@ -348,7 +347,7 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	return output
 }
 
-func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
 	d.NewerDataSetDataInvocations++
 
 	d.NewerDataSetDataInputs = append(d.NewerDataSetDataInputs, NewerDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -360,7 +359,7 @@ func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *upload.U
 	return output.Selectors, output.Error
 }
 
-func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.ActivateDataSetDataInvocations++
 
 	d.ActivateDataSetDataInputs = append(d.ActivateDataSetDataInputs, ActivateDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -372,7 +371,7 @@ func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *uploa
 	return output
 }
 
-func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.ArchiveDataSetDataInvocations++
 
 	d.ArchiveDataSetDataInputs = append(d.ArchiveDataSetDataInputs, ArchiveDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -384,7 +383,7 @@ func (d *DataRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload
 	return output
 }
 
-func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.DeleteDataSetDataInvocations++
 
 	d.DeleteDataSetDataInputs = append(d.DeleteDataSetDataInputs, DeleteDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -396,7 +395,7 @@ func (d *DataRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.
 	return output
 }
 
-func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.DestroyDeletedDataSetDataInvocations++
 
 	d.DestroyDeletedDataSetDataInputs = append(d.DestroyDeletedDataSetDataInputs, DestroyDeletedDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -408,7 +407,7 @@ func (d *DataRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet 
 	return output
 }
 
-func (d *DataRepository) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DataRepository) DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	d.DestroyDataSetDataInvocations++
 
 	d.DestroyDataSetDataInputs = append(d.DestroyDataSetDataInputs, DestroyDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
@@ -420,7 +419,7 @@ func (d *DataRepository) DestroyDataSetData(ctx context.Context, dataSet *upload
 	return output
 }
 
-func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	d.ArchiveDeviceDataUsingHashesFromDataSetInvocations++
 
 	d.ArchiveDeviceDataUsingHashesFromDataSetInputs = append(d.ArchiveDeviceDataUsingHashesFromDataSetInputs, ArchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: dataSet})
@@ -432,7 +431,7 @@ func (d *DataRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Con
 	return output
 }
 
-func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	d.UnarchiveDeviceDataUsingHashesFromDataSetInvocations++
 
 	d.UnarchiveDeviceDataUsingHashesFromDataSetInputs = append(d.UnarchiveDeviceDataUsingHashesFromDataSetInputs, UnarchiveDeviceDataUsingHashesFromDataSetInput{Context: ctx, DataSet: dataSet})
@@ -444,7 +443,7 @@ func (d *DataRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.C
 	return output
 }
 
-func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error {
 	d.DeleteOtherDataSetDataInvocations++
 
 	d.DeleteOtherDataSetDataInputs = append(d.DeleteOtherDataSetDataInputs, DeleteOtherDataSetDataInput{Context: ctx, DataSet: dataSet})
