@@ -27,11 +27,12 @@ func main() {
 	var outputDir string
 	var urlBase string
 
-	var generateDurationSeconds int64
+	var generateTestDurationSeconds int64
 	var generateCount int64
 	var generateActions string
 	var generateErrors bool
 	var generateTimeout int
+	var generateFutureMins int
 
 	var runGroupID string
 	var duplicates bool
@@ -67,12 +68,6 @@ func main() {
 					Usage:       "path to the load test file",
 					Destination: &filePath,
 				},
-				&cli.StringFlag{
-					Name:        "groupId",
-					Usage:       "groupId for this test run",
-					Destination: &runGroupID,
-					Required:    false,
-				},
 				&cli.BoolFlag{
 					Name:        "duplicates",
 					Usage:       "set work items to be duplicates",
@@ -97,9 +92,8 @@ func main() {
 					}
 				}
 				runID := data.NewID()
-				if runGroupID == "" {
-					runGroupID = fmt.Sprintf("group-id-%s", runID)
-				}
+				runGroupID = fmt.Sprintf("group-id-%s", runID)
+
 				if duplicates {
 					runDuplicateIDPrefix = fmt.Sprintf("%s-deduplication-id", runID)
 				}
@@ -170,15 +164,8 @@ func main() {
 			Usage:   "generate a load test",
 			Flags: []cli.Flag{
 				&cli.Int64Flag{
-					Name:        "seconds",
-					Usage:       "number of seconds the load test will run over",
-					Destination: &generateDurationSeconds,
-					Value:       5,
-					Required:    false,
-				},
-				&cli.Int64Flag{
 					Name:        "count",
-					Usage:       "number of work items to run",
+					Usage:       "number of top level work items to create",
 					Destination: &generateCount,
 					Value:       100,
 					Required:    false,
@@ -192,7 +179,7 @@ func main() {
 				},
 				&cli.StringFlag{
 					Name:        "actions",
-					Usage:       "comma sperated list of actions",
+					Usage:       "comma sperated list of actions for each top level workitem",
 					Destination: &generateActions,
 					Value:       "sleep",
 					Required:    false,
@@ -201,6 +188,20 @@ func main() {
 					Name:        "errors",
 					Usage:       "include error results",
 					Destination: &generateErrors,
+					Required:    false,
+				},
+				&cli.IntFlag{
+					Name:        "future",
+					Usage:       "will add all items but start the specified minutes in the future e.g. --future 60",
+					Destination: &generateFutureMins,
+					Value:       0,
+					Required:    false,
+				},
+				&cli.Int64Flag{
+					Name:        "duration",
+					Usage:       "seconds to spread the work load over. 0 means all will be available at the same time",
+					Destination: &generateTestDurationSeconds,
+					Value:       0,
 					Required:    false,
 				},
 				outputDirFlag,
@@ -289,10 +290,20 @@ func main() {
 				}
 
 				var calcOffset = func() int64 {
+
+					generateFutureMilliseconds := int64(generateFutureMins * 60 * 1000)
+
+					if generateTestDurationSeconds == 0 {
+						if generateFutureMilliseconds == 0 {
+							return 0
+						}
+						return generateFutureMilliseconds
+					}
+
 					currentCount := len(items)
-					offsetMilliseconds := int(generateDurationSeconds * 1000)
+					offsetMilliseconds := int(generateTestDurationSeconds * 1000)
 					interval := offsetMilliseconds / int(generateCount)
-					return int64(interval * currentCount)
+					return int64(interval*currentCount) + generateFutureMilliseconds
 				}
 
 				for range int(generateCount) {
@@ -315,7 +326,12 @@ func main() {
 					return err
 				}
 
-				file, err := os.Create(fmt.Sprintf("%s/count_%d_secs_%d_load.json", outputDir, generateCount, generateDurationSeconds))
+				fileName := fmt.Sprintf("count_%d_duration_%d_mins_to_start_%d", generateCount, generateTestDurationSeconds, generateFutureMins)
+				if generateErrors {
+					fileName = fileName + "_has_errors"
+				}
+
+				file, err := os.Create(fmt.Sprintf("%s/%s.json", outputDir, fileName))
 				if err != nil {
 					return err
 				}
