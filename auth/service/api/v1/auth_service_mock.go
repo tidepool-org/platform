@@ -81,6 +81,20 @@ func (mr *MockAuthServiceMockRecorder) AuthClient() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthClient", reflect.TypeOf((*MockAuthService)(nil).AuthClient))
 }
 
+// AuthServiceClient mocks base method.
+func (m *MockAuthService) AuthServiceClient() service.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AuthServiceClient")
+	ret0, _ := ret[0].(service.Client)
+	return ret0
+}
+
+// AuthServiceClient indicates an expected call of AuthServiceClient.
+func (mr *MockAuthServiceMockRecorder) AuthServiceClient() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AuthServiceClient", reflect.TypeOf((*MockAuthService)(nil).AuthServiceClient))
+}
+
 // AuthStore mocks base method.
 func (m *MockAuthService) AuthStore() store.Store {
 	m.ctrl.T.Helper()

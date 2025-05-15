@@ -18,7 +18,8 @@ type Store interface {
 
 type ProviderSessionRepository interface {
 	auth.ProviderSessionAccessor
-	ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error)
+
+	ListAllProviderSessions(ctx context.Context, filter auth.ProviderSessionFilter, pagination page.Pagination) (auth.ProviderSessions, error)
 }
 
 type RestrictedTokenRepository interface {
