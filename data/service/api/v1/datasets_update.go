@@ -88,7 +88,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		} else if deduplicator == nil {
 			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
+		} else if err = deduplicator.Close(ctx, dataSet); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}

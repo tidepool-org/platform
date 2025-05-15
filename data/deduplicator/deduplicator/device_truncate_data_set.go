@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -16,8 +15,8 @@ type DeviceTruncateDataSet struct {
 	*Base
 }
 
-func NewDeviceTruncateDataSet() (*DeviceTruncateDataSet, error) {
-	base, err := NewBase(DeviceTruncateDataSetName, "1.1.0")
+func NewDeviceTruncateDataSet(dependencies Dependencies) (*DeviceTruncateDataSet, error) {
+	base, err := NewBase(dependencies, DeviceTruncateDataSetName, "1.1.0")
 	if err != nil {
 		return nil, err
 	}
@@ -66,12 +65,9 @@ func (d *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *data.DataSet) 
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (d *DeviceTruncateDataSet) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -80,9 +76,9 @@ func (d *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.
 	// TODO: Technically, DeleteOtherDataSetData could succeed, but Close fail. This would
 	// temporarily result in missing data, which is better than the opposite (duplicate data).
 	// If this fails, a subsequent successful upload will resolve.
-	if err := repository.DeleteOtherDataSetData(ctx, dataSet); err != nil {
+	if err := d.DataStore.DeleteOtherDataSetData(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Close(ctx, repository, dataSet)
+	return d.Base.Close(ctx, dataSet)
 }

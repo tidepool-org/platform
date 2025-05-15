@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	"github.com/tidepool-org/platform/pointer"
@@ -20,8 +19,14 @@ type DataSetDeleteOriginOlder struct {
 	*DataSetDeleteOriginBase
 }
 
-func NewDataSetDeleteOriginOlder() (*DataSetDeleteOriginOlder, error) {
-	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(DataSetDeleteOriginOlderName, DataSetDeleteOriginOlderVersion, &dataSetDeleteOriginOlderProvider{})
+func NewDataSetDeleteOriginOlder(dependencies Dependencies) (*DataSetDeleteOriginOlder, error) {
+	dataSetDeleteOriginDependencies := DataSetDeleteOriginDependencies{
+		Dependencies: dependencies,
+		DataFilter: &dataSetDeleteOriginOlderDataFilter{
+			dataStore: dependencies.DataStore,
+		},
+	}
+	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(dataSetDeleteOriginDependencies, DataSetDeleteOriginOlderName, DataSetDeleteOriginOlderVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -31,15 +36,17 @@ func NewDataSetDeleteOriginOlder() (*DataSetDeleteOriginOlder, error) {
 	}, nil
 }
 
-type dataSetDeleteOriginOlderProvider struct{}
+type dataSetDeleteOriginOlderDataFilter struct {
+	dataStore DataStore
+}
 
-func (d *dataSetDeleteOriginOlderProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
+func (d *dataSetDeleteOriginOlderDataFilter) FilterData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
 	filterableDataSetData := dataSetData.Filter(func(datum data.Datum) bool {
 		return slices.Contains(filterableDataSetDataTypes, datum.GetType())
 	})
 
 	if selectors := d.GetDataSelectors(filterableDataSetData); selectors != nil {
-		if existingSelectors, err := repository.NewerDataSetData(ctx, dataSet, selectors); err != nil {
+		if existingSelectors, err := d.dataStore.NewerDataSetData(ctx, dataSet, selectors); err != nil {
 			return nil, err
 		} else if existingSelectors != nil && len(*existingSelectors) > 0 {
 			existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
@@ -62,7 +69,7 @@ func (d *dataSetDeleteOriginOlderProvider) FilterData(ctx context.Context, repos
 	return dataSetData, nil
 }
 
-func (d *dataSetDeleteOriginOlderProvider) GetDataSelectors(dataSetData data.Data) *data.Selectors {
+func (d *dataSetDeleteOriginOlderDataFilter) GetDataSelectors(dataSetData data.Data) *data.Selectors {
 	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
 		if selector := d.getDatumSelector(dataSetDatum); selector != nil {
@@ -75,7 +82,7 @@ func (d *dataSetDeleteOriginOlderProvider) GetDataSelectors(dataSetData data.Dat
 	return &selectors
 }
 
-func (d *dataSetDeleteOriginOlderProvider) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
+func (d *dataSetDeleteOriginOlderDataFilter) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
 	if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
 		return &data.Selector{
 			Origin: &data.SelectorOrigin{

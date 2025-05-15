@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -21,8 +20,8 @@ type DeviceDeactivateHash struct {
 	*Base
 }
 
-func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, "1.1.0")
+func NewDeviceDeactivateHash(dependencies Dependencies) (*DeviceDeactivateHash, error) {
+	base, err := NewBase(dependencies, DeviceDeactivateHashName, "1.1.0")
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +72,9 @@ func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *data.DataSet) (
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
+func (d *DeviceDeactivateHash) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -91,41 +87,35 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		return err
 	}
 
-	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
+	return d.Base.AddData(ctx, dataSet, dataSetData)
 }
 
-func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (d *DeviceDeactivateHash) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := d.DataStore.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Close(ctx, repository, dataSet)
+	return d.Base.Close(ctx, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := d.DataStore.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Delete(ctx, repository, dataSet)
+	return d.Base.Delete(ctx, dataSet)
 }

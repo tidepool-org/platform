@@ -6,9 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type Deduplicator interface {
@@ -35,8 +32,6 @@ func New(deduplicators []Deduplicator) (*Factory, error) {
 func (f *Factory) New(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).WithOrigin(structure.OriginStore).Validate(dataSet); err != nil {
-		return nil, errors.Wrap(err, "data set is invalid")
 	}
 
 	if dataSet.HasDeduplicatorName() {
@@ -57,8 +52,6 @@ func (f *Factory) New(ctx context.Context, dataSet *data.DataSet) (dataDeduplica
 func (f *Factory) Get(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).WithOrigin(structure.OriginStore).Validate(dataSet); err != nil {
-		return nil, errors.Wrap(err, "data set is invalid")
 	}
 
 	if dataSet.HasDeduplicatorName() {

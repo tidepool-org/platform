@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 )
 
 type Factory interface {
@@ -13,9 +12,9 @@ type Factory interface {
 }
 
 type Deduplicator interface {
-	Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error)
-	AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error
-	DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error
-	Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
-	Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error
+	Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error)
+	AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error
+	DeleteData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	Close(ctx context.Context, dataSet *data.DataSet) error
+	Delete(ctx context.Context, dataSet *data.DataSet) error
 }
