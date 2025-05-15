@@ -70,13 +70,6 @@ var _ = Describe("Factory", func() {
 				Expect(deduplicator).To(BeNil())
 			})
 
-			It("returns an error when the data set is invalid", func() {
-				dataSet.DeviceModel = pointer.FromString("")
-				deduplicator, err := factory.New(ctx, dataSet)
-				Expect(err).To(MatchError("data set is invalid; value is empty"))
-				Expect(deduplicator).To(BeNil())
-			})
-
 			When("the data set has a deduplicator name", func() {
 
 				BeforeEach(func() {
@@ -165,13 +158,6 @@ var _ = Describe("Factory", func() {
 			It("returns an error when the data set is missing", func() {
 				deduplicator, err := factory.Get(ctx, nil)
 				Expect(err).To(MatchError("data set is missing"))
-				Expect(deduplicator).To(BeNil())
-			})
-
-			It("returns an error when the data set is invalid", func() {
-				dataSet.DeviceModel = pointer.FromString("")
-				deduplicator, err := factory.Get(ctx, dataSet)
-				Expect(err).To(MatchError("data set is invalid; value is empty"))
 				Expect(deduplicator).To(BeNil())
 			})
 

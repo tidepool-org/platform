@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -17,8 +16,12 @@ type DataSetDeleteOrigin struct {
 	*DataSetDeleteOriginBase
 }
 
-func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
-	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(DataSetDeleteOriginName, DataSetDeleteOriginVersion, &dataSetDeleteOriginProvider{})
+func NewDataSetDeleteOrigin(dependencies Dependencies) (*DataSetDeleteOrigin, error) {
+	dataSetDeleteOriginDependencies := DataSetDeleteOriginDependencies{
+		Dependencies: dependencies,
+		DataFilter:   &dataSetDeleteOriginDataFilter{},
+	}
+	dataSetDeleteOriginBase, err := NewDataSetDeleteOriginBase(dataSetDeleteOriginDependencies, DataSetDeleteOriginName, DataSetDeleteOriginVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -40,13 +43,13 @@ func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *data.DataSet) (b
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous.origin"), nil // TODO: DEPRECATED
 }
 
-type dataSetDeleteOriginProvider struct{}
+type dataSetDeleteOriginDataFilter struct{}
 
-func (d *dataSetDeleteOriginProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
+func (d *dataSetDeleteOriginDataFilter) FilterData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
 	return dataSetData, nil
 }
 
-func (d *dataSetDeleteOriginProvider) GetDataSelectors(dataSetData data.Data) *data.Selectors {
+func (d *dataSetDeleteOriginDataFilter) GetDataSelectors(dataSetData data.Data) *data.Selectors {
 	selectors := data.Selectors{}
 	for _, dataSetDatum := range dataSetData {
 		if selector := d.getDatumSelector(dataSetDatum); selector != nil {
@@ -59,7 +62,7 @@ func (d *dataSetDeleteOriginProvider) GetDataSelectors(dataSetData data.Data) *d
 	return &selectors
 }
 
-func (d *dataSetDeleteOriginProvider) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
+func (d *dataSetDeleteOriginDataFilter) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
 	if origin := dataSetDatum.GetOrigin(); origin != nil && origin.ID != nil {
 		return &data.Selector{
 			Origin: &data.SelectorOrigin{
