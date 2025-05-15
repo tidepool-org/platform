@@ -24,7 +24,7 @@ import (
 type Client interface {
 	data.DataSetAccessor
 
-	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
+	CreateDataSetsData(ctx context.Context, dataSetID string, dataSourceID *string, datumArray []data.Datum) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error)
 	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error)
@@ -328,7 +328,7 @@ func (c *ClientImpl) DeleteDataSet(ctx context.Context, id string) error {
 
 // TODO: Rename for consistency
 
-func (c *ClientImpl) CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error {
+func (c *ClientImpl) CreateDataSetsData(ctx context.Context, dataSetID string, dataSourceID *string, datumArray []data.Datum) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -346,7 +346,13 @@ func (c *ClientImpl) CreateDataSetsData(ctx context.Context, dataSetID string, d
 		Errors []*service.Error `json:"errors,omitempty"`
 		Meta   *interface{}     `json:"meta,omitempty"`
 	}{}
-	return c.client.RequestData(ctx, http.MethodPost, url, nil, datumArray, &response)
+
+	var mutators []request.RequestMutator
+	if dataSourceID != nil {
+		mutators = append(mutators, request.NewHeaderMutator(data.DataSourceIDHeaderKey, *dataSourceID))
+	}
+
+	return c.client.RequestData(ctx, http.MethodPost, url, mutators, datumArray, &response)
 }
 
 // TODO: Rename for consistency

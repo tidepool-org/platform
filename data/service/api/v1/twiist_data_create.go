@@ -2,6 +2,7 @@ package v1
 
 import (
 	"fmt"
+	"github.com/tidepool-org/platform/data"
 
 	"github.com/tidepool-org/platform/log"
 
@@ -59,13 +60,20 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		if dataSource.DataSetIDs != nil || len(*dataSource.DataSetIDs) > 0 {
 			dataSetID = (*dataSource.DataSetIDs)[len(*dataSource.DataSetIDs)-1]
 		}
+		if dataSource.ID == nil || *dataSource.ID == "" {
+			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data source id is missing"), err)
+			return
+		}
 		if dataSetID == "" {
 			lgr.WithError(err).Warnf("no data sets found for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %s", *dataSource.ID), err)
 			return
 		}
 
-		// Inject the resolved data set id as a path parameter, so it can be used by DataSetsDataCreate
+		// Inject the resolve data source id as a header, so it can be used by DataSetsDataCreate
+		req.Header.Set(data.DataSourceIDHeaderKey, *dataSource.ID)
+
+		// Inject the resolved data set id as a path parameter
 		req.PathParams["dataSetId"] = dataSetID
 
 		datasetDataCreate(dataServiceContext)

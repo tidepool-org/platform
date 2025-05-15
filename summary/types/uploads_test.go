@@ -162,12 +162,12 @@ var _ = Describe("Upload Helpers", func() {
 		})
 	})
 
-	Context("CheckDatumUpdatesSummary", func() {
+	Context("GetUpdatedSummaryTypesByDatum", func() {
 		It("with non-summary type", func() {
 			var updatesSummary map[string]struct{}
 			datum := NewDatum(food.Type)
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(BeEmpty())
 		})
 
@@ -175,7 +175,7 @@ var _ = Describe("Upload Helpers", func() {
 			updatesSummary := make(map[string]struct{})
 			datum := NewOldDatum(continuous.Type)
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(0))
 		})
 
@@ -183,7 +183,7 @@ var _ = Describe("Upload Helpers", func() {
 			updatesSummary := make(map[string]struct{})
 			datum := NewNewDatum(continuous.Type)
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(0))
 		})
 
@@ -191,7 +191,7 @@ var _ = Describe("Upload Helpers", func() {
 			updatesSummary := make(map[string]struct{})
 			datum := NewDatum(continuous.Type)
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(2))
 			Expect(updatesSummary).To(HaveKey(SummaryTypeCGM))
 			Expect(updatesSummary).To(HaveKey(SummaryTypeContinuous))
@@ -201,7 +201,7 @@ var _ = Describe("Upload Helpers", func() {
 			updatesSummary := make(map[string]struct{})
 			datum := NewDatum(selfmonitored.Type)
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(2))
 			Expect(updatesSummary).To(HaveKey(SummaryTypeBGM))
 			Expect(updatesSummary).To(HaveKey(SummaryTypeContinuous))
@@ -212,7 +212,7 @@ var _ = Describe("Upload Helpers", func() {
 			datum := NewDatum(selfmonitored.Type)
 			datum.Active = false
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(0))
 		})
 
@@ -221,7 +221,7 @@ var _ = Describe("Upload Helpers", func() {
 			datum := NewDatum(continuous.Type)
 			datum.Active = false
 
-			summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+			summary.GetUpdatedSummaryTypesByDatum(updatesSummary, datum)
 			Expect(updatesSummary).To(HaveLen(0))
 		})
 	})

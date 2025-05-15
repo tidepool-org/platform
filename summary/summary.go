@@ -276,11 +276,11 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, us
 	return nil
 }
 
-func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
+func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updateSummaryTypes map[string]struct{}, userId, reason string) map[string]*time.Time {
 	outdatedSinceMap := make(map[string]*time.Time)
 	lgr := log.LoggerFromContext(ctx)
 
-	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
+	if _, ok := updateSummaryTypes[types.SummaryTypeCGM]; ok {
 		summarizer := GetSummarizer[*types.CGMPeriods, *types.GlucoseBucket](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
@@ -289,7 +289,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
 	}
 
-	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
+	if _, ok := updateSummaryTypes[types.SummaryTypeBGM]; ok {
 		summarizer := GetSummarizer[*types.BGMPeriods, *types.GlucoseBucket](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
@@ -298,7 +298,7 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
 	}
 
-	if _, ok := updatesSummary[types.SummaryTypeContinuous]; ok {
+	if _, ok := updateSummaryTypes[types.SummaryTypeContinuous]; ok {
 		summarizer := GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
 		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
 		if err != nil {
@@ -310,20 +310,35 @@ func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updat
 	return outdatedSinceMap
 }
 
-func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
+func GetUpdatedSummaryTypes(deviceData data.Data) map[string]struct{} {
+	updateSummaryTypes := make(map[string]struct{})
+	for _, datum := range deviceData {
+		if len(updateSummaryTypes) == len(types.AllSummaryTypes) {
+			// No need to process this data any further because all summaries will be updated
+			break
+		}
+
+		for _, typ := range GetUpdatedSummaryTypesByDatum(datum) {
+			updateSummaryTypes[typ] = struct{}{}
+		}
+	}
+	return updateSummaryTypes
+}
+
+func GetUpdatedSummaryTypesByDatum(datum data.Datum) []string {
 	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
 	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
 
 	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
 	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
-	if datum.IsActive() {
+	if datum.IsActive() && datum.GetTime() != nil {
 		typ := datum.GetType()
 		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-			for _, summaryType := range types.DeviceDataToSummaryTypes[typ] {
-				updatesSummary[summaryType] = struct{}{}
-			}
+			return types.DeviceDataToSummaryTypes[typ]
 		}
 	}
+
+	return nil
 }
 
 func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher, mongoClient *mongo.Client) Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket] {
