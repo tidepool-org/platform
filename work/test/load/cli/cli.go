@@ -9,6 +9,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,16 +24,20 @@ import (
 func main() {
 
 	var filePath string
-	var groupID string
 	var outputDir string
 	var urlBase string
 
 	var generateDurationSeconds int64
 	var generateCount int64
-	var generateResult string
 	var generateActions string
 	var generateErrors bool
 	var generateTimeout int
+
+	var runGroupID string
+	var duplicates bool
+	var serialize bool
+	var runDuplicateIDPrefix string
+	var runSerialIDPrefix string
 
 	var baseURLFlag = &cli.StringFlag{
 		Name:        "urlBase",
@@ -65,7 +70,19 @@ func main() {
 				&cli.StringFlag{
 					Name:        "groupId",
 					Usage:       "groupId for this test run",
-					Destination: &groupID,
+					Destination: &runGroupID,
+					Required:    false,
+				},
+				&cli.BoolFlag{
+					Name:        "duplicates",
+					Usage:       "set work items to be duplicates",
+					Destination: &duplicates,
+					Required:    false,
+				},
+				&cli.BoolFlag{
+					Name:        "serialize",
+					Usage:       "serialize work per data source",
+					Destination: &serialize,
 					Required:    false,
 				},
 				outputDirFlag,
@@ -79,8 +96,15 @@ func main() {
 						os.Mkdir(outputDir, 0755)
 					}
 				}
-				if groupID == "" {
-					groupID = fmt.Sprintf("group-id-%s", data.NewID())
+				runID := data.NewID()
+				if runGroupID == "" {
+					runGroupID = fmt.Sprintf("group-id-%s", runID)
+				}
+				if duplicates {
+					runDuplicateIDPrefix = fmt.Sprintf("%s-deduplication-id", runID)
+				}
+				if serialize {
+					runSerialIDPrefix = fmt.Sprintf("%s-serial-id", runID)
 				}
 				return nil
 			},
@@ -98,7 +122,15 @@ func main() {
 				}
 
 				for i := range items {
-					items[i].Create.GroupID = pointer.FromString(groupID)
+					items[i].Create.GroupID = pointer.FromString(runGroupID)
+
+					if duplicates {
+						items[i].Create.DeduplicationID = pointer.FromString(fmt.Sprintf("%s-%d", runDuplicateIDPrefix, i))
+					}
+
+					if serialize {
+						items[i].Create.SerialID = pointer.FromString(fmt.Sprintf("%s-%d", runSerialIDPrefix, i))
+					}
 				}
 
 				var buf bytes.Buffer
@@ -108,7 +140,6 @@ func main() {
 				}
 
 				res, err := http.Post(fmt.Sprintf("%s/v1/work/load", urlBase), "application/json", &buf)
-
 				if err != nil {
 					return fmt.Errorf("unable to issue work load test API request: %s", err.Error())
 				}
@@ -122,8 +153,10 @@ func main() {
 				if res.StatusCode != http.StatusCreated {
 					return fmt.Errorf("unsuccessful work load test API response: %v: %v", res.Status, string(bodyData))
 				}
+
 				if outputDir != "" {
-					outputFile := fmt.Sprintf("%s/%s_work_%s_created.json", outputDir, groupID, time.Now().Format(time.DateTime))
+					_, file := filepath.Split(filePath)
+					outputFile := fmt.Sprintf("%s%s_%s_work_%s", outputDir, time.Now().Format(time.DateOnly), runGroupID, file)
 					log.Printf("run data [%s]", outputFile)
 					os.WriteFile(outputFile, bodyData, os.ModePerm)
 				}
@@ -282,7 +315,7 @@ func main() {
 					return err
 				}
 
-				file, err := os.Create(fmt.Sprintf("%s/count_%d_secs_%d_result_%s_load.json", outputDir, generateCount, generateDurationSeconds, generateResult))
+				file, err := os.Create(fmt.Sprintf("%s/count_%d_secs_%d_load.json", outputDir, generateCount, generateDurationSeconds))
 				if err != nil {
 					return err
 				}
@@ -320,7 +353,6 @@ func main() {
 				}
 
 				fmt.Printf("%s", string(bodyData))
-
 				return nil
 			},
 		},

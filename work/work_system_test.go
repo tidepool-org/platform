@@ -8,23 +8,28 @@ import (
 	"go.uber.org/mock/gomock"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
-	workTest "github.com/tidepool-org/platform/work/test"
+	work_load "github.com/tidepool-org/platform/work/load"
+	workService "github.com/tidepool-org/platform/work/service"
+	workServiceTest "github.com/tidepool-org/platform/work/service/test"
 	workTestLoad "github.com/tidepool-org/platform/work/test/load"
 )
 
 var _ = Describe("Work System", func() {
 	var authClient *authTest.Client
-	var workClient *workTest.MockClient
-	var workController *gomock.Controller
+	var workClient work.Client
+	var workStoreController *gomock.Controller
+	var workStore *workServiceTest.MockStore
 	var ctx context.Context
 	var coordinator *workTestLoad.CoordinatorClient
 	var err error
 
 	BeforeEach(func() {
 		authClient = authTest.NewClient()
-		workController = gomock.NewController(GinkgoT())
-		workClient = workTest.NewMockClient(workController)
+		workStoreController = gomock.NewController(GinkgoT())
+		workStore = workServiceTest.NewMockStore(workStoreController)
+		workClient, err = workService.NewClient(workStore)
 		ctx = context.Background()
 		coordinator, err = workTestLoad.NewCoordinatorClient(authClient, workClient)
 		Expect(err).To(BeNil())
@@ -32,18 +37,36 @@ var _ = Describe("Work System", func() {
 
 	AfterEach(func() {
 		authClient.AssertOutputsEmpty()
-		workController.Finish()
-		for groupID := range coordinator.GetCreatedWork() {
-			workClient.EXPECT().DeleteAllByGroupID(ctx, groupID).Times(1)
-		}
+		workStoreController.Finish()
+		workStore.EXPECT().DeleteAllByGroupID(ctx, coordinator.GetWorkGroupID()).Times(1)
 		err = coordinator.CleanUp(ctx)
 		Expect(err).To(BeNil())
 	})
 
 	Context("Coordinator", func() {
-		It("runs for basic load", func() {
-			workClient.EXPECT().Create(ctx, gomock.Any()).Return(&work.Work{}, nil).Times(3)
-			Expect(coordinator.Run(ctx, "./test/load/data/basic_load.json")).To(BeNil())
+		It("runs for basic", func() {
+			Expect(coordinator.Initialize(ctx, nil, nil, &work.Create{Type: work_load.TypeDopey, ProcessingTimeout: 5})).To(BeNil())
+			for _, create := range coordinator.GetCreate() {
+				workStore.EXPECT().Create(ctx, create).Return(&work.Work{}, nil).Times(1)
+			}
+			Expect(coordinator.Run(ctx)).To(BeNil())
+		})
+		It("runs for duplicates", func() {
+			Expect(coordinator.Initialize(ctx, pointer.FromString("duplicate-id"), nil, &work.Create{Type: work_load.TypeDopey, ProcessingTimeout: 5}, &work.Create{Type: work_load.TypeDopey, ProcessingTimeout: 5})).To(BeNil())
+			created := coordinator.GetCreate()
+			Expect(len(created)).To(Equal(2))
+			first := created[0]
+			workStore.EXPECT().Create(ctx, first).Return(&work.Work{}, nil).Times(1)
+			second := created[1]
+			workStore.EXPECT().Create(ctx, second).Return(nil, nil).Times(1)
+			Expect(coordinator.Run(ctx)).To(BeNil())
+		})
+		It("runs for serialize", func() {
+			Expect(coordinator.Initialize(ctx, nil, pointer.FromString("serial-id"), &work.Create{Type: work_load.TypeSleepy, ProcessingTimeout: 5}, &work.Create{Type: work_load.TypeSleepy, ProcessingTimeout: 5})).To(BeNil())
+			for _, create := range coordinator.GetCreate() {
+				workStore.EXPECT().Create(ctx, create).Return(&work.Work{}, nil).Times(1)
+			}
+			Expect(coordinator.Run(ctx)).To(BeNil())
 		})
 	})
 

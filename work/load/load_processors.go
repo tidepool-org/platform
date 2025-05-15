@@ -144,7 +144,7 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any, err e
 	}
 }
 
-func (p *loadProcessor) performAction(ctx context.Context, groupID *string, name string, metadata map[string]any) *work.ProcessResult {
+func (p *loadProcessor) performAction(ctx context.Context, wrk *work.Work, name string, metadata map[string]any) *work.ProcessResult {
 
 	switch name {
 
@@ -170,7 +170,10 @@ func (p *loadProcessor) performAction(ctx context.Context, groupID *string, name
 
 		create := work.ParseCreate(parser)
 		if create.GroupID == nil {
-			create.GroupID = groupID
+			create.GroupID = wrk.GroupID
+		}
+		if create.SerialID == nil {
+			create.SerialID = wrk.SerialID
 		}
 		_, err := p.workClient.Create(ctx, create)
 		if err != nil {
@@ -213,10 +216,10 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 		p.returnResult(work.ResultFailed, wrk.Metadata, err)
 	}
 
-	for _, action := range actions {
-		name, ok := action[ActionKey].(string)
+	for _, actionData := range actions {
+		name, ok := actionData[ActionKey].(string)
 		if ok {
-			if result := p.performAction(ctx, wrk.GroupID, name, action); result != nil {
+			if result := p.performAction(ctx, wrk, name, actionData); result != nil {
 				return *result
 			}
 		}

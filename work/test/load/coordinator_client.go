@@ -2,12 +2,10 @@ package workTestLoad
 
 import (
 	"context"
-	"encoding/json"
-	"log"
-	"os"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/work"
@@ -16,76 +14,78 @@ import (
 )
 
 type CoordinatorClient struct {
-	coordinator    *workService.Coordinator
-	workClient     work.Client
-	groupWorkItems map[string][]*work.Work
-	runFilePath    string
-	runStart       time.Time
+	coordinator *workService.Coordinator
+	workClient  work.Client
+	groupID     string
+	createItems []*work.Create
+	workItems   []*work.Work
+	runStart    time.Time
 }
 
 func NewCoordinatorClient(authClient auth.Client, workClient work.Client) (*CoordinatorClient, error) {
 	logger := logNull.NewLogger()
-	workCoordinator := &CoordinatorClient{
-		workClient:     workClient,
-		groupWorkItems: map[string][]*work.Work{},
+	cc := &CoordinatorClient{
+		workClient:  workClient,
+		workItems:   []*work.Work{},
+		createItems: []*work.Create{},
+		groupID:     data.NewID(),
 	}
-	coordinator, err := workService.NewCoordinator(logger, authClient, workCoordinator.workClient)
+	coordinator, err := workService.NewCoordinator(logger, authClient, cc.workClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create work coordinator")
 	}
-	workCoordinator.coordinator = coordinator
+	cc.coordinator = coordinator
 
-	lp, err := workLoad.NewLoadProcessors(workClient, workCoordinator.coordinator.RegisterProcessor)
+	lp, err := workLoad.NewLoadProcessors(workClient, cc.coordinator.RegisterProcessor)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to load processors")
 	}
 
-	if err = workCoordinator.coordinator.RegisterProcessors(lp); err != nil {
+	if err = cc.coordinator.RegisterProcessors(lp); err != nil {
 		return nil, errors.Wrap(err, "unable to register abbott processors")
 	}
-	return workCoordinator, nil
+	return cc, nil
 }
 
-func (c *CoordinatorClient) Run(ctx context.Context, runFilePath string) error {
-	if runFilePath == "" {
-		return errors.New("missing required run file")
-	}
-	c.coordinator.Start()
-	c.runFilePath = runFilePath
-
-	jsonData, err := os.ReadFile(runFilePath)
-	if err != nil {
-		return errors.Wrapf(err, "read file %s", runFilePath)
-	}
-	var allData []workLoad.LoadItem
-	if err := json.Unmarshal(jsonData, &allData); err != nil {
-		return errors.Wrapf(err, "error unmarshalling load items")
-	}
-
-	c.runStart = time.Now()
-	for _, data := range allData {
-		data.Create.ProcessingAvailableTime = c.runStart.Add(time.Millisecond * time.Duration(data.OffsetMilliseconds))
-		workItem, err := c.workClient.Create(ctx, data.Create)
-		if err != nil {
-			return errors.Wrapf(err, "error creating work %v", data.Create)
-		}
-		c.groupWorkItems[*data.Create.GroupID] = append(c.groupWorkItems[*data.Create.GroupID], workItem)
+func (c *CoordinatorClient) Initialize(ctx context.Context, duplicateID *string, serializeID *string, items ...*work.Create) error {
+	for _, create := range items {
+		create.GroupID = &c.groupID
+		create.DeduplicationID = duplicateID
+		create.SerialID = serializeID
+		c.createItems = append(c.createItems, create)
 	}
 	return nil
 }
 
-func (c *CoordinatorClient) GetCreatedWork() map[string][]*work.Work {
-	return c.groupWorkItems
+func (c *CoordinatorClient) Run(ctx context.Context) error {
+	c.coordinator.Start()
+	c.runStart = time.Now()
+	for _, create := range c.GetCreate() {
+		workItem, err := c.workClient.Create(ctx, create)
+		if err != nil {
+			return errors.Wrapf(err, "error creating work %v", create)
+		}
+		c.workItems = append(c.workItems, workItem)
+	}
+	return nil
+}
+
+func (c *CoordinatorClient) GetWorkGroupID() string {
+	return c.groupID
+}
+
+func (c *CoordinatorClient) GetWork() []*work.Work {
+	return c.workItems
+}
+
+func (c *CoordinatorClient) GetCreate() []*work.Create {
+	return c.createItems
 }
 
 func (c *CoordinatorClient) CleanUp(ctx context.Context) error {
-	log.Printf("cleanup for run %s", c.runFilePath)
-	for groupID := range c.groupWorkItems {
-		count, err := c.workClient.DeleteAllByGroupID(ctx, groupID)
-		if err != nil {
-			return errors.Wrapf(err, "unable to delete work items for groupId %s", groupID)
-		}
-		log.Printf("cleanup removed %d items for groupId %s", count, groupID)
+	_, err := c.workClient.DeleteAllByGroupID(ctx, c.groupID)
+	if err != nil {
+		return errors.Wrapf(err, "unable to delete work items for groupId %s", c.groupID)
 	}
 	c.coordinator.Stop()
 	return nil
