@@ -45,53 +45,6 @@ func (p *ProviderSessionRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ProviderSessionRepository) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if filter == nil {
-		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
-
-	providerSessions := auth.ProviderSessions{}
-	selector := bson.M{}
-	if filter.Type != nil {
-		selector["type"] = *filter.Type
-	}
-	if filter.Name != nil {
-		selector["name"] = *filter.Name
-	}
-	if filter.ExternalID != nil {
-		selector["externalId"] = *filter.ExternalID
-	}
-	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": -1})
-	cursor, err := p.Find(ctx, selector, opts)
-	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserProviderSessions")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to list user provider sessions")
-	}
-	if err = cursor.All(ctx, &providerSessions); err != nil {
-		return nil, errors.Wrap(err, "unable to decode user provider sessions")
-	}
-
-	if providerSessions == nil {
-		providerSessions = auth.ProviderSessions{}
-	}
-
-	return providerSessions, nil
-}
-
 func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -113,7 +66,6 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 	now := time.Now()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	providerSessions := auth.ProviderSessions{}
 	selector := bson.M{
 		"userId": userID,
 	}
@@ -129,10 +81,11 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := p.Find(ctx, selector, opts)
-	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserProviderSessions")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list user provider sessions")
 	}
+
+	providerSessions := auth.ProviderSessions{}
 	if err = cursor.All(ctx, &providerSessions); err != nil {
 		return nil, errors.Wrap(err, "unable to decode user provider sessions")
 	}
@@ -140,6 +93,7 @@ func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context
 	if providerSessions == nil {
 		providerSessions = auth.ProviderSessions{}
 	}
+	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserProviderSessions")
 
 	return providerSessions, nil
 }
@@ -168,7 +122,7 @@ func (p *ProviderSessionRepository) CreateUserProviderSession(ctx context.Contex
 	return providerSession, nil
 }
 
-func (p *ProviderSessionRepository) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+func (p *ProviderSessionRepository) DeleteUserProviderSessions(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -180,40 +134,9 @@ func (p *ProviderSessionRepository) DeleteAllProviderSessions(ctx context.Contex
 	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
 
 	changeInfo, err := p.DeleteMany(ctx, bson.M{"userId": userID})
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteAllProviderSessions")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteUserProviderSessions")
 	if err != nil {
-		return errors.Wrap(err, "unable to delete all provider sessions")
-	}
-
-	return nil
-}
-
-func (p *ProviderSessionRepository) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if filter.ExternalID == nil || *filter.ExternalID == "" {
-		return errors.New("external id is missing")
-	}
-	if filter.Name == nil || *filter.Name == "" {
-		return errors.New("provider name is missing")
-	}
-	if filter.Type == nil || *filter.Type == "" {
-		return errors.New("provider type is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("filter", filter)
-
-	selector := bson.M{
-		"type":       *filter.Type,
-		"name":       *filter.Name,
-		"externalId": *filter.ExternalID,
-	}
-	changeInfo, err := p.DeleteMany(ctx, selector)
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteAllProviderSessions")
-	if err != nil {
-		return errors.Wrap(err, "unable to delete all provider sessions")
+		return errors.Wrap(err, "unable to delete user provider sessions")
 	}
 
 	return nil
@@ -297,4 +220,45 @@ func (p *ProviderSessionRepository) DeleteProviderSession(ctx context.Context, i
 	}
 
 	return nil
+}
+
+func (p *ProviderSessionRepository) ListAllProviderSessions(ctx context.Context, filter auth.ProviderSessionFilter, pagination page.Pagination) (auth.ProviderSessions, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
+
+	selector := bson.M{}
+	if filter.Type != nil {
+		selector["type"] = *filter.Type
+	}
+	if filter.Name != nil {
+		selector["name"] = *filter.Name
+	}
+	if filter.ExternalID != nil {
+		selector["externalId"] = *filter.ExternalID
+	}
+	opts := storeStructuredMongo.FindWithPagination(&pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := p.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list all provider sessions")
+	}
+
+	providerSessions := auth.ProviderSessions{}
+	if err = cursor.All(ctx, &providerSessions); err != nil {
+		return nil, errors.Wrap(err, "unable to decode all provider sessions")
+	}
+
+	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListAllProviderSessions")
+
+	return providerSessions, nil
 }

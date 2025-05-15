@@ -32,7 +32,7 @@ type CreateUserProviderSessionOutput struct {
 	Error           error
 }
 
-type DeleteAllProviderSessionsInput struct {
+type DeleteUserProviderSessionsInput struct {
 	Context context.Context
 	UserID  string
 }
@@ -64,24 +64,24 @@ type DeleteProviderSessionInput struct {
 }
 
 type ProviderSessionAccessor struct {
-	ListUserProviderSessionsInvocations  int
-	ListUserProviderSessionsInputs       []ListUserProviderSessionsInput
-	ListUserProviderSessionsOutputs      []ListUserProviderSessionsOutput
-	CreateUserProviderSessionInvocations int
-	CreateUserProviderSessionInputs      []CreateUserProviderSessionInput
-	CreateUserProviderSessionOutputs     []CreateUserProviderSessionOutput
-	DeleteAllProviderSessionsInvocations int
-	DeleteAllProviderSessionsInputs      []DeleteAllProviderSessionsInput
-	DeleteAllProviderSessionsOutputs     []error
-	GetProviderSessionInvocations        int
-	GetProviderSessionInputs             []GetProviderSessionInput
-	GetProviderSessionOutputs            []GetProviderSessionOutput
-	UpdateProviderSessionInvocations     int
-	UpdateProviderSessionInputs          []UpdateProviderSessionInput
-	UpdateProviderSessionOutputs         []UpdateProviderSessionOutput
-	DeleteProviderSessionInvocations     int
-	DeleteProviderSessionInputs          []DeleteProviderSessionInput
-	DeleteProviderSessionOutputs         []error
+	ListUserProviderSessionsInvocations   int
+	ListUserProviderSessionsInputs        []ListUserProviderSessionsInput
+	ListUserProviderSessionsOutputs       []ListUserProviderSessionsOutput
+	CreateUserProviderSessionInvocations  int
+	CreateUserProviderSessionInputs       []CreateUserProviderSessionInput
+	CreateUserProviderSessionOutputs      []CreateUserProviderSessionOutput
+	DeleteUserProviderSessionsInvocations int
+	DeleteUserProviderSessionsInputs      []DeleteUserProviderSessionsInput
+	DeleteUserProviderSessionsOutputs     []error
+	GetProviderSessionInvocations         int
+	GetProviderSessionInputs              []GetProviderSessionInput
+	GetProviderSessionOutputs             []GetProviderSessionOutput
+	UpdateProviderSessionInvocations      int
+	UpdateProviderSessionInputs           []UpdateProviderSessionInput
+	UpdateProviderSessionOutputs          []UpdateProviderSessionOutput
+	DeleteProviderSessionInvocations      int
+	DeleteProviderSessionInputs           []DeleteProviderSessionInput
+	DeleteProviderSessionOutputs          []error
 }
 
 func NewProviderSessionAccessor() *ProviderSessionAccessor {
@@ -112,15 +112,15 @@ func (p *ProviderSessionAccessor) CreateUserProviderSession(ctx context.Context,
 	return output.ProviderSession, output.Error
 }
 
-func (p *ProviderSessionAccessor) DeleteAllProviderSessions(ctx context.Context, userID string) error {
-	p.DeleteAllProviderSessionsInvocations++
+func (p *ProviderSessionAccessor) DeleteUserProviderSessions(ctx context.Context, userID string) error {
+	p.DeleteUserProviderSessionsInvocations++
 
-	p.DeleteAllProviderSessionsInputs = append(p.DeleteAllProviderSessionsInputs, DeleteAllProviderSessionsInput{Context: ctx, UserID: userID})
+	p.DeleteUserProviderSessionsInputs = append(p.DeleteUserProviderSessionsInputs, DeleteUserProviderSessionsInput{Context: ctx, UserID: userID})
 
-	gomega.Expect(p.DeleteAllProviderSessionsOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(p.DeleteUserProviderSessionsOutputs).ToNot(gomega.BeEmpty())
 
-	output := p.DeleteAllProviderSessionsOutputs[0]
-	p.DeleteAllProviderSessionsOutputs = p.DeleteAllProviderSessionsOutputs[1:]
+	output := p.DeleteUserProviderSessionsOutputs[0]
+	p.DeleteUserProviderSessionsOutputs = p.DeleteUserProviderSessionsOutputs[1:]
 	return output
 }
 
@@ -160,18 +160,10 @@ func (p *ProviderSessionAccessor) DeleteProviderSession(ctx context.Context, id 
 	return output
 }
 
-func (p *ProviderSessionAccessor) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
-	panic("implement me")
-}
-
-func (p *ProviderSessionAccessor) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	panic("implement me")
-}
-
 func (p *ProviderSessionAccessor) Expectations() {
 	gomega.Expect(p.ListUserProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.CreateUserProviderSessionOutputs).To(gomega.BeEmpty())
-	gomega.Expect(p.DeleteAllProviderSessionsOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.DeleteUserProviderSessionsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.GetProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.UpdateProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.DeleteProviderSessionOutputs).To(gomega.BeEmpty())
