@@ -5,12 +5,11 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
 
 type DataSetDeleteOriginProvider interface {
-	FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (data.Data, error)
+	FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error)
 	GetDataSelectors(datum data.Data) *data.Selectors
 }
 
@@ -31,7 +30,7 @@ func NewDataSetDeleteOriginBase(name string, version string, provider DataSetDel
 	}, nil
 }
 
-func (d *DataSetDeleteOriginBase) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (d *DataSetDeleteOriginBase) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -43,13 +42,13 @@ func (d *DataSetDeleteOriginBase) Open(ctx context.Context, repository dataStore
 	}
 
 	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.SetActive(true)
+		dataSet.Active = true
 	}
 
 	return d.Base.Open(ctx, repository, dataSet)
 }
 
-func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -85,7 +84,7 @@ func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, repository dataSt
 	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -102,7 +101,7 @@ func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, repository dat
 	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
 }
 
-func (d *DataSetDeleteOriginBase) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DataSetDeleteOriginBase) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

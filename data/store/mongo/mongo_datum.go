@@ -19,7 +19,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
-	"github.com/tidepool-org/platform/data/types/upload"
 	platerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -157,7 +156,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error {
+func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -198,7 +197,7 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 	return nil
 }
 
-func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -244,7 +243,7 @@ func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.
 	return newerSelectors, nil
 }
 
-func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -284,7 +283,7 @@ func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *uplo
 	return nil
 }
 
-func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -327,7 +326,7 @@ func (d *DatumRepository) ArchiveDataSetData(ctx context.Context, dataSet *uploa
 	return nil
 }
 
-func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -371,7 +370,7 @@ func (d *DatumRepository) DeleteDataSetData(ctx context.Context, dataSet *upload
 	return nil
 }
 
-func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -403,7 +402,7 @@ func (d *DatumRepository) DestroyDeletedDataSetData(ctx context.Context, dataSet
 	return nil
 }
 
-func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
+func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -420,7 +419,6 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 
 	selector["_userId"] = dataSet.UserID
 	selector["uploadId"] = dataSet.UploadID
-	selector["type"] = bson.M{"$ne": "upload"}
 	changeInfo, err := d.DeleteMany(ctx, selector)
 	if err != nil {
 		logger.WithError(err).Error("Unable to destroy data set data")
@@ -431,7 +429,7 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *uploa
 	return nil
 }
 
-func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -483,7 +481,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 	return nil
 }
 
-func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error {
+func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -501,7 +499,6 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 		{
 			"$match": bson.M{
 				"uploadId": dataSet.UploadID,
-				"type":     bson.M{"$ne": "upload"},
 			},
 		},
 		{
@@ -639,11 +636,6 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 
 	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
-	}
-
-	// This is never expected to be an upload.
-	if isTypeUpload(typ) {
-		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	// quit early if range is 0
@@ -909,11 +901,6 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 
 	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
-	}
-
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
 	}
 
 	status := &data.UserDataStatus{

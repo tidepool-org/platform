@@ -11,7 +11,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -25,7 +24,7 @@ type DataSetRepository struct {
 }
 
 func (d *DataSetRepository) EnsureIndexes() error {
-	// Note "type" field isn't really needed because datasets/uploads are
+	// Note "type" field isn't really needed because datasets are
 	// always type == "upload" but this is just to keep the original queries
 	// untouched.
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
@@ -97,7 +96,7 @@ func (d *DataSetRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error) {
+func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -107,7 +106,7 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 
 	now := time.Now().UTC()
 
-	var dataSet *upload.Upload
+	var dataSet *data.DataSet
 	selector := bson.M{
 		"uploadId": dataSetID,
 	}
@@ -125,7 +124,7 @@ func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string
 	return dataSet, nil
 }
 
-func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *upload.Upload, now time.Time) error {
+func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.DataSet, now time.Time) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -155,7 +154,7 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *upload.U
 	return nil
 }
 
-func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*upload.Upload, error) {
+func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -297,7 +296,7 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	return dataSets, nil
 }
 
-func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*upload.Upload, error) {
+func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -317,7 +316,7 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 
 	now := time.Now()
 
-	var dataSets []*upload.Upload
+	var dataSets []*data.DataSet
 	selector := bson.M{
 		"_active": true,
 		"_userId": userID,
@@ -342,12 +341,12 @@ func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID s
 	}
 
 	if dataSets == nil {
-		dataSets = []*upload.Upload{}
+		dataSets = []*data.DataSet{}
 	}
 	return dataSets, nil
 }
 
-func validateDataSet(dataSet *upload.Upload) error {
+func validateDataSet(dataSet *data.DataSet) error {
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}

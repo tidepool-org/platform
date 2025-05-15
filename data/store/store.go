@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/structure"
@@ -34,11 +33,11 @@ type Store interface {
 type DataSetRepository interface {
 	EnsureIndexes() error
 
-	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*upload.Upload, error)
-	GetDataSetByID(ctx context.Context, dataSetID string) (*upload.Upload, error)
-	CreateDataSet(ctx context.Context, dataSet *upload.Upload) error
-	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*upload.Upload, error)
-	DeleteDataSet(ctx context.Context, dataSet *upload.Upload) error
+	GetDataSetsForUserByID(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) ([]*data.DataSet, error)
+	GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error)
+	CreateDataSet(ctx context.Context, dataSet *data.DataSet) error
+	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error)
+	DeleteDataSet(ctx context.Context, dataSet *data.DataSet) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
@@ -52,17 +51,17 @@ type DataSetRepository interface {
 type DatumRepository interface {
 	EnsureIndexes() error
 
-	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
-	NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error)
-	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
-	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
-	DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
-	DestroyDeletedDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
-	DestroyDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
+	CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error
+	NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error)
+	ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+	DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 
-	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
-	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *upload.Upload) error
-	DeleteOtherDataSetData(ctx context.Context, dataSet *upload.Upload) error
+	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
+	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
+	DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error
 	DestroyDataForUserByID(ctx context.Context, userID string) error
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 

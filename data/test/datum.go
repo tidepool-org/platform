@@ -7,8 +7,12 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/metadata"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/origin"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/test"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -273,4 +277,23 @@ func (d *Datum) GetUploadID() *string {
 	d.GetUploadIDOutputs = d.GetUploadIDOutputs[1:]
 
 	return output
+}
+
+func RandomProvenance() *data.Provenance {
+	datum := data.NewProvenance()
+	datum.ClientID = test.RandomString()
+	datum.ByUserID = pointer.FromString(userTest.RandomID())
+	datum.SourceIP = pointer.FromString(netTest.RandomFQDN())
+	return datum
+}
+
+func CloneProvenance(datum *data.Provenance) *data.Provenance {
+	if datum == nil {
+		return nil
+	}
+	clone := data.NewProvenance()
+	clone.ClientID = datum.ClientID
+	clone.ByUserID = datum.ByUserID
+	clone.SourceIP = datum.SourceIP
+	return clone
 }

@@ -3,8 +3,8 @@ package factory
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/data"
 	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/structure"
@@ -14,8 +14,8 @@ import (
 type Deduplicator interface {
 	dataDeduplicator.Deduplicator
 
-	New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
-	Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error)
+	New(ctx context.Context, dataSet *data.DataSet) (bool, error)
+	Get(ctx context.Context, dataSet *data.DataSet) (bool, error)
 }
 
 type Factory struct {
@@ -32,7 +32,7 @@ func New(deduplicators []Deduplicator) (*Factory, error) {
 	}, nil
 }
 
-func (f *Factory) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) New(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).WithOrigin(structure.OriginStore).Validate(dataSet); err != nil {
@@ -54,7 +54,7 @@ func (f *Factory) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (dat
 	return nil, errors.New("deduplicator not found")
 }
 
-func (f *Factory) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) Get(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	if dataSet == nil {
 		return nil, errors.New("data set is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).WithOrigin(structure.OriginStore).Validate(dataSet); err != nil {
@@ -68,7 +68,7 @@ func (f *Factory) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (dat
 	return nil, nil
 }
 
-func (f *Factory) get(ctx context.Context, dataSet *dataTypesUpload.Upload) (dataDeduplicator.Deduplicator, error) {
+func (f *Factory) get(ctx context.Context, dataSet *data.DataSet) (dataDeduplicator.Deduplicator, error) {
 	for _, deduplicator := range f.deduplicators {
 		if found, err := deduplicator.Get(ctx, dataSet); err != nil {
 			return nil, err

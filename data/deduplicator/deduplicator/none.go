@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -27,11 +26,11 @@ func NewNone() (*None, error) {
 	}, nil
 }
 
-func (n *None) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (n *None) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	return n.Get(ctx, dataSet)
 }
 
-func (n *None) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (n *None) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := n.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -39,7 +38,7 @@ func (n *None) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, 
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.continuous"), nil // TODO: DEPRECATED
 }
 
-func (n *None) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
+func (n *None) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -51,13 +50,13 @@ func (n *None) Open(ctx context.Context, repository dataStore.DataRepository, da
 	}
 
 	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.SetActive(true)
+		dataSet.Active = true
 	}
 
 	return n.Base.Open(ctx, repository, dataSet)
 }
 
-func (n *None) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (n *None) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -78,7 +77,7 @@ func (n *None) AddData(ctx context.Context, repository dataStore.DataRepository,
 	return n.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (n *None) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (n *None) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
