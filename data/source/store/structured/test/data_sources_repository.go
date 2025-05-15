@@ -10,6 +10,7 @@ import (
 )
 
 type ListInput struct {
+	UserID     string
 	Filter     *dataSource.Filter
 	Pagination *page.Pagination
 }
@@ -60,11 +61,21 @@ type DestroyOutput struct {
 	Error     error
 }
 
+type ListAllInput struct {
+	Filter     *dataSource.Filter
+	Pagination *page.Pagination
+}
+
+type ListAllOutput struct {
+	SourceArray dataSource.SourceArray
+	Error       error
+}
+
 type DataRepository struct {
 	*test.Closer
 	ListInvocations       int
 	ListInputs            []ListInput
-	ListStub              func(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
+	ListStub              func(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	ListOutputs           []ListOutput
 	ListOutput            *ListOutput
 	CreateInvocations     int
@@ -92,6 +103,11 @@ type DataRepository struct {
 	DestroyStub           func(ctx context.Context, id string, condition *request.Condition) (bool, error)
 	DestroyOutputs        []DestroyOutput
 	DestroyOutput         *DestroyOutput
+	ListAllInvocations    int
+	ListAllInputs         []ListAllInput
+	ListAllStub           func(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
+	ListAllOutputs        []ListAllOutput
+	ListAllOutput         *ListAllOutput
 }
 
 func NewDataSourcesRepository() *DataRepository {
@@ -100,11 +116,11 @@ func NewDataSourcesRepository() *DataRepository {
 	}
 }
 
-func (d *DataRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (d *DataRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	d.ListInvocations++
-	d.ListInputs = append(d.ListInputs, ListInput{Filter: filter, Pagination: pagination})
+	d.ListInputs = append(d.ListInputs, ListInput{UserID: userID, Filter: filter, Pagination: pagination})
 	if d.ListStub != nil {
-		return d.ListStub(ctx, filter, pagination)
+		return d.ListStub(ctx, userID, filter, pagination)
 	}
 	if len(d.ListOutputs) > 0 {
 		output := d.ListOutputs[0]
@@ -202,6 +218,23 @@ func (d *DataRepository) Destroy(ctx context.Context, id string, condition *requ
 	panic("Destroy has no output")
 }
 
+func (d *DataRepository) ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	d.ListAllInvocations++
+	d.ListAllInputs = append(d.ListAllInputs, ListAllInput{Filter: filter, Pagination: pagination})
+	if d.ListAllStub != nil {
+		return d.ListAllStub(ctx, filter, pagination)
+	}
+	if len(d.ListAllOutputs) > 0 {
+		output := d.ListAllOutputs[0]
+		d.ListAllOutputs = d.ListAllOutputs[1:]
+		return output.SourceArray, output.Error
+	}
+	if d.ListAllOutput != nil {
+		return d.ListAllOutput.SourceArray, d.ListAllOutput.Error
+	}
+	panic("ListAll has no output")
+}
+
 func (d *DataRepository) AssertOutputsEmpty() {
 	d.Closer.AssertOutputsEmpty()
 	if len(d.ListOutputs) > 0 {
@@ -221,5 +254,8 @@ func (d *DataRepository) AssertOutputsEmpty() {
 	}
 	if len(d.DestroyOutputs) > 0 {
 		panic("DestroyOutputs is not empty")
+	}
+	if len(d.ListAllOutputs) > 0 {
+		panic("ListAllOutputs is not empty")
 	}
 }

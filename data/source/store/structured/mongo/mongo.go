@@ -76,69 +76,16 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 	})
 }
 
-func (c *DataSourcesRepository) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if filter == nil {
-		filter = dataSource.NewFilter()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
+func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
+	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	result := dataSource.SourceArray{}
-	query := bson.M{}
-
-	if filter.UserID != nil {
-		query["userId"] = filter.UserID
-	}
-	if filter.ProviderType != nil {
-		query["providerType"] = bson.M{
-			"$in": *filter.ProviderType,
-		}
-	}
-	if filter.ProviderName != nil {
-		query["providerName"] = bson.M{
-			"$in": *filter.ProviderName,
-		}
-	}
-	if filter.ProviderSessionID != nil {
-		query["providerSessionId"] = bson.M{
-			"$in": *filter.ProviderSessionID,
-		}
-	}
-	if filter.ProviderExternalID != nil {
-		query["providerExternalId"] = bson.M{
-			"$in": *filter.ProviderExternalID,
-		}
-	}
-	if filter.State != nil {
-		query["state"] = bson.M{
-			"$in": *filter.State,
-		}
-	}
-	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": -1})
-	cursor, err := c.Find(ctx, query, opts)
-
+	result, err := c.list(ctx, &userID, filter, pagination)
 	if err != nil {
-		logger.WithError(err).Error("Unable to list data sources")
-		return nil, errors.Wrap(err, "unable to list data sources")
+		return nil, err
 	}
 
-	if err = cursor.All(ctx, &result); err != nil {
-		return nil, errors.Wrap(err, "unable to decode data sources")
-	}
-
-	logger.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
+	lgr.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("List")
 	return result, nil
 }
 
@@ -374,6 +321,88 @@ func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, conditio
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
 	return changeInfo.DeletedCount > 0, nil
+}
+
+func (c *DataSourcesRepository) ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	now := time.Now()
+	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"filter": filter, "pagination": pagination})
+
+	result, err := c.list(ctx, nil, filter, pagination)
+	if err != nil {
+		return nil, err
+	}
+
+	lgr.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("ListAll")
+	return result, nil
+}
+
+func (c *DataSourcesRepository) list(ctx context.Context, userID *string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if userID != nil {
+		if *userID == "" {
+			return nil, errors.New("user id is missing")
+		} else if !user.IsValidID(*userID) {
+			return nil, errors.New("user id is invalid")
+		}
+	}
+	if filter == nil {
+		filter = dataSource.NewFilter()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	result := dataSource.SourceArray{}
+	query := bson.M{}
+
+	if userID != nil {
+		query["userId"] = *userID
+	}
+	if filter.ProviderType != nil {
+		query["providerType"] = bson.M{
+			"$in": *filter.ProviderType,
+		}
+	}
+	if filter.ProviderName != nil {
+		query["providerName"] = bson.M{
+			"$in": *filter.ProviderName,
+		}
+	}
+	if filter.ProviderSessionID != nil {
+		query["providerSessionId"] = bson.M{
+			"$in": *filter.ProviderSessionID,
+		}
+	}
+	if filter.ProviderExternalID != nil {
+		query["providerExternalId"] = bson.M{
+			"$in": *filter.ProviderExternalID,
+		}
+	}
+	if filter.State != nil {
+		query["state"] = bson.M{
+			"$in": *filter.State,
+		}
+	}
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := c.Find(ctx, query, opts)
+
+	if err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("Unable to list data sources")
+		return nil, errors.Wrap(err, "unable to list data sources")
+	}
+
+	if err = cursor.All(ctx, &result); err != nil {
+		return nil, errors.Wrap(err, "unable to decode data sources")
+	}
+
+	return result, nil
 }
 
 func (c *DataSourcesRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {

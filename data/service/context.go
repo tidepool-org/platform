@@ -6,13 +6,13 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/reporters"
+	summaryReporters "github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	"github.com/tidepool-org/platform/twiist"
 )
@@ -32,11 +32,11 @@ type Context interface {
 	AlertsRepository() alerts.Repository
 
 	SummarizerRegistry() *summary.SummarizerRegistry
-	SummaryReporter() *reporters.PatientRealtimeDaysReporter
+	SummaryReporter() *summaryReporters.PatientRealtimeDaysReporter
 	DataClient() dataClient.Client
 
 	ClinicsClient() clinics.Client
-	DataSourceClient() dataSource.Client
+	DataSourceClient() dataSourceService.Client
 
 	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
 }

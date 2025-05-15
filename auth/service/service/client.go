@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/auth/client"
+	authClient "github.com/tidepool-org/platform/auth/client"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -15,12 +15,12 @@ import (
 )
 
 type Client struct {
-	*client.External
+	*authClient.External
 	authStore       authStore.Store
 	providerFactory provider.Factory
 }
 
-func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory) (*Client, error) {
+func NewClient(cfg *authClient.ExternalConfig, authorizeAs platform.AuthorizeAs, name string, logger log.Logger, authStore authStore.Store, providerFactory provider.Factory) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -41,7 +41,7 @@ func NewClient(cfg *client.ExternalConfig, authorizeAs platform.AuthorizeAs, nam
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	external, err := client.NewExternal(cfg, authorizeAs, name, logger)
+	external, err := authClient.NewExternal(cfg, authorizeAs, name, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -64,11 +64,6 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, err
 	}
 
-	if err = prvdr.BeforeCreate(ctx, userID, create); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("Unable to prepare provider session for creation")
-		return nil, err
-	}
-
 	repository := c.authStore.NewProviderSessionRepository()
 
 	providerSession, err := repository.CreateUserProviderSession(ctx, userID, create)
@@ -84,7 +79,10 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		"userId":                    providerSession.UserID,
 	})
 
-	if err = prvdr.OnCreate(ctx, providerSession.UserID, providerSession); err != nil {
+	// From this point forward, the context should not be cancelable
+	ctx = context.WithoutCancel(ctx)
+
+	if err = prvdr.OnCreate(ctx, providerSession); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
 		c.deleteProviderSession(ctx, repository, providerSession)
 		return nil, err
@@ -192,11 +190,14 @@ func (c *Client) deleteProviderSession(ctx context.Context, repository authStore
 	if err != nil {
 		logger.WithError(err).Warn("Unable to get provider")
 	} else if prvdr != nil {
-		if err = prvdr.OnDelete(ctx, providerSession.UserID, providerSession); err != nil {
+		if err = prvdr.OnDelete(ctx, providerSession); err != nil {
 			logger.WithError(err).Warn("Unable to finalize deletion of provider session")
 			return err
 		}
 	}
+
+	// From this point forward, the context should not be cancelable
+	ctx = context.WithoutCancel(ctx)
 
 	return repository.DeleteProviderSession(ctx, providerSession.ID)
 }

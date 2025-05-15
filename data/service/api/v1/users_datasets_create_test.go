@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
@@ -19,7 +20,7 @@ import (
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
@@ -193,31 +194,31 @@ func (c *mockDataServiceContext) DataRepository() dataStore.DataRepository {
 }
 
 func (c *mockDataServiceContext) SummaryRepository() dataStore.SummaryRepository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SyncTaskRepository() synctaskStore.SyncTaskRepository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) AlertsRepository() alerts.Repository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SummarizerRegistry() *summary.SummarizerRegistry {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) DataClient() dataClient.Client {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
-	panic("not implemented") // TODO: Implement
+func (c *mockDataServiceContext) DataSourceClient() dataSourceService.Client {
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {

@@ -115,30 +115,29 @@ var _ = Describe("Client", func() {
 
 							It("returns an error when the context is missing", func() {
 								ctx = nil
-								result, err := client.List(ctx, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("context is missing"))
 								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the user id is missing", func() {
-								filter = dataSource.NewFilter()
-								result, err := client.List(ctx, filter, pagination)
+								userID = ""
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the user id is invalid", func() {
-								filter = dataSource.NewFilter()
-								filter.UserID = pointer.FromString("invalid")
-								result, err := client.List(ctx, filter, pagination)
-								errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
+								userID = "invalid"
+								result, err := client.List(ctx, userID, filter, pagination)
+								errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 								Expect(result).To(BeNil())
 							})
 
 							It("returns an error when the filter is invalid", func() {
 								filter = dataSource.NewFilter()
 								filter.ProviderType = pointer.FromStringArray([]string{""})
-								result, err := client.List(ctx, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 								Expect(result).To(BeNil())
 							})
@@ -146,7 +145,7 @@ var _ = Describe("Client", func() {
 							It("returns an error when the pagination is invalid", func() {
 								pagination = page.NewPagination()
 								pagination.Page = -1
-								result, err := client.List(ctx, filter, pagination)
+								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
 								Expect(result).To(BeNil())
 							})
@@ -170,7 +169,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.List(ctx, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
 									Expect(result).To(BeNil())
 								})
@@ -182,7 +181,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.List(ctx, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
 									Expect(result).To(BeNil())
 								})
@@ -194,7 +193,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns an error", func() {
-									result, err := client.List(ctx, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									errorsTest.ExpectEqual(err, request.ErrorResourceNotFoundWithID(userID))
 									Expect(result).To(BeNil())
 								})
@@ -206,7 +205,7 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									result, err := client.List(ctx, filter, pagination)
+									result, err := client.List(ctx, userID, filter, pagination)
 									Expect(err).ToNot(HaveOccurred())
 									Expect(result).To(Equal(dataSource.SourceArray{}))
 								})
@@ -221,16 +220,15 @@ var _ = Describe("Client", func() {
 								})
 
 								It("returns successfully", func() {
-									Expect(client.List(ctx, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
+									Expect(client.List(ctx, userID, filter, pagination)).To(dataSourceTest.MatchSourceArray(responseResult))
 								})
 							})
 						})
 					}
 
-					When("the request has no pagination parameters", func() {
+					When("the request has no filter or pagination parameters", func() {
 						BeforeEach(func() {
-							filter = dataSource.NewFilter()
-							filter.UserID = pointer.FromString(userID)
+							filter = nil
 							pagination = nil
 							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), ""))
 						})
@@ -241,7 +239,6 @@ var _ = Describe("Client", func() {
 					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
 							filter = dataSourceTest.RandomFilter()
-							filter.UserID = pointer.FromString(userID)
 							pagination = pageTest.RandomPagination()
 							query := url.Values{
 								"providerType":       *filter.ProviderType,

@@ -3,23 +3,21 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/pointer"
-
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/service/api"
+	serviceApi "github.com/tidepool-org/platform/service/api"
 )
 
 func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.Get("/v1/users/:userId/data_sources", ListSources, api.RequireAuth),
-		dataService.Post("/v1/users/:userId/data_sources", CreateSource, api.RequireAuth),
-		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, api.RequireAuth),
-		dataService.Get("/v1/data_sources/:id", GetSource, api.RequireAuth),
-		dataService.Put("/v1/data_sources/:id", UpdateSource, api.RequireAuth),
-		dataService.Delete("/v1/data_sources/:id", DeleteSource, api.RequireAuth),
+		dataService.Get("/v1/users/:userId/data_sources", ListSources, serviceApi.RequireAuth),
+		dataService.Post("/v1/users/:userId/data_sources", CreateSource, serviceApi.RequireAuth),
+		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, serviceApi.RequireAuth),
+		dataService.Get("/v1/data_sources/:id", GetSource, serviceApi.RequireAuth),
+		dataService.Put("/v1/data_sources/:id", UpdateSource, serviceApi.RequireAuth),
+		dataService.Delete("/v1/data_sources/:id", DeleteSource, serviceApi.RequireAuth),
 	}
 }
 
@@ -56,8 +54,7 @@ func ListSources(dataServiceContext dataService.Context) {
 		return
 	}
 
-	filter.UserID = pointer.FromString(userID)
-	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), filter, pagination)
+	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), userID, filter, pagination)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

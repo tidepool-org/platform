@@ -6,7 +6,12 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+)
+
+const (
+	KeyIDToken = "id_token"
 )
 
 type OAuthToken struct {
@@ -26,17 +31,12 @@ func NewOAuthTokenFromRawToken(rawToken *oauth2.Token) (*OAuthToken, error) {
 		return nil, errors.New("raw token is missing")
 	}
 
-	var idToken *string
-	if extraIDToken, ok := rawToken.Extra("id_token").(string); ok && extraIDToken != "" {
-		idToken = &extraIDToken
-	}
-
 	return &OAuthToken{
 		AccessToken:    rawToken.AccessToken,
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
 		ExpirationTime: rawToken.Expiry,
-		IDToken:        idToken,
+		IDToken:        GetIDToken(rawToken),
 	}, nil
 }
 
@@ -61,17 +61,37 @@ func (o *OAuthToken) Validate(validator structure.Validator) {
 	validator.String("idToken", o.IDToken).NotEmpty()
 }
 
+func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
+	if rawToken == nil {
+		return nil, errors.New("raw token is missing")
+	}
+
+	refreshed := *o
+	refreshed.AccessToken = rawToken.AccessToken
+	refreshed.TokenType = rawToken.TokenType
+	refreshed.RefreshToken = rawToken.RefreshToken
+	refreshed.ExpirationTime = rawToken.Expiry
+
+	// Only replace IDToken if one is provided
+	if idToken := GetIDToken(rawToken); idToken != nil {
+		refreshed.IDToken = idToken
+	}
+
+	return &refreshed, nil
+}
+
 func (o *OAuthToken) Expire() {
 	o.ExpirationTime = time.Now().Add(-time.Second)
 }
 
 func (o *OAuthToken) RawToken() *oauth2.Token {
-	return &oauth2.Token{
+	rawToken := &oauth2.Token{
 		AccessToken:  o.AccessToken,
 		TokenType:    o.TokenType,
 		RefreshToken: o.RefreshToken,
 		Expiry:       o.ExpirationTime,
 	}
+	return SetIDToken(rawToken, o.IDToken)
 }
 
 func (o *OAuthToken) MatchesRawToken(rawToken *oauth2.Token) bool {
@@ -79,5 +99,20 @@ func (o *OAuthToken) MatchesRawToken(rawToken *oauth2.Token) bool {
 		rawToken.AccessToken == o.AccessToken &&
 		rawToken.TokenType == o.TokenType &&
 		rawToken.RefreshToken == o.RefreshToken &&
-		rawToken.Expiry.Equal(o.ExpirationTime)
+		rawToken.Expiry.Equal(o.ExpirationTime) &&
+		pointer.EqualString(GetIDToken(rawToken), o.IDToken)
+}
+
+func GetIDToken(rawToken *oauth2.Token) *string {
+	if idToken, ok := rawToken.Extra(KeyIDToken).(string); ok && idToken != "" {
+		return &idToken
+	}
+	return nil
+}
+
+func SetIDToken(rawToken *oauth2.Token, idToken *string) *oauth2.Token {
+	if idToken != nil {
+		rawToken = rawToken.WithExtra(map[string]any{KeyIDToken: *idToken})
+	}
+	return rawToken
 }

@@ -46,7 +46,7 @@ func RandomTidepoolLinkID() string {
 	return fmt.Sprintf("twiist-%s", RandomSubjectID())
 }
 
-func GenerateIDToken(subjectID, tidepoolLinkID string, jwks jwk.Set) (string, error) {
+func GenerateIDToken(audience string, subject string, tidepoolLinkID string, jwks jwk.Set) (string, error) {
 	key, exists := jwks.Key(0)
 	if !exists {
 		return "", errors.New("unable to obtain rsa private key from jwks")
@@ -55,8 +55,8 @@ func GenerateIDToken(subjectID, tidepoolLinkID string, jwks jwk.Set) (string, er
 	token := jwt.NewWithClaims(jwt.SigningMethodRS256, provider.Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    "https://cognito-idp.us-east-1.amazonaws.com/us-east-1_12345678",
-			Subject:   subjectID,
-			Audience:  jwt.ClaimStrings{"k4kt11ukctj9u6lvfbjhkdn72"},
+			Subject:   subject,
+			Audience:  jwt.ClaimStrings{audience},
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
 			NotBefore: jwt.NewNumericDate(time.Now().Add(-time.Minute)),
 			IssuedAt:  jwt.NewNumericDate(time.Now().Add(-time.Minute * 5)),
