@@ -42,12 +42,12 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return c.baseClient.AppendURLQuery(urlString, query)
 }
 
-func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClientSource oauth.HTTPClientSource) error {
-	if httpClientSource == nil {
+func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
+	if tokenSource == nil {
 		return errors.New("http client source is missing")
 	}
 
-	httpClient, err := httpClientSource.HTTPClient(ctx, c.tokenSourceSource)
+	httpClient, err := tokenSource.HTTPClient(ctx, c.tokenSourceSource)
 	if err != nil {
 		return err
 	}
