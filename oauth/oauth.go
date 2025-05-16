@@ -24,19 +24,14 @@ type Provider interface {
 
 	ParseToken(token string, claims jwt.Claims) error
 
-	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
 	GetAuthorizationCodeURLWithState(state string) string
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error)
 
 	SupportsUserInitiatedAccountUnlinking() bool
 }
 
-type HTTPClientSource interface {
-	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
-}
-
 type TokenSource interface {
-	HTTPClientSource
+	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
 	RefreshedToken() (*auth.OAuthToken, error)
 	ExpireToken()

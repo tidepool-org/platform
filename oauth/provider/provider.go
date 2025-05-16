@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -12,17 +11,15 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
-	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 )
 
 const ProviderType = "oauth"
 
 type Provider struct {
-	name      string
-	config    *oauth2.Config
-	stateSalt string
-	jwks      jwk.Set
+	name   string
+	config *oauth2.Config
+	jwks   jwk.Set
 }
 
 func New(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, error) {
@@ -56,20 +53,16 @@ func New(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, 
 	}
 	cfg.Scopes = SplitScopes(configReporter.GetWithDefault("scopes", ""))
 
-	if authStyleInParams, err := strconv.ParseBool(configReporter.GetWithDefault("auth_style_in_params", "")); err == nil && authStyleInParams {
-		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
-	}
-
-	stateSalt := configReporter.GetWithDefault("state_salt", "")
-	if stateSalt == "" {
-		return nil, errors.New("state salt is missing")
+	if raw, err := configReporter.Get("auth_style_in_params"); err == nil && raw != "" {
+		if authStyleInParams, err := strconv.ParseBool(raw); err == nil && authStyleInParams {
+			cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
+		}
 	}
 
 	return &Provider{
-		name:      name,
-		config:    cfg,
-		stateSalt: stateSalt,
-		jwks:      jwks,
+		name:   name,
+		config: cfg,
+		jwks:   jwks,
 	}, nil
 }
 
@@ -126,10 +119,6 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 	}
 
 	return tknSrc, nil
-}
-
-func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
-	return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
 }
 
 func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
