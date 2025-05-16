@@ -31,6 +31,10 @@ type ExternalAccessor interface {
 	EnsureAuthorizedUser(ctx context.Context, targetUserID string, permission string) (string, error)
 }
 
+type ServiceAccountAuthorizer interface {
+	IsServiceAccountAuthorized(userID string) bool
+}
+
 type ServerSessionTokenProvider interface {
 	ServerSessionToken() (string, error)
 }

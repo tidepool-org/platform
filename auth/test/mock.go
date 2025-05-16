@@ -406,6 +406,44 @@ func (mr *MockExternalAccessorMockRecorder) ValidateSessionToken(ctx, token any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateSessionToken", reflect.TypeOf((*MockExternalAccessor)(nil).ValidateSessionToken), ctx, token)
 }
 
+// MockServiceAccountAuthorizer is a mock of ServiceAccountAuthorizer interface.
+type MockServiceAccountAuthorizer struct {
+	ctrl     *gomock.Controller
+	recorder *MockServiceAccountAuthorizerMockRecorder
+	isgomock struct{}
+}
+
+// MockServiceAccountAuthorizerMockRecorder is the mock recorder for MockServiceAccountAuthorizer.
+type MockServiceAccountAuthorizerMockRecorder struct {
+	mock *MockServiceAccountAuthorizer
+}
+
+// NewMockServiceAccountAuthorizer creates a new mock instance.
+func NewMockServiceAccountAuthorizer(ctrl *gomock.Controller) *MockServiceAccountAuthorizer {
+	mock := &MockServiceAccountAuthorizer{ctrl: ctrl}
+	mock.recorder = &MockServiceAccountAuthorizerMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockServiceAccountAuthorizer) EXPECT() *MockServiceAccountAuthorizerMockRecorder {
+	return m.recorder
+}
+
+// IsServiceAccountAuthorized mocks base method.
+func (m *MockServiceAccountAuthorizer) IsServiceAccountAuthorized(userID string) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsServiceAccountAuthorized", userID)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsServiceAccountAuthorized indicates an expected call of IsServiceAccountAuthorized.
+func (mr *MockServiceAccountAuthorizerMockRecorder) IsServiceAccountAuthorized(userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsServiceAccountAuthorized", reflect.TypeOf((*MockServiceAccountAuthorizer)(nil).IsServiceAccountAuthorized), userID)
+}
+
 // MockServerSessionTokenProvider is a mock of ServerSessionTokenProvider interface.
 type MockServerSessionTokenProvider struct {
 	ctrl     *gomock.Controller

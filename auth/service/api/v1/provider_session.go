@@ -171,7 +171,7 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 
 	// Authorize the service account
 	authDetails := request.GetAuthDetails(req.Context())
-	if !authDetails.IsService() && !r.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
+	if !authDetails.IsService() && !r.TwiistServiceAccountAuthorizer().IsServiceAccountAuthorized(authDetails.UserID()) {
 		responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}

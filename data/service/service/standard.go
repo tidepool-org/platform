@@ -46,7 +46,7 @@ type Standard struct {
 	dataClient                     *Client
 	dataSourceClient               *dataSourceServiceClient.Client
 	userEventsHandler              events.Runner
-	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
+	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
 	api                            *api.Standard
 	server                         *server.Standard
 }
