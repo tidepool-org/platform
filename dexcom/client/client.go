@@ -147,12 +147,12 @@ const requestDurationMaximum = 30 * time.Second
 
 // sendRequest adds instrumentation before calling oauth.Client.SendOAuthRequest.
 func (c *Client) sendRequest(ctx context.Context, method, url string, mutators []request.RequestMutator,
-	requestBody any, responseBody any, httpClientSource oauth.HTTPClientSource) error {
+	requestBody any, responseBody any, tokenSource oauth.TokenSource) error {
 
 	var inspectors = []request.ResponseInspector{
 		&promDexcomInstrumentor{},
 	}
-	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClientSource)
+	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
 }
 
 type promDexcomInstrumentor struct{}
