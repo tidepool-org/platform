@@ -26,19 +26,20 @@ type GetDataSetsForUserByIDOutput struct {
 	Error    error
 }
 
-type GetDataSetByIDInput struct {
-	Context   context.Context
-	DataSetID string
-}
-
-type GetDataSetByIDOutput struct {
-	DataSet *data.DataSet
-	Error   error
-}
-
 type CreateDataSetInput struct {
 	Context context.Context
 	DataSet *data.DataSet
+}
+
+type CreateUserDataSetInput struct {
+	Context context.Context
+	UserID  string
+	Create  *data.DataSetCreate
+}
+
+type CreateUserDataSetOutput struct {
+	DataSet *data.DataSet
+	Error   error
 }
 
 type UpdateDataSetInput struct {
@@ -195,12 +196,12 @@ type DataRepository struct {
 	GetDataSetsForUserByIDInvocations                    int
 	GetDataSetsForUserByIDInputs                         []GetDataSetsForUserByIDInput
 	GetDataSetsForUserByIDOutputs                        []GetDataSetsForUserByIDOutput
-	GetDataSetByIDInvocations                            int
-	GetDataSetByIDInputs                                 []GetDataSetByIDInput
-	GetDataSetByIDOutputs                                []GetDataSetByIDOutput
 	CreateDataSetInvocations                             int
 	CreateDataSetInputs                                  []CreateDataSetInput
 	CreateDataSetOutputs                                 []error
+	CreateUserDataSetInvocations                         int
+	CreateUserDataSetInputs                              []CreateUserDataSetInput
+	CreateUserDataSetOutputs                             []CreateUserDataSetOutput
 	UpdateDataSetInvocations                             int
 	UpdateDataSetInputs                                  []UpdateDataSetInput
 	UpdateDataSetOutputs                                 []UpdateDataSetOutput
@@ -287,18 +288,6 @@ func (d *DataRepository) GetDataSetsForUserByID(ctx context.Context, userID stri
 	return output.DataSets, output.Error
 }
 
-func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
-	d.GetDataSetByIDInvocations++
-
-	d.GetDataSetByIDInputs = append(d.GetDataSetByIDInputs, GetDataSetByIDInput{Context: ctx, DataSetID: dataSetID})
-
-	gomega.Expect(d.GetDataSetByIDOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.GetDataSetByIDOutputs[0]
-	d.GetDataSetByIDOutputs = d.GetDataSetByIDOutputs[1:]
-	return output.DataSet, output.Error
-}
-
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSet) error {
 	d.CreateDataSetInvocations++
 
@@ -309,6 +298,18 @@ func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSe
 	output := d.CreateDataSetOutputs[0]
 	d.CreateDataSetOutputs = d.CreateDataSetOutputs[1:]
 	return output
+}
+
+func (d *DataRepository) CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error) {
+	d.CreateUserDataSetInvocations++
+
+	d.CreateUserDataSetInputs = append(d.CreateUserDataSetInputs, CreateUserDataSetInput{Context: ctx, UserID: userID, Create: create})
+
+	gomega.Expect(d.CreateUserDataSetOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.CreateUserDataSetOutputs[0]
+	d.CreateUserDataSetOutputs = d.CreateUserDataSetOutputs[1:]
+	return output.DataSet, output.Error
 }
 
 func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
@@ -542,8 +543,8 @@ func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.
 func (d *DataRepository) Expectations() {
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.GetDataSetByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CreateDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.CreateUserDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.UpdateDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.DeleteDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.CreateDataSetDataOutputs).To(gomega.BeEmpty())

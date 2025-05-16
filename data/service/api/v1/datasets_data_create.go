@@ -36,12 +36,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
-	}
-	if dataSet == nil {
+	} else if dataSet == nil {
 		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}

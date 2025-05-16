@@ -41,12 +41,9 @@ func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*dat
 	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }
 
-func (d *DataRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
-	return d.DataSetRepository.GetDataSetByID(ctx, dataSetID)
-}
-
 func (d *DataRepository) CreateDataSet(ctx context.Context, dataSet *data.DataSet) error {
-	return d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
+	_, err := d.DataSetRepository.createDataSet(ctx, dataSet, time.Now().UTC())
+	return err
 }
 
 func (d *DataRepository) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
