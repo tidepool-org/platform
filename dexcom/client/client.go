@@ -2,12 +2,7 @@ package client
 
 import (
 	"context"
-	"net/http"
-	"strconv"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -150,24 +145,9 @@ func (c *Client) sendRequest(ctx context.Context, method, url string, mutators [
 	requestBody any, responseBody any, tokenSource oauth.TokenSource) error {
 
 	var inspectors = []request.ResponseInspector{
-		&promDexcomInstrumentor{},
+		prometheusCodePathResponseInspector,
 	}
 	return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
 }
 
-type promDexcomInstrumentor struct{}
-
-// InspectResponse implements request.ResponseInspector.
-func (i *promDexcomInstrumentor) InspectResponse(r *http.Response) {
-	labels := prometheus.Labels{
-		"code": strconv.Itoa(r.StatusCode),
-		"path": r.Request.URL.Path,
-	}
-	promDexcomCounter.With(labels).Inc()
-}
-
-// promDexcomCounter instruments the Dexcom API paths and status codes called.
-var promDexcomCounter = promauto.NewCounterVec(prometheus.CounterOpts{
-	Name: "tidepool_dexcom_api_client_requests",
-	Help: "Dexcom API client requests",
-}, []string{"code", "path"})
+var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspector("tidepool_dexcom_api_client_requests", "Dexcom API client requests")
