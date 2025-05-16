@@ -7,11 +7,11 @@ import (
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/appvalidate"
+	"github.com/tidepool-org/platform/auth"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/twiist"
 )
 
 type Service interface {
@@ -33,7 +33,7 @@ type Service interface {
 
 	PartnerSecrets() *appvalidate.PartnerSecrets
 
-	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
+	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
 }
 
 type Status struct {

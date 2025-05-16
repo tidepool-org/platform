@@ -26,8 +26,8 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 
 		// Authorize the service account
 		authDetails := request.GetAuthDetails(req.Context())
-		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
-			lgr.Debugf("the subject is not authorized twiist service account")
+		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsServiceAccountAuthorized(authDetails.UserID()) {
+			lgr.Debug("the subject is not authorized twiist service account")
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}

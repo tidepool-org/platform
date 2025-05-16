@@ -25,7 +25,6 @@ import (
 	log "github.com/tidepool-org/platform/log"
 	provider "github.com/tidepool-org/platform/provider"
 	task "github.com/tidepool-org/platform/task"
-	twiist "github.com/tidepool-org/platform/twiist"
 	version "github.com/tidepool-org/platform/version"
 )
 
@@ -250,10 +249,10 @@ func (mr *MockAuthServiceMockRecorder) TaskClient() *gomock.Call {
 }
 
 // TwiistServiceAccountAuthorizer mocks base method.
-func (m *MockAuthService) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (m *MockAuthService) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "TwiistServiceAccountAuthorizer")
-	ret0, _ := ret[0].(twiist.ServiceAccountAuthorizer)
+	ret0, _ := ret[0].(auth.ServiceAccountAuthorizer)
 	return ret0
 }
 

@@ -3,6 +3,7 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDuplicator "github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -15,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	"github.com/tidepool-org/platform/twiist"
 )
 
 type Standard struct {
@@ -27,12 +27,12 @@ type Standard struct {
 	syncTaskStore                  syncTaskStore.Store
 	dataClient                     dataClient.Client
 	dataSourceClient               dataSourceService.Client
-	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDuplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSourceService.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSourceService.Client, twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}

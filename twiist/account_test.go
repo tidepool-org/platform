@@ -4,12 +4,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/twiist"
 )
 
 var _ = Describe("ServiceAccountAuthorizer", func() {
 	var (
-		authorizer twiist.ServiceAccountAuthorizer
+		authorizer auth.ServiceAccountAuthorizer
 		err        error
 	)
 
@@ -27,7 +28,7 @@ var _ = Describe("ServiceAccountAuthorizer", func() {
 		})
 
 		It("should not authorize any user", func() {
-			Expect(authorizer.IsAuthorized("any-user-id")).To(BeFalse())
+			Expect(authorizer.IsServiceAccountAuthorized("any-user-id")).To(BeFalse())
 		})
 	})
 
@@ -45,13 +46,13 @@ var _ = Describe("ServiceAccountAuthorizer", func() {
 		})
 
 		It("should authorize configured service accounts", func() {
-			Expect(authorizer.IsAuthorized("service-account-1")).To(BeTrue())
-			Expect(authorizer.IsAuthorized("service-account-2")).To(BeTrue())
+			Expect(authorizer.IsServiceAccountAuthorized("service-account-1")).To(BeTrue())
+			Expect(authorizer.IsServiceAccountAuthorized("service-account-2")).To(BeTrue())
 		})
 
 		It("should not authorize unconfigured accounts", func() {
-			Expect(authorizer.IsAuthorized("service-account-3")).To(BeFalse())
-			Expect(authorizer.IsAuthorized("random-user")).To(BeFalse())
+			Expect(authorizer.IsServiceAccountAuthorized("service-account-3")).To(BeFalse())
+			Expect(authorizer.IsServiceAccountAuthorized("random-user")).To(BeFalse())
 		})
 	})
 })

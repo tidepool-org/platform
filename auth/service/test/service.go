@@ -9,6 +9,7 @@ import (
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/appvalidate"
+	"github.com/tidepool-org/platform/auth"
 	authService "github.com/tidepool-org/platform/auth/service"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
@@ -17,7 +18,6 @@ import (
 	serviceTest "github.com/tidepool-org/platform/service/test"
 	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
-	"github.com/tidepool-org/platform/twiist"
 )
 
 type Service struct {
@@ -43,7 +43,7 @@ type Service struct {
 	PartnerSecretsInvocations                 int
 	PartnerSecretsImpl                        *appvalidate.PartnerSecrets
 	TwiistServiceAccountAuthorizerInvocations int
-	TwiistServiceAccountAuthorizerImpl        twiist.ServiceAccountAuthorizer
+	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
 }
 
 func NewService() *Service {
@@ -123,7 +123,7 @@ func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return s.PartnerSecretsImpl
 }
 
-func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	s.TwiistServiceAccountAuthorizerInvocations++
 
 	return s.TwiistServiceAccountAuthorizerImpl
