@@ -185,6 +185,26 @@ func ErrorValueStringAsIDNotValid(value string) error {
 
 var idExpression = regexp.MustCompile("^[0-9a-z]{32}$") // TODO: Want just "[0-9a-f]{32}" (Jellyfish uses [0-9a-z])
 
+type DataByTime Data
+
+func (d DataByTime) Len() int {
+	return len(d)
+}
+
+func (d DataByTime) Less(left int, right int) bool {
+	if leftTime := d[left].GetTime(); leftTime == nil {
+		return true
+	} else if rightTime := d[right].GetTime(); rightTime == nil {
+		return false
+	} else {
+		return leftTime.Before(*rightTime)
+	}
+}
+
+func (d DataByTime) Swap(left int, right int) {
+	d[left], d[right] = d[right], d[left]
+}
+
 // UserDataStatus is used to track the state of the user's data at the start of a summary calculation
 type UserDataStatus struct {
 	FirstData time.Time
