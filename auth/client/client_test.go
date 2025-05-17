@@ -397,7 +397,7 @@ var _ = Describe("Client", func() {
 					})
 				})
 
-				Context("with a successful response, but not parseable", func() {
+				Context("with a successful response, but not parsable", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(

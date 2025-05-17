@@ -97,7 +97,7 @@ var _ = Describe("Data", func() {
 			},
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("has string length out of range (lower)", "0123456789abcdef0123456789abcde", data.ErrorValueStringAsIDNotValid("0123456789abcdef0123456789abcde")),
-			Entry("has string length in range", test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexidecimalLowercase)),
+			Entry("has string length in range", test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexadecimalLowercase)),
 			Entry("has string length in range for Jellyfish", test.RandomStringFromRangeAndCharset(32, 32, test.CharsetNumeric+test.CharsetLowercase)),
 			Entry("has string length out of range (upper)", "0123456789abcdef0123456789abcdef0", data.ErrorValueStringAsIDNotValid("0123456789abcdef0123456789abcdef0")),
 			Entry("has uppercase characters", "0123456789ABCDEF0123456789abcdef", data.ErrorValueStringAsIDNotValid("0123456789ABCDEF0123456789abcdef")),

@@ -238,7 +238,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with an unparseable response", func() {
+					Context("with an unparsable response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
@@ -494,7 +494,7 @@ var _ = Describe("Client", func() {
 							})
 						})
 
-						Context("with an unparseable response", func() {
+						Context("with an unparsable response", func() {
 							BeforeEach(func() {
 								server.AppendHandlers(
 									CombineHandlers(
@@ -723,7 +723,7 @@ var _ = Describe("Client", func() {
 							})
 						})
 
-						Context("with an unparseable response", func() {
+						Context("with an unparsable response", func() {
 							BeforeEach(func() {
 								server.AppendHandlers(
 									CombineHandlers(
@@ -953,7 +953,7 @@ var _ = Describe("Client", func() {
 							})
 						})
 
-						Context("with an unparseable response", func() {
+						Context("with an unparsable response", func() {
 							BeforeEach(func() {
 								server.AppendHandlers(
 									CombineHandlers(
@@ -1183,7 +1183,7 @@ var _ = Describe("Client", func() {
 							})
 						})
 
-						Context("with an unparseable response", func() {
+						Context("with an unparsable response", func() {
 							BeforeEach(func() {
 								server.AppendHandlers(
 									CombineHandlers(
@@ -1413,7 +1413,7 @@ var _ = Describe("Client", func() {
 							})
 						})
 
-						Context("with an unparseable response", func() {
+						Context("with an unparsable response", func() {
 							BeforeEach(func() {
 								server.AppendHandlers(
 									CombineHandlers(
