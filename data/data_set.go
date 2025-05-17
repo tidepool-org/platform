@@ -222,9 +222,6 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 }
 
 func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
-	if d.Deduplicator != nil {
-		d.Deduplicator.Normalize(normalizer.WithReference("deduplicator"))
-	}
 	if d.DeviceManufacturers != nil {
 		sort.Strings(*d.DeviceManufacturers)
 	}
@@ -332,7 +329,7 @@ type DataSet struct {
 	TimeProcessing      *string                 `json:"timeProcessing,omitempty" bson:"timeProcessing,omitempty"`
 	TimeZoneName        *string                 `json:"timezone,omitempty" bson:"timezone,omitempty"`
 	TimeZoneOffset      *int                    `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"`
-	Type                string                  `json:"type,omitempty" bson:"type,omitempty"`
+	Type                string                  `json:"type,omitempty" bson:"type,omitempty"` // DEPRECATED
 	UploadID            *string                 `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
 	UserID              *string                 `json:"-" bson:"_userId,omitempty"`
 	Version             *string                 `json:"version,omitempty" bson:"version,omitempty"` // TODO: Deprecate in favor of Client.Version
@@ -351,7 +348,7 @@ func ParseDataSet(parser structure.ObjectParser) *DataSet {
 
 func NewDataSet() *DataSet {
 	return &DataSet{
-		Type:        "upload",
+		Type:        "upload", // DEPRECATED
 		DataSetType: pointer.FromString(DataSetTypeNormal),
 	}
 }
@@ -383,9 +380,12 @@ func (d *DataSet) Parse(parser structure.ObjectParser) {
 	d.TimeProcessing = parser.String("timeProcessing")
 	d.TimeZoneName = parser.String("timezone")
 	d.TimeZoneOffset = parser.Int("timezoneOffset")
-	_ = parser.String("type")
 	d.UploadID = parser.String("uploadId")
 	d.Version = parser.String("version")
+
+	// DEPRECATED
+	_ = parser.String("type")
+	d.Type = "upload"
 }
 
 func (d *DataSet) Validate(validator structure.Validator) {
@@ -472,7 +472,7 @@ func (d *DataSet) Validate(validator structure.Validator) {
 	validator.String("timezone", d.TimeZoneName).Using(timeZone.NameValidator)
 	validator.Int("timezoneOffset", d.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
 
-	validator.String("type", &d.Type).EqualTo("upload")
+	validator.String("type", &d.Type).EqualTo("upload") // DEPRECATED
 
 	if validator.Origin() <= structure.OriginInternal {
 		validator.String("uploadId", d.UploadID).Exists().Using(SetIDValidator)

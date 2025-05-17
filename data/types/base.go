@@ -214,10 +214,6 @@ func (b *Base) Validate(validator structure.Validator) {
 }
 
 func (b *Base) Normalize(normalizer data.Normalizer) {
-	if b.Deduplicator != nil {
-		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
-	}
-
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
@@ -259,6 +255,10 @@ func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
 }
 
+func (b *Base) SetOrigin(origin *origin.Origin) {
+	b.Origin = origin
+}
+
 func (b *Base) GetPayload() *metadata.Metadata {
 	return b.Payload
 }
@@ -281,6 +281,10 @@ func (b *Base) GetType() string {
 
 func (b *Base) IsActive() bool {
 	return b.Active
+}
+
+func (b *Base) GetDeviceID() *string {
+	return b.DeviceID
 }
 
 func (b *Base) SetType(typ string) {

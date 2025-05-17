@@ -13,6 +13,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	structureBase "github.com/tidepool-org/platform/structure/base"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 )
 
@@ -20,6 +21,12 @@ var _ = Describe("Normalizer", func() {
 	Context("New", func() {
 		It("returns successfully", func() {
 			Expect(dataNormalizer.New(logTest.NewLogger())).ToNot(BeNil())
+		})
+	})
+
+	Context("NewNormalizer", func() {
+		It("returns successfully", func() {
+			Expect(dataNormalizer.NewNormalizer(structureBase.New(logTest.NewLogger()))).ToNot(BeNil())
 		})
 	})
 
