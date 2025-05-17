@@ -362,6 +362,7 @@ var _ = Describe("Client", func() {
 
 					Context("with an unauthorized response 401", func() {
 						BeforeEach(func() {
+							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -371,13 +372,22 @@ var _ = Describe("Client", func() {
 									VerifyBody(test.MarshalRequestBody(requestBody)),
 									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
 								),
+								CombineHandlers(
+									VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV("Content-Type", "application/json; charset=utf-8"),
+									VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+									VerifyBody(test.MarshalRequestBody(requestBody)),
+									RespondWith(http.StatusUnauthorized, "NOT JSON", responseHeaders),
+								),
 							)
+							expectedHTTPClientInputs = []oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}
 						})
 
 						It("returns an error", func() {
 							err := clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, tokenSource)
 							errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
-							Expect(server.ReceivedRequests()).To(HaveLen(1))
+							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 					})
 

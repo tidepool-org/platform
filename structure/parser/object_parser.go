@@ -202,28 +202,30 @@ func (o *Object) StringArray(reference string) *[]string {
 }
 
 func (o *Object) Time(reference string, layout string) *time.Time {
-	var timeValue time.Time
-	var err error
-
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	switch rawValue.(type) {
-	case time.Time:
-		timeValue = rawValue.(time.Time)
-	default:
-		stringValue, ok := rawValue.(string)
-		if !ok {
-			o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
-			return nil
-		}
+	timeValue, timeValueOk := rawValue.(time.Time)
+	if !timeValueOk {
+		if timePointer, timePointerOk := rawValue.(*time.Time); timePointerOk && timePointer != nil {
+			timeValue = *timePointer
+		} else if timeProvider, timeProviderOk := rawValue.(timeProvider); timeProviderOk && timeProvider != nil {
+			timeValue = timeProvider.Time()
+		} else {
+			stringValue, stringValueOk := rawValue.(string)
+			if !stringValueOk {
+				o.base.WithReference(reference).ReportError(ErrorTypeNotTime(rawValue))
+				return nil
+			}
 
-		timeValue, err = time.Parse(layout, stringValue)
-		if err != nil {
-			o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
-			return nil
+			var err error
+			timeValue, err = time.Parse(layout, stringValue)
+			if err != nil {
+				o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
+				return nil
+			}
 		}
 	}
 
@@ -362,4 +364,8 @@ func (o *Object) raw(reference string) (interface{}, bool) {
 	}
 
 	return rawValue, true
+}
+
+type timeProvider interface {
+	Time() time.Time
 }

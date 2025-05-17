@@ -190,12 +190,16 @@ var _ = Describe("Auth", func() {
 					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 				})
 
-				It("returns unauthorized if not Bearer token", func() {
-					res.HeaderOutput = &http.Header{}
-					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-					req.Header.Set("Authorization", fmt.Sprintf("NotBearer %s", accessToken))
+				It("returns successfully with no details if Authorization header does not use Bearer scheme", func() {
+					req.Header.Set("Authorization", fmt.Sprintf("Basic %s", accessToken))
+					handlerFunc = func(res rest.ResponseWriter, req *rest.Request) {
+						details := request.GetAuthDetails(req.Context())
+						Expect(details).To(BeNil())
+						Expect(service.GetRequestAuthDetails(req)).To(BeNil())
+						Expect(log.LoggerFromContext(req.Context())).To(Equal(lgr))
+						Expect(service.GetRequestLogger(req)).To(Equal(lgr))
+					}
 					middlewareFunc(res, req)
-					Expect(res.WriteHeaderInputs).To(Equal([]int{403}))
 				})
 
 				It("returns successfully", func() {

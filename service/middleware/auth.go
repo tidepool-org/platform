@@ -117,8 +117,12 @@ func (a *Authenticator) authenticateAccessToken(req *rest.Request) (request.Auth
 	}
 
 	parts := strings.SplitN(values[0], " ", 2)
-	if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
+	if len(parts) != 2 {
 		return nil, request.ErrorUnauthorized()
+	}
+
+	if !strings.EqualFold(parts[0], "Bearer") {
+		return nil, nil
 	}
 
 	details, err := a.authClient.ValidateSessionToken(req.Context(), parts[1])

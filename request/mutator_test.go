@@ -1,7 +1,9 @@
 package request_test
 
 import (
+	"maps"
 	"net/http"
+	"slices"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -71,8 +73,8 @@ var _ = Describe("Mutator", func() {
 					request.Header.Add(existingKey, existingValue)
 					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(2))
-					Expect(request.Header).To(HaveKeyWithValue(existingKey, []string{existingValue}))
 					Expect(request.Header).To(HaveKeyWithValue(key, []string{value}))
+					Expect(request.Header).To(HaveKeyWithValue(existingKey, []string{existingValue}))
 				})
 
 				It("adds the header even if there are already headers with the same key", func() {
@@ -81,6 +83,80 @@ var _ = Describe("Mutator", func() {
 					Expect(mutator.MutateRequest(request)).To(Succeed())
 					Expect(request.Header).To(HaveLen(1))
 					Expect(request.Header).To(HaveKeyWithValue(key, []string{existingValue, value}))
+				})
+			})
+		})
+	})
+
+	Context("HeadersMutator", func() {
+		var header http.Header
+
+		BeforeEach(func() {
+			header = http.Header{}
+			for range test.RandomIntFromRange(0, 3) {
+				header[testHttp.NewHeaderKey()] = []string{testHttp.NewHeaderValue()}
+			}
+		})
+
+		Context("NewHeaderMutator", func() {
+			It("returns successfully", func() {
+				Expect(request.NewHeadersMutator(header)).ToNot(BeNil())
+			})
+		})
+
+		Context("with new headers mutator", func() {
+			var mutator *request.HeadersMutator
+
+			BeforeEach(func() {
+				mutator = request.NewHeadersMutator(header)
+				Expect(mutator).ToNot(BeNil())
+			})
+
+			It("remembers the headers", func() {
+				Expect(mutator.Header).To(Equal(header))
+			})
+
+			Context("MutateRequest", func() {
+				var request *http.Request
+
+				BeforeEach(func() {
+					request = testHttp.NewRequest()
+				})
+
+				It("returns an error if the request is missing", func() {
+					Expect(mutator.MutateRequest(nil)).To(MatchError("request is missing"))
+				})
+
+				It("adds the headers", func() {
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.Header).To(Equal(header))
+				})
+
+				It("adds the header even if there are already headers", func() {
+					key := testHttp.NewHeaderKey()
+					value := testHttp.NewHeaderValue()
+					request.Header.Add(key, value)
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.Header).To(HaveLen(len(header) + 1))
+					Expect(request.Header).To(HaveKeyWithValue(key, []string{value}))
+					for existingKey, existingValues := range header {
+						Expect(request.Header).To(HaveKeyWithValue(existingKey, existingValues))
+					}
+				})
+
+				It("adds the header even if there are already headers with the same key", func() {
+					key := slices.Collect(maps.Keys(header))[0]
+					value := testHttp.NewHeaderValue()
+					request.Header.Add(key, value)
+					Expect(mutator.MutateRequest(request)).To(Succeed())
+					Expect(request.Header).To(HaveLen(len(header)))
+					for existingKey, existingValues := range header {
+						if existingKey == key {
+							Expect(request.Header).To(HaveKeyWithValue(key, append([]string{value}, header[key]...)))
+						} else {
+							Expect(request.Header).To(HaveKeyWithValue(existingKey, existingValues))
+						}
+					}
 				})
 			})
 		})

@@ -47,6 +47,26 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 		return errors.New("http client source is missing")
 	}
 
+	// Attempt with existing token
+	err := c.sendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
+
+	// If the first request results in an access token error, then mark the token as
+	// expired, send request again, and it will attempt to use the refresh token to
+	// generate a new access token
+	if oauth.IsAccessTokenError(err) {
+		tokenSource.ExpireToken()
+		err = c.sendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
+	}
+
+	// If a request results in a refresh token error, then mark it as unauthenticated
+	if oauth.IsRefreshTokenError(err) {
+		err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
+	}
+
+	return err
+}
+
+func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
 	httpClient, err := tokenSource.HTTPClient(ctx, c.tokenSourceSource)
 	if err != nil {
 		return err
