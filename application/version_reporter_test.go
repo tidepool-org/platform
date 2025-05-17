@@ -16,7 +16,7 @@ var _ = Describe("VersionReporter", func() {
 
 		It("returns successfully", func() {
 			base = netTest.RandomSemanticVersion()
-			commit = test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexidecimalLowercase)
+			commit = test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexadecimalLowercase)
 			application.VersionBase = base
 			application.VersionShortCommit = commit[:8]
 			application.VersionFullCommit = commit

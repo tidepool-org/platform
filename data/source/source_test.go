@@ -1236,7 +1236,7 @@ var _ = Describe("Source", func() {
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns false when metdata is not nil", func() {
+			It("returns false when metadata is not nil", func() {
 				datum.Metadata = metadataTest.RandomMetadataMap()
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
@@ -2263,7 +2263,7 @@ var _ = Describe("Source", func() {
 	})
 
 	Context("NewID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(dataSource.NewID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 

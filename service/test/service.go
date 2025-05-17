@@ -14,7 +14,7 @@ import (
 )
 
 func NewUserID() string {
-	return test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)
+	return test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexadecimalLowercase)
 }
 
 type Service struct {

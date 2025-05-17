@@ -15,7 +15,7 @@ type Reporter struct {
 func NewReporter() *Reporter {
 	return &Reporter{
 		base:   netTest.RandomSemanticVersion(),
-		commit: test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexidecimalLowercase),
+		commit: test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexadecimalLowercase),
 	}
 }
 

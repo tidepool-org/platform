@@ -11,5 +11,5 @@ const (
 	CharsetAlpha                = CharsetUppercase + CharsetLowercase
 	CharsetAlphaNumeric         = CharsetAlpha + CharsetNumeric
 	CharsetText                 = CharsetAlphaNumeric + CharsetWhitespace + CharsetSymbols + CharsetUnicode + CharsetEmoji
-	CharsetHexidecimalLowercase = CharsetNumeric + "abcdef"
+	CharsetHexadecimalLowercase = CharsetNumeric + "abcdef"
 )

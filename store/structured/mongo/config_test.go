@@ -210,8 +210,8 @@ var _ = Describe("Config", func() {
 			Expect(config.Validate()).To(MatchError("address is missing"))
 		})
 
-		It("returns an error if one of the addresses is not a parseable URL", func() {
-			config.Addresses = []string{"Not%Parseable"}
+		It("returns an error if one of the addresses is not a parsable URL", func() {
+			config.Addresses = []string{"Not%Parsable"}
 			Expect(config.Validate()).To(MatchError("address is invalid"))
 		})
 

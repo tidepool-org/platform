@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("User", func() {
 	Context("NewUserID", func() {
-		It("returns a string of 10 lowercase hexidecimal characters", func() {
+		It("returns a string of 10 lowercase hexadecimal characters", func() {
 			Expect(auth.NewUserID()).To(MatchRegexp("^[0-9a-f]{10}$"))
 		})
 
@@ -33,7 +33,7 @@ var _ = Describe("User", func() {
 			},
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("has string length out of range (lower)", "01234abcd", auth.ErrorValueStringAsUserIDNotValid("01234abcd")),
-			Entry("has string length in range", test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)),
+			Entry("has string length in range", test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexadecimalLowercase)),
 			Entry("has string length out of range (upper)", "01234abcdefgh", auth.ErrorValueStringAsUserIDNotValid("01234abcdefgh")),
 			Entry("has uppercase characters", "01234ABCDE", auth.ErrorValueStringAsUserIDNotValid("01234ABCDE")),
 			Entry("has symbols", "0123$%BCDE", auth.ErrorValueStringAsUserIDNotValid("0123$%BCDE")),

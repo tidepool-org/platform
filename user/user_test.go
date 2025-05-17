@@ -343,7 +343,7 @@ var _ = Describe("User", func() {
 
 	Context("ID", func() {
 		Context("NewID", func() {
-			It("returns a string of 10 lowercase hexidecimal characters", func() {
+			It("returns a string of 10 lowercase hexadecimal characters", func() {
 				Expect(user.NewID()).To(MatchRegexp("^[0-9a-f]{10}$"))
 			})
 
@@ -363,7 +363,7 @@ var _ = Describe("User", func() {
 				},
 				Entry("is an empty", "", structureValidator.ErrorValueEmpty()),
 				Entry("has string length out of range (lower)", "01234abcd", user.ErrorValueStringAsIDNotValid("01234abcd")),
-				Entry("has string length in range", test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexidecimalLowercase)),
+				Entry("has string length in range", test.RandomStringFromRangeAndCharset(10, 10, test.CharsetHexadecimalLowercase)),
 				Entry("has string length out of range (upper)", "01234abcdef", user.ErrorValueStringAsIDNotValid("01234abcdef")),
 				Entry("has uppercase characters", "01234ABCDE", user.ErrorValueStringAsIDNotValid("01234ABCDE")),
 				Entry("has symbols", "012$%^&cde", user.ErrorValueStringAsIDNotValid("012$%^&cde")),

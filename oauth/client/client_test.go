@@ -437,7 +437,7 @@ var _ = Describe("Client", func() {
 						var responseErr error
 
 						BeforeEach(func() {
-							responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+							responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -527,7 +527,7 @@ var _ = Describe("Client", func() {
 						})
 					})
 
-					Context("with an unparseable response", func() {
+					Context("with an unparsable response", func() {
 						BeforeEach(func() {
 							server.AppendHandlers(
 								CombineHandlers(
