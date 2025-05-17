@@ -222,9 +222,6 @@ func (d *DataSetCreate) Validate(validator structure.Validator) {
 }
 
 func (d *DataSetCreate) Normalize(normalizer structure.Normalizer) {
-	if d.Deduplicator != nil {
-		d.Deduplicator.Normalize(normalizer.WithReference("deduplicator"))
-	}
 	if d.DeviceManufacturers != nil {
 		sort.Strings(*d.DeviceManufacturers)
 	}

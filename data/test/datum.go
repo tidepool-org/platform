@@ -35,12 +35,16 @@ type Datum struct {
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	SetOriginInvocations                 int
+	SetOriginInputs                      []*origin.Origin
 	GetTimeInvocations                   int
 	GetTimeOutputs                       []*time.Time
 	GetTimeZoneOffsetInvocations         int
 	GetTimeZoneOffsetOutputs             []*int
 	GetTypeInvocations                   int
 	GetTypeOutputs                       []string
+	GetDeviceIDInvocations               int
+	GetDeviceIDOutputs                   []*string
 	SetTypeInvocations                   int
 	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
@@ -136,6 +140,12 @@ func (d *Datum) GetOrigin() *origin.Origin {
 	return output
 }
 
+func (d *Datum) SetOrigin(origin *origin.Origin) {
+	d.SetOriginInvocations++
+
+	d.SetOriginInputs = append(d.SetOriginInputs, origin)
+}
+
 func (d *Datum) GetType() string {
 	d.GetTypeInvocations++
 
@@ -143,6 +153,16 @@ func (d *Datum) GetType() string {
 
 	output := d.GetTypeOutputs[0]
 	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetDeviceID() *string {
+	d.GetDeviceIDInvocations++
+
+	gomega.Expect(d.GetDeviceIDOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDeviceIDOutputs[0]
+	d.GetDeviceIDOutputs = d.GetDeviceIDOutputs[1:]
 	return output
 }
 
