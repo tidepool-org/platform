@@ -544,29 +544,29 @@ func (s *Service) initializePartnerSecrets() error {
 	s.Logger().Debug("Initializing partner secrets")
 	var err error
 	var coastalSecrets *appvalidate.CoastalSecrets
-	var palmtreeSecrets *appvalidate.PalmTreeSecrets
+	var palmTreeSecrets *appvalidate.PalmTreeSecrets
 
 	// We are OK with partner secrets being missing so we only log any errors.
-	coastalCfg, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
+	coastalConfig, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
 	if err != nil {
-		s.Logger().Warnf("error initializing Coastal config: %v", err)
+		s.Logger().Warnf("error initializing coastal config: %v", err)
 	} else {
-		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalCfg)
+		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalConfig)
 		if err != nil {
-			s.Logger().Warnf("error initializing Coastal secrets: %v", err)
+			s.Logger().Warnf("error initializing coastal secrets: %v", err)
 		}
 	}
 
-	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
+	palmTreeConfig, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
 	if err != nil {
-		s.Logger().Warnf("error initializing Palmtree config: %v", err)
+		s.Logger().Warnf("error initializing palm tree config: %v", err)
 	} else {
-		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmtreeCfg)
+		palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmTreeConfig)
 		if err != nil {
-			s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
+			s.Logger().Warnf("error initializing palm tree secrets: %v", err)
 		}
 	}
-	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
+	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmTreeSecrets)
 	return nil
 }
 
