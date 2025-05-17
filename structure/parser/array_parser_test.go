@@ -568,6 +568,9 @@ var _ = Describe("Array", func() {
 				false,
 				"abc",
 				now.Format(time.RFC3339Nano),
+				now,
+				&now,
+				&timeProvider{tm: now},
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -596,6 +599,27 @@ var _ = Describe("Array", func() {
 
 		It("with index parameter with string type returns value", func() {
 			value := parser.Time(2, time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with index parameter with time type returns value", func() {
+			value := parser.Time(3, time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with index parameter with time pointer type returns value", func() {
+			value := parser.Time(4, time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with index parameter with Time() time.Time interface type returns value", func() {
+			value := parser.Time(5, time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())

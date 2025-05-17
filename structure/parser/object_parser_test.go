@@ -546,6 +546,8 @@ var _ = Describe("Object", func() {
 				"one":   "abc",
 				"two":   now.Format(time.RFC3339Nano),
 				"three": now,
+				"four":  &now,
+				"five":  &timeProvider{tm: now},
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -576,6 +578,20 @@ var _ = Describe("Object", func() {
 
 		It("with key with time type returns value", func() {
 			value := parser.Time("three", time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with time pointer type returns value", func() {
+			value := parser.Time("four", time.RFC3339Nano)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeTemporally("==", now))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with time Time() time.Time interface returns value", func() {
+			value := parser.Time("five", time.RFC3339Nano)
 			Expect(value).ToNot(BeNil())
 			Expect(*value).To(BeTemporally("==", now))
 			Expect(base.Error()).ToNot(HaveOccurred())
@@ -869,3 +885,11 @@ var _ = Describe("Object", func() {
 		})
 	})
 })
+
+type timeProvider struct {
+	tm time.Time
+}
+
+func (t timeProvider) Time() time.Time {
+	return t.tm
+}
