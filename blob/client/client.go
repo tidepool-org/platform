@@ -203,7 +203,7 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 	}
 
 	url := c.client.ConstructURL("v1", "blobs", id, "content")
-	headersInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
+	headersInspector := request.NewHeadersInspector()
 	body, err := c.client.RequestStream(ctx, http.MethodGet, url, nil, nil, headersInspector)
 	if err != nil {
 		if request.IsErrorResourceNotFound(err) {
@@ -260,7 +260,7 @@ func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (
 
 	url := c.client.ConstructURL("v1", "device_logs", deviceLogID)
 
-	headersInspector := request.NewHeadersInspector(log.LoggerFromContext(ctx))
+	headersInspector := request.NewHeadersInspector()
 	body, err := c.client.RequestStream(ctx, http.MethodGet, url, nil, nil, headersInspector)
 	if err != nil {
 		if request.IsErrorResourceNotFound(err) {

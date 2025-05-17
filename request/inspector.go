@@ -6,8 +6,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	prometheusPromauto "github.com/prometheus/client_golang/prometheus/promauto"
-
-	"github.com/tidepool-org/platform/log"
 )
 
 type ResponseInspector interface {
@@ -24,21 +22,13 @@ type ResponseInspector interface {
 
 type HeadersInspector struct {
 	Headers http.Header
-	logger  log.Logger
 }
 
-func NewHeadersInspector(logger log.Logger) *HeadersInspector {
-	return &HeadersInspector{logger: logger}
+func NewHeadersInspector() *HeadersInspector {
+	return &HeadersInspector{}
 }
 
 func (h *HeadersInspector) InspectResponse(res *http.Response) {
-	if res == nil {
-		if h.logger != nil {
-			h.logger.Warnf("response is missing")
-		}
-		return
-	}
-
 	h.Headers = res.Header
 }
 

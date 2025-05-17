@@ -121,7 +121,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 	if len(pt.Config.CertData) == 0 {
 		return nil, ErrInvalidPartnerCredentials
 	}
-	payload := newPalmtreePayload(pt.Config.ProfileID)
+	payload := newPalmTreePayload(pt.Config.ProfileID)
 
 	if err := json.Unmarshal(partnerDataRaw, payload); err != nil {
 		return nil, fmt.Errorf("unable to unmarshal PalmTree payload: %w", err)
@@ -168,7 +168,7 @@ func (p *PalmTreePayload) Validate(v structure.Validator) {
 	v.String("requiredFormat.format", &p.RequiredFormat.Format).EqualTo("PEM")
 }
 
-func newPalmtreePayload(profileID string) *PalmTreePayload {
+func newPalmTreePayload(profileID string) *PalmTreePayload {
 	return &PalmTreePayload{
 		ProfileID: profileID,
 		RequiredFormat: palmTreeRequiredFormat{
