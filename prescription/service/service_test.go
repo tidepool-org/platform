@@ -10,7 +10,7 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/mock/gomock"
 
-	"github.com/tidepool-org/platform/clinics"
+	clinicsTest "github.com/tidepool-org/platform/clinics/test"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/service"
 	prescriptionStoreTest "github.com/tidepool-org/platform/prescription/store/test"
@@ -25,15 +25,15 @@ var _ = Describe("PrescriptionService", func() {
 	var str *prescriptionStoreTest.Store
 	var clinicsCtrl *gomock.Controller
 	var mailerCtrl *gomock.Controller
-	var clinicsClient *clinics.MockClient
-	var mailerClient *prescriptionApplicationTest.MockMockMailer
+	var clinicsClient *clinicsTest.MockClient
+	var mailerClient *prescriptionApplicationTest.MockMailerClient
 
 	BeforeEach(func() {
 		mailerCtrl = gomock.NewController(GinkgoT())
-		mailerClient = prescriptionApplicationTest.NewMockMockMailer(mailerCtrl)
+		mailerClient = prescriptionApplicationTest.NewMockMailerClient(mailerCtrl)
 
 		clinicsCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinics.NewMockClient(clinicsCtrl)
+		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
 
 		str = prescriptionStoreTest.NewStore()
 

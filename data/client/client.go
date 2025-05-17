@@ -19,8 +19,6 @@ import (
 // TODO: Move interface to data package once upload dependency broken
 // TODO: Once above complete, rename ClientImpl to Client
 
-//go:generate mockgen -destination=./test/mock.go -package test . Client
-
 type Client interface {
 	data.DataSetAccessor
 
