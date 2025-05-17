@@ -12,11 +12,13 @@ import (
 	"time"
 
 	"github.com/ant0ine/go-json-rest/rest"
-	gomock "go.uber.org/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/appvalidate"
+	appvalidateTest "github.com/tidepool-org/platform/appvalidate/test"
 	"github.com/tidepool-org/platform/auth"
 	v1 "github.com/tidepool-org/platform/auth/service/api/v1"
+	authServiceTest "github.com/tidepool-org/platform/auth/service/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -29,15 +31,13 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-//go:generate mockgen -build_flags=--mod=mod -destination=./auth_service_mock.go -package=v1 -mock_names Service=MockAuthService github.com/tidepool-org/platform/auth/service Service
-
 var _ = Describe("App Validation", func() {
 	defer GinkgoRecover()
 
 	var ctrl *gomock.Controller
-	var service *v1.MockAuthService
-	var repo *appvalidate.MockRepository
-	var generator *appvalidate.MockChallengeGenerator
+	var service *authServiceTest.Service
+	var repo *appvalidateTest.MockRepository
+	var generator *appvalidateTest.MockChallengeGenerator
 	var authClient *authTest.MockClient
 	var handler http.Handler
 
@@ -98,15 +98,12 @@ var _ = Describe("App Validation", func() {
 	}
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		service = v1.NewMockAuthService(ctrl)
+		service = authServiceTest.NewService()
 		repo = newRepository(ctrl, initialValidations)
-		generator = appvalidate.NewMockChallengeGenerator(ctrl)
+		generator = appvalidateTest.NewMockChallengeGenerator(ctrl)
 		authClient = authTest.NewMockClient(ctrl)
 
-		service.EXPECT().
-			Logger().
-			Return(logTest.NewLogger()).
-			AnyTimes()
+		service.LoggerImpl = logTest.NewLogger()
 		generator.EXPECT().
 			GenerateChallenge(gomock.Any()).
 			Return(challenge, nil).
@@ -117,10 +114,7 @@ var _ = Describe("App Validation", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 
-		service.EXPECT().
-			AppValidator().
-			Return(validator).
-			AnyTimes()
+		service.AppvalidateValidatorImpl = validator
 
 		authClient.EXPECT().
 			ServerSessionToken().
@@ -390,7 +384,7 @@ func unmashalBody(r io.ReadCloser, result interface{}) error {
 	return json.NewDecoder(r).Decode(result)
 }
 
-func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.AppValidation) *appvalidate.MockRepository {
+func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.AppValidation) *appvalidateTest.MockRepository {
 	// In memory map for persistence across calls.
 	// [appvalidate.Filter] => *appvalidate.AppValidation
 	mapping := &sync.Map{}
@@ -401,7 +395,7 @@ func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.App
 		mapping.Store(appvalidate.Filter{UserID: copy.UserID, KeyID: copy.KeyID}, &copy)
 	}
 
-	repo := appvalidate.NewMockRepository(ctrl)
+	repo := appvalidateTest.NewMockRepository(ctrl)
 	repo.EXPECT().
 		Upsert(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, v *appvalidate.AppValidation) error {
