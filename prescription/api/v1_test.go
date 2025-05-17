@@ -5,48 +5,44 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 
-	"go.uber.org/mock/gomock"
-
-	"github.com/tidepool-org/platform/clinics"
-
-	"syreclabs.com/go/faker"
-
-	prescriptionService "github.com/tidepool-org/platform/prescription/service"
-	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
-
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+
+	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.uber.org/mock/gomock"
+	"syreclabs.com/go/faker"
 
 	clinic "github.com/tidepool-org/clinic/client"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
+	clinicsTest "github.com/tidepool-org/platform/clinics/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/prescription"
 	"github.com/tidepool-org/platform/prescription/api"
+	prescriptionService "github.com/tidepool-org/platform/prescription/service"
+	serviceTest "github.com/tidepool-org/platform/prescription/service/test"
 	prescriptionTest "github.com/tidepool-org/platform/prescription/test"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-
-	"github.com/tidepool-org/platform/log"
-	logTest "github.com/tidepool-org/platform/log/test"
 	testRest "github.com/tidepool-org/platform/test/rest"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("V1", func() {
 	var ctrl *gomock.Controller
-	var clinicsClient *clinics.MockClient
+	var clinicsClient *clinicsTest.MockClient
 	var deviceSettingsValidator prescriptionService.DeviceSettingsValidator
 	var prescriptionService *prescriptionTest.PrescriptionAccessor
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinics.NewMockClient(ctrl)
+		clinicsClient = clinicsTest.NewMockClient(ctrl)
 		deviceSettingsValidator = serviceTest.NewNoopSettingsValidator()
 		prescriptionService = prescriptionTest.NewPrescriptionAccessor()
 	})
@@ -168,7 +164,7 @@ var _ = Describe("V1", func() {
 							body, err := json.Marshal(create)
 							Expect(err).ToNot(HaveOccurred())
 
-							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+							req.Body = io.NopCloser(bytes.NewBuffer(body))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						})
 
@@ -204,7 +200,7 @@ var _ = Describe("V1", func() {
 									body, err := json.Marshal(create)
 									Expect(err).ToNot(HaveOccurred())
 
-									req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+									req.Body = io.NopCloser(bytes.NewBuffer(body))
 								})
 
 								It("returns bad request with validation error", func() {
@@ -447,7 +443,7 @@ var _ = Describe("V1", func() {
 
 							req.Method = http.MethodPatch
 							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userID, prescr.ID)
-							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+							req.Body = io.NopCloser(bytes.NewBuffer(body))
 
 							prescriptionService.UpdatePrescriptionStateOutputs = []prescriptionTest.UpdatePrescriptionStateOutput{{Prescr: prescr, Err: nil}}
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
@@ -545,7 +541,7 @@ var _ = Describe("V1", func() {
 							req.Method = http.MethodPost
 							req.URL.Path = fmt.Sprintf("/v1/clinics/%v/prescriptions/%v/revisions", clinicID, prescr.ID.Hex())
 
-							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+							req.Body = io.NopCloser(bytes.NewBuffer(body))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 						})
 
@@ -603,7 +599,7 @@ var _ = Describe("V1", func() {
 							req.Method = http.MethodPost
 							req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userID)
 
-							req.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+							req.Body = io.NopCloser(bytes.NewBuffer(body))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							prescriptionService.ClaimPrescriptionOutputs = []prescriptionTest.ClaimPrescriptionOutput{}
 						})
