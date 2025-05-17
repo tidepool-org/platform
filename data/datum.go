@@ -18,6 +18,7 @@ type Datum interface {
 	IdentityFields() ([]string, error)
 
 	GetOrigin() *origin.Origin
+	SetOrigin(origin *origin.Origin)
 	GetPayload() *metadata.Metadata
 
 	GetType() string
@@ -25,6 +26,7 @@ type Datum interface {
 	GetTime() *time.Time
 	GetTimeZoneOffset() *int
 	GetUploadID() *string
+	GetDeviceID() *string
 
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
@@ -39,7 +41,7 @@ type Datum interface {
 	SetDeletedUserID(deletedUserID *string)
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
-	SetProvenance(*Provenance)
+	SetProvenance(provenance *Provenance)
 }
 
 func DatumAsPointer(datum Datum) *Datum {
@@ -51,6 +53,12 @@ type Data []Datum
 func (d Data) SetActive(active bool) {
 	for _, datum := range d {
 		datum.SetActive(active)
+	}
+}
+
+func (d Data) SetOrigin(origin *origin.Origin) {
+	for _, datum := range d {
+		datum.SetOrigin(origin)
 	}
 }
 

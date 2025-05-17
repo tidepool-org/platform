@@ -468,7 +468,7 @@ var _ = Describe("Mongo", func() {
 							"UserID":             PointTo(Equal(userID)),
 							"ProviderType":       Equal(create.ProviderType),
 							"ProviderName":       Equal(create.ProviderName),
-							"ProviderSessionID":  Equal(create.ProviderSessionID),
+							"ProviderSessionID":  BeNil(),
 							"ProviderExternalID": Equal(create.ProviderExternalID),
 							"State":              Equal(pointer.FromString(dataSource.StateDisconnected)),
 							"Metadata":           Equal(create.Metadata),

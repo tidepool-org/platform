@@ -98,7 +98,6 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 type Create struct {
 	ProviderType       *string        `json:"providerType,omitempty"`
 	ProviderName       *string        `json:"providerName,omitempty"`
-	ProviderSessionID  *string        `json:"providerSessionId,omitempty"`
 	ProviderExternalID *string        `json:"providerExternalId,omitempty"`
 	Metadata           map[string]any `json:"metadata,omitempty"`
 }
@@ -110,7 +109,6 @@ func NewCreate() *Create {
 func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderType = parser.String("providerType")
 	c.ProviderName = parser.String("providerName")
-	c.ProviderSessionID = parser.String("providerSessionId")
 	c.ProviderExternalID = parser.String("providerExternalId")
 	if ptr := parser.Object("metadata"); ptr != nil {
 		c.Metadata = *ptr
@@ -120,7 +118,6 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	validator.String("providerSessionId", c.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 }
