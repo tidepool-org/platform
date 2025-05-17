@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Task", func() {
 	Context("NewID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(task.NewID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 
@@ -33,7 +33,7 @@ var _ = Describe("Task", func() {
 			},
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("has string length out of range (lower)", "0123456789abcdef0123456789abcde", task.ErrorValueStringAsIDNotValid("0123456789abcdef0123456789abcde")),
-			Entry("has string length in range", test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexidecimalLowercase)),
+			Entry("has string length in range", test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexadecimalLowercase)),
 			Entry("has string length out of range (upper)", "0123456789abcdef0123456789abcdef0", task.ErrorValueStringAsIDNotValid("0123456789abcdef0123456789abcdef0")),
 			Entry("has uppercase characters", "0123456789ABCDEF0123456789abcdef", task.ErrorValueStringAsIDNotValid("0123456789ABCDEF0123456789abcdef")),
 			Entry("has symbols", "0123456789$%^&*(0123456789abcdef", task.ErrorValueStringAsIDNotValid("0123456789$%^&*(0123456789abcdef")),
