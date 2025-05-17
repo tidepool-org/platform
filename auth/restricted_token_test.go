@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("RestrictedToken", func() {
 	Context("NewRestrictedTokenID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(auth.NewRestrictedTokenID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 

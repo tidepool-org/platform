@@ -8,19 +8,19 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-// TODO: https://tidepool.atlassian.net/browse/BACK-3394 - This implementation is a
-// temporary placeholder to allow bootstrapping of the Abbott OAuth client workflow.
-// Will need to migrate this to environment variables and add minimal authorization.
-// For now, though, this is acceptable since it isn't revealing anything that is not
-// already available in other locations (i.e. other public repos).
+// TODO: BACK-3394 - Restrict partner OpenID sector information to environment variable and authorized access only
+// This implementation is a temporary placeholder to allow bootstrapping of the Abbott OAuth client workflow.
+// Will need to migrate this to environment variables and add minimal authorization. For now, though, this is
+// acceptable since it isn't revealing anything that is not already available in other locations (i.e. other
+// public repos).
 
 func PartnersSector(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
 	responder := request.MustNewResponder(res, req)
 
-	if partnerSectorIdentifers, ok := namespacePartnerSectorIdentifers[os.Getenv("POD_NAMESPACE")]; ok {
-		if sectorIdentifier, ok := partnerSectorIdentifers[req.PathParam("partner")]; ok {
+	if partnerSectorIdentifiers, ok := namespacePartnerSectorIdentifiers[os.Getenv("POD_NAMESPACE")]; ok {
+		if sectorIdentifier, ok := partnerSectorIdentifiers[req.PathParam("partner")]; ok {
 			responder.Data(http.StatusOK, sectorIdentifier)
 			return
 		}
@@ -29,7 +29,7 @@ func PartnersSector(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, []string{})
 }
 
-var namespacePartnerSectorIdentifers = map[string]map[string][]string{
+var namespacePartnerSectorIdentifiers = map[string]map[string][]string{
 	"external": {
 		"abbott": {
 			"https://external.integration.tidepool.org/v1/oauth/abbott/redirect",

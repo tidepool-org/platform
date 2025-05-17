@@ -1144,7 +1144,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an unparseable response", func() {
+			Context("with an unparsable response", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -1295,13 +1295,13 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("SerializableErrorResponseParser", func() {
-		It("returns nil if response body is not parseable", func() {
+		It("returns nil if response body is not parsable", func() {
 			serializableErrorResponseParser := client.NewSerializableErrorResponseParser()
 			err := serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader([]byte("NOT JSON")))}, testHttp.NewRequest())
 			Expect(err).To(BeNil())
 		})
 
-		It("returns deserialized error if response body is parseable", func() {
+		It("returns deserialized error if response body is parsable", func() {
 			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
 			body, err := json.Marshal(errors.Serializable{Error: responseErr})
 			Expect(err).ToNot(HaveOccurred())

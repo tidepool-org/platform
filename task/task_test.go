@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("Task", func() {
 	Context("NewID", func() {
-		It("returns a string of 32 lowercase hexidecimal characters", func() {
+		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(task.NewID()).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 
