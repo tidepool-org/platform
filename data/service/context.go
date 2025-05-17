@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
@@ -14,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	summaryReporters "github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Context interface {
@@ -35,7 +37,9 @@ type Context interface {
 	DataClient() dataClient.Client
 
 	ClinicsClient() clinics.Client
+	DataRawClient() dataRaw.Client
 	DataSourceClient() dataSourceService.Client
+	WorkClient() work.Client
 
 	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
 }

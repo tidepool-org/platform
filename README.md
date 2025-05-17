@@ -6,7 +6,7 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.11.4 or later
+1. Install Go version 1.24.3 or later
 1. Install mongodb (if it is not already installed, or run it from Docker)
 
     The tests assume that mongodb is listening on 127.0.0.1:27017.
@@ -33,6 +33,26 @@ cd platform
 . ./env.sh
 make buildable
 ```
+
+# Configure Plugin Visibility
+
+By default, all plugins are configured to use the public versions (which typically are nothing more than a bare minimum shell). Public visilibity is fine for developing, building, or using platform without any of the private plugin functionality.
+
+To change plugin visibility to private:
+
+```
+make plugins-visibility-private
+```
+
+This will update the private plugin submodules and create a Go workspace to use the private plugin during development and builds.
+
+To restore the plugin visibility to public:
+
+```
+make plugins-visibility-public
+```
+
+NOTE: Do **NOT** commit any `update = none` changes to `.gitmodules` nor the `go.work` or `go.work.sum` files. Furthermore, ensure no private code is committed to the public platform repository.
 
 # Execute
 
@@ -107,7 +127,7 @@ make clean
   - For major revisions, if any change described in the release notes could have a negative impact upon this repository, follow up and review any associated issues and the updated code. Make note of this change in order to explicitly test after upgrading.
   - For minor revisions, review all issues included in the associated GitHub milestone issue tracker. These can be found in the minor revision release notes. If any issue could have a negative impact upon this repository, review the updated code. Make note of this issue in order to explicitly test after upgrading.
 - Install `gimme`(https://github.com/travis-ci/gimme) via `brew`. Execute `gimme -k`. Ensure that the target Golang version is listed. The `gimme` tool is used by Travis CI to manage Golang versions. If the version is not listed, then the Travis CI build will not succeed.
-- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.11.4`, then ensure that the `1.11.4-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
+- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.24.3`, then ensure that the `1.24.3-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
 
 ## Upgrade
 
