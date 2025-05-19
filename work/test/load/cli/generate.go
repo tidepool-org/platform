@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/rand/v2"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -22,8 +24,8 @@ func randomWorkType() string {
 	return workLoad.TypeSleepy
 }
 
-func randomWorkResult(errors bool) string {
-	if !errors {
+func randomWorkResult(includeErrors bool) string {
+	if !includeErrors {
 		if rand.IntN(2) == 0 {
 			return work.ResultSuccess
 		}
@@ -65,6 +67,7 @@ type generate struct {
 	failureSimulation bool
 	count             int
 	workActions       string
+	actionData        map[string]any
 	includeErrors     bool
 	processingTimeout int
 	offsetMS          int64
@@ -75,48 +78,62 @@ func newGenerate() *generate {
 	return &generate{
 		failureSimulation: false,
 		items:             []workLoad.LoadItem{},
+		actionData:        map[string]any{},
 	}
 }
 
-func (g *generate) buildActions(actionNames []string) workLoad.Actions {
-	actions := workLoad.Actions{}
+func (g *generate) setActionData() error {
+	allowedActions := []string{workLoad.CreateAction, workLoad.FailureAction, workLoad.RegisterAction, workLoad.SleepAction, workLoad.ResultAction}
+	actions := strings.Split(g.workActions, ",")
+	var err error
 
-	for _, name := range actionNames {
-
-		actionName := strings.Trim(name, " ")
-		var actionData any
-		if strings.Contains(actionName, ":") {
-			parts := strings.Split(actionName, ":")
-			actionName = parts[0]
+	for _, action := range actions {
+		name := strings.Trim(action, " ")
+		var data any
+		if strings.Contains(name, ":") {
+			parts := strings.Split(name, ":")
+			name = parts[0]
 			if len(parts) > 1 {
-				actionData = parts[1]
+				data = parts[1]
 			}
 		}
+		if !slices.Contains(allowedActions, name) {
+			err = errors.Join(err, fmt.Errorf("invalid action %s", name))
+		}
+		g.actionData[name] = data
+	}
+	return err
+}
+
+func (g *generate) buildActions() workLoad.Actions {
+	actions := workLoad.Actions{}
+
+	for name, data := range g.actionData {
 
 		action := workLoad.Action{
-			"action": actionName,
+			"action": name,
 		}
-		switch actionName {
+		switch name {
 
 		case workLoad.FailureAction:
 			g.failureSimulation = true
 			// default start failing 1 min into process
 			action[workLoad.FailureOffsetMS] = 60 * int(time.Second/time.Millisecond)
-			failureOffset, err := strconv.Atoi(actionData.(string))
+			failureOffset, err := strconv.Atoi(data.(string))
 			if err == nil {
 				action[workLoad.FailureOffsetMS] = failureOffset
 			}
 			action[workLoad.FailureDurationMS] = g.failureMS
 		case workLoad.SleepAction:
 			action[workLoad.SleepDelayMS] = 1000
-			if actionData != nil {
-				delay, err := strconv.Atoi(actionData.(string))
+			if data != nil {
+				delay, err := strconv.Atoi(data.(string))
 				if err == nil {
 					action[workLoad.SleepDelayMS] = delay
 				}
 			}
 		case workLoad.ResultAction:
-			action[workLoad.ResultAction] = resultData(actionData)
+			action[workLoad.ResultAction] = resultData(data)
 		case workLoad.CreateAction:
 			action["create"] = work.Create{
 				Type: randomWorkType(),
@@ -131,8 +148,8 @@ func (g *generate) buildActions(actionNames []string) workLoad.Actions {
 			}
 		case workLoad.RegisterAction:
 			action[workLoad.RegisterType] = workLoad.DomainName("other")
-			if actionData != nil {
-				subdomain, ok := actionData.(string)
+			if data != nil {
+				subdomain, ok := data.(string)
 				if ok {
 					action[workLoad.ResultAction] = workLoad.DomainName(subdomain)
 				}
@@ -176,16 +193,21 @@ func (g *generate) saveTestData(data []byte) error {
 	return nil
 }
 
+func (g *generate) commandBefore(ctx *cli.Context) error {
+	if err := g.setActionData(); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *generate) commandAction(ctx *cli.Context) error {
 	for range int(g.count) {
-		actionNames := strings.Split(g.workActions, ",")
-
 		g.items = append(g.items, workLoad.LoadItem{
 			OffsetMilliseconds: g.calcOffsetFromStart(),
 			Create: &work.Create{
 				Type: randomWorkType(),
 				Metadata: map[string]any{
-					"actions": g.buildActions(actionNames),
+					"actions": g.buildActions(),
 				},
 				ProcessingTimeout: g.processingTimeout,
 			},
@@ -240,7 +262,7 @@ func (g *generate) GetCommand() cli.Command {
 			},
 			&cli.Int64Flag{
 				Name:        "offsetMs",
-				Usage:       "offset from which all items will start in the future e.g. --offsetMs 300000",
+				Usage:       "offset from which all items will start in the future e.g. --offsetMs 3600000",
 				Destination: &g.offsetMS,
 				Value:       0,
 				Required:    false,
@@ -260,6 +282,7 @@ func (g *generate) GetCommand() cli.Command {
 				Required:    false,
 			},
 		},
+		Before: g.commandBefore,
 		Action: g.commandAction,
 	}
 }
