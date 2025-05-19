@@ -23,11 +23,17 @@ const (
 
 	ActionKey      = "action"
 	SleepAction    = "sleep"
+	FailureAction  = "failure"
 	ResultAction   = "result"
 	CreateAction   = "createWork"
 	RegisterAction = "registerProcessor"
 
-	SleepDelay   = "delay"
+	FailureOffsetMS   = "failureOffsetMilliseconds"
+	FailureDurationMS = "failureDurationMilliseconds"
+	FailingOffsetMS   = "failingOffsetMilliseconds"
+	PendingOffsetMS   = "pendingOffsetMilliseconds"
+
+	SleepDelayMS = "delayMilliseconds"
 	RegisterType = "type"
 	CreateType   = "type"
 )
@@ -44,6 +50,8 @@ var TypeDopey = DomainName("dopey")
 type loadProcessor struct {
 	typ                   string
 	quantity              int
+	failureStart          time.Time
+	failureEnd            time.Time
 	frequency             time.Duration
 	coordinator           *service.Coordinator
 	workClient            work.Client
@@ -57,6 +65,8 @@ func newLoadProcessor(typ string, quantity int, frequency time.Duration, workCli
 		frequency:             frequency,
 		workClient:            workClient,
 		registerProcessorFunc: registerProcessorFunc,
+		failureStart:          time.Time{},
+		failureEnd:            time.Time{},
 	}, nil
 }
 
@@ -89,17 +99,16 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any, err e
 			priority = 0
 		}
 
-		offset, ok := metadata["pendingOffsetMS"].(int)
+		offsetMS, ok := metadata[PendingOffsetMS].(int)
 		if !ok {
-			// could be an infite loop as will kick asap
-			offset = 0
+			offsetMS = 0
 		}
 
 		return work.NewProcessResultPending(work.PendingUpdate{
 			ProcessingTimeout:       timeout,
 			Metadata:                metadata,
 			ProcessingPriority:      priority,
-			ProcessingAvailableTime: time.Now().Add(time.Millisecond * time.Duration(offset)),
+			ProcessingAvailableTime: time.Now().Add(time.Millisecond * time.Duration(offsetMS)),
 		})
 	case work.ResultFailed:
 		if err == nil {
@@ -115,22 +124,25 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any, err e
 			Metadata:    metadata,
 		})
 	case work.ResultFailing:
-		msg, ok := metadata["failingMessage"].(string)
-		if !ok {
-			msg = "failing from return result"
+		if err == nil {
+			msg, ok := metadata["failingMessage"].(string)
+			if !ok {
+				msg = "failing from return result"
+			}
+			err = errors.New(msg)
 		}
 		count, ok := metadata["failingRetryCount"].(int)
 		if !ok {
 			count = 3
 		}
-		offset, ok := metadata["failingOffsetMS"].(int)
+		retryOffset, ok := metadata["failingOffsetMS"].(int)
 		if !ok {
-			offset = 3
+			retryOffset = 30 * 1000
 		}
 		return work.NewProcessResultFailing(work.FailingUpdate{
-			FailingError:      *errors.NewSerializable(errors.New(msg)),
+			FailingError:      *errors.NewSerializable(err),
 			FailingRetryCount: count,
-			FailingRetryTime:  time.Now().Add(time.Millisecond * time.Duration(offset)),
+			FailingRetryTime:  time.Now().Add(time.Millisecond * time.Duration(retryOffset)),
 			Metadata:          metadata,
 		})
 	case work.ResultDelete:
@@ -146,10 +158,33 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any, err e
 
 func (p *loadProcessor) performAction(ctx context.Context, wrk *work.Work, name string, metadata map[string]any) *work.ProcessResult {
 
-	switch name {
+	if !p.failureStart.IsZero() {
+		now := time.Now()
+		if p.failureStart.Before(now) && p.failureEnd.After(now) {
+			return p.returnResult(
+				work.ResultFailing,
+				metadata,
+				fmt.Errorf("system failure from %s until %s", p.failureStart.Format(time.RFC3339), p.failureEnd.Format(time.RFC3339)),
+			)
+		}
+	}
 
+	switch name {
+	case FailureAction:
+		offsetMillisecond, ok := metadata[FailureOffsetMS].(float64)
+		if !ok {
+			offsetMillisecond = float64(rand.IntN(1000))
+		}
+
+		durationMillisecond, ok := metadata[FailureDurationMS].(float64)
+		if !ok {
+			durationMillisecond = float64(rand.IntN(1000))
+		}
+		p.failureStart = wrk.ProcessingTime.Add(time.Millisecond * time.Duration(offsetMillisecond))
+		p.failureEnd = p.failureStart.Add(time.Millisecond * time.Duration(durationMillisecond))
+		return nil
 	case SleepAction:
-		delayMillisecond, ok := metadata[SleepDelay].(float64)
+		delayMillisecond, ok := metadata[SleepDelayMS].(float64)
 		if !ok {
 			delayMillisecond = float64(rand.IntN(1000))
 		}
@@ -204,6 +239,7 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 	if strings.Contains(wrk.Type, domainPrefix) {
 		p.returnResult(work.ResultFailed, wrk.Metadata, errors.New("invalid work type"))
 	}
+
 	metadataActions := wrk.Metadata[MetadataActions]
 
 	jsonData, err := json.Marshal(metadataActions)
