@@ -59,26 +59,26 @@ func resultData(result any) map[string]any {
 }
 
 type generate struct {
-	outputDir             string
-	spreadDurationSeconds int64
-	failureDurationMS     int64
-	systemFailure         bool
-	workItemCount         int
-	workActions           string
-	includeErrors         bool
-	processingTimeout     int
-	startOffsetSeconds    int
-	items                 []workLoad.LoadItem
+	outputDir         string
+	durationMS        int64
+	failureMS         int64
+	failureSimulation bool
+	count             int
+	workActions       string
+	includeErrors     bool
+	processingTimeout int
+	offsetMS          int64
+	items             []workLoad.LoadItem
 }
 
 func newGenerate() *generate {
 	return &generate{
-		systemFailure: false,
-		items:         []workLoad.LoadItem{},
+		failureSimulation: false,
+		items:             []workLoad.LoadItem{},
 	}
 }
 
-func (c *generate) buildActions(actionNames []string) workLoad.Actions {
+func (g *generate) buildActions(actionNames []string) workLoad.Actions {
 	actions := workLoad.Actions{}
 
 	for _, name := range actionNames {
@@ -99,14 +99,14 @@ func (c *generate) buildActions(actionNames []string) workLoad.Actions {
 		switch actionName {
 
 		case workLoad.FailureAction:
-			c.systemFailure = true
+			g.failureSimulation = true
 			// default start failing 1 min into process
 			action[workLoad.FailureOffsetMS] = 60 * int(time.Second/time.Millisecond)
 			failureOffset, err := strconv.Atoi(actionData.(string))
 			if err == nil {
 				action[workLoad.FailureOffsetMS] = failureOffset
 			}
-			action[workLoad.FailureDurationMS] = c.failureDurationMS
+			action[workLoad.FailureDurationMS] = g.failureMS
 		case workLoad.SleepAction:
 			action[workLoad.SleepDelayMS] = 1000
 			if actionData != nil {
@@ -124,10 +124,10 @@ func (c *generate) buildActions(actionNames []string) workLoad.Actions {
 					//TODO: need ability to specify createWork actions
 					"actions": workLoad.Actions{
 						workLoad.Action{"action": workLoad.SleepAction, "delay": rand.IntN(4000)},
-						workLoad.Action{"action": workLoad.ResultAction, "result": randomWorkResult(c.includeErrors)},
+						workLoad.Action{"action": workLoad.ResultAction, "result": randomWorkResult(g.includeErrors)},
 					},
 				},
-				ProcessingTimeout: c.processingTimeout,
+				ProcessingTimeout: g.processingTimeout,
 			}
 		case workLoad.RegisterAction:
 			action[workLoad.RegisterType] = workLoad.DomainName("other")
@@ -143,32 +143,26 @@ func (c *generate) buildActions(actionNames []string) workLoad.Actions {
 	return actions
 }
 
-func (c *generate) calcOffsetFromStart() int64 {
-	generateFutureMilliseconds := int64(c.startOffsetSeconds * 1000)
-
-	if c.spreadDurationSeconds == 0 {
-		if generateFutureMilliseconds == 0 {
-			return 0
-		}
-		return generateFutureMilliseconds
+func (g *generate) calcOffsetFromStart() int64 {
+	if g.durationMS == 0 {
+		return g.offsetMS
 	}
-	currentCount := len(c.items)
-	offsetMilliseconds := int(c.spreadDurationSeconds * 1000)
-	interval := offsetMilliseconds / int(c.workItemCount)
-	return int64(interval*currentCount) + generateFutureMilliseconds
+	currentCount := len(g.items)
+	interval := g.durationMS / int64(g.count)
+	return interval*int64(currentCount) + g.offsetMS
 }
 
-func (c *generate) saveTestData(data []byte) error {
+func (g *generate) saveTestData(data []byte) error {
 
-	fileName := fmt.Sprintf("items[%d]-duration[%ds]-offset[%ds]-result-errs[%t]-sys-failure[%t]",
-		len(c.items),
-		c.spreadDurationSeconds,
-		c.startOffsetSeconds,
-		c.includeErrors,
-		c.systemFailure,
+	fileName := fmt.Sprintf("items[%d]-duration[%dms]-offset[%dms]-result-errs[%t]-sys-failure[%t]",
+		len(g.items),
+		g.durationMS,
+		g.offsetMS,
+		g.includeErrors,
+		g.failureSimulation,
 	)
 
-	file, err := os.Create(fmt.Sprintf("%s/%s.json", c.outputDir, fileName))
+	file, err := os.Create(fmt.Sprintf("%s/%s.json", g.outputDir, fileName))
 	if err != nil {
 		return err
 	}
@@ -182,89 +176,90 @@ func (c *generate) saveTestData(data []byte) error {
 	return nil
 }
 
-func (c *generate) commandAction(ctx *cli.Context) error {
-	for range int(c.workItemCount) {
-		actionNames := strings.Split(c.workActions, ",")
+func (g *generate) commandAction(ctx *cli.Context) error {
+	for range int(g.count) {
+		actionNames := strings.Split(g.workActions, ",")
 
-		c.items = append(c.items, workLoad.LoadItem{
-			OffsetMilliseconds: c.calcOffsetFromStart(),
+		g.items = append(g.items, workLoad.LoadItem{
+			OffsetMilliseconds: g.calcOffsetFromStart(),
 			Create: &work.Create{
 				Type: randomWorkType(),
 				Metadata: map[string]any{
-					"actions": c.buildActions(actionNames),
+					"actions": g.buildActions(actionNames),
 				},
-				ProcessingTimeout: c.processingTimeout,
+				ProcessingTimeout: g.processingTimeout,
 			},
 		})
 	}
-	jsonData, err := json.Marshal(c.items)
+	jsonData, err := json.Marshal(g.items)
 	if err != nil {
 		return err
 	}
 
-	return c.saveTestData(jsonData)
+	return g.saveTestData(jsonData)
 }
 
-func (c *generate) GetCommand() cli.Command {
+func (g *generate) GetCommand() cli.Command {
 	return cli.Command{
 		Name:    "generate",
 		Aliases: []string{"g"},
 		Usage:   "generate a load test",
 		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:        "outputDir",
+				Usage:       "directory to save the test output",
+				Destination: &g.outputDir,
+				Required:    true,
+			},
 			&cli.IntFlag{
 				Name:        "count",
 				Usage:       "number of top level work items to create",
-				Destination: &c.workItemCount,
+				Destination: &g.count,
 				Value:       100,
 				Required:    false,
 			},
 			&cli.IntFlag{
 				Name:        "timeout",
 				Usage:       "processing timeout",
-				Destination: &c.processingTimeout,
+				Destination: &g.processingTimeout,
 				Value:       15,
 				Required:    false,
 			},
 			&cli.StringFlag{
 				Name:        "actions",
 				Usage:       "comma sperated list of actions for each top level workitem",
-				Destination: &c.workActions,
+				Destination: &g.workActions,
 				Value:       "sleep",
 				Required:    false,
 			},
 			&cli.BoolFlag{
 				Name:        "errors",
 				Usage:       "include error results",
-				Destination: &c.includeErrors,
+				Destination: &g.includeErrors,
 				Required:    false,
 			},
-			&cli.IntFlag{
-				Name:        "futureSecs",
-				Usage:       "will add all items but start the specified seconds in the future e.g. --futureSecs 3600",
-				Destination: &c.startOffsetSeconds,
+			&cli.Int64Flag{
+				Name:        "offsetMs",
+				Usage:       "offset from which all items will start in the future e.g. --offsetMs 300000",
+				Destination: &g.offsetMS,
 				Value:       0,
 				Required:    false,
 			},
 			&cli.Int64Flag{
-				Name:        "duration",
-				Usage:       "seconds to spread the work load over. 0 means all will be available at the same time",
-				Destination: &c.spreadDurationSeconds,
+				Name:        "durationMs",
+				Usage:       "duration to spread the work load over. Default means all will be available at the same time",
+				Destination: &g.durationMS,
 				Value:       0,
 				Required:    false,
 			},
 			&cli.Int64Flag{
-				Name:        "failureDuration",
-				Usage:       "if a failure action is included this is how long we will fail for",
-				Destination: &c.failureDurationMS,
+				Name:        "failureMs",
+				Usage:       "if failure action is included this is how long we will simulate failure for",
+				Destination: &g.failureMS,
 				Value:       180000,
 				Required:    false,
 			},
-			&cli.StringFlag{
-				Name:        "outputDir",
-				Usage:       "directory to save the test output",
-				Destination: &c.outputDir,
-			},
 		},
-		Action: c.commandAction,
+		Action: g.commandAction,
 	}
 }

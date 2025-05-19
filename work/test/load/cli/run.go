@@ -21,7 +21,7 @@ type run struct {
 	apiURLBase        string
 	inputFile         string
 	outputDir         string
-	runID             string
+	ID                string
 	groupID           string
 	duplicates        bool
 	duplicateIDPrefix string
@@ -30,10 +30,10 @@ type run struct {
 }
 
 func newRun() *run {
-	runID := data.NewID()
+	id := data.NewID()
 	return &run{
-		runID:   runID,
-		groupID: fmt.Sprintf("group-id-%s", runID),
+		ID:      id,
+		groupID: fmt.Sprintf("group-id-%s", id),
 	}
 }
 
@@ -46,28 +46,28 @@ func (r *run) saveTestRun(data []byte) error {
 	return os.WriteFile(outputFile, data, os.ModePerm)
 }
 
-func (c *run) commandBefore(ctx *cli.Context) error {
-	if _, err := os.Stat(c.inputFile); err != nil {
-		return fmt.Errorf("filePath %s does not exist", c.inputFile)
+func (r *run) commandBefore(ctx *cli.Context) error {
+	if _, err := os.Stat(r.inputFile); err != nil {
+		return fmt.Errorf("filePath %s does not exist", r.inputFile)
 	}
-	if _, err := os.Stat(c.outputDir); err != nil {
+	if _, err := os.Stat(r.outputDir); err != nil {
 		if os.IsNotExist(err) {
-			os.Mkdir(c.outputDir, 0755)
+			os.Mkdir(r.outputDir, 0755)
 		}
 	}
-	if c.duplicates {
-		c.duplicateIDPrefix = fmt.Sprintf("%s-deduplication-id", c.runID)
+	if r.duplicates {
+		r.duplicateIDPrefix = fmt.Sprintf("%s-deduplication-id", r.ID)
 	}
-	if c.serialize {
-		c.serialIDPrefix = fmt.Sprintf("%s-serial-id", c.runID)
+	if r.serialize {
+		r.serialIDPrefix = fmt.Sprintf("%s-serial-id", r.ID)
 	}
 	return nil
 }
 
-func (c *run) commandAction(ctx *cli.Context) error {
-	testDataContent, err := os.ReadFile(c.inputFile)
+func (r *run) commandAction(ctx *cli.Context) error {
+	testDataContent, err := os.ReadFile(r.inputFile)
 	if err != nil {
-		return fmt.Errorf("error opening %s %s", c.inputFile, err.Error())
+		return fmt.Errorf("error opening %s %s", r.inputFile, err.Error())
 	}
 
 	var items []workLoad.LoadItem
@@ -77,12 +77,12 @@ func (c *run) commandAction(ctx *cli.Context) error {
 	}
 
 	for i := range items {
-		items[i].Create.GroupID = &c.groupID
-		if c.duplicates {
-			items[i].Create.DeduplicationID = pointer.FromString(fmt.Sprintf("%s-%d", c.duplicateIDPrefix, i))
+		items[i].Create.GroupID = &r.groupID
+		if r.duplicates {
+			items[i].Create.DeduplicationID = pointer.FromString(fmt.Sprintf("%s-%d", r.duplicateIDPrefix, i))
 		}
-		if c.serialize {
-			items[i].Create.SerialID = pointer.FromString(fmt.Sprintf("%s-%d", c.serialIDPrefix, i))
+		if r.serialize {
+			items[i].Create.SerialID = pointer.FromString(fmt.Sprintf("%s-%d", r.serialIDPrefix, i))
 		}
 	}
 
@@ -92,7 +92,7 @@ func (c *run) commandAction(ctx *cli.Context) error {
 		return fmt.Errorf("unable to load testing data: %s", err.Error())
 	}
 
-	res, err := http.Post(fmt.Sprintf("%s/v1/work/load", c.apiURLBase), "application/json", &buf)
+	res, err := http.Post(fmt.Sprintf("%s/v1/work/load", r.apiURLBase), "application/json", &buf)
 	if err != nil {
 		return fmt.Errorf("unable to issue work load test API request: %s", err.Error())
 	}
@@ -106,10 +106,10 @@ func (c *run) commandAction(ctx *cli.Context) error {
 	if res.StatusCode != http.StatusCreated {
 		return fmt.Errorf("unsuccessful work load test API response: %v: %v", res.Status, string(bodyData))
 	}
-	return c.saveTestRun(bodyData)
+	return r.saveTestRun(bodyData)
 }
 
-func (c *run) GetCommand() cli.Command {
+func (r *run) GetCommand() cli.Command {
 	return cli.Command{
 		Name:    "run",
 		Aliases: []string{"r"},
@@ -119,33 +119,35 @@ func (c *run) GetCommand() cli.Command {
 				Name:        "urlBase",
 				Value:       "https://qa2.development.tidepool.org",
 				Usage:       "base URL for environment we are testing against",
-				Destination: &c.apiURLBase,
+				Destination: &r.apiURLBase,
 				Required:    true,
 			},
 			&cli.StringFlag{
 				Name:        "filePath",
 				Usage:       "path to the load test file",
-				Destination: &c.inputFile,
+				Destination: &r.inputFile,
+				Required:    true,
 			},
 			&cli.BoolFlag{
 				Name:        "duplicates",
 				Usage:       "set work items to be duplicates",
-				Destination: &c.duplicates,
+				Destination: &r.duplicates,
 				Required:    false,
 			},
 			&cli.BoolFlag{
 				Name:        "serialize",
 				Usage:       "serialize work per data source",
-				Destination: &c.serialize,
+				Destination: &r.serialize,
 				Required:    false,
 			},
 			&cli.StringFlag{
 				Name:        "outputDir",
 				Usage:       "directory to save the test output",
-				Destination: &c.outputDir,
+				Destination: &r.outputDir,
+				Required:    false,
 			},
 		},
-		Before: c.commandBefore,
-		Action: c.commandAction,
+		Before: r.commandBefore,
+		Action: r.commandAction,
 	}
 }
