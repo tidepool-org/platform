@@ -41,8 +41,14 @@ func (r *run) saveTestRun(data []byte) error {
 	if r.outputDir == "" {
 		return nil
 	}
-	_, file := filepath.Split(r.inputFile)
-	outputFile := fmt.Sprintf("%s-%s-duplicates[%t]-serialize[%t].json", time.Now().Format(time.DateOnly), file, r.duplicates, r.serialize)
+	_, fileName := filepath.Split(r.inputFile)
+	outputFile := fmt.Sprintf("%s%s_duplicates[%t]_serialize[%t]_%s",
+		r.outputDir,
+		time.Now().Format(time.DateOnly),
+		r.duplicates,
+		r.serialize,
+		fileName,
+	)
 	return os.WriteFile(outputFile, data, os.ModePerm)
 }
 

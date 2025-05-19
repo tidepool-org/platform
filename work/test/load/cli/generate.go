@@ -154,7 +154,7 @@ func (g *generate) calcOffsetFromStart() int64 {
 
 func (g *generate) saveTestData(data []byte) error {
 
-	fileName := fmt.Sprintf("items[%d]-duration[%dms]-offset[%dms]-result-errs[%t]-sys-failure[%t]",
+	fileName := fmt.Sprintf("items[%d]_duration[%dms]_offset[%dms]_result-errs[%t]_sim-failure[%t]",
 		len(g.items),
 		g.durationMS,
 		g.offsetMS,
