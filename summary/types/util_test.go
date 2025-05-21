@@ -20,7 +20,7 @@ var _ = Describe("Summary utils", func() {
 
 	BeforeEach(func() {
 		deviceID = "SummaryTestDevice"
-		uploadId = test.RandomSetID()
+		uploadId = test.RandomDataSetID()
 		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 	})
 

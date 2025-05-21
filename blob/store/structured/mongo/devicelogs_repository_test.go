@@ -71,7 +71,7 @@ var _ = Describe("Mongo", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("Create", func() {
@@ -177,7 +177,7 @@ var _ = Describe("Mongo", func() {
 				var update *blobStoreStructured.DeviceLogsUpdate
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 					update = blobStoreStructuredTest.RandomDeviceLogsUpdate()
 				})
@@ -271,7 +271,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = blobTest.RandomID()
+								id = blobTest.RandomBlobID()
 								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -286,7 +286,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = blobTest.RandomID()
+								id = blobTest.RandomBlobID()
 								Expect(deviceLogsRepository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -323,7 +323,7 @@ var _ = Describe("Mongo", func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -374,7 +374,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns false and does not delete the original when the id does not exist", func() {
-						id = blobTest.RandomID()
+						id = blobTest.RandomBlobID()
 						Expect(deviceLogsRepository.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(deviceLogsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})

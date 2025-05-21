@@ -6,7 +6,7 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomID() string {
+func RandomDatumID() string {
 	return data.NewID()
 }
 
@@ -36,7 +36,7 @@ func CloneSelectorOrigin(datum *data.SelectorOrigin) *data.SelectorOrigin {
 func RandomSelector() *data.Selector {
 	datum := data.NewSelector()
 	if test.RandomBool() {
-		datum.ID = pointer.FromString(RandomID())
+		datum.ID = pointer.FromString(RandomDatumID())
 	} else {
 		datum.Origin = RandomSelectorOrigin()
 	}

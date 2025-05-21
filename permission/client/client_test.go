@@ -107,8 +107,8 @@ var _ = Describe("Client", func() {
 			var targetUserID string
 
 			BeforeEach(func() {
-				requestUserID = userTest.RandomID()
-				targetUserID = userTest.RandomID()
+				requestUserID = userTest.RandomUserID()
+				targetUserID = userTest.RandomUserID()
 			})
 
 			Context("without server response", func() {

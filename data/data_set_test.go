@@ -297,7 +297,7 @@ var _ = Describe("DataSet", func() {
 						structure.Origins(),
 					),
 					Entry("by user exists",
-						func(datum *data.DataSet) { datum.ByUser = pointer.FromString(userTest.RandomID()) },
+						func(datum *data.DataSet) { datum.ByUser = pointer.FromString(userTest.RandomUserID()) },
 						structure.Origins(),
 					),
 					Entry("client missing",

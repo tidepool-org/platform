@@ -271,7 +271,7 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 
 					It("returns the correct prescriptions given a patient id", func() {
 						expectedIDs := ids[1:3]
-						patientID := userTest.RandomID()
+						patientID := userTest.RandomUserID()
 
 						_, err := collection.UpdateMany(nil, bson.M{"_id": bson.M{"$in": expectedIDs}}, bson.M{"$set": bson.M{"patientUserId": patientID}})
 						Expect(err).ToNot(HaveOccurred())
@@ -583,8 +583,7 @@ var _ = Describe("PrescriptionRepository", Label("mongodb", "slow", "integration
 					})
 
 					It("returns nil if the prescription doesn't exist", func() {
-						randomID := primitive.NewObjectID().Hex()
-						result, err := repository.AddRevision(ctx, randomID, create)
+						result, err := repository.AddRevision(ctx, primitive.NewObjectID().Hex(), create)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(result).To(BeNil())
 					})

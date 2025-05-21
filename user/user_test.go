@@ -66,7 +66,7 @@ var _ = Describe("User", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *user.User) {
-						valid := userTest.RandomID()
+						valid := userTest.RandomUserID()
 						object["userid"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -172,7 +172,7 @@ var _ = Describe("User", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/userid"),
 				),
 				Entry("user id valid",
-					func(datum *user.User) { datum.UserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *user.User) { datum.UserID = pointer.FromString(userTest.RandomUserID()) },
 				),
 				Entry("username missing",
 					func(datum *user.User) { datum.Username = nil },
@@ -285,7 +285,7 @@ var _ = Describe("User", func() {
 					original.EmailVerified = nil
 					original.TermsAccepted = nil
 					original.Roles = nil
-					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+					datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomUserID(), authTest.NewSessionToken()))
 					Expect(datum).To(Equal(original))
 				})
 
@@ -330,7 +330,7 @@ var _ = Describe("User", func() {
 					original[index].TermsAccepted = nil
 					original[index].Roles = nil
 				}
-				datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken()))
+				datum.Sanitize(request.NewAuthDetails(request.MethodSessionToken, userTest.RandomUserID(), authTest.NewSessionToken()))
 				Expect(datum).To(Equal(original))
 			})
 

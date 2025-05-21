@@ -7,8 +7,6 @@ import (
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
 	blobStoreStructuredTest "github.com/tidepool-org/platform/blob/store/structured/test"
-	"github.com/tidepool-org/platform/crypto"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
@@ -82,11 +80,11 @@ var _ = Describe("Structured", func() {
 				),
 				Entry("digest MD5 invalid",
 					func(datum *blobStoreStructured.Update) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsDigestMD5NotValid("#"), "/digestMD5"),
 				),
 				Entry("digest MD5 valid",
 					func(datum *blobStoreStructured.Update) {
-						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+						datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 					},
 				),
 				Entry("media type missing",
@@ -158,7 +156,7 @@ var _ = Describe("Structured", func() {
 				})
 
 				It("returns false when the digest MD5 field is specified", func() {
-					datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 					Expect(datum.IsEmpty()).To(BeFalse())
 				})
 
@@ -178,7 +176,7 @@ var _ = Describe("Structured", func() {
 				})
 
 				It("returns false when multiple fields are specified", func() {
-					datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+					datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 					datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 					datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 					datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))

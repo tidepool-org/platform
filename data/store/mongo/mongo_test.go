@@ -498,7 +498,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					createdTimeOther, _ := time.Parse(time.RFC3339, "2016-09-01T12:00:00Z")
 					collection = store.GetCollection("deviceData")
 					dataSetCollection = store.GetCollection("deviceDataSets")
-					dataSetExistingOther = NewDataSet(userTest.RandomID(), dataTest.NewDeviceID())
+					dataSetExistingOther = NewDataSet(userTest.RandomUserID(), dataTest.NewDeviceID())
 					dataSetExistingOther.CreatedTime = pointer.FromTime(createdTimeOther)
 					dataSetExistingOther.ModifiedTime = pointer.FromTime(createdTimeOther)
 					_, err := dataSetCollection.InsertOne(context.Background(), dataSetExistingOther)
@@ -519,7 +519,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 				BeforeEach(func() {
 					ctx = log.NewContextWithLogger(context.Background(), logger)
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 					deviceID = dataTest.NewDeviceID()
 					dataSet = NewDataSet(userID, deviceID)
 				})
@@ -593,7 +593,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						})
 
 						It("succeeds if it successfully does not find another user data sets", func() {
-							resultDataSets, err := repository.GetDataSetsForUserByID(ctx, userTest.RandomID(), filter, pagination)
+							resultDataSets, err := repository.GetDataSetsForUserByID(ctx, userTest.RandomUserID(), filter, pagination)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(resultDataSets).ToNot(BeNil())
 							Expect(resultDataSets).To(BeEmpty())
@@ -793,7 +793,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							// TODO
 
 							It("returns nil when the id does not exist", func() {
-								id = dataTest.RandomSetID()
+								id = dataTest.RandomDataSetID()
 								Expect(repository.UpdateDataSet(ctx, id, update)).To(BeNil())
 							})
 
@@ -817,7 +817,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							// TODO
 
 							It("returns nil when the id does not exist", func() {
-								id = dataTest.RandomSetID()
+								id = dataTest.RandomDataSetID()
 								Expect(repository.UpdateDataSet(ctx, id, update)).To(BeNil())
 							})
 						})
@@ -1299,13 +1299,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
-										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										dataSet.UserID = pointer.FromString(userTest.RandomUserID())
 										Expect(repository.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"_active": true}, bson.M{}, data.Data{})
 									})
 
 									It("succeeds with no changes when the data set upload id is different", func() {
-										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										dataSet.UploadID = pointer.FromString(dataTest.RandomDataSetID())
 										Expect(repository.ActivateDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"_active": true}, bson.M{}, data.Data{})
 									})
@@ -1448,14 +1448,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
-										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										dataSet.UserID = pointer.FromString(userTest.RandomUserID())
 										Expect(repository.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"_active": false, "uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, data.Data{})
 									})
 
 									It("succeeds with no changes when the data set upload id is different", func() {
 										dataSetUploadID := dataSet.UploadID
-										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										dataSet.UploadID = pointer.FromString(dataTest.RandomDataSetID())
 										Expect(repository.ArchiveDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"_active": false, "uploadId": dataSetUploadID}, bson.M{"modifiedTime": 0}, data.Data{})
 									})
@@ -1587,13 +1587,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
-										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										dataSet.UserID = pointer.FromString(userTest.RandomUserID())
 										Expect(repository.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
 									})
 
 									It("succeeds with no changes when the data set upload id is different", func() {
-										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										dataSet.UploadID = pointer.FromString(dataTest.RandomDataSetID())
 										Expect(repository.DeleteDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"modifiedTime": 0}, data.Data{})
 									})
@@ -1725,13 +1725,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
-										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										dataSet.UserID = pointer.FromString(userTest.RandomUserID())
 										Expect(repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
 									})
 
 									It("succeeds with no changes when the data set upload id is different", func() {
-										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										dataSet.UploadID = pointer.FromString(dataTest.RandomDataSetID())
 										Expect(repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"deletedTime": bson.M{"$exists": true}}, bson.M{"archivedTime": 0, "deletedTime": 0, "modifiedTime": 0}, dataSetData)
 									})
@@ -1862,14 +1862,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 									})
 
 									It("succeeds with no changes when the data set user id is different", func() {
-										dataSet.UserID = pointer.FromString(userTest.RandomID())
+										dataSet.UserID = pointer.FromString(userTest.RandomUserID())
 										Expect(repository.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"uploadId": dataSet.UploadID}, bson.M{"modifiedTime": 0}, dataSetData)
 									})
 
 									It("succeeds with no changes when the data set upload id is different", func() {
 										dataSetUploadID := dataSet.UploadID
-										dataSet.UploadID = pointer.FromString(dataTest.RandomSetID())
+										dataSet.UploadID = pointer.FromString(dataTest.RandomDataSetID())
 										Expect(repository.DestroyDataSetData(ctx, dataSet, selectors)).To(Succeed())
 										ValidateDataSetData(collection, bson.M{"uploadId": dataSetUploadID}, bson.M{"modifiedTime": 0}, dataSetData)
 									})
@@ -2222,7 +2222,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						var destroyUserID string
 
 						BeforeEach(func() {
-							destroyUserID = userTest.RandomID()
+							destroyUserID = userTest.RandomUserID()
 						})
 
 						It("returns an error if the user id is missing", func() {
@@ -2316,7 +2316,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				ctx = log.NewContextWithLogger(ctx, logTest.NewLogger())
 				repository = store.NewDataRepository()
 				Expect(repository).ToNot(BeNil())
-				testUserID := userTest.RandomID()
+				testUserID := userTest.RandomUserID()
 				testDeviceID := dataTest.NewDeviceID()
 				testSet := testDataSet(testUserID, testDeviceID)
 				Expect(repository.CreateDataSet(ctx, testSet)).To(Succeed())
