@@ -464,7 +464,7 @@ var _ = Describe("Revision", func() {
 						},
 						CreationAttributes: prescription.CreationAttributes{
 							CreatedTime:   now,
-							CreatedUserID: userTest.RandomID(),
+							CreatedUserID: userTest.RandomUserID(),
 						},
 					}
 					attr.State = prescription.StateDraft

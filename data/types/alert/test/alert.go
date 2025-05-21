@@ -35,7 +35,7 @@ func randomAlert() *dataTypesAlert.Alert {
 	if *datum.Sound == dataTypesAlert.SoundName {
 		datum.SoundName = pointer.FromString(test.RandomStringFromRange(1, dataTypesAlert.SoundNameLengthMaximum))
 	}
-	datum.IssuedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.IssuedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	if test.RandomBool() {
 		datum.AcknowledgedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
 	} else {

@@ -89,7 +89,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 			})
 
 			It("returns error if context is missing", func() {

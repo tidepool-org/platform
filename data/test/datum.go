@@ -302,7 +302,7 @@ func (d *Datum) GetUploadID() *string {
 func RandomProvenance() *data.Provenance {
 	datum := data.NewProvenance()
 	datum.ClientID = test.RandomString()
-	datum.ByUserID = pointer.FromString(userTest.RandomID())
+	datum.ByUserID = pointer.FromString(userTest.RandomUserID())
 	datum.SourceIP = pointer.FromString(netTest.RandomFQDN())
 	return datum
 }

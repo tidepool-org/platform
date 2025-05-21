@@ -100,7 +100,7 @@ var _ = Describe("Client", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -440,7 +440,7 @@ var _ = Describe("Client", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 				})
 
 				Context("Get", func() {
@@ -847,7 +847,7 @@ var _ = Describe("Client", func() {
 				sessionToken := authTest.NewSessionToken()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
-				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomUserID(), sessionToken))
 			})
 
 			clientAssertions()

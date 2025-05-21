@@ -93,7 +93,7 @@ var _ = Describe("Mutator", func() {
 
 		BeforeEach(func() {
 			header = http.Header{}
-			for range test.RandomIntFromRange(0, 3) {
+			for range test.RandomIntFromRange(1, 3) {
 				header[testHttp.NewHeaderKey()] = []string{testHttp.NewHeaderValue()}
 			}
 		})
@@ -245,7 +245,7 @@ var _ = Describe("Mutator", func() {
 
 		BeforeEach(func() {
 			parameters = map[string]string{}
-			for index := test.RandomIntFromRange(0, 3); index >= 0; index-- {
+			for index := test.RandomIntFromRange(1, 3); index >= 0; index-- {
 				parameters[testHttp.NewParameterKey()] = testHttp.NewParameterValue()
 			}
 		})
@@ -334,7 +334,7 @@ var _ = Describe("Mutator", func() {
 
 		BeforeEach(func() {
 			parameters = map[string][]string{}
-			for index := test.RandomIntFromRange(0, 3); index >= 0; index-- {
+			for index := test.RandomIntFromRange(1, 3); index >= 0; index-- {
 				parameters[testHttp.NewParameterKey()] = test.RandomStringArrayFromRangeAndGeneratorWithDuplicates(1, 3, testHttp.NewParameterValue)
 			}
 		})

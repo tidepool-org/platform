@@ -115,7 +115,7 @@ var _ = Describe("Buckets", Label("mongodb", "slow", "integration"), func() {
 			conStore = dataStoreSummary.NewBuckets[*types.ContinuousBucket](bucketsRepository, types.SummaryTypeContinuous)
 			Expect(conStore).ToNot(BeNil())
 
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 			bucketTime = time.Now().UTC().Truncate(time.Hour)
 		})
 

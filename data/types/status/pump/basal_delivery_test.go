@@ -372,7 +372,7 @@ var _ = Describe("BasalDelivery", func() {
 			Entry("all",
 				func(datum *dataTypesStatusPump.BasalDose) {
 					datum.StartTime = pointer.FromTime(test.RandomTime())
-					datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
+					datum.EndTime = pointer.FromTime(test.RandomTimeAfter(*datum.StartTime))
 					datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseRateMinimum, dataTypesStatusPump.BasalDoseRateMaximum))
 					datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseAmountDeliveredMinimum, dataTypesStatusPump.BasalDoseAmountDeliveredMaximum))
 				},

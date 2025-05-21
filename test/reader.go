@@ -1,5 +1,18 @@
 package test
 
+import (
+	"bytes"
+	"io"
+)
+
+func RandomReader() io.Reader {
+	return bytes.NewReader(RandomBytes())
+}
+
+func RandomReadCloser() io.ReadCloser {
+	return io.NopCloser(RandomReader())
+}
+
 type ReadOutput struct {
 	BytesRead int
 	Error     error
