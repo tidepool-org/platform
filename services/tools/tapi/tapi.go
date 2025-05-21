@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/tidepool-org/platform/tools/tapi/cmd"
+	"github.com/tidepool-org/platform/services/tools/tapi/cmd"
 )
 
 // TODO: TECH DEBT - Convert to new tool package paradigm
