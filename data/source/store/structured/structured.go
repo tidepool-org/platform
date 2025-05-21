@@ -20,4 +20,6 @@ type DataSourcesRepository interface {
 	Get(ctx context.Context, id string) (*dataSource.Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error)
 	Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error)
+
+	ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 }

@@ -16,6 +16,7 @@ type DataSetStore interface {
 
 type DataStore interface {
 	CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error
+	NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error)
 	ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error

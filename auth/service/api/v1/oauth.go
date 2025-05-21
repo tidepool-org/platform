@@ -70,6 +70,9 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 	if err != nil {
 		responder.Error(request.StatusCodeForError(err), err)
 		return
+	} else if !prvdr.SupportsUserInitiatedAccountUnlinking() {
+		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking not supported"))
+		return
 	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()
@@ -236,15 +239,10 @@ func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err err
 
 const htmlOnRedirect = `
 <html>
-	<body onload="closeOrRedirect()">
+	<body onload="redirect()">
 		<script>
-			function closeOrRedirect() {
-				var isIframe = window.location !== window.parent.location;
-				if (isIframe) {
-					window.close();
-				} else {
-					window.location.replace('%s');
-				}
+			function redirect() {
+				window.location.replace('%s');
 			}
 		</script>
 	</body>

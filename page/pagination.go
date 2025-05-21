@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -53,4 +54,27 @@ func (p *Pagination) MutateRequest(req *http.Request) error {
 		parameters["size"] = strconv.Itoa(p.Size)
 	}
 	return request.NewParametersMutator(parameters).MutateRequest(req)
+}
+
+type Paginator func(pagination Pagination) (done bool, err error)
+
+func Paginate(paginator Paginator) error {
+	return PaginateWithSize(PaginationSizeDefault, paginator)
+}
+
+func PaginateWithSize(size int, paginator Paginator) error {
+	if size < PaginationSizeMinimum {
+		return errors.New("size is less than minimum")
+	}
+	if paginator == nil {
+		return errors.New("paginator is missing")
+	}
+
+	for page := 0; ; page++ {
+		if done, err := paginator(Pagination{Page: page, Size: size}); err != nil {
+			return err
+		} else if done {
+			return nil
+		}
+	}
 }

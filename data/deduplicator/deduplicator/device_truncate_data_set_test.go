@@ -42,7 +42,7 @@ var _ = Describe("DeviceTruncateDataSet", func() {
 		})
 
 		Context("NewDeviceTruncateDataSet", func() {
-			It("returns succesfully", func() {
+			It("returns successfully", func() {
 				Expect(dataDeduplicatorDeduplicator.NewDeviceTruncateDataSet(dependencies)).ToNot(BeNil())
 			})
 		})

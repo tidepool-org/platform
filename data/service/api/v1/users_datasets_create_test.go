@@ -21,7 +21,7 @@ import (
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
 	"github.com/tidepool-org/platform/data/summary"
@@ -222,7 +222,7 @@ func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
 	panic("not implemented") // TODO: Implement
 }
 
-func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
+func (c *mockDataServiceContext) DataSourceClient() dataSourceService.Client {
 	panic("not implemented") // TODO: Implement
 }
 
@@ -231,5 +231,9 @@ func (c *mockDataServiceContext) WorkClient() work.Client {
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
-	panic("not implemented")
+	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
+	panic("not implemented") // TODO: Implement
 }

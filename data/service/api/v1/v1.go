@@ -25,6 +25,8 @@ func Routes() []dataService.Route {
 		dataService.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, serviceApi.RequireAuth),
 
 		dataService.Get("/v1/partners/:partner/sector", PartnersSector),
+
+		dataService.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), serviceApi.RequireUser),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)

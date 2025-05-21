@@ -7,17 +7,17 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/service/api"
+	serviceApi "github.com/tidepool-org/platform/service/api"
 )
 
 func SourcesRoutes() []dataService.Route {
 	return []dataService.Route{
-		dataService.Get("/v1/users/:userId/data_sources", ListSources, api.RequireAuth),
-		dataService.Post("/v1/users/:userId/data_sources", CreateSource, api.RequireAuth),
-		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, api.RequireAuth),
-		dataService.Get("/v1/data_sources/:id", GetSource, api.RequireAuth),
-		dataService.Put("/v1/data_sources/:id", UpdateSource, api.RequireAuth),
-		dataService.Delete("/v1/data_sources/:id", DeleteSource, api.RequireAuth),
+		dataService.Get("/v1/users/:userId/data_sources", ListSources, serviceApi.RequireAuth),
+		dataService.Post("/v1/users/:userId/data_sources", CreateSource, serviceApi.RequireAuth),
+		dataService.Delete("/v1/users/:userId/data_sources", DeleteAllSources, serviceApi.RequireAuth),
+		dataService.Get("/v1/data_sources/:id", GetSource, serviceApi.RequireAuth),
+		dataService.Put("/v1/data_sources/:id", UpdateSource, serviceApi.RequireAuth),
+		dataService.Delete("/v1/data_sources/:id", DeleteSource, serviceApi.RequireAuth),
 	}
 }
 

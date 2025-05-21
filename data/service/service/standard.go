@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/IBM/sarama"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
@@ -31,6 +32,7 @@ import (
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
@@ -38,6 +40,7 @@ import (
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	"github.com/tidepool-org/platform/twiist"
 	workLoad "github.com/tidepool-org/platform/work/load"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
@@ -45,25 +48,26 @@ import (
 
 type Standard struct {
 	*service.DEPRECATEDService
-	metricClient              *metricClient.Client
-	permissionClient          *permissionClient.Client
-	dataStore                 *dataStoreMongo.Store
-	dataRawStructuredStore    *dataRawStoreStructuredMongo.Store
-	dataSourceStructuredStore *dataSourceStoreStructuredMongo.Store
-	syncTaskStore             *syncTaskMongo.Store
-	workStructuredStore       *workStoreStructuredMongo.Store
-	dataDeduplicatorFactory   *dataDeduplicatorFactory.Factory
-	clinicsClient             *clinics.Client
-	dataClient                *Client
-	dataRawClient             *dataRawService.Client
-	dataSourceClient          *dataSourceServiceClient.Client
-	summaryClient             *dataSummaryClient.Client
-	workClient                *workService.Client
-	abbottClient              *abbottClient.Client
-	workCoordinator           *workService.Coordinator
-	userEventsHandler         events.Runner
-	api                       *api.Standard
-	server                    *server.Standard
+	metricClient                   *metricClient.Client
+	permissionClient               *permissionClient.Client
+	dataStore                      *dataStoreMongo.Store
+	dataRawStructuredStore         *dataRawStoreStructuredMongo.Store
+	dataSourceStructuredStore      *dataSourceStoreStructuredMongo.Store
+	syncTaskStore                  *syncTaskMongo.Store
+	workStructuredStore            *workStoreStructuredMongo.Store
+	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
+	clinicsClient                  *clinics.Client
+	dataClient                     *Client
+	dataRawClient                  *dataRawService.Client
+	dataSourceClient               *dataSourceServiceClient.Client
+	summaryClient                  *dataSummaryClient.Client
+	workClient                     *workService.Client
+	abbottClient                   *abbottClient.Client
+	workCoordinator                *workService.Coordinator
+	userEventsHandler              events.Runner
+	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
+	api                            *api.Standard
+	server                         *server.Standard
 }
 
 func NewStandard() *Standard {
@@ -128,6 +132,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
+	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
 	if err := s.initializeAPI(); err != nil {
 		return err
 	}
@@ -142,6 +149,7 @@ func (s *Standard) Terminate() {
 		s.server = nil
 	}
 	s.api = nil
+	s.twiistServiceAccountAuthorizer = nil
 	if s.userEventsHandler != nil {
 		s.Logger().Info("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
@@ -424,6 +432,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create data set delete origin deduplicator")
 	}
 
+	s.Logger().Debug("Creating data set delete origin older deduplicator")
+
+	dataSetDeleteOriginOlderDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDeleteOriginOlder(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set delete origin older deduplicator")
+	}
+
 	s.Logger().Debug("Creating none deduplicator")
 
 	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone(dependencies)
@@ -437,6 +452,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		deviceDeactivateHashDeduplicator,
 		deviceTruncateDataSetDeduplicator,
 		dataSetDeleteOriginDeduplicator,
+		dataSetDeleteOriginOlderDeduplicator,
 		noneDeduplicator,
 	}
 
@@ -516,11 +532,17 @@ func (s *Standard) initializeWorkClient() error {
 func (s *Standard) initializeAbbottClient() error {
 	s.Logger().Debug("Loading abbott provider")
 
+	// Abbott
+	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbottProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create abbott jwks")
+	}
 	abbottProviderDependencies := abbottProvider.ProviderDependencies{
 		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
 		ProviderSessionClient: s.AuthClient(),
 		DataSourceClient:      s.dataSourceClient,
 		WorkClient:            s.workClient,
+		JWKS:                  abbottJWKS,
 	}
 	if prvdr, err := abbottProvider.NewProvider(abbottProviderDependencies); err != nil {
 		s.Logger().Warn("Unable to create abbott provider")
@@ -617,13 +639,26 @@ func (s *Standard) initializeUserEventsHandler() error {
 	return nil
 }
 
+func (s *Standard) initializeTwiistServiceAccountAuthorizer() error {
+	s.Logger().Debug("Initializing twiist service account authorizer")
+
+	twiistServiceAccountAuthorizer, err := twiist.NewServiceAccountAuthorizer()
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
+	}
+	s.twiistServiceAccountAuthorizer = twiistServiceAccountAuthorizer
+
+	return nil
+}
+
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient)
+		s.dataRawClient, s.dataSourceClient, s.workClient,
+		s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}

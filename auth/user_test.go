@@ -13,7 +13,7 @@ import (
 
 var _ = Describe("User", func() {
 	Context("NewUserID", func() {
-		It("returns a string of 10 lowercase hexidecimal characters", func() {
+		It("returns a string of 10 lowercase hexadecimal characters", func() {
 			Expect(auth.NewUserID()).To(MatchRegexp("^[0-9a-f]{10}$"))
 		})
 

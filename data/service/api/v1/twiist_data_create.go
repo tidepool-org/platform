@@ -1,0 +1,76 @@
+package v1
+
+import (
+	"fmt"
+
+	dataService "github.com/tidepool-org/platform/data/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/log"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/service"
+	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+)
+
+func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context)) func(ctx dataService.Context) {
+	return func(dataServiceContext dataService.Context) {
+		req := dataServiceContext.Request()
+		lgr := log.LoggerFromContext(req.Context())
+
+		tidepoolLinkID := req.PathParams["tidepoolLinkId"]
+		if tidepoolLinkID == "" {
+			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDMissing())
+			return
+		}
+
+		// Authorize the service account
+		authDetails := request.GetAuthDetails(req.Context())
+		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsServiceAccountAuthorized(authDetails.UserID()) {
+			lgr.Debug("the subject is not authorized twiist service account")
+			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
+			return
+		}
+
+		// Inject service auth details, because the twiist service account doesn't have direct sharing permissions
+		// to upload data to linked accounts
+		ctx := request.NewContextWithAuthDetails(req.Context(), request.NewAuthDetails(request.MethodServiceSecret, "", ""))
+		req.Request = dataServiceContext.Request().Clone(ctx)
+
+		filter := dataSource.NewFilter()
+		filter.ProviderType = pointer.FromAny([]string{oauthProvider.ProviderType})
+		filter.ProviderName = pointer.FromAny([]string{twiistProvider.ProviderName})
+		filter.ProviderExternalID = pointer.FromAny([]string{tidepoolLinkID})
+		filter.State = pointer.FromAny([]string{dataSource.StateConnected})
+
+		dataSrcs, err := dataServiceContext.DataSourceClient().ListAll(ctx, filter, nil)
+		if err != nil {
+			lgr.WithError(err).Warnf("unable to fetch data source for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)
+			return
+		}
+		if len(dataSrcs) == 0 {
+			lgr.WithError(err).Warnf("no connected data source found for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
+			return
+		}
+
+		var dataSetID string
+		dataSrc := dataSrcs[0]
+		if dataSrc.DataSetIDs != nil || len(*dataSrc.DataSetIDs) > 0 {
+			dataSetID = (*dataSrc.DataSetIDs)[len(*dataSrc.DataSetIDs)-1]
+		}
+		if dataSetID == "" {
+			lgr.WithError(err).Warnf("no data sets found for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %s", *dataSrc.ID), err)
+			return
+		}
+
+		// Inject the resolved data set id as a path parameter, so it can be used by DataSetsDataCreate
+		req.PathParams["dataSetId"] = dataSetID
+
+		datasetDataCreate(dataServiceContext)
+
+		// TODO: BACK-3650 Update data source time fields for twiist OAuth connections
+	}
+}

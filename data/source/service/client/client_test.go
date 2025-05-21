@@ -6,8 +6,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/auth"
-	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceServiceClientTest "github.com/tidepool-org/platform/data/source/service/client/test"
@@ -26,13 +24,11 @@ import (
 )
 
 var _ = Describe("Client", func() {
-	var authClient *authTest.Client
 	var dataSourceStructuredStore *dataSourceStoreStructuredTest.Store
 	var dataSourceStructuredRepository *dataSourceStoreStructuredTest.DataRepository
 	var provider *dataSourceServiceClientTest.Provider
 
 	BeforeEach(func() {
-		authClient = authTest.NewClient()
 		dataSourceStructuredStore = dataSourceStoreStructuredTest.NewStore()
 		dataSourceStructuredRepository = dataSourceStoreStructuredTest.NewDataSourcesRepository()
 		dataSourceStructuredRepository.CloseOutput = func(err error) *error { return &err }(nil)
@@ -40,14 +36,12 @@ var _ = Describe("Client", func() {
 			return &s
 		}(dataSourceStructuredRepository)
 		provider = dataSourceServiceClientTest.NewProvider()
-		provider.AuthClientOutput = func(u auth.Client) *auth.Client { return &u }(authClient)
 		provider.DataSourceStructuredStoreOutput = func(s dataSourceStoreStructured.Store) *dataSourceStoreStructured.Store { return &s }(dataSourceStructuredStore)
 	})
 
 	AfterEach(func() {
 		provider.AssertOutputsEmpty()
 		dataSourceStructuredStore.AssertOutputsEmpty()
-		authClient.AssertOutputsEmpty()
 	})
 
 	Context("New", func() {
@@ -262,6 +256,38 @@ var _ = Describe("Client", func() {
 					deleted, err := client.Delete(ctx, id, condition)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeTrue())
+				})
+			})
+		})
+
+		Context("ListAll", func() {
+			var filter *dataSource.Filter
+			var pagination *page.Pagination
+
+			BeforeEach(func() {
+				filter = dataSourceTest.RandomFilter()
+				pagination = pageTest.RandomPagination()
+			})
+
+			When("the user client ensure authorized user returns successfully", func() {
+				AfterEach(func() {
+					Expect(dataSourceStructuredRepository.ListAllInputs).To(Equal([]dataSourceStoreStructuredTest.ListAllInput{{Filter: filter, Pagination: pagination}}))
+				})
+
+				It("returns an error when the data source structured repository list returns an error", func() {
+					responseErr := errorsTest.RandomError()
+					dataSourceStructuredRepository.ListAllOutputs = []dataSourceStoreStructuredTest.ListAllOutput{{SourceArray: nil, Error: responseErr}}
+					result, err := client.ListAll(ctx, filter, pagination)
+					errorsTest.ExpectEqual(err, responseErr)
+					Expect(result).To(BeNil())
+				})
+
+				It("returns successfully when the data source structured repository list returns successfully", func() {
+					responseResult := dataSourceTest.RandomSourceArray(1, 3)
+					dataSourceStructuredRepository.ListAllOutputs = []dataSourceStoreStructuredTest.ListAllOutput{{SourceArray: responseResult, Error: nil}}
+					result, err := client.ListAll(ctx, filter, pagination)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result).To(Equal(responseResult))
 				})
 			})
 		})

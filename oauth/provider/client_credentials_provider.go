@@ -63,11 +63,11 @@ func (c *ClientCredentialsProvider) Name() string {
 	return c.name
 }
 
-func (c *ClientCredentialsProvider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (c *ClientCredentialsProvider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
-func (c *ClientCredentialsProvider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (c *ClientCredentialsProvider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
 }
 

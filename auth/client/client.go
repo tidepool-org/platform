@@ -121,7 +121,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	return providerSession, nil
 }
 
-func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

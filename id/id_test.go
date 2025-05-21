@@ -23,15 +23,15 @@ var _ = Describe("ID", func() {
 			Expect(value).To(BeEmpty())
 		})
 
-		It("returns a 2-character hexidecimal string if the length is one", func() {
+		It("returns a 2-character hexadecimal string if the length is one", func() {
 			Expect(id.New(1)).To(MatchRegexp("^[0-9a-f]{2}$"))
 		})
 
-		It("returns a 10-character hexidecimal string if the length is five", func() {
+		It("returns a 10-character hexadecimal string if the length is five", func() {
 			Expect(id.New(5)).To(MatchRegexp("^[0-9a-f]{10}$"))
 		})
 
-		It("returns a 32-character hexidecimal string if the length is sixteen", func() {
+		It("returns a 32-character hexadecimal string if the length is sixteen", func() {
 			Expect(id.New(16)).To(MatchRegexp("^[0-9a-f]{32}$"))
 		})
 

@@ -1,9 +1,13 @@
 package provider
 
 import (
+	"github.com/lestrrat-go/jwx/v2/jwk"
+
 	"github.com/tidepool-org/platform/config"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 )
+
+const ProviderName = "abbott"
 
 type ProviderSessionClient any
 
@@ -16,6 +20,7 @@ type ProviderDependencies struct {
 	ProviderSessionClient ProviderSessionClient
 	DataSourceClient      DataSourceClient
 	WorkClient            WorkClient
+	JWKS                  jwk.Set
 }
 
 type Provider struct {
