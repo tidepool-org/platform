@@ -83,7 +83,6 @@ func newGenerate() *generate {
 }
 
 func (g *generate) setActionData() error {
-	allowedActions := []string{workLoad.CreateAction, workLoad.FailureAction, workLoad.RegisterAction, workLoad.SleepAction, workLoad.ResultAction}
 	actions := strings.Split(g.workActions, ",")
 	var err error
 
@@ -97,20 +96,21 @@ func (g *generate) setActionData() error {
 				data = parts[1]
 			}
 		}
-		if !slices.Contains(allowedActions, name) {
+		if !slices.Contains(workLoad.AllowedActions(), name) {
 			err = errors.Join(err, fmt.Errorf("invalid action %s", name))
 		}
 		g.actionData[name] = data
 	}
+
 	return err
 }
 
-func (g *generate) buildActions() workLoad.Actions {
-	actions := workLoad.Actions{}
+func (g *generate) buildActions() workLoad.ProcessActions {
+	actions := workLoad.ProcessActions{}
 
 	for name, data := range g.actionData {
 
-		action := workLoad.Action{
+		action := workLoad.ProcessAction{
 			"action": name,
 		}
 		switch name {
@@ -127,8 +127,7 @@ func (g *generate) buildActions() workLoad.Actions {
 		case workLoad.SleepAction:
 			action[workLoad.SleepDelayMS] = 1000
 			if data != nil {
-				delay, err := strconv.Atoi(data.(string))
-				if err == nil {
+				if delay, err := strconv.Atoi(data.(string)); err == nil {
 					action[workLoad.SleepDelayMS] = delay
 				}
 			}
@@ -138,14 +137,20 @@ func (g *generate) buildActions() workLoad.Actions {
 			action["create"] = work.Create{
 				Type: randomWorkType(),
 				Metadata: map[string]any{
-					//TODO: need ability to specify createWork actions
-					"actions": workLoad.Actions{
-						workLoad.Action{"action": workLoad.SleepAction, "delay": rand.IntN(4000)},
-						workLoad.Action{"action": workLoad.ResultAction, "result": randomWorkResult(g.includeErrors)},
+					"actions": workLoad.ProcessActions{
+						// do some 'work'
+						workLoad.ProcessAction{"action": workLoad.SleepAction, "delay": rand.IntN(4000)},
+						// return a result
+						workLoad.ProcessAction{"action": workLoad.ResultAction, "result": randomWorkResult(g.includeErrors)},
 					},
 				},
 				ProcessingTimeout: g.processingTimeout,
 			}
+			createCount, err := strconv.Atoi(data.(string))
+			if err != nil {
+				panic(err)
+			}
+			action[workLoad.CreateCount] = createCount
 		case workLoad.RegisterAction:
 			action[workLoad.RegisterType] = workLoad.DomainName("other")
 			if data != nil {
@@ -217,7 +222,6 @@ func (g *generate) commandAction(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
 	return g.saveTestData(jsonData)
 }
 

@@ -32,10 +32,10 @@ const (
 	FailureDurationMS = "failureDurationMilliseconds"
 	FailingOffsetMS   = "failingOffsetMilliseconds"
 	PendingOffsetMS   = "pendingOffsetMilliseconds"
-
-	SleepDelayMS = "delayMilliseconds"
-	RegisterType = "type"
-	CreateType   = "type"
+	CreateCount       = "createWorkCount"
+	SleepDelayMS      = "delayMilliseconds"
+	RegisterType      = "type"
+	CreateType        = "type"
 )
 
 const domainPrefix = "org.tidepool.work.test.load"
@@ -46,6 +46,16 @@ func DomainName(subdomain string) string {
 
 var TypeSleepy = DomainName("sleepy")
 var TypeDopey = DomainName("dopey")
+
+func AllowedActions() []string {
+	return []string{
+		SleepAction,
+		FailureAction,
+		ResultAction,
+		CreateAction,
+		RegisterAction,
+	}
+}
 
 type loadProcessor struct {
 	typ                   string
@@ -147,7 +157,6 @@ func (p *loadProcessor) returnResult(name string, metadata map[string]any, err e
 		})
 	case work.ResultDelete:
 		return work.NewProcessResultDelete()
-
 	default:
 		return work.NewProcessResultFailed(work.FailedUpdate{
 			FailedError: *errors.NewSerializable(fmt.Errorf("unknown result type %s", name)),
@@ -201,19 +210,27 @@ func (p *loadProcessor) performAction(ctx context.Context, wrk *work.Work, name 
 			p.returnResult(work.ResultFailed, metadata, errors.New("coordinator not set"))
 		}
 		createObj := metadata["create"].(map[string]any)
+		createCount, ok := metadata[CreateCount].(float64)
+		if !ok {
+			createCount = 1
+		}
+
 		parser := structureParser.NewObject(logNull.NewLogger(), &createObj)
 
-		create := work.ParseCreate(parser)
-		if create.GroupID == nil {
-			create.GroupID = wrk.GroupID
+		for range int(createCount) {
+			create := work.ParseCreate(parser)
+			if create.GroupID == nil {
+				create.GroupID = wrk.GroupID
+			}
+			if create.SerialID == nil {
+				create.SerialID = wrk.SerialID
+			}
+			_, err := p.workClient.Create(ctx, create)
+			if err != nil {
+				p.returnResult(work.ResultFailed, metadata, err)
+			}
 		}
-		if create.SerialID == nil {
-			create.SerialID = wrk.SerialID
-		}
-		_, err := p.workClient.Create(ctx, create)
-		if err != nil {
-			p.returnResult(work.ResultFailed, metadata, err)
-		}
+
 		return nil
 	case RegisterAction:
 		//TODO: register a new processor
@@ -247,15 +264,15 @@ func (p *loadProcessor) Process(ctx context.Context, wrk *work.Work, updater wor
 		p.returnResult(work.ResultFailed, wrk.Metadata, err)
 	}
 
-	actions := Actions{}
-	if err := json.Unmarshal(jsonData, &actions); err != nil {
+	processActions := ProcessActions{}
+	if err := json.Unmarshal(jsonData, &processActions); err != nil {
 		p.returnResult(work.ResultFailed, wrk.Metadata, err)
 	}
 
-	for _, actionData := range actions {
-		name, ok := actionData[ActionKey].(string)
+	for _, processAction := range processActions {
+		name, ok := processAction[ActionKey].(string)
 		if ok {
-			if result := p.performAction(ctx, wrk, name, actionData); result != nil {
+			if result := p.performAction(ctx, wrk, name, processAction); result != nil {
 				return *result
 			}
 		}
@@ -268,9 +285,9 @@ type LoadItem struct {
 	Create             *work.Create `json:"create"`
 }
 
-type Actions []Action
+type ProcessActions []ProcessAction
 
-type Action map[string]any
+type ProcessAction map[string]any
 
 func NewLoadProcessors(workClient work.Client, registerProcessorFunc func(processor work.Processor) error) ([]work.Processor, error) {
 	var processors []work.Processor
