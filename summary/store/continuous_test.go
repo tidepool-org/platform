@@ -79,8 +79,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 
 			continuousStore = dataStoreSummary.NewSummaries[*types.ContinuousPeriods, *types.ContinuousBucket](summaryRepository)
 
-			userId = userTest.RandomID()
-			userIdOther = userTest.RandomID()
+			userId = userTest.RandomUserID()
+			userIdOther = userTest.RandomUserID()
 		})
 
 		AfterEach(func() {
@@ -492,8 +492,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 			var userIdThree string
 
 			BeforeEach(func() {
-				userIdTwo = userTest.RandomID()
-				userIdThree = userTest.RandomID()
+				userIdTwo = userTest.RandomUserID()
+				userIdThree = userTest.RandomUserID()
 			})
 
 			It("With missing context", func() {
@@ -587,8 +587,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 			})
 
 			It("Get outdated summaries with all types present", func() {
-				userIdFour := userTest.RandomID()
-				userIdFive := userTest.RandomID()
+				userIdFour := userTest.RandomUserID()
+				userIdFive := userTest.RandomUserID()
 				cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 				bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 
@@ -637,8 +637,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 			var userIdThree string
 
 			BeforeEach(func() {
-				userIdTwo = userTest.RandomID()
-				userIdThree = userTest.RandomID()
+				userIdTwo = userTest.RandomUserID()
+				userIdThree = userTest.RandomUserID()
 			})
 
 			It("With missing context", func() {
@@ -761,8 +761,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 			})
 
 			It("Get migratable summaries with all types present", func() {
-				userIdFour := userTest.RandomID()
-				userIdFive := userTest.RandomID()
+				userIdFour := userTest.RandomUserID()
+				userIdFive := userTest.RandomUserID()
 				bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 				cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 

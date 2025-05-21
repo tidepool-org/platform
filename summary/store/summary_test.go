@@ -67,7 +67,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 			typelessStore = dataStoreSummary.NewTypeless(summaryRepository)
 		})
 

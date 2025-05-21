@@ -13,6 +13,10 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
+func RandomDataSetID() string {
+	return data.NewSetID()
+}
+
 func RandomClockDriftOffset() int {
 	return -86400000 + rand.Intn(86400000+86400000)
 }
@@ -25,12 +29,8 @@ func RandomVersionInternal() int {
 	return rand.Intn(10)
 }
 
-func RandomSetID() string {
-	return data.NewSetID()
-}
-
-func RandomSetIDs() []string {
-	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomSetID)
+func RandomDataSetIDs() []string {
+	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomDataSetID)
 }
 
 func RandomDataSetClient() *data.DataSetClient {
@@ -67,34 +67,35 @@ func RandomDataSetUpdate() *data.DataSetUpdate {
 }
 
 func RandomDataSet() *data.DataSet {
-	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-30*24*time.Hour))
+	createdTime := test.RandomTimeBefore(time.Now().Add(-30 * 24 * time.Hour))
 	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-24*time.Hour))
 	deletedTime := test.RandomTimeFromRange(modifiedTime, time.Now())
 
+	dataSetID := RandomDataSetID()
 	datum := data.NewDataSet()
 	datum.Active = false
 	datum.Annotations = metadataTest.RandomMetadataArray()
-	datum.ByUser = pointer.FromString(userTest.RandomID())
+	datum.ByUser = pointer.FromString(userTest.RandomUserID())
 	datum.Client = RandomDataSetClient()
 	datum.ClockDriftOffset = pointer.FromInt(RandomClockDriftOffset())
 	datum.ComputerTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.ConversionOffset = pointer.FromInt(RandomConversionOffset())
 	datum.CreatedTime = pointer.FromTime(createdTime)
-	datum.CreatedUserID = pointer.FromString(userTest.RandomID())
+	datum.CreatedUserID = pointer.FromString(userTest.RandomUserID())
 	datum.DataSetType = pointer.FromString(test.RandomStringFromArray(data.DataSetTypes()))
 	datum.DataState = pointer.FromString(test.RandomStringFromArray(data.DataSetStates()))
 	datum.Deduplicator = RandomDeduplicatorDescriptor()
 	datum.DeletedTime = pointer.FromTime(deletedTime)
-	datum.DeletedUserID = pointer.FromString(userTest.RandomID())
+	datum.DeletedUserID = pointer.FromString(userTest.RandomUserID())
 	datum.DeviceID = pointer.FromString(NewDeviceID())
 	datum.DeviceManufacturers = pointer.FromStringArray([]string{test.RandomStringFromRange(1, 16), test.RandomStringFromRange(1, 16)})
 	datum.DeviceModel = pointer.FromString(test.RandomStringFromRange(1, 32))
 	datum.DeviceSerialNumber = pointer.FromString(test.RandomStringFromRange(1, 16))
 	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(data.DeviceTags()), data.DeviceTags()))
 	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
-	datum.ID = pointer.FromString(RandomID())
+	datum.ID = pointer.FromString(dataSetID)
 	datum.ModifiedTime = pointer.FromTime(modifiedTime)
-	datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
+	datum.ModifiedUserID = pointer.FromString(userTest.RandomUserID())
 	datum.Payload = metadataTest.RandomMetadata()
 	datum.Provenance = RandomProvenance()
 	datum.State = pointer.FromString(test.RandomStringFromArray(data.DataSetStates()))
@@ -102,8 +103,8 @@ func RandomDataSet() *data.DataSet {
 	datum.TimeProcessing = pointer.FromString(data.TimeProcessingUTCBootstrapping)
 	datum.TimeZoneName = pointer.FromString(timeZoneTest.RandomName())
 	datum.TimeZoneOffset = pointer.FromInt(RandomTimeZoneOffset())
-	datum.UploadID = pointer.FromString(RandomSetID())
-	datum.UserID = pointer.FromString(userTest.RandomID())
+	datum.UploadID = pointer.FromString(dataSetID)
+	datum.UserID = pointer.FromString(userTest.RandomUserID())
 	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
 	datum.VersionInternal = RandomVersionInternal()
 	return datum

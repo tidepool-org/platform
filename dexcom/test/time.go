@@ -8,7 +8,7 @@ import (
 )
 
 func RandomSystemTime() *dexcom.Time {
-	return dexcom.TimeFromRaw(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second).UTC())
+	return dexcom.TimeFromRaw(test.RandomTimeBeforeNow().Truncate(time.Second).UTC())
 }
 
 func RandomDisplayTime() *dexcom.Time {

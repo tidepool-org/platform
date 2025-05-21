@@ -122,7 +122,7 @@ var _ = Describe("V1", func() {
 				var clinician *clinic.Clinician
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 					clinicianID := clinic.TidepoolUserId(userID)
 					clinician = &clinic.Clinician{
 						Id:    &clinicianID,
@@ -313,7 +313,7 @@ var _ = Describe("V1", func() {
 
 						Context("for a different user", func() {
 							BeforeEach(func() {
-								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userTest.RandomID())
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions", userTest.RandomUserID())
 								req.Method = http.MethodGet
 								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							})
@@ -379,7 +379,7 @@ var _ = Describe("V1", func() {
 						Context("for a different user", func() {
 							BeforeEach(func() {
 								req.Method = http.MethodGet
-								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userTest.RandomID(), prescr.ID)
+								req.URL.Path = fmt.Sprintf("/v1/patients/%v/prescriptions/%v", userTest.RandomUserID(), prescr.ID)
 								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 							})
 

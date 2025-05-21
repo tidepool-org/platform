@@ -39,7 +39,7 @@ var _ = Describe("Provider", func() {
 	var prvdr *twiistProvider.Provider
 
 	BeforeEach(func() {
-		userID = userTest.RandomID()
+		userID = userTest.RandomUserID()
 		twiistConfig := map[string]interface{}{
 			"client_id":     "tidepool",
 			"client_secret": "super_secret",
@@ -116,7 +116,7 @@ var _ = Describe("Provider", func() {
 				Return(nil, nil)
 
 			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomID()),
+				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
 				UserID:             &userID,
 				ProviderType:       pointer.FromString("oauth"),
 				ProviderName:       pointer.FromString("twiist"),
@@ -127,7 +127,7 @@ var _ = Describe("Provider", func() {
 				Create(ctx, gomock.Eq(session.UserID), gomock.Any()).
 				Return(dataSrc, nil)
 
-			dataSetID := dataTest.RandomID()
+			dataSetID := dataTest.RandomDatumID()
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 			dataSetClient.EXPECT().
 				CreateUserDataSet(ctx, gomock.Eq(session.UserID), gomock.Any()).
@@ -176,11 +176,11 @@ var _ = Describe("Provider", func() {
 
 		It("reuses data source and data set for existing connections", func() {
 			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
-			dataSetID := dataTest.RandomID()
+			dataSetID := dataTest.RandomDatumID()
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 
 			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomID()),
+				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
 				UserID:             &userID,
 				ProviderType:       pointer.FromString("oauth"),
 				ProviderName:       pointer.FromString("twiist"),
@@ -235,12 +235,12 @@ var _ = Describe("Provider", func() {
 
 		It("reuses data source and creates data set if it doesn't exist", func() {
 			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
-			missingDataSetID := dataTest.RandomID()
-			dataSetID := dataTest.RandomID()
+			missingDataSetID := dataTest.RandomDatumID()
+			dataSetID := dataTest.RandomDatumID()
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 
 			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomID()),
+				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
 				UserID:             &userID,
 				ProviderType:       pointer.FromString("oauth"),
 				ProviderName:       pointer.FromString("twiist"),

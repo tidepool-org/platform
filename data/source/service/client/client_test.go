@@ -75,7 +75,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 			})
 
 			Context("List", func() {
@@ -163,7 +163,7 @@ var _ = Describe("Client", func() {
 			var id string
 
 			BeforeEach(func() {
-				id = dataSourceTest.RandomID()
+				id = dataSourceTest.RandomDataSourceID()
 			})
 
 			Context("Get", func() {

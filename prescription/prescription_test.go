@@ -162,7 +162,7 @@ var _ = Describe("Prescription", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 				revisionCreate.State = prescription.StateSubmitted
 				prescr = prescription.NewPrescription(revisionCreate)
 				update = prescription.NewPrescriptionClaimUpdate(userID, prescr)
@@ -199,7 +199,7 @@ var _ = Describe("Prescription", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 				revisionCreate.State = prescription.StateClaimed
 				prescr = prescription.NewPrescription(revisionCreate)
 				stateUpdate := prescription.NewStateUpdate(userID)
@@ -364,7 +364,7 @@ var _ = Describe("Prescription", func() {
 				})
 
 				It("doesn't fail when patient id invalid", func() {
-					filter.PatientUserID = userTest.RandomID()
+					filter.PatientUserID = userTest.RandomUserID()
 
 					filter.Validate(validate)
 					Expect(validate.Error()).ToNot(HaveOccurred())

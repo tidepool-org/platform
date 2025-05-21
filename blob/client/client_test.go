@@ -19,7 +19,6 @@ import (
 	"github.com/tidepool-org/platform/blob"
 	blobClient "github.com/tidepool-org/platform/blob/client"
 	blobTest "github.com/tidepool-org/platform/blob/test"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -106,7 +105,7 @@ var _ = Describe("Client", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -464,7 +463,7 @@ var _ = Describe("Client", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 				})
 
 				Context("Get", func() {
@@ -655,7 +654,7 @@ var _ = Describe("Client", func() {
 							var digestMD5 string
 
 							BeforeEach(func() {
-								digestMD5 = cryptoTest.RandomBase64EncodedMD5Hash()
+								digestMD5 = netTest.RandomDigestMD5()
 								responseHeaders = http.Header{
 									"Digest":       []string{fmt.Sprintf("MD5=%s", digestMD5)},
 									"Content-Type": []string{"/"},
@@ -677,7 +676,7 @@ var _ = Describe("Client", func() {
 
 							BeforeEach(func() {
 								body = test.RandomBytes()
-								digestMD5 = cryptoTest.RandomBase64EncodedMD5Hash()
+								digestMD5 = netTest.RandomDigestMD5()
 								mediaType = netTest.RandomMediaType()
 								responseHeaders = http.Header{
 									"Digest":       []string{fmt.Sprintf("MD5=%s", digestMD5)},
@@ -861,7 +860,7 @@ var _ = Describe("Client", func() {
 				serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
-				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomUserID(), sessionToken))
 			})
 
 			AfterEach(func() {

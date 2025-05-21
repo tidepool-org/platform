@@ -69,7 +69,7 @@ var _ = Describe("Origin", func() {
 			),
 			Entry("all",
 				func(datum *origin.Origin) {
-					datum.ID = pointer.FromString(originTest.RandomID())
+					datum.ID = pointer.FromString(originTest.RandomOriginID())
 					datum.Name = pointer.FromString(originTest.RandomName())
 					datum.Payload = metadataTest.RandomMetadata()
 					datum.Time = pointer.FromString(originTest.RandomTime())

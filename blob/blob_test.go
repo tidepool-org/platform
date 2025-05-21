@@ -1,8 +1,6 @@
 package blob_test
 
 import (
-	"bytes"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
@@ -12,8 +10,6 @@ import (
 
 	"github.com/tidepool-org/platform/blob"
 	blobTest "github.com/tidepool-org/platform/blob/test"
-	"github.com/tidepool-org/platform/crypto"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -246,7 +242,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/body"),
 				),
 				Entry("body valid",
-					func(datum *blob.Content) { datum.Body = ioutil.NopCloser(bytes.NewReader(test.RandomBytes())) },
+					func(datum *blob.Content) { datum.Body = test.RandomReadCloser() },
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Content) { datum.DigestMD5 = nil },
@@ -257,11 +253,11 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 invalid",
 					func(datum *blob.Content) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsDigestMD5NotValid("#"), "/digestMD5"),
 				),
 				Entry("digest MD5 valid",
 					func(datum *blob.Content) {
-						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+						datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 					},
 				),
 				Entry("media type missing",
@@ -342,7 +338,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := blobTest.RandomID()
+						valid := blobTest.RandomBlobID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
 					},
@@ -356,7 +352,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := userTest.RandomID()
+						valid := userTest.RandomUserID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -370,7 +366,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := cryptoTest.RandomBase64EncodedMD5Hash()
+						valid := netTest.RandomDigestMD5()
 						object["digestMD5"] = valid
 						expectedDatum.DigestMD5 = pointer.FromString(valid)
 					},
@@ -398,7 +394,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("size valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomIntFromRange(1, 100*1024*1024)
+						valid := test.RandomIntFromRange(1, blob.SizeMaximum)
 						object["size"] = valid
 						expectedDatum.Size = pointer.FromInt(valid)
 					},
@@ -433,7 +429,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
 					},
@@ -454,7 +450,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("modified time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
@@ -475,7 +471,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("deleted time valid",
 					func(object map[string]interface{}, expectedDatum *blob.Blob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Truncate(time.Second)
+						valid := test.RandomTimeBeforeNow().Truncate(time.Second)
 						object["deletedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.DeletedTime = pointer.FromTime(valid)
 					},
@@ -554,7 +550,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(blob.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *blob.Blob) { datum.ID = pointer.FromString(blobTest.RandomID()) },
+					func(datum *blob.Blob) { datum.ID = pointer.FromString(blobTest.RandomBlobID()) },
 				),
 				Entry("user id missing",
 					func(datum *blob.Blob) { datum.UserID = nil },
@@ -569,7 +565,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/userId"),
 				),
 				Entry("user id valid",
-					func(datum *blob.Blob) { datum.UserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *blob.Blob) { datum.UserID = pointer.FromString(userTest.RandomUserID()) },
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.Blob) { datum.DigestMD5 = nil },
@@ -581,10 +577,10 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 invalid",
 					func(datum *blob.Blob) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsDigestMD5NotValid("#"), "/digestMD5"),
 				),
 				Entry("digest MD5 valid",
-					func(datum *blob.Blob) { datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash()) },
+					func(datum *blob.Blob) { datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5()) },
 				),
 				Entry("media type missing",
 					func(datum *blob.Blob) { datum.MediaType = nil },
@@ -647,7 +643,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time valid",
 					func(datum *blob.Blob) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 						datum.ModifiedTime = nil
 					},
 				),
@@ -773,7 +769,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *blob.DeviceLogsBlob) {
-						valid := blobTest.RandomID()
+						valid := blobTest.RandomBlobID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
 					},
@@ -787,7 +783,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *blob.DeviceLogsBlob) {
-						valid := userTest.RandomID()
+						valid := userTest.RandomUserID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -801,7 +797,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 valid",
 					func(object map[string]interface{}, expectedDatum *blob.DeviceLogsBlob) {
-						valid := cryptoTest.RandomBase64EncodedMD5Hash()
+						valid := netTest.RandomDigestMD5()
 						object["digestMD5"] = valid
 						expectedDatum.DigestMD5 = pointer.FromString(valid)
 					},
@@ -829,7 +825,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("size valid",
 					func(object map[string]interface{}, expectedDatum *blob.DeviceLogsBlob) {
-						valid := test.RandomIntFromRange(1, 100*1024*1024)
+						valid := test.RandomIntFromRange(1, blob.SizeMaximum)
 						object["size"] = valid
 						expectedDatum.Size = pointer.FromInt(valid)
 					},
@@ -850,7 +846,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *blob.DeviceLogsBlob) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
 					},
@@ -924,7 +920,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(blob.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *blob.DeviceLogsBlob) { datum.ID = pointer.FromString(blobTest.RandomID()) },
+					func(datum *blob.DeviceLogsBlob) { datum.ID = pointer.FromString(blobTest.RandomBlobID()) },
 				),
 				Entry("user id missing",
 					func(datum *blob.DeviceLogsBlob) { datum.UserID = nil },
@@ -939,7 +935,7 @@ var _ = Describe("Blob", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/userId"),
 				),
 				Entry("user id valid",
-					func(datum *blob.DeviceLogsBlob) { datum.UserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *blob.DeviceLogsBlob) { datum.UserID = pointer.FromString(userTest.RandomUserID()) },
 				),
 				Entry("digest MD5 missing",
 					func(datum *blob.DeviceLogsBlob) { datum.DigestMD5 = nil },
@@ -951,11 +947,11 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("digest MD5 invalid",
 					func(datum *blob.DeviceLogsBlob) { datum.DigestMD5 = pointer.FromString("#") },
-					errorsTest.WithPointerSource(crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid("#"), "/digestMD5"),
+					errorsTest.WithPointerSource(net.ErrorValueStringAsDigestMD5NotValid("#"), "/digestMD5"),
 				),
 				Entry("digest MD5 valid",
 					func(datum *blob.DeviceLogsBlob) {
-						datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+						datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 					},
 				),
 				Entry("media type missing",
@@ -1004,7 +1000,7 @@ var _ = Describe("Blob", func() {
 				),
 				Entry("created time valid",
 					func(datum *blob.DeviceLogsBlob) {
-						validTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now().Add(-2*time.Hour))
+						validTime := test.RandomTimeBefore(time.Now().Add(-2 * time.Hour))
 						datum.CreatedTime = pointer.FromTime(validTime)
 						datum.StartAtTime = pointer.FromTime(validTime)
 						datum.EndAtTime = pointer.FromTime(validTime.Add(1 * time.Hour))

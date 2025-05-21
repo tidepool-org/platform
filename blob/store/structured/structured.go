@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/blob"
-	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/request"
@@ -53,7 +52,7 @@ func NewUpdate() *Update {
 }
 
 func (u *Update) Validate(validator structure.Validator) {
-	validator.String("digestMD5", u.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", u.DigestMD5).Using(net.DigestMD5Validator)
 	validator.String("mediaType", u.MediaType).Using(net.MediaTypeValidator)
 	validator.Int("size", u.Size).GreaterThanOrEqualTo(0)
 	validator.String("status", u.Status).OneOf(blob.Statuses()...)
@@ -87,7 +86,7 @@ func NewDeviceLogsUpdate() *DeviceLogsUpdate {
 }
 
 func (u *DeviceLogsUpdate) Validate(validator structure.Validator) {
-	validator.String("digestMD5", u.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", u.DigestMD5).Using(net.DigestMD5Validator)
 	validator.String("mediaType", u.MediaType).Using(net.MediaTypeValidator)
 	validator.Int("size", u.Size).GreaterThanOrEqualTo(0)
 	validator.Time("startAt", u.StartAt).Exists()

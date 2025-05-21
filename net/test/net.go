@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -18,6 +19,10 @@ func RandomEmail() string {
 
 func RandomFQDN() string {
 	return RandomSubDomains(2, 4)
+}
+
+func RandomDigestMD5() string {
+	return cryptoTest.RandomBase64EncodedMD5Hash()
 }
 
 func RandomMediaType() string {

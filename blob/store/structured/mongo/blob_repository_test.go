@@ -117,7 +117,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -172,7 +172,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							mediaType = netTest.RandomMediaType()
 							allResult = blobTest.RandomBlobArray(8, 8)
 							for index, result := range allResult {
-								result.ID = pointer.FromString(blobTest.RandomID())
+								result.ID = pointer.FromString(blobTest.RandomBlobID())
 								result.UserID = pointer.FromString(userID)
 								if (index/4)%2 == 0 {
 									result.MediaType = pointer.FromString(mediaType)
@@ -190,7 +190,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						})
 
 						It("returns no result when the user id is unknown", func() {
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
 						})
@@ -450,7 +450,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 						It("returns false and does not delete the originals when the user id does not match", func() {
 							originalUserID := userID
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.DeleteAll(ctx, userID)).To(BeFalse())
 							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID, "deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
 							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"deletedTime": bson.M{"$exists": true}})).To(Equal(int64(2)))
@@ -510,7 +510,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 						It("returns false and does not destroy the originals when the user id does not match", func() {
 							originalUserID := userID
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.DestroyAll(ctx, userID)).To(BeFalse())
 							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(4)))
 							Expect(blobsCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(6)))
@@ -530,7 +530,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -583,7 +583,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					})
 
 					It("returns nil when the id does not exist", func() {
-						id = blobTest.RandomID()
+						id = blobTest.RandomBlobID()
 						Expect(repository.Get(ctx, id, condition)).To(BeNil())
 					})
 
@@ -678,7 +678,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var update *blobStoreStructured.Update
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 					update = blobStoreStructuredTest.RandomUpdate()
 				})
@@ -782,7 +782,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = blobTest.RandomID()
+								id = blobTest.RandomBlobID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -797,7 +797,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = blobTest.RandomID()
+								id = blobTest.RandomBlobID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -834,7 +834,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -934,7 +934,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("returns false when the id does not exist", func() {
-								id = blobTest.RandomID()
+								id = blobTest.RandomBlobID()
 								Expect(repository.Delete(ctx, id, condition)).To(BeFalse())
 							})
 						})
@@ -971,7 +971,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -1022,7 +1022,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					})
 
 					It("returns false and does not delete the original when the id does not exist", func() {
-						id = blobTest.RandomID()
+						id = blobTest.RandomBlobID()
 						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(blobsCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})

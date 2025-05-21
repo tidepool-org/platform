@@ -279,7 +279,7 @@ var _ = Describe("Client", func() {
 
 				When("the server responds directly to the one request with last sync time", func() {
 					BeforeEach(func() {
-						lastSyncTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						lastSyncTime = pointer.FromTime(test.RandomTimeBeforeNow())
 						requestQuery = fmt.Sprintf("lastSyncTime=%s", lastSyncTime.UTC().Format(time.RFC3339))
 					})
 
@@ -351,7 +351,7 @@ var _ = Describe("Client", func() {
 			var requestQuery string
 
 			BeforeEach(func() {
-				startTime = test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+				startTime = test.RandomTimeBeforeNow()
 				endTime = test.RandomTimeFromRange(startTime, time.Now())
 				requestQuery = fmt.Sprintf("startDate=%s&endDate=%s", startTime.UTC().Format(dexcom.DateRangeTimeFormat), endTime.UTC().Format(dexcom.DateRangeTimeFormat))
 			})

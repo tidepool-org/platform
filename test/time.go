@@ -32,6 +32,22 @@ func MustTime(value time.Time, err error) time.Time {
 	return value
 }
 
+func RandomTimeBeforeNow() time.Time {
+	return RandomTimeBefore(time.Now())
+}
+
+func RandomTimeAfterNow() time.Time {
+	return RandomTimeAfter(time.Now())
+}
+
+func RandomTimeBefore(value time.Time) time.Time {
+	return RandomTimeFromRange(RandomTimeMinimum(), PinnedTime(value))
+}
+
+func RandomTimeAfter(value time.Time) time.Time {
+	return RandomTimeFromRange(PinnedTime(value), RandomTimeMaximum())
+}
+
 func RandomTime() time.Time {
 	return RandomTimeFromRange(RandomTimeMinimum(), RandomTimeMaximum())
 }
@@ -47,16 +63,8 @@ func RandomTimeFromRange(minimum time.Time, maximum time.Time) time.Time {
 	if maximum.Before(minimum) {
 		panic("RandomTimeFromRange: maximum is not greater than or equal to minimum")
 	}
-	if minimum.Before(RandomTimeMinimum()) {
-		minimum = RandomTimeMinimum()
-	} else if minimum.After(RandomTimeMaximum()) {
-		minimum = RandomTimeMaximum()
-	}
-	if maximum.Before(RandomTimeMinimum()) {
-		maximum = RandomTimeMinimum()
-	} else if maximum.After(RandomTimeMaximum()) {
-		maximum = RandomTimeMaximum()
-	}
+	minimum = PinnedTime(minimum)
+	maximum = PinnedTime(maximum)
 	if duration := maximum.Sub(minimum); duration != 0 {
 		return minimum.Add(time.Duration(rand.Int63n(int64(duration)))).Truncate(time.Millisecond)
 	} else {
@@ -78,6 +86,16 @@ func NewObjectFromTime(value time.Time, objectFormat ObjectFormat) interface{} {
 		return value.Format(time.RFC3339Nano)
 	}
 	return value
+}
+
+func PinnedTime(value time.Time) time.Time {
+	if value.Before(RandomTimeMinimum()) {
+		return RandomTimeMinimum()
+	} else if value.After(RandomTimeMaximum()) {
+		return RandomTimeMaximum()
+	} else {
+		return value.Truncate(time.Millisecond)
+	}
 }
 
 func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {

@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/page"
@@ -88,7 +87,7 @@ func (c *Content) Validate(validator structure.Validator) {
 	if c.Body == nil {
 		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", c.DigestMD5).Using(net.DigestMD5Validator)
 	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
 }
 
@@ -121,7 +120,7 @@ func (b *Blob) Parse(parser structure.ObjectParser) {
 func (b *Blob) Validate(validator structure.Validator) {
 	validator.String("id", b.ID).Exists().Using(IDValidator)
 	validator.String("userId", b.UserID).Exists().Using(user.IDValidator)
-	validator.String("digestMD5", b.DigestMD5).Exists().Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", b.DigestMD5).Exists().Using(net.DigestMD5Validator)
 	validator.String("mediaType", b.MediaType).Exists().Using(net.MediaTypeValidator)
 	validator.Int("size", b.Size).Exists().GreaterThanOrEqualTo(0)
 	validator.String("status", b.Status).Exists().OneOf(Statuses()...)
@@ -149,7 +148,7 @@ func (c *DeviceLogsContent) Validate(validator structure.Validator) {
 	if c.Body == nil {
 		validator.WithReference("body").ReportError(structureValidator.ErrorValueNotExists())
 	}
-	validator.String("digestMD5", c.DigestMD5).Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", c.DigestMD5).Using(net.DigestMD5Validator)
 	validator.String("mediaType", c.MediaType).Exists().Using(net.MediaTypeValidator)
 	validator.Time("startAt", c.StartAt).Exists().NotZero()
 	validator.Time("endAt", c.EndAt).Exists().NotZero()
@@ -187,7 +186,7 @@ func (b *DeviceLogsBlob) Parse(parser structure.ObjectParser) {
 func (b *DeviceLogsBlob) Validate(validator structure.Validator) {
 	validator.String("id", b.ID).Exists().Using(IDValidator)
 	validator.String("userId", b.UserID).Exists().Using(user.IDValidator)
-	validator.String("digestMD5", b.DigestMD5).Exists().Using(crypto.Base64EncodedMD5HashValidator)
+	validator.String("digestMD5", b.DigestMD5).Exists().Using(net.DigestMD5Validator)
 	validator.String("mediaType", b.MediaType).Exists().Using(net.MediaTypeValidator)
 	validator.Int("size", b.Size).Exists().GreaterThanOrEqualTo(0)
 	validator.Time("createdTime", b.CreatedTime).Exists().NotZero().BeforeNow(time.Second)

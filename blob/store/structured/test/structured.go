@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
@@ -19,7 +18,7 @@ func RandomCreate() *blobStoreStructured.Create {
 
 func RandomUpdate() *blobStoreStructured.Update {
 	datum := blobStoreStructured.NewUpdate()
-	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
@@ -28,7 +27,7 @@ func RandomUpdate() *blobStoreStructured.Update {
 
 func RandomDeviceLogsUpdate() *blobStoreStructured.DeviceLogsUpdate {
 	datum := blobStoreStructured.NewDeviceLogsUpdate()
-	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.StartAt = pointer.FromTime(test.RandomTime())

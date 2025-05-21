@@ -10,8 +10,7 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 
 	"github.com/tidepool-org/platform/blob"
-	"github.com/tidepool-org/platform/crypto"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
+	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
 	requestTest "github.com/tidepool-org/platform/request/test"
@@ -19,7 +18,7 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-func RandomID() string {
+func RandomBlobID() string {
 	return blob.NewID()
 }
 
@@ -52,7 +51,7 @@ func RandomContent() *blob.Content {
 	content := test.RandomBytes()
 	datum := &blob.Content{}
 	datum.Body = io.NopCloser(bytes.NewReader(content))
-	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
+	datum.DigestMD5 = pointer.FromString(net.DigestMD5(content))
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	return datum
 }
@@ -65,7 +64,7 @@ func RandomDeviceLogsContentMediaType(mediaType string) *blob.DeviceLogsContent 
 	content := test.RandomBytes()
 	datum := &blob.DeviceLogsContent{}
 	datum.Body = io.NopCloser(bytes.NewReader(content))
-	datum.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(content))
+	datum.DigestMD5 = pointer.FromString(net.DigestMD5(content))
 	datum.MediaType = pointer.FromString(mediaType)
 	now := time.Now()
 	datum.StartAt = pointer.FromTime(now.UTC())
@@ -79,13 +78,13 @@ func RandomDeviceLogsBlob() *blob.DeviceLogsBlob {
 
 func RandomDeviceLogsBlobMediaType(mediaType string) *blob.DeviceLogsBlob {
 	datum := &blob.DeviceLogsBlob{}
-	datum.UserID = pointer.FromString(userTest.RandomID())
-	datum.ID = pointer.FromString(RandomID())
-	datum.UserID = pointer.FromString(userTest.RandomID())
-	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.UserID = pointer.FromString(userTest.RandomUserID())
+	datum.ID = pointer.FromString(RandomBlobID())
+	datum.UserID = pointer.FromString(userTest.RandomUserID())
+	datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 	datum.MediaType = pointer.FromString(mediaType)
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	datum.StartAtTime = datum.CreatedTime
 	datum.EndAtTime = pointer.FromTime(datum.CreatedTime.Add(5 * time.Minute))
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
@@ -94,13 +93,13 @@ func RandomDeviceLogsBlobMediaType(mediaType string) *blob.DeviceLogsBlob {
 
 func RandomBlob() *blob.Blob {
 	datum := &blob.Blob{}
-	datum.ID = pointer.FromString(RandomID())
-	datum.UserID = pointer.FromString(userTest.RandomID())
-	datum.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+	datum.ID = pointer.FromString(RandomBlobID())
+	datum.UserID = pointer.FromString(userTest.RandomUserID())
+	datum.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 	datum.MediaType = pointer.FromString(netTest.RandomMediaType())
 	datum.Size = pointer.FromInt(test.RandomIntFromRange(1, 100*1024*1024))
 	datum.Status = pointer.FromString(test.RandomStringFromArray(blob.Statuses()))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	if *datum.Status == blob.StatusAvailable {
 		datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 	}

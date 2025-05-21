@@ -735,7 +735,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := dataTest.RandomSetIDs()
+						valid := dataTest.RandomDataSetIDs()
 						object["dataSetIds"] = valid
 						expectedDatum.DataSetIDs = pointer.FromStringArray(valid)
 					},
@@ -756,7 +756,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["earliestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.EarliestDataTime = pointer.FromTime(valid)
 					},
@@ -777,7 +777,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("latest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["latestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LatestDataTime = pointer.FromTime(valid)
 					},
@@ -798,7 +798,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Update) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["lastImportTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LastImportTime = pointer.FromTime(valid)
 					},
@@ -1062,14 +1062,14 @@ var _ = Describe("Source", func() {
 				),
 				Entry("data set ids element duplicate",
 					func(datum *dataSource.Update) {
-						dataSetID := dataTest.RandomSetID()
+						dataSetID := dataTest.RandomDataSetID()
 						datum.DataSetIDs = pointer.FromStringArray([]string{dataSetID, dataSetID})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/dataSetIds/1"),
 				),
 				Entry("data set ids valid",
 					func(datum *dataSource.Update) {
-						datum.DataSetIDs = pointer.FromStringArray([]string{dataTest.RandomSetID()})
+						datum.DataSetIDs = pointer.FromStringArray([]string{dataTest.RandomDataSetID()})
 					},
 				),
 				Entry("earliest data time missing",
@@ -1090,7 +1090,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time valid",
 					func(datum *dataSource.Update) {
-						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 						datum.LatestDataTime = nil
 					},
 				),
@@ -1117,7 +1117,7 @@ var _ = Describe("Source", func() {
 				Entry("earliest data time missing; latest data time valid",
 					func(datum *dataSource.Update) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 					},
 				),
 				Entry("earliest data time valid; latest data time missing",
@@ -1163,7 +1163,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time valid",
 					func(datum *dataSource.Update) {
-						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.LastImportTime = pointer.FromTime(test.RandomTimeBeforeNow())
 					},
 				),
 				Entry("multiple errors",
@@ -1247,22 +1247,22 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns false when data set ids is not nil", func() {
-				datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
+				datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomDataSetIDs())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
 			It("returns false when earliest data time is not nil", func() {
-				datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
 			It("returns false when latest data time is not nil", func() {
-				datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				datum.LatestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
 			It("returns false when last import time is not nil", func() {
-				datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+				datum.LastImportTime = pointer.FromTime(test.RandomTimeBeforeNow())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
@@ -1311,7 +1311,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := dataSourceTest.RandomID()
+						valid := dataSourceTest.RandomDataSourceID()
 						object["id"] = valid
 						expectedDatum.ID = pointer.FromString(valid)
 					},
@@ -1325,7 +1325,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("user id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := userTest.RandomID()
+						valid := userTest.RandomUserID()
 						object["userId"] = valid
 						expectedDatum.UserID = pointer.FromString(valid)
 					},
@@ -1437,7 +1437,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("data set ids valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := dataTest.RandomSetIDs()
+						valid := dataTest.RandomDataSetIDs()
 						object["dataSetIds"] = valid
 						expectedDatum.DataSetIDs = pointer.FromStringArray(valid)
 					},
@@ -1458,7 +1458,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["earliestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.EarliestDataTime = pointer.FromTime(valid)
 					},
@@ -1479,7 +1479,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("latest data time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["latestDataTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LatestDataTime = pointer.FromTime(valid)
 					},
@@ -1500,7 +1500,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["lastImportTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.LastImportTime = pointer.FromTime(valid)
 					},
@@ -1521,7 +1521,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("created time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["createdTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.CreatedTime = pointer.FromTime(valid)
 					},
@@ -1542,7 +1542,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("modified time valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Source) {
-						valid := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+						valid := test.RandomTimeBeforeNow()
 						object["modifiedTime"] = valid.Format(time.RFC3339Nano)
 						expectedDatum.ModifiedTime = pointer.FromTime(valid)
 					},
@@ -1646,7 +1646,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("id valid",
 					func(datum *dataSource.Source) {
-						datum.ID = pointer.FromString(dataSourceTest.RandomID())
+						datum.ID = pointer.FromString(dataSourceTest.RandomDataSourceID())
 					},
 				),
 				Entry("user id missing",
@@ -1669,7 +1669,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("user id valid",
 					func(datum *dataSource.Source) {
-						datum.UserID = pointer.FromString(userTest.RandomID())
+						datum.UserID = pointer.FromString(userTest.RandomUserID())
 					},
 				),
 				Entry("provider type missing",
@@ -1922,14 +1922,14 @@ var _ = Describe("Source", func() {
 				),
 				Entry("data set ids element duplicate",
 					func(datum *dataSource.Source) {
-						dataSetID := dataTest.RandomSetID()
+						dataSetID := dataTest.RandomDataSetID()
 						datum.DataSetIDs = pointer.FromStringArray([]string{dataSetID, dataSetID})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/dataSetIds/1"),
 				),
 				Entry("data set ids valid",
 					func(datum *dataSource.Source) {
-						datum.DataSetIDs = pointer.FromStringArray([]string{dataTest.RandomSetID()})
+						datum.DataSetIDs = pointer.FromStringArray([]string{dataTest.RandomDataSetID()})
 					},
 				),
 				Entry("earliest data time missing",
@@ -1950,7 +1950,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("earliest data time valid",
 					func(datum *dataSource.Source) {
-						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 						datum.LatestDataTime = nil
 					},
 				),
@@ -1977,7 +1977,7 @@ var _ = Describe("Source", func() {
 				Entry("earliest data time missing; latest data time valid",
 					func(datum *dataSource.Source) {
 						datum.EarliestDataTime = nil
-						datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.LatestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 					},
 				),
 				Entry("earliest data time valid; latest data time missing",
@@ -2023,7 +2023,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("last import time valid",
 					func(datum *dataSource.Source) {
-						datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.LastImportTime = pointer.FromTime(test.RandomTimeBeforeNow())
 					},
 				),
 				Entry("created time missing",
@@ -2043,7 +2043,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("created time valid",
 					func(datum *dataSource.Source) {
-						datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+						datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 						datum.ModifiedTime = nil
 					},
 				),
@@ -2161,7 +2161,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("removes the provider session id and sanitizes the error when the details are user", func() {
-				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomUserID(), authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				original.ProviderSessionID = nil
 				original.Error.Error = errors.Sanitize(original.Error.Error)
@@ -2178,7 +2178,7 @@ var _ = Describe("Source", func() {
 				})
 
 				It("promotes the unauthenticated error cause", func() {
-					details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+					details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomUserID(), authTest.NewSessionToken())
 					Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 					original.ProviderSessionID = nil
 					original.Error.Error = errors.Sanitize(unauthenticatedError)
@@ -2251,7 +2251,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("removes the provider session id and sanitizes the error when the details are user", func() {
-				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomID(), authTest.NewSessionToken())
+				details := request.NewAuthDetails(request.MethodSessionToken, userTest.RandomUserID(), authTest.NewSessionToken())
 				Expect(sanitized.Sanitize(details)).ToNot(HaveOccurred())
 				for _, original := range originals {
 					original.ProviderSessionID = nil

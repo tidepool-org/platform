@@ -7,10 +7,32 @@ import (
 
 	"github.com/blang/semver"
 
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
+
+func DigestMD5(bites []byte) string {
+	return crypto.Base64EncodedMD5Hash(bites)
+}
+
+func IsValidDigestMD5(value string) bool {
+	return ValidateDigestMD5(value) == nil
+}
+
+func DigestMD5Validator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateDigestMD5(value))
+}
+
+func ValidateDigestMD5(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if crypto.ValidateBase64EncodedMD5Hash(value) != nil {
+		return ErrorValueStringAsDigestMD5NotValid(value)
+	}
+	return nil
+}
 
 func IsValidMediaType(value string) bool {
 	return ValidateMediaType(value) == nil
@@ -98,6 +120,10 @@ func ValidateURL(value string) error {
 		return structureValidator.ErrorLengthNotLessThanOrEqualTo(length, urlLengthMaximum)
 	}
 	return nil
+}
+
+func ErrorValueStringAsDigestMD5NotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as md5 digest", value)
 }
 
 func ErrorValueStringAsMediaTypeNotValid(value string) error {

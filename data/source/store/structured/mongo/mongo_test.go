@@ -167,7 +167,7 @@ var _ = Describe("Mongo", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -243,7 +243,7 @@ var _ = Describe("Mongo", func() {
 									randomResult.ProviderExternalID = pointer.FromString(providerExternalID)
 								}
 								userResult := dataSourceTest.CloneSource(randomResult)
-								userResult.ID = pointer.FromString(dataSourceTest.RandomID())
+								userResult.ID = pointer.FromString(dataSourceTest.RandomDataSourceID())
 								userResult.UserID = pointer.FromString(userID)
 								allResult = append(allResult, randomResult, userResult)
 							}
@@ -253,7 +253,7 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns no result when the user id is unknown", func() {
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
 							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
 						})
@@ -538,7 +538,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns false and does not destroy the original when the id does not exist", func() {
 							originalUserID := userID
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.DestroyAll(ctx, userID)).To(BeFalse())
 							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(len(originals))))
 							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(len(originals) + 2)))
@@ -557,7 +557,7 @@ var _ = Describe("Mongo", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -602,7 +602,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns nil when the id does not exist", func() {
-						id = dataSourceTest.RandomID()
+						id = dataSourceTest.RandomDataSourceID()
 						Expect(repository.Get(ctx, id)).To(BeNil())
 					})
 
@@ -629,7 +629,7 @@ var _ = Describe("Mongo", func() {
 				var update *dataSource.Update
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 					condition = requestTest.RandomCondition()
 					update = dataSourceTest.RandomUpdate()
 				})
@@ -814,7 +814,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = dataSourceTest.RandomID()
+								id = dataSourceTest.RandomDataSourceID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -829,7 +829,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = dataSourceTest.RandomID()
+								id = dataSourceTest.RandomDataSourceID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -866,7 +866,7 @@ var _ = Describe("Mongo", func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -917,7 +917,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns false and does not destroy the original when the id does not exist", func() {
-						id = dataSourceTest.RandomID()
+						id = dataSourceTest.RandomDataSourceID()
 						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
@@ -1007,7 +1007,7 @@ var _ = Describe("Mongo", func() {
 								randomResult.ProviderExternalID = pointer.FromString(providerExternalID)
 							}
 							userResult := dataSourceTest.CloneSource(randomResult)
-							userResult.ID = pointer.FromString(dataSourceTest.RandomID())
+							userResult.ID = pointer.FromString(dataSourceTest.RandomDataSourceID())
 							// Make all results sortable
 							userResult.CreatedTime = pointer.FromAny(userResult.CreatedTime.Add(time.Millisecond))
 							allResult = append(allResult, randomResult, userResult)
