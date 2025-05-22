@@ -30,6 +30,8 @@ import (
 	"github.com/tidepool-org/platform/service/server"
 	"github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	"github.com/tidepool-org/platform/summary"
+	summaryClient "github.com/tidepool-org/platform/summary/client"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 )
@@ -45,6 +47,7 @@ type Standard struct {
 	clinicsClient                  *clinics.Client
 	dataClient                     *Client
 	dataSourceClient               *dataSourceServiceClient.Client
+	summaryClient                  *summaryClient.Client
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
 	api                            *api.Standard
@@ -89,6 +92,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSummaryClient(); err != nil {
+		return err
+	}
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
@@ -117,6 +123,7 @@ func (s *Standard) Terminate() {
 		}
 		s.userEventsHandler = nil
 	}
+	s.summaryClient = nil
 	s.dataSourceClient = nil
 	s.dataClient = nil
 	s.clinicsClient = nil
@@ -377,6 +384,27 @@ func (s *Standard) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to create data source client")
 	}
 	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeSummaryClient() error {
+	s.Logger().Debug("Creating summarizer registry")
+
+	summarizerRegistry := summary.New(
+		s.dataStore.NewSummaryRepository().GetStore(),
+		s.dataStore.NewBucketsRepository().GetStore(),
+		s.dataStore.NewDataRepository(),
+		s.dataStore.GetClient(),
+	)
+
+	s.Logger().Debug("Creating summary client")
+
+	clnt, err := summaryClient.New(summarizerRegistry)
+	if err != nil {
+		return errors.Wrap(err, "unable to create summary client")
+	}
+	s.summaryClient = clnt
 
 	return nil
 }
