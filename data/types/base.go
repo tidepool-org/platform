@@ -17,17 +17,12 @@ import (
 )
 
 const (
-	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
-	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	NoteLengthMaximum       = 1000
-	NotesLengthMaximum      = 100
-	TagLengthMaximum        = 100
-	TagsLengthMaximum       = 100
-	TimeFormat              = time.RFC3339Nano
-	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionInternalMinimum  = 0
+	DeviceTimeFormat   = "2006-01-02T15:04:05"
+	NoteLengthMaximum  = 1000
+	NotesLengthMaximum = 100
+	TagLengthMaximum   = 100
+	TagsLengthMaximum  = 100
+	TimeFormat         = time.RFC3339Nano
 )
 
 type Base struct {
@@ -133,7 +128,7 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
-	validator.Int("clockDriftOffset", b.ClockDriftOffset).InRange(ClockDriftOffsetMinimum, ClockDriftOffsetMaximum)
+	validator.Int("clockDriftOffset", b.ClockDriftOffset).InRange(data.ClockDriftOffsetMinimum, data.ClockDriftOffsetMaximum)
 
 	if validator.Origin() <= structure.OriginInternal {
 		if b.CreatedTime != nil {
@@ -203,13 +198,10 @@ func (b *Base) Validate(validator structure.Validator) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
 	}).EachUnique()
 
-	timeValidator := validator.Time("time", b.Time)
-	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
-		timeValidator.Exists().NotZero()
-	}
+	validator.Time("time", b.Time).Exists().NotZero()
 
 	validator.String("timezone", b.TimeZoneName).Using(timeZone.NameValidator)
-	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(data.TimeZoneOffsetMinimum, data.TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
 	if validator.Origin() <= structure.OriginInternal {
@@ -217,7 +209,7 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	if validator.Origin() <= structure.OriginStore {
 		validator.String("_userId", b.UserID).Exists().Using(user.IDValidator)
-		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
+		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(data.VersionInternalMinimum)
 	}
 }
 

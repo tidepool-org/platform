@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/twiist"
 
 	"github.com/tidepool-org/platform/auth"
@@ -283,7 +282,7 @@ func (p *Provider) createDataSet(ctx context.Context, source *dataSource.Source)
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray(twiist.DeviceManufacturers)
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM, data.DeviceTagBGM, data.DeviceTagInsulinPump})
 	dataSetCreate.Time = pointer.FromTime(time.Now())
-	dataSetCreate.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingNone)
+	dataSetCreate.TimeProcessing = pointer.FromString(data.TimeProcessingNone)
 
 	dataSet, err := p.dataClient.CreateUserDataSet(ctx, *source.UserID, dataSetCreate)
 	if err != nil {

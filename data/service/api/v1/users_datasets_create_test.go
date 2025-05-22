@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
@@ -21,8 +22,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
@@ -42,9 +42,9 @@ var _ = Describe("UsersDataSetsCreate", func() {
 		It("does set the CreatedUserID if the auth details are for a user", func() {
 			dataServiceContext := newMockDataServiceContext(GinkgoT())
 			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodAccessToken, "test-auth-details-user-id", "token")
-			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
-				Expect(up.CreatedUserID).ToNot(BeNil())
-				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
+			dataServiceContext.DataSetTester = func(t testingT, dataSet *data.DataSet) {
+				Expect(dataSet.CreatedUserID).ToNot(BeNil())
+				Expect(*dataSet.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
 
 			v1.UsersDataSetsCreate(dataServiceContext)
@@ -61,9 +61,9 @@ var _ = Describe("UsersDataSetsCreate", func() {
 		It("does not set the CreatedUserID if the auth details are not for a user", func() {
 			dataServiceContext := newMockDataServiceContext(GinkgoT())
 			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodServiceSecret, "", "token")
-			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
-				Expect(up.CreatedUserID).ToNot(BeNil())
-				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
+			dataServiceContext.DataSetTester = func(t testingT, dataSet *data.DataSet) {
+				Expect(dataSet.CreatedUserID).ToNot(BeNil())
+				Expect(*dataSet.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
 
 			v1.UsersDataSetsCreate(dataServiceContext)
@@ -91,12 +91,12 @@ type mockDataServiceContext struct {
 
 	AuthDetails request.AuthDetails
 
-	// UploadTester tests the resulting upload.
-	UploadTester func(testingT, *upload.Upload)
+	// DataSetTester tests the resulting data set.
+	DataSetTester func(testingT, *data.DataSet)
 }
 
 func newMockDataServiceContext(t testingT) *mockDataServiceContext {
-	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet := dataTest.RandomDataSet()
 	dataSet.CreatedUserID = pointer.FromString("test-deduplicator-created-user-id")
 
 	dataDeduplicator := dataDeduplicatorTest.NewDeduplicator()
@@ -150,14 +150,14 @@ func (c *mockDataServiceContext) RespondWithStatusAndErrors(statusCode int, erro
 	panic("not implemented") // TODO: Implement
 }
 
-func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, data interface{}) {
-	up, ok := data.(*upload.Upload)
+func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, object interface{}) {
+	dataSet, ok := object.(*data.DataSet)
 	if !ok {
-		c.t.Errorf("expected upload.Upload response, got %v", data)
+		c.t.Errorf("expected data.DataSet response, got %v", object)
 	}
 
-	if c.UploadTester != nil {
-		c.UploadTester(c.t, up)
+	if c.DataSetTester != nil {
+		c.DataSetTester(c.t, dataSet)
 	}
 }
 
