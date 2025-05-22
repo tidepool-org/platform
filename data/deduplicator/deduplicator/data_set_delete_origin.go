@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -29,11 +28,11 @@ func NewDataSetDeleteOrigin() (*DataSetDeleteOrigin, error) {
 	}, nil
 }
 
-func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DataSetDeleteOrigin) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	return d.Get(ctx, dataSet)
 }
 
-func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := d.DataSetDeleteOriginBase.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -43,7 +42,7 @@ func (d *DataSetDeleteOrigin) Get(ctx context.Context, dataSet *dataTypesUpload.
 
 type dataSetDeleteOriginProvider struct{}
 
-func (d *dataSetDeleteOriginProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (data.Data, error) {
+func (d *dataSetDeleteOriginProvider) FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
 	return dataSetData, nil
 }
 

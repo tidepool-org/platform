@@ -5,7 +5,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -33,7 +32,7 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -66,7 +65,7 @@ func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload
 	return false, nil
 }
 
-func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -74,7 +73,7 @@ func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -95,7 +94,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
 }
 
-func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -113,7 +112,7 @@ func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.D
 	return d.Base.Close(ctx, repository, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

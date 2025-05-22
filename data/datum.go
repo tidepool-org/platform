@@ -82,7 +82,28 @@ type Provenance struct {
 	// ByUserID the userId of the user submitting the data.
 	//
 	// This is a std Tidepool user id.
-	ByUserID string `json:"byUserId,omitempty" bson:"byUserID,omitempty"`
+	ByUserID *string `json:"byUserId,omitempty" bson:"byUserID,omitempty"`
 	// SourceIP address from the HTTP request submitting the data.
-	SourceIP string `json:"sourceIP" bson:"sourceIP"`
+	SourceIP *string `json:"sourceIP,omitempty" bson:"sourceIP,omitempty"`
+}
+
+func ParseProvenance(parser structure.ObjectParser) *Provenance {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewProvenance()
+	parser.Parse(datum)
+	return datum
+}
+
+func NewProvenance() *Provenance {
+	return &Provenance{}
+}
+
+func (p *Provenance) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clientId"); ptr != nil {
+		p.ClientID = *ptr
+	}
+	p.ByUserID = parser.String("byUserId")
+	p.SourceIP = parser.String("sourceIP")
 }
