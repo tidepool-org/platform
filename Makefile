@@ -67,6 +67,10 @@ ifdef DOCKER_SERVICE
 endif
 endif
 
+PLUGINS=abbott
+
+PLUGIN_VISIBILITY:=public
+
 SERVICES=auth blob data migrations prescription task tools
 
 default: test
@@ -107,6 +111,26 @@ endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
 buildable: bindir CompileDaemon ginkgo goimports
+
+plugins-visibility:
+	@cd $(ROOT_DIRECTORY) && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) plugin/visibility/visibility.go`."
+endif
+
+plugins-visibility-public:
+	@cd $(ROOT_DIRECTORY) && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-public PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility-public:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		$(MAKE) plugin-visibility
+endif
 
 ci: ci-init ci-generate ci-build ci-test ci-docker
 
@@ -281,7 +305,7 @@ endif
 docker-build: docker-dump docker-login
 ifdef DOCKER_REPOSITORY
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
 ifdef DOCKER_TRAVIS_BRANCH
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
@@ -351,7 +375,8 @@ phony:
     CompileDaemon default docker docker-build docker-dump docker-login docker-push \
     format format-write format-write-changed generate ginkgo go-generate \
     go-mod-download go-mod-tidy goimports imports imports-write \
-    imports-write-changed init mockgen phony pre-commit service-build service-debug \
-    service-restart service-restart-all service-start test test-ginkgo \
-    test-ginkgo-until-failure test-ginkgo-watch test-go tmp version-write vet \
-    vet-ignore
+    imports-write-changed init mockgen phony plugin-visibility \
+    plugin-visibility-public plugins-visibility plugins-visibility-public \
+    pre-commit service-build service-debug service-restart service-restart-all \
+    service-start test test-ginkgo test-ginkgo-until-failure test-ginkgo-watch \
+    test-go tmp version-write vet vet-ignore
