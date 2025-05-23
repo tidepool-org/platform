@@ -619,7 +619,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					})
 				})
 
-				Context("GetDataSetByID", func() {
+				Context("GetDataSet", func() {
 					BeforeEach(func() {
 						createdTime, _ := time.Parse(time.RFC3339, "2016-09-01T11:00:00Z")
 						dataSet.CreatedTime = pointer.FromTime(createdTime)
@@ -628,7 +628,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 					})
 
 					It("returns an error if the data set id is missing", func() {
-						resultDataSet, err := repository.GetDataSetByID(ctx, "")
+						resultDataSet, err := repository.GetDataSet(ctx, "")
 						Expect(err).To(MatchError("data set id is missing"))
 						Expect(resultDataSet).To(BeNil())
 					})
@@ -641,11 +641,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						})
 
 						It("succeeds if it successfully finds the data set", func() {
-							Expect(repository.GetDataSetByID(ctx, *dataSet.UploadID)).To(Equal(dataSet))
+							Expect(repository.GetDataSet(ctx, *dataSet.UploadID)).To(Equal(dataSet))
 						})
 
 						It("returns no data set successfully if the data set cannot be found", func() {
-							resultDataSet, err := repository.GetDataSetByID(ctx, "not-found")
+							resultDataSet, err := repository.GetDataSet(ctx, "not-found")
 							Expect(err).ToNot(HaveOccurred())
 							Expect(resultDataSet).To(BeNil())
 						})

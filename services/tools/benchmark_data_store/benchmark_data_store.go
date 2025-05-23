@@ -296,8 +296,6 @@ func (t *Tool) executeBenchmark(ctx context.Context, benchmark *Benchmark) error
 		err = t.benchmarkPlatformDBDestroyDeletedDataSetData(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBGetDataSet":
 		err = t.benchmarkPlatformDBGetDataSet(ctx, dataRepository, benchmark.Input)
-	case "PlatformDBGetDataSetByID":
-		err = t.benchmarkPlatformDBGetDataSetByID(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBGetDataSetsForUserByID":
 		err = t.benchmarkPlatformDBGetDataSetsForUserByID(ctx, dataRepository, benchmark.Input)
 	case "PlatformDBListUserDataSets":
@@ -374,7 +372,7 @@ func (t *Tool) benchmarkJellyfishMetaFindBefore(ctx context.Context, repository 
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData
 
 func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -385,7 +383,7 @@ func (t *Tool) benchmarkPlatformMetaCreate(ctx context.Context, repository dataS
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, DeleteDataSetData (selectors), DestroyDeletedDataSetData (selectors)
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, DeleteDataSetData (selectors), DestroyDeletedDataSetData (selectors)
 
 func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -411,7 +409,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataWithOrigin(ctx context.Context, re
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData
 
 func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -434,7 +432,7 @@ func (t *Tool) benchmarkPlatformMetaActivate(ctx context.Context, repository dat
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, ArchiveDeviceDataUsingHashesFromDataSet
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, ArchiveDeviceDataUsingHashesFromDataSet
 
 func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -461,7 +459,7 @@ func (t *Tool) benchmarkPlatformMetaArchiveWithHashes(ctx context.Context, repos
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, DeleteOtherDataSetData
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), ActivateDataSetData, DeleteOtherDataSetData
 
 func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -488,7 +486,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteOtherData(ctx context.Context, reposit
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet
 
 func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -511,7 +509,7 @@ func (t *Tool) benchmarkPlatformMetaDeleteDataSet(ctx context.Context, repositor
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet, UnarchiveDeviceDataUsingHashesFromDataSet
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), DeleteDataSet, UnarchiveDeviceDataUsingHashesFromDataSet
 
 func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -538,7 +536,7 @@ func (t *Tool) benchmarkPlatformMetaUnarchiveWithHashes(ctx context.Context, rep
 	return nil
 }
 
-// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSetByID, CreateDataSetData, UpdateDataSet (state closed), ArchiveDataSetData, DestroyDataSetData
+// CreateDataSet, UpdateDataSet (set deduplicator), GetDataSet, CreateDataSetData, UpdateDataSet (state closed), ArchiveDataSetData, DestroyDataSetData
 
 func (t *Tool) benchmarkPlatformMetaDestroy(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
 	preparedDataSet, preparedDataSetData := t.prepareDataSetWithData(input)
@@ -654,15 +652,6 @@ func (t *Tool) benchmarkPlatformDBGetDataSet(ctx context.Context, repository dat
 	}
 
 	_, err := repository.GetDataSet(ctx, *input.DataSetID)
-	return err
-}
-
-func (t *Tool) benchmarkPlatformDBGetDataSetByID(ctx context.Context, repository dataStore.DataRepository, input *BenchmarkInput) error {
-	if input.DataSetID == nil {
-		return errors.New("benchmark input data set id is missing")
-	}
-
-	_, err := repository.GetDataSetByID(ctx, *input.DataSetID)
 	return err
 }
 
@@ -830,7 +819,7 @@ func (t *Tool) createDataSetWithData(ctx context.Context, repository dataStore.D
 		return nil, err
 	}
 
-	if _, err := repository.GetDataSetByID(ctx, *dataSet.UploadID); err != nil {
+	if _, err := repository.GetDataSet(ctx, *dataSet.UploadID); err != nil {
 		return nil, err
 	}
 
@@ -838,7 +827,7 @@ func (t *Tool) createDataSetWithData(ctx context.Context, repository dataStore.D
 		return nil, err
 	}
 
-	return repository.GetDataSetByID(ctx, *dataSet.UploadID)
+	return repository.GetDataSet(ctx, *dataSet.UploadID)
 }
 
 func (t *Tool) generateRandomDataSetData(deviceID *string) data.Data {

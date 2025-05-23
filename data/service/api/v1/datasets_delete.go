@@ -20,7 +20,7 @@ func DataSetsDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return

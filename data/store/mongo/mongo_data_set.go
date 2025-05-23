@@ -96,40 +96,12 @@ func (d *DataSetRepository) EnsureIndexes() error {
 	})
 }
 
-func (d *DataSetRepository) GetDataSetByID(ctx context.Context, dataSetID string) (*data.DataSet, error) {
+func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.DataSet, now time.Time) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if dataSetID == "" {
-		return nil, errors.New("data set id is missing")
-	}
-
-	now := time.Now().UTC()
-
-	var dataSet *data.DataSet
-	selector := bson.M{
-		"uploadId": dataSetID,
-	}
-	err := d.FindOne(ctx, selector).Decode(&dataSet)
-
-	loggerFields := log.Fields{"dataSetId": dataSetID, "duration": time.Since(now) / time.Microsecond}
-	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.GetDataSetByID")
-
-	if stdErrs.Is(err, mongo.ErrNoDocuments) {
-		return nil, nil
-	} else if err != nil {
-		return nil, errors.Wrap(err, "unable to get data set by id")
-	}
-
-	return dataSet, nil
-}
-
-func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.DataSet, now time.Time) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
 	if err := validateDataSet(dataSet); err != nil {
-		return err
+		return nil, err
 	}
 
 	now = now.UTC()
@@ -149,9 +121,10 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.Dat
 	log.LoggerFromContext(ctx).WithFields(loggerFields).WithError(err).Debug("DataSet.CreateDataSet")
 
 	if err != nil {
-		return errors.Wrap(err, "unable to create data set")
+		return nil, errors.Wrap(err, "unable to create data set")
 	}
-	return nil
+
+	return d.GetDataSet(ctx, *dataSet.ID)
 }
 
 func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*data.DataSet, error) {
@@ -211,7 +184,7 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 		return nil, errors.Wrap(err, "unable to upsert data set")
 	}
 
-	return d.GetDataSetByID(ctx, id)
+	return d.GetDataSet(ctx, id)
 }
 
 func (d *DataSetRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
@@ -219,11 +192,11 @@ func (d *DataSetRepository) GetDataSet(ctx context.Context, dataSetID string) (*
 		return nil, errors.New("context is missing")
 	}
 	if dataSetID == "" {
-		return nil, errors.New("id is missing")
+		return nil, errors.New("data set id is missing")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", dataSetID)
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", dataSetID)
 
 	var dataSet *data.DataSet
 	selector := bson.M{
@@ -294,6 +267,30 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	}
 
 	return dataSets, nil
+}
+
+func (d *DataSetRepository) CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error) {
+	dataSet := data.NewDataSet()
+	dataSet.Client = create.Client
+	dataSet.DataSetType = create.DataSetType
+	dataSet.Deduplicator = create.Deduplicator
+	dataSet.DeviceID = create.DeviceID
+	dataSet.DeviceManufacturers = create.DeviceManufacturers
+	dataSet.DeviceModel = create.DeviceModel
+	dataSet.DeviceSerialNumber = create.DeviceSerialNumber
+	dataSet.DeviceTags = create.DeviceTags
+	dataSet.Time = create.Time
+	dataSet.TimeProcessing = create.TimeProcessing
+	dataSet.TimeZoneName = create.TimeZoneName
+	dataSet.TimeZoneOffset = create.TimeZoneOffset
+
+	dataSet.DataState = pointer.FromString(data.DataSetStateOpen) // TODO: Deprecated DataState (after data migration)
+	dataSet.ID = pointer.FromString(data.NewID())
+	dataSet.State = pointer.FromString(data.DataSetStateOpen)
+	dataSet.UserID = pointer.FromString(userID)
+	dataSet.UploadID = dataSet.ID
+
+	return d.createDataSet(ctx, dataSet, time.Now().UTC())
 }
 
 func (d *DataSetRepository) GetDataSetsForUserByID(ctx context.Context, userID string, filter *store.Filter, pagination *page.Pagination) ([]*data.DataSet, error) {
