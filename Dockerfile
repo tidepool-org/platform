@@ -46,6 +46,12 @@ FROM platform-init AS platform-init-public
 COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
 RUN make init plugins-visibility
 
+# platform-init-private
+FROM platform-init AS platform-init-private
+COPY private/plugin/abbott/go.* ./private/plugin/abbott/
+COPY private/plugin/abbott/abbott/plugin/ ./private/plugin/abbott/abbott/plugin/
+RUN make init plugins-visibility
+
 ### Build
 
 # platform-build
