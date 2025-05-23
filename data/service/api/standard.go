@@ -3,37 +3,36 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
-	"github.com/tidepool-org/platform/twiist"
-
 	dataClient "github.com/tidepool-org/platform/data/client"
-	"github.com/tidepool-org/platform/data/deduplicator"
+	dataDuplicator "github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataContext "github.com/tidepool-org/platform/data/service/context"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataServiceContext "github.com/tidepool-org/platform/data/service/context"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
-	"github.com/tidepool-org/platform/service/api"
+	serviceApi "github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 type Standard struct {
-	*api.API
+	*serviceApi.API
 	metricClient                   metric.Client
 	permissionClient               permission.Client
-	dataDeduplicatorFactory        deduplicator.Factory
+	dataDeduplicatorFactory        dataDuplicator.Factory
 	dataStore                      dataStore.Store
 	syncTaskStore                  syncTaskStore.Store
 	dataClient                     dataClient.Client
-	dataSourceClient               dataSource.Client
+	dataSourceClient               dataSourceService.Client
 	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
-	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
+	dataDeduplicatorFactory dataDuplicator.Factory,
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSourceService.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -59,7 +58,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
 
-	a, err := api.New(svc)
+	a, err := serviceApi.New(svc)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +100,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 }
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
-	return dataContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
+	return dataServiceContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, s.twiistServiceAccountAuthorizer, handler)
 }
