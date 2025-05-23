@@ -5,6 +5,8 @@
 *.env
 .envrc
 env*.sh
+private/plugin/abbott/*.env
+private/plugin/abbott/env*.sh
 !version.env
 
 # Debug
@@ -46,6 +48,7 @@ _tmp
 .vscode
 .govetignore
 *.code-workspace
+private/plugin/abbott/.govetignore
 
 # Documentation
 CHANGELOG.md
@@ -58,6 +61,10 @@ README.md
 # Git
 .git
 .gitignore
+.gitmodules
+private/plugin/abbott/.git
+private/plugin/abbott/.gitignore
+private/plugin/abbott/Makefile
 
 # Docker
 .dockerignore

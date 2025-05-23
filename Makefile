@@ -56,20 +56,33 @@ DOCKER_TAG_CMD ?= docker tag
 
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
+ifeq ($(TRAVIS_BRANCH),master)
     DOCKER:=true
+else # ifneq ($(shell go env GOWORK),) # TODO: Enable after BACK-3295 is merged into master
+    DOCKER:=true
+endif
+ifdef DOCKER
 	DOCKER_TRAVIS_BRANCH:=$(subst /,-,$(TRAVIS_BRANCH))
+endif
 endif
 endif
 
 ifdef DOCKER
 ifdef DOCKER_SERVICE
 	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(DOCKER_SERVICE)
+ifneq ($(shell go env GOWORK),)
+	DOCKER_REPOSITORY:=$(DOCKER_REPOSITORY)-private
+endif
 endif
 endif
 
 PLUGINS=abbott
 
-PLUGIN_VISIBILITY:=public
+ifeq ($(shell go env GOWORK),)
+	PLUGIN_VISIBILITY:=public
+else
+	PLUGIN_VISIBILITY:=private
+endif
 
 SERVICES=auth blob data migrations prescription task tools
 
@@ -85,28 +98,28 @@ CompileDaemon:
 ifeq ($(shell which CompileDaemon),)
 	@cd $(ROOT_DIRECTORY) && \
 		echo "go install github.com/githubnemo/CompileDaemon" && \
-		go install github.com/githubnemo/CompileDaemon
+		GOWORK=off go install github.com/githubnemo/CompileDaemon
 endif
 
 mockgen:
 ifeq ($(shell which mockgen),)
 	@cd $(ROOT_DIRECTORY) && \
 		echo "go install go.uber.org/mock/mockgen" && \
-		go install go.uber.org/mock/mockgen
+		GOWORK=off go install go.uber.org/mock/mockgen
 endif
 
 ginkgo:
 ifeq ($(shell which ginkgo),)
 	@cd $(ROOT_DIRECTORY) && \
 		echo "go install github.com/onsi/ginkgo/v2/ginkgo" && \
-		go install github.com/onsi/ginkgo/v2/ginkgo
+		GOWORK=off go install github.com/onsi/ginkgo/v2/ginkgo
 endif
 
 goimports:
 ifeq ($(shell which goimports),)
 	@cd $(ROOT_DIRECTORY) && \
 		echo "go install golang.org/x/tools/cmd/goimports" && \
-		go install golang.org/x/tools/cmd/goimports
+		GOWORK=off go install golang.org/x/tools/cmd/goimports
 endif
 
 buildable: export GOBIN = ${BIN_DIRECTORY}
@@ -119,7 +132,8 @@ plugins-visibility:
 plugin-visibility:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) plugin/visibility/visibility.go`."
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go`."
 endif
 
 plugins-visibility-public:
@@ -129,6 +143,27 @@ plugins-visibility-public:
 plugin-visibility-public:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
+		{ [ ! -e go.work ] || go work edit -dropuse=./private/plugin/$(PLUGIN); } && \
+		{ [ "`go list -m -mod=readonly`" != "${REPOSITORY_PACKAGE}" ] || rm go.work go.work.sum 2> /dev/null || true; } && \
+		git config set --local submodule.private/plugin/$(PLUGIN).update none && \
+		git config set --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
+		$(MAKE) plugin-visibility
+endif
+
+plugins-visibility-private:
+	@cd $(ROOT_DIRECTORY) && \
+		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-private PLUGIN="$${PLUGIN}"; done
+
+plugin-visibility-private:
+ifdef PLUGIN
+	@cd $(ROOT_DIRECTORY) && \
+		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
+		git submodule update --init private/plugin/$(PLUGIN) && \
+		{ [ -e go.work ] || go work init .; } && \
+		go work edit -use=./private/plugin/$(PLUGIN) && \
+		go work edit -go=`sed -n 's/^go //p' go.mod` && \
+		go work edit -toolchain=`sed -n 's/^toolchain //p' go.mod` && \
 		$(MAKE) plugin-visibility
 endif
 
@@ -151,13 +186,14 @@ go-mod-download:
 go-generate: mockgen
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) go generate ./...
+		GOWORK=off $(TIMING_CMD) go generate ./...
 
 generate: go-generate format-write imports-write vet
 
 ci-generate: generate
 	@cd $(ROOT_DIRECTORY) && \
-		O=`git diff` && [ "$${O}" = "" ] || (echo "$${O}" && exit 1)
+		O=`git status -s | grep -E -v '(\.gitmodules|go\.sum)' || true` && \
+		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format:
 	@echo "gofmt -d -e -s"
@@ -194,7 +230,8 @@ imports-write-changed: goimports
 vet: tmp
 	@echo "go vet ./..."
 	@cd $(ROOT_DIRECTORY) && \
-		go vet ./... > _tmp/govet.out 2>&1 || \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
 		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:
@@ -206,8 +243,9 @@ build-list:
 build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && \
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		$(TIMING_CMD) $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
-			$(GO_BUILD_CMD) -o $${LINE}; \
+			$(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
 		done
 
 build-watch: CompileDaemon
@@ -225,37 +263,44 @@ ci-test: ci-test-go
 test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-go:
 	@echo "go test $(GOTEST_FLAGS) $(GOTEST_PKGS)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $(GOTEST_PKGS)
+		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
+		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
 ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-test-go: GOTEST_PKGS = ./...
@@ -376,7 +421,8 @@ phony:
     format format-write format-write-changed generate ginkgo go-generate \
     go-mod-download go-mod-tidy goimports imports imports-write \
     imports-write-changed init mockgen phony plugin-visibility \
-    plugin-visibility-public plugins-visibility plugins-visibility-public \
-    pre-commit service-build service-debug service-restart service-restart-all \
-    service-start test test-ginkgo test-ginkgo-until-failure test-ginkgo-watch \
-    test-go tmp version-write vet vet-ignore
+    plugin-visibility-private plugin-visibility-public plugins-visibility \
+    plugins-visibility-private plugins-visibility-public pre-commit service-build \
+    service-debug service-restart service-restart-all service-start test \
+    test-ginkgo test-ginkgo-until-failure test-ginkgo-watch test-go tmp \
+    version-write vet vet-ignore
