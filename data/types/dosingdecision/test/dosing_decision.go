@@ -34,8 +34,8 @@ func randomDosingDecision(unitsBloodGlucose *string) *dataTypesDosingDecision.Do
 	datum.HistoricalBloodGlucose = RandomBloodGlucoseArray(unitsBloodGlucose)
 	datum.ForecastBloodGlucose = RandomBloodGlucoseArray(unitsBloodGlucose)
 	datum.RecommendedBasal = RandomRecommendedBasal()
-	datum.RecommendedBolus = RandomRecommendedBolus()
-	datum.RequestedBolus = RandomRequestedBolus()
+	datum.RecommendedBolus = RandomBolus()
+	datum.RequestedBolus = RandomBolus()
 	datum.Warnings = RandomIssueArray()
 	datum.Errors = RandomIssueArray()
 	datum.ScheduleTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(dataTypesDosingDecision.ScheduleTimeZoneOffsetMinimum, dataTypesDosingDecision.ScheduleTimeZoneOffsetMaximum))
@@ -59,8 +59,8 @@ func CloneDosingDecision(datum *dataTypesDosingDecision.DosingDecision) *dataTyp
 	clone.HistoricalBloodGlucose = CloneBloodGlucoseArray(datum.HistoricalBloodGlucose)
 	clone.ForecastBloodGlucose = CloneBloodGlucoseArray(datum.ForecastBloodGlucose)
 	clone.RecommendedBasal = CloneRecommendedBasal(datum.RecommendedBasal)
-	clone.RecommendedBolus = CloneRecommendedBolus(datum.RecommendedBolus)
-	clone.RequestedBolus = CloneRequestedBolus(datum.RequestedBolus)
+	clone.RecommendedBolus = CloneBolus(datum.RecommendedBolus)
+	clone.RequestedBolus = CloneBolus(datum.RequestedBolus)
 	clone.Warnings = CloneIssueArray(datum.Warnings)
 	clone.Errors = CloneIssueArray(datum.Errors)
 	clone.ScheduleTimeZoneOffset = pointer.CloneInt(datum.ScheduleTimeZoneOffset)
@@ -104,10 +104,10 @@ func NewObjectFromDosingDecision(datum *dataTypesDosingDecision.DosingDecision, 
 		object["recommendedBasal"] = NewObjectFromRecommendedBasal(datum.RecommendedBasal, objectFormat)
 	}
 	if datum.RecommendedBolus != nil {
-		object["recommendedBolus"] = NewObjectFromRecommendedBolus(datum.RecommendedBolus, objectFormat)
+		object["recommendedBolus"] = NewObjectFromBolus(datum.RecommendedBolus, objectFormat)
 	}
 	if datum.RequestedBolus != nil {
-		object["requestedBolus"] = NewObjectFromRequestedBolus(datum.RequestedBolus, objectFormat)
+		object["requestedBolus"] = NewObjectFromBolus(datum.RequestedBolus, objectFormat)
 	}
 	if datum.Warnings != nil {
 		object["warnings"] = NewArrayFromIssueArray(datum.Warnings, objectFormat)
