@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -29,13 +30,14 @@ type Standard struct {
 	dataClient                     dataClient.Client
 	dataRawClient                  dataRaw.Client
 	dataSourceClient               dataSourceService.Client
+	workClient                     work.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDuplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
@@ -61,6 +63,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
 	}
+	if workClient == nil {
+		return nil, errors.New("work client is missing")
+	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
@@ -80,6 +85,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		dataClient:                     dataClient,
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
+		workClient:                     workClient,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
@@ -111,6 +117,6 @@ func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc
 	return dataServiceContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient,
 		s.twiistServiceAccountAuthorizer, handler)
 }

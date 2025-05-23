@@ -36,6 +36,7 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/reporters"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
@@ -222,6 +223,10 @@ func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
 }
 
 func (c *mockDataServiceContext) DataSourceClient() dataSourceService.Client {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) WorkClient() work.Client {
 	panic("not implemented")
 }
 

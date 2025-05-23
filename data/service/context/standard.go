@@ -22,6 +22,7 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	summaryReporters "github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -42,6 +43,7 @@ type Standard struct {
 	clinicsClient                  clinics.Client
 	dataRawClient                  dataRaw.Client
 	dataSourceClient               dataSourceService.Client
+	workClient                     work.Client
 	alertsRepository               alerts.Repository
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
@@ -49,12 +51,12 @@ type Standard struct {
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
 			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataRawClient, dataSourceClient,
-			twiistServiceAccountAuthorizer)
+			workClient, twiistServiceAccountAuthorizer)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -73,7 +75,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
@@ -102,6 +104,9 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
 	}
+	if workClient == nil {
+		return nil, errors.New("work client is missing")
+	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
@@ -122,6 +127,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataClient:                     dataClient,
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
+		workClient:                     workClient,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
@@ -129,6 +135,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 func (s *Standard) Close() {
 	s.twiistServiceAccountAuthorizer = nil
 	s.alertsRepository = nil
+	s.workClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
 	s.clinicsClient = nil
@@ -227,6 +234,10 @@ func (s *Standard) DataRawClient() dataRaw.Client {
 
 func (s *Standard) DataSourceClient() dataSourceService.Client {
 	return s.dataSourceClient
+}
+
+func (s *Standard) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Standard) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
