@@ -77,9 +77,9 @@ func (s *Source) RefreshedToken() (*auth.OAuthToken, error) {
 		return nil, nil
 	}
 
-	tkn, err := auth.NewOAuthTokenFromRawToken(tknSrcTkn)
+	tkn, err := s.token.Refreshed(tknSrcTkn)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create token")
+		return nil, errors.Wrap(err, "unable to refresh token")
 	}
 
 	s.token = tkn

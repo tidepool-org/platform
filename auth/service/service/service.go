@@ -472,7 +472,14 @@ func (s *Service) initializeProviders() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create twiist jwks")
 	}
-	if prvdr, prvdrErr := twiistProvider.New(configReporter, s.dataClient, s.DataSourceClient(), twiistJWKS); prvdrErr != nil || prvdr == nil {
+	twiistProviderDependencies := twiistProvider.ProviderDependencies{
+		ConfigReporter:        configReporter,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		DataSetClient:         s.dataClient,
+		JWKS:                  twiistJWKS,
+	}
+	if prvdr, prvdrErr := twiistProvider.New(twiistProviderDependencies); prvdrErr != nil || prvdr == nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
 	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add twiist provider")
