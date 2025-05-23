@@ -34,6 +34,26 @@ cd platform
 make buildable
 ```
 
+# Configure Plugin Visibility
+
+By default, all plugins are configured to use the public versions (which typically are nothing more than a bare minimum shell). Public visilibity is fine for developing, building, or using platform without any of the private plugin functionality.
+
+To change plugin visibility to private:
+
+```
+make plugins-visibility-private
+```
+
+This will update the private plugin submodules and create a Go workspace to use the private plugin during development and builds.
+
+To restore the plugin visibility to public:
+
+```
+make plugins-visibility-public
+```
+
+NOTE: Do **NOT** commit any `update = none` changes to `.gitmodules` nor the `go.work` or `go.work.sum` files. Furthermore, ensure no private code is committed to the public platform repository.
+
 # Execute
 
 1. Setup the environment, as above.
