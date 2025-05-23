@@ -38,6 +38,9 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 	"github.com/tidepool-org/platform/twiist"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/work"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type confirmationClientConfig struct {
@@ -52,10 +55,12 @@ type Service struct {
 	*serviceService.Service
 	domain                         string
 	authStore                      *authStoreMongo.Store
+	workStructuredStore            *workStoreStructuredMongo.Store
 	dataClient                     dataClient.Client
 	dataSourceClient               *dataSourceClient.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
 	taskClient                     task.Client
+	workClient                     *workService.Client
 	providerFactory                *providerFactory.Factory
 	authClient                     *Client
 	userEventsHandler              events.Runner
@@ -97,6 +102,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
@@ -107,6 +115,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTaskClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkClient(); err != nil {
 		return err
 	}
 	if err := s.initializeProviderFactory(); err != nil {
@@ -138,9 +149,11 @@ func (s *Service) Terminate() {
 	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
+	s.terminateWorkClient()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
 	s.terminateConfirmationClient()
+	s.terminateWorkStructuredStore()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -171,6 +184,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
+}
+
+func (s *Service) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Service) ProviderFactory() provider.Factory {
@@ -281,6 +298,42 @@ func (s *Service) terminateAuthStore() {
 	}
 }
 
+func (s *Service) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
+func (s *Service) terminateWorkStructuredStore() {
+	if s.workStructuredStore != nil {
+		s.Logger().Debug("Closing work structured store")
+		s.workStructuredStore.Terminate(context.Background())
+
+		s.Logger().Debug("Destroying work structured store")
+		s.workStructuredStore = nil
+	}
+}
+
 func (s *Service) initializeDataSourceClient() error {
 	s.Logger().Debug("Loading data source client config")
 
@@ -329,6 +382,25 @@ func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
 		s.dataSourceClient = nil
+	}
+}
+
+func (s *Service) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s.workStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateWorkClient() {
+	if s.workClient != nil {
+		s.Logger().Debug("Destroying work client")
+		s.workClient = nil
 	}
 }
 
