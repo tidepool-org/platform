@@ -35,7 +35,7 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 	}
 
 	logger.Infof("Deleting provider sessions for user")
-	if err := u.client.DeleteAllProviderSessions(u.ctx, payload.UserID); err != nil {
+	if err := u.client.DeleteUserProviderSessions(u.ctx, payload.UserID); err != nil {
 		errs = append(errs, err)
 		logger.WithError(err).Error("unable to delete provider sessions for user")
 	}

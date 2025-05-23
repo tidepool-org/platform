@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 type Client struct {
@@ -92,7 +93,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	return providerSession, nil
 }
 
-func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) error {
+func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) error {
 	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	repository := c.authStore.NewProviderSessionRepository()
@@ -113,42 +114,39 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, userID string) e
 	return nil
 }
 
-func (c *Client) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
-	if filter.ExternalID == nil || *filter.ExternalID == "" {
-		return errors.New("external id is missing")
+func (c *Client) DeleteAllProviderSessions(ctx context.Context, filter auth.ProviderSessionFilter) error {
+	if ctx == nil {
+		return errors.New("context is missing")
 	}
-	if filter.Name == nil || *filter.Name == "" {
-		return errors.New("provider name is missing")
-	}
-	if filter.Type == nil || *filter.Type == "" {
-		return errors.New("provider type is missing")
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&filter); err != nil {
+		return errors.Wrap(err, "filter is invalid")
+	} else if filter.Type == nil {
+		return errors.New("filter type is missing")
+	} else if filter.Name == nil {
+		return errors.New("filter name is missing")
+	} else if filter.ExternalID == nil {
+		return errors.New("filter external id is missing")
 	}
 
-	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
-		"externalId":   *filter.ExternalID,
-		"providerName": *filter.Name,
-		"providerType": *filter.Type,
-	})
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "filter", filter)
 
 	repository := c.authStore.NewProviderSessionRepository()
-
-	pagination := page.NewPagination()
-	for {
-		providerSessions, err := repository.ListProviderSessions(ctx, &filter, pagination)
+	if err := page.Paginate(func(pagination page.Pagination) (bool, error) {
+		providerSessions, err := repository.ListAllProviderSessions(ctx, filter, pagination)
 		if err != nil {
-			logger.WithError(err).Warn("Unable to list user provider sessions")
-			return err
+			logger.WithError(err).Warn("Unable to list all provider sessions")
+			return false, errors.Wrap(err, "unable to list all provider sessions")
 		}
 		for _, providerSession := range providerSessions {
 			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
 
 			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
-				logger.WithError(err).Warn("Unable to delete provider session")
+				logger.WithError(err).Warn("Unable to delete all provider session")
 			}
 		}
-		if len(providerSessions) < pagination.Size {
-			break
-		}
+		return len(providerSessions) < pagination.Size, nil
+	}); err != nil {
+		return err
 	}
 
 	// We are intentionally not calling the repository to make sure we don't run into
