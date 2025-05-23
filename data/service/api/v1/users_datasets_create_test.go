@@ -35,7 +35,6 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/reporters"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
-	"github.com/tidepool-org/platform/twiist"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
@@ -225,6 +224,6 @@ func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDay
 	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	panic("not implemented")
 }

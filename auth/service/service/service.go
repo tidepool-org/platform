@@ -62,7 +62,7 @@ type Service struct {
 	deviceCheck                    apple.DeviceCheck
 	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
-	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func New() *Service {
@@ -189,7 +189,7 @@ func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return s.partnerSecrets
 }
 
-func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	return s.twiistServiceAccountAuthorizer
 }
 
