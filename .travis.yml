@@ -16,6 +16,7 @@ env:
     - MONGOSH=2.5.1
   jobs:
     - PLUGINS_VISIBILITY=public
+    - PLUGINS_VISIBILITY=private
 
 cache:
   directories:
@@ -28,6 +29,7 @@ before_install:
   - /usr/bin/mongod --dbpath /var/ramfs/mongodb/data --bind_ip 127.0.0.1 --replSet rs0 --logpath /var/ramfs/mongodb/mongod.log &> /dev/null &
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
   - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
+  - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
 
 addons:
   apt:

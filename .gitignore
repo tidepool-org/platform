@@ -5,6 +5,10 @@
 *.env
 .envrc
 
+# Go
+go.work
+go.work.sum
+
 # Debug
 debug
 __debug_bin*
