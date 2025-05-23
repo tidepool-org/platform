@@ -18,45 +18,59 @@ import (
 )
 
 var _ = Describe("Base", func() {
+	var dataSetRepository *dataStoreTest.DataRepository
+	var dataRepository *dataStoreTest.DataRepository
+	var dependencies dataDeduplicatorDeduplicator.Dependencies
 	var name string
 	var version string
 
 	BeforeEach(func() {
+		dataSetRepository = dataStoreTest.NewDataRepository()
+		dataRepository = dataStoreTest.NewDataRepository()
+		dependencies = dataDeduplicatorDeduplicator.Dependencies{
+			DataSetStore: dataSetRepository,
+			DataStore:    dataRepository,
+		}
 		name = netTest.RandomReverseDomain()
 		version = netTest.RandomSemanticVersion()
+	})
+
+	AfterEach(func() {
+		dataRepository.AssertOutputsEmpty()
+		dataSetRepository.AssertOutputsEmpty()
 	})
 
 	Context("NewBase", func() {
 		It("returns an error when name is missing", func() {
 			name = ""
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
+			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)
 			Expect(err).To(MatchError("name is missing"))
 			Expect(deduplicator).To(BeNil())
 		})
 
 		It("returns an error when name is invalid", func() {
 			name = "invalid"
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
+			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)
 			Expect(err).To(MatchError("name is invalid"))
 			Expect(deduplicator).To(BeNil())
 		})
 
 		It("returns an error when version is missing", func() {
 			version = ""
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
+			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)
 			Expect(err).To(MatchError("version is missing"))
 			Expect(deduplicator).To(BeNil())
 		})
 
 		It("returns an error when version is invalid", func() {
 			version = "invalid"
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
+			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)
 			Expect(err).To(MatchError("version is invalid"))
 			Expect(deduplicator).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(dataDeduplicatorDeduplicator.NewBase(name, version)).ToNot(BeNil())
+			Expect(dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)).ToNot(BeNil())
 		})
 	})
 
@@ -66,7 +80,7 @@ var _ = Describe("Base", func() {
 
 		BeforeEach(func() {
 			var err error
-			deduplicator, err = dataDeduplicatorDeduplicator.NewBase(name, version)
+			deduplicator, err = dataDeduplicatorDeduplicator.NewBase(dependencies, name, version)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deduplicator).ToNot(BeNil())
 			dataSet = dataTest.RandomDataSet()
@@ -127,34 +141,22 @@ var _ = Describe("Base", func() {
 			})
 		})
 
-		Context("with context and repository", func() {
+		Context("with context", func() {
 			var ctx context.Context
-			var repository *dataStoreTest.DataRepository
 
 			BeforeEach(func() {
 				ctx = context.Background()
-				repository = dataStoreTest.NewDataRepository()
-			})
-
-			AfterEach(func() {
-				repository.AssertOutputsEmpty()
 			})
 
 			Context("Open", func() {
 				It("returns an error when the context is missing", func() {
-					result, err := deduplicator.Open(nil, repository, dataSet)
+					result, err := deduplicator.Open(nil, dataSet)
 					Expect(err).To(MatchError("context is missing"))
 					Expect(result).To(BeNil())
 				})
 
-				It("returns an error when the repository is missing", func() {
-					result, err := deduplicator.Open(ctx, nil, dataSet)
-					Expect(err).To(MatchError("repository is missing"))
-					Expect(result).To(BeNil())
-				})
-
 				It("returns an error when the data set is missing", func() {
-					result, err := deduplicator.Open(ctx, repository, nil)
+					result, err := deduplicator.Open(ctx, nil)
 					Expect(err).To(MatchError("data set is missing"))
 					Expect(result).To(BeNil())
 				})
@@ -172,7 +174,7 @@ var _ = Describe("Base", func() {
 					})
 
 					AfterEach(func() {
-						Expect(repository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
+						Expect(dataSetRepository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: update}}))
 					})
 
 					When("the data set does not have a deduplicator", func() {
@@ -182,16 +184,16 @@ var _ = Describe("Base", func() {
 
 						It("returns an error when update data set returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
-							result, err := deduplicator.Open(ctx, repository, dataSet)
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+							result, err := deduplicator.Open(ctx, dataSet)
 							Expect(err).To(Equal(responseErr))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns successfully when update data set returns successfully", func() {
 							responseDataSet := dataTest.RandomDataSet()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
-							Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+							Expect(deduplicator.Open(ctx, dataSet)).To(Equal(responseDataSet))
 						})
 					})
 
@@ -202,16 +204,16 @@ var _ = Describe("Base", func() {
 
 						It("returns an error when update data set returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
-							result, err := deduplicator.Open(ctx, repository, dataSet)
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+							result, err := deduplicator.Open(ctx, dataSet)
 							Expect(err).To(Equal(responseErr))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns successfully when update data set returns successfully", func() {
 							responseDataSet := dataTest.RandomDataSet()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
-							Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+							Expect(deduplicator.Open(ctx, dataSet)).To(Equal(responseDataSet))
 						})
 					})
 
@@ -222,16 +224,16 @@ var _ = Describe("Base", func() {
 
 						It("returns an error when update data set returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
-							result, err := deduplicator.Open(ctx, repository, dataSet)
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+							result, err := deduplicator.Open(ctx, dataSet)
 							Expect(err).To(Equal(responseErr))
 							Expect(result).To(BeNil())
 						})
 
 						It("returns successfully when update data set returns successfully", func() {
 							responseDataSet := dataTest.RandomDataSet()
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
-							Expect(deduplicator.Open(ctx, repository, dataSet)).To(Equal(responseDataSet))
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: responseDataSet, Error: nil}}
+							Expect(deduplicator.Open(ctx, dataSet)).To(Equal(responseDataSet))
 						})
 					})
 				})
@@ -248,35 +250,31 @@ var _ = Describe("Base", func() {
 				})
 
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.AddData(nil, repository, dataSet, dataSetData)).To(MatchError("context is missing"))
-				})
-
-				It("returns an error when the repository is missing", func() {
-					Expect(deduplicator.AddData(ctx, nil, dataSet, dataSetData)).To(MatchError("repository is missing"))
+					Expect(deduplicator.AddData(nil, dataSet, dataSetData)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.AddData(ctx, repository, nil, dataSetData)).To(MatchError("data set is missing"))
+					Expect(deduplicator.AddData(ctx, nil, dataSetData)).To(MatchError("data set is missing"))
 				})
 
 				It("returns an error when the data set data is missing", func() {
-					Expect(deduplicator.AddData(ctx, repository, dataSet, nil)).To(MatchError("data set data is missing"))
+					Expect(deduplicator.AddData(ctx, dataSet, nil)).To(MatchError("data set data is missing"))
 				})
 
 				When("create data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(repository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
+						Expect(dataRepository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: dataSetData}}))
 					})
 
 					It("returns an error when create data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						repository.CreateDataSetDataOutputs = []error{responseErr}
-						Expect(deduplicator.AddData(ctx, repository, dataSet, dataSetData)).To(Equal(responseErr))
+						dataRepository.CreateDataSetDataOutputs = []error{responseErr}
+						Expect(deduplicator.AddData(ctx, dataSet, dataSetData)).To(Equal(responseErr))
 					})
 
 					It("returns successfully when create data set data returns successfully", func() {
-						repository.CreateDataSetDataOutputs = []error{nil}
-						Expect(deduplicator.AddData(ctx, repository, dataSet, dataSetData)).To(Succeed())
+						dataRepository.CreateDataSetDataOutputs = []error{nil}
+						Expect(deduplicator.AddData(ctx, dataSet, dataSetData)).To(Succeed())
 					})
 				})
 			})
@@ -289,81 +287,73 @@ var _ = Describe("Base", func() {
 				})
 
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.DeleteData(nil, repository, dataSet, selectors)).To(MatchError("context is missing"))
-				})
-
-				It("returns an error when the repository is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, nil, dataSet, selectors)).To(MatchError("repository is missing"))
+					Expect(deduplicator.DeleteData(nil, dataSet, selectors)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, repository, nil, selectors)).To(MatchError("data set is missing"))
+					Expect(deduplicator.DeleteData(ctx, nil, selectors)).To(MatchError("data set is missing"))
 				})
 
 				It("returns an error when the selectors is missing", func() {
-					Expect(deduplicator.DeleteData(ctx, repository, dataSet, nil)).To(MatchError("selectors is missing"))
+					Expect(deduplicator.DeleteData(ctx, dataSet, nil)).To(MatchError("selectors is missing"))
 				})
 
 				When("destroy data set data is invoked", func() {
 					AfterEach(func() {
-						Expect(repository.DestroyDataSetDataInputs).To(Equal([]dataStoreTest.DestroyDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
+						Expect(dataRepository.DestroyDataSetDataInputs).To(Equal([]dataStoreTest.DestroyDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectors}}))
 					})
 
 					It("returns an error when destroy data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						repository.DestroyDataSetDataOutputs = []error{responseErr}
-						Expect(deduplicator.DeleteData(ctx, repository, dataSet, selectors)).To(Equal(responseErr))
+						dataRepository.DestroyDataSetDataOutputs = []error{responseErr}
+						Expect(deduplicator.DeleteData(ctx, dataSet, selectors)).To(Equal(responseErr))
 					})
 
 					It("returns successfully when destroy data set data returns successfully", func() {
-						repository.DestroyDataSetDataOutputs = []error{nil}
-						Expect(deduplicator.DeleteData(ctx, repository, dataSet, selectors)).To(Succeed())
+						dataRepository.DestroyDataSetDataOutputs = []error{nil}
+						Expect(deduplicator.DeleteData(ctx, dataSet, selectors)).To(Succeed())
 					})
 				})
 			})
 
 			Context("Close", func() {
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.Close(nil, repository, dataSet)).To(MatchError("context is missing"))
-				})
-
-				It("returns an error when the repository is missing", func() {
-					Expect(deduplicator.Close(ctx, nil, dataSet)).To(MatchError("repository is missing"))
+					Expect(deduplicator.Close(nil, dataSet)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.Close(ctx, repository, nil)).To(MatchError("data set is missing"))
+					Expect(deduplicator.Close(ctx, nil)).To(MatchError("data set is missing"))
 				})
 
 				When("UpdateDataSet is invoked", func() {
 					AfterEach(func() {
-						Expect(repository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
+						Expect(dataSetRepository.UpdateDataSetInputs).To(Equal([]dataStoreTest.UpdateDataSetInput{{Context: ctx, ID: *dataSet.UploadID, Update: &data.DataSetUpdate{Active: pointer.FromBool(true)}}}))
 					})
 
 					It("returns an error when update data set data returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
-						Expect(deduplicator.Close(ctx, repository, dataSet)).To(Equal(responseErr))
+						dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: nil, Error: responseErr}}
+						Expect(deduplicator.Close(ctx, dataSet)).To(Equal(responseErr))
 					})
 
 					When("activate data set data is invoked", func() {
 						BeforeEach(func() {
-							repository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
+							dataSetRepository.UpdateDataSetOutputs = []dataStoreTest.UpdateDataSetOutput{{DataSet: dataSet, Error: nil}}
 						})
 
 						AfterEach(func() {
-							Expect(repository.ActivateDataSetDataInputs).To(Equal([]dataStoreTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
+							Expect(dataRepository.ActivateDataSetDataInputs).To(Equal([]dataStoreTest.ActivateDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: nil}}))
 						})
 
 						It("returns an error when active data set data returns an error", func() {
 							responseErr := errorsTest.RandomError()
-							repository.ActivateDataSetDataOutputs = []error{responseErr}
-							Expect(deduplicator.Close(ctx, repository, dataSet)).To(Equal(responseErr))
+							dataRepository.ActivateDataSetDataOutputs = []error{responseErr}
+							Expect(deduplicator.Close(ctx, dataSet)).To(Equal(responseErr))
 						})
 
 						It("returns successfully when active data set data returns successfully", func() {
-							repository.ActivateDataSetDataOutputs = []error{nil}
-							Expect(deduplicator.Close(ctx, repository, dataSet)).To(Succeed())
+							dataRepository.ActivateDataSetDataOutputs = []error{nil}
+							Expect(deduplicator.Close(ctx, dataSet)).To(Succeed())
 						})
 					})
 				})
@@ -371,31 +361,27 @@ var _ = Describe("Base", func() {
 
 			Context("Delete", func() {
 				It("returns an error when the context is missing", func() {
-					Expect(deduplicator.Delete(nil, repository, dataSet)).To(MatchError("context is missing"))
-				})
-
-				It("returns an error when the repository is missing", func() {
-					Expect(deduplicator.Delete(ctx, nil, dataSet)).To(MatchError("repository is missing"))
+					Expect(deduplicator.Delete(nil, dataSet)).To(MatchError("context is missing"))
 				})
 
 				It("returns an error when the data set is missing", func() {
-					Expect(deduplicator.Delete(ctx, repository, nil)).To(MatchError("data set is missing"))
+					Expect(deduplicator.Delete(ctx, nil)).To(MatchError("data set is missing"))
 				})
 
 				When("delete data set is invoked", func() {
 					AfterEach(func() {
-						Expect(repository.DeleteDataSetInputs).To(Equal([]dataStoreTest.DeleteDataSetInput{{Context: ctx, DataSet: dataSet}}))
+						Expect(dataSetRepository.DeleteDataSetInputs).To(Equal([]dataStoreTest.DeleteDataSetInput{{Context: ctx, DataSet: dataSet}}))
 					})
 
 					It("returns an error when delete data set returns an error", func() {
 						responseErr := errorsTest.RandomError()
-						repository.DeleteDataSetOutputs = []error{responseErr}
-						Expect(deduplicator.Delete(ctx, repository, dataSet)).To(Equal(responseErr))
+						dataSetRepository.DeleteDataSetOutputs = []error{responseErr}
+						Expect(deduplicator.Delete(ctx, dataSet)).To(Equal(responseErr))
 					})
 
 					It("returns successfully when delete data set returns successfully", func() {
-						repository.DeleteDataSetOutputs = []error{nil}
-						Expect(deduplicator.Delete(ctx, repository, dataSet)).To(Succeed())
+						dataSetRepository.DeleteDataSetOutputs = []error{nil}
+						Expect(deduplicator.Delete(ctx, dataSet)).To(Succeed())
 					})
 				})
 			})
