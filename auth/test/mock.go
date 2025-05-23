@@ -75,34 +75,6 @@ func (mr *MockClientMockRecorder) CreateUserRestrictedToken(ctx, userID, create 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateUserRestrictedToken", reflect.TypeOf((*MockClient)(nil).CreateUserRestrictedToken), ctx, userID, create)
 }
 
-// DeleteAllProviderSessions mocks base method.
-func (m *MockClient) DeleteAllProviderSessions(ctx context.Context, userID string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAllProviderSessions", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAllProviderSessions indicates an expected call of DeleteAllProviderSessions.
-func (mr *MockClientMockRecorder) DeleteAllProviderSessions(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllProviderSessions", reflect.TypeOf((*MockClient)(nil).DeleteAllProviderSessions), ctx, userID)
-}
-
-// DeleteAllProviderSessionsByExternalID mocks base method.
-func (m *MockClient) DeleteAllProviderSessionsByExternalID(ctx context.Context, filter auth.ProviderSessionFilter) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAllProviderSessionsByExternalID", ctx, filter)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteAllProviderSessionsByExternalID indicates an expected call of DeleteAllProviderSessionsByExternalID.
-func (mr *MockClientMockRecorder) DeleteAllProviderSessionsByExternalID(ctx, filter any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllProviderSessionsByExternalID", reflect.TypeOf((*MockClient)(nil).DeleteAllProviderSessionsByExternalID), ctx, filter)
-}
-
 // DeleteAllRestrictedTokens mocks base method.
 func (m *MockClient) DeleteAllRestrictedTokens(ctx context.Context, userID string) error {
 	m.ctrl.T.Helper()
@@ -143,6 +115,20 @@ func (m *MockClient) DeleteRestrictedToken(ctx context.Context, id string) error
 func (mr *MockClientMockRecorder) DeleteRestrictedToken(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteRestrictedToken", reflect.TypeOf((*MockClient)(nil).DeleteRestrictedToken), ctx, id)
+}
+
+// DeleteUserProviderSessions mocks base method.
+func (m *MockClient) DeleteUserProviderSessions(ctx context.Context, userID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUserProviderSessions", ctx, userID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUserProviderSessions indicates an expected call of DeleteUserProviderSessions.
+func (mr *MockClientMockRecorder) DeleteUserProviderSessions(ctx, userID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserProviderSessions", reflect.TypeOf((*MockClient)(nil).DeleteUserProviderSessions), ctx, userID)
 }
 
 // EnsureAuthorized mocks base method.
