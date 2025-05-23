@@ -1,5 +1,6 @@
 ARG GOLANG_VERSION=1.24.3-alpine
 ARG MONGO_VERSION=6.0.23
+ARG PLUGIN_VISIBILITY=public
 
 ### Bases
 
@@ -31,18 +32,24 @@ RUN adduser --disabled-password --gecos GECOS tidepool
 USER tidepool
 WORKDIR /home/tidepool
 
-### Init
+### Inits
 
 # platform-init
 FROM platform-base-golang AS platform-init
 WORKDIR /build
 COPY Makefile go.* ./
-RUN make init
+COPY plugin/abbott/go.* ./plugin/abbott/
+COPY plugin/visibility/ ./plugin/visibility/
+
+# platform-init-public
+FROM platform-init AS platform-init-public
+COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
+RUN make init plugins-visibility
 
 ### Build
 
 # platform-build
-FROM platform-init AS platform-build
+FROM platform-init-${PLUGIN_VISIBILITY} AS platform-build
 ARG SERVICE DELVE_PORT
 COPY . .
 RUN BUILD=services/${SERVICE} make build

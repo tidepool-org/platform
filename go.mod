@@ -28,6 +28,7 @@ require (
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.2
 	github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677
+	github.com/tidepool-org/platform-plugin-abbott v0.0.0
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.3
 	go.uber.org/fx v1.23.0
@@ -91,7 +92,7 @@ require (
 	github.com/oapi-codegen/runtime v1.1.1 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.63.0 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/radovskyb/watcher v1.0.7 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
@@ -117,3 +118,5 @@ require (
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/tidepool-org/platform-plugin-abbott => ./plugin/abbott
