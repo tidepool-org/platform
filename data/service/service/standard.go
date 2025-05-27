@@ -360,7 +360,7 @@ func (s *Standard) initializeClinicsClient() error {
 func (s *Standard) initializeDataClient() error {
 	s.Logger().Debug("Creating data client")
 
-	clnt, err := NewClient(s.dataStore)
+	clnt, err := NewClient(s.dataStore, s.dataDeduplicatorFactory)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data client")
 	}
