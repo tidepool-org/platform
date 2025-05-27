@@ -301,13 +301,9 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 		return nil, errors.New("pagination is missing")
 	}
 
-	// Ensure we do not select items which will be picked up by GetOutdatedUserIDs
-	// 2 minutes buffer to exclude 90s jellyfish buffer
-	exclusionTime := time.Now().UTC().Add(2 * time.Minute)
-
 	selector := bson.M{
 		"type":                 types.GetType[PP, PB](),
-		"dates.outdatedSince":  bson.M{"$not": bson.M{"$lte": exclusionTime}},
+		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
@@ -316,7 +312,7 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 		{Key: "dates.lastUpdatedDate", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
-	opts.SetProjection(bson.M{"userId": 1, "dates": 1})
+	opts.SetProjection(bson.M{"stats": 0})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {
