@@ -72,7 +72,7 @@ func (c *ContinuousDeviceDataCursor) isUploadContinuous(ctx context.Context, upl
 
 	// check if we already cached if the uploadId is continuous or not, query if unknown
 	if _, ok := c.uploadIdCache[*uploadId]; !ok {
-		uploadRecord, err := c.fetcher.GetDataSetByID(ctx, *uploadId)
+		uploadRecord, err := c.fetcher.GetDataSet(ctx, *uploadId)
 		if err != nil {
 			return false, err
 		}
