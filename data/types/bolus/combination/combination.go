@@ -2,23 +2,25 @@ package combination
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
+	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
 	SubType = "dual/square" // TODO: Rename Type to "bolus/combination"; remove SubType
 
-	DurationMaximum = 86400000
-	DurationMinimum = 0
-	ExtendedMaximum = 100.0
-	ExtendedMinimum = 0.0
-	NormalMaximum   = 100.0
-	NormalMinimum   = 0.0
+	DurationMaximum = dataTypesBolusExtended.DurationMaximum
+	DurationMinimum = dataTypesBolusExtended.DurationMinimum
+	ExtendedMaximum = dataTypesBolusExtended.ExtendedMaximum
+	ExtendedMinimum = dataTypesBolusExtended.ExtendedMinimum
+	NormalMaximum   = dataTypesBolusNormal.NormalMaximum
+	NormalMinimum   = dataTypesBolusNormal.NormalMinimum
 )
 
 type Combination struct {
-	bolus.Bolus `bson:",inline"`
+	dataTypesBolus.Bolus `bson:",inline"`
 
 	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
 	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
@@ -30,7 +32,7 @@ type Combination struct {
 
 func New() *Combination {
 	return &Combination{
-		Bolus: bolus.New(SubType),
+		Bolus: dataTypesBolus.New(SubType),
 	}
 }
 
