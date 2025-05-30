@@ -1,4 +1,4 @@
-package summary_test
+package task_test
 
 import (
 	"testing"
@@ -9,5 +9,5 @@ import (
 
 func TestSummary(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "summary")
+	RunSpecs(t, "task")
 }
