@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/log"
@@ -15,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	dataStoreSummary "github.com/tidepool-org/platform/summary/store"
 	"github.com/tidepool-org/platform/summary/test"
 	"github.com/tidepool-org/platform/summary/types"
@@ -35,23 +33,10 @@ var _ = Describe("CGM", Label("mongodb", "slow", "integration"), func() {
 	})
 
 	Context("Create repo and store", func() {
-		var config *storeStructuredMongo.Config
 		var createStore *dataStoreMongo.Store
 
-		BeforeEach(func() {
-			config = storeStructuredMongoTest.NewConfig()
-		})
-
-		AfterEach(func() {
-			if createStore != nil {
-				_ = createStore.Terminate(ctx)
-			}
-		})
-
 		It("Repo", func() {
-			createStore, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(createStore).ToNot(BeNil())
+			createStore = GetSuiteStore()
 
 			summaryRepository = createStore.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
@@ -62,17 +47,13 @@ var _ = Describe("CGM", Label("mongodb", "slow", "integration"), func() {
 	})
 
 	Context("Store", func() {
-		var summaryCollection *mongo.Collection
 		var userId string
 		var userIdOther string
 		var userCGMSummary *types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 		var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
 
 		BeforeEach(func() {
-			config := storeStructuredMongoTest.NewConfig()
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			summaryCollection = store.GetCollection("summary")
+			store = GetSuiteStore()
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
@@ -83,12 +64,9 @@ var _ = Describe("CGM", Label("mongodb", "slow", "integration"), func() {
 		})
 
 		AfterEach(func() {
-			if summaryCollection != nil {
-				_, err = summaryCollection.DeleteMany(ctx, bson.D{})
+			if summaryRepository != nil {
+				_, err = summaryRepository.DeleteMany(ctx, bson.D{})
 				Expect(err).To(Succeed())
-			}
-			if store != nil {
-				_ = store.Terminate(ctx)
 			}
 		})
 

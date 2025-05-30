@@ -138,13 +138,7 @@ func NewMigrationTaskRunner(ctx context.Context, logger log.Logger, authClient a
 }
 
 func (t *MigrationTaskRunner) GetBatch() int {
-	batch, ok := t.Task.Data[ConfigBatch].(int32)
-	if !ok || batch < 1 {
-		batch = int32(DefaultMigrationWorkerBatchSize)
-		t.Task.Data[ConfigBatch] = batch
-	}
-
-	return int(batch)
+	return int(ValueFromTaskDataWithFallback[int32](t.Task.Data, ConfigBatch, isGtZero, DefaultMigrationWorkerBatchSize))
 }
 
 func (t *MigrationTaskRunner) GetIntervalRange() (int, int) {

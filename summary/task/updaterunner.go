@@ -145,13 +145,7 @@ func (t *UpdateTaskRunner) Run() {
 }
 
 func (t *UpdateTaskRunner) GetBatch() int {
-	batch, ok := t.Task.Data[ConfigBatch].(int32)
-	if !ok || batch < 1 {
-		batch = int32(DefaultUpdateWorkerBatchSize)
-		t.Task.Data[ConfigBatch] = batch
-	}
-
-	return int(batch)
+	return int(ValueFromTaskDataWithFallback[int32](t.Task.Data, ConfigBatch, isGtZero, DefaultUpdateWorkerBatchSize))
 }
 
 func (t *UpdateTaskRunner) GetIntervalRange() (int, int) {
