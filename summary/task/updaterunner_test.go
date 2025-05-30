@@ -5,6 +5,8 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/page"
@@ -15,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 	taskStore "github.com/tidepool-org/platform/task/store"
 	taskStoreMongo "github.com/tidepool-org/platform/task/store/mongo"
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 var _ = Describe("update runner tasks", func() {
