@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/log"
@@ -34,18 +33,9 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 
 	Context("Create Stores", func() {
 		var store *dataStoreMongo.Store
-		var err error
-
-		AfterEach(func() {
-			if store != nil {
-				_ = store.Terminate(context.Background())
-			}
-		})
 
 		It("Typeless Repo", func() {
-			config := storeStructuredMongoTest.NewConfig()
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
+			store = GetSuiteStore()
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
@@ -55,9 +45,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 	})
 
 	Context("With a new store", func() {
-		var summaryCollection *mongo.Collection
 		var userId string
-
 		var typelessStore *dataStoreSummary.TypelessSummaries
 		var store *dataStoreMongo.Store
 		var err error
@@ -66,7 +54,6 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 			config := storeStructuredMongoTest.NewConfig()
 			store, err = dataStoreMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
-			summaryCollection = store.GetCollection("summary")
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
@@ -75,13 +62,9 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 		})
 
 		AfterEach(func() {
-			if summaryCollection != nil {
-				_, err := summaryCollection.DeleteMany(ctx, bson.D{})
+			if summaryRepository != nil {
+				_, err = summaryRepository.DeleteMany(ctx, bson.D{})
 				Expect(err).To(Succeed())
-			}
-
-			if store != nil {
-				_ = store.Terminate(ctx)
 			}
 		})
 

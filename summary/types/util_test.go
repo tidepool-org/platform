@@ -13,7 +13,7 @@ import (
 	. "github.com/tidepool-org/platform/summary/types"
 )
 
-var _ = Describe("Summary", func() {
+var _ = Describe("Summary utils", func() {
 	var datumTime time.Time
 	var deviceID string
 	var uploadId string
