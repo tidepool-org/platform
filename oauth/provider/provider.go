@@ -56,13 +56,19 @@ func New(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, 
 	}
 	cfg.Scopes = SplitScopes(configReporter.GetWithDefault("scopes", ""))
 
-	if authStyleInParams, err := strconv.ParseBool(configReporter.GetWithDefault("auth_style_in_params", "")); err == nil && authStyleInParams {
+	if authStyleInParams, err := strconv.ParseBool(configReporter.GetWithDefault("auth_style_in_params", "false")); err != nil {
+		return nil, errors.New("auth style in params is invalid")
+	} else if authStyleInParams {
 		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
 	}
 
-	stateSalt := configReporter.GetWithDefault("state_salt", "")
-	if stateSalt == "" {
-		return nil, errors.New("state salt is missing")
+	var stateSalt string
+	if useCookie, err := strconv.ParseBool(configReporter.GetWithDefault("use_cookie", "true")); err != nil {
+		return nil, errors.New("use cookie is invalid")
+	} else if useCookie {
+		if stateSalt = configReporter.GetWithDefault("state_salt", ""); stateSalt == "" {
+			return nil, errors.New("state salt is missing")
+		}
 	}
 
 	return &Provider{
@@ -128,8 +134,16 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 	return tknSrc, nil
 }
 
+func (p *Provider) UseCookie() bool {
+	return p.stateSalt != ""
+}
+
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
-	return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
+	if p.stateSalt != "" {
+		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
+	} else {
+		return restrictedToken
+	}
 }
 
 func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
