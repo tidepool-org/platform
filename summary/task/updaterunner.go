@@ -39,9 +39,9 @@ func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
 		Priority:      5,
 		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]any{
-			ConfigMinInterval: DefaultUpdateAvailableAfterDurationMinimum,
-			ConfigMaxInterval: DefaultUpdateAvailableAfterDurationMaximum,
-			ConfigBatch:       DefaultUpdateWorkerBatchSize,
+			ConfigMinInterval: int32(DefaultUpdateAvailableAfterDurationMinimum.Seconds()),
+			ConfigMaxInterval: int32(DefaultUpdateAvailableAfterDurationMaximum.Seconds()),
+			ConfigBatch:       int32(DefaultUpdateWorkerBatchSize),
 		},
 	}
 }
@@ -95,7 +95,7 @@ type UpdateTaskRunner struct {
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
-	task        *task.Task
+	Task        *task.Task
 	context     context.Context
 	logger      log.Logger
 	deadline    time.Time
@@ -129,34 +129,44 @@ func NewUpdateTaskRunner(ctx context.Context, logger log.Logger, authClient auth
 		authClient:  authClient,
 		dataClient:  dataClient,
 		summaryType: summaryType,
-		task:        tsk,
+		Task:        tsk,
 		logger:      logger,
 		deadline:    deadline,
 	}, nil
 }
 
 func (t *UpdateTaskRunner) Run() {
-	t.task.ClearError()
+	t.Task.ClearError()
 	if err := t.run(); err == nil {
 		t.rescheduleTask()
-	} else if !t.task.HasError() {
+	} else if !t.Task.HasError() {
 		t.rescheduleTaskWithResourceError(err)
 	}
 }
 
-func (t *UpdateTaskRunner) getBatch() int {
-	batch, ok := t.task.Data[ConfigBatch].(int)
-	if !ok || batch < 1 {
-		batch = DefaultUpdateWorkerBatchSize
-		t.task.Data[ConfigBatch] = batch
+func (t *UpdateTaskRunner) GetBatch() int {
+	return int(ValueFromTaskDataWithFallback[int32](t.Task.Data, ConfigBatch, isGtZero, DefaultUpdateWorkerBatchSize))
+}
+
+func (t *UpdateTaskRunner) GetIntervalRange() (int, int) {
+	minSeconds, minOk := t.Task.Data[ConfigMinInterval].(int32)
+	maxSeconds, maxOk := t.Task.Data[ConfigMaxInterval].(int32)
+
+	// reset both min and max if either is considered invalid to prevent an accidental mismatch
+	if !minOk || !maxOk || minSeconds < 1 || minSeconds > maxSeconds {
+		minSeconds = int32(DefaultUpdateAvailableAfterDurationMinimum.Seconds())
+		t.Task.Data[ConfigMinInterval] = minSeconds
+		maxSeconds = int32(DefaultUpdateAvailableAfterDurationMaximum.Seconds())
+		t.Task.Data[ConfigMaxInterval] = maxSeconds
+
 	}
 
-	return batch
+	return int(minSeconds), int(maxSeconds)
 }
 
 func (t *UpdateTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = t.getBatch()
+	pagination.Size = t.GetBatch()
 	targetTime := time.Now().UTC().Add(-1 * time.Minute)
 	typ := t.summaryType
 
@@ -200,20 +210,10 @@ func (t *UpdateTaskRunner) rescheduleTaskWithResourceError(err error) {
 
 // Reschedule task for next run. Append error to task.
 func (t *UpdateTaskRunner) rescheduleTaskWithError(err error) {
-	t.task.AppendError(err)
+	t.Task.AppendError(err)
 	t.rescheduleTask()
 }
 
 func (t *UpdateTaskRunner) rescheduleTask() {
-	minSeconds, ok := t.task.Data[ConfigMinInterval].(int)
-	if !ok || minSeconds < 1 {
-		minSeconds = int(DefaultUpdateAvailableAfterDurationMinimum.Seconds())
-		t.task.Data[ConfigMinInterval] = minSeconds
-	}
-	maxSeconds, ok := t.task.Data[ConfigMaxInterval].(int)
-	if !ok || maxSeconds < minSeconds {
-		maxSeconds = int(DefaultUpdateAvailableAfterDurationMaximum.Seconds())
-		t.task.Data[ConfigMaxInterval] = maxSeconds
-	}
-	t.task.RepeatAvailableAfter(GenerateNextTime(minSeconds, maxSeconds))
+	t.Task.RepeatAvailableAfter(GenerateNextTime(t.GetIntervalRange()))
 }

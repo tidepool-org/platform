@@ -100,3 +100,17 @@ func updateSummary(ctx context.Context, dataClient dataClient.Client, typ string
 	}
 	return err
 }
+
+func isGtZero[T int | int32 | int64](v T) bool {
+	return v > 0
+}
+
+func ValueFromTaskDataWithFallback[T any](data map[string]any, property string, isValid func(T) bool, fallback T) T {
+	value, ok := data[property].(T)
+	if !ok || !isValid(value) {
+		value = fallback
+		data[property] = value
+	}
+
+	return value
+}

@@ -38,9 +38,9 @@ func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 		Priority:      5,
 		AvailableTime: pointer.FromAny(time.Now().UTC()),
 		Data: map[string]any{
-			ConfigMinInterval: DefaultMigrationAvailableAfterDurationMinimum,
-			ConfigMaxInterval: DefaultMigrationAvailableAfterDurationMaximum,
-			ConfigBatch:       DefaultMigrationWorkerBatchSize,
+			ConfigMinInterval: int32(DefaultMigrationAvailableAfterDurationMinimum.Seconds()),
+			ConfigMaxInterval: int32(DefaultMigrationAvailableAfterDurationMaximum.Seconds()),
+			ConfigBatch:       int32(DefaultMigrationWorkerBatchSize),
 		},
 	}
 }
@@ -98,7 +98,7 @@ type MigrationTaskRunner struct {
 	authClient  auth.Client
 	dataClient  dataClient.Client
 	summaryType string
-	task        *task.Task
+	Task        *task.Task
 	logger      log.Logger
 	deadline    time.Time
 }
@@ -131,34 +131,44 @@ func NewMigrationTaskRunner(ctx context.Context, logger log.Logger, authClient a
 		authClient:  authClient,
 		dataClient:  dataClient,
 		summaryType: summaryType,
-		task:        tsk,
+		Task:        tsk,
 		logger:      logger,
 		deadline:    deadline,
 	}, nil
 }
 
-func (t *MigrationTaskRunner) getBatch() int {
-	batch, ok := t.task.Data[ConfigBatch].(int)
-	if !ok || batch < 1 {
-		batch = DefaultMigrationWorkerBatchSize
-		t.task.Data[ConfigBatch] = batch
+func (t *MigrationTaskRunner) GetBatch() int {
+	return int(ValueFromTaskDataWithFallback[int32](t.Task.Data, ConfigBatch, isGtZero, DefaultMigrationWorkerBatchSize))
+}
+
+func (t *MigrationTaskRunner) GetIntervalRange() (int, int) {
+	minSeconds, minOk := t.Task.Data[ConfigMinInterval].(int32)
+	maxSeconds, maxOk := t.Task.Data[ConfigMaxInterval].(int32)
+
+	// reset both min and max if either is considered invalid to prevent an accidental mismatch
+	if !minOk || !maxOk || minSeconds < 1 || minSeconds > maxSeconds {
+		minSeconds = int32(DefaultMigrationAvailableAfterDurationMinimum.Seconds())
+		t.Task.Data[ConfigMinInterval] = minSeconds
+		maxSeconds = int32(DefaultMigrationAvailableAfterDurationMaximum.Seconds())
+		t.Task.Data[ConfigMaxInterval] = maxSeconds
+
 	}
 
-	return batch
+	return int(minSeconds), int(maxSeconds)
 }
 
 func (t *MigrationTaskRunner) Run() {
-	t.task.ClearError()
+	t.Task.ClearError()
 	if err := t.run(); err == nil {
 		t.rescheduleTask()
-	} else if !t.task.HasError() {
+	} else if !t.Task.HasError() {
 		t.rescheduleTaskWithResourceError(err)
 	}
 }
 
 func (t *MigrationTaskRunner) run() error {
 	pagination := page.NewPagination()
-	pagination.Size = t.getBatch()
+	pagination.Size = t.GetBatch()
 	typ := t.summaryType
 
 	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
@@ -189,20 +199,10 @@ func (t *MigrationTaskRunner) rescheduleTaskWithResourceError(err error) {
 
 // Reschedule task for next run. Append error to task.
 func (t *MigrationTaskRunner) rescheduleTaskWithError(err error) {
-	t.task.AppendError(err)
+	t.Task.AppendError(err)
 	t.rescheduleTask()
 }
 
 func (t *MigrationTaskRunner) rescheduleTask() {
-	minSeconds, ok := t.task.Data[ConfigMinInterval].(int)
-	if !ok || minSeconds < 1 {
-		minSeconds = int(DefaultMigrationAvailableAfterDurationMinimum.Seconds())
-		t.task.Data[ConfigMinInterval] = minSeconds
-	}
-	maxSeconds, ok := t.task.Data[ConfigMaxInterval].(int)
-	if !ok || maxSeconds < minSeconds {
-		maxSeconds = int(DefaultMigrationAvailableAfterDurationMaximum.Seconds())
-		t.task.Data[ConfigMaxInterval] = maxSeconds
-	}
-	t.task.RepeatAvailableAfter(GenerateNextTime(minSeconds, maxSeconds))
+	t.Task.RepeatAvailableAfter(GenerateNextTime(t.GetIntervalRange()))
 }
