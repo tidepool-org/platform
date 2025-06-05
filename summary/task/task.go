@@ -1,93 +1,116 @@
 package task
 
 import (
-	"errors"
+	"context"
+	"math/rand"
 	"time"
 
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/task"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+
+	"github.com/tidepool-org/platform/auth"
+	dataClient "github.com/tidepool-org/platform/data/client"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/task/queue"
 )
 
-const ConfigVersion = 1
+const (
+	ConfigMinInterval = "minInterval"
+	ConfigMaxInterval = "maxInterval"
+	ConfigBatch       = "batch"
+)
 
-type MinuteRange struct {
-	Min int
-	Max int
-}
+var SummaryTypes = []string{"cgm", "bgm", "con"}
 
-type TaskConfiguration struct {
-	Interval MinuteRange `json:"interval" bson:"interval"`
-	Batch    *int        `json:"batch,omitempty" bson:"batch,omitempty"`
-	Version  int         `json:"version" bson:"version"`
-}
+func NewSummaryRunners(authClient auth.Client, dataClient dataClient.Client, logger log.Logger) ([]queue.Runner, error) {
+	var runners []queue.Runner
 
-func ValidateConfig(config TaskConfiguration, withBatch bool) error {
-	if config.Version != ConfigVersion {
-		return errors.New("old version number, must be remade")
-	}
-	if config.Interval.Min < 1 {
-		return errors.New("minimum Interval cannot be <1 minute")
-	}
-	if config.Interval.Max < config.Interval.Min {
-		return errors.New("maximum Interval cannot be less than Minimum Interval")
-	}
-
-	if withBatch == true {
-		if config.Batch == nil {
-			return errors.New("batch is required but not provided")
+	for _, typ := range SummaryTypes {
+		logger.Debugf("Creating %s summary update runner", typ)
+		summaryUpdateRnnr, summaryUpdateRnnrErr := NewUpdateRunner(logger, authClient, dataClient, typ)
+		if summaryUpdateRnnrErr != nil {
+			return nil, errors.Wrapf(summaryUpdateRnnrErr, "unable to create %s summary update runner", typ)
 		}
-		if *config.Batch < 1 {
-			return errors.New("batch can not be <1")
+		runners = append(runners, summaryUpdateRnnr)
+
+		logger.Debugf("Creating %s summary migration runner", typ)
+		summaryMigrationRnnr, summaryMigrationRnnrErr := NewMigrationRunner(logger, authClient, dataClient, typ)
+		if summaryMigrationRnnrErr != nil {
+			return nil, errors.Wrapf(summaryMigrationRnnrErr, "unable to create %s summary migration runner", typ)
 		}
-	} else {
-		if config.Batch != nil {
-			return errors.New("batch is not required, but was provided")
+		runners = append(runners, summaryMigrationRnnr)
+	}
+
+	return runners, nil
+}
+
+func GenerateNextTime(minSeconds int, maxSeconds int) time.Duration {
+	Min := time.Duration(minSeconds) * time.Second
+	Max := time.Duration(maxSeconds) * time.Second
+
+	randTime := time.Duration(rand.Int63n(int64(Max - Min + 1)))
+	return Min + randTime
+}
+
+func updateSummaries(ctx context.Context, logger log.Logger, dataClient dataClient.Client, typ string, outdatedUserIds []string, workerCount int64, deadline time.Time, callerType string) error {
+	eg, ctx := errgroup.WithContext(ctx)
+	sem := semaphore.NewWeighted(workerCount)
+
+	for _, userId := range outdatedUserIds {
+		if time.Now().After(deadline) {
+			return context.DeadlineExceeded
 		}
-	}
+		if err := sem.Acquire(ctx, 1); err != nil {
+			return err
+		}
 
-	return nil
+		// we can't pass arguments to errgroup goroutines
+		// we need to explicitly redefine the variables,
+		// because we're launching the goroutines in a loop
+		userId := userId
+		eg.Go(func() error {
+			defer sem.Release(1)
+			logger.WithField("userId", userId).Debugf("%s User %s Summary", callerType, typ)
+
+			// update summary
+			err := updateSummary(ctx, dataClient, typ, userId)
+			if err != nil {
+				return err
+			}
+
+			logger.WithField("userId", userId).Debugf("Finished %s User %s Summary", callerType, typ)
+
+			return nil
+		})
+	}
+	return eg.Wait()
 }
 
-func NewDefaultUpdateConfig() TaskConfiguration {
-	return TaskConfiguration{
-		Interval: MinuteRange{
-			int(DefaultUpdateAvailableAfterDurationMinimum.Seconds()),
-			int(DefaultUpdateAvailableAfterDurationMaximum.Seconds())},
-		Batch:   pointer.FromAny(DefaultUpdateWorkerBatchSize),
-		Version: ConfigVersion,
+func updateSummary(ctx context.Context, dataClient dataClient.Client, typ string, userId string) (err error) {
+	switch typ {
+	case "cgm":
+		_, err = dataClient.UpdateCGMSummary(ctx, userId)
+	case "bgm":
+		_, err = dataClient.UpdateBGMSummary(ctx, userId)
+	case "con":
+		_, err = dataClient.UpdateContinuousSummary(ctx, userId)
+	default:
+		err = errors.New("summary type unsupported by updateSummary")
 	}
+	return err
 }
 
-func NewDefaultUpdateTaskCreate() *task.TaskCreate {
-	return &task.TaskCreate{
-		Name:          pointer.FromAny(UpdateType),
-		Type:          UpdateType,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"config": NewDefaultUpdateConfig(),
-		},
-	}
+func isGtZero[T int | int32 | int64](v T) bool {
+	return v > 0
 }
 
-func NewDefaultMigrationConfig() TaskConfiguration {
-	return TaskConfiguration{
-		Interval: MinuteRange{
-			int(DefaultMigrationAvailableAfterDurationMinimum.Seconds()),
-			int(DefaultMigrationAvailableAfterDurationMaximum.Seconds())},
-		Batch:   pointer.FromAny(DefaultMigrationWorkerBatchSize),
-		Version: ConfigVersion,
+func ValueFromTaskDataWithFallback[T any](data map[string]any, property string, isValid func(T) bool, fallback T) T {
+	value, ok := data[property].(T)
+	if !ok || !isValid(value) {
+		value = fallback
+		data[property] = value
 	}
-}
 
-func NewDefaultMigrationTaskCreate() *task.TaskCreate {
-	return &task.TaskCreate{
-		Name:          pointer.FromAny(MigrationType),
-		Type:          MigrationType,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
-		Data: map[string]interface{}{
-			"config": NewDefaultMigrationConfig(),
-		},
-	}
+	return value
 }

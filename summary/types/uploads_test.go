@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.mongodb.org/mongo-driver/bson"
 
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
@@ -14,7 +15,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/summary"
 	dataStoreSummary "github.com/tidepool-org/platform/summary/store"
 	. "github.com/tidepool-org/platform/summary/test"
@@ -23,12 +23,10 @@ import (
 )
 
 var _ = Describe("Upload Helpers", func() {
-	var err error
 	var empty struct{}
 	var logger log.Logger
 	var ctx context.Context
 	var registry *summary.SummarizerRegistry
-	var config *storeStructuredMongo.Config
 	var store *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
@@ -41,11 +39,7 @@ var _ = Describe("Upload Helpers", func() {
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
 		ctx = log.NewContextWithLogger(context.Background(), logger)
-		config = storeStructuredMongoTest.NewConfig()
-
-		store, err = dataStoreMongo.NewStore(config)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(store.EnsureIndexes()).To(Succeed())
+		store = GetSuiteStore()
 
 		summaryRepo = store.NewSummaryRepository().GetStore()
 		bucketsRepo = store.NewBucketsRepository().GetStore()
@@ -56,6 +50,13 @@ var _ = Describe("Upload Helpers", func() {
 		cgmStore = dataStoreSummary.NewSummaries[*CGMPeriods, *GlucoseBucket](summaryRepo)
 		bgmStore = dataStoreSummary.NewSummaries[*BGMPeriods, *GlucoseBucket](summaryRepo)
 		continuousStore = dataStoreSummary.NewSummaries[*ContinuousPeriods, *ContinuousBucket](summaryRepo)
+	})
+
+	AfterEach(func() {
+		if summaryRepo != nil {
+			_, err := summaryRepo.DeleteMany(ctx, bson.D{})
+			Expect(err).To(Succeed())
+		}
 	})
 
 	Context("MaybeUpdateSummary", func() {

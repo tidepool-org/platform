@@ -24,19 +24,19 @@ func SummaryRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Get("/v1/summaries/cgm/:userId", GetSummary[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/continuous/:userId", GetSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/con/:userId", GetSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Post("/v1/summaries/continuous/:userId", UpdateSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Post("/v1/summaries/con/:userId", UpdateSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/outdated/cgm", GetOutdatedUserIDs[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/outdated/bgm", GetOutdatedUserIDs[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/outdated/continuous", GetOutdatedUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/outdated/con", GetOutdatedUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/summaries/migratable/cgm", GetMigratableUserIDs[*types.CGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/migratable/bgm", GetMigratableUserIDs[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
-		dataService.Get("/v1/summaries/migratable/continuous", GetMigratableUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
+		dataService.Get("/v1/summaries/migratable/con", GetMigratableUserIDs[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}

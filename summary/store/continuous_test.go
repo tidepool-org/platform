@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/log"
@@ -16,7 +15,6 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	dataStoreSummary "github.com/tidepool-org/platform/summary/store"
 	"github.com/tidepool-org/platform/summary/test"
 	"github.com/tidepool-org/platform/summary/types"
@@ -36,23 +34,10 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 	})
 
 	Context("Create repo and store", func() {
-		var config *storeStructuredMongo.Config
 		var createStore *dataStoreMongo.Store
 
-		BeforeEach(func() {
-			config = storeStructuredMongoTest.NewConfig()
-		})
-
-		AfterEach(func() {
-			if createStore != nil {
-				_ = createStore.Terminate(ctx)
-			}
-		})
-
 		It("Repo", func() {
-			createStore, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(createStore).ToNot(BeNil())
+			createStore = GetSuiteStore()
 
 			summaryRepository = createStore.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
@@ -63,17 +48,13 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 	})
 
 	Context("Store", func() {
-		var summaryCollection *mongo.Collection
 		var userId string
 		var userIdOther string
 		var userContinuousSummary *types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
 		var continuousStore *dataStoreSummary.Summaries[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]
 
 		BeforeEach(func() {
-			config := storeStructuredMongoTest.NewConfig()
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			summaryCollection = store.GetCollection("summary")
+			store = GetSuiteStore()
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
@@ -84,12 +65,9 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 		})
 
 		AfterEach(func() {
-			if summaryCollection != nil {
-				_, err = summaryCollection.DeleteMany(ctx, bson.D{})
+			if summaryRepository != nil {
+				_, err = summaryRepository.DeleteMany(ctx, bson.D{})
 				Expect(err).To(Succeed())
-			}
-			if store != nil {
-				_ = store.Terminate(ctx)
 			}
 		})
 
@@ -628,184 +606,6 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 				userIds, err = continuousStore.GetOutdatedUserIDs(ctx, page.NewPagination())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(userIds.UserIds).To(ConsistOf([]string{userIdFive}))
-			})
-		})
-
-		Context("GetMigratableUserIDs", func() {
-			var userIds []string
-			var userIdTwo string
-			var userIdThree string
-
-			BeforeEach(func() {
-				userIdTwo = userTest.RandomID()
-				userIdThree = userTest.RandomID()
-			})
-
-			It("With missing context", func() {
-				userIds, err = continuousStore.GetMigratableUserIDs(nil, page.NewPagination())
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError("context is missing"))
-				Expect(userIds).To(BeNil())
-			})
-
-			It("With missing pagination", func() {
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, nil)
-				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError("pagination is missing"))
-				Expect(userIds).To(BeNil())
-			})
-
-			It("With no migratable summaries", func() {
-				var pagination = page.NewPagination()
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, pagination)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userIds)).To(Equal(0))
-			})
-
-			It("With migratable CGM summaries", func() {
-				var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
-					test.RandomContinuousSummary(userId),
-					test.RandomContinuousSummary(userIdOther),
-					test.RandomContinuousSummary(userIdTwo),
-				}
-
-				// mark 2/3 summaries for migration
-				continuousSummaries[0].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[0].Dates.OutdatedSince = nil
-				continuousSummaries[1].Config.SchemaVersion = types.SchemaVersion
-				continuousSummaries[1].Dates.OutdatedSince = nil
-				continuousSummaries[2].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[2].Dates.OutdatedSince = nil
-				_, err = continuousStore.CreateSummaries(ctx, continuousSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
-			})
-
-			It("With migratable and outdated CGM summaries", func() {
-				var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-				var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
-					test.RandomContinuousSummary(userId),
-					test.RandomContinuousSummary(userIdOther),
-					test.RandomContinuousSummary(userIdTwo),
-				}
-
-				// mark 2/3 summaries for migration, and 1/3 as outdated
-				continuousSummaries[0].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[0].Dates.OutdatedSince = nil
-				continuousSummaries[1].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[1].Dates.OutdatedSince = &outdatedTime
-				continuousSummaries[2].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[2].Dates.OutdatedSince = nil
-				_, err = continuousStore.CreateSummaries(ctx, continuousSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
-			})
-
-			It("With a specific pagination size", func() {
-				var lastUpdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-				var pagination = page.NewPagination()
-				var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
-					test.RandomContinuousSummary(userId),
-					test.RandomContinuousSummary(userIdOther),
-					test.RandomContinuousSummary(userIdTwo),
-					test.RandomContinuousSummary(userIdThree),
-				}
-
-				pagination.Size = 3
-
-				for i := len(continuousSummaries) - 1; i >= 0; i-- {
-					continuousSummaries[i].Config.SchemaVersion = types.SchemaVersion - 1
-					continuousSummaries[i].Dates.OutdatedSince = nil
-					continuousSummaries[i].Dates.LastUpdatedDate = lastUpdatedTime.Add(time.Duration(-i) * time.Minute)
-				}
-				_, err = continuousStore.CreateSummaries(ctx, continuousSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, pagination)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userIds)).To(Equal(3))
-				Expect(userIds).To(ConsistOf([]string{userIdThree, userIdTwo, userIdOther}))
-			})
-
-			It("Check sort order", func() {
-				var lastUpdatedTime = time.Now().UTC().Truncate(time.Millisecond)
-				var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
-					test.RandomContinuousSummary(userId),
-					test.RandomContinuousSummary(userIdOther),
-					test.RandomContinuousSummary(userIdTwo),
-				}
-
-				for i := 0; i < len(continuousSummaries); i++ {
-					continuousSummaries[i].Config.SchemaVersion = types.SchemaVersion - 1
-					continuousSummaries[i].Dates.OutdatedSince = nil
-					continuousSummaries[i].Dates.LastUpdatedDate = lastUpdatedTime.Add(time.Duration(-i) * time.Minute)
-				}
-				_, err = continuousStore.CreateSummaries(ctx, continuousSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(len(userIds)).To(Equal(3))
-
-				// we expect these to come back in reverse order than inserted
-				for i := 0; i < len(userIds); i++ {
-					Expect(userIds[i]).To(Equal(continuousSummaries[len(continuousSummaries)-i-1].UserID))
-				}
-			})
-
-			It("Get migratable summaries with all types present", func() {
-				userIdFour := userTest.RandomID()
-				userIdFive := userTest.RandomID()
-				bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
-				cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
-
-				var cgmSummaries = []*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
-					test.RandomCGMSummary(userId),
-					test.RandomCGMSummary(userIdOther),
-				}
-
-				var bgmSummaries = []*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{
-					test.RandomBGMSummary(userIdTwo),
-					test.RandomBGMSummary(userIdThree),
-				}
-
-				var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
-					test.RandomContinuousSummary(userIdFour),
-					test.RandomContinuousSummary(userIdFive),
-				}
-
-				// mark 1 for migration per type
-				cgmSummaries[0].Config.SchemaVersion = types.SchemaVersion - 1
-				cgmSummaries[0].Dates.OutdatedSince = nil
-				cgmSummaries[1].Config.SchemaVersion = types.SchemaVersion
-				cgmSummaries[1].Dates.OutdatedSince = nil
-				_, err = cgmStore.CreateSummaries(ctx, cgmSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				bgmSummaries[0].Config.SchemaVersion = types.SchemaVersion
-				bgmSummaries[0].Dates.OutdatedSince = nil
-				bgmSummaries[1].Config.SchemaVersion = types.SchemaVersion - 1
-				bgmSummaries[1].Dates.OutdatedSince = nil
-				_, err = bgmStore.CreateSummaries(ctx, bgmSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				continuousSummaries[0].Config.SchemaVersion = types.SchemaVersion
-				continuousSummaries[0].Dates.OutdatedSince = nil
-				continuousSummaries[1].Config.SchemaVersion = types.SchemaVersion - 1
-				continuousSummaries[1].Dates.OutdatedSince = nil
-				_, err = continuousStore.CreateSummaries(ctx, continuousSummaries)
-				Expect(err).ToNot(HaveOccurred())
-
-				userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
-				Expect(err).ToNot(HaveOccurred())
-				Expect(userIds).To(ConsistOf([]string{userIdFive}))
 			})
 		})
 	})
