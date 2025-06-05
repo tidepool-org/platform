@@ -39,7 +39,7 @@ var _ = Describe("DEPRECATEDService", func() {
 			Expect(server).ToNot(BeNil())
 			server.AppendHandlers(
 				CombineHandlers(
-					VerifyRequest("POST", "/auth/serverlogin"),
+					VerifyRequest("POST", "/serverlogin"),
 					VerifyHeaderKV("X-Tidepool-Server-Name", *provider.NameOutput),
 					VerifyHeaderKV("X-Tidepool-Server-Secret", serverSecret),
 					VerifyBody(nil),
