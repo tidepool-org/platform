@@ -13,10 +13,11 @@ import (
 	context "context"
 	reflect "reflect"
 
-	data "github.com/tidepool-org/platform/data"
-	types "github.com/tidepool-org/platform/data/summary/types"
-	page "github.com/tidepool-org/platform/page"
 	gomock "go.uber.org/mock/gomock"
+
+	data "github.com/tidepool-org/platform/data"
+	page "github.com/tidepool-org/platform/page"
+	types "github.com/tidepool-org/platform/summary/types"
 )
 
 // MockClient is a mock of Client interface.
@@ -41,21 +42,6 @@ func NewMockClient(ctrl *gomock.Controller) *MockClient {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
-}
-
-// BackfillSummaries mocks base method.
-func (m *MockClient) BackfillSummaries(ctx context.Context, t string) (int, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BackfillSummaries", ctx, t)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BackfillSummaries indicates an expected call of BackfillSummaries.
-func (mr *MockClientMockRecorder) BackfillSummaries(ctx, t any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BackfillSummaries", reflect.TypeOf((*MockClient)(nil).BackfillSummaries), ctx, t)
 }
 
 // CreateDataSetsData mocks base method.
@@ -116,10 +102,10 @@ func (mr *MockClientMockRecorder) DestroyDataForUserByID(ctx, userID any) *gomoc
 }
 
 // GetBGMSummary mocks base method.
-func (m *MockClient) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+func (m *MockClient) GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetBGMSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.BGMStats, types.BGMStats])
+	ret0, _ := ret[0].(*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -131,10 +117,10 @@ func (mr *MockClientMockRecorder) GetBGMSummary(ctx, id any) *gomock.Call {
 }
 
 // GetCGMSummary mocks base method.
-func (m *MockClient) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+func (m *MockClient) GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCGMSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.CGMStats, types.CGMStats])
+	ret0, _ := ret[0].(*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -146,10 +132,10 @@ func (mr *MockClientMockRecorder) GetCGMSummary(ctx, id any) *gomock.Call {
 }
 
 // GetContinuousSummary mocks base method.
-func (m *MockClient) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+func (m *MockClient) GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetContinuousSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.ContinuousStats, types.ContinuousStats])
+	ret0, _ := ret[0].(*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -221,10 +207,10 @@ func (mr *MockClientMockRecorder) ListUserDataSets(ctx, userID, filter, paginati
 }
 
 // UpdateBGMSummary mocks base method.
-func (m *MockClient) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMStats, types.BGMStats], error) {
+func (m *MockClient) UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateBGMSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.BGMStats, types.BGMStats])
+	ret0, _ := ret[0].(*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -236,10 +222,10 @@ func (mr *MockClientMockRecorder) UpdateBGMSummary(ctx, id any) *gomock.Call {
 }
 
 // UpdateCGMSummary mocks base method.
-func (m *MockClient) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMStats, types.CGMStats], error) {
+func (m *MockClient) UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateCGMSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.CGMStats, types.CGMStats])
+	ret0, _ := ret[0].(*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -251,10 +237,10 @@ func (mr *MockClientMockRecorder) UpdateCGMSummary(ctx, id any) *gomock.Call {
 }
 
 // UpdateContinuousSummary mocks base method.
-func (m *MockClient) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousStats, types.ContinuousStats], error) {
+func (m *MockClient) UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateContinuousSummary", ctx, id)
-	ret0, _ := ret[0].(*types.Summary[*types.ContinuousStats, types.ContinuousStats])
+	ret0, _ := ret[0].(*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

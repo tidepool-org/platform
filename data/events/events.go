@@ -3,11 +3,12 @@ package events
 import (
 	"context"
 
+	summaryStore "github.com/tidepool-org/platform/summary/store"
+
 	ev "github.com/tidepool-org/go-common/events"
 
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	summaryStore "github.com/tidepool-org/platform/data/summary/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 )

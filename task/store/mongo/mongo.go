@@ -17,9 +17,9 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
-	"github.com/tidepool-org/platform/task/summary"
 )
 
 var (
@@ -78,7 +78,6 @@ func (s *Store) EnsureDefaultTasks() error {
 	repository := s.TaskRepository()
 	fs := []func(context.Context) error{
 		repository.EnsureSummaryUpdateTask,
-		repository.EnsureSummaryBackfillTask,
 		repository.EnsureSummaryMigrationTask,
 		repository.EnsureEHRReconcileTask,
 	}
@@ -157,18 +156,25 @@ func (t *TaskRepository) EnsureIndexes() error {
 }
 
 func (t *TaskRepository) EnsureSummaryUpdateTask(ctx context.Context) error {
-	create := summary.NewDefaultUpdateTaskCreate()
-	return t.ensureTask(ctx, create)
-}
-
-func (t *TaskRepository) EnsureSummaryBackfillTask(ctx context.Context) error {
-	create := summary.NewDefaultBackfillTaskCreate()
-	return t.ensureTask(ctx, create)
+	for _, summaryType := range summaryTask.SummaryTypes {
+		create := summaryTask.NewDefaultUpdateTaskCreate(summaryType)
+		err := t.ensureTask(ctx, create)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
-	create := summary.NewDefaultMigrationTaskCreate()
-	return t.ensureTask(ctx, create)
+	for _, summaryType := range summaryTask.SummaryTypes {
+		create := summaryTask.NewDefaultMigrationTaskCreate(summaryType)
+		err := t.ensureTask(ctx, create)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
