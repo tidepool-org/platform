@@ -51,8 +51,9 @@ func (r *Range) UpdateTotal(record *glucoseDatum.Glucose) {
 	duration := GetDuration(record)
 
 	// this must occur before the regular update as the pre-increment counters are used during calc
+	r.Variance = r.CalculateVariance(normalizedValue, float64(duration))
+
 	if duration > 0 {
-		r.Variance = r.CalculateVariance(normalizedValue, float64(duration))
 		r.Glucose += normalizedValue * float64(duration)
 	} else {
 		r.Glucose += normalizedValue
@@ -74,27 +75,45 @@ func (r *Range) CombineVariance(new *Range) float64 {
 	}
 
 	// if we have no values in either bucket, this will result in NaN, and cant be added anyway, return what we started with
-	if r.Minutes == 0 || new.Minutes == 0 {
+	if r.Records == 0 || new.Records == 0 {
 		return r.Variance
 	}
 
-	n1 := float64(r.Minutes)
-	n2 := float64(new.Minutes)
+	n1 := 0.0
+	n2 := 0.0
+	if r.Minutes > 0 {
+		n1 = float64(r.Minutes)
+		n2 = float64(new.Minutes)
+	} else {
+		n1 = float64(r.Records)
+		n2 = float64(new.Records)
+	}
+
 	n := n1 + n2
 	delta := new.Glucose/n2 - r.Glucose/n1
 	return r.Variance + new.Variance + math.Pow(delta, 2)*n1*n2/n
 }
 
 // CalculateVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
-func (r *Range) CalculateVariance(value float64, duration float64) float64 {
-	var mean float64 = 0
-	if r.Minutes > 0 {
-		mean = r.Glucose / float64(r.Minutes)
+func (r *Range) CalculateVariance(value float64, newWeight float64) float64 {
+	// exit early if we have no records in the current range, variance will always be 0
+	if r.Records == 0 {
+		return 0
 	}
 
-	weight := float64(r.Minutes) + duration
-	newMean := mean + (duration/weight)*(value-mean)
-	return r.Variance + duration*(value-mean)*(value-newMean)
+	mean := 0.0
+	weight := 0.0
+	if newWeight > 0 {
+		mean = r.Glucose / float64(r.Minutes)
+		weight = float64(r.Minutes) + newWeight
+	} else {
+		mean = r.Glucose / float64(r.Records)
+		weight = float64(r.Records) + 1
+		newWeight = 1
+	}
+
+	newMean := mean + (newWeight/weight)*(value-mean)
+	return r.Variance + newWeight*(value-mean)*(value-newMean)
 }
 
 func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
@@ -383,6 +402,8 @@ func (p *GlucosePeriod) Finalize(days int) {
 		} else if p.Total.Records != 0 {
 			// if we have only records
 			p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
+			p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Records))
+			p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
 		}
 	}
 

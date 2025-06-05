@@ -94,7 +94,7 @@ func Mean(x []float64) float64 {
 	return sum / float64(len(x))
 }
 
-func calcVariance(x []float64, mean float64) float64 {
+func CalcVariance(x []float64, mean float64) float64 {
 	var (
 		ss           float64
 		compensation float64
@@ -107,9 +107,9 @@ func calcVariance(x []float64, mean float64) float64 {
 	return ss - compensation*compensation/float64(len(x))
 }
 
-func PopStdDev(x []float64) float64 {
-	variance := calcVariance(x, Mean(x)) / float64(len(x))
-	return math.Sqrt(variance)
+func PopStdDev(x []float64) (float64, float64) {
+	variance := CalcVariance(x, Mean(x)) / float64(len(x))
+	return math.Sqrt(variance), variance
 }
 
 func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
@@ -198,31 +198,31 @@ func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRang
 	return dataSetData
 }
 
-func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, StandardDeviation float64) ([]data.Datum, float64) {
-	requiredRecords := hours * perHour
-	typ := "cbg"
-	dataSetData := make([]data.Datum, requiredRecords)
-	uploadId := test.RandomSetID()
-	deviceId := "SummaryTestDevice"
+// func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, StandardDeviation float64) ([]data.Datum, float64) {
+// 	requiredRecords := hours * perHour
+// 	typ := "cbg"
+// 	dataSetData := make([]data.Datum, requiredRecords)
+// 	uploadId := test.RandomSetID()
+// 	deviceId := "SummaryTestDevice"
 
-	var values []float64
+// 	var values []float64
 
-	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += perHour {
-		for inHour := 0; inHour < perHour; inHour++ {
-			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
+// 	// generate requiredRecords of data
+// 	for count := 0; count < requiredRecords; count += perHour {
+// 		for inHour := 0; inHour < perHour; inHour++ {
+// 			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
 
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + VeryHighBloodGlucose)
+// 			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+// 			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + VeryHighBloodGlucose)
 
-			values = append(values, *datum.Value)
+// 			values = append(values, *datum.Value)
 
-			dataSetData[requiredRecords-(count+inHour+1)] = datum
-		}
-	}
+// 			dataSetData[requiredRecords-(count+inHour+1)] = datum
+// 		}
+// 	}
 
-	return dataSetData, PopStdDev(values)
-}
+// 	return dataSetData, PopStdDev(values)
+// }
 
 func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, minutes bool) []*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket] {
 	buckets := make([]*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket], hours)
@@ -262,13 +262,16 @@ func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, 
 			}
 		}
 
-		buckets[i].Data.Total.Glucose = float64(recordsPerBucket) * InTargetBloodGlucose * 5
+		glucoseMultiplier := 1.0
+		if minutes {
+			glucoseMultiplier = 5.0
+			buckets[i].Data.Total.Minutes = recordsPerBucket * 5
+		}
+
+		buckets[i].Data.Total.Glucose = float64(recordsPerBucket) * InTargetBloodGlucose * glucoseMultiplier
 		buckets[i].Data.Total.Records = recordsPerBucket
 		buckets[i].Data.Total.Variance = 1
 
-		if minutes {
-			buckets[i].Data.Total.Minutes = recordsPerBucket * 5
-		}
 	}
 
 	return buckets

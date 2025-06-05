@@ -3,6 +3,7 @@ package types_test
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -138,6 +139,32 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
+
+			values := []float64{5, 10}
+			_, expectedVariance := PopStdDev(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 10
+
+			By("adding 5 minutes of 10mmol")
+			datum = NewGlucoseWithValue(continuous.Type, now, 10)
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(15.0 * 5.0))
+			Expect(glucoseRange.Records).To(Equal(2))
+			Expect(glucoseRange.Minutes).To(Equal(10))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
+
+			values = []float64{5, 10, 7}
+			_, expectedVariance = PopStdDev(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 15
+
+			By("adding 5 minutes of 7mmol")
+			datum = NewGlucoseWithValue(continuous.Type, now, 7)
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(15.0*5.0 + 7*5))
+			Expect(glucoseRange.Records).To(Equal(3))
+			Expect(glucoseRange.Minutes).To(Equal(15))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 		})
 
 		It("range.UpdateTotal without minutes", func() {
@@ -151,13 +178,31 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Minutes).To(Equal(0))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
+			values := []float64{5, 10}
+			_, expectedVariance := PopStdDev(values)
+			// multiply by expected records as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 2
+
 			By("adding 1 record of 10mmol")
 			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
 			glucoseRange.UpdateTotal(datum)
 			Expect(glucoseRange.Glucose).To(Equal(15.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
-			Expect(glucoseRange.Variance).To(Equal(0.0))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
+
+			values = []float64{5, 10, 7}
+			_, expectedVariance = PopStdDev(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 3
+
+			By("adding 1 record of 7mmol")
+			datum = NewGlucoseWithValue(selfmonitored.Type, now, 7)
+			glucoseRange.UpdateTotal(datum)
+			Expect(glucoseRange.Glucose).To(Equal(22.0))
+			Expect(glucoseRange.Records).To(Equal(3))
+			Expect(glucoseRange.Minutes).To(Equal(0))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 		})
 
 		It("range.Update", func() {
@@ -192,29 +237,61 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 		})
 
-		It("range.Add", func() {
+		It("range.Add with minutes", func() {
 			firstRange := Range{
-				Glucose:  5,
-				Minutes:  5,
-				Records:  5,
-				Percent:  5,
+				Glucose:  1,
+				Minutes:  2,
+				Records:  3,
+				Percent:  4,
 				Variance: 5,
 			}
 
 			secondRange := Range{
-				Glucose:  10,
-				Minutes:  10,
-				Records:  10,
-				Percent:  10,
-				Variance: 10,
+				Glucose:  11,
+				Minutes:  12,
+				Records:  13,
+				Percent:  14,
+				Variance: 15,
 			}
 
 			firstRange.Add(&secondRange)
 
-			Expect(firstRange.Glucose).To(Equal(15.0))
-			Expect(firstRange.Minutes).To(Equal(15))
-			Expect(firstRange.Records).To(Equal(15))
-			Expect(firstRange.Variance).To(Equal(15.0))
+			Expect(firstRange.Glucose).To(Equal(12.0))
+			Expect(firstRange.Minutes).To(Equal(14))
+			Expect(firstRange.Records).To(Equal(16))
+
+			// 20.29761905 = 5 + 15 + (11/12 - 1/2)^2*2*12/14
+			Expect(firstRange.Variance).To(BeNumerically("~", 20.29761905))
+
+			// expect percent cleared, we don't handle percent on add
+			Expect(firstRange.Percent).To(BeZero())
+		})
+
+		It("range.Add without minutes", func() {
+			firstRange := Range{
+				Glucose:  1,
+				Minutes:  0,
+				Records:  3,
+				Percent:  4,
+				Variance: 5,
+			}
+
+			secondRange := Range{
+				Glucose:  11,
+				Minutes:  0,
+				Records:  13,
+				Percent:  14,
+				Variance: 15,
+			}
+
+			firstRange.Add(&secondRange)
+
+			Expect(firstRange.Glucose).To(Equal(12.0))
+			Expect(firstRange.Minutes).To(Equal(0))
+			Expect(firstRange.Records).To(Equal(16))
+
+			// 20.64102564 = 5 + 15 + (11/13 - 1/3)^2*3*13/16
+			Expect(firstRange.Variance).To(BeNumerically("~", 20.64102564))
 
 			// expect percent cleared, we don't handle percent on add
 			Expect(firstRange.Percent).To(BeZero())
@@ -898,9 +975,39 @@ var _ = Describe("Glucose", func() {
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
 			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
-			// we only validate these are set here, as this requires more specific validation
-			Expect(period.StandardDeviation).ToNot(Equal(0.0))
-			Expect(period.CoefficientOfVariation).ToNot(Equal(0.0))
+			expectedStdev := math.Sqrt(24 / 12 * 5)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
+		})
+
+		It("Finalize a 1d period without minutes", func() {
+			period = GlucosePeriod{}
+			buckets := CreateGlucoseBuckets(bucketTime, 24, 12, false)
+
+			for i := range buckets {
+				err = period.Update(buckets[i])
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			period.Finalize(1)
+
+			// data is generated at 100% per range
+			Expect(period.VeryHigh.Percent).To(Equal(1.0))
+			Expect(period.AnyLow.Percent).To(Equal(1.0))
+			Expect(period.AnyHigh.Percent).To(Equal(1.0))
+			Expect(period.Target.Percent).To(Equal(1.0))
+			Expect(period.Low.Percent).To(Equal(1.0))
+			Expect(period.High.Percent).To(Equal(1.0))
+			Expect(period.VeryLow.Percent).To(Equal(1.0))
+			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
+
+			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
+			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
+			Expect(period.GlucoseManagementIndicator).To(Equal(0.0))
+
+			expectedStdev := math.Sqrt(24 / 12)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
 		})
 
 		It("Finalize a 7d period", func() {
@@ -928,9 +1035,9 @@ var _ = Describe("Glucose", func() {
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
 			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
-			// we only validate these are set here, as this requires more specific validation
-			Expect(period.StandardDeviation).ToNot(Equal(0.0))
-			Expect(period.CoefficientOfVariation).ToNot(Equal(0.0))
+			expectedStdev := math.Sqrt(24 * 5 / 12 * 5 * 5)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
 		})
 
 		It("Finalize a 1d period with insufficient data", func() {
@@ -1237,8 +1344,8 @@ var _ = Describe("Glucose", func() {
 					CoefficientOfVariation:     4,
 					StandardDeviation:          5,
 					AverageDailyRecords:        6,
-				},
-				}
+				}}
+
 				offset := GlucosePeriods{"1d": &GlucosePeriod{
 					GlucoseRanges: GlucoseRanges{
 						Total: Range{
@@ -1313,8 +1420,7 @@ var _ = Describe("Glucose", func() {
 					CoefficientOfVariation:     95,
 					StandardDeviation:          94,
 					AverageDailyRecords:        93,
-				},
-				}
+				}}
 
 				s.CalculateDelta(offset)
 
