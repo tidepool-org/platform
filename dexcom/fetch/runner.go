@@ -49,7 +49,8 @@ type DataClient interface {
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 	UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error)
 
-	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
+	// TODO: Why is this interface partially redefined?
+	CreateDataSetsData(ctx context.Context, dataSetID string, dataSourceID *string, datumArray []data.Datum) error
 }
 
 type DataSourceClient interface {
@@ -753,25 +754,8 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 
 		partialDatumArray := datumArray[startIndex:endIndex]
 
-		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, partialDatumArray); err != nil {
+		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, t.dataSource.ID, partialDatumArray); err != nil {
 			return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to create data set data"))
-		}
-
-		earliestDataTime := partialDatumArray[0].GetTime()
-		latestDataTime := partialDatumArray[len(partialDatumArray)-1].GetTime()
-		if err := t.updateDataSourceWithDataTime(earliestDataTime, latestDataTime); err != nil {
-			return err
-		}
-
-		// Determine last known timezone offset and persist with the data set
-		var timezoneOffset *int
-		for index := len(partialDatumArray) - 1; index >= 0; index-- {
-			if timezoneOffset = partialDatumArray[index].GetTimeZoneOffset(); timezoneOffset != nil {
-				break
-			}
-		}
-		if err := t.updateDataSetWithTimezoneOffset(timezoneOffset); err != nil {
-			return err
 		}
 	}
 

@@ -2,13 +2,12 @@ package v1
 
 import (
 	"context"
+	"github.com/tidepool-org/platform/data/postprocessor"
+	"github.com/tidepool-org/platform/data/source"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
-
-	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/types"
 
 	"github.com/ant0ine/go-json-rest/rest"
 	"github.com/golang-jwt/jwt/v4"
@@ -69,16 +68,26 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	var dataSource *source.Source
+	if dataSourceID := req.Header.Get(data.DataSourceIDHeaderKey); dataSourceID != "" {
+		// The data source client will return an error if the user is not authorized for the given action
+		dataSource, err = dataServiceContext.DataSourceClient().Get(ctx, dataSourceID)
+		if err != nil {
+			dataServiceContext.RespondWithInternalServerFailure("Unable to get data source", err)
+			return
+		}
+	}
+
 	var rawDatumArray []interface{}
 	if err = dataServiceContext.Request().DecodeJsonPayload(&rawDatumArray); err != nil {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
 	}
 
-	logger := log.LoggerFromContext(ctx)
-	parser := structureParser.NewArray(logger, &rawDatumArray)
-	validator := structureValidator.New(logger)
-	normalizer := dataNormalizer.New(logger)
+	parser := structureParser.NewArray(lgr, &rawDatumArray)
+	validator := structureValidator.New(lgr)
+	normalizer := dataNormalizer.New(lgr)
+	postProcessPlanner := postprocessor.NewAddDataPlanner(*dataSet, dataSource)
 
 	datumArray := []data.Datum{}
 	for _, reference := range parser.References() {
@@ -121,11 +130,16 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	updatesSummary := make(map[string]struct{})
-	for _, datum := range datumArray {
-		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+	plan, err := postProcessPlanner.Plan(ctx, datumArray)
+	if err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to generate data post-processing plan", err)
+		return
 	}
-	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonDataAdded)
+	err = plan.Run(ctx, dataServiceContext)
+	if err != nil {
+		dataServiceContext.RespondWithInternalServerFailure("Unable to post-process data", err)
+		return
+	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")

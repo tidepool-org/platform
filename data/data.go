@@ -13,6 +13,7 @@ import (
 
 const (
 	SelectorOriginIDLengthMaximum = 100
+	DataSourceIDHeaderKey         = "x-tidepool-data-source-id"
 )
 
 type SelectorOrigin struct {
