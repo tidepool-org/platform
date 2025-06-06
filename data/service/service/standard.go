@@ -36,6 +36,8 @@ import (
 	summaryClient "github.com/tidepool-org/platform/summary/client"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type Standard struct {
@@ -46,12 +48,15 @@ type Standard struct {
 	dataRawStructuredStore         *dataRawStoreStructuredMongo.Store
 	dataSourceStructuredStore      *dataSourceStoreStructuredMongo.Store
 	syncTaskStore                  *syncTaskMongo.Store
+	workStructuredStore            *workStoreStructuredMongo.Store
 	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
 	clinicsClient                  *clinics.Client
 	dataClient                     *Client
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
 	summaryClient                  *summaryClient.Client
+	workClient                     *workService.Client
+	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
 	api                            *api.Standard
@@ -87,6 +92,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeSyncTaskStore(); err != nil {
 		return err
 	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeDataDeduplicatorFactory(); err != nil {
 		return err
 	}
@@ -103,6 +111,12 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeSummaryClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkClient(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
 	if err := s.initializeUserEventsHandler(); err != nil {
@@ -133,12 +147,21 @@ func (s *Standard) Terminate() {
 		}
 		s.userEventsHandler = nil
 	}
+	if s.workCoordinator != nil {
+		s.workCoordinator.Stop()
+		s.workCoordinator = nil
+	}
+	s.workClient = nil
 	s.summaryClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
 	s.dataClient = nil
 	s.clinicsClient = nil
 	s.dataDeduplicatorFactory = nil
+	if s.workStructuredStore != nil {
+		s.workStructuredStore.Terminate(context.Background())
+		s.workStructuredStore = nil
+	}
 	if s.syncTaskStore != nil {
 		s.syncTaskStore.Terminate(context.Background())
 		s.syncTaskStore = nil
@@ -335,6 +358,32 @@ func (s *Standard) initializeSyncTaskStore() error {
 	return nil
 }
 
+func (s *Standard) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeDataDeduplicatorFactory() error {
 	s.Logger().Debug("Creating device deactivate hash deduplicator")
 
@@ -465,6 +514,34 @@ func (s *Standard) initializeSummaryClient() error {
 	return nil
 }
 
+func (s *Standard) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s.workStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeWorkCoordinator() error {
+	s.Logger().Debug("Creating work coordinator")
+
+	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work coordinator")
+	}
+	s.workCoordinator = coordinator
+
+	s.Logger().Debug("Starting work coordinator")
+
+	s.workCoordinator.Start()
+
+	return nil
+}
+
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
 
@@ -500,7 +577,7 @@ func (s *Standard) initializeAPI() error {
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient,
 		s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
