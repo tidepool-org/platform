@@ -169,7 +169,7 @@ func (c *ClientImpl) GetContinuousSummary(ctx context.Context, userId string) (*
 		return nil, errors.New("id is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", "continuous", userId)
+	url := c.client.ConstructURL("v1", "summaries", "con", userId)
 	summary := &types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {
@@ -229,7 +229,7 @@ func (c *ClientImpl) UpdateContinuousSummary(ctx context.Context, userId string)
 		return nil, errors.New("id is missing")
 	}
 
-	url := c.client.ConstructURL("v1", "summaries", "continuous", userId)
+	url := c.client.ConstructURL("v1", "summaries", "con", userId)
 	summary := &types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
 		if request.IsErrorResourceNotFound(err) {

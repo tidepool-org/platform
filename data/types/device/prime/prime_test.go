@@ -1,93 +1,67 @@
 package prime_test
 
 import (
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
-	"github.com/tidepool-org/platform/data/types/device"
-	"github.com/tidepool-org/platform/data/types/device/prime"
-	dataTypesDeviceTest "github.com/tidepool-org/platform/data/types/device/test"
+	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
+	dataTypesDevicePrime "github.com/tidepool-org/platform/data/types/device/prime"
+	dataTypesDevicePrimeTest "github.com/tidepool-org/platform/data/types/device/prime/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-func NewMeta() interface{} {
-	return &device.Meta{
-		Type:    "deviceEvent",
-		SubType: "prime",
+func NewMeta() any {
+	return &dataTypesDevice.Meta{
+		Type:    dataTypesDevice.Type,
+		SubType: dataTypesDevicePrime.SubType,
 	}
-}
-
-func NewPrime() *prime.Prime {
-	datum := prime.New()
-	datum.Device = *dataTypesDeviceTest.RandomDevice()
-	datum.SubType = "prime"
-	datum.Target = pointer.FromString(test.RandomStringFromArray(prime.Targets()))
-	switch *datum.Target {
-	case "cannula":
-		datum.Volume = pointer.FromFloat64(test.RandomFloat64FromRange(prime.VolumeTargetCannulaMinimum, prime.VolumeTargetCannulaMaximum))
-	case "tubing":
-		datum.Volume = pointer.FromFloat64(test.RandomFloat64FromRange(prime.VolumeTargetTubingMinimum, prime.VolumeTargetTubingMaximum))
-	}
-	return datum
-}
-
-func ClonePrime(datum *prime.Prime) *prime.Prime {
-	if datum == nil {
-		return nil
-	}
-	clone := prime.New()
-	clone.Device = *dataTypesDeviceTest.CloneDevice(&datum.Device)
-	clone.Target = pointer.CloneString(datum.Target)
-	clone.Volume = pointer.CloneFloat64(datum.Volume)
-	return clone
 }
 
 var _ = Describe("Status", func() {
 	It("SubType is expected", func() {
-		Expect(prime.SubType).To(Equal("prime"))
+		Expect(dataTypesDevicePrime.SubType).To(Equal("prime"))
 	})
 
 	It("TargetCannula is expected", func() {
-		Expect(prime.TargetCannula).To(Equal("cannula"))
+		Expect(dataTypesDevicePrime.TargetCannula).To(Equal("cannula"))
 	})
 
 	It("TargetTubing is expected", func() {
-		Expect(prime.TargetTubing).To(Equal("tubing"))
+		Expect(dataTypesDevicePrime.TargetTubing).To(Equal("tubing"))
 	})
 
 	It("VolumeTargetCannulaMaximum is expected", func() {
-		Expect(prime.VolumeTargetCannulaMaximum).To(Equal(10.0))
+		Expect(dataTypesDevicePrime.VolumeTargetCannulaMaximum).To(Equal(1000.0))
 	})
 
 	It("VolumeTargetCannulaMinimum is expected", func() {
-		Expect(prime.VolumeTargetCannulaMinimum).To(Equal(0.0))
+		Expect(dataTypesDevicePrime.VolumeTargetCannulaMinimum).To(Equal(0.0))
 	})
 
 	It("VolumeTargetTubingMaximum is expected", func() {
-		Expect(prime.VolumeTargetTubingMaximum).To(Equal(100.0))
+		Expect(dataTypesDevicePrime.VolumeTargetTubingMaximum).To(Equal(1000.0))
 	})
 
 	It("VolumeTargetTubingMinimum is expected", func() {
-		Expect(prime.VolumeTargetTubingMinimum).To(Equal(0.0))
+		Expect(dataTypesDevicePrime.VolumeTargetTubingMinimum).To(Equal(0.0))
 	})
 
 	It("Targets returns expected", func() {
-		Expect(prime.Targets()).To(Equal([]string{"cannula", "tubing"}))
+		Expect(dataTypesDevicePrime.Targets()).To(Equal([]string{"cannula", "tubing"}))
 	})
 
 	Context("New", func() {
 		It("returns the expected datum with all values initialized", func() {
-			datum := prime.New()
+			datum := dataTypesDevicePrime.New()
 			Expect(datum).ToNot(BeNil())
-			Expect(datum.Type).To(Equal("deviceEvent"))
-			Expect(datum.SubType).To(Equal("prime"))
+			Expect(datum.Type).To(Equal(dataTypesDevice.Type))
+			Expect(datum.SubType).To(Equal(dataTypesDevicePrime.SubType))
 			Expect(datum.Target).To(BeNil())
 			Expect(datum.Volume).To(BeNil())
 		})
@@ -100,128 +74,128 @@ var _ = Describe("Status", func() {
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
-				func(mutator func(datum *prime.Prime), expectedErrors ...error) {
-					datum := NewPrime()
+				func(mutator func(datum *dataTypesDevicePrime.Prime), expectedErrors ...error) {
+					datum := dataTypesDevicePrimeTest.RandomPrime()
 					mutator(datum)
 					dataTypesTest.ValidateWithExpectedOrigins(datum, structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
-					func(datum *prime.Prime) {},
+					func(datum *dataTypesDevicePrime.Prime) {},
 				),
 				Entry("type missing",
-					func(datum *prime.Prime) { datum.Type = "" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &device.Meta{SubType: "prime"}),
+					func(datum *dataTypesDevicePrime.Prime) { datum.Type = "" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/type", &dataTypesDevice.Meta{SubType: dataTypesDevicePrime.SubType}),
 				),
 				Entry("type invalid",
-					func(datum *prime.Prime) { datum.Type = "invalidType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "prime"}),
+					func(datum *dataTypesDevicePrime.Prime) { datum.Type = "invalidType" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", dataTypesDevice.Type), "/type", &dataTypesDevice.Meta{Type: "invalidType", SubType: dataTypesDevicePrime.SubType}),
 				),
 				Entry("type device",
-					func(datum *prime.Prime) { datum.Type = "deviceEvent" },
+					func(datum *dataTypesDevicePrime.Prime) { datum.Type = dataTypesDevice.Type },
 				),
 				Entry("sub type missing",
-					func(datum *prime.Prime) { datum.SubType = "" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &device.Meta{Type: "deviceEvent"}),
+					func(datum *dataTypesDevicePrime.Prime) { datum.SubType = "" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueEmpty(), "/subType", &dataTypesDevice.Meta{Type: dataTypesDevice.Type}),
 				),
 				Entry("sub type invalid",
-					func(datum *prime.Prime) { datum.SubType = "invalidSubType" },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "deviceEvent", SubType: "invalidSubType"}),
+					func(datum *dataTypesDevicePrime.Prime) { datum.SubType = "invalidSubType" },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", dataTypesDevicePrime.SubType), "/subType", &dataTypesDevice.Meta{Type: dataTypesDevice.Type, SubType: "invalidSubType"}),
 				),
 				Entry("sub type prime",
-					func(datum *prime.Prime) { datum.SubType = "prime" },
+					func(datum *dataTypesDevicePrime.Prime) { datum.SubType = dataTypesDevicePrime.SubType },
 				),
 				Entry("target missing",
-					func(datum *prime.Prime) { datum.Target = nil },
+					func(datum *dataTypesDevicePrime.Prime) { datum.Target = nil },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/primeTarget", NewMeta()),
 				),
 				Entry("target invalid",
-					func(datum *prime.Prime) { datum.Target = pointer.FromString("invalid") },
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", NewMeta()),
+					func(datum *dataTypesDevicePrime.Prime) { datum.Target = pointer.FromString("invalid") },
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", dataTypesDevicePrime.Targets()), "/primeTarget", NewMeta()),
 				),
 				Entry("target cannula; volume missing",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("cannula")
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetCannula)
 						datum.Volume = nil
 					},
 				),
 				Entry("target cannula; volume out of range (lower)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("cannula")
-						datum.Volume = pointer.FromFloat64(-0.1)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetCannula)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetCannulaMinimum - 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 10), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesDevicePrime.VolumeTargetCannulaMinimum-0.1, dataTypesDevicePrime.VolumeTargetCannulaMinimum, dataTypesDevicePrime.VolumeTargetCannulaMaximum), "/volume", NewMeta()),
 				),
 				Entry("target cannula; volume in range (lower)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("cannula")
-						datum.Volume = pointer.FromFloat64(0.0)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetCannula)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetCannulaMinimum)
 					},
 				),
 				Entry("target cannula; volume in range (upper)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("cannula")
-						datum.Volume = pointer.FromFloat64(10.0)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetCannula)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetCannulaMaximum)
 					},
 				),
 				Entry("target cannula; volume out of range (upper)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("cannula")
-						datum.Volume = pointer.FromFloat64(10.1)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetCannula)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetCannulaMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(10.1, 0, 10), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesDevicePrime.VolumeTargetCannulaMaximum+0.1, dataTypesDevicePrime.VolumeTargetCannulaMinimum, dataTypesDevicePrime.VolumeTargetCannulaMaximum), "/volume", NewMeta()),
 				),
 				Entry("target tubing; volume missing",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("tubing")
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetTubing)
 						datum.Volume = nil
 					},
 				),
 				Entry("target tubing; volume out of range (lower)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("tubing")
-						datum.Volume = pointer.FromFloat64(-0.1)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetTubing)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetTubingMinimum - 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0, 100), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesDevicePrime.VolumeTargetTubingMinimum-0.1, dataTypesDevicePrime.VolumeTargetTubingMinimum, dataTypesDevicePrime.VolumeTargetTubingMaximum), "/volume", NewMeta()),
 				),
 				Entry("target tubing; volume in range (lower)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("tubing")
-						datum.Volume = pointer.FromFloat64(0.0)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetTubing)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetTubingMinimum)
 					},
 				),
 				Entry("target tubing; volume in range (upper)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("tubing")
-						datum.Volume = pointer.FromFloat64(100.0)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetTubing)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetTubingMaximum)
 					},
 				),
 				Entry("target tubing; volume out of range (upper)",
-					func(datum *prime.Prime) {
-						datum.Target = pointer.FromString("tubing")
-						datum.Volume = pointer.FromFloat64(100.1)
+					func(datum *dataTypesDevicePrime.Prime) {
+						datum.Target = pointer.FromString(dataTypesDevicePrime.TargetTubing)
+						datum.Volume = pointer.FromFloat64(dataTypesDevicePrime.VolumeTargetTubingMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0, 100), "/volume", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesDevicePrime.VolumeTargetTubingMaximum+0.1, dataTypesDevicePrime.VolumeTargetTubingMinimum, dataTypesDevicePrime.VolumeTargetTubingMaximum), "/volume", NewMeta()),
 				),
 				Entry("multiple errors",
-					func(datum *prime.Prime) {
+					func(datum *dataTypesDevicePrime.Prime) {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
 						datum.Target = pointer.FromString("invalid")
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "deviceEvent"), "/type", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "prime"), "/subType", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"cannula", "tubing"}), "/primeTarget", &device.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", dataTypesDevice.Type), "/type", &dataTypesDevice.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", dataTypesDevicePrime.SubType), "/subType", &dataTypesDevice.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", dataTypesDevicePrime.Targets()), "/primeTarget", &dataTypesDevice.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
-				func(mutator func(datum *prime.Prime)) {
+				func(mutator func(datum *dataTypesDevicePrime.Prime)) {
 					for _, origin := range structure.Origins() {
-						datum := NewPrime()
+						datum := dataTypesDevicePrimeTest.RandomPrime()
 						mutator(datum)
-						expectedDatum := ClonePrime(datum)
+						expectedDatum := dataTypesDevicePrimeTest.ClonePrime(datum)
 						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin))
@@ -231,13 +205,13 @@ var _ = Describe("Status", func() {
 					}
 				},
 				Entry("does not modify the datum",
-					func(datum *prime.Prime) {},
+					func(datum *dataTypesDevicePrime.Prime) {},
 				),
 				Entry("does not modify the datum; target missing",
-					func(datum *prime.Prime) { datum.Target = nil },
+					func(datum *dataTypesDevicePrime.Prime) { datum.Target = nil },
 				),
 				Entry("does not modify the datum; volume missing",
-					func(datum *prime.Prime) { datum.Volume = nil },
+					func(datum *dataTypesDevicePrime.Prime) { datum.Volume = nil },
 				),
 			)
 		})

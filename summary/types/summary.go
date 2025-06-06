@@ -109,7 +109,7 @@ type PeriodsPt[P Periods, PB BucketDataPt[B], B BucketData] interface {
 }
 
 type BaseSummary struct {
-	ID     primitive.ObjectID `json:"-" bson:"_id,omitempty"`
+	ID     primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Type   string             `json:"type" bson:"type"`
 	UserID string             `json:"userId" bson:"userId"`
 	Config Config             `json:"config" bson:"config"`

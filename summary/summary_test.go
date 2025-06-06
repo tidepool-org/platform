@@ -17,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/store"
 	. "github.com/tidepool-org/platform/summary/test"
@@ -41,7 +40,6 @@ var _ = Describe("End to end summary calculations", func() {
 	var logger log.Logger
 	var ctx context.Context
 	var registry *summary.SummarizerRegistry
-	var config *storeStructuredMongo.Config
 	var mongoStore *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
@@ -66,11 +64,7 @@ var _ = Describe("End to end summary calculations", func() {
 	BeforeEach(func() {
 		logger = logTest.NewLogger()
 		ctx = log.NewContextWithLogger(context.Background(), logger)
-		config = storeStructuredMongoTest.NewConfig()
-
-		mongoStore, err = dataStoreMongo.NewStore(config)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(mongoStore.EnsureIndexes()).To(Succeed())
+		mongoStore = GetSuiteStore()
 
 		summaryRepo = mongoStore.NewSummaryRepository().GetStore()
 		bucketsRepo = mongoStore.NewBucketsRepository().GetStore()
