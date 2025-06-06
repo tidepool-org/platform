@@ -10,6 +10,8 @@ import (
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
+
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/appvalidate"
@@ -531,6 +533,24 @@ func (s *Service) terminateAuthClient() {
 func (s *Service) initializeProviders() error {
 
 	configReporter := s.ConfigReporter().WithScopes("provider")
+
+	// Abbott
+	abbottJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(abbottProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create abbott jwks")
+	}
+	abbottProviderDependencies := abbottProvider.ProviderDependencies{
+		ConfigReporter:        configReporter,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		WorkClient:            s.workClient,
+		JWKS:                  abbottJWKS,
+	}
+	if prvdr, prvdrErr := abbottProvider.New(abbottProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create abbott provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add abbott provider")
+	}
 
 	// Dexcom
 	if prvdr, prvdrErr := dexcomProvider.New(configReporter, s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
