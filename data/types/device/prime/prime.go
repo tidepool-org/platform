@@ -2,7 +2,7 @@ package prime
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/device"
+	dataTypesDevice "github.com/tidepool-org/platform/data/types/device"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -11,9 +11,9 @@ const (
 
 	TargetCannula              = "cannula"
 	TargetTubing               = "tubing"
-	VolumeTargetCannulaMaximum = 10.0
+	VolumeTargetCannulaMaximum = 1000.0
 	VolumeTargetCannulaMinimum = 0.0
-	VolumeTargetTubingMaximum  = 100.0
+	VolumeTargetTubingMaximum  = 1000.0
 	VolumeTargetTubingMinimum  = 0.0
 )
 
@@ -25,7 +25,7 @@ func Targets() []string {
 }
 
 type Prime struct {
-	device.Device `bson:",inline"`
+	dataTypesDevice.Device `bson:",inline"`
 
 	Target *string  `json:"primeTarget,omitempty" bson:"primeTarget,omitempty"`
 	Volume *float64 `json:"volume,omitempty" bson:"volume,omitempty"`
@@ -33,7 +33,7 @@ type Prime struct {
 
 func New() *Prime {
 	return &Prime{
-		Device: device.New(SubType),
+		Device: dataTypesDevice.New(SubType),
 	}
 }
 
