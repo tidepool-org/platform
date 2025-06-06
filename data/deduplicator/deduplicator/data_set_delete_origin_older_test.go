@@ -46,6 +46,7 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 			Expect(deduplicator).ToNot(BeNil())
 			dataSet = dataTypesUploadTest.RandomUpload()
 			dataSet.Deduplicator.Name = pointer.FromString("org.tidepool.deduplicator.dataset.delete.origin.older")
+			dataSet.Deduplicator.Hash = nil
 		})
 
 		Context("New", func() {
@@ -135,6 +136,7 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 				})
 
 				When("UpdateDataSet is invoked", func() {
+
 					var update *data.DataSetUpdate
 
 					BeforeEach(func() {
@@ -142,6 +144,7 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 						update.Deduplicator = &data.DeduplicatorDescriptor{
 							Name:    pointer.FromString("org.tidepool.deduplicator.dataset.delete.origin.older"),
 							Version: pointer.FromString("1.0.0"),
+							Hash:    nil,
 						}
 					})
 
@@ -192,7 +195,7 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 
 						When("the data set has a deduplicator with matching name and version exists", func() {
 							BeforeEach(func() {
-								dataSet.Deduplicator.Version = pointer.FromString(netTest.RandomSemanticVersion())
+								dataSet.Deduplicator.Version = pointer.FromString("1.0.0")
 							})
 
 							It("returns an error when update data set returns an error", func() {

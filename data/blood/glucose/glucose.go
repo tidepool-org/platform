@@ -115,3 +115,14 @@ func NormalizeValueForRateUnits(value *float64, rateUnits *string) *float64 {
 	}
 	return value
 }
+
+func NormalizeValueForUnitsWithFullPrecision(value *float64, units *string) *float64 {
+	if value != nil && units != nil {
+		switch *units {
+		case MgdL, Mgdl:
+			floatValue := *value / MmolLToMgdLConversionFactor
+			return &floatValue
+		}
+	}
+	return value
+}

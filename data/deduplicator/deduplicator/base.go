@@ -59,9 +59,16 @@ func (b *Base) Open(ctx context.Context, repository dataStore.DataRepository, da
 
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(dataSet.Active)
-	update.Deduplicator = data.NewDeduplicatorDescriptor()
-	update.Deduplicator.Name = pointer.FromString(b.name)
-	update.Deduplicator.Version = pointer.FromString(b.version)
+	update.Deduplicator = dataSet.Deduplicator
+	if update.Deduplicator == nil {
+		update.Deduplicator = data.NewDeduplicatorDescriptor()
+	}
+	if update.Deduplicator.Name == nil {
+		update.Deduplicator.Name = pointer.FromString(b.name)
+	}
+	if update.Deduplicator.Version == nil {
+		update.Deduplicator.Version = pointer.FromString(b.version)
+	}
 	return repository.UpdateDataSet(ctx, *dataSet.UploadID, update)
 }
 
