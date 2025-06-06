@@ -93,6 +93,8 @@ type Provenance struct {
 	ByUserID *string `json:"byUserId,omitempty" bson:"byUserID,omitempty"`
 	// SourceIP address from the HTTP request submitting the data.
 	SourceIP *string `json:"sourceIP,omitempty" bson:"sourceIP,omitempty"`
+	// Reference to raw data
+	DataRaw *DataRawReference `json:"dataRaw,omitempty" bson:"dataRaw,omitempty"`
 }
 
 func ParseProvenance(parser structure.ObjectParser) *Provenance {
@@ -114,4 +116,28 @@ func (p *Provenance) Parse(parser structure.ObjectParser) {
 	}
 	p.ByUserID = parser.String("byUserId")
 	p.SourceIP = parser.String("sourceIP")
+	p.DataRaw = ParseDataRawReference(parser.WithReferenceObjectParser("dataRaw"))
+}
+
+type DataRawReference struct {
+	ID        string `json:"id,omitempty"`
+	Reference any    `json:"reference,omitempty"`
+}
+
+func ParseDataRawReference(parser structure.ObjectParser) *DataRawReference {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := &DataRawReference{}
+	parser.Parse(datum)
+	return datum
+}
+
+func (d *DataRawReference) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("id"); ptr != nil {
+		d.ID = *ptr
+	}
+	if ptr := parser.Interface("reference"); ptr != nil {
+		d.Reference = *ptr
+	}
 }

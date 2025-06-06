@@ -18,6 +18,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	dataSourceService "github.com/tidepool-org/platform/data/source/service"
@@ -213,6 +214,10 @@ func (c *mockDataServiceContext) DataClient() dataClient.Client {
 }
 
 func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
 	panic("not implemented")
 }
 

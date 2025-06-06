@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDuplicator "github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataServiceContext "github.com/tidepool-org/platform/data/service/context"
 	dataSourceService "github.com/tidepool-org/platform/data/source/service"
@@ -26,13 +27,16 @@ type Standard struct {
 	dataStore                      dataStore.Store
 	syncTaskStore                  syncTaskStore.Store
 	dataClient                     dataClient.Client
+	dataRawClient                  dataRaw.Client
 	dataSourceClient               dataSourceService.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDuplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSourceService.Client, twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client,
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
 	}
@@ -50,6 +54,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	}
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
+	}
+	if dataRawClient == nil {
+		return nil, errors.New("data raw client is missing")
 	}
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
@@ -71,6 +78,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		dataStore:                      store,
 		syncTaskStore:                  syncTaskStore,
 		dataClient:                     dataClient,
+		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
@@ -102,5 +110,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {
 	return dataServiceContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
-		s.dataStore, s.syncTaskStore, s.dataClient, s.dataSourceClient, s.twiistServiceAccountAuthorizer, handler)
+		s.dataStore, s.syncTaskStore, s.dataClient,
+		s.dataRawClient, s.dataSourceClient,
+		s.twiistServiceAccountAuthorizer, handler)
 }
