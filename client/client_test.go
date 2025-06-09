@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -348,6 +349,40 @@ var _ = Describe("Client", func() {
 				reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 				Expect(err.Error()).To(MatchRegexp("unable to perform request to .*: connect: connection refused"))
 				Expect(reader).To(BeNil())
+			})
+
+			Context("request timeouts", func() {
+				It("aren't overwritten by the default", func() {
+					deadline := time.Now().Add(time.Second)
+					toCtx, cancel := context.WithDeadline(ctx, deadline)
+					defer cancel()
+					server.AppendHandlers(RespondWith(http.StatusNoContent, nil))
+
+					rc, err := clnt.RequestStreamWithHTTPClient(toCtx, method, url, nil, nil, nil, httpClient)
+					Expect(err).To(Succeed())
+					if rc != nil {
+						defer rc.Close()
+					}
+					t, found := toCtx.Deadline()
+					Expect(found).To(Equal(true))
+					Expect(t).To(Equal(deadline))
+				})
+
+				It("uses the default", func() {
+					ctx, cancel := context.WithCancel(ctx)
+					defer cancel()
+					server.AppendHandlers(waitThenReturn(ctx, 10*time.Second))
+					shortTimeout := 10 * time.Millisecond
+					clnt.DefaultRequestTimeout = shortTimeout
+
+					start := time.Now()
+					rc, err := clnt.RequestStreamWithHTTPClient(ctx, method, url, nil, nil, nil, httpClient)
+					Expect(err).To(MatchError(ContainSubstring("context deadline exceeded")))
+					if rc != nil {
+						defer rc.Close()
+					}
+					Expect(time.Since(start) < 2*shortTimeout).To(Equal(true))
+				})
 			})
 
 			Context("with a successful response and no request body, but inspector returns error", func() {
@@ -1312,3 +1347,15 @@ var _ = Describe("Client", func() {
 		})
 	})
 })
+
+func waitThenReturn(ctx context.Context, dur time.Duration) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(dur): // wait a while...
+			RespondWith(http.StatusInternalServerError, nil)
+		case <-ctx.Done(): // ...unless the test is ended
+			RespondWith(http.StatusNoContent, nil)
+		}
+	}
+
+}
