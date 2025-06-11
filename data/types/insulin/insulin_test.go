@@ -1,6 +1,8 @@
 package insulin_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -166,6 +168,19 @@ var _ = Describe("Insulin", func() {
 					func(datum *insulin.Insulin) { datum.Site = nil },
 				),
 			)
+		})
+
+		Context("Legacy IdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := NewInsulin()
+				datum.DeviceID = pointer.FromString("some-pump-device")
+				t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"insulin", "some-pump-device", "2023-05-13T15:51:58.000Z"}))
+			})
 		})
 	})
 })

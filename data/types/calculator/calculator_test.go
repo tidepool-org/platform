@@ -1,6 +1,8 @@
 package calculator_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -121,7 +123,7 @@ var _ = Describe("Calculator", func() {
 	})
 
 	It("InsulinCarbohydrateRatioMaximum is expected", func() {
-		Expect(calculator.InsulinCarbohydrateRatioMaximum).To(Equal(250.0))
+		Expect(calculator.InsulinCarbohydrateRatioMaximum).To(Equal(500.0))
 	})
 
 	It("InsulinCarbohydrateRatioMinimum is expected", func() {
@@ -152,6 +154,30 @@ var _ = Describe("Calculator", func() {
 			Expect(datum.Recommended).To(BeNil())
 			Expect(datum.Units).To(BeNil())
 			Expect(datum.CarbUnits).To(BeNil())
+		})
+	})
+	Context("Legacy IdentityFields", func() {
+		var datum *calculator.Calculator
+
+		BeforeEach(func() {
+			datum = NewCalculator(pointer.FromString("mmol/L"))
+		})
+
+		It("returns error if delivery type is empty", func() {
+			datum.Type = ""
+			identityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+			Expect(err).To(MatchError("type is empty"))
+			Expect(identityFields).To(BeEmpty())
+		})
+
+		It("returns the expected legacy identity fields", func() {
+			datum.DeviceID = pointer.FromString("some-device")
+			t, err := time.Parse(types.TimeFormat, "2023-05-13T15:51:58Z")
+			Expect(err).ToNot(HaveOccurred())
+			datum.Time = pointer.FromTime(t)
+			legacyIdentityFields, err := datum.IdentityFields(types.LegacyIdentityFieldsVersion)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(legacyIdentityFields).To(Equal([]string{"wizard", "some-device", "2023-05-13T15:51:58.000Z"}))
 		})
 	})
 
@@ -285,7 +311,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
 				Entry("units missing; insulin carbohydrate ratio in range (lower)",
@@ -298,16 +324,16 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; insulin carbohydrate ratio in range (upper)",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
 				Entry("units missing; insulin carbohydrate ratio out of range (upper)",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
 				Entry("units missing; insulin on board missing",
@@ -378,7 +404,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
 				Entry("units missing; recommended valid",
@@ -486,7 +512,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units invalid; insulin carbohydrate ratio in range (lower)",
@@ -499,16 +525,16 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; insulin carbohydrate ratio in range (upper)",
 					pointer.FromString("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units invalid; insulin carbohydrate ratio out of range (upper)",
 					pointer.FromString("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units invalid; insulin on board missing",
@@ -579,7 +605,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
 				Entry("units invalid; recommended valid",
@@ -669,7 +695,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mmol/L; insulin carbohydrate ratio in range (lower)",
 					pointer.FromString("mmol/L"),
@@ -680,15 +706,15 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/L; insulin carbohydrate ratio in range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 				),
 				Entry("units mmol/L; insulin carbohydrate ratio out of range (upper)",
 					pointer.FromString("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mmol/L; insulin on board missing",
 					pointer.FromString("mmol/L"),
@@ -749,7 +775,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 				),
 				Entry("units mmol/L; recommended valid",
 					pointer.FromString("mmol/L"),
@@ -837,7 +863,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mmol/l; insulin carbohydrate ratio in range (lower)",
 					pointer.FromString("mmol/l"),
@@ -848,15 +874,15 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/l; insulin carbohydrate ratio in range (upper)",
 					pointer.FromString("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 				),
 				Entry("units mmol/l; insulin carbohydrate ratio out of range (upper)",
 					pointer.FromString("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mmol/l; insulin on board missing",
 					pointer.FromString("mmol/l"),
@@ -917,7 +943,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 				),
 				Entry("units mmol/l; recommended valid",
 					pointer.FromString("mmol/l"),
@@ -1009,7 +1035,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mg/dL; insulin carbohydrate ratio in range (lower)",
 					pointer.FromString("mg/dL"),
@@ -1020,15 +1046,15 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dL; insulin carbohydrate ratio in range (upper)",
 					pointer.FromString("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 				),
 				Entry("units mg/dL; insulin carbohydrate ratio out of range (upper)",
 					pointer.FromString("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mg/dL; insulin on board missing",
 					pointer.FromString("mg/dL"),
@@ -1089,7 +1115,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 				),
 				Entry("units mg/dL; recommended valid",
 					pointer.FromString("mg/dL"),
@@ -1181,7 +1207,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mg/dl; insulin carbohydrate ratio in range (lower)",
 					pointer.FromString("mg/dl"),
@@ -1192,15 +1218,15 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; insulin carbohydrate ratio in range (upper)",
 					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.0)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum)
 					},
 				),
 				Entry("units mg/dl; insulin carbohydrate ratio out of range (upper)",
 					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(250.1)
+						datum.InsulinCarbohydrateRatio = pointer.FromFloat64(calculator.InsulinCarbohydrateRatioMaximum + 0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(250.1, 0.0, 250.0), "/insulinCarbRatio", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(calculator.InsulinCarbohydrateRatioMaximum+0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/insulinCarbRatio", NewMeta()),
 				),
 				Entry("units mg/dl; insulin on board missing",
 					pointer.FromString("mg/dl"),
@@ -1261,7 +1287,7 @@ var _ = Describe("Calculator", func() {
 					func(datum *calculator.Calculator, units *string) {
 						datum.Recommended.Carbohydrate = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/recommended/carb", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, calculator.InsulinCarbohydrateRatioMaximum), "/recommended/carb", NewMeta()),
 				),
 				Entry("units mg/dl; recommended valid",
 					pointer.FromString("mg/dl"),

@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"time"
 
-	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
-
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 	"github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
 
 	"github.com/google/uuid"
 

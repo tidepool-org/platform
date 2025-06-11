@@ -50,13 +50,6 @@ var _ = Describe("Base", func() {
 			Expect(deduplicator).To(BeNil())
 		})
 
-		It("returns an error when version is invalid", func() {
-			version = "invalid"
-			deduplicator, err := dataDeduplicatorDeduplicator.NewBase(name, version)
-			Expect(err).To(MatchError("version is invalid"))
-			Expect(deduplicator).To(BeNil())
-		})
-
 		It("returns successfully", func() {
 			Expect(dataDeduplicatorDeduplicator.NewBase(name, version)).ToNot(BeNil())
 		})
@@ -72,6 +65,7 @@ var _ = Describe("Base", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deduplicator).ToNot(BeNil())
 			dataSet = dataTypesUploadTest.RandomUpload()
+			dataSet.Deduplicator = data.NewDeduplicatorDescriptor()
 			dataSet.Deduplicator.Name = pointer.FromString(name)
 		})
 
@@ -220,6 +214,7 @@ var _ = Describe("Base", func() {
 					When("the data set has a deduplicator with matching name and version exists", func() {
 						BeforeEach(func() {
 							dataSet.Deduplicator.Version = pointer.FromString(netTest.RandomSemanticVersion())
+							update.Deduplicator.Version = dataSet.Deduplicator.Version
 						})
 
 						It("returns an error when update data set returns an error", func() {

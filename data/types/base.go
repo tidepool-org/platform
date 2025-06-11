@@ -17,17 +17,20 @@ import (
 )
 
 const (
-	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
-	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	NoteLengthMaximum       = 1000
-	NotesLengthMaximum      = 100
-	TagLengthMaximum        = 100
-	TagsLengthMaximum       = 100
-	TimeFormat              = time.RFC3339Nano
-	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionInternalMinimum  = 0
+	ClockDriftOffsetMaximum     = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
+	ClockDriftOffsetMinimum     = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
+	DeviceTimeFormat            = "2006-01-02T15:04:05"
+	LegacyTimeFormat            = "2006-01-02T15:04:05.000Z"
+	NoteLengthMaximum           = 1000
+	NotesLengthMaximum          = 100
+	TagLengthMaximum            = 100
+	TagsLengthMaximum           = 100
+	TimeFormat                  = time.RFC3339Nano
+	TimeZoneOffsetMaximum       = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
+	TimeZoneOffsetMinimum       = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
+	VersionInternalMinimum      = 0
+	LegacyIdentityFieldsVersion = 0
+	IdentityFieldsVersion       = 1
 )
 
 type Base struct {
@@ -237,30 +240,80 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Base) IdentityFields() ([]string, error) {
-	if b.UserID == nil {
-		return nil, errors.New("user id is missing")
+func currentIdentityFields(b *Base) ([]string, error) {
+
+	vals := []string{}
+	var err error
+	vals, err = AppendIdentityFieldVal(vals, b.UserID, "user id")
+	if err != nil {
+		return nil, err
 	}
-	if *b.UserID == "" {
-		return nil, errors.New("user id is empty")
+
+	vals, err = AppendIdentityFieldVal(vals, b.DeviceID, "device id")
+	if err != nil {
+		return nil, err
 	}
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
+
 	if b.Time == nil {
 		return nil, errors.New("time is missing")
 	}
 	if (*b.Time).IsZero() {
 		return nil, errors.New("time is empty")
 	}
-	if b.Type == "" {
-		return nil, errors.New("type is empty")
+	vals = append(vals, (*b.Time).Format(TimeFormat))
+
+	vals, err = AppendIdentityFieldVal(vals, &b.Type, "type")
+	if err != nil {
+		return nil, err
 	}
 
-	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	return vals, nil
+}
+
+func (b *Base) IdentityFields(version int) ([]string, error) {
+	if version == LegacyIdentityFieldsVersion {
+		return legacyIdentityFields(b)
+	}
+	return currentIdentityFields(b)
+}
+
+func AppendLegacyTimeVal(vals []string, t *time.Time) ([]string, error) {
+	if t == nil {
+		return nil, errors.New("time is missing")
+	}
+	if (*t).IsZero() {
+		return nil, errors.New("time is empty")
+	}
+	return append(vals, (*t).Format(LegacyTimeFormat)), nil
+}
+
+func AppendIdentityFieldVal(vals []string, val *string, errDetail string) ([]string, error) {
+	if val == nil {
+		return nil, errors.Newf("%s is missing", errDetail)
+	}
+	if *val == "" {
+		return nil, errors.Newf("%s is empty", errDetail)
+	}
+	vals = append(vals, *val)
+	return vals, nil
+}
+
+func legacyIdentityFields(b *Base) ([]string, error) {
+	vals := []string{}
+	var err error
+	vals, err = AppendIdentityFieldVal(vals, &b.Type, "type")
+	if err != nil {
+		return nil, err
+	}
+	vals, err = AppendIdentityFieldVal(vals, b.DeviceID, "device id")
+	if err != nil {
+		return nil, err
+	}
+	vals, err = AppendLegacyTimeVal(vals, b.Time)
+	if err != nil {
+		return nil, err
+	}
+	return vals, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {
