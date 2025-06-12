@@ -7,10 +7,8 @@ import (
 )
 
 const (
-	// DEPRECATED: Use BolusNormalMaximum and BolusNormalMinimum
-	BolusAmountMaximum = BolusNormalMaximum
-	BolusAmountMinimum = BolusNormalMinimum
-
+	BolusAmountMaximum   = dataTypesBolusCombination.NormalMaximum
+	BolusAmountMinimum   = dataTypesBolusCombination.NormalMinimum
 	BolusDurationMaximum = dataTypesBolusCombination.DurationMaximum
 	BolusDurationMinimum = dataTypesBolusCombination.DurationMinimum
 	BolusExtendedMaximum = dataTypesBolusCombination.ExtendedMaximum
@@ -20,9 +18,7 @@ const (
 )
 
 type Bolus struct {
-	// DEPRECATED: Use Normal
-	Amount *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
-
+	Amount   *float64 `json:"amount,omitempty" bson:"amount,omitempty"`
 	Duration *int     `json:"duration,omitempty" bson:"duration,omitempty"`
 	Extended *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
 	Normal   *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
@@ -42,33 +38,29 @@ func NewBolus() *Bolus {
 }
 
 func (b *Bolus) Parse(parser structure.ObjectParser) {
-	// DEPRECATED: Use Normal
 	b.Amount = parser.Float64("amount")
-
 	b.Duration = parser.Int("duration")
 	b.Extended = parser.Float64("extended")
 	b.Normal = parser.Float64("normal")
 }
 
 func (b *Bolus) Validate(validator structure.Validator) {
-	// DEPRECATED: Use Normal
 	if b.Amount != nil {
-		validator.Float64("amount", b.Amount).Exists().InRange(BolusAmountMinimum, BolusAmountMaximum)
+		validator.Float64("amount", b.Amount).InRange(BolusAmountMinimum, BolusAmountMaximum)
 		validator.Int("duration", b.Duration).NotExists()
 		validator.Float64("extended", b.Extended).NotExists()
 		validator.Float64("normal", b.Normal).NotExists()
-		return
-	}
-
-	if b.Extended != nil {
-		validator.Int("duration", b.Duration).Exists().InRange(BolusDurationMinimum, BolusDurationMaximum)
-		validator.Float64("extended", b.Extended).Exists().InRange(BolusExtendedMinimum, BolusExtendedMaximum)
 	} else {
-		validator.Int("duration", b.Duration).NotExists()
+		if durationValidator := validator.Int("duration", b.Duration); b.Extended != nil {
+			durationValidator.Exists().InRange(BolusDurationMinimum, BolusDurationMaximum)
+		} else {
+			durationValidator.NotExists()
+		}
+		validator.Float64("extended", b.Extended).InRange(BolusExtendedMinimum, BolusExtendedMaximum)
+		validator.Float64("normal", b.Normal).InRange(BolusNormalMinimum, BolusNormalMaximum)
 	}
-	validator.Float64("normal", b.Normal).InRange(BolusNormalMinimum, BolusNormalMaximum)
 
-	if b.Extended == nil && b.Normal == nil {
-		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("normal", "extended"))
+	if b.Amount == nil && b.Extended == nil && b.Normal == nil {
+		validator.ReportError(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"))
 	}
 }

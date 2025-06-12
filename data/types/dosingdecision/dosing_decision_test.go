@@ -380,7 +380,7 @@ var _ = Describe("DosingDecision", func() {
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
 						datum.RecommendedBolus = &dataTypesDosingDecision.Bolus{}
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("normal", "extended"), "/recommendedBolus", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/recommendedBolus", NewMeta()),
 				),
 				Entry("recommended bolus valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
@@ -396,7 +396,7 @@ var _ = Describe("DosingDecision", func() {
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
 						datum.RequestedBolus = &dataTypesDosingDecision.Bolus{}
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("normal", "extended"), "/requestedBolus", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/requestedBolus", NewMeta()),
 				),
 				Entry("requested bolus valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
@@ -510,8 +510,8 @@ var _ = Describe("DosingDecision", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgHistorical/0/value", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgForecast/0/value", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBasal/rate", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("normal", "extended"), "/recommendedBolus", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("normal", "extended"), "/requestedBolus", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/recommendedBolus", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/requestedBolus", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/warnings/0/id", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/errors/0/id", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/scheduleTimeZoneOffset", &dataTypes.Meta{Type: "invalidType"}),

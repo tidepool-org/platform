@@ -9,18 +9,16 @@ import (
 func RandomBolus() *dataTypesDosingdecision.Bolus {
 	datum := dataTypesDosingdecision.NewBolus()
 	if test.RandomBool() {
-		datum.Duration = pointer.FromInt(test.RandomIntFromRange(dataTypesDosingdecision.BolusDurationMinimum, dataTypesDosingdecision.BolusDurationMaximum))
-		datum.Extended = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusExtendedMinimum, dataTypesDosingdecision.BolusExtendedMaximum))
+		datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusAmountMinimum, dataTypesDosingdecision.BolusAmountMaximum))
+	} else {
+		if test.RandomBool() {
+			datum.Duration = pointer.FromInt(test.RandomIntFromRange(dataTypesDosingdecision.BolusDurationMinimum, dataTypesDosingdecision.BolusDurationMaximum))
+			datum.Extended = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusExtendedMinimum, dataTypesDosingdecision.BolusExtendedMaximum))
+		}
+		if datum.Extended == nil || test.RandomBool() {
+			datum.Normal = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusNormalMinimum, dataTypesDosingdecision.BolusNormalMaximum))
+		}
 	}
-	if datum.Extended == nil || test.RandomBool() {
-		datum.Normal = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusNormalMinimum, dataTypesDosingdecision.BolusNormalMaximum))
-	}
-	return datum
-}
-
-func RandomBolusDEPRECATED() *dataTypesDosingdecision.Bolus {
-	datum := dataTypesDosingdecision.NewBolus()
-	datum.Amount = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesDosingdecision.BolusAmountMinimum, dataTypesDosingdecision.BolusAmountMaximum))
 	return datum
 }
 
