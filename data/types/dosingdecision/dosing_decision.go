@@ -29,8 +29,8 @@ type DosingDecision struct {
 	HistoricalBloodGlucose     *BloodGlucoseArray                                  `json:"bgHistorical,omitempty" bson:"bgHistorical,omitempty"`
 	ForecastBloodGlucose       *BloodGlucoseArray                                  `json:"bgForecast,omitempty" bson:"bgForecast,omitempty"`
 	RecommendedBasal           *RecommendedBasal                                   `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
-	RecommendedBolus           *RecommendedBolus                                   `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
-	RequestedBolus             *RequestedBolus                                     `json:"requestedBolus,omitempty" bson:"requestedBolus,omitempty"`
+	RecommendedBolus           *Bolus                                              `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
+	RequestedBolus             *Bolus                                              `json:"requestedBolus,omitempty" bson:"requestedBolus,omitempty"`
 	Warnings                   *IssueArray                                         `json:"warnings,omitempty" bson:"warnings,omitempty"`
 	Errors                     *IssueArray                                         `json:"errors,omitempty" bson:"errors,omitempty"`
 	ScheduleTimeZoneOffset     *int                                                `json:"scheduleTimeZoneOffset,omitempty" bson:"scheduleTimeZoneOffset,omitempty"`
@@ -60,8 +60,8 @@ func (d *DosingDecision) Parse(parser structure.ObjectParser) {
 	d.HistoricalBloodGlucose = ParseBloodGlucoseArray(parser.WithReferenceArrayParser("bgHistorical"))
 	d.ForecastBloodGlucose = ParseBloodGlucoseArray(parser.WithReferenceArrayParser("bgForecast"))
 	d.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
-	d.RecommendedBolus = ParseRecommendedBolus(parser.WithReferenceObjectParser("recommendedBolus"))
-	d.RequestedBolus = ParseRequestedBolus(parser.WithReferenceObjectParser("requestedBolus"))
+	d.RecommendedBolus = ParseBolus(parser.WithReferenceObjectParser("recommendedBolus"))
+	d.RequestedBolus = ParseBolus(parser.WithReferenceObjectParser("requestedBolus"))
 	d.Warnings = ParseIssueArray(parser.WithReferenceArrayParser("warnings"))
 	d.Errors = ParseIssueArray(parser.WithReferenceArrayParser("errors"))
 	d.ScheduleTimeZoneOffset = parser.Int("scheduleTimeZoneOffset")
