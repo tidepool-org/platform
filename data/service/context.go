@@ -1,6 +1,8 @@
 package service
 
 import (
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
+
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
@@ -41,6 +43,7 @@ type Context interface {
 	DataSourceClient() dataSourceService.Client
 	WorkClient() work.Client
 
+	AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer
 	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
 }
 

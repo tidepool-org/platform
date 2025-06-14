@@ -3,6 +3,8 @@ package api
 import (
 	"github.com/ant0ine/go-json-rest/rest"
 
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
+
 	"github.com/tidepool-org/platform/auth"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataDuplicator "github.com/tidepool-org/platform/data/deduplicator"
@@ -31,6 +33,7 @@ type Standard struct {
 	dataRawClient                  dataRaw.Client
 	dataSourceClient               dataSourceService.Client
 	workClient                     work.Client
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
@@ -38,6 +41,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	dataDeduplicatorFactory dataDuplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
 	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
 		return nil, errors.New("metric client is missing")
@@ -66,6 +70,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
+	if abbottServiceRequestAuthorizer == nil {
+		return nil, errors.New("abbott service request authorizer is missing")
+	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
@@ -86,6 +93,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
 		workClient:                     workClient,
+		abbottServiceRequestAuthorizer: abbottServiceRequestAuthorizer,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
@@ -118,5 +126,5 @@ func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
 		s.dataRawClient, s.dataSourceClient, s.workClient,
-		s.twiistServiceAccountAuthorizer, handler)
+		s.abbottServiceRequestAuthorizer, s.twiistServiceAccountAuthorizer, handler)
 }

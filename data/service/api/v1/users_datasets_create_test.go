@@ -10,6 +10,8 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
+
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -231,6 +233,10 @@ func (c *mockDataServiceContext) WorkClient() work.Client {
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer {
 	panic("not implemented")
 }
 

@@ -653,7 +653,7 @@ func (s *Standard) initializeAPI() error {
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
 		s.dataRawClient, s.dataSourceClient, s.workClient,
-		s.twiistServiceAccountAuthorizer)
+		s.abbottClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
 	}
