@@ -6,6 +6,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
+
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
@@ -45,6 +47,7 @@ type Standard struct {
 	dataSourceClient               dataSourceService.Client
 	workClient                     work.Client
 	alertsRepository               alerts.Repository
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
@@ -52,11 +55,13 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
 	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
-	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer, handler dataService.HandlerFunc) rest.HandlerFunc {
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer,
+	handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
 			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataRawClient, dataSourceClient,
-			workClient, twiistServiceAccountAuthorizer)
+			workClient, abbottServiceRequestAuthorizer, twiistServiceAccountAuthorizer)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -76,6 +81,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
 	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
@@ -107,6 +113,9 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
+	if abbottServiceRequestAuthorizer == nil {
+		return nil, errors.New("abbott service request authorizer is missing")
+	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
@@ -128,12 +137,14 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
 		workClient:                     workClient,
+		abbottServiceRequestAuthorizer: abbottServiceRequestAuthorizer,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
 
 func (s *Standard) Close() {
 	s.twiistServiceAccountAuthorizer = nil
+	s.abbottServiceRequestAuthorizer = nil
 	s.alertsRepository = nil
 	s.workClient = nil
 	s.dataSourceClient = nil
@@ -238,6 +249,10 @@ func (s *Standard) DataSourceClient() dataSourceService.Client {
 
 func (s *Standard) WorkClient() work.Client {
 	return s.workClient
+}
+
+func (s *Standard) AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer {
+	return s.abbottServiceRequestAuthorizer
 }
 
 func (s *Standard) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
