@@ -481,4 +481,109 @@ var _ = Describe("Glucose", func() {
 			),
 		)
 	})
+
+	Context("Classify", func() {
+		var MmolL = pointer.FromAny(dataBloodGlucose.MmolL)
+		var MgdL = pointer.FromAny(dataBloodGlucose.MgdL)
+
+		checkClassification := func(value float64, expectedRange glucose.RangeClassification) {
+			GinkgoHelper()
+			datum := dataTypesBloodGlucoseTest.NewGlucose(MmolL)
+			datum.Value = pointer.FromAny(value)
+			got, err := datum.Classify()
+			Expect(err).To(Succeed())
+			Expect(got).To(Equal(expectedRange))
+		}
+
+		It("classifies 2.9 as very low", func() {
+			checkClassification(2.9, glucose.RangeVeryLow)
+		})
+
+		It("classifies 3.0 as low", func() {
+			checkClassification(3.0, glucose.RangeLow)
+		})
+
+		It("classifies 3.8 as low", func() {
+			checkClassification(3.8, glucose.RangeLow)
+		})
+
+		It("classifies 3.9 as on target", func() {
+			checkClassification(3.9, glucose.RangeTarget)
+		})
+
+		It("classifies 10.0 as on target", func() {
+			checkClassification(10.0, glucose.RangeTarget)
+		})
+
+		It("classifies 10.1 as high", func() {
+			checkClassification(10.1, glucose.RangeHigh)
+		})
+
+		It("classifies 13.9 as high", func() {
+			checkClassification(13.9, glucose.RangeHigh)
+		})
+
+		It("classifies 14.0 as very high", func() {
+			checkClassification(14.0, glucose.RangeVeryHigh)
+		})
+
+		It("classifies 19.4 as very high", func() {
+			checkClassification(19.4, glucose.RangeVeryHigh)
+		})
+
+		It("classifies 19.5 as extremely high", func() {
+			checkClassification(19.5, glucose.RangeExtremelyHigh)
+		})
+
+		When("it's value doesn't require rounding", func() {
+			It("classifies 2.95 as very low", func() {
+				checkClassification(2.95, glucose.RangeVeryLow)
+			})
+		})
+
+		When("it's value requires rounding", func() {
+			It("classifies 3.85 as low", func() {
+				checkClassification(3.85, glucose.RangeLow)
+			})
+
+			It("classifies 10.05 as on target", func() {
+				checkClassification(10.05, glucose.RangeTarget)
+			})
+		})
+
+		When("it doesn't recognize the units", func() {
+			It("returns an error", func() {
+				datum := dataTypesBloodGlucoseTest.NewGlucose(pointer.FromAny("blah"))
+				datum.Value = pointer.FromAny(5.0)
+				_, err := datum.Classify()
+				Expect(err).To(MatchError(ContainSubstring("unhandled units")))
+			})
+		})
+
+		It("can handle values in mg/dL", func() {
+			datum := dataTypesBloodGlucoseTest.NewGlucose(MgdL)
+			datum.Value = pointer.FromAny(100.0)
+			got, err := datum.Classify()
+			Expect(err).To(Succeed())
+			Expect(got).To(Equal(glucose.RangeTarget))
+		})
+
+		When("it's value is nil", func() {
+			It("returns an error", func() {
+				datum := dataTypesBloodGlucoseTest.NewGlucose(MmolL)
+				datum.Value = nil
+				_, err := datum.Classify()
+				Expect(err).To(MatchError(ContainSubstring("unhandled value: nil")))
+			})
+		})
+
+		When("it's units are nil", func() {
+			It("returns an error", func() {
+				datum := dataTypesBloodGlucoseTest.NewGlucose(nil)
+				datum.Value = pointer.FromAny(5.0)
+				_, err := datum.Classify()
+				Expect(err).To(MatchError(ContainSubstring("unhandled units: nil")))
+			})
+		})
+	})
 })

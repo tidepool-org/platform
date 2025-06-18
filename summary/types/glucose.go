@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -14,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/errors"
 )
 
 const MaxRecordsPerBucket = 60 // one per minute max
@@ -162,31 +162,38 @@ func (rs *GlucoseRanges) Finalize(days int) {
 	}
 }
 
-func (rs *GlucoseRanges) Update(record *glucoseDatum.Glucose) {
-	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
-
-	if normalizedValue < veryLowBloodGlucose {
-		rs.VeryLow.Update(record)
-		rs.AnyLow.Update(record)
-	} else if normalizedValue > veryHighBloodGlucose {
-		rs.VeryHigh.Update(record)
-		rs.AnyHigh.Update(record)
-
-		// VeryHigh is inclusive of extreme high, this is intentional
-		if normalizedValue >= extremeHighBloodGlucose {
-			rs.ExtremeHigh.Update(record)
-		}
-	} else if normalizedValue < lowBloodGlucose {
-		rs.Low.Update(record)
-		rs.AnyLow.Update(record)
-	} else if normalizedValue > highBloodGlucose {
-		rs.AnyHigh.Update(record)
-		rs.High.Update(record)
-	} else {
-		rs.Target.Update(record)
+func (rs *GlucoseRanges) Update(record *glucoseDatum.Glucose) error {
+	classification, err := record.Classify()
+	if err != nil {
+		return err
 	}
 
 	rs.Total.UpdateTotal(record)
+
+	switch classification {
+	case glucoseDatum.RangeVeryLow:
+		rs.VeryLow.Update(record)
+		rs.AnyLow.Update(record)
+	case glucoseDatum.RangeLow:
+		rs.Low.Update(record)
+		rs.AnyLow.Update(record)
+	case glucoseDatum.RangeTarget:
+		rs.Target.Update(record)
+	case glucoseDatum.RangeHigh:
+		rs.High.Update(record)
+		rs.AnyHigh.Update(record)
+	case glucoseDatum.RangeVeryHigh:
+		rs.VeryHigh.Update(record)
+		rs.AnyHigh.Update(record)
+	case glucoseDatum.RangeExtremelyHigh:
+		rs.ExtremeHigh.Update(record)
+		rs.VeryHigh.Update(record)
+		rs.AnyHigh.Update(record)
+	default:
+		errMsg := "WARNING: unhandled classification %v; THIS SHOULD NEVER OCCUR"
+		return errors.Newf(errMsg, classification)
+	}
+	return nil
 }
 
 func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
@@ -237,7 +244,9 @@ func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) 
 		return false, nil
 	}
 
-	b.GlucoseRanges.Update(record)
+	if err := b.GlucoseRanges.Update(record); err != nil {
+		return false, err
+	}
 	b.LastRecordDuration = GetDuration(record)
 
 	return true, nil
