@@ -2,7 +2,9 @@ package glucose
 
 import (
 	"math"
+	"slices"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -70,6 +72,10 @@ func NormalizeUnits(units *string) *string {
 	return units
 }
 
+// NormalizeValueForUnits converts Mg/dL values to Mmol/L.
+//
+// Values paired with any other units (including nil or typos) are NOT normalized or
+// modified, but are returned as-is.
 func NormalizeValueForUnits(value *float64, units *string) *float64 {
 	if value != nil && units != nil {
 		switch *units {
@@ -80,6 +86,33 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 		}
 	}
 	return value
+}
+
+// NormalizeValueForUnitsSafer behaves like NormalizeValueForUnits, but with more safety.
+//
+// Where "safety" means returning an error in certain cases where its namesake would return
+// the original value.
+//
+// Notable cases include:
+//   - when units is nil but values is not
+//   - when units are not a recognized value in Units()
+func NormalizeValueForUnitsSafer(value *float64, units *string) (float64, error) {
+	if units == nil {
+		return 0, errors.New("unable to normalize: unhandled units: nil")
+	}
+	if !slices.Contains(Units(), *units) {
+		return 0, errors.Newf("unable to normalize: unhandled units: %s", *units)
+	}
+	if value == nil {
+		return 0, errors.New("unable to normalize: unhandled value: nil")
+	}
+	normalized := NormalizeValueForUnits(value, units)
+	if normalized == nil {
+		// The only time this should happen is when a nil value was passed, and that case is
+		// covered above, but it's better to be safe than sorry.
+		return 0, errors.New("unable to normalize: normalization returned nil")
+	}
+	return *normalized, nil
 }
 
 func ValueRangeForRateUnits(rateUnits *string) (float64, float64) {
