@@ -80,8 +80,14 @@ func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
 	return &refreshed, nil
 }
 
-func (o *OAuthToken) Expire() {
-	o.ExpirationTime = time.Now().Add(-time.Second)
+func (o *OAuthToken) Expired() *OAuthToken {
+	return &OAuthToken{
+		AccessToken:    o.AccessToken,
+		TokenType:      o.TokenType,
+		RefreshToken:   o.RefreshToken,
+		ExpirationTime: time.Now().Add(-time.Second),
+		IDToken:        o.IDToken,
+	}
 }
 
 func (o *OAuthToken) RawToken() *oauth2.Token {

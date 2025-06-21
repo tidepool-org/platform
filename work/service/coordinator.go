@@ -313,6 +313,9 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	if err != nil {
 		lgr.WithError(err).Error("unable to update work when processing complete")
 		return
+	} else if wrk == nil {
+		lgr.Warn("work not found when processing complete")
+		return
 	}
 
 	lgr = lgr.WithField("workId", wrk.ID)

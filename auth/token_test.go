@@ -173,8 +173,7 @@ var _ = Describe("OAuthToken", func() {
 
 		Context("Expire", func() {
 			It("sets ExpirationTime to the past", func() {
-				token := authTest.RandomToken()
-				token.Expire()
+				token := authTest.RandomToken().Expired()
 				Expect(token.ExpirationTime).To(BeTemporally("<", time.Now()))
 			})
 		})

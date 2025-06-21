@@ -3,6 +3,7 @@ package fetch
 import (
 	"context"
 	"math/rand"
+	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -153,7 +154,7 @@ type TaskRunner struct {
 	logger           log.Logger
 	providerSession  *auth.ProviderSession
 	dataSource       *dataSource.Source
-	tokenSource      oauth.TokenSource
+	tokenSource      *oauthToken.Source
 	deviceHashes     map[string]string
 	dataSet          *data.DataSet
 	dataSetPreloaded bool
@@ -234,22 +235,20 @@ func (t *TaskRunner) getProviderSession() error {
 }
 
 func (t *TaskRunner) updateProviderSession() error {
-	refreshedToken, err := t.tokenSource.RefreshedToken()
-	if err != nil {
-		return t.retryOrRescheduleTaskWithDexcomClientError(errors.Wrap(err, "unable to get refreshed token"))
-	} else if refreshedToken == nil {
-		return nil // Token still valid, but has not changed, so no need to update
+	token := t.tokenSource.Token()
+	if token == t.providerSession.OAuthToken {
+		return nil // Token not changed, do not update
 	}
 
 	// Without cancel to ensure provider session is updated in the database
-	updateProviderSession := auth.NewProviderSessionUpdate()
-	updateProviderSession.OAuthToken = refreshedToken
-	updateProviderSession.ExternalID = t.providerSession.ExternalID
-	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, updateProviderSession)
+	providerSessionUpdate := auth.NewProviderSessionUpdate()
+	providerSessionUpdate.OAuthToken = token
+	providerSessionUpdate.ExternalID = t.providerSession.ExternalID
+	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, providerSessionUpdate)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update provider session"), updateProviderSession))
+		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
-		return t.failTaskWithInvalidStateError(errors.New("provider session is missing"))
+		return errors.New("provider session is missing")
 	}
 	t.providerSession = providerSession
 
@@ -442,7 +441,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		lastSyncTime = t.dataSource.LatestDataTime
 	}
 
-	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t.tokenSource)
+	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -538,7 +537,7 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -565,7 +564,7 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -592,7 +591,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 }
 
 func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -619,7 +618,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.
 }
 
 func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -646,7 +645,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -794,9 +793,6 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 // Handle potential dexcom client error. Update provider session with latest token.
 // If error, then retry or reschedule. Otherwise, reset retry count.
 func (t *TaskRunner) handleDexcomClientError(err error) error {
-	if updateErr := t.updateProviderSession(); updateErr != nil {
-		return updateErr
-	}
 	if err != nil {
 		return t.retryOrRescheduleTaskWithDexcomClientError(err)
 	} else {
@@ -868,6 +864,24 @@ func (t *TaskRunner) incrementTaskRetryCount() int {
 func (t *TaskRunner) resetTaskRetryCount() error {
 	delete(t.task.Data, dexcom.DataKeyRetryCount)
 	return nil
+}
+
+func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+	return t.tokenSource.HTTPClient(ctx, tokenSourceSource)
+}
+
+func (t *TaskRunner) UpdateToken() error {
+	if err := t.tokenSource.UpdateToken(); err != nil {
+		return err
+	}
+	return t.updateProviderSession()
+}
+
+func (t *TaskRunner) ExpireToken() error {
+	if err := t.tokenSource.ExpireToken(); err != nil {
+		return err
+	}
+	return t.updateProviderSession()
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {
