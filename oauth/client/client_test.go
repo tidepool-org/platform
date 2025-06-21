@@ -256,6 +256,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -363,6 +364,8 @@ var _ = Describe("Client", func() {
 					Context("with an unauthorized response 401", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
