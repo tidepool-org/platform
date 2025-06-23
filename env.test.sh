@@ -29,6 +29,3 @@ export TIDEPOOL_KEYCLOAK_REALM="realm"
 export TIDEPOOL_KEYCLOAK_ADMIN_USERNAME="admin_username"
 export TIDEPOOL_KEYCLOAK_ADMIN_PASSWORD="admin_password"
 
-export TIDEPOOL_PERMISSION_CLIENT_ADDRESS="http://localhost:8009"
-
-
