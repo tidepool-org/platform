@@ -1,5 +1,5 @@
 # Clear all TIDEPOOL_* environment variables
-unset "$(env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs)"
+unset $(env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs)
 
 export TIDEPOOL_ENV="test"
 
