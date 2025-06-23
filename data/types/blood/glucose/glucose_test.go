@@ -495,6 +495,15 @@ var _ = Describe("Glucose", func() {
 			Expect(got).To(Equal(expected))
 		}
 
+		checkClassificationMgdL := func(value float64, expected glucose.Classification) {
+			GinkgoHelper()
+			datum := dataTypesBloodGlucoseTest.NewGlucose(MgdL)
+			datum.Value = pointer.FromAny(value)
+			got, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+			Expect(err).To(Succeed())
+			Expect(got).To(Equal(expected))
+		}
+
 		It("classifies 2.9 as very low", func() {
 			checkClassification(2.9, "very low")
 		})
@@ -560,11 +569,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("can handle values in mg/dL", func() {
-			datum := dataTypesBloodGlucoseTest.NewGlucose(MgdL)
-			datum.Value = pointer.FromAny(100.0)
-			got, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
-			Expect(err).To(Succeed())
-			Expect(string(got)).To(Equal("on target"))
+			checkClassificationMgdL(100.0, "on target")
 		})
 
 		When("it's value is nil", func() {
@@ -582,6 +587,36 @@ var _ = Describe("Glucose", func() {
 				datum.Value = pointer.FromAny(5.0)
 				_, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
 				Expect(err).To(MatchError(ContainSubstring("unable to normalize: unhandled units")))
+			})
+		})
+
+		Context("tests from product", func() {
+			It("classifies 69.5 mg/dL as Low", func() {
+				checkClassificationMgdL(69.5, "on target")
+			})
+
+			It("classifies 70.0 mg/dL as On Target", func() {
+				checkClassificationMgdL(70, "on target")
+			})
+
+			It("classifies 180.4 mg/dL as On Target", func() {
+				checkClassificationMgdL(180.4, "on target")
+			})
+
+			It("classifies 180.5 mg/dL as On Target", func() {
+				checkClassificationMgdL(180.5, "on target")
+			})
+
+			It("classifies 181.0 mg/dL as On Target", func() {
+				checkClassificationMgdL(181, "on target")
+			})
+
+			It("classifies 10.05 mmol/L as On Target", func() {
+				checkClassification(10.05, "on target")
+			})
+
+			It("classifies 10.15 mmol/L as High", func() {
+				checkClassification(10.15, "high")
 			})
 		})
 	})
