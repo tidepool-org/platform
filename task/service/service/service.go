@@ -3,12 +3,9 @@ package service
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/clinics"
-	"github.com/tidepool-org/platform/ehr/reconcile"
-	"github.com/tidepool-org/platform/ehr/sync"
-
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/client"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
@@ -16,10 +13,13 @@ import (
 	dexcomClient "github.com/tidepool-org/platform/dexcom/client"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
+	"github.com/tidepool-org/platform/ehr/reconcile"
+	"github.com/tidepool-org/platform/ehr/sync"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
@@ -27,7 +27,6 @@ import (
 	taskServiceApiV1 "github.com/tidepool-org/platform/task/service/api/v1"
 	"github.com/tidepool-org/platform/task/store"
 	taskMongo "github.com/tidepool-org/platform/task/store/mongo"
-	summaryUpdate "github.com/tidepool-org/platform/task/summary"
 )
 
 type Service struct {
@@ -306,29 +305,11 @@ func (s *Service) initializeTaskQueue() error {
 		runners = append(runners, rnnr)
 	}
 
-	s.Logger().Debug("Creating summary update runner")
-
-	summaryUpdateRnnr, summaryUpdateRnnrErr := summaryUpdate.NewUpdateRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryUpdateRnnrErr != nil {
-		return errors.Wrap(summaryUpdateRnnrErr, "unable to create summary update runner")
+	summaryRunners, err := summaryTask.NewSummaryRunners(s.AuthClient(), s.dataClient, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create summary runners")
 	}
-	runners = append(runners, summaryUpdateRnnr)
-
-	s.Logger().Debug("Creating summary backfill runner")
-
-	summaryBackfillRnnr, summaryBackfillRnnrErr := summaryUpdate.NewBackfillRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryBackfillRnnrErr != nil {
-		return errors.Wrap(summaryBackfillRnnrErr, "unable to create summary backfill runner")
-	}
-	runners = append(runners, summaryBackfillRnnr)
-
-	s.Logger().Debug("Creating summary migration runner")
-
-	summaryMigrationRnnr, summaryMigrationRnnrErr := summaryUpdate.NewMigrationRunner(s.Logger(), s.VersionReporter(), s.AuthClient(), s.dataClient)
-	if summaryMigrationRnnrErr != nil {
-		return errors.Wrap(summaryMigrationRnnrErr, "unable to create summary migration runner")
-	}
-	runners = append(runners, summaryMigrationRnnr)
+	runners = append(runners, summaryRunners...)
 
 	s.Logger().Debug("Creating ehr reconcile runner")
 

@@ -3,52 +3,54 @@ package context
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/data/summary/reporters"
-
-	"github.com/tidepool-org/platform/clinics"
-
 	"github.com/ant0ine/go-json-rest/rest"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 type Standard struct {
 	*serviceContext.Responder
-	authClient              auth.Client
-	metricClient            metric.Client
-	permissionClient        permission.Client
-	dataDeduplicatorFactory deduplicator.Factory
-	dataStore               dataStore.Store
-	dataRepository          dataStore.DataRepository
-	summaryRepository       dataStore.SummaryRepository
-	summarizerRegistry      *summary.SummarizerRegistry
-	summaryReporter         *reporters.PatientRealtimeDaysReporter
-	syncTaskStore           syncTaskStore.Store
-	syncTasksRepository     syncTaskStore.SyncTaskRepository
-	dataClient              dataClient.Client
-	clinicsClient           clinics.Client
-	dataSourceClient        dataSource.Client
-	alertsRepository        alerts.Repository
+	authClient                     auth.Client
+	metricClient                   metric.Client
+	permissionClient               permission.Client
+	dataDeduplicatorFactory        deduplicator.Factory
+	dataStore                      dataStore.Store
+	dataRepository                 dataStore.DataRepository
+	summaryRepository              dataStore.SummaryRepository
+	bucketsRepository              dataStore.BucketsRepository
+	summarizerRegistry             *summary.SummarizerRegistry
+	summaryReporter                *reporters.PatientRealtimeDaysReporter
+	syncTaskStore                  syncTaskStore.Store
+	syncTasksRepository            syncTaskStore.SyncTaskRepository
+	dataClient                     dataClient.Client
+	clinicsClient                  clinics.Client
+	dataSourceClient               dataSource.Client
+	alertsRepository               alerts.Repository
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, handler dataService.HandlerFunc) rest.HandlerFunc {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer, handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
-			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient)
+			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient, twiistServiceAccountAuthorizer)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -66,7 +68,7 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client) (*Standard, error) {
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -91,6 +93,9 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
 	}
+	if twiistServiceAccountAuthorizer == nil {
+		return nil, errors.New("twiist service account authorizer is missing")
+	}
 
 	responder, err := serviceContext.NewResponder(response, request)
 	if err != nil {
@@ -98,15 +103,16 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	}
 
 	return &Standard{
-		Responder:               responder,
-		authClient:              authClient,
-		metricClient:            metricClient,
-		permissionClient:        permissionClient,
-		dataDeduplicatorFactory: dataDeduplicatorFactory,
-		dataStore:               store,
-		syncTaskStore:           syncTaskStore,
-		dataClient:              dataClient,
-		dataSourceClient:        dataSourceClient,
+		Responder:                      responder,
+		authClient:                     authClient,
+		metricClient:                   metricClient,
+		permissionClient:               permissionClient,
+		dataDeduplicatorFactory:        dataDeduplicatorFactory,
+		dataStore:                      store,
+		syncTaskStore:                  syncTaskStore,
+		dataClient:                     dataClient,
+		dataSourceClient:               dataSourceClient,
+		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
 
@@ -126,6 +132,9 @@ func (s *Standard) Close() {
 	if s.summaryReporter != nil {
 		s.summaryReporter = nil
 	}
+	if s.bucketsRepository != nil {
+		s.bucketsRepository = nil
+	}
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
@@ -141,6 +150,10 @@ func (s *Standard) MetricClient() metric.Client {
 
 func (s *Standard) PermissionClient() permission.Client {
 	return s.permissionClient
+}
+
+func (s *Standard) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+	return s.twiistServiceAccountAuthorizer
 }
 
 func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
@@ -163,7 +176,7 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.DataRepository())
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.DataRepository(), s.GetMongoClient())
 	}
 	return s.summarizerRegistry
 }
@@ -173,6 +186,13 @@ func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
 		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
 	}
 	return s.summaryReporter
+}
+
+func (s *Standard) BucketsRepository() dataStore.BucketsRepository {
+	if s.bucketsRepository == nil {
+		s.bucketsRepository = s.dataStore.NewBucketsRepository()
+	}
+	return s.bucketsRepository
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {
@@ -207,4 +227,8 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 		s.alertsRepository = s.dataStore.NewAlertsRepository()
 	}
 	return s.alertsRepository
+}
+
+func (s *Standard) GetMongoClient() *mongo.Client {
+	return s.dataStore.GetClient()
 }

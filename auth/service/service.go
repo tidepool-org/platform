@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/twiist"
+
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/apple"
@@ -35,6 +37,8 @@ type Service interface {
 	AppValidator() *appvalidate.Validator
 
 	PartnerSecrets() *appvalidate.PartnerSecrets
+
+	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
 }
 
 type Status struct {

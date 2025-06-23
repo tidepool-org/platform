@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/blob"

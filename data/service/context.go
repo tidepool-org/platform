@@ -8,12 +8,13 @@ import (
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary"
-	"github.com/tidepool-org/platform/data/summary/reporters"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 type Context interface {
@@ -36,6 +37,8 @@ type Context interface {
 
 	ClinicsClient() clinics.Client
 	DataSourceClient() dataSource.Client
+
+	TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer
 }
 
 type HandlerFunc func(context Context)

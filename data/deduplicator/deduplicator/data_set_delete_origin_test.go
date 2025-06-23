@@ -26,7 +26,7 @@ var _ = Describe("DataSetDeleteOrigin", func() {
 	})
 
 	Context("NewDataSetDeleteOrigin", func() {
-		It("returns succesfully", func() {
+		It("returns successfully", func() {
 			Expect(dataDeduplicatorDeduplicator.NewDataSetDeleteOrigin()).ToNot(BeNil())
 		})
 	})

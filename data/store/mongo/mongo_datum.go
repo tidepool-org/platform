@@ -4,7 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
+
+	"github.com/tidepool-org/platform/summary/types"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -12,7 +15,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/store"
-	"github.com/tidepool-org/platform/data/summary/types"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
@@ -194,6 +196,52 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *upload
 		return fmt.Errorf("unable to create data set data: %w", err)
 	}
 	return nil
+}
+
+func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	selector, _, err := validateAndTranslateSelectors(ctx, selectors)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithField("dataSetId", *dataSet.UploadID)
+
+	selector["_userId"] = dataSet.UserID
+	selector["uploadId"] = dataSet.UploadID
+	selector["_active"] = true
+	selector["deletedTime"] = bson.M{"$exists": false}
+
+	findOptions := options.Find()
+	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "time": 1, "origin.id": 1, "origin.time": 1})
+
+	cursor, err := d.Find(ctx, selector, findOptions)
+	if err != nil {
+		logger.WithError(err).Error("Unable to get newer data set data selectors")
+		return nil, fmt.Errorf("unable to get newer data set data selectors: %w", err)
+	}
+
+	newerSelectors := data.NewSelectors()
+	if err = cursor.All(ctx, newerSelectors); err != nil {
+		logger.WithError(err).Error("Unable to decode newer data set data selectors")
+		return nil, fmt.Errorf("unable to decode newer data set data selectors: %w", err)
+	}
+
+	// Post-process to exclude any not newer
+	newerSelectors = newerSelectors.Filter(func(newerSelector *data.Selector) bool {
+		return slices.ContainsFunc(*selectors, func(selector *data.Selector) bool {
+			return selector.Includes(newerSelector)
+		})
+	})
+
+	logger.WithFields(log.Fields{"newerSelectors": newerSelectors, "duration": time.Since(now) / time.Microsecond}).Debug("NewerDataSetData")
+	return newerSelectors, nil
 }
 
 func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
@@ -537,6 +585,11 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 	return overallErr
 }
 
+// FUTURE: Currently does not translate time or origin.time fields. Since origin.time is currently persisted as a string
+// (and not time.Time) we cannot reliably query for it due to potentially variable timezone offsets. Eventually, migrate
+// origin.time to time.Time and add additional qualifiers to the database selector that document origin.time must be
+// greater than or equal to the incoming selector origin.time. For now, we can only query on id and origin.id.
+// See: https://tidepool.atlassian.net/browse/BACK-3548
 func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
@@ -818,7 +871,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
 	if !status.LastUpdated.IsZero() {
 		selector["modifiedTime"] = bson.M{
-			"$gt": status.LastUpdated,
+			"$gte": status.LastUpdated,
 		}
 		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
 			// has blocking sort, but more selective so usually performs better.
@@ -846,8 +899,6 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 }
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
-	var err error
-
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -870,7 +921,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
-	err = d.getTimeRange(ctx, userId, typ, status)
+	err := d.getTimeRange(ctx, userId, typ, status)
 	if err != nil {
 		return nil, err
 	}
@@ -891,47 +942,4 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 	}
 
 	return status, nil
-}
-
-func (d *DatumRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-
-	if len(typ) == 0 {
-		return nil, errors.New("typ is empty")
-	}
-
-	// This is never expected to by an upload.
-	if isTypeUpload(typ) {
-		return nil, fmt.Errorf("unexpected type: %v", upload.Type)
-	}
-
-	// allow for a small margin on the pastCutoff to allow for calculation delay
-	pastCutoff := time.Now().AddDate(0, -23, -20).UTC()
-	futureCutoff := time.Now().AddDate(0, 0, 1).UTC()
-
-	selector := bson.M{
-		"_userId": bson.M{"$ne": -1111},
-		"_active": true,
-		"time":    bson.M{"$gte": pastCutoff, "$lte": futureCutoff},
-	}
-
-	if len(typ) > 1 {
-		selector["type"] = bson.M{"$in": typ}
-	} else {
-		selector["type"] = typ[0]
-	}
-
-	result, err := d.Distinct(ctx, "_userId", selector)
-	if err != nil {
-		return nil, fmt.Errorf("error fetching distinct userIDs: %w", err)
-	}
-
-	userIDs := make([]string, 0, len(result))
-	for _, v := range result {
-		userIDs = append(userIDs, v.(string))
-	}
-
-	return userIDs, nil
 }

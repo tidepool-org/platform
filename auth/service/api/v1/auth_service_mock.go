@@ -20,6 +20,7 @@ import (
 	permission "github.com/tidepool-org/platform/permission"
 	provider "github.com/tidepool-org/platform/provider"
 	task "github.com/tidepool-org/platform/task"
+	twiist "github.com/tidepool-org/platform/twiist"
 	user "github.com/tidepool-org/platform/user"
 	version "github.com/tidepool-org/platform/version"
 )
@@ -241,6 +242,20 @@ func (m *MockAuthService) TaskClient() task.Client {
 func (mr *MockAuthServiceMockRecorder) TaskClient() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TaskClient", reflect.TypeOf((*MockAuthService)(nil).TaskClient))
+}
+
+// TwiistServiceAccountAuthorizer mocks base method.
+func (m *MockAuthService) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TwiistServiceAccountAuthorizer")
+	ret0, _ := ret[0].(twiist.ServiceAccountAuthorizer)
+	return ret0
+}
+
+// TwiistServiceAccountAuthorizer indicates an expected call of TwiistServiceAccountAuthorizer.
+func (mr *MockAuthServiceMockRecorder) TwiistServiceAccountAuthorizer() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TwiistServiceAccountAuthorizer", reflect.TypeOf((*MockAuthService)(nil).TwiistServiceAccountAuthorizer))
 }
 
 // UserAccessor mocks base method.

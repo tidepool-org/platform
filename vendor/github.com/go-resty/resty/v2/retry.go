@@ -1,4 +1,4 @@
-// Copyright (c) 2015-2024 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
+// Copyright (c) 2015-2021 Jeevanandam M (jeeva@myjeeva.com), All rights reserved.
 // resty source code and usage is governed by a MIT style
 // license that can be found in the LICENSE file.
 
@@ -6,7 +6,6 @@ package resty
 
 import (
 	"context"
-	"io"
 	"math"
 	"math/rand"
 	"sync"
@@ -23,7 +22,7 @@ type (
 	// Option is to create convenient retry options like wait time, max retries, etc.
 	Option func(*Options)
 
-	// RetryConditionFunc type is for the retry condition function
+	// RetryConditionFunc type is for retry condition function
 	// input: non-nil Response OR request execution error
 	RetryConditionFunc func(*Response, error) bool
 
@@ -33,8 +32,8 @@ type (
 	// RetryAfterFunc returns time to wait before retry
 	// For example, it can parse HTTP Retry-After header
 	// https://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html
-	// Non-nil error is returned if it is found that the request is not retryable
-	// (0, nil) is a special result that means 'use default algorithm'
+	// Non-nil error is returned if it is found that request is not retryable
+	// (0, nil) is a special result means 'use default algorithm'
 	RetryAfterFunc func(*Client, *Response) (time.Duration, error)
 
 	// Options struct is used to hold retry settings.
@@ -44,7 +43,6 @@ type (
 		maxWaitTime     time.Duration
 		retryConditions []RetryConditionFunc
 		retryHooks      []OnRetryFunc
-		resetReaders    bool
 	}
 )
 
@@ -69,7 +67,7 @@ func MaxWaitTime(value time.Duration) Option {
 	}
 }
 
-// RetryConditions sets the conditions that will be checked for retry
+// RetryConditions sets the conditions that will be checked for retry.
 func RetryConditions(conditions []RetryConditionFunc) Option {
 	return func(o *Options) {
 		o.retryConditions = conditions
@@ -80,14 +78,6 @@ func RetryConditions(conditions []RetryConditionFunc) Option {
 func RetryHooks(hooks []OnRetryFunc) Option {
 	return func(o *Options) {
 		o.retryHooks = hooks
-	}
-}
-
-// ResetMultipartReaders sets a boolean value which will lead the start being seeked out
-// on all multipart file readers if they implement [io.ReadSeeker]
-func ResetMultipartReaders(value bool) Option {
-	return func(o *Options) {
-		o.resetReaders = value
 	}
 }
 
@@ -133,15 +123,6 @@ func Backoff(operation func() (*Response, error), options ...Option) error {
 
 		if !needsRetry {
 			return err
-		}
-
-		if opts.resetReaders {
-			if err := resetFileReaders(resp.Request.multipartFiles); err != nil {
-				return err
-			}
-			if err := resetFieldReaders(resp.Request.multipartFields); err != nil {
-				return err
-			}
 		}
 
 		for _, hook := range opts.retryHooks {
@@ -205,16 +186,13 @@ func sleepDuration(resp *Response, min, max time.Duration, attempt int) (time.Du
 }
 
 // Return capped exponential backoff with jitter
-// https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+// http://www.awsarchitectureblog.com/2015/03/backoff.html
 func jitterBackoff(min, max time.Duration, attempt int) time.Duration {
 	base := float64(min)
 	capLevel := float64(max)
 
 	temp := math.Min(capLevel, base*math.Exp2(float64(attempt)))
 	ri := time.Duration(temp / 2)
-	if ri == 0 {
-		ri = time.Nanosecond
-	}
 	result := randDuration(ri)
 
 	if result < min {
@@ -240,28 +218,4 @@ func newRnd() *rand.Rand {
 	var seed = time.Now().UnixNano()
 	var src = rand.NewSource(seed)
 	return rand.New(src)
-}
-
-func resetFileReaders(files []*File) error {
-	for _, f := range files {
-		if rs, ok := f.Reader.(io.ReadSeeker); ok {
-			if _, err := rs.Seek(0, io.SeekStart); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func resetFieldReaders(fields []*MultipartField) error {
-	for _, f := range fields {
-		if rs, ok := f.Reader.(io.ReadSeeker); ok {
-			if _, err := rs.Seek(0, io.SeekStart); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }

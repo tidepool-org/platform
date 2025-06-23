@@ -5,6 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/twiist"
+
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+
+	dataClient "github.com/tidepool-org/platform/data/client"
+
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -51,20 +57,22 @@ func (c *confirmationClientConfig) Load() error {
 
 type Service struct {
 	*serviceService.Service
-	domain              string
-	authStore           *authMongo.Store
-	dataSourceClient    *dataSourceClient.Client
-	confirmationClient  confirmationClient.ClientWithResponsesInterface
-	taskClient          task.Client
-	providerFactory     provider.Factory
-	authClient          *Client
-	userEventsHandler   events.Runner
-	deviceCheck         apple.DeviceCheck
-	appValidator        *appvalidate.Validator
-	partnerSecrets      *appvalidate.PartnerSecrets
-	userAccessor        user.UserAccessor
-	userProfileAccessor user.UserProfileAccessor
-	permsClient         *permissionClient.Client
+	domain                         string
+	authStore                      *authMongo.Store
+	dataClient                     dataClient.Client
+	dataSourceClient               *dataSourceClient.Client
+	confirmationClient             confirmationClient.ClientWithResponsesInterface
+	taskClient                     task.Client
+	providerFactory                provider.Factory
+	authClient                     *Client
+	userEventsHandler              events.Runner
+	deviceCheck                    apple.DeviceCheck
+	appValidator                   *appvalidate.Validator
+	partnerSecrets                 *appvalidate.PartnerSecrets
+	userAccessor                   user.UserAccessor
+	userProfileAccessor            user.UserProfileAccessor
+	permsClient                    *permissionClient.Client
+	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
 
 func New() *Service {
@@ -99,6 +107,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
+	if err := s.initializeDataClient(); err != nil {
+		return err
+	}
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
@@ -130,6 +141,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializePartnerSecrets(); err != nil {
+		return err
+	}
+	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -196,6 +210,10 @@ func (s *Service) AppValidator() *appvalidate.Validator {
 
 func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return s.partnerSecrets
+}
+
+func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+	return s.twiistServiceAccountAuthorizer
 }
 
 func (s *Service) Status(ctx context.Context) *service.Status {
@@ -308,6 +326,28 @@ func (s *Service) initializeDataSourceClient() error {
 	return nil
 }
 
+func (s *Service) initializeDataClient() error {
+	s.Logger().Debug("Loading data client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("data", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load data client config")
+	}
+
+	s.Logger().Debug("Creating data client")
+
+	clnt, err := dataClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data client")
+	}
+	s.dataClient = clnt
+
+	return nil
+}
+
 func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
@@ -413,7 +453,11 @@ func (s *Service) initializeProviderFactory() error {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
 	}
 
-	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
+	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", twiistProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create twiist jwks")
+	}
+	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataClient, s.DataSourceClient(), twiistJWKS); prvdrErr != nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
 	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add twiist provider")
@@ -590,6 +634,18 @@ func (s *Service) initializePartnerSecrets() error {
 		}
 	}
 	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
+	return nil
+}
+
+func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
+	s.Logger().Debug("Initializing twiist service account authorizer")
+
+	var err error
+	s.twiistServiceAccountAuthorizer, err = twiist.NewServiceAccountAuthorizer()
+	if err != nil {
+		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
+	}
+
 	return nil
 }
 

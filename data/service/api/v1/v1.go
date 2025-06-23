@@ -20,6 +20,10 @@ func Routes() []service.Route {
 		service.Put("/v1/data_sets/:dataSetId", DataSetsUpdate, api.RequireAuth),
 		service.Get("/v1/time", TimeGet),
 		service.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, api.RequireAuth),
+
+		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireUser),
+		service.Get("/v1/partners/:partner/sector/:environment", PartnersSector),
+		service.Get("/v1/partners/:partner/sector", PartnersSector), // DEPRECATED: Remove once Abbott sandbox client uses environment in path
 	}
 
 	routes = append(routes, DataSetsRoutes()...)

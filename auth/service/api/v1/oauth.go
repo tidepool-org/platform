@@ -73,6 +73,10 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 		responder.Error(request.StatusCodeForError(err), err)
 		return
 	}
+	if !prvdr.SupportsUserInitiatedAccountUnlinking() {
+		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking is not supported"))
+		return
+	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()
 	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
@@ -275,15 +279,10 @@ func (r *Router) providerCookiePath(prvdr provider.Provider) string {
 
 const htmlOnRedirect = `
 <html>
-	<body onload="closeOrRedirect()">
+	<body onload="redirect()">
 		<script>
-			function closeOrRedirect() {
-				var isIframe = window.location !== window.parent.location;
-				if (isIframe) {
-					window.close();
-				} else {
-					window.location.replace('%s');
-				}
+			function redirect() {
+				window.location.replace('%s');
 			}
 		</script>
 	</body>

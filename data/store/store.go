@@ -20,8 +20,11 @@ import (
 type Store interface {
 	Status(ctx context.Context) *storeStructuredMongo.Status
 
+	GetClient() *mongo.Client
+
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
+	NewBucketsRepository() BucketsRepository
 	NewAlertsRepository() alerts.Repository
 }
 
@@ -50,6 +53,7 @@ type DatumRepository interface {
 	EnsureIndexes() error
 
 	CreateDataSetData(ctx context.Context, dataSet *upload.Upload, dataSetData []data.Datum) error
+	NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error)
 	ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
 	DeleteDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error
@@ -64,7 +68,6 @@ type DatumRepository interface {
 
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
-	DistinctUserIDs(ctx context.Context, typ []string) ([]string, error)
 
 	// GetAlertableData queries for the data used to evaluate alerts configurations.
 	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
@@ -94,6 +97,12 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 func (f *Filter) Validate(validator structure.Validator) {}
 
 type SummaryRepository interface {
+	EnsureIndexes() error
+
+	GetStore() *storeStructuredMongo.Repository
+}
+
+type BucketsRepository interface {
 	EnsureIndexes() error
 
 	GetStore() *storeStructuredMongo.Repository

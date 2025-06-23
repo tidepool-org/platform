@@ -64,6 +64,17 @@ type CreateDataSetDataInput struct {
 	DataSetData []data.Datum
 }
 
+type NewerDataSetDataInput struct {
+	Context   context.Context
+	DataSet   *upload.Upload
+	Selectors *data.Selectors
+}
+
+type NewerDataSetDataOutput struct {
+	Selectors *data.Selectors
+	Error     error
+}
+
 type ActivateDataSetDataInput struct {
 	Context   context.Context
 	DataSet   *upload.Upload
@@ -170,16 +181,6 @@ type GetUsersWithBGDataSinceOutput struct {
 	Error   error
 }
 
-type DistinctUserIDsInput struct {
-	Context context.Context
-	Typ     []string
-}
-
-type DistinctUserIDsOutput struct {
-	UserIDs []string
-	Error   error
-}
-
 type GetAlertableDataInput struct {
 	Context context.Context
 	Params  dataStore.AlertableParams
@@ -210,6 +211,9 @@ type DataRepository struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
+	NewerDataSetDataInvocations                          int
+	NewerDataSetDataInputs                               []NewerDataSetDataInput
+	NewerDataSetDataOutputs                              []NewerDataSetDataOutput
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
@@ -255,10 +259,6 @@ type DataRepository struct {
 	GetUsersWithBGDataSinceInvocations int
 	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
 	GetUsersWithBGDataSinceOutputs     []GetUsersWithBGDataSinceOutput
-
-	DistinctUserIDsInvocations int
-	DistinctUserIDsInputs      []DistinctUserIDsInput
-	DistinctUserIDsOutputs     []DistinctUserIDsOutput
 
 	GetAlertableDataInvocations int
 	GetAlertableDataInputs      []GetAlertableDataInput
@@ -346,6 +346,18 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *upload.
 	output := d.CreateDataSetDataOutputs[0]
 	d.CreateDataSetDataOutputs = d.CreateDataSetDataOutputs[1:]
 	return output
+}
+
+func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) (*data.Selectors, error) {
+	d.NewerDataSetDataInvocations++
+
+	d.NewerDataSetDataInputs = append(d.NewerDataSetDataInputs, NewerDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+
+	gomega.Expect(d.NewerDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.NewerDataSetDataOutputs[0]
+	d.NewerDataSetDataOutputs = d.NewerDataSetDataOutputs[1:]
+	return output.Selectors, output.Error
 }
 
 func (d *DataRepository) ActivateDataSetData(ctx context.Context, dataSet *upload.Upload, selectors *data.Selectors) error {
@@ -516,18 +528,6 @@ func (d *DataRepository) GetUsersWithBGDataSince(ctx context.Context, lastUpdate
 	return output.UserIDs, output.Error
 }
 
-func (d *DataRepository) DistinctUserIDs(ctx context.Context, typ []string) ([]string, error) {
-	d.DistinctUserIDsInvocations++
-
-	d.DistinctUserIDsInputs = append(d.DistinctUserIDsInputs, DistinctUserIDsInput{Context: ctx, Typ: typ})
-
-	gomega.Expect(d.DistinctUserIDsOutputs).ToNot(gomega.BeEmpty())
-
-	output := d.DistinctUserIDsOutputs[0]
-	d.DistinctUserIDsOutputs = d.DistinctUserIDsOutputs[1:]
-	return output.UserIDs, output.Error
-}
-
 func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.AlertableParams) (*dataStore.AlertableResponse, error) {
 	d.GetAlertableDataInvocations++
 
@@ -560,6 +560,5 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.DistinctUserIDsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 }
