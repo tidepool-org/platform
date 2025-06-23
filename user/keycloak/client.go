@@ -245,7 +245,7 @@ func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (us
 
 	token, err := c.getAdminToken(ctx)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	var res []*gocloak.User
@@ -260,7 +260,7 @@ func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (us
 
 	err = checkForError(response, err, errMessage)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	users = make([]*keycloakUser, len(res))
@@ -268,7 +268,7 @@ func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (us
 		users[i] = newKeycloakUser(u)
 	}
 
-	return
+	return users, nil
 }
 
 func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token) (*userLib.TokenIntrospectionResult, error) {
@@ -334,7 +334,9 @@ func (c *keycloakClient) getRealmURL(realm string, path ...string) string {
 func (c *keycloakClient) getAdminToken(ctx context.Context) (oauth2.Token, error) {
 	var err error
 	if c.adminTokenIsExpired() {
-		err = c.loginAsAdmin(ctx)
+		if err := c.loginAsAdmin(ctx); err != nil {
+			return oauth2.Token{}, err
+		}
 	}
 
 	c.adminTokenLock.RLock()
@@ -434,6 +436,29 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 	return nil
 }
 
+func (c *keycloakClient) GetRolesForUser(ctx context.Context, userID string) ([]string, error) {
+	token, err := c.getAdminToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	realmRoles, err := c.keycloak.GetRealmRolesByUserID(ctx, token.AccessToken, c.cfg.Realm, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	roles := make([]string, 0, len(realmRoles))
+	for _, role := range realmRoles {
+		if role == nil || strings.TrimSpace(pointer.ToString(role.Name)) == "" {
+			continue
+		}
+		roleName := strings.TrimSpace(pointer.ToString(role.Name))
+		roles = append(roles, roleName)
+	}
+
+	return roles, nil
+}
+
 func (c *keycloakClient) getClientAndSecretFromToken(ctx context.Context, token oauth2.Token) (string, string) {
 	clientId := c.cfg.ClientID
 	clientSecret := c.cfg.ClientSecret
@@ -468,18 +493,19 @@ func newKeycloakUser(gocloakUser *gocloak.User) *keycloakUser {
 		EmailVerified: pointer.ToBool(gocloakUser.EmailVerified),
 		Enabled:       pointer.ToBool(gocloakUser.Enabled),
 	}
+	var roles []string
+	if gocloakUser.RealmRoles != nil {
+		roles = *gocloakUser.RealmRoles
+		user.Roles = *gocloakUser.RealmRoles
+	}
 	if gocloakUser.Attributes != nil {
 		attrs := *gocloakUser.Attributes
 		if ts, ok := attrs[termsAcceptedAttribute]; ok {
 			user.Attributes.TermsAcceptedDate = ts
 		}
-		if prof, ok := userLib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs); ok {
+		if prof, ok := userLib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs, roles); ok {
 			user.Attributes.Profile = prof
 		}
-	}
-
-	if gocloakUser.RealmRoles != nil {
-		user.Roles = *gocloakUser.RealmRoles
 	}
 
 	return user

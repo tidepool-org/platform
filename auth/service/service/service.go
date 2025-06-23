@@ -70,7 +70,7 @@ type Service struct {
 	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	userAccessor                   user.UserAccessor
-	userProfileAccessor            user.UserProfileAccessor
+	userProfileAccessor            user.ProfileAccessor
 	permsClient                    *permissionClient.Client
 	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
 }
@@ -197,7 +197,7 @@ func (s *Service) UserAccessor() user.UserAccessor {
 	return s.userAccessor
 }
 
-func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+func (s *Service) ProfileAccessor() user.ProfileAccessor {
 	return s.userProfileAccessor
 }
 
@@ -567,7 +567,7 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 		return errors.Wrap(err, "unable to create fallback user profile repository")
 	}
 
-	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor)
+	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor, userAccessor)
 	return nil
 }
 

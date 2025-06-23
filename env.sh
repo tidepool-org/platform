@@ -72,3 +72,13 @@ export TIDEPOOL_KEYCLOAK_BASE_URL="http://localhost:8080"
 export TIDEPOOL_KEYCLOAK_REALM="realm"
 export TIDEPOOL_KEYCLOAK_ADMIN_USERNAME="admin_username"
 export TIDEPOOL_KEYCLOAK_ADMIN_PASSWORD="admin_password"
+
+# legacy seagull env vars until profiles migrated.
+export SEAGULL_TIDEPOOL_STORE_SCHEME="mongodb"
+export SEAGULL_TIDEPOOL_STORE_ADDRESSES="localhost:27017"
+export SEAGULL_TIDEPOOL_STORE_TLS="false"
+export SEAGULL_TIDEPOOL_STORE_DATABASE="seagull"
+export SEAGULL_TIDEPOOL_STORE_USERNAME="admin_username"
+export SEAGULL_TIDEPOOL_STORE_PASSWORD="admin_password"
+export SEAGULL_TIDEPOOL_STORE_OPT_PARAMS="authSource=admin"
+

@@ -4,13 +4,16 @@ import (
 	"cmp"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/tidepool-org/platform/pointer"
 )
 
 var (
-	ErrSeagullFieldNotFound = errors.New("seagull field not found within value object string")
+	ErrSeagullFieldNotFound  = errors.New("seagull field not found within value object string")
+	ErrSeagullMarshalValue   = errors.New(`unable to encode seagull "value" to JSON`)
+	ErrSeagullUnmarshalValue = errors.New(`unable to decode seagull "value" from JSON`)
 )
 
 // LegacySeagullDocument is the database model representation of the legacy
@@ -80,7 +83,7 @@ func (doc *LegacySeagullDocument) SetRawValueProfile(profile map[string]any) err
 	valueObj["profile"] = profile
 	bytes, err := json.Marshal(valueObj)
 	if err != nil {
-		return err
+		return fmt.Errorf(`%w: %w`, ErrSeagullMarshalValue, err)
 	}
 	doc.Value = string(bytes)
 	return nil
@@ -93,7 +96,7 @@ func (doc *LegacySeagullDocument) SetRawValueProfile(profile map[string]any) err
 func extractSeagullValue(valueRaw string) (valueAsMap map[string]any, err error) {
 	var value map[string]any
 	if err := json.Unmarshal([]byte(valueRaw), &value); err != nil {
-		return nil, err
+		return nil, fmt.Errorf(`%w: %w`, ErrSeagullUnmarshalValue, err)
 	}
 	return value, nil
 }

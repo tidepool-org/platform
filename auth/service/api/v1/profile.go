@@ -36,18 +36,14 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 	}
 }
 
-func (r *Router) getProfile(ctx context.Context, userID string) (*user.UserProfile, error) {
-	// Until seagull migration is complete use UserProfileAccessor() to get a profile instead of the profile within the user itself.
-	profile, err := r.UserProfileAccessor().FindUserProfile(ctx, userID)
+func (r *Router) getProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
+	profile, err := r.ProfileAccessor().FindUserProfile(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 	if profile == nil {
 		return nil, user.ErrUserProfileNotFound
 	}
-	// Once seagull migration is compelte, we can return
-	// the profile attached to the user directly via person.Profile
-	// through r.UserAccessor().FindUserProfile
 	return profile, nil
 }
 
@@ -56,15 +52,12 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	if r.handledUserNotExists(ctx, responder, userID) {
+	profile, err := r.getProfile(ctx, userID)
+	if err != nil {
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
 
-	profile, err := r.getProfile(ctx, userID)
-	if err != nil {
-		r.handleProfileErr(responder, err)
-		return
-	}
 	responder.Data(http.StatusOK, profile)
 }
 
@@ -72,7 +65,13 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	targetUserID := req.PathParam("userId")
-	if r.handledUserNotExists(ctx, responder, targetUserID) {
+	targetUser, err := r.UserAccessor().FindUserById(ctx, targetUserID)
+	if err != nil {
+		r.handleUserOrProfileErr(responder, err)
+		return
+	}
+	if targetUser == nil {
+		r.handleUserOrProfileErr(responder, user.ErrUserNotFound)
 		return
 	}
 
@@ -127,14 +126,17 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			if err != nil {
 				return err
 			}
-			profile, err := r.getProfile(ctx, userID)
-			if stdErrs.Is(err, user.ErrUserProfileNotFound) || profile == nil {
+			seagullProfile, err := r.getProfile(ctx, userID)
+			if stdErrs.Is(err, user.ErrUserProfileNotFound) || seagullProfile == nil {
 				return nil
 			}
 			if err != nil {
 				return err
 			}
 			trustorPerms := trustPerms.TrustorPermissions
+
+			// TODO: get actual roles
+			profile := seagullProfile.ToUserProfile(nil)
 			if trustorPerms == nil || len(*trustorPerms) == 0 {
 				profile = profile.ClearPatientInfo()
 			} else {
@@ -156,7 +158,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		})
 	}
 	if err := group.Wait(); err != nil {
-		r.handleProfileErr(responder, err)
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
 
@@ -168,73 +170,52 @@ func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	if r.handledUserNotExists(ctx, responder, userID) {
-		return
-	}
-
 	profile, err := r.getProfile(ctx, userID)
 	if err != nil {
-		r.handleProfileErr(responder, err)
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
-	responder.Data(http.StatusOK, profile.ToLegacyProfile())
-}
 
-func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
-
-	profile := &user.UserProfile{}
-	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	r.updateProfile(res, req, profile)
+	responder.Data(http.StatusOK, profile)
 }
 
 func (r *Router) UpdateLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
+	userID := req.PathParam("userId")
 
 	profile := &user.LegacyUserProfile{}
 	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	r.updateLegacyProfile(res, req, profile)
-}
-
-func (r *Router) updateProfile(res rest.ResponseWriter, req *rest.Request, profile *user.UserProfile) {
-	responder := request.MustNewResponder(res, req)
-	ctx := req.Context()
-	userID := req.PathParam("userId")
 	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	if r.handledUserNotExists(ctx, responder, userID) {
-		return
-	}
-	// Once seagull migration is complete, we can use r.UserAccessor().UpdateUserProfile.
-	if err := r.UserProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
-		r.handleProfileErr(responder, err)
+	if err := r.ProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
 	responder.Data(http.StatusOK, profile)
 }
 
-func (r *Router) updateLegacyProfile(res rest.ResponseWriter, req *rest.Request, profile *user.LegacyUserProfile) {
+func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
+
+	profile := &user.UserProfile{}
+	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
 	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	if r.handledUserNotExists(ctx, responder, userID) {
-		return
-	}
-	// Once seagull migration is complete, we can use r.UserAccessor().UpdateUserProfile.
-	if err := r.UserProfileAccessor().UpdateUserProfile(ctx, userID, profile.ToUserProfile()); err != nil {
-		r.handleProfileErr(responder, err)
+	if err := r.ProfileAccessor().UpdateUserProfileV2(ctx, userID, profile); err != nil {
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
 	responder.Data(http.StatusOK, profile)
@@ -245,17 +226,18 @@ func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	userID := req.PathParam("userId")
 
-	err := r.UserProfileAccessor().DeleteUserProfile(ctx, userID)
+	err := r.ProfileAccessor().DeleteUserProfile(ctx, userID)
 	if err != nil {
-		r.handleProfileErr(responder, err)
+		r.handleUserOrProfileErr(responder, err)
 		return
 	}
 	responder.Empty(http.StatusOK)
 }
 
-func (r *Router) handleProfileErr(responder *request.Responder, err error) {
+func (r *Router) handleUserOrProfileErr(responder *request.Responder, err error) {
 	switch {
 	case stdErrs.Is(err, user.ErrUserNotFound), stdErrs.Is(err, user.ErrUserProfileNotFound):
+		// Many of the seagull clients don't treat 404 as an error so return 404 as is
 		responder.Empty(http.StatusNotFound)
 		return
 	default:
@@ -266,7 +248,7 @@ func (r *Router) handleProfileErr(responder *request.Responder, err error) {
 func (r *Router) handledUserNotExists(ctx context.Context, responder *request.Responder, userID string) (handled bool) {
 	person, err := r.UserAccessor().FindUserById(ctx, userID)
 	if err != nil {
-		r.handleProfileErr(responder, err)
+		r.handleUserOrProfileErr(responder, err)
 		return true
 	}
 	if person == nil {

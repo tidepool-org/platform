@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	serviceTest "github.com/tidepool-org/platform/auth/service/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -33,7 +34,7 @@ var _ = Describe("Router", func() {
 	var ctrl *gomock.Controller
 	var svc *serviceTest.Service
 	var userAccessor *user.MockUserAccessor
-	var profileAccessor *user.MockUserProfileAccessor
+	var profileAccessor *user.MockProfileAccessor
 	var permsClient *permission.MockExtendedClient
 
 	BeforeEach(func() {
@@ -77,7 +78,7 @@ var _ = Describe("Router", func() {
 				var handlerFunc rest.HandlerFunc
 				var userID string
 				var details request.AuthDetails
-				var userProfile *user.UserProfile
+				var userProfile *user.LegacyUserProfile
 				var userDetails *user.User
 
 				JustBeforeEach(func() {
@@ -95,12 +96,14 @@ var _ = Describe("Router", func() {
 					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
 					req.Request = req.WithContext(ctx)
 
-					userProfile = &user.UserProfile{
-						FullName:      "Some User Profile",
-						Birthday:      "2001-02-03",
-						DiagnosisDate: "2002-03-04",
-						About:         "About me",
-						MRN:           "11223344",
+					userProfile = &user.LegacyUserProfile{
+						Patient: &user.LegacyPatientProfile{
+							FullName:      pointer.FromString("Some User Profile"),
+							Birthday:      "2001-02-03",
+							DiagnosisDate: "2002-03-04",
+							About:         "About me",
+							MRN:           "11223344",
+						},
 					}
 					userDetails = &user.User{
 						UserID:   pointer.FromString(userID),
@@ -164,17 +167,20 @@ var _ = Describe("Router", func() {
 
 						Context("other persons profile", func() {
 							var otherPersonID string
-							var otherProfile *user.UserProfile
+							var otherProfile *user.LegacyUserProfile
 							var otherDetails *user.User
 							BeforeEach(func() {
 								otherPersonID = userTest.RandomID()
 								req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
-								otherProfile = &user.UserProfile{
-									FullName:      "Someone Else's Profile",
-									Birthday:      "2002-03-04",
-									DiagnosisDate: "2003-04-05",
-									About:         "Not about me",
-									MRN:           "11223346",
+								otherProfile = &user.LegacyUserProfile{
+									Patient: &user.LegacyPatientProfile{
+
+										FullName:      pointer.FromString("Someone Else's Profile"),
+										Birthday:      "2002-03-04",
+										DiagnosisDate: "2003-04-05",
+										About:         "Not about me",
+										MRN:           "11223346",
+									},
 								}
 								otherDetails = &user.User{
 									UserID:   pointer.FromString(otherPersonID),
@@ -246,7 +252,7 @@ var _ = Describe("Router", func() {
 								Return(true, nil).AnyTimes()
 
 							profileAccessor.EXPECT().
-								UpdateUserProfile(gomock.Any(), userID, updatedProfile).
+								UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
 								Return(nil).AnyTimes()
 						})
 
@@ -262,7 +268,7 @@ var _ = Describe("Router", func() {
 							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							profileAccessor.EXPECT().
-								UpdateUserProfile(gomock.Any(), userID, updatedProfile).
+								UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
 								Return(nil).AnyTimes()
 						})
 

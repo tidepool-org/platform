@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -21,6 +22,8 @@ const (
 	RolePatient          = "patient"
 	RoleBrokered         = "brokered"
 )
+
+var custodialAccountRegexp = regexp.MustCompile(`(?i)unclaimed-custodial-automation\+\d+@tidepool\.org`)
 
 func Roles() []string {
 	return []string{
@@ -50,13 +53,11 @@ type User struct {
 	ModifiedUserID       string       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
 	DeletedTime          string       `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
 	DeletedUserID        string       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	Profile              *UserProfile `json:"profile,omitempty"`
-	FirstName            string       `json:"firstName,omitempty"`
-	LastName             string       `json:"lastName,omitempty"`
-	PasswordExists       *bool        `json:"passwordExists,omitempty"`
+	Profile              *UserProfile `json:"profile,omitempty" bson:"-"`
+	PasswordExists       *bool        `json:"passwordExists,omitempty" bson:"-"`
 	// The following 2 properties are only returned for the route that returns users that have shared their data w/ another user
-	TrustorPermissions *permission.Permission `json:"trustorPermissions,omitempty"`
-	TrusteePermissions *permission.Permission `json:"trusteePermissions,omitempty"`
+	TrustorPermissions *permission.Permission `json:"trustorPermissions,omitempty" bson:"-"`
+	TrusteePermissions *permission.Permission `json:"trusteePermissions,omitempty" bson:"-"`
 }
 
 func (u *User) Parse(parser structure.ObjectParser) {
@@ -78,11 +79,7 @@ func (u *User) Validate(validator structure.Validator) {
 
 func (u *User) HasRole(role string) bool {
 	if u.Roles != nil {
-		for _, r := range *u.Roles {
-			if r == role {
-				return true
-			}
-		}
+		return slices.Contains(*u.Roles, role)
 	}
 	return false
 }
@@ -92,6 +89,10 @@ func (u *User) IsPatient() bool {
 		return true
 	}
 	return false
+}
+
+func IsUnclaimedCustodialEmail(email string) bool {
+	return custodialAccountRegexp.MatchString(email)
 }
 
 func (u *User) Sanitize(details request.AuthDetails) error {

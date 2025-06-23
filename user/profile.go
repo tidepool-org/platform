@@ -27,6 +27,10 @@ const (
 	MaxProfileFieldLen = 255
 )
 
+func IsMigrationCompleted(status migrationStatus) bool {
+	return status == MigrationCompleted
+}
+
 const (
 	DiabetesTypeType1       = "type1"
 	DiabetesTypeType2       = "type2"
@@ -67,9 +71,11 @@ type UserProfile struct {
 	MRN            string   `json:"mrn,omitempty"`
 	BiologicalSex  string   `json:"biologicalSex,omitempty"`
 
-	Custodian *Custodian     `json:"custodian,omitempty"`
-	Clinic    *ClinicProfile `json:"-"` // This is not returned to users in any new user profile routes but needs to be saved as it's not known where the old seagull value.profile.clinic is read
-	Email     string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
+	Custodian *Custodian `json:"custodian,omitempty"`
+	// The PRESENCE of a clinic object in a profile is used by blip to determine which page to show so this needs to be returned in the response.
+	// There are clinicians/legacy clinics with completely empty values within the clinic object but are still clinicians/clinics.
+	Clinic *ClinicProfile `json:"clinic,omitempty"`
+	Email  string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
 }
 
 type ClinicProfile struct {
@@ -83,34 +89,58 @@ type Custodian struct {
 	FullName string `json:"fullName"`
 }
 
+func HasPatientRole(roles []string) bool {
+	return slices.Contains(roles, RolePatient)
+}
+
+func HasClinicOrClinicianRole(roles []string) bool {
+	return slices.Contains(roles, RoleClinician) || slices.Contains(roles, RoleClinic)
+}
+
 // IsPatientProfile returns true if the profile is associated with a patient - note that this is not mutually exclusive w/ a clinician, as some users have both
-func (up *UserProfile) IsPatientProfile() bool {
-	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil || up.Clinic == nil
+func (up *UserProfile) IsPatientProfile(roles []string) bool {
+	return HasPatientRole(roles) || up.hasPatientFields() || !HasClinicOrClinicianRole(roles)
+}
+
+func (up *UserProfile) hasPatientFields() bool {
+	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil
 }
 
 // IsClinicianProfile returns true if the profile is associated with a clinician - note that this is not mutually exclusive w/ a patient, as some users have both
-func (up *UserProfile) IsClinicianProfile() bool {
-	return up.Clinic != nil
+func (up *UserProfile) IsClinicianProfile(roles []string) bool {
+	return up.Clinic != nil || HasClinicOrClinicianRole(roles)
 }
 
-func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
+func (up *UserProfile) ToLegacyProfile(roles []string) *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
 		FullName:        up.FullName,
 		MigrationStatus: MigrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
 	}
 
-	if up.IsPatientProfile() {
+	if up.IsClinicianProfile(roles) {
+		legacyProfile.Clinic = up.Clinic
+		// Frontend uses the PRESENCE of a clinic object in some of its logic to
+		// determine what pages to show so if this is a clinician so if there are
+		// no actual clinician fields in the profile (No clinician role (such as
+		// clinic_manager, endocrinologist, etc), npi, telephone etc), make an
+		// empty, non-nil object.
+		if legacyProfile.Clinic == nil {
+			legacyProfile.Clinic = &ClinicProfile{}
+		}
+	}
+
+	if up.IsPatientProfile(roles) {
 		legacyProfile.Patient = &LegacyPatientProfile{
 			Birthday:       up.Birthday,
 			DiagnosisDate:  up.DiagnosisDate,
 			DiagnosisType:  up.DiagnosisType,
 			TargetDevices:  up.TargetDevices,
-			TargetTimezone: pointer.FromString(up.TargetTimezone),
+			TargetTimezone: up.TargetTimezone,
 			About:          up.About,
 			MRN:            up.MRN,
 			BiologicalSex:  up.BiologicalSex,
 		}
-		if up.Email != "" {
+		if up.Email != "" && !IsUnclaimedCustodialEmail(up.Email) {
 			legacyProfile.Patient.Email = up.Email
 			legacyProfile.Patient.Emails = []string{up.Email}
 			legacyProfile.Email = up.Email
@@ -123,9 +153,6 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 		// Handle case where Custodian user (contains fake child) and one of the FullName's is empty.
 		legacyProfile.FullName = cmp.Or(up.Custodian.FullName, up.FullName)
 		legacyProfile.Patient.FullName = pointer.FromString(cmp.Or(up.FullName, up.Custodian.FullName))
-	}
-	if up.IsClinicianProfile() {
-		legacyProfile.Clinic = up.Clinic
 	}
 	return legacyProfile
 }
@@ -146,11 +173,12 @@ func (up *UserProfile) ClearPatientInfo() *UserProfile {
 	return &newProfile
 }
 
-func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
+func (p *LegacyUserProfile) ToUserProfile(roles []string) *UserProfile {
 	up := &UserProfile{
 		FullName: p.FullName,
 		Clinic:   p.Clinic,
 	}
+
 	if p.Patient != nil {
 		// The new profiles FullName refer to the true "owner" of the profile - which
 		// may be the "fake child" so set it to the FullName within the Patient Object if it exists.
@@ -169,10 +197,18 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.DiagnosisDate = p.Patient.DiagnosisDate
 		up.DiagnosisType = p.Patient.DiagnosisType
 		up.TargetDevices = p.Patient.TargetDevices
-		up.TargetTimezone = pointer.ToString(p.Patient.TargetTimezone)
+		up.TargetTimezone = p.Patient.TargetTimezone
 		up.About = p.Patient.About
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
+	}
+	if p.Clinic != nil || HasClinicOrClinicianRole(roles) {
+		up.Clinic = &ClinicProfile{
+			Name:      pointer.CloneString(p.Clinic.Name),
+			Role:      pointer.CloneString(p.Clinic.Role),
+			Telephone: pointer.CloneString(p.Clinic.Telephone),
+			NPI:       pointer.CloneString(p.Clinic.NPI),
+		}
 	}
 	return up
 }
@@ -194,7 +230,7 @@ type LegacyPatientProfile struct {
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
 	DiagnosisType  string   `json:"diagnosisType,omitempty"`
 	TargetDevices  []string `json:"targetDevices,omitempty"`
-	TargetTimezone *string  `json:"targetTimezone,omitempty"`
+	TargetTimezone string   `json:"targetTimezone,omitempty"`
 	About          string   `json:"about,omitempty"`
 	IsOtherPerson  jsonBool `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
@@ -294,7 +330,7 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	return attributes
 }
 
-func ProfileFromAttributes(username string, attributes map[string][]string) (profile *UserProfile, ok bool) {
+func ProfileFromAttributes(username string, attributes map[string][]string, roles []string) (profile *UserProfile, ok bool) {
 	up := &UserProfile{
 		Email: username,
 	}
@@ -342,24 +378,27 @@ func ProfileFromAttributes(username string, attributes map[string][]string) (pro
 	}
 
 	var clinicProfile ClinicProfile
-	var clinicOK bool
+	// A clinic may have all empty fields but still needs a clinic object
+	// returned so check both the presence of the clinic / clinician role and
+	// individual clinic properties - It may be enough to just check the roles
+	hasClinicProfile := HasClinicOrClinicianRole(roles)
 	if val := getAttribute(attributes, "clinic_name"); val != "" {
 		clinicProfile.Name = pointer.FromString(val)
-		clinicOK = true
+		hasClinicProfile = true
 	}
 	if val := getAttribute(attributes, "clinic_role"); val != "" {
 		clinicProfile.Role = pointer.FromString(val)
-		clinicOK = true
+		hasClinicProfile = true
 	}
 	if val := getAttribute(attributes, "clinic_telephone"); val != "" {
 		clinicProfile.Telephone = pointer.FromString(val)
-		clinicOK = true
+		hasClinicProfile = true
 	}
 	if val := getAttribute(attributes, "clinic_npi"); val != "" {
 		clinicProfile.NPI = pointer.FromString(val)
-		clinicOK = true
+		hasClinicProfile = true
 	}
-	if clinicOK {
+	if hasClinicProfile {
 		up.Clinic = &clinicProfile
 		ok = true
 	}
@@ -496,9 +535,7 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 
 	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
-	if targetTimeZone := pointer.ToString(pp.TargetTimezone); pp.TargetTimezone != nil && targetTimeZone != "" {
-		v.String("targetTimezone", pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
-	}
+	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("about", &pp.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 
@@ -515,8 +552,8 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 		pp.FullName = pointer.FromString(strings.TrimSpace(pointer.ToString(pp.FullName)))
 	}
 	pp.DiagnosisType = strings.TrimSpace(pp.DiagnosisType)
-	if pp.TargetTimezone != nil {
-		*pp.TargetTimezone = strings.TrimSpace(*pp.TargetTimezone)
+	if pp.TargetTimezone != "" {
+		pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
 	}
 	pp.About = strings.TrimSpace(pp.About)
 	pp.MRN = strings.TrimSpace(pp.MRN)

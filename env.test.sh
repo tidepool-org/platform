@@ -1,5 +1,5 @@
 # Clear all TIDEPOOL_* environment variables
-unset "$(env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs)"
+unset $(env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs)
 
 export TIDEPOOL_ENV="test"
 
@@ -28,7 +28,4 @@ export TIDEPOOL_KEYCLOAK_BASE_URL="http://localhost:8080"
 export TIDEPOOL_KEYCLOAK_REALM="realm"
 export TIDEPOOL_KEYCLOAK_ADMIN_USERNAME="admin_username"
 export TIDEPOOL_KEYCLOAK_ADMIN_PASSWORD="admin_password"
-
-export TIDEPOOL_PERMISSION_CLIENT_ADDRESS="http://localhost:8009"
-
 
