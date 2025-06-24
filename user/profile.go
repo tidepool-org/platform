@@ -105,7 +105,7 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 			DiagnosisDate:  up.DiagnosisDate,
 			DiagnosisType:  up.DiagnosisType,
 			TargetDevices:  up.TargetDevices,
-			TargetTimezone: pointer.FromString(up.TargetTimezone),
+			TargetTimezone: up.TargetTimezone,
 			About:          up.About,
 			MRN:            up.MRN,
 			BiologicalSex:  up.BiologicalSex,
@@ -169,7 +169,7 @@ func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 		up.DiagnosisDate = p.Patient.DiagnosisDate
 		up.DiagnosisType = p.Patient.DiagnosisType
 		up.TargetDevices = p.Patient.TargetDevices
-		up.TargetTimezone = pointer.ToString(p.Patient.TargetTimezone)
+		up.TargetTimezone = p.Patient.TargetTimezone
 		up.About = p.Patient.About
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
@@ -194,7 +194,7 @@ type LegacyPatientProfile struct {
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
 	DiagnosisType  string   `json:"diagnosisType,omitempty"`
 	TargetDevices  []string `json:"targetDevices,omitempty"`
-	TargetTimezone *string  `json:"targetTimezone,omitempty"`
+	TargetTimezone string   `json:"targetTimezone,omitempty"`
 	About          string   `json:"about,omitempty"`
 	IsOtherPerson  jsonBool `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
@@ -496,9 +496,7 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	pp.DiagnosisDate.Validate(v.WithReference("diagnosisDate"))
 
 	v.String("fullName", pp.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
-	if targetTimeZone := pointer.ToString(pp.TargetTimezone); pp.TargetTimezone != nil && targetTimeZone != "" {
-		v.String("targetTimezone", pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
-	}
+	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("about", &pp.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 
@@ -515,8 +513,8 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 		pp.FullName = pointer.FromString(strings.TrimSpace(pointer.ToString(pp.FullName)))
 	}
 	pp.DiagnosisType = strings.TrimSpace(pp.DiagnosisType)
-	if pp.TargetTimezone != nil {
-		*pp.TargetTimezone = strings.TrimSpace(*pp.TargetTimezone)
+	if pp.TargetTimezone != "" {
+		pp.TargetTimezone = strings.TrimSpace(pp.TargetTimezone)
 	}
 	pp.About = strings.TrimSpace(pp.About)
 	pp.MRN = strings.TrimSpace(pp.MRN)

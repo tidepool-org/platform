@@ -58,7 +58,7 @@ var _ = Describe("User", func() {
 						About:          "About me",
 						MRN:            "1112222",
 						TargetDevices:  []string{"SomeDevice900"},
-						TargetTimezone: pointer.FromString("UTC"),
+						TargetTimezone: "UTC",
 					},
 					MigrationStatus: user.MigrationCompleted,
 				}),
