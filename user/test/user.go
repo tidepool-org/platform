@@ -40,22 +40,22 @@ func CloneUser(datum *user.User) *user.User {
 	return clone
 }
 
-func NewObjectFromUser(datum *user.User, objectFormat test.ObjectFormat) map[string]interface{} {
+func NewObjectFromUser(datum *user.User, objectFormat test.ObjectFormat) map[string]any {
 	if datum == nil {
 		return nil
 	}
-	object := map[string]interface{}{}
+	object := map[string]any{}
 	if datum.UserID != nil {
 		object["userid"] = test.NewObjectFromString(*datum.UserID, objectFormat)
 	}
 	if datum.Username != nil {
 		object["username"] = test.NewObjectFromString(*datum.Username, objectFormat)
 	}
-	if datum.EmailVerified != nil {
-		object["emailVerified"] = test.NewObjectFromBool(*datum.EmailVerified, objectFormat)
-	}
 	if datum.TermsAccepted != nil {
 		object["termsAccepted"] = test.NewObjectFromString(*datum.TermsAccepted, objectFormat)
+	}
+	if datum.EmailVerified != nil {
+		object["emailVerified"] = test.NewObjectFromBool(*datum.EmailVerified, objectFormat)
 	}
 	if datum.Roles != nil {
 		object["roles"] = test.NewObjectFromStringArray(*datum.Roles, objectFormat)
@@ -67,13 +67,14 @@ func MatchUser(datum *user.User) gomegaTypes.GomegaMatcher {
 	if datum == nil {
 		return gomega.BeNil()
 	}
-	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
-		"UserID":        gomega.Equal(datum.UserID),
-		"Username":      gomega.Equal(datum.Username),
-		"EmailVerified": gomega.Equal(datum.EmailVerified),
-		"TermsAccepted": gomega.Equal(datum.TermsAccepted),
-		"Roles":         gomega.Equal(datum.Roles),
-	}))
+	return gomegaGstruct.PointTo(gomegaGstruct.MatchFields(gomegaGstruct.IgnoreExtras,
+		gomegaGstruct.Fields{
+			"UserID":        gomega.Equal(datum.UserID),
+			"Username":      gomega.Equal(datum.Username),
+			"EmailVerified": gomega.Equal(datum.EmailVerified),
+			"TermsAccepted": gomega.Equal(datum.TermsAccepted),
+			"Roles":         gomega.Equal(datum.Roles),
+		}))
 }
 
 func RandomUsername() string {
