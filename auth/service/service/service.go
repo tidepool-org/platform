@@ -129,7 +129,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
-	return s.initializeUserEventsHandler()
+	return s.initializeUserEventsHandler(provider)
 }
 
 func (s *Service) Terminate() {
@@ -468,13 +468,20 @@ func (s *Service) terminateAuthClient() {
 	}
 }
 
-func (s *Service) initializeUserEventsHandler() error {
+func (s *Service) initializeUserEventsHandler(provider application.Provider) error {
 	s.Logger().Debug("Initializing user events handler")
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
-	handler := authEvents.NewUserDataDeletionHandler(ctx, s.authClient)
-	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
+	var runner events.Runner
+
+	configReporter := provider.ConfigReporter().WithScopes("user", "events", "handler")
+	if configReporter.GetWithDefault("disable", "") != "true" {
+		ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+		handler := authEvents.NewUserDataDeletionHandler(ctx, s.authClient)
+		handlers := []eventsCommon.EventHandler{handler}
+		runner = events.NewRunner(handlers)
+	} else {
+		runner = events.NewNoopRunner()
+	}
 
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "unable to initialize events runner")

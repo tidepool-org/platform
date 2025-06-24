@@ -372,10 +372,6 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name": Equal("UserIdTypeWeighted_v2"),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("origin.id", "type", "-deletedTime", "_active")),
-						"Name": Equal("OriginId"),
-					}),
-					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("uploadId", "type", "-deletedTime", "_active")),
 						"Name": Equal("UploadId"),
 					}),
