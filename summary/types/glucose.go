@@ -177,7 +177,7 @@ func (rs *GlucoseRanges) Update(record *glucoseDatum.Glucose) error {
 	case glucoseDatum.Low:
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	case glucoseDatum.OnTarget:
+	case glucoseDatum.InRange:
 		rs.Target.Update(record)
 	case glucoseDatum.High:
 		rs.High.Update(record)

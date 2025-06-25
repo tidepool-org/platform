@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/pointer"
@@ -20,12 +21,7 @@ const (
 	SummaryTypeContinuous = "con"
 	SchemaVersion         = 5
 
-	lowBloodGlucose         = 3.9
-	veryLowBloodGlucose     = 3.0
-	highBloodGlucose        = 10.0
-	veryHighBloodGlucose    = 13.9
-	extremeHighBloodGlucose = 19.4
-	HoursAgoToKeep          = 60 * 24
+	HoursAgoToKeep = 60 * 24
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
@@ -123,12 +119,13 @@ type Summary[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData
 }
 
 func NewConfig() Config {
+	thresholdConfig := glucose.TidepoolADAClassificationThresholdsMmolL.Config()
 	return Config{
 		SchemaVersion:            SchemaVersion,
-		HighGlucoseThreshold:     highBloodGlucose,
-		VeryHighGlucoseThreshold: veryHighBloodGlucose,
-		LowGlucoseThreshold:      lowBloodGlucose,
-		VeryLowGlucoseThreshold:  veryLowBloodGlucose,
+		HighGlucoseThreshold:     thresholdConfig[glucose.High],
+		VeryHighGlucoseThreshold: thresholdConfig[glucose.VeryHigh],
+		LowGlucoseThreshold:      thresholdConfig[glucose.Low],
+		VeryLowGlucoseThreshold:  thresholdConfig[glucose.VeryLow],
 	}
 }
 

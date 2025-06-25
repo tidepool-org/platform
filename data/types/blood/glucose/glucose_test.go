@@ -516,12 +516,12 @@ var _ = Describe("Glucose", func() {
 			checkClassification(3.8, "low")
 		})
 
-		It("classifies 3.9 as on target", func() {
-			checkClassification(3.9, "on target")
+		It("classifies 3.9 as in range", func() {
+			checkClassification(3.9, "in range")
 		})
 
-		It("classifies 10.0 as on target", func() {
-			checkClassification(10.0, "on target")
+		It("classifies 10.0 as in range", func() {
+			checkClassification(10.0, "in range")
 		})
 
 		It("classifies 10.1 as high", func() {
@@ -553,8 +553,8 @@ var _ = Describe("Glucose", func() {
 				checkClassification(3.85, "low")
 			})
 
-			It("classifies 10.05 as on target", func() {
-				checkClassification(10.05, "on target")
+			It("classifies 10.05 as in range", func() {
+				checkClassification(10.05, "in range")
 			})
 		})
 
@@ -569,7 +569,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("can handle values in mg/dL", func() {
-			checkClassificationMgdL(100.0, "on target")
+			checkClassificationMgdL(100.0, "in range")
 		})
 
 		When("it's value is nil", func() {
@@ -592,27 +592,27 @@ var _ = Describe("Glucose", func() {
 
 		Context("tests from product", func() {
 			It("classifies 69.5 mg/dL as Low", func() {
-				checkClassificationMgdL(69.5, "on target")
+				checkClassificationMgdL(69.5, "in range")
 			})
 
-			It("classifies 70.0 mg/dL as On Target", func() {
-				checkClassificationMgdL(70, "on target")
+			It("classifies 70.0 mg/dL as In Range", func() {
+				checkClassificationMgdL(70, "in range")
 			})
 
-			It("classifies 180.4 mg/dL as On Target", func() {
-				checkClassificationMgdL(180.4, "on target")
+			It("classifies 180.4 mg/dL as In Range", func() {
+				checkClassificationMgdL(180.4, "in range")
 			})
 
-			It("classifies 180.5 mg/dL as On Target", func() {
-				checkClassificationMgdL(180.5, "on target")
+			It("classifies 180.5 mg/dL as In Range", func() {
+				checkClassificationMgdL(180.5, "in range")
 			})
 
-			It("classifies 181.0 mg/dL as On Target", func() {
-				checkClassificationMgdL(181, "on target")
+			It("classifies 181.0 mg/dL as In Range", func() {
+				checkClassificationMgdL(181, "in range")
 			})
 
-			It("classifies 10.05 mmol/L as On Target", func() {
-				checkClassification(10.05, "on target")
+			It("classifies 10.05 mmol/L as in range", func() {
+				checkClassification(10.05, "in range")
 			})
 
 			It("classifies 10.15 mmol/L as High", func() {

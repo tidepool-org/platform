@@ -38,10 +38,10 @@ func (g *Glucose) Normalize(normalizer data.Normalizer) {
 }
 
 func roundToEvenWithDecimalPlaces(v float64, decimals int) float64 {
-	if decimals < 1 {
+	if decimals == 0 {
 		return math.RoundToEven(v)
 	}
-	coef := math.Pow(10, float64(decimals))
+	coef := math.Pow10(decimals)
 	return math.RoundToEven(v*coef) / coef
 }
 
@@ -52,7 +52,7 @@ const (
 
 	VeryLow       = "very low"
 	Low           = "low"
-	OnTarget      = "on target"
+	InRange       = "in range"
 	High          = "high"
 	VeryHigh      = "very high"
 	ExtremelyHigh = "extremely high"
@@ -84,6 +84,19 @@ func (c Classifier) Classify(g *Glucose) (Classification, error) {
 	return ClassificationInvalid, errors.Newf("unable to classify value: %v", *g)
 }
 
+// Config helps summaries report the configured thresholds.
+//
+// These will get wrapped up into a Config returned with the summary report. A simple map
+// provides flexibility until we better know how custom classification ranges are going to
+// work out.
+func (c Classifier) Config() map[Classification]float64 {
+	config := map[Classification]float64{}
+	for _, classification := range c {
+		config[classification.Name] = classification.Value
+	}
+	return config
+}
+
 // TidepoolADAClassificationThresholdsMmolL for classifying glucose values.
 //
 // All values are normalized to MmolL before classification.
@@ -96,7 +109,7 @@ func (c Classifier) Classify(g *Glucose) (Classification, error) {
 var TidepoolADAClassificationThresholdsMmolL = Classifier([]classificationThreshold{
 	{Name: VeryLow, Value: 3, Inclusive: false},                    // Source: https://doi.org/10.2337/dc24-S006
 	{Name: Low, Value: 3.9, Inclusive: false},                      // Source: https://doi.org/10.2337/dc24-S006
-	{Name: OnTarget, Value: 10, Inclusive: true},                   // Source: https://doi.org/10.2337/dc24-S006
+	{Name: InRange, Value: 10, Inclusive: true},                    // Source: https://doi.org/10.2337/dc24-S006
 	{Name: High, Value: 13.9, Inclusive: true},                     // Source: https://doi.org/10.2337/dc24-S006
 	{Name: VeryHigh, Value: 19.4, Inclusive: true},                 // Source: https://doi.org/10.2337/dc24-S006
 	{Name: ExtremelyHigh, Value: math.MaxFloat64, Inclusive: true}, // Source: BACK-2963
