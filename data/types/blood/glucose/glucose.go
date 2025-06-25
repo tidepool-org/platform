@@ -67,6 +67,9 @@ type classificationThreshold struct {
 type Classifier []classificationThreshold
 
 func (c Classifier) Classify(g *Glucose) (Classification, error) {
+	// All values are normalized to MmolL before classification. To not do so risks
+	// introducing inconsistency between frontend, backend, and/or other reports. See
+	// BACK-3800 for details.
 	normalized, err := dataBloodGlucose.NormalizeValueForUnitsSafer(g.Value, g.Units)
 	if err != nil {
 		return ClassificationInvalid, errors.Wrap(err, "unable to classify")
@@ -98,8 +101,6 @@ func (c Classifier) Config() map[Classification]float64 {
 }
 
 // TidepoolADAClassificationThresholdsMmolL for classifying glucose values.
-//
-// All values are normalized to MmolL before classification.
 //
 // In addition to the standard ADA ranges, the Tidepool-specifiic "extremely high" range is
 // added.
