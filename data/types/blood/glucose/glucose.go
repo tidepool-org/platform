@@ -1,7 +1,9 @@
 package glucose
 
 import (
+	"cmp"
 	"math"
+	"slices"
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -78,6 +80,7 @@ func (c Classifier) Classify(g *Glucose) (Classification, error) {
 	// inconsistency between frontend, backend, and/or other reports. See BACK-3800 for
 	// details.
 	rounded := roundToEvenWithDecimalPlaces(normalized, 1)
+	sortThresholds(c)
 	for _, threshold := range c {
 		if threshold.Includes(rounded) {
 			return threshold.Name, nil
@@ -85,6 +88,21 @@ func (c Classifier) Classify(g *Glucose) (Classification, error) {
 	}
 	// Ensure your highest threshold has a value like math.MaxFloat64 to avoid this.
 	return ClassificationInvalid, errors.Newf("unable to classify value: %v", *g)
+}
+
+func sortThresholds(ts []classificationThreshold) {
+	slices.SortFunc(ts, func(i, j classificationThreshold) int {
+		if valueCmp := cmp.Compare(i.Value, j.Value); valueCmp != 0 {
+			return valueCmp
+		}
+		if !i.Inclusive && j.Inclusive {
+			return -1
+		} else if i.Inclusive == j.Inclusive {
+			return 0
+		} else {
+			return 1
+		}
+	})
 }
 
 // Config helps summaries report the configured thresholds.
@@ -104,9 +122,6 @@ func (c Classifier) Config() map[Classification]float64 {
 //
 // In addition to the standard ADA ranges, the Tidepool-specifiic "extremely high" range is
 // added.
-//
-// It is the author's responsibility to ensure the thresholds remain sorted from smallest to
-// largest.
 var TidepoolADAClassificationThresholdsMmolL = Classifier([]classificationThreshold{
 	{Name: VeryLow, Value: 3, Inclusive: false},                    // Source: https://doi.org/10.2337/dc24-S006
 	{Name: Low, Value: 3.9, Inclusive: false},                      // Source: https://doi.org/10.2337/dc24-S006
