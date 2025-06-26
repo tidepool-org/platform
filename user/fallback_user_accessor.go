@@ -29,7 +29,8 @@ func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id str
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return nil, err
 	}
-	if seagullProfile != nil && seagullProfile.MigrationStatus == MigrationUnmigrated {
+	// A migration could be in progress or previous migration may have failed, in which case, return the legacy seagull profile.
+	if seagullProfile != nil && !IsMigrationCompleted(seagullProfile.MigrationStatus) {
 		return seagullProfile.ToUserProfile(), nil
 	}
 	profile, err := f.accessor.FindUserProfile(ctx, id)

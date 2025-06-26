@@ -27,6 +27,10 @@ const (
 	MaxProfileFieldLen = 255
 )
 
+func IsMigrationCompleted(status migrationStatus) bool {
+	return status == MigrationCompleted
+}
+
 const (
 	DiabetesTypeType1       = "type1"
 	DiabetesTypeType2       = "type2"
