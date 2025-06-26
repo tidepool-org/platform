@@ -11,65 +11,65 @@ import (
 )
 
 const (
-	BloodGlucoseArrayLengthMaximum = 60 * 24
+	ForecastBloodGlucoseArrayLengthMaximum = 60 * 24
 )
 
-type BloodGlucose struct {
+type ForecastBloodGlucose struct {
 	Time  *time.Time `json:"time,omitempty" bson:"time,omitempty"`
 	Value *float64   `json:"value,omitempty" bson:"value,omitempty"`
 }
 
-func ParseBloodGlucose(parser structure.ObjectParser) *BloodGlucose {
+func ParseForecastBloodGlucose(parser structure.ObjectParser) *ForecastBloodGlucose {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewBloodGlucose()
+	datum := NewForecastBloodGlucose()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewBloodGlucose() *BloodGlucose {
-	return &BloodGlucose{}
+func NewForecastBloodGlucose() *ForecastBloodGlucose {
+	return &ForecastBloodGlucose{}
 }
 
-func (b *BloodGlucose) Parse(parser structure.ObjectParser) {
+func (b *ForecastBloodGlucose) Parse(parser structure.ObjectParser) {
 	b.Time = parser.Time("time", time.RFC3339Nano)
 	b.Value = parser.Float64("value")
 }
 
-func (b *BloodGlucose) Validate(validator structure.Validator, units *string) {
+func (b *ForecastBloodGlucose) Validate(validator structure.Validator, units *string) {
 	validator.Time("time", b.Time).Exists()
-	validator.Float64("value", b.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(units))
+	validator.Float64("value", b.Value).Exists() // No range validation as this is a forecast value
 }
 
-func (b *BloodGlucose) Normalize(normalizer data.Normalizer, units *string) {
+func (b *ForecastBloodGlucose) Normalize(normalizer data.Normalizer, units *string) {
 	if normalizer.Origin() == structure.OriginExternal {
 		b.Value = dataBloodGlucose.NormalizeValueForUnits(b.Value, units)
 	}
 }
 
-type BloodGlucoseArray []*BloodGlucose
+type ForecastBloodGlucoseArray []*ForecastBloodGlucose
 
-func ParseBloodGlucoseArray(parser structure.ArrayParser) *BloodGlucoseArray {
+func ParseForecastBloodGlucoseArray(parser structure.ArrayParser) *ForecastBloodGlucoseArray {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewBloodGlucoseArray()
+	datum := NewForecastBloodGlucoseArray()
 	parser.Parse(datum)
 	return datum
 }
 
-func NewBloodGlucoseArray() *BloodGlucoseArray {
-	return &BloodGlucoseArray{}
+func NewForecastBloodGlucoseArray() *ForecastBloodGlucoseArray {
+	return &ForecastBloodGlucoseArray{}
 }
 
-func (b *BloodGlucoseArray) Parse(parser structure.ArrayParser) {
+func (b *ForecastBloodGlucoseArray) Parse(parser structure.ArrayParser) {
 	for _, reference := range parser.References() {
-		*b = append(*b, ParseBloodGlucose(parser.WithReferenceObjectParser(reference)))
+		*b = append(*b, ParseForecastBloodGlucose(parser.WithReferenceObjectParser(reference)))
 	}
 }
 
-func (b *BloodGlucoseArray) Validate(validator structure.Validator, units *string) {
+func (b *ForecastBloodGlucoseArray) Validate(validator structure.Validator, units *string) {
 	if length := len(*b); length == 0 {
 		validator.ReportError(structureValidator.ErrorValueEmpty())
 	} else if length > BloodGlucoseArrayLengthMaximum {
@@ -84,7 +84,7 @@ func (b *BloodGlucoseArray) Validate(validator structure.Validator, units *strin
 	}
 }
 
-func (b *BloodGlucoseArray) Normalize(normalizer data.Normalizer, units *string) {
+func (b *ForecastBloodGlucoseArray) Normalize(normalizer data.Normalizer, units *string) {
 	for index, datum := range *b {
 		if datum != nil {
 			datum.Normalize(normalizer.WithReference(strconv.Itoa(index)), units)
