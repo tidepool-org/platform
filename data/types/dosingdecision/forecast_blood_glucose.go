@@ -38,7 +38,7 @@ func (b *ForecastBloodGlucose) Parse(parser structure.ObjectParser) {
 }
 
 func (b *ForecastBloodGlucose) Validate(validator structure.Validator, units *string) {
-	validator.Time("time", b.Time).Exists()
+	// TODO: https://tidepool.atlassian.net/browse/BACK-3842: validator.Time("time", b.Time).Exists()
 	validator.Float64("value", b.Value).Exists() // No range validation as this is a forecast value
 }
 
