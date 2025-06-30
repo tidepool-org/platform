@@ -87,7 +87,7 @@ func (f *Float64) GreaterThanOrEqualTo(limit float64) structure.Float64 {
 
 func (f *Float64) InRange(lowerLimit float64, upperLimit float64) structure.Float64 {
 	if f.value != nil {
-		if *f.value < lowerLimit || *f.value > upperLimit {
+		if !structure.InRange(*f.value, lowerLimit, upperLimit) {
 			f.base.ReportError(ErrorValueNotInRange(*f.value, lowerLimit, upperLimit))
 		}
 	}

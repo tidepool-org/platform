@@ -2,7 +2,7 @@ package normal
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -13,16 +13,35 @@ const (
 	NormalMinimum = 0.0
 )
 
-type Normal struct {
-	bolus.Bolus `bson:",inline"`
-
+type NormalFields struct {
 	Normal         *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
 	NormalExpected *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
 }
 
+func (n *NormalFields) Parse(parser structure.ObjectParser) {
+	n.Normal = parser.Float64("normal")
+	n.NormalExpected = parser.Float64("expectedNormal")
+}
+
+func (n *NormalFields) Validate(validator structure.Validator) {
+	normalValidator := validator.Float64("normal", n.Normal).Exists()
+	if n.NormalExpected != nil && structure.InRange(*n.NormalExpected, NormalMinimum, NormalMaximum) {
+		normalValidator.InRange(NormalMinimum, *n.NormalExpected)
+	} else {
+		normalValidator.InRange(NormalMinimum, NormalMaximum)
+	}
+	validator.Float64("expectedNormal", n.NormalExpected).InRange(NormalMinimum, NormalMaximum)
+}
+
+type Normal struct {
+	dataTypesBolus.Bolus `bson:",inline"`
+
+	NormalFields `bson:",inline"`
+}
+
 func New() *Normal {
 	return &Normal{
-		Bolus: bolus.New(SubType),
+		Bolus: dataTypesBolus.New(SubType),
 	}
 }
 
@@ -33,8 +52,7 @@ func (n *Normal) Parse(parser structure.ObjectParser) {
 
 	n.Bolus.Parse(parser)
 
-	n.Normal = parser.Float64("normal")
-	n.NormalExpected = parser.Float64("expectedNormal")
+	n.NormalFields.Parse(parser)
 }
 
 func (n *Normal) Validate(validator structure.Validator) {
@@ -48,16 +66,7 @@ func (n *Normal) Validate(validator structure.Validator) {
 		validator.String("subType", &n.SubType).EqualTo(SubType)
 	}
 
-	validator.Float64("normal", n.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
-	normalExpectedValidator := validator.Float64("expectedNormal", n.NormalExpected)
-	if n.Normal != nil && *n.Normal >= NormalMinimum && *n.Normal <= NormalMaximum {
-		if *n.Normal == NormalMinimum {
-			normalExpectedValidator.Exists()
-		}
-		normalExpectedValidator.InRange(*n.Normal, NormalMaximum)
-	} else {
-		normalExpectedValidator.InRange(NormalMinimum, NormalMaximum)
-	}
+	n.NormalFields.Validate(validator)
 }
 
 func (n *Normal) Normalize(normalizer data.Normalizer) {
