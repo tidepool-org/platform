@@ -481,4 +481,143 @@ var _ = Describe("Glucose", func() {
 			),
 		)
 	})
+
+	Context("Classify", func() {
+		var MmolL = pointer.FromAny(dataBloodGlucose.MmolL)
+		var MgdL = pointer.FromAny(dataBloodGlucose.MgdL)
+
+		checkClassification := func(value float64, expected glucose.Classification) {
+			GinkgoHelper()
+			datum := dataTypesBloodGlucoseTest.NewGlucose(MmolL)
+			datum.Value = pointer.FromAny(value)
+			got, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+			Expect(err).To(Succeed())
+			Expect(got).To(Equal(expected))
+		}
+
+		checkClassificationMgdL := func(value float64, expected glucose.Classification) {
+			GinkgoHelper()
+			datum := dataTypesBloodGlucoseTest.NewGlucose(MgdL)
+			datum.Value = pointer.FromAny(value)
+			got, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+			Expect(err).To(Succeed())
+			Expect(got).To(Equal(expected))
+		}
+
+		It("classifies 2.9 as very low", func() {
+			checkClassification(2.9, "very low")
+		})
+
+		It("classifies 3.0 as low", func() {
+			checkClassification(3.0, "low")
+		})
+
+		It("classifies 3.8 as low", func() {
+			checkClassification(3.8, "low")
+		})
+
+		It("classifies 3.9 as in range", func() {
+			checkClassification(3.9, "in range")
+		})
+
+		It("classifies 10.0 as in range", func() {
+			checkClassification(10.0, "in range")
+		})
+
+		It("classifies 10.1 as high", func() {
+			checkClassification(10.1, "high")
+		})
+
+		It("classifies 13.9 as high", func() {
+			checkClassification(13.9, "high")
+		})
+
+		It("classifies 14.0 as very high", func() {
+			checkClassification(14.0, "very high")
+		})
+
+		It("classifies 19.4 as very high", func() {
+			checkClassification(19.4, "very high")
+		})
+
+		It("classifies 19.5 as extremely high", func() {
+			checkClassification(19.5, "extremely high")
+		})
+
+		When("its classification depends on rounding", func() {
+			It("classifies 2.95 as low", func() {
+				checkClassification(2.95, "low")
+			})
+
+			It("classifies 3.85 as low", func() {
+				checkClassification(3.85, "low")
+			})
+
+			It("classifies 10.05 as in range", func() {
+				checkClassification(10.05, "in range")
+			})
+		})
+
+		When("it doesn't recognize the units", func() {
+			It("returns an error", func() {
+				badUnits := "blah"
+				datum := dataTypesBloodGlucoseTest.NewGlucose(&badUnits)
+				datum.Value = pointer.FromAny(5.0)
+				_, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+				Expect(err).To(MatchError(ContainSubstring("unable to normalize: unhandled units")))
+			})
+		})
+
+		It("can handle values in mg/dL", func() {
+			checkClassificationMgdL(100.0, "in range")
+		})
+
+		When("it's value is nil", func() {
+			It("returns an error", func() {
+				datum := dataTypesBloodGlucoseTest.NewGlucose(MmolL)
+				datum.Value = nil
+				_, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+				Expect(err).To(MatchError(ContainSubstring("unable to normalize: unhandled value")))
+			})
+		})
+
+		When("it's units are nil", func() {
+			It("returns an error", func() {
+				datum := dataTypesBloodGlucoseTest.NewGlucose(nil)
+				datum.Value = pointer.FromAny(5.0)
+				_, err := glucose.TidepoolADAClassificationThresholdsMmolL.Classify(datum)
+				Expect(err).To(MatchError(ContainSubstring("unable to normalize: unhandled units")))
+			})
+		})
+
+		Context("tests from product", func() {
+			It("classifies 69.5 mg/dL as Low", func() {
+				checkClassificationMgdL(69.5, "in range")
+			})
+
+			It("classifies 70.0 mg/dL as In Range", func() {
+				checkClassificationMgdL(70, "in range")
+			})
+
+			It("classifies 180.4 mg/dL as In Range", func() {
+				checkClassificationMgdL(180.4, "in range")
+			})
+
+			It("classifies 180.5 mg/dL as In Range", func() {
+				checkClassificationMgdL(180.5, "in range")
+			})
+
+			It("classifies 181.0 mg/dL as In Range", func() {
+				checkClassificationMgdL(181, "in range")
+			})
+
+			It("classifies 10.05 mmol/L as in range", func() {
+				checkClassification(10.05, "in range")
+			})
+
+			It("classifies 10.15 mmol/L as High", func() {
+				checkClassification(10.15, "high")
+			})
+		})
+	})
 })
