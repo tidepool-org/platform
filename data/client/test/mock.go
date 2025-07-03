@@ -13,11 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	data "github.com/tidepool-org/platform/data"
 	page "github.com/tidepool-org/platform/page"
 	types "github.com/tidepool-org/platform/summary/types"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockClient is a mock of Client interface.

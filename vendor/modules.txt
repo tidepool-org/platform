@@ -1,6 +1,10 @@
 # github.com/IBM/sarama v1.45.1
 ## explicit; go 1.21
 github.com/IBM/sarama
+# github.com/Nerzal/gocloak/v13 v13.9.0
+## explicit; go 1.18
+github.com/Nerzal/gocloak/v13
+github.com/Nerzal/gocloak/v13/pkg/jwx
 # github.com/ant0ine/go-json-rest v3.3.2+incompatible
 ## explicit
 github.com/ant0ine/go-json-rest/rest
@@ -146,6 +150,9 @@ github.com/githubnemo/CompileDaemon
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/funcr
+# github.com/go-resty/resty/v2 v2.7.0
+## explicit; go 1.11
+github.com/go-resty/resty/v2
 # github.com/go-task/slim-sprig/v3 v3.0.0
 ## explicit; go 1.20
 github.com/go-task/slim-sprig/v3
@@ -163,6 +170,9 @@ github.com/goccy/go-json/internal/runtime
 # github.com/golang-jwt/jwt/v4 v4.5.1
 ## explicit; go 1.16
 github.com/golang-jwt/jwt/v4
+# github.com/golang-jwt/jwt/v5 v5.0.0
+## explicit; go 1.18
+github.com/golang-jwt/jwt/v5
 # github.com/golang/mock v1.6.0
 ## explicit; go 1.11
 github.com/golang/mock/gomock
@@ -368,6 +378,10 @@ github.com/onsi/gomega/matchers/support/goraph/edge
 github.com/onsi/gomega/matchers/support/goraph/node
 github.com/onsi/gomega/matchers/support/goraph/util
 github.com/onsi/gomega/types
+# github.com/opentracing/opentracing-go v1.2.0
+## explicit; go 1.14
+github.com/opentracing/opentracing-go
+github.com/opentracing/opentracing-go/log
 # github.com/pierrec/lz4/v4 v4.1.22
 ## explicit; go 1.14
 github.com/pierrec/lz4/v4
@@ -422,6 +436,9 @@ github.com/segmentio/asm/cpu/arm64
 github.com/segmentio/asm/cpu/cpuid
 github.com/segmentio/asm/cpu/x86
 github.com/segmentio/asm/internal/unsafebytes
+# github.com/segmentio/ksuid v1.0.4
+## explicit; go 1.12
+github.com/segmentio/ksuid
 # github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
 ## explicit; go 1.22
 github.com/tidepool-org/clinic/client
@@ -586,6 +603,7 @@ golang.org/x/net/internal/httpcommon
 golang.org/x/net/internal/socks
 golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
+golang.org/x/net/publicsuffix
 golang.org/x/net/trace
 # golang.org/x/oauth2 v0.28.0
 ## explicit; go 1.23.0

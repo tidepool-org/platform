@@ -32,12 +32,13 @@ var _ = Describe("Service", func() {
 		var serverSecret string
 		var sessionToken string
 		var server *Server
-		var authClientConfig map[string]interface{}
-		var authStoreConfig map[string]interface{}
-		var dataClientConfig map[string]interface{}
-		var dataSourceClientConfig map[string]interface{}
-		var taskClientConfig map[string]interface{}
-		var authServiceConfig map[string]interface{}
+		var authClientConfig map[string]any
+		var authStoreConfig map[string]any
+		var dataClientConfig map[string]any
+		var dataSourceClientConfig map[string]any
+		var taskClientConfig map[string]any
+		var permissionClientConfig map[string]any
+		var authServiceConfig map[string]any
 		var service *authServiceService.Service
 		var oldKafkaConfig map[string]string
 
@@ -56,48 +57,55 @@ var _ = Describe("Service", func() {
 					RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{sessionToken}})),
 			)
 
-			authClientConfig = map[string]interface{}{
-				"external": map[string]interface{}{
+			authClientConfig = map[string]any{
+				"external": map[string]any{
 					"address":                     server.URL(),
 					"server_session_token_secret": serverSecret,
 				},
 			}
-			authStoreConfig = map[string]interface{}{
+			authStoreConfig = map[string]any{
 				"addresses": os.Getenv("TIDEPOOL_STORE_ADDRESSES"),
 				"database":  test.RandomStringFromRangeAndCharset(4, 8, test.CharsetLowercase),
 				"tls":       "false",
 			}
-			dataClientConfig = map[string]interface{}{
+			dataClientConfig = map[string]any{
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
-			dataSourceClientConfig = map[string]interface{}{
+			dataSourceClientConfig = map[string]any{
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
-			taskClientConfig = map[string]interface{}{
+			taskClientConfig = map[string]any{
+				"address":             server.URL(),
+				"server_token_secret": authTest.NewServiceSecret(),
+			}
+			permissionClientConfig = map[string]any{
 				"address":             server.URL(),
 				"server_token_secret": authTest.NewServiceSecret(),
 			}
 
-			authServiceConfig = map[string]interface{}{
-				"auth": map[string]interface{}{
+			authServiceConfig = map[string]any{
+				"auth": map[string]any{
 					"client": authClientConfig,
 					"store":  authStoreConfig,
 				},
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"client": dataClientConfig,
 				},
-				"data_source": map[string]interface{}{
+				"permission": map[string]any{
+					"client": permissionClientConfig,
+				},
+				"data_source": map[string]any{
 					"client": dataSourceClientConfig,
 				},
 				"domain": "test.com",
 				"secret": authTest.NewServiceSecret(),
-				"server": map[string]interface{}{
+				"server": map[string]any{
 					"address": testHttp.NewAddress(),
 					"tls":     "false",
 				},
-				"task": map[string]interface{}{
+				"task": map[string]any{
 					"client": taskClientConfig,
 				},
 			}
