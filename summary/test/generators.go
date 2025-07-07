@@ -2,12 +2,10 @@ package test
 
 import (
 	"math"
-	"math/rand/v2"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/test"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
@@ -60,32 +58,6 @@ type DataRanges struct {
 	ExtremeHigh float64
 }
 
-func NewDataRanges() DataRanges {
-	return DataRanges{
-		Min:         1,
-		Max:         25,
-		Padding:     0.01,
-		VeryLow:     VeryLowBloodGlucose,
-		Low:         LowBloodGlucose,
-		High:        HighBloodGlucose,
-		VeryHigh:    VeryHighBloodGlucose,
-		ExtremeHigh: ExtremeHighBloodGlucose,
-	}
-}
-
-func NewDataRangesSingle(value float64) DataRanges {
-	return DataRanges{
-		Min:         value,
-		Max:         value,
-		Padding:     0,
-		VeryLow:     value,
-		Low:         value,
-		High:        value,
-		VeryHigh:    value,
-		ExtremeHigh: value,
-	}
-}
-
 func Mean(x []float64) float64 {
 	sum := 0.0
 	for i := 0; i < len(x); i++ {
@@ -94,7 +66,7 @@ func Mean(x []float64) float64 {
 	return sum / float64(len(x))
 }
 
-func CalcVariance(x []float64, mean float64) float64 {
+func CalculateVariance(x []float64, mean float64) float64 {
 	var (
 		ss           float64
 		compensation float64
@@ -107,8 +79,8 @@ func CalcVariance(x []float64, mean float64) float64 {
 	return ss - compensation*compensation/float64(len(x))
 }
 
-func PopStdDev(x []float64) (float64, float64) {
-	variance := CalcVariance(x, Mean(x)) / float64(len(x))
+func CalculateStdDevAndVariance(x []float64) (float64, float64) {
+	variance := CalculateVariance(x, Mean(x)) / float64(len(x))
 	return math.Sqrt(variance), variance
 }
 
@@ -138,91 +110,6 @@ func NewGlucoseWithValue(typ string, datumTime time.Time, value float64) (g *glu
 	g.Value = &value
 	return
 }
-
-func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []data.Datum {
-	requiredRecords := int(hours * 12)
-	typ := "cbg"
-	dataSetData := make([]data.Datum, requiredRecords)
-	deviceId := "SummaryTestDevice"
-	uploadId := test.RandomSetID()
-
-	// generate X hours of data
-	for count := 0; count < requiredRecords; count += 2 {
-		randValue := 1 + rand.Float64()*(reqAvg-1)
-		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
-
-		// this adds 2 entries, one for each side of the average so that the calculated average is the requested value
-		for i, glucoseValue := range glucoseValues {
-			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
-
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromAny(glucoseValue)
-
-			dataSetData[requiredRecords-count-i-1] = datum
-		}
-	}
-
-	return dataSetData
-}
-
-// creates a dataset with random values evenly divided between ranges
-func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
-	perHour := 12.0
-	requiredRecords := int(hours * perHour)
-	typ := "cbg"
-	dataSetData := make([]data.Datum, requiredRecords)
-	uploadId := test.RandomSetID()
-	deviceId := "SummaryTestDevice"
-
-	glucoseBrackets := [6][2]float64{
-		{ranges.Min, ranges.VeryLow - ranges.Padding},
-		{ranges.VeryLow, ranges.Low - ranges.Padding},
-		{ranges.Low, ranges.High - ranges.Padding},
-		{ranges.High, ranges.VeryHigh - ranges.Padding},
-		{ranges.VeryHigh, ranges.ExtremeHigh - ranges.Padding},
-		{ranges.ExtremeHigh, ranges.Max},
-	}
-
-	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += 6 {
-		for i, bracket := range glucoseBrackets {
-			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
-
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
-			datum.Value = pointer.FromAny(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
-
-			dataSetData[requiredRecords-count-i-1] = datum
-		}
-	}
-
-	return dataSetData
-}
-
-// func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, StandardDeviation float64) ([]data.Datum, float64) {
-// 	requiredRecords := hours * perHour
-// 	typ := "cbg"
-// 	dataSetData := make([]data.Datum, requiredRecords)
-// 	uploadId := test.RandomSetID()
-// 	deviceId := "SummaryTestDevice"
-
-// 	var values []float64
-
-// 	// generate requiredRecords of data
-// 	for count := 0; count < requiredRecords; count += perHour {
-// 		for inHour := 0; inHour < perHour; inHour++ {
-// 			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
-
-// 			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
-// 			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + VeryHighBloodGlucose)
-
-// 			values = append(values, *datum.Value)
-
-// 			dataSetData[requiredRecords-(count+inHour+1)] = datum
-// 		}
-// 	}
-
-// 	return dataSetData, PopStdDev(values)
-// }
 
 func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, minutes bool) []*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket] {
 	buckets := make([]*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket], hours)

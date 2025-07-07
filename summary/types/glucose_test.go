@@ -141,7 +141,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
 			values := []float64{5, 10}
-			_, expectedVariance := PopStdDev(values)
+			_, expectedVariance := CalculateStdDevAndVariance(values)
 			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
 			expectedVariance *= 10
 
@@ -154,7 +154,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 
 			values = []float64{5, 10, 7}
-			_, expectedVariance = PopStdDev(values)
+			_, expectedVariance = CalculateStdDevAndVariance(values)
 			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
 			expectedVariance *= 15
 
@@ -179,7 +179,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
 			values := []float64{5, 10}
-			_, expectedVariance := PopStdDev(values)
+			_, expectedVariance := CalculateStdDevAndVariance(values)
 			// multiply by expected records as this is removed at the end later in the workflow, not each sample
 			expectedVariance *= 2
 
@@ -192,7 +192,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 
 			values = []float64{5, 10, 7}
-			_, expectedVariance = PopStdDev(values)
+			_, expectedVariance = CalculateStdDevAndVariance(values)
 			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
 			expectedVariance *= 3
 

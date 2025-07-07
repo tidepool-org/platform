@@ -79,14 +79,11 @@ func (r *Range) CombineVariance(new *Range) float64 {
 		return r.Variance
 	}
 
-	n1 := 0.0
-	n2 := 0.0
+	n1 := float64(r.Records)
+	n2 := float64(new.Records)
 	if r.Minutes > 0 {
 		n1 = float64(r.Minutes)
 		n2 = float64(new.Minutes)
-	} else {
-		n1 = float64(r.Records)
-		n2 = float64(new.Records)
 	}
 
 	n := n1 + n2
@@ -329,6 +326,8 @@ func (p *GlucosePeriod) CalculateDelta(current *GlucosePeriod, previous *Glucose
 	Delta(&current.CoefficientOfVariation, &previous.CoefficientOfVariation, &p.CoefficientOfVariation)
 	Delta(&current.DaysWithData, &previous.DaysWithData, &p.DaysWithData)
 	Delta(&current.HoursWithData, &previous.HoursWithData, &p.HoursWithData)
+
+	p.state.Final = true
 }
 
 func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
