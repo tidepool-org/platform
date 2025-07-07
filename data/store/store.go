@@ -25,6 +25,7 @@ type Store interface {
 	NewDataRepository() DataRepository
 	NewSummaryRepository() SummaryRepository
 	NewBucketsRepository() BucketsRepository
+	NewEventsRepository() EventsRepository
 	NewAlertsRepository() alerts.Repository
 }
 
@@ -103,6 +104,12 @@ type SummaryRepository interface {
 }
 
 type BucketsRepository interface {
+	EnsureIndexes() error
+
+	GetStore() *storeStructuredMongo.Repository
+}
+
+type EventsRepository interface {
 	EnsureIndexes() error
 
 	GetStore() *storeStructuredMongo.Repository

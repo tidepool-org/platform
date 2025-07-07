@@ -7,6 +7,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/prometheus/client_golang/prometheus"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,6 +17,7 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/store"
@@ -43,6 +45,7 @@ var _ = Describe("End to end summary calculations", func() {
 	var mongoStore *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
+	var eventsRepo *storeStructuredMongo.Repository
 	var dataRepo dataStore.DataRepository
 	var userId string
 	var datumTime time.Time
@@ -68,8 +71,9 @@ var _ = Describe("End to end summary calculations", func() {
 
 		summaryRepo = mongoStore.NewSummaryRepository().GetStore()
 		bucketsRepo = mongoStore.NewBucketsRepository().GetStore()
+		eventsRepo = mongoStore.NewEventsRepository().GetStore()
 		dataRepo = mongoStore.NewDataRepository()
-		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, mongoStore.GetClient())
+		registry = summary.New(summaryRepo, bucketsRepo, eventsRepo, dataRepo, mongoStore.GetClient())
 		userId = userTest.RandomID()
 		datumTime = time.Now().UTC().Truncate(time.Hour)
 		dataCollection = mongoStore.GetCollection("deviceData")
@@ -525,3 +529,99 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(len(buckets)).To(Equal(7 * 24))
 	})
 })
+
+var _ = Describe("GetOutdateUserIDs", func() {
+
+	It("succeeds", func() {
+		time1, time2 := time.Now().Add(-5*time.Minute), time.Now()
+		eventsRepo := newMockEventsRepository(
+			&store.SummaryEvent{UserID: "foo", Time: time1},
+			&store.SummaryEvent{UserID: "bar", Time: time2})
+		registry := summary.New(nil, nil, eventsRepo, nil, nil)
+		summarizer := summary.GetSummarizer[*CGMPeriods, *GlucoseBucket](registry)
+
+		resp, err := summarizer.GetOutdatedUserIDs(GinkgoT().Context(), nil)
+		Expect(err).To(Succeed())
+		Expect(resp.UserIds).To(Equal([]string{"foo", "bar"}))
+		Expect(resp.Start.Equal(truncTimeLikeMongoDB(time1))).To(BeTrue())
+		Expect(resp.End.Equal(truncTimeLikeMongoDB(time2))).To(BeTrue())
+	})
+
+	It("updates metrics", func() {
+		reg := prepPromRegistry()
+		eventsRepo := newMockEventsRepository(&store.SummaryEvent{UserID: "foo"})
+		registry := summary.New(nil, nil, eventsRepo, nil, nil)
+		summarizer := summary.GetSummarizer[*CGMPeriods, *GlucoseBucket](registry)
+
+		_, err := summarizer.GetOutdatedUserIDs(GinkgoT().Context(), nil)
+		Expect(err).To(Succeed())
+
+		families, err := reg.Gather()
+		Expect(err).To(Succeed())
+		Expect(len(families)).To(Equal(2))
+	})
+
+	It("errors if Pagination.Page is not 0", func() {
+		// This value isn't used, so don't let anyone think it's somehow useful.
+		eventsRepo := newMockEventsRepository(&store.SummaryEvent{UserID: "foo"})
+		registry := summary.New(nil, nil, eventsRepo, nil, nil)
+		summarizer := summary.GetSummarizer[*CGMPeriods, *GlucoseBucket](registry)
+
+		_, err := summarizer.GetOutdatedUserIDs(GinkgoT().Context(), &page.Pagination{Page: 1})
+		Expect(err.Error()).To(ContainSubstring("page is not supported"))
+	})
+})
+
+// truncTimeLikeMongoDB adjusts the time, truncating to milliseconds, just like MongoDB does
+// when it serializes a time.Time into BSON.
+func truncTimeLikeMongoDB(t time.Time) time.Time {
+	return t.Truncate(time.Millisecond)
+}
+
+func prepPromRegistry() *prometheus.Registry {
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(store.QueueLag)
+	reg.MustRegister(store.QueueLength)
+	return reg
+}
+
+type mockEventsRepository struct {
+	Count    *int64
+	CountErr error
+
+	FindCursor *mongo.Cursor
+	FindErr    error
+}
+
+func newMockEventsRepository(docs ...any) *mockEventsRepository {
+	r := &mockEventsRepository{}
+	r.setFindResponse(docs)
+	return r
+}
+
+func (m *mockEventsRepository) CountDocuments(_ context.Context, _ any, _ ...*options.CountOptions) (int64, error) {
+	if m.CountErr != nil {
+		return 0, m.CountErr
+	}
+	if m.Count != nil {
+		return *m.Count, nil
+	}
+	return 0, nil
+}
+
+func (m *mockEventsRepository) Find(_ context.Context, _ any, _ ...*options.FindOptions) (*mongo.Cursor, error) {
+	if m.FindErr != nil {
+		return nil, m.FindErr
+	}
+	if m.FindCursor != nil {
+		return m.FindCursor, nil
+	}
+	return nil, nil
+}
+
+func (m *mockEventsRepository) setFindResponse(docs []any) {
+	GinkgoHelper()
+	cursor, err := mongo.NewCursorFromDocuments(docs, nil, nil)
+	Expect(err).To(Succeed())
+	m.FindCursor = cursor
+}

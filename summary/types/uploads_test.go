@@ -30,6 +30,7 @@ var _ = Describe("Upload Helpers", func() {
 	var store *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
+	var eventsRepo *storeStructuredMongo.Repository
 	var dataRepo dataStore.DataRepository
 	var userId string
 	var cgmStore *dataStoreSummary.Summaries[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
@@ -44,7 +45,7 @@ var _ = Describe("Upload Helpers", func() {
 		summaryRepo = store.NewSummaryRepository().GetStore()
 		bucketsRepo = store.NewBucketsRepository().GetStore()
 		dataRepo = store.NewDataRepository()
-		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
+		registry = summary.New(summaryRepo, bucketsRepo, eventsRepo, dataRepo, store.GetClient())
 		userId = userTest.RandomID()
 
 		cgmStore = dataStoreSummary.NewSummaries[*CGMPeriods, *GlucoseBucket](summaryRepo)

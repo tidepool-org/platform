@@ -34,6 +34,7 @@ type Standard struct {
 	dataRepository                 dataStore.DataRepository
 	summaryRepository              dataStore.SummaryRepository
 	bucketsRepository              dataStore.BucketsRepository
+	eventsRepository               dataStore.EventsRepository
 	summarizerRegistry             *summary.SummarizerRegistry
 	summaryReporter                *reporters.PatientRealtimeDaysReporter
 	syncTaskStore                  syncTaskStore.Store
@@ -135,6 +136,9 @@ func (s *Standard) Close() {
 	if s.bucketsRepository != nil {
 		s.bucketsRepository = nil
 	}
+	if s.eventsRepository != nil {
+		s.eventsRepository = nil
+	}
 	if s.alertsRepository != nil {
 		s.alertsRepository = nil
 	}
@@ -176,7 +180,7 @@ func (s *Standard) SummaryRepository() dataStore.SummaryRepository {
 
 func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	if s.summarizerRegistry == nil {
-		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.DataRepository(), s.GetMongoClient())
+		s.summarizerRegistry = summary.New(s.SummaryRepository().GetStore(), s.BucketsRepository().GetStore(), s.EventsRepository().GetStore(), s.DataRepository(), s.GetMongoClient())
 	}
 	return s.summarizerRegistry
 }
@@ -193,6 +197,13 @@ func (s *Standard) BucketsRepository() dataStore.BucketsRepository {
 		s.bucketsRepository = s.dataStore.NewBucketsRepository()
 	}
 	return s.bucketsRepository
+}
+
+func (s *Standard) EventsRepository() dataStore.EventsRepository {
+	if s.eventsRepository == nil {
+		s.eventsRepository = s.dataStore.NewEventsRepository()
+	}
+	return s.eventsRepository
 }
 
 func (s *Standard) SyncTaskRepository() syncTaskStore.SyncTaskRepository {

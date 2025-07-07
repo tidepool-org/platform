@@ -29,6 +29,7 @@ func (s *Store) EnsureIndexes() error {
 	dataRepository := s.NewDataRepository()
 	summaryRepository := s.NewSummaryRepository()
 	bucketsRepository := s.NewBucketsRepository()
+	eventsRepository := s.NewEventsRepository()
 	alertsRepository := s.NewAlertsRepository()
 
 	if err := dataRepository.EnsureIndexes(); err != nil {
@@ -40,6 +41,10 @@ func (s *Store) EnsureIndexes() error {
 	}
 
 	if err := bucketsRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	if err := eventsRepository.EnsureIndexes(); err != nil {
 		return err
 	}
 
@@ -70,6 +75,12 @@ func (s *Store) NewSummaryRepository() store.SummaryRepository {
 func (s *Store) NewBucketsRepository() store.BucketsRepository {
 	return &BucketsRepository{
 		s.Store.GetRepository("buckets"),
+	}
+}
+
+func (s *Store) NewEventsRepository() store.EventsRepository {
+	return &EventsRepository{
+		s.Store.GetRepository("summaryEvents"),
 	}
 }
 

@@ -31,6 +31,7 @@ var _ = Describe("Reporters", func() {
 	var store *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
+	var eventsRepo *storeStructuredMongo.Repository
 	var dataRepo dataStore.DataRepository
 	var userId string
 	var dataCollection *mongo.Collection
@@ -48,7 +49,7 @@ var _ = Describe("Reporters", func() {
 			summaryRepo = store.NewSummaryRepository().GetStore()
 			bucketsRepo = store.NewBucketsRepository().GetStore()
 			dataRepo = store.NewDataRepository()
-			registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
+			registry = summary.New(summaryRepo, bucketsRepo, eventsRepo, dataRepo, store.GetClient())
 			userId = userTest.RandomID()
 
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
@@ -167,8 +168,9 @@ var _ = Describe("Reporters", func() {
 			dataCollection = store.GetCollection("deviceData")
 			summaryRepo = store.NewSummaryRepository().GetStore()
 			bucketsRepo = store.NewBucketsRepository().GetStore()
+			eventsRepo = store.NewEventsRepository().GetStore()
 			dataRepo = store.NewDataRepository()
-			registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
+			registry = summary.New(summaryRepo, bucketsRepo, eventsRepo, dataRepo, store.GetClient())
 			userId = userTest.RandomID()
 
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
