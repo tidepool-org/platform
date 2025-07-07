@@ -24,11 +24,11 @@ func CloneBloodGlucose(datum *dataTypesDosingDecision.BloodGlucose) *dataTypesDo
 	return clone
 }
 
-func NewObjectFromBloodGlucose(datum *dataTypesDosingDecision.BloodGlucose, objectFormat test.ObjectFormat) map[string]interface{} {
+func NewObjectFromBloodGlucose(datum *dataTypesDosingDecision.BloodGlucose, objectFormat test.ObjectFormat) map[string]any {
 	if datum == nil {
 		return nil
 	}
-	object := map[string]interface{}{}
+	object := map[string]any{}
 	if datum.Time != nil {
 		object["time"] = test.NewObjectFromTime(*datum.Time, objectFormat)
 	}
@@ -57,19 +57,19 @@ func CloneBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArra
 	return clone
 }
 
-func NewArrayFromBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArray, objectFormat test.ObjectFormat) []interface{} {
+func NewArrayFromBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArray, objectFormat test.ObjectFormat) []any {
 	if datumArray == nil {
 		return nil
 	}
-	array := []interface{}{}
+	array := []any{}
 	for _, datum := range *datumArray {
 		array = append(array, NewObjectFromBloodGlucose(datum, objectFormat))
 	}
 	return array
 }
 
-func AnonymizeBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArray) []interface{} {
-	array := []interface{}{}
+func AnonymizeBloodGlucoseArray(datumArray *dataTypesDosingDecision.BloodGlucoseArray) []any {
+	array := []any{}
 	for _, datum := range *datumArray {
 		array = append(array, datum)
 	}

@@ -2,7 +2,7 @@ package extended
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
 	"github.com/tidepool-org/platform/structure"
 )
 
@@ -15,18 +15,52 @@ const (
 	ExtendedMinimum = 0.0
 )
 
-type Extended struct {
-	bolus.Bolus `bson:",inline"`
-
+type ExtendedFields struct {
 	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
 	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
 	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
 	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
 }
 
+func (e *ExtendedFields) Parse(parser structure.ObjectParser) {
+	e.Duration = parser.Int("duration")
+	e.DurationExpected = parser.Int("expectedDuration")
+	e.Extended = parser.Float64("extended")
+	e.ExtendedExpected = parser.Float64("expectedExtended")
+}
+
+func (e *ExtendedFields) Validate(validator structure.Validator) {
+	durationValidator := validator.Int("duration", e.Duration).Exists()
+	if e.DurationExpected != nil && structure.InRange(*e.DurationExpected, DurationMinimum, DurationMaximum) {
+		durationValidator.InRange(DurationMinimum, *e.DurationExpected)
+	} else {
+		durationValidator.InRange(DurationMinimum, DurationMaximum)
+	}
+	durationExpectedValidator := validator.Int("expectedDuration", e.DurationExpected).InRange(DurationMinimum, DurationMaximum)
+	if e.ExtendedExpected != nil {
+		durationExpectedValidator.Exists()
+	} else {
+		durationExpectedValidator.NotExists()
+	}
+
+	extendedValidator := validator.Float64("extended", e.Extended).Exists()
+	if e.ExtendedExpected != nil && structure.InRange(*e.ExtendedExpected, ExtendedMinimum, ExtendedMaximum) {
+		extendedValidator.InRange(ExtendedMinimum, *e.ExtendedExpected)
+	} else {
+		extendedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
+	}
+	validator.Float64("expectedExtended", e.ExtendedExpected).InRange(ExtendedMinimum, ExtendedMaximum)
+}
+
+type Extended struct {
+	dataTypesBolus.Bolus `bson:",inline"`
+
+	ExtendedFields `bson:",inline"`
+}
+
 func New() *Extended {
 	return &Extended{
-		Bolus: bolus.New(SubType),
+		Bolus: dataTypesBolus.New(SubType),
 	}
 }
 
@@ -37,10 +71,7 @@ func (e *Extended) Parse(parser structure.ObjectParser) {
 
 	e.Bolus.Parse(parser)
 
-	e.Duration = parser.Int("duration")
-	e.DurationExpected = parser.Int("expectedDuration")
-	e.Extended = parser.Float64("extended")
-	e.ExtendedExpected = parser.Float64("expectedExtended")
+	e.ExtendedFields.Parse(parser)
 }
 
 func (e *Extended) Validate(validator structure.Validator) {
@@ -54,28 +85,7 @@ func (e *Extended) Validate(validator structure.Validator) {
 		validator.String("subType", &e.SubType).EqualTo(SubType)
 	}
 
-	validator.Int("duration", e.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
-	durationExpectedValidator := validator.Int("expectedDuration", e.DurationExpected)
-	if e.Duration != nil && *e.Duration >= DurationMinimum && *e.Duration <= DurationMaximum {
-		durationExpectedValidator.InRange(*e.Duration, DurationMaximum)
-	} else {
-		durationExpectedValidator.InRange(DurationMinimum, DurationMaximum)
-	}
-	if e.ExtendedExpected != nil {
-		durationExpectedValidator.Exists()
-	} else {
-		durationExpectedValidator.NotExists()
-	}
-	validator.Float64("extended", e.Extended).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
-	extendedExpectedValidator := validator.Float64("expectedExtended", e.ExtendedExpected)
-	if e.Extended != nil && *e.Extended >= ExtendedMinimum && *e.Extended <= ExtendedMaximum {
-		if *e.Extended == ExtendedMinimum {
-			extendedExpectedValidator.Exists()
-		}
-		extendedExpectedValidator.InRange(*e.Extended, ExtendedMaximum)
-	} else {
-		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
-	}
+	e.ExtendedFields.Validate(validator)
 }
 
 func (e *Extended) Normalize(normalizer data.Normalizer) {

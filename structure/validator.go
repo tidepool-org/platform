@@ -1,6 +1,7 @@
 package structure
 
 import (
+	"cmp"
 	"regexp"
 	"time"
 )
@@ -232,4 +233,8 @@ type Bytes interface {
 	NotEmpty() Bytes
 
 	LengthLessThanOrEqualTo(limit int) Bytes
+}
+
+func InRange[T cmp.Ordered](value T, minimum T, maximum T) bool {
+	return value >= minimum && value <= maximum
 }

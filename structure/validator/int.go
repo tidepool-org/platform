@@ -87,7 +87,7 @@ func (i *Int) GreaterThanOrEqualTo(limit int) structure.Int {
 
 func (i *Int) InRange(lowerLimit int, upperLimit int) structure.Int {
 	if i.value != nil {
-		if *i.value < lowerLimit || *i.value > upperLimit {
+		if !structure.InRange(*i.value, lowerLimit, upperLimit) {
 			i.base.ReportError(ErrorValueNotInRange(*i.value, lowerLimit, upperLimit))
 		}
 	}

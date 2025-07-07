@@ -72,10 +72,10 @@ var _ = Describe("DosingDecision", func() {
 					datum.InsulinOnBoard = dataTypesDosingDecisionTest.RandomInsulinOnBoard()
 					datum.BloodGlucoseTargetSchedule = dataTypesSettingsPumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 					datum.HistoricalBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
-					datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
+					datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomForecastBloodGlucoseArray(unitsBloodGlucose)
 					datum.RecommendedBasal = dataTypesDosingDecisionTest.RandomRecommendedBasal()
-					datum.RecommendedBolus = dataTypesDosingDecisionTest.RandomRecommendedBolus()
-					datum.RequestedBolus = dataTypesDosingDecisionTest.RandomRequestedBolus()
+					datum.RecommendedBolus = dataTypesDosingDecisionTest.RandomBolus()
+					datum.RequestedBolus = dataTypesDosingDecisionTest.RandomBolus()
 					datum.Warnings = dataTypesDosingDecisionTest.RandomIssueArray()
 					datum.Errors = dataTypesDosingDecisionTest.RandomIssueArray()
 					datum.ScheduleTimeZoneOffset = pointer.FromInt(test.RandomIntFromRange(dataTypesDosingDecision.ScheduleTimeZoneOffsetMinimum, dataTypesDosingDecision.ScheduleTimeZoneOffsetMaximum))
@@ -352,7 +352,7 @@ var _ = Describe("DosingDecision", func() {
 				),
 				Entry("forecast blood glucose valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
+						datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomForecastBloodGlucoseArray(unitsBloodGlucose)
 					},
 				),
 				Entry("recommended basal missing",
@@ -378,13 +378,13 @@ var _ = Describe("DosingDecision", func() {
 				),
 				Entry("recommended bolus invalid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.RecommendedBolus.Amount = nil
+						datum.RecommendedBolus = &dataTypesDosingDecision.Bolus{}
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBolus/amount", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/recommendedBolus", NewMeta()),
 				),
 				Entry("recommended bolus valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.RecommendedBolus = dataTypesDosingDecisionTest.RandomRecommendedBolus()
+						datum.RecommendedBolus = dataTypesDosingDecisionTest.RandomBolus()
 					},
 				),
 				Entry("requested bolus missing",
@@ -394,13 +394,13 @@ var _ = Describe("DosingDecision", func() {
 				),
 				Entry("requested bolus invalid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.RequestedBolus.Amount = nil
+						datum.RequestedBolus = &dataTypesDosingDecision.Bolus{}
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/requestedBolus/amount", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/requestedBolus", NewMeta()),
 				),
 				Entry("requested bolus valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.RequestedBolus = dataTypesDosingDecisionTest.RandomRequestedBolus()
+						datum.RequestedBolus = dataTypesDosingDecisionTest.RandomBolus()
 					},
 				),
 				Entry("warnings missing",
@@ -492,8 +492,8 @@ var _ = Describe("DosingDecision", func() {
 						(*datum.HistoricalBloodGlucose)[0].Value = nil
 						(*datum.ForecastBloodGlucose)[0].Value = nil
 						datum.RecommendedBasal.Rate = nil
-						datum.RecommendedBolus.Amount = nil
-						datum.RequestedBolus.Amount = nil
+						datum.RecommendedBolus = &dataTypesDosingDecision.Bolus{}
+						datum.RequestedBolus = &dataTypesDosingDecision.Bolus{}
 						(*datum.Warnings)[0].ID = nil
 						(*datum.Errors)[0].ID = nil
 						datum.ScheduleTimeZoneOffset = pointer.FromInt(-10081)
@@ -510,8 +510,8 @@ var _ = Describe("DosingDecision", func() {
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgHistorical/0/value", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/bgForecast/0/value", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBasal/rate", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/recommendedBolus/amount", &dataTypes.Meta{Type: "invalidType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/requestedBolus/amount", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/recommendedBolus", &dataTypes.Meta{Type: "invalidType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValuesNotExistForAny("amount", "extended", "normal"), "/requestedBolus", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/warnings/0/id", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/errors/0/id", &dataTypes.Meta{Type: "invalidType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-10081, -10080, 10080), "/scheduleTimeZoneOffset", &dataTypes.Meta{Type: "invalidType"}),

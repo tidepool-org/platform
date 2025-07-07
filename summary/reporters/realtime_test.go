@@ -16,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/reporters"
 	. "github.com/tidepool-org/platform/summary/test"
@@ -29,7 +28,6 @@ var _ = Describe("Reporters", func() {
 	var logger log.Logger
 	var ctx context.Context
 	var registry *summary.SummarizerRegistry
-	var config *storeStructuredMongo.Config
 	var store *dataStoreMongo.Store
 	var summaryRepo *storeStructuredMongo.Repository
 	var bucketsRepo *storeStructuredMongo.Repository
@@ -44,11 +42,7 @@ var _ = Describe("Reporters", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
-
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
+			store = GetSuiteStore()
 
 			dataCollection = store.GetCollection("deviceData")
 			summaryRepo = store.NewSummaryRepository().GetStore()
@@ -168,11 +162,7 @@ var _ = Describe("Reporters", func() {
 		BeforeEach(func() {
 			logger = logTest.NewLogger()
 			ctx = log.NewContextWithLogger(context.Background(), logger)
-			config = storeStructuredMongoTest.NewConfig()
-
-			store, err = dataStoreMongo.NewStore(config)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(store.EnsureIndexes()).To(Succeed())
+			store = GetSuiteStore()
 
 			dataCollection = store.GetCollection("deviceData")
 			summaryRepo = store.NewSummaryRepository().GetStore()

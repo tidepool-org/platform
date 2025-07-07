@@ -46,7 +46,7 @@ var _ = ginkgo.AfterSuite(func() {
 	dropTestDatabase(ctx)
 	if suiteStore != nil {
 		// TODO why is this erroring suddenly?
-		//gomega.Expect(suiteStore.Terminate(ctx)).To(gomega.Succeed())
+		gomega.Expect(suiteStore.Terminate(ctx)).To(gomega.Succeed())
 	}
 })
 

@@ -2,35 +2,47 @@ package combination
 
 import (
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolus "github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesBolusExtended "github.com/tidepool-org/platform/data/types/bolus/extended"
+	dataTypesBolusNormal "github.com/tidepool-org/platform/data/types/bolus/normal"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
 	SubType = "dual/square" // TODO: Rename Type to "bolus/combination"; remove SubType
 
-	DurationMaximum = 86400000
-	DurationMinimum = 0
-	ExtendedMaximum = 100.0
-	ExtendedMinimum = 0.0
-	NormalMaximum   = 100.0
-	NormalMinimum   = 0.0
+	DurationMaximum = dataTypesBolusExtended.DurationMaximum
+	DurationMinimum = dataTypesBolusExtended.DurationMinimum
+	ExtendedMaximum = dataTypesBolusExtended.ExtendedMaximum
+	ExtendedMinimum = dataTypesBolusExtended.ExtendedMinimum
+	NormalMaximum   = dataTypesBolusNormal.NormalMaximum
+	NormalMinimum   = dataTypesBolusNormal.NormalMinimum
 )
 
-type Combination struct {
-	bolus.Bolus `bson:",inline"`
+type CombinationFields struct {
+	dataTypesBolusExtended.ExtendedFields `bson:",inline"`
+	dataTypesBolusNormal.NormalFields     `bson:",inline"`
+}
 
-	Duration         *int     `json:"duration,omitempty" bson:"duration,omitempty"`
-	DurationExpected *int     `json:"expectedDuration,omitempty" bson:"expectedDuration,omitempty"`
-	Extended         *float64 `json:"extended,omitempty" bson:"extended,omitempty"`
-	ExtendedExpected *float64 `json:"expectedExtended,omitempty" bson:"expectedExtended,omitempty"`
-	Normal           *float64 `json:"normal,omitempty" bson:"normal,omitempty"`
-	NormalExpected   *float64 `json:"expectedNormal,omitempty" bson:"expectedNormal,omitempty"`
+func (c *CombinationFields) Parse(parser structure.ObjectParser) {
+	c.ExtendedFields.Parse(parser)
+	c.NormalFields.Parse(parser)
+}
+
+func (c *CombinationFields) Validate(validator structure.Validator) {
+	c.ExtendedFields.Validate(validator)
+	c.NormalFields.Validate(validator)
+}
+
+type Combination struct {
+	dataTypesBolus.Bolus `bson:",inline"`
+
+	CombinationFields `bson:",inline"`
 }
 
 func New() *Combination {
 	return &Combination{
-		Bolus: bolus.New(SubType),
+		Bolus: dataTypesBolus.New(SubType),
 	}
 }
 
@@ -41,12 +53,7 @@ func (c *Combination) Parse(parser structure.ObjectParser) {
 
 	c.Bolus.Parse(parser)
 
-	c.Duration = parser.Int("duration")
-	c.DurationExpected = parser.Int("expectedDuration")
-	c.Extended = parser.Float64("extended")
-	c.ExtendedExpected = parser.Float64("expectedExtended")
-	c.Normal = parser.Float64("normal")
-	c.NormalExpected = parser.Float64("expectedNormal")
+	c.CombinationFields.Parse(parser)
 }
 
 func (c *Combination) Validate(validator structure.Validator) {
@@ -60,68 +67,7 @@ func (c *Combination) Validate(validator structure.Validator) {
 		validator.String("subType", &c.SubType).EqualTo(SubType)
 	}
 
-	if c.NormalExpected != nil {
-		validator.Int("duration", c.Duration).Exists().EqualTo(DurationMinimum)
-		validator.Int("expectedDuration", c.DurationExpected).Exists().InRange(DurationMinimum, DurationMaximum)
-		validator.Float64("extended", c.Extended).Exists().EqualTo(ExtendedMinimum)
-		extendedExpectedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
-		extendedExpectedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
-		if c.Normal != nil {
-			if *c.Normal == NormalMinimum {
-				if c.ExtendedExpected == nil {
-					validator.Float64("expectedNormal", c.NormalExpected).GreaterThan(NormalMinimum)
-				}
-				extendedExpectedValidator.GreaterThan(ExtendedMinimum)
-			} else {
-				extendedExpectedValidator.Exists()
-			}
-		}
-	} else {
-		validator.Int("duration", c.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
-		expectedDurationValidator := validator.Int("expectedDuration", c.DurationExpected)
-		if c.Duration != nil && *c.Duration >= DurationMinimum && *c.Duration <= DurationMaximum {
-			expectedDurationValidator.InRange(*c.Duration, DurationMaximum)
-		} else {
-			expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
-		}
-		if c.ExtendedExpected != nil {
-			expectedDurationValidator.Exists()
-		} else {
-			expectedDurationValidator.NotExists()
-		}
-		validator.Float64("extended", c.Extended).Exists().InRange(ExtendedMinimum, ExtendedMaximum)
-		expectedExtendedValidator := validator.Float64("expectedExtended", c.ExtendedExpected)
-		if c.Extended != nil && *c.Extended >= ExtendedMinimum && *c.Extended <= ExtendedMaximum {
-			if *c.Extended == ExtendedMinimum {
-				if c.Normal != nil && *c.Normal == NormalMinimum {
-					expectedExtendedValidator.GreaterThan(ExtendedMinimum)
-				}
-				expectedExtendedValidator.Exists()
-			}
-			expectedExtendedValidator.InRange(*c.Extended, ExtendedMaximum)
-		} else {
-			expectedExtendedValidator.InRange(ExtendedMinimum, ExtendedMaximum)
-		}
-	}
-	validator.Float64("normal", c.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
-	expectedNormalValidator := validator.Float64("expectedNormal", c.NormalExpected)
-	if c.Normal != nil && *c.Normal >= NormalMinimum && *c.Normal <= NormalMaximum {
-		if *c.Normal == NormalMinimum {
-			// If Normal is zero, then _either_:
-			if c.Extended != nil {
-				if c.NormalExpected == nil {
-					validator.Float64("extended", c.Extended).GreaterThanOrEqualTo(ExtendedMinimum)
-				} else {
-					validator.Float64("extended", c.Extended).Exists()
-				}
-			} else {
-				expectedNormalValidator.GreaterThan(NormalMinimum)
-			}
-		}
-		expectedNormalValidator.InRange(*c.Normal, NormalMaximum)
-	} else {
-		expectedNormalValidator.InRange(NormalMinimum, NormalMaximum)
-	}
+	c.CombinationFields.Validate(validator)
 }
 
 func (c *Combination) Normalize(normalizer data.Normalizer) {
