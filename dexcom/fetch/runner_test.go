@@ -429,27 +429,6 @@ var _ = Describe("Runner", func() {
 						assertProviderSessionNotRefreshed()
 					})
 
-					It("fails if get data ranges refreshes the token and returns an error when updating the provider session", func() {
-						testErr := errorsTest.RandomError()
-						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, nil)).Times(1)
-						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).Return(nil, testErr).Times(1)
-						taskRunner.Run(ctx)
-						assertTaskAndDataSourceState(task.TaskStatePending)
-						assertTaskRetryCountNotPresent()
-						assertTaskAndDataSourceError(dexcomFetch.ErrorCodeResourceFailure, "unable to update provider session")
-						assertProviderSessionNotRefreshed()
-					})
-
-					It("fails if get data ranges refreshes the token and returns no provider session when updating the provider session", func() {
-						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, nil)).Times(1)
-						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).Return(nil, nil).Times(1)
-						taskRunner.Run(ctx)
-						assertTaskAndDataSourceState(task.TaskStateFailed)
-						assertTaskRetryCountNotPresent()
-						assertTaskAndDataSourceError(dexcomFetch.ErrorCodeInvalidState, "provider session is missing")
-						assertProviderSessionNotRefreshed()
-					})
-
 					It("fails if get data ranges refreshes the token and returns a general error", func() {
 						testErr := errorsTest.RandomError()
 						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, testErr)).Times(1)
@@ -511,32 +490,12 @@ var _ = Describe("Runner", func() {
 						It("fails if get alerts returns a general error", func() {
 							testErr := errorsTest.RandomError()
 							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](nil, nil, testErr)).Times(1)
+							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
 							assertTaskAndDataSourceError(dexcomFetch.ErrorCodeResourceFailure, testErr.Error())
-							assertProviderSessionRefreshedTimes(1)
-						})
-
-						It("fails if get alerts refreshes the token and returns an error when updating the provider session", func() {
-							testErr := errorsTest.RandomError()
-							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, nil)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).Return(nil, testErr).Times(1)
-							taskRunner.Run(ctx)
-							assertTaskAndDataSourceState(task.TaskStatePending)
-							assertTaskRetryCountNotPresent()
-							assertTaskAndDataSourceError(dexcomFetch.ErrorCodeResourceFailure, "unable to update provider session")
-							assertProviderSessionRefreshedTimes(1)
-						})
-
-						It("fails if get alerts refreshes the token and returns no provider session when updating the provider session", func() {
-							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, nil)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).Return(nil, nil).Times(1)
-							taskRunner.Run(ctx)
-							assertTaskAndDataSourceState(task.TaskStateFailed)
-							assertTaskRetryCountNotPresent()
-							assertTaskAndDataSourceError(dexcomFetch.ErrorCodeInvalidState, "provider session is missing")
-							assertProviderSessionRefreshedTimes(1)
+							assertProviderSessionRefreshedTimes(2)
 						})
 
 						It("fails if get alerts refreshes the token and returns a general error", func() {
@@ -590,6 +549,7 @@ var _ = Describe("Runner", func() {
 								dexcomClient.EXPECT().GetEGVs(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, egvsResponse, nil)).Times(1)
 								eventsResponse = &dexcom.EventsResponse{Records: &dexcom.Events{}}
 								dexcomClient.EXPECT().GetEvents(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, eventsResponse, nil)).Times(1)
+								authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(5)
 							})
 
 							assertTaskDeviceHashesCount := func(count int) {
@@ -614,7 +574,7 @@ var _ = Describe("Runner", func() {
 								assertTaskDeviceHashesCount(3)
 								assertTaskRetryCountNotPresent()
 								assertTaskAndDataSourceErrorNotPresent()
-								assertProviderSessionRefreshedTimes(1)
+								assertProviderSessionRefreshedTimes(6)
 							})
 						})
 					})
@@ -683,6 +643,7 @@ func mockDexcomClientGetDataRange(mockTokenSource *MockTokenSource, response *de
 	}
 	return func(ctx context.Context, lastSyncTime *time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangesResponse, error) {
 		tokenSource.HTTPClient(ctx, mockTokenSource)
+		tokenSource.UpdateToken()
 		return response, err
 	}
 }
@@ -693,6 +654,7 @@ func mockDexcomClientGetData[T any](mockTokenSource *MockTokenSource, response *
 	}
 	return func(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*T, error) {
 		tokenSource.HTTPClient(ctx, mockTokenSource)
+		tokenSource.UpdateToken()
 		return response, err
 	}
 }
@@ -708,16 +670,15 @@ func (m *MockTokenSource) TokenSource(ctx context.Context, token *auth.OAuthToke
 }
 
 func (m *MockTokenSource) Token() (*oauth2.Token, error) {
-	if !m.Refresh {
-		return m.token.RawToken(), nil
-	} else {
-		return &oauth2.Token{
-			AccessToken:  fmt.Sprintf("%s*", m.token.AccessToken),
-			TokenType:    m.token.TokenType,
-			RefreshToken: fmt.Sprintf("%s*", m.token.RefreshToken),
-			Expiry:       time.Now().Add(time.Minute),
-		}, nil
+	if m.Refresh {
+		m.token = &auth.OAuthToken{
+			AccessToken:    fmt.Sprintf("%s*", m.token.AccessToken),
+			TokenType:      m.token.TokenType,
+			RefreshToken:   fmt.Sprintf("%s*", m.token.RefreshToken),
+			ExpirationTime: time.Now().Add(time.Minute),
+		}
 	}
+	return m.token.RawToken(), nil
 }
 
 func matchContext() gomock.Matcher {

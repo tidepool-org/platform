@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/oauth"
 )
 
@@ -18,23 +17,20 @@ type HTTPClientOutput struct {
 	Error      error
 }
 
-type RefreshedTokenOutput struct {
-	Token *auth.OAuthToken
-	Error error
-}
-
 type TokenSource struct {
-	HTTPClientInvocations     int
-	HTTPClientInputs          []HTTPClientInput
-	HTTPClientStub            func(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error)
-	HTTPClientOutputs         []HTTPClientOutput
-	HTTPClientOutput          *HTTPClientOutput
-	RefreshedTokenInvocations int
-	RefreshedTokenStub        func() (*auth.OAuthToken, error)
-	RefreshedTokenOutputs     []RefreshedTokenOutput
-	RefreshedTokenOutput      *RefreshedTokenOutput
-	ExpireTokenInvocations    int
-	ExpireTokenStub           func()
+	HTTPClientInvocations  int
+	HTTPClientInputs       []HTTPClientInput
+	HTTPClientStub         func(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error)
+	HTTPClientOutputs      []HTTPClientOutput
+	HTTPClientOutput       *HTTPClientOutput
+	UpdateTokenInvocations int
+	UpdateTokenStub        func() error
+	UpdateTokenOutputs     []error
+	UpdateTokenOutput      error
+	ExpireTokenInvocations int
+	ExpireTokenStub        func() error
+	ExpireTokenOutputs     []error
+	ExpireTokenOutput      error
 }
 
 func NewTokenSource() *TokenSource {
@@ -58,34 +54,46 @@ func (t *TokenSource) HTTPClient(ctx context.Context, tokenSourceSource oauth.To
 	panic("HTTPClient has no output")
 }
 
-func (t *TokenSource) RefreshedToken() (*auth.OAuthToken, error) {
-	t.RefreshedTokenInvocations++
-	if t.RefreshedTokenStub != nil {
-		return t.RefreshedTokenStub()
+func (t *TokenSource) UpdateToken() error {
+	t.UpdateTokenInvocations++
+	if t.UpdateTokenStub != nil {
+		return t.UpdateTokenStub()
 	}
-	if len(t.RefreshedTokenOutputs) > 0 {
-		output := t.RefreshedTokenOutputs[0]
-		t.RefreshedTokenOutputs = t.RefreshedTokenOutputs[1:]
-		return output.Token, output.Error
+	if len(t.UpdateTokenOutputs) > 0 {
+		output := t.UpdateTokenOutputs[0]
+		t.UpdateTokenOutputs = t.UpdateTokenOutputs[1:]
+		return output
 	}
-	if t.RefreshedTokenOutput != nil {
-		return t.RefreshedTokenOutput.Token, t.RefreshedTokenOutput.Error
+	if t.UpdateTokenOutput != nil {
+		return t.UpdateTokenOutput
 	}
-	panic("RefreshedToken has no output")
+	panic("UpdateToken has no output")
 }
 
-func (t *TokenSource) ExpireToken() {
+func (t *TokenSource) ExpireToken() error {
 	t.ExpireTokenInvocations++
 	if t.ExpireTokenStub != nil {
-		t.ExpireTokenStub()
+		return t.ExpireTokenStub()
 	}
+	if len(t.ExpireTokenOutputs) > 0 {
+		output := t.ExpireTokenOutputs[0]
+		t.ExpireTokenOutputs = t.ExpireTokenOutputs[1:]
+		return output
+	}
+	if t.ExpireTokenOutput != nil {
+		return t.ExpireTokenOutput
+	}
+	panic("ExpireToken has no output")
 }
 
 func (t *TokenSource) AssertOutputsEmpty() {
 	if len(t.HTTPClientOutputs) > 0 {
 		panic("HTTPClientOutputs is not empty")
 	}
-	if len(t.RefreshedTokenOutputs) > 0 {
-		panic("RefreshedTokenOutputs is not empty")
+	if len(t.UpdateTokenOutputs) > 0 {
+		panic("UpdateTokenOutputs is not empty")
+	}
+	if len(t.ExpireTokenOutputs) > 0 {
+		panic("ExpireTokenOutputs is not empty")
 	}
 }

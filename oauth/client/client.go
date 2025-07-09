@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/request"
 )
@@ -54,7 +55,9 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 	// expired, send request again, and it will attempt to use the refresh token to
 	// generate a new access token
 	if oauth.IsAccessTokenError(err) {
-		tokenSource.ExpireToken()
+		if tokenErr := tokenSource.ExpireToken(); tokenErr != nil {
+			log.LoggerFromContext(ctx).WithError(tokenErr).Error("unable to expire token")
+		}
 		err = c.sendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
 	}
 
@@ -72,5 +75,11 @@ func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string
 		return err
 	}
 
-	return c.baseClient.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+	err = c.baseClient.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
+
+	if tokenErr := tokenSource.UpdateToken(); tokenErr != nil {
+		log.LoggerFromContext(ctx).WithError(tokenErr).Error("unable to update token")
+	}
+
+	return err
 }

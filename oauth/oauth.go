@@ -35,8 +35,8 @@ type Provider interface {
 type TokenSource interface {
 	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
-	RefreshedToken() (*auth.OAuthToken, error)
-	ExpireToken()
+	UpdateToken() error
+	ExpireToken() error
 }
 
 func IsAccessTokenError(err error) bool {
