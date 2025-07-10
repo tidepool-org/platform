@@ -120,7 +120,8 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, 
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
-	return gs.summaries.SetOutdated(ctx, userId, reason)
+	summaryType := types.GetType[PP, PB]()
+	return gs.events.SetOutdated(ctx, userId, summaryType, reason)
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, p *page.Pagination) (*types.OutdatedSummariesResponse, error) {

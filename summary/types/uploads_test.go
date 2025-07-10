@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -44,6 +45,7 @@ var _ = Describe("Upload Helpers", func() {
 
 		summaryRepo = store.NewSummaryRepository().GetStore()
 		bucketsRepo = store.NewBucketsRepository().GetStore()
+		eventsRepo = store.NewEventsRepository().GetStore()
 		dataRepo = store.NewDataRepository()
 		registry = summary.New(summaryRepo, bucketsRepo, eventsRepo, dataRepo, store.GetClient())
 		userId = userTest.RandomID()
@@ -68,6 +70,15 @@ var _ = Describe("Upload Helpers", func() {
 				"bgm": empty,
 				"con": empty,
 			}
+			cgmSummary := RandomCGMSummary(userId)
+			_, err := cgmStore.CreateSummaries(ctx, []*CGMSummary{cgmSummary})
+			Expect(err).To(Succeed())
+			bgmSummary := RandomBGMSummary(userId)
+			_, err = bgmStore.CreateSummaries(ctx, []*BGMSummary{bgmSummary})
+			Expect(err).To(Succeed())
+			conSummary := RandomContinuousSummary(userId)
+			_, err = continuousStore.CreateSummaries(ctx, []*ContinuousSummary{conSummary})
+			Expect(err).To(Succeed())
 
 			outdatedSinceMap := summary.MaybeUpdateSummary(ctx, registry, updatesSummary, userId, OutdatedReasonDataAdded)
 			Expect(outdatedSinceMap).To(HaveLen(3))
@@ -75,17 +86,24 @@ var _ = Describe("Upload Helpers", func() {
 			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeBGM))
 			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeContinuous))
 
-			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeCGM]))
+			cur, err := eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "cgm"})
+			Expect(err).To(Succeed())
+			event := &dataStoreSummary.SummaryEvent{}
+			Expect(cur.Next(ctx)).To(BeTrue())
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeCGM]).Truncate(time.Millisecond)).To(Equal(event.Time))
 
-			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeBGM]))
+			cur, err = eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "bgm"})
+			Expect(err).To(Succeed())
+			Expect(cur.Next(ctx)).To(BeTrue())
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeBGM]).Truncate(time.Millisecond)).To(Equal(event.Time))
 
-			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeContinuous]))
+			cur, err = eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "con"})
+			Expect(err).To(Succeed())
+			Expect(cur.Next(ctx)).To(BeTrue())
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeContinuous]).Truncate(time.Millisecond)).To(Equal(event.Time))
 		})
 
 		It("with cgm summary type outdated", func() {
@@ -97,9 +115,12 @@ var _ = Describe("Upload Helpers", func() {
 			Expect(outdatedSinceMap).To(HaveLen(1))
 			Expect(outdatedSinceMap).To(HaveKey(SummaryTypeCGM))
 
-			userCgmSummary, err := cgmStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userCgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeCGM]))
+			cur, err := eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "cgm"})
+			Expect(err).To(Succeed())
+			event := &dataStoreSummary.SummaryEvent{}
+			Expect(cur.Next(ctx)).To(BeTrue())
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeCGM]).Truncate(time.Millisecond)).To(Equal(event.Time))
 
 			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -123,9 +144,12 @@ var _ = Describe("Upload Helpers", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userCgmSummary).To(BeNil())
 
-			userBgmSummary, err := bgmStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userBgmSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeBGM]))
+			cur, err := eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "bgm"})
+			Expect(err).To(Succeed())
+			Expect(cur.Next(ctx)).To(BeTrue())
+			event := &dataStoreSummary.SummaryEvent{}
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeBGM]).Truncate(time.Millisecond)).To(Equal(event.Time))
 
 			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
 			Expect(err).ToNot(HaveOccurred())
@@ -149,9 +173,12 @@ var _ = Describe("Upload Helpers", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userBgmSummary).To(BeNil())
 
-			userContinuousSummary, err := continuousStore.GetSummary(ctx, userId)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(*userContinuousSummary.Dates.OutdatedSince).To(Equal(*outdatedSinceMap[SummaryTypeContinuous]))
+			cur, err := eventsRepo.Find(ctx, bson.M{"userId": userId, "type": "con"})
+			Expect(err).To(Succeed())
+			Expect(cur.Next(ctx)).To(BeTrue())
+			event := &dataStoreSummary.SummaryEvent{}
+			Expect(cur.Decode(event)).To(Succeed())
+			Expect((*outdatedSinceMap[SummaryTypeContinuous]).Truncate(time.Millisecond)).To(Equal(event.Time))
 		})
 
 		It("with unknown summary type outdated", func() {

@@ -18,6 +18,7 @@ import (
 type EventsRepository interface {
 	CountDocuments(context.Context, any, ...*options.CountOptions) (int64, error)
 	Find(context.Context, any, ...*options.FindOptions) (*mongo.Cursor, error)
+	FindOneAndUpdate(ctx context.Context, filter any, update any, opts ...*options.FindOneAndUpdateOptions) *mongo.SingleResult
 }
 
 type Events struct {
@@ -69,6 +70,27 @@ func (e *Events) GetOutdatedUserIDs(ctx context.Context, summaryType string,
 		Start:   start,
 		End:     end,
 	}, nil
+}
+
+func (e *Events) SetOutdated(ctx context.Context, userId, summaryType, reason string) (*time.Time, error) {
+	filter := bson.M{
+		"userId": userId,
+		"type":   summaryType,
+	}
+	outdated := time.Now().UTC()
+	update := bson.M{
+		"$set": SummaryEvent{
+			UserID: userId,
+			Reason: reason,
+			Type:   summaryType,
+			Time:   outdated,
+		},
+	}
+	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
+	if err := e.repo.FindOneAndUpdate(ctx, filter, update, opts).Err(); err != nil {
+		return nil, errors.Wrap(err, "unable to set summary as outdated")
+	}
+	return &outdated, nil
 }
 
 // updateMetrics for visibility via Prometheus.

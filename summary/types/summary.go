@@ -122,6 +122,12 @@ type Summary[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData
 	Periods PP `json:"periods" bson:"periods"`
 }
 
+type (
+	BGMSummary        = Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	CGMSummary        = Summary[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket]
+	ContinuousSummary = Summary[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
+)
+
 func NewConfig() Config {
 	return Config{
 		SchemaVersion:            SchemaVersion,

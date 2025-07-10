@@ -50,8 +50,8 @@ var _ = Describe("End to end summary calculations", func() {
 	var userId string
 	var datumTime time.Time
 	var deviceData []mongo.WriteModel
-	//var cgmStore *dataStoreSummary.Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
-	var bgmStore *store.Summaries[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
+	var cgmStore *store.CGMSummaries
+	var bgmStore *store.BGMSummaries
 	var cgmBucketsStore *store.Buckets[*GlucoseBucket, GlucoseBucket]
 	var bgmBucketsStore *store.Buckets[*GlucoseBucket, GlucoseBucket]
 	var conBucketsStore *store.Buckets[*ContinuousBucket, ContinuousBucket]
@@ -78,7 +78,7 @@ var _ = Describe("End to end summary calculations", func() {
 		datumTime = time.Now().UTC().Truncate(time.Hour)
 		dataCollection = mongoStore.GetCollection("deviceData")
 
-		//cgmStore = dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepo)
+		cgmStore = store.NewSummaries[*CGMPeriods, *GlucoseBucket](summaryRepo)
 		bgmStore = store.NewSummaries[*BGMPeriods, *GlucoseBucket](summaryRepo)
 		cgmBucketsStore = store.NewBuckets[*GlucoseBucket](bucketsRepo, SummaryTypeCGM)
 		bgmBucketsStore = store.NewBuckets[*GlucoseBucket](bucketsRepo, SummaryTypeBGM)
@@ -270,8 +270,10 @@ var _ = Describe("End to end summary calculations", func() {
 		var t *time.Time
 
 		// create bgm summary
-		t, err = bgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
-		Expect(err).ToNot(HaveOccurred())
+		bgmSummary := RandomBGMSummary(userId)
+		t = bgmSummary.Dates.OutdatedSince
+		_, err = bgmStore.CreateSummaries(ctx, []*BGMSummary{bgmSummary})
+		Expect(err).To(Succeed())
 
 		// check that it exists in the db
 		bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
@@ -280,8 +282,11 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Dates.OutdatedSince).To(Equal(t))
 
 		// create cgm summary
-		t, err = cgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
-		Expect(err).ToNot(HaveOccurred())
+		cgmSummary := RandomCGMSummary(userId)
+		t = cgmSummary.Dates.OutdatedSince
+		_, err = cgmStore.CreateSummaries(ctx, []*CGMSummary{cgmSummary})
+		Expect(err).To(Succeed())
+
 		// check that it exists in the db
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
@@ -624,4 +629,8 @@ func (m *mockEventsRepository) setFindResponse(docs []any) {
 	cursor, err := mongo.NewCursorFromDocuments(docs, nil, nil)
 	Expect(err).To(Succeed())
 	m.FindCursor = cursor
+}
+
+func (m *mockEventsRepository) FindOneAndUpdate(ctx context.Context, filter any, update any, opts ...*options.FindOneAndUpdateOptions) *mongo.SingleResult {
+	panic("not implemented") // TODO: Implement
 }

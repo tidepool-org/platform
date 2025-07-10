@@ -33,6 +33,11 @@ type Summaries[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.P
 	*storeStructuredMongo.Repository
 }
 
+type (
+	BGMSummaries = Summaries[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]
+	CGMSummaries = Summaries[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]
+)
+
 type TypelessSummaries struct {
 	*storeStructuredMongo.Repository
 }
