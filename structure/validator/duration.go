@@ -89,7 +89,7 @@ func (d *Duration) GreaterThanOrEqualTo(limit time.Duration) structure.Duration 
 
 func (d *Duration) InRange(lowerLimit time.Duration, upperLimit time.Duration) structure.Duration {
 	if d.value != nil {
-		if *d.value < lowerLimit || *d.value > upperLimit {
+		if !structure.InRange(*d.value, lowerLimit, upperLimit) {
 			d.base.ReportError(ErrorValueNotInRange(*d.value, lowerLimit, upperLimit))
 		}
 	}

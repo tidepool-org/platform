@@ -19,30 +19,30 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-var _ = Describe("BloodGlucose", func() {
-	It("BloodGlucoseArrayLengthMaximum is expected", func() {
-		Expect(dataTypesDosingDecision.BloodGlucoseArrayLengthMaximum).To(Equal(1440))
+var _ = Describe("ForecastBloodGlucose", func() {
+	It("ForecastBloodGlucoseArrayLengthMaximum is expected", func() {
+		Expect(dataTypesDosingDecision.ForecastBloodGlucoseArrayLengthMaximum).To(Equal(1440))
 	})
 
-	Context("BloodGlucose", func() {
+	Context("ForecastBloodGlucose", func() {
 		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *dataTypesDosingDecision.BloodGlucose)) {
+			func(mutator func(datum *dataTypesDosingDecision.ForecastBloodGlucose)) {
 				units := pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.Units()))
-				datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
+				datum := dataTypesDosingDecisionTest.RandomForecastBloodGlucose(units)
 				mutator(datum)
-				test.ExpectSerializedObjectJSON(datum, dataTypesDosingDecisionTest.NewObjectFromBloodGlucose(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedObjectBSON(datum, dataTypesDosingDecisionTest.NewObjectFromBloodGlucose(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesDosingDecisionTest.NewObjectFromForecastBloodGlucose(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataTypesDosingDecisionTest.NewObjectFromForecastBloodGlucose(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
-				func(datum *dataTypesDosingDecision.BloodGlucose) {},
+				func(datum *dataTypesDosingDecision.ForecastBloodGlucose) {},
 			),
 			Entry("empty",
-				func(datum *dataTypesDosingDecision.BloodGlucose) {
-					*datum = *dataTypesDosingDecision.NewBloodGlucose()
+				func(datum *dataTypesDosingDecision.ForecastBloodGlucose) {
+					*datum = *dataTypesDosingDecision.NewForecastBloodGlucose()
 				},
 			),
 			Entry("all",
-				func(datum *dataTypesDosingDecision.BloodGlucose) {
+				func(datum *dataTypesDosingDecision.ForecastBloodGlucose) {
 					datum.Time = pointer.FromTime(test.RandomTime())
 					datum.Value = pointer.FromFloat64(test.RandomFloat64FromRange(dataBloodGlucose.ValueRangeForUnits(pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.Units())))))
 				},
@@ -75,21 +75,21 @@ var _ = Describe("BloodGlucose", func() {
 
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
-				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.BloodGlucose), expectedErrors ...error) {
+				func(mutator func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose), expectedErrors ...error) {
 					units := pointer.FromString(test.RandomStringFromArray(dataBloodGlucose.Units()))
-					expectedDatum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
-					object := dataTypesDosingDecisionTest.NewObjectFromBloodGlucose(expectedDatum, test.ObjectFormatJSON)
+					expectedDatum := dataTypesDosingDecisionTest.RandomForecastBloodGlucose(units)
+					object := dataTypesDosingDecisionTest.NewObjectFromForecastBloodGlucose(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
-					datum := dataTypesDosingDecision.NewBloodGlucose()
+					datum := dataTypesDosingDecision.NewForecastBloodGlucose()
 					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
 				Entry("succeeds",
-					func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.BloodGlucose) {
+					func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose) {
 					},
 				),
 				Entry("multiple errors",
-					func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.BloodGlucose) {
+					func(object map[string]interface{}, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose) {
 						object["time"] = true
 						object["value"] = true
 						expectedDatum.Time = nil
@@ -103,140 +103,83 @@ var _ = Describe("BloodGlucose", func() {
 
 		Context("Validate", func() {
 			DescribeTable("return the expected results when the input",
-				func(units *string, mutator func(datum *dataTypesDosingDecision.BloodGlucose, units *string), expectedErrors ...error) {
-					datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
+				func(units *string, mutator func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string), expectedErrors ...error) {
+					datum := dataTypesDosingDecisionTest.RandomForecastBloodGlucose(units)
 					mutator(datum, units)
 					dataTypesTest.ValidateWithExpectedOrigins(structureValidator.NewValidatableWithStringAdapter(datum, units), structure.Origins(), expectedErrors...)
 				},
 				Entry("succeeds",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 				),
 				Entry("time missing",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
 						datum.Time = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
 				Entry("time exists",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
 						datum.Time = pointer.FromTime(test.RandomTime())
 					},
 				),
 				Entry("value missing",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) { datum.Value = nil },
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) { datum.Value = nil },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
 				),
 				Entry("units mmol/L; value; out of range (lower)",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(-0.1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 55), "/value"),
-				),
-				Entry("units mmol/L; value; in range (lower)",
-					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(0)
-					},
-				),
-				Entry("units mmol/L; value; in range (upper)",
-					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(55)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(-999999)
 					},
 				),
 				Entry("units mmol/L; value; out of range (upper)",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(55.1)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(999999)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0, 55), "/value"),
 				),
 				Entry("units mmol/l; value; out of range (lower)",
 					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(-0.1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 55), "/value"),
-				),
-				Entry("units mmol/l; value; in range (lower)",
-					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(0)
-					},
-				),
-				Entry("units mmol/l; value; in range (upper)",
-					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(55)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(-999999)
 					},
 				),
 				Entry("units mmol/l; value; out of range (upper)",
 					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(55.1)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(999999)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(55.1, 0, 55), "/value"),
 				),
 				Entry("units mg/dL; value; out of range (lower)",
 					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(-0.1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/value"),
-				),
-				Entry("units mg/dL; value; in range (lower)",
-					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(0)
-					},
-				),
-				Entry("units mg/dL; value; in range (upper)",
-					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(1000)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(-999999)
 					},
 				),
 				Entry("units mg/dL; value; out of range (upper)",
 					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(1000.1)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(999999)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0, 1000), "/value"),
 				),
 				Entry("units mg/dl; value; out of range (lower)",
 					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(-0.1)
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(-0.1, 0, 1000), "/value"),
-				),
-				Entry("units mg/dl; value; in range (lower)",
-					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(0)
-					},
-				),
-				Entry("units mg/dl; value; in range (upper)",
-					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(1000)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(-999999)
 					},
 				),
 				Entry("units mg/dl; value; out of range (upper)",
 					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
-						datum.Value = pointer.FromFloat64(1000.1)
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
+						datum.Value = pointer.FromFloat64(999999)
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotInRange(1000.1, 0, 1000), "/value"),
 				),
 				Entry("multiple errors",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
 						datum.Value = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/value"),
@@ -246,10 +189,10 @@ var _ = Describe("BloodGlucose", func() {
 
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum with origin external",
-				func(units *string, mutator func(datum *dataTypesDosingDecision.BloodGlucose, units *string), expectator func(datum *dataTypesDosingDecision.BloodGlucose, expectedDatum *dataTypesDosingDecision.BloodGlucose, units *string)) {
-					datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
+				func(units *string, mutator func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string), expectator func(datum *dataTypesDosingDecision.ForecastBloodGlucose, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose, units *string)) {
+					datum := dataTypesDosingDecisionTest.RandomForecastBloodGlucose(units)
 					mutator(datum, units)
-					expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucose(datum)
+					expectedDatum := dataTypesDosingDecisionTest.CloneForecastBloodGlucose(datum)
 					normalizer := dataNormalizer.New(logTest.NewLogger())
 					Expect(normalizer).ToNot(BeNil())
 					datum.Normalize(normalizer.WithOrigin(structure.OriginExternal), units)
@@ -262,46 +205,46 @@ var _ = Describe("BloodGlucose", func() {
 				},
 				Entry("does not modify the datum; units missing",
 					nil,
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
 					pointer.FromString("invalid"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/L",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
 					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
-					func(datum *dataTypesDosingDecision.BloodGlucose, expectedDatum *dataTypesDosingDecision.BloodGlucose, units *string) {
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					},
 				),
 				Entry("modifies the datum; units mg/dl",
 					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
-					func(datum *dataTypesDosingDecision.BloodGlucose, expectedDatum *dataTypesDosingDecision.BloodGlucose, units *string) {
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {
 						dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					},
 				),
 			)
 
 			DescribeTable("normalizes the datum with origin internal/store",
-				func(units *string, mutator func(datum *dataTypesDosingDecision.BloodGlucose, units *string), expectator func(datum *dataTypesDosingDecision.BloodGlucose, expectedDatum *dataTypesDosingDecision.BloodGlucose, units *string)) {
+				func(units *string, mutator func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string), expectator func(datum *dataTypesDosingDecision.ForecastBloodGlucose, expectedDatum *dataTypesDosingDecision.ForecastBloodGlucose, units *string)) {
 					for _, origin := range []structure.Origin{structure.OriginInternal, structure.OriginStore} {
-						datum := dataTypesDosingDecisionTest.RandomBloodGlucose(units)
+						datum := dataTypesDosingDecisionTest.RandomForecastBloodGlucose(units)
 						mutator(datum, units)
-						expectedDatum := dataTypesDosingDecisionTest.CloneBloodGlucose(datum)
+						expectedDatum := dataTypesDosingDecisionTest.CloneForecastBloodGlucose(datum)
 						normalizer := dataNormalizer.New(logTest.NewLogger())
 						Expect(normalizer).ToNot(BeNil())
 						datum.Normalize(normalizer.WithOrigin(origin), units)
@@ -315,32 +258,32 @@ var _ = Describe("BloodGlucose", func() {
 				},
 				Entry("does not modify the datum; units missing",
 					nil,
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units invalid",
 					pointer.FromString("invalid"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/L",
 					pointer.FromString("mmol/L"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("does not modify the datum; units mmol/l",
 					pointer.FromString("mmol/l"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dL",
 					pointer.FromString("mg/dL"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 				Entry("modifies the datum; units mg/dl",
 					pointer.FromString("mg/dl"),
-					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {},
+					func(datum *dataTypesDosingDecision.ForecastBloodGlucose, units *string) {},
 					nil,
 				),
 			)

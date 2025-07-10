@@ -72,7 +72,7 @@ var _ = Describe("DosingDecision", func() {
 					datum.InsulinOnBoard = dataTypesDosingDecisionTest.RandomInsulinOnBoard()
 					datum.BloodGlucoseTargetSchedule = dataTypesSettingsPumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 					datum.HistoricalBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
-					datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
+					datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomForecastBloodGlucoseArray(unitsBloodGlucose)
 					datum.RecommendedBasal = dataTypesDosingDecisionTest.RandomRecommendedBasal()
 					datum.RecommendedBolus = dataTypesDosingDecisionTest.RandomBolus()
 					datum.RequestedBolus = dataTypesDosingDecisionTest.RandomBolus()
@@ -352,7 +352,7 @@ var _ = Describe("DosingDecision", func() {
 				),
 				Entry("forecast blood glucose valid",
 					func(datum *dataTypesDosingDecision.DosingDecision, unitsBloodGlucose *string) {
-						datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomBloodGlucoseArray(unitsBloodGlucose)
+						datum.ForecastBloodGlucose = dataTypesDosingDecisionTest.RandomForecastBloodGlucoseArray(unitsBloodGlucose)
 					},
 				),
 				Entry("recommended basal missing",
