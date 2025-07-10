@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -168,9 +169,16 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		if userSummary.Config.SchemaVersion != types.SchemaVersion {
-			userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
-			userSummary.Dates.Reset()
-
+			_, err = gs.events.SetOutdated(ctx, userId, summaryType, types.OutdatedReasonSchemaMigration)
+			if err != nil {
+				return nil, err
+			}
+			reasons := userSummary.Dates.OutdatedReason
+			if !slices.Contains(reasons, types.OutdatedReasonSchemaMigration) {
+				reasons = append(reasons, types.OutdatedReasonSchemaMigration)
+			}
+			userSummary = types.Create[PP, PB](userId)
+			userSummary.Dates.OutdatedReason = reasons
 			// Drop all buckets for this user for a full reset
 			err = gs.buckets.Reset(sessionCtx, userId)
 			if err != nil {

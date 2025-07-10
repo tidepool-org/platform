@@ -79,11 +79,13 @@ func (e *Events) SetOutdated(ctx context.Context, userId, summaryType, reason st
 	}
 	outdated := time.Now().UTC()
 	update := bson.M{
-		"$set": SummaryEvent{
-			UserID: userId,
-			Reason: reason,
-			Type:   summaryType,
-			Time:   outdated,
+		"$set": bson.M{
+			"userId": userId,
+			"type":   summaryType,
+			"time":   outdated,
+		},
+		"$addToSet": bson.M{
+			"reasons": reason,
 		},
 	}
 	opts := options.FindOneAndUpdate().SetUpsert(true).SetReturnDocument(options.After)
@@ -119,8 +121,8 @@ func (e *Events) log(ctx context.Context) log.Logger {
 }
 
 type SummaryEvent struct {
-	UserID string    `json:"userId" bson:"user_id"`
-	Time   time.Time `json:"time" bson:"time"`
-	Type   string    `json:"type" bson:"type"`
-	Reason string    `json:"reason" bson:"reason"`
+	UserID  string    `json:"userId" bson:"user_id"`
+	Time    time.Time `json:"time" bson:"time"`
+	Type    string    `json:"type" bson:"type"`
+	Reasons []string  `json:"reasons" bson:"reasons"`
 }

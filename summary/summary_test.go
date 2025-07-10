@@ -237,10 +237,10 @@ var _ = Describe("End to end summary calculations", func() {
 		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
 		Expect(err).ToNot(HaveOccurred())
 
-		summaries := make([]*Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket], 1)
+		summaries := make([]*BGMSummary, 1)
 
 		// we don't use types.Create as we want to create a sparse jellyfish style upsert
-		summaries[0] = &Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]{
+		summaries[0] = &BGMSummary{
 			BaseSummary: BaseSummary{
 				Type:   SummaryTypeBGM,
 				UserID: userId,
