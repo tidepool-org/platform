@@ -84,6 +84,7 @@ var _ = Describe("Base", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(deduplicator).ToNot(BeNil())
 			dataSet = dataTest.RandomDataSet()
+			dataSet.DataSetType = pointer.FromString(data.DataSetTypeNormal)
 			dataSet.Deduplicator.Name = pointer.FromString(name)
 		})
 

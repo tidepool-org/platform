@@ -16,7 +16,7 @@ type DataSetStore interface {
 
 type DataStore interface {
 	CreateDataSetData(ctx context.Context, dataSet *data.DataSet, dataSetData []data.Datum) error
-	NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error)
+	ExistingDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error)
 	ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	ArchiveDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
@@ -91,6 +91,10 @@ func (b *Base) Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, 
 		return nil, errors.New("data set is missing")
 	}
 
+	if dataSet.HasDataSetTypeContinuous() {
+		dataSet.Active = true
+	}
+
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(dataSet.Active)
 	update.Deduplicator = data.NewDeduplicatorDescriptor()
@@ -108,6 +112,10 @@ func (b *Base) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData d
 	}
 	if dataSetData == nil {
 		return errors.New("data set data is missing")
+	}
+
+	if dataSet.HasDataSetTypeContinuous() {
+		dataSetData.SetActive(true)
 	}
 
 	return b.DataStore.CreateDataSetData(ctx, dataSet, dataSetData)
@@ -135,6 +143,10 @@ func (b *Base) Close(ctx context.Context, dataSet *data.DataSet) error {
 		return errors.New("data set is missing")
 	}
 
+	if dataSet.HasDataSetTypeContinuous() {
+		return nil
+	}
+
 	update := data.NewDataSetUpdate()
 	update.Active = pointer.FromBool(true)
 	if _, err := b.DataSetStore.UpdateDataSet(ctx, *dataSet.UploadID, update); err != nil {
@@ -153,4 +165,15 @@ func (b *Base) Delete(ctx context.Context, dataSet *data.DataSet) error {
 	}
 
 	return b.DataSetStore.DeleteDataSet(ctx, dataSet)
+}
+
+func MapDataSetDataToSelectors(dataSetData data.Data, mapper func(datum data.Datum) *data.Selector) *data.Selectors {
+	if len(dataSetData) == 0 {
+		return nil
+	}
+	selectors := make(data.Selectors, len(dataSetData))
+	for index, dataSetDatum := range dataSetData {
+		selectors[index] = mapper(dataSetDatum)
+	}
+	return &selectors
 }

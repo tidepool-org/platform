@@ -30,6 +30,7 @@ type Datum struct {
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
 	IdentityFieldsInvocations            int
+	IdentityFieldsInputs                 []string
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	GetPayloadInvocations                int
 	GetPayloadOutputs                    []*metadata.Metadata
@@ -110,8 +111,10 @@ func (d *Datum) Normalize(normalizer data.Normalizer) {
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
 }
 
-func (d *Datum) IdentityFields() ([]string, error) {
+func (d *Datum) IdentityFields(version string) ([]string, error) {
 	d.IdentityFieldsInvocations++
+
+	d.IdentityFieldsInputs = append(d.IdentityFieldsInputs, version)
 
 	gomega.Expect(d.IdentityFieldsOutputs).ToNot(gomega.BeEmpty())
 

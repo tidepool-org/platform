@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/tidepool-org/platform/summary/types"
@@ -197,7 +196,7 @@ func (d *DatumRepository) CreateDataSetData(ctx context.Context, dataSet *data.D
 	return nil
 }
 
-func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
+func (d *DatumRepository) ExistingDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -218,7 +217,7 @@ func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *data.Da
 	selector["deletedTime"] = bson.M{"$exists": false}
 
 	findOptions := options.Find()
-	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "time": 1, "origin.id": 1, "origin.time": 1})
+	findOptions.SetProjection(bson.M{"_id": 0, "id": 1, "time": 1, "_deduplicator.hash": 1, "origin.id": 1, "origin.time": 1})
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
@@ -226,21 +225,14 @@ func (d *DatumRepository) NewerDataSetData(ctx context.Context, dataSet *data.Da
 		return nil, fmt.Errorf("unable to get newer data set data selectors: %w", err)
 	}
 
-	newerSelectors := data.NewSelectors()
-	if err = cursor.All(ctx, newerSelectors); err != nil {
+	existingSelectors := data.NewSelectors()
+	if err = cursor.All(ctx, existingSelectors); err != nil {
 		logger.WithError(err).Error("Unable to decode newer data set data selectors")
 		return nil, fmt.Errorf("unable to decode newer data set data selectors: %w", err)
 	}
 
-	// Post-process to exclude any not newer
-	newerSelectors = newerSelectors.Filter(func(newerSelector *data.Selector) bool {
-		return slices.ContainsFunc(*selectors, func(selector *data.Selector) bool {
-			return selector.Includes(newerSelector)
-		})
-	})
-
-	logger.WithFields(log.Fields{"newerSelectors": newerSelectors, "duration": time.Since(now) / time.Microsecond}).Debug("NewerDataSetData")
-	return newerSelectors, nil
+	logger.WithFields(log.Fields{"existingSelector": existingSelectors, "duration": time.Since(now) / time.Microsecond}).Debug("ExistingDataSetData")
+	return existingSelectors, nil
 }
 
 func (d *DatumRepository) ActivateDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
@@ -595,34 +587,39 @@ func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selector
 	}
 
 	var selectorIDs []string
+	var selectorDeduplicatorHashes []string
 	var selectorOriginIDs []string
 	for _, selector := range *selectors {
 		if selector != nil {
 			if selector.ID != nil {
 				selectorIDs = append(selectorIDs, *selector.ID)
+			} else if selector.Deduplicator != nil && selector.Deduplicator.Hash != nil {
+				selectorDeduplicatorHashes = append(selectorDeduplicatorHashes, *selector.Deduplicator.Hash)
 			} else if selector.Origin != nil && selector.Origin.ID != nil {
 				selectorOriginIDs = append(selectorOriginIDs, *selector.Origin.ID)
 			}
 		}
 	}
 
-	selector := bson.M{}
-	if len(selectorIDs) > 0 && len(selectorOriginIDs) > 0 {
-		selector["$or"] = []bson.M{
-			{"id": bson.M{"$in": selectorIDs}},
-			{"origin.id": bson.M{"$in": selectorOriginIDs}},
-		}
-	} else if len(selectorIDs) > 0 {
-		selector["id"] = bson.M{"$in": selectorIDs}
-	} else if len(selectorOriginIDs) > 0 {
-		selector["origin.id"] = bson.M{"$in": selectorOriginIDs}
+	var filters []bson.M
+	if len(selectorIDs) > 0 {
+		filters = append(filters, bson.M{"id": bson.M{"$in": selectorIDs}})
+	}
+	if len(selectorDeduplicatorHashes) > 0 {
+		filters = append(filters, bson.M{"_deduplicator.hash": bson.M{"$in": selectorDeduplicatorHashes}})
+	}
+	if len(selectorOriginIDs) > 0 {
+		filters = append(filters, bson.M{"origin.id": bson.M{"$in": selectorOriginIDs}})
 	}
 
-	if len(selector) == 0 {
-		return nil, false, errors.New("selectors is invalid")
+	switch len(filters) {
+	case 0:
+		return nil, false, errors.New("selectors is empty")
+	case 1:
+		return filters[0], len(selectorOriginIDs) > 0, nil
+	default:
+		return nil, false, errors.New("selectors is invalid, only one type of selector allowed")
 	}
-
-	return selector, len(selectorOriginIDs) > 0 && len(selectorIDs) == 0, nil
 }
 
 func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {

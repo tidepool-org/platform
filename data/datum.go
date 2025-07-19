@@ -15,7 +15,7 @@ type Datum interface {
 	Validate(validator structure.Validator)
 	Normalize(normalizer Normalizer)
 
-	IdentityFields() ([]string, error)
+	IdentityFields(version string) ([]string, error)
 
 	GetOrigin() *origin.Origin
 	SetOrigin(origin *origin.Origin)
@@ -49,6 +49,18 @@ func DatumAsPointer(datum Datum) *Datum {
 }
 
 type Data []Datum
+
+func (d Data) SetUserID(userID *string) {
+	for _, datum := range d {
+		datum.SetUserID(userID)
+	}
+}
+
+func (d Data) SetDataSetID(dataSetID *string) {
+	for _, datum := range d {
+		datum.SetDataSetID(dataSetID)
+	}
+}
 
 func (d Data) SetActive(active bool) {
 	for _, datum := range d {

@@ -5,6 +5,10 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+const (
+	DeduplicatorHashLengthMaximum = 1000
+)
+
 type DeduplicatorDescriptor struct {
 	Name    *string `json:"name,omitempty" bson:"name,omitempty"`
 	Version *string `json:"version,omitempty" bson:"version,omitempty"`
@@ -31,7 +35,7 @@ func (d *DeduplicatorDescriptor) Parse(parser structure.ObjectParser) {
 func (d *DeduplicatorDescriptor) Validate(validator structure.Validator) {
 	validator.String("name", d.Name).Using(net.ReverseDomainValidator)
 	validator.String("version", d.Version).Using(net.SemanticVersionValidator)
-	validator.String("hash", d.Hash).NotEmpty()
+	validator.String("hash", d.Hash).NotEmpty().LengthLessThanOrEqualTo(DeduplicatorHashLengthMaximum)
 }
 
 func (d *DeduplicatorDescriptor) HasName() bool {

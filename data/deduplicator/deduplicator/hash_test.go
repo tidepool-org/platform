@@ -34,35 +34,35 @@ var _ = Describe("Hash", func() {
 		})
 
 		It("returns successfully when the data is nil", func() {
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(nil)).To(Succeed())
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(nil, "")).To(Succeed())
 		})
 
 		It("returns successfully when there is no data", func() {
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(data.Data{})).To(Succeed())
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(data.Data{}, "")).To(Succeed())
 		})
 
 		It("returns an error when any datum returns an error getting identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomUserID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: errors.New("test error")}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData)).To(MatchError("unable to gather identity fields for datum; test error"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, "")).To(MatchError("unable to gather identity fields for datum; test error"))
 		})
 
 		It("returns an error when any datum returns no identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomUserID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: nil, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, "")).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns empty identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomUserID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData)).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, "")).To(MatchError("unable to generate identity hash for datum; identity fields are missing"))
 		})
 
 		It("returns an error when any datum returns any empty identity fields", func() {
 			dataSetDataTest[0].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomUserID(), dataTest.NewDeviceID()}, Error: nil}}
 			dataSetDataTest[1].IdentityFieldsOutputs = []dataTest.IdentityFieldsOutput{{IdentityFields: []string{userTest.RandomUserID(), ""}, Error: nil}}
-			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData)).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
+			Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, "")).To(MatchError("unable to generate identity hash for datum; identity field is empty"))
 		})
 
 		Context("with identity fields", func() {
@@ -79,7 +79,7 @@ var _ = Describe("Hash", func() {
 			})
 
 			It("returns successfully", func() {
-				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData)).To(Succeed())
+				Expect(dataDeduplicatorDeduplicator.AssignDataSetDataIdentityHashes(dataSetData, "")).To(Succeed())
 			})
 		})
 	})

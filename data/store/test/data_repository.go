@@ -64,13 +64,13 @@ type CreateDataSetDataInput struct {
 	DataSetData []data.Datum
 }
 
-type NewerDataSetDataInput struct {
+type ExistingDataSetDataInput struct {
 	Context   context.Context
 	DataSet   *data.DataSet
 	Selectors *data.Selectors
 }
 
-type NewerDataSetDataOutput struct {
+type ExistingDataSetDataOutput struct {
 	Selectors *data.Selectors
 	Error     error
 }
@@ -211,9 +211,11 @@ type DataRepository struct {
 	CreateDataSetDataInvocations                         int
 	CreateDataSetDataInputs                              []CreateDataSetDataInput
 	CreateDataSetDataOutputs                             []error
-	NewerDataSetDataInvocations                          int
-	NewerDataSetDataInputs                               []NewerDataSetDataInput
-	NewerDataSetDataOutputs                              []NewerDataSetDataOutput
+	ExistingDataSetDataInvocations                       int
+	EnsureAuthorizedInvocations                          int
+	ExistingDataSetDataInputs                            []ExistingDataSetDataInput
+	ExistingDataSetDataStub                              func(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error)
+	ExistingDataSetDataOutputs                           []ExistingDataSetDataOutput
 	ActivateDataSetDataInvocations                       int
 	ActivateDataSetDataInputs                            []ActivateDataSetDataInput
 	ActivateDataSetDataOutputs                           []error
@@ -348,15 +350,19 @@ func (d *DataRepository) CreateDataSetData(ctx context.Context, dataSet *data.Da
 	return output
 }
 
-func (d *DataRepository) NewerDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
-	d.NewerDataSetDataInvocations++
+func (d *DataRepository) ExistingDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) (*data.Selectors, error) {
+	d.ExistingDataSetDataInvocations++
 
-	d.NewerDataSetDataInputs = append(d.NewerDataSetDataInputs, NewerDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
+	d.ExistingDataSetDataInputs = append(d.ExistingDataSetDataInputs, ExistingDataSetDataInput{Context: ctx, DataSet: dataSet, Selectors: selectors})
 
-	gomega.Expect(d.NewerDataSetDataOutputs).ToNot(gomega.BeEmpty())
+	if d.ExistingDataSetDataStub != nil {
+		return d.ExistingDataSetDataStub(ctx, dataSet, selectors)
+	}
 
-	output := d.NewerDataSetDataOutputs[0]
-	d.NewerDataSetDataOutputs = d.NewerDataSetDataOutputs[1:]
+	gomega.Expect(d.ExistingDataSetDataOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.ExistingDataSetDataOutputs[0]
+	d.ExistingDataSetDataOutputs = d.ExistingDataSetDataOutputs[1:]
 	return output.Selectors, output.Error
 }
 

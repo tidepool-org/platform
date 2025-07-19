@@ -42,44 +42,35 @@ type dataSetDeleteOriginOlderDataFilter struct {
 
 func (d *dataSetDeleteOriginOlderDataFilter) FilterData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error) {
 	filterableDataSetData := dataSetData.Filter(func(datum data.Datum) bool {
-		return slices.Contains(filterableDataSetDataTypes, datum.GetType())
+		return slices.Contains(FilterableDataSetDataTypes, datum.GetType())
 	})
 
-	if selectors := d.GetDataSelectors(filterableDataSetData); selectors != nil {
-		if existingSelectors, err := d.dataStore.NewerDataSetData(ctx, dataSet, selectors); err != nil {
+	if selectors := MapDataSetDataToSelectors(filterableDataSetData, d.getDatumSelector); selectors != nil {
+		existingSelectors, err := d.dataStore.ExistingDataSetData(ctx, dataSet, selectors)
+		if err != nil {
 			return nil, err
-		} else if existingSelectors != nil && len(*existingSelectors) > 0 {
-			existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
-			for _, existingSelector := range *existingSelectors {
-				if existingSelector != nil && existingSelector.Origin != nil && existingSelector.Origin.ID != nil {
-					existingSelectorsMap[*existingSelector.Origin.ID] = existingSelector
+		}
+
+		existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
+		for _, existingSelector := range *existingSelectors {
+			existingSelectorsMap[*existingSelector.Origin.ID] = existingSelector
+		}
+
+		dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
+			if datumSelector := d.getDatumSelector(datum); datumSelector != nil {
+				if existingSelector, ok := existingSelectorsMap[*datumSelector.Origin.ID]; ok {
+					return datumSelector.NewerThan(existingSelector)
 				}
 			}
-			dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
-				if datumSelector := d.getDatumSelector(datum); datumSelector != nil && datumSelector.Origin != nil && datumSelector.Origin.ID != nil {
-					if existingSelector, ok := existingSelectorsMap[*datumSelector.Origin.ID]; ok && existingSelector != nil {
-						return !datumSelector.Includes(existingSelector)
-					}
-				}
-				return true
-			})
-		}
+			return true
+		})
 	}
 
 	return dataSetData, nil
 }
 
 func (d *dataSetDeleteOriginOlderDataFilter) GetDataSelectors(dataSetData data.Data) *data.Selectors {
-	selectors := data.Selectors{}
-	for _, dataSetDatum := range dataSetData {
-		if selector := d.getDatumSelector(dataSetDatum); selector != nil {
-			selectors = append(selectors, selector)
-		}
-	}
-	if len(selectors) == 0 {
-		return nil
-	}
-	return &selectors
+	return MapDataSetDataToSelectors(dataSetData, d.getDatumSelector)
 }
 
 func (d *dataSetDeleteOriginOlderDataFilter) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
@@ -87,14 +78,14 @@ func (d *dataSetDeleteOriginOlderDataFilter) getDatumSelector(dataSetDatum data.
 		return &data.Selector{
 			Origin: &data.SelectorOrigin{
 				ID:   pointer.CloneString(origin.ID),
-				Time: origin.Time,
+				Time: pointer.CloneString(origin.Time),
 			},
 		}
 	}
 	return nil
 }
 
-var filterableDataSetDataTypes = []string{
+var FilterableDataSetDataTypes = []string{
 	dataTypesBolus.Type,
 	dataTypesFood.Type,
 }
