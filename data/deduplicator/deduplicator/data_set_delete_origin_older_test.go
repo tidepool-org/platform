@@ -2,6 +2,7 @@ package deduplicator_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -258,37 +259,94 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 				})
 
 				Context("AddData", func() {
-					var unfilteredDataSetData data.Data
-					var filteredDataSetData data.Data
-					var allDataSetData data.Data
-					var unfilteredSelectors *data.Selectors
+					var allData data.Data
+					var createdData data.Data
 					var filteredSelectors *data.Selectors
+					var deletedSelectors *data.Selectors
+					var databaseSelectors *data.Selectors
+					var expectedActive bool
+
+					selectorFromBase := func(datum *dataTypes.Base) *data.Selector {
+						return &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(datum.Origin.ID), Time: pointer.CloneString(datum.Origin.Time)}}
+					}
 
 					BeforeEach(func() {
-						unfilteredDataSetData = make(data.Data, test.RandomIntFromRange(1, 3))
-						unfilteredSelectors = data.NewSelectors()
-						for index := range unfilteredDataSetData {
-							base := dataTypesTest.RandomBase()
-							unfilteredDataSetData[index] = base
-							*unfilteredSelectors = append(*unfilteredSelectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(base.Origin.ID), Time: base.Origin.Time}})
-						}
-						filteredDataSetData = make(data.Data, test.RandomIntFromRange(1, 3))
+						allData = data.Data{}
+						createdData = data.Data{}
 						filteredSelectors = data.NewSelectors()
-						for index := range filteredDataSetData {
+						deletedSelectors = data.NewSelectors()
+						databaseSelectors = data.NewSelectors()
+						expectedActive = false
+
+						// Not filtered
+						for range test.RandomIntFromRange(1, 3) {
+							base := dataTypesTest.RandomBase()
+
+							allData = append(allData, base)
+							createdData = append(createdData, base)
+
+							selector := selectorFromBase(base)
+							*deletedSelectors = append(*deletedSelectors, selector)
+						}
+
+						// Filtered, not in database
+						for range test.RandomIntFromRange(1, 3) {
 							base := dataTypesTest.RandomBase()
 							base.Type = test.RandomStringFromArray([]string{"bolus", "food"})
-							filteredDataSetData[index] = base
-							*filteredSelectors = append(*filteredSelectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.CloneString(base.Origin.ID), Time: base.Origin.Time}})
+
+							allData = append(allData, base)
+							createdData = append(createdData, base)
+
+							selector := selectorFromBase(base)
+							*filteredSelectors = append(*filteredSelectors, selector)
+							*deletedSelectors = append(*deletedSelectors, selector)
 						}
-						allDataSetData = append(unfilteredDataSetData, filteredDataSetData...)
+
+						// Filtered, older in database
+						for range test.RandomIntFromRange(1, 3) {
+							base := dataTypesTest.RandomBase()
+							base.Type = test.RandomStringFromArray([]string{"bolus", "food"})
+
+							allData = append(allData, base)
+							createdData = append(createdData, base)
+
+							selector := selectorFromBase(base)
+							*filteredSelectors = append(*filteredSelectors, selector)
+							*deletedSelectors = append(*deletedSelectors, selector)
+
+							originTime, err := time.Parse(time.RFC3339, *base.Origin.Time)
+							Expect(err).ToNot(HaveOccurred())
+
+							databaseSelector := dataTest.CloneSelector(selector)
+							databaseSelector.Origin.Time = pointer.FromString(test.RandomTimeBefore(originTime).Format(time.RFC3339))
+							*databaseSelectors = append(*databaseSelectors, databaseSelector)
+						}
+
+						// Filtered, newer in database
+						for range test.RandomIntFromRange(1, 3) {
+							base := dataTypesTest.RandomBase()
+							base.Type = test.RandomStringFromArray([]string{"bolus", "food"})
+
+							allData = append(allData, base)
+
+							selector := selectorFromBase(base)
+							*filteredSelectors = append(*filteredSelectors, selector)
+
+							originTime, err := time.Parse(time.RFC3339, *base.Origin.Time)
+							Expect(err).ToNot(HaveOccurred())
+
+							databaseSelector := dataTest.CloneSelector(selector)
+							databaseSelector.Origin.Time = pointer.FromString(test.RandomTimeAfter(originTime).Format(time.RFC3339))
+							*databaseSelectors = append(*databaseSelectors, databaseSelector)
+						}
 					})
 
 					It("returns an error when the context is missing", func() {
-						Expect(deduplicator.AddData(nil, dataSet, allDataSetData)).To(MatchError("context is missing"))
+						Expect(deduplicator.AddData(nil, dataSet, allData)).To(MatchError("context is missing"))
 					})
 
 					It("returns an error when the data set is missing", func() {
-						Expect(deduplicator.AddData(ctx, nil, allDataSetData)).To(MatchError("data set is missing"))
+						Expect(deduplicator.AddData(ctx, nil, allData)).To(MatchError("data set is missing"))
 					})
 
 					It("returns an error when the data set data is missing", func() {
@@ -299,29 +357,30 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 						originAssertions := func() {
 							When("create data set data is invoked", func() {
 								AfterEach(func() {
-									Expect(dataRepository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: allDataSetData}}))
+									Expect(dataRepository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: createdData}}))
 								})
 
 								It("returns an error when create data set data returns an error", func() {
 									responseErr := errorsTest.RandomError()
 									dataRepository.CreateDataSetDataOutputs = []error{responseErr}
-									Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Equal(responseErr))
+									Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Equal(responseErr))
 								})
 
 								It("returns successfully when create data set data returns successfully", func() {
 									dataRepository.CreateDataSetDataOutputs = []error{nil}
-									Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Succeed())
+									Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Succeed())
 								})
 							})
 						}
 
 						When("data set data does not have an origin", func() {
 							BeforeEach(func() {
-								for index := range allDataSetData {
+								for index := range allData {
 									base := dataTypesTest.RandomBase()
 									base.Origin = nil
-									allDataSetData[index] = base
+									allData[index] = base
 								}
+								createdData = allData
 							})
 
 							originAssertions()
@@ -329,41 +388,44 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 
 						When("data set data does not have an origin id", func() {
 							BeforeEach(func() {
-								for index := range allDataSetData {
+								for index := range allData {
 									base := dataTypesTest.RandomBase()
 									base.Origin.ID = nil
-									allDataSetData[index] = base
+									allData[index] = base
 								}
+								createdData = allData
 							})
 
 							originAssertions()
 						})
 
 						When("data set data has an origin id", func() {
-							When("newer data set data using origin ids is invoked", func() {
+							When("existing data set data using origin ids is invoked", func() {
 								AfterEach(func() {
-									Expect(dataRepository.NewerDataSetDataInputs).To(Equal([]dataStoreTest.NewerDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: filteredSelectors}}))
+									Expect(dataRepository.ExistingDataSetDataInputs).To(Equal([]dataStoreTest.ExistingDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: filteredSelectors}}))
 								})
 
-								It("returns an error when newer data set data using origin id returns an error", func() {
+								It("returns an error when existing data set data using origin id returns an error", func() {
+									expectedActive = false
 									responseErr := errorsTest.RandomError()
-									dataRepository.NewerDataSetDataOutputs = []dataStoreTest.NewerDataSetDataOutput{{Selectors: nil, Error: responseErr}}
-									Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Equal(responseErr))
+									dataRepository.ExistingDataSetDataOutputs = []dataStoreTest.ExistingDataSetDataOutput{{Selectors: nil, Error: responseErr}}
+									Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Equal(responseErr))
 								})
 
 								When("delete data set data using origin ids is invoked", func() {
 									BeforeEach(func() {
-										dataRepository.NewerDataSetDataOutputs = []dataStoreTest.NewerDataSetDataOutput{{Selectors: filteredSelectors, Error: nil}}
+										dataRepository.ExistingDataSetDataOutputs = []dataStoreTest.ExistingDataSetDataOutput{{Selectors: databaseSelectors, Error: nil}}
 									})
 
 									AfterEach(func() {
-										Expect(dataRepository.DeleteDataSetDataInputs).To(Equal([]dataStoreTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: unfilteredSelectors}}))
+										Expect(dataRepository.DeleteDataSetDataInputs).To(Equal([]dataStoreTest.DeleteDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: deletedSelectors}}))
 									})
 
 									It("returns an error when delete data set data using origin id returns an error", func() {
+										expectedActive = false
 										responseErr := errorsTest.RandomError()
 										dataRepository.DeleteDataSetDataOutputs = []error{responseErr}
-										Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Equal(responseErr))
+										Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Equal(responseErr))
 									})
 
 									When("create data set data is invoked", func() {
@@ -372,13 +434,13 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 										})
 
 										AfterEach(func() {
-											Expect(dataRepository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: unfilteredDataSetData}}))
+											Expect(dataRepository.CreateDataSetDataInputs).To(Equal([]dataStoreTest.CreateDataSetDataInput{{Context: ctx, DataSet: dataSet, DataSetData: createdData}}))
 										})
 
 										It("returns an error when create data set data returns an error", func() {
 											responseErr := errorsTest.RandomError()
 											dataRepository.CreateDataSetDataOutputs = []error{responseErr}
-											Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Equal(responseErr))
+											Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Equal(responseErr))
 										})
 
 										When("destroy deleted data set data is invoked", func() {
@@ -387,18 +449,18 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 											})
 
 											AfterEach(func() {
-												Expect(dataRepository.DestroyDeletedDataSetDataInputs).To(Equal([]dataStoreTest.DestroyDeletedDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: unfilteredSelectors}}))
+												Expect(dataRepository.DestroyDeletedDataSetDataInputs).To(Equal([]dataStoreTest.DestroyDeletedDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: deletedSelectors}}))
 											})
 
 											It("returns an error when destroy deleted data set data returns an error", func() {
 												responseErr := errorsTest.RandomError()
 												dataRepository.DestroyDeletedDataSetDataOutputs = []error{responseErr}
-												Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Equal(responseErr))
+												Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Equal(responseErr))
 											})
 
 											It("returns successfully when destroy deleted data set data returns successfully", func() {
 												dataRepository.DestroyDeletedDataSetDataOutputs = []error{nil}
-												Expect(deduplicator.AddData(ctx, dataSet, allDataSetData)).To(Succeed())
+												Expect(deduplicator.AddData(ctx, dataSet, allData)).To(Succeed())
 											})
 										})
 									})
@@ -413,11 +475,11 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 						})
 
 						AfterEach(func() {
-							for _, datum := range allDataSetData {
+							for _, datum := range createdData {
 								base, ok := datum.(*dataTypes.Base)
 								Expect(ok).To(BeTrue())
 								Expect(base).ToNot(BeNil())
-								Expect(base.Active).To(BeFalse())
+								Expect(base.Active).To(Equal(expectedActive))
 							}
 						})
 
@@ -427,14 +489,15 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 					When("data set type is continuous", func() {
 						BeforeEach(func() {
 							dataSet.DataSetType = pointer.FromString("continuous")
+							expectedActive = true
 						})
 
 						AfterEach(func() {
-							for _, datum := range allDataSetData {
+							for _, datum := range createdData {
 								base, ok := datum.(*dataTypes.Base)
 								Expect(ok).To(BeTrue())
 								Expect(base).ToNot(BeNil())
-								Expect(base.Active).To(BeTrue())
+								Expect(base.Active).To(Equal(expectedActive))
 							}
 						})
 
@@ -447,11 +510,11 @@ var _ = Describe("DataSetDeleteOriginOlder", func() {
 						})
 
 						AfterEach(func() {
-							for _, datum := range allDataSetData {
+							for _, datum := range createdData {
 								base, ok := datum.(*dataTypes.Base)
 								Expect(ok).To(BeTrue())
 								Expect(base).ToNot(BeNil())
-								Expect(base.Active).To(BeFalse())
+								Expect(base.Active).To(Equal(expectedActive))
 							}
 						})
 

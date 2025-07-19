@@ -48,21 +48,6 @@ func NewDataSetDeleteOriginBase(dependencies DataSetDeleteOriginDependencies, na
 	}, nil
 }
 
-func (d *DataSetDeleteOriginBase) Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return nil, errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.Active = true
-	}
-
-	return d.Base.Open(ctx, dataSet)
-}
-
 func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
@@ -72,10 +57,6 @@ func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, dataSet *data.Dat
 	}
 	if dataSetData == nil {
 		return errors.New("data set data is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSetData.SetActive(true)
 	}
 
 	var err error
@@ -108,19 +89,4 @@ func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, dataSet *data.
 	}
 
 	return d.DataStore.ArchiveDataSetData(ctx, dataSet, selectors)
-}
-
-func (d *DataSetDeleteOriginBase) Close(ctx context.Context, dataSet *data.DataSet) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		return nil
-	}
-
-	return d.Base.Close(ctx, dataSet)
 }

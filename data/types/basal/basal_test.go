@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/basal"
 	dataTypesBasalTest "github.com/tidepool-org/platform/data/types/basal/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
@@ -95,37 +96,70 @@ var _ = Describe("Basal", func() {
 		Context("IdentityFields", func() {
 			var datumBasal *basal.Basal
 			var datum data.Datum
+			var version string
 
 			BeforeEach(func() {
 				datumBasal = dataTypesBasalTest.RandomBasal()
 				datum = datumBasal
 			})
 
-			It("returns error if user id is missing", func() {
-				datumBasal.UserID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is missing"))
-				Expect(identityFields).To(BeEmpty())
+			identityFieldsAssertions := func() {
+				It("returns error if user id is missing", func() {
+					datumBasal.UserID = nil
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBasal.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if delivery type is empty", func() {
+					datumBasal.DeliveryType = ""
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("delivery type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+			}
+
+			When("version is IdentityFieldsVersionDefault", func() {
+				BeforeEach(func() {
+					version = dataTypes.IdentityFieldsVersionDeviceID
+				})
+
+				identityFieldsAssertions()
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBasal.UserID, *datumBasal.DeviceID, (*datumBasal.Time).Format(ExpectedTimeFormat), datumBasal.Type, datumBasal.DeliveryType}))
+				})
 			})
 
-			It("returns error if user id is empty", func() {
-				datumBasal.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is empty"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDataSetID", func() {
+				BeforeEach(func() {
+					version = dataTypes.IdentityFieldsVersionDataSetID
+				})
+
+				identityFieldsAssertions()
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBasal.UserID, *datumBasal.UploadID, (*datumBasal.Time).Format(ExpectedTimeFormat), datumBasal.Type, datumBasal.DeliveryType}))
+				})
 			})
 
-			It("returns error if delivery type is empty", func() {
-				datumBasal.DeliveryType = ""
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("delivery type is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datumBasal.UserID, *datumBasal.DeviceID, (*datumBasal.Time).Format(ExpectedTimeFormat), datumBasal.Type, datumBasal.DeliveryType}))
+			When("version is invalid", func() {
+				It("returns an error", func() {
+					identityFields, err := datum.IdentityFields("invalid")
+					Expect(err).To(MatchError("version is invalid"))
+					Expect(identityFields).To(BeEmpty())
+				})
 			})
 		})
 	})

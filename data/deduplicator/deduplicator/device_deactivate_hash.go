@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -83,7 +84,7 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, dataSet *data.DataSe
 		return errors.New("data set data is missing")
 	}
 
-	if err := AssignDataSetDataIdentityHashes(dataSetData); err != nil {
+	if err := AssignDataSetDataIdentityHashes(dataSetData, dataTypes.IdentityFieldsVersionDeviceID); err != nil {
 		return err
 	}
 

@@ -88,15 +88,19 @@ func (b *Bolus) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Bolus) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Bolus) IdentityFields(version string) ([]string, error) {
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
 
-	if b.SubType == "" {
-		return nil, errors.New("sub type is empty")
+	switch version {
+	case types.IdentityFieldsVersionDeviceID, types.IdentityFieldsVersionDataSetID:
+		if b.SubType == "" {
+			return nil, errors.New("sub type is empty")
+		}
+		return append(identityFields, b.SubType), nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-
-	return append(identityFields, b.SubType), nil
 }

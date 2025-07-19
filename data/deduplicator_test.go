@@ -103,6 +103,17 @@ var _ = Describe("Deduplicator", func() {
 					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString("") },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/hash"),
 				),
+				Entry("hash length in range (upper)",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Hash = pointer.FromString(test.RandomStringFromRange(data.DeduplicatorHashLengthMaximum, data.DeduplicatorHashLengthMaximum))
+					},
+				),
+				Entry("hash length out of range (upper)",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Hash = pointer.FromString(test.RandomStringFromRange(data.DeduplicatorHashLengthMaximum+1, data.DeduplicatorHashLengthMaximum+1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(data.DeduplicatorHashLengthMaximum+1, data.DeduplicatorHashLengthMaximum), "/hash"),
+				),
 				Entry("hash valid",
 					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString(test.RandomString()) },
 				),

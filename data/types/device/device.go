@@ -45,15 +45,19 @@ func (d *Device) Validate(validator structure.Validator) {
 	validator.String("subType", &d.SubType).Exists().NotEmpty()
 }
 
-func (d *Device) IdentityFields() ([]string, error) {
-	identityFields, err := d.Base.IdentityFields()
+func (d *Device) IdentityFields(version string) ([]string, error) {
+	identityFields, err := d.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
 
-	if d.SubType == "" {
-		return nil, errors.New("sub type is empty")
+	switch version {
+	case types.IdentityFieldsVersionDeviceID, types.IdentityFieldsVersionDataSetID:
+		if d.SubType == "" {
+			return nil, errors.New("sub type is empty")
+		}
+		return append(identityFields, d.SubType), nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-
-	return append(identityFields, d.SubType), nil
 }
