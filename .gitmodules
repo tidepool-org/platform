@@ -2,3 +2,4 @@
 	path = private/plugin/abbott
 	url = https://github.com/tidepool-org/platform-plugin-abbott
 	update = none
+	branch = eric-filter-unscheduled
