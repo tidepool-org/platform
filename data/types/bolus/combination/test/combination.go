@@ -1,36 +1,68 @@
 package test
 
 import (
-	"github.com/tidepool-org/platform/data/types/bolus/combination"
+	dataTypesBolusCombination "github.com/tidepool-org/platform/data/types/bolus/combination"
+	dataTypesBolusExtendedTest "github.com/tidepool-org/platform/data/types/bolus/extended/test"
+	dataTypesBolusNormalTest "github.com/tidepool-org/platform/data/types/bolus/normal/test"
 	dataTypesBolusTest "github.com/tidepool-org/platform/data/types/bolus/test"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewCombination() *combination.Combination {
-	datum := combination.New()
-	datum.Bolus = *dataTypesBolusTest.RandomBolus()
-	datum.SubType = "dual/square"
-	datum.Duration = pointer.FromInt(test.RandomIntFromRange(combination.DurationMinimum, combination.DurationMaximum))
-	datum.Extended = pointer.FromFloat64(test.RandomFloat64FromRange(combination.ExtendedMinimum, combination.ExtendedMaximum))
-	datum.DurationExpected = pointer.FromInt(test.RandomIntFromRange(*datum.Duration, combination.DurationMaximum))
-	datum.ExtendedExpected = pointer.FromFloat64(test.RandomFloat64FromRange(*datum.Extended, combination.ExtendedMaximum))
-	datum.Normal = pointer.FromFloat64(test.RandomFloat64FromRange(combination.NormalMinimum, combination.NormalMaximum))
-	datum.NormalExpected = nil
+func RandomCombinationFields() dataTypesBolusCombination.CombinationFields {
+	datum := dataTypesBolusCombination.CombinationFields{}
+	datum.ExtendedFields = dataTypesBolusExtendedTest.RandomExtendedFields()
+	datum.NormalFields = dataTypesBolusNormalTest.RandomNormalFields()
 	return datum
 }
 
-func CloneCombination(datum *combination.Combination) *combination.Combination {
+func RandomCombination() *dataTypesBolusCombination.Combination {
+	datum := dataTypesBolusCombination.New()
+	datum.Bolus = *dataTypesBolusTest.RandomBolus()
+	datum.SubType = dataTypesBolusCombination.SubType
+	datum.CombinationFields = RandomCombinationFields()
+	return datum
+}
+
+func RandomCombinationForParser() *dataTypesBolusCombination.Combination {
+	datum := dataTypesBolusCombination.New()
+	datum.Bolus = *dataTypesBolusTest.RandomBolusForParser()
+	datum.SubType = dataTypesBolusCombination.SubType
+	datum.CombinationFields = RandomCombinationFields()
+	return datum
+}
+
+func CloneCombination(datum *dataTypesBolusCombination.Combination) *dataTypesBolusCombination.Combination {
 	if datum == nil {
 		return nil
 	}
-	clone := combination.New()
-	clone.Duration = pointer.CloneInt(datum.Duration)
-	clone.DurationExpected = pointer.CloneInt(datum.DurationExpected)
-	clone.Extended = pointer.CloneFloat64(datum.Extended)
-	clone.ExtendedExpected = pointer.CloneFloat64(datum.ExtendedExpected)
+	clone := dataTypesBolusCombination.New()
 	clone.Bolus = *dataTypesBolusTest.CloneBolus(&datum.Bolus)
-	clone.Normal = pointer.CloneFloat64(datum.Normal)
-	clone.NormalExpected = pointer.CloneFloat64(datum.NormalExpected)
+	clone.CombinationFields = datum.CombinationFields
 	return clone
+}
+
+func NewObjectFromCombination(datum *dataTypesBolusCombination.Combination, objectFormat test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := dataTypesBolusTest.NewObjectFromBolus(&datum.Bolus, objectFormat)
+	if datum.Duration != nil {
+		object["duration"] = test.NewObjectFromInt(*datum.Duration, objectFormat)
+	}
+	if datum.DurationExpected != nil {
+		object["expectedDuration"] = test.NewObjectFromInt(*datum.DurationExpected, objectFormat)
+	}
+	if datum.Extended != nil {
+		object["extended"] = test.NewObjectFromFloat64(*datum.Extended, objectFormat)
+	}
+	if datum.ExtendedExpected != nil {
+		object["expectedExtended"] = test.NewObjectFromFloat64(*datum.ExtendedExpected, objectFormat)
+	}
+	if datum.Normal != nil {
+		object["normal"] = test.NewObjectFromFloat64(*datum.Normal, objectFormat)
+	}
+	if datum.NormalExpected != nil {
+		object["expectedNormal"] = test.NewObjectFromFloat64(*datum.NormalExpected, objectFormat)
+	}
+	return object
 }

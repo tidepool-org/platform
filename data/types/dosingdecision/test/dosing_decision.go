@@ -32,7 +32,7 @@ func randomDosingDecision(unitsBloodGlucose *string) *dataTypesDosingDecision.Do
 	datum.InsulinOnBoard = RandomInsulinOnBoard()
 	datum.BloodGlucoseTargetSchedule = dataTypesSettingsPumpTest.RandomBloodGlucoseTargetStartArray(unitsBloodGlucose)
 	datum.HistoricalBloodGlucose = RandomBloodGlucoseArray(unitsBloodGlucose)
-	datum.ForecastBloodGlucose = RandomBloodGlucoseArray(unitsBloodGlucose)
+	datum.ForecastBloodGlucose = RandomForecastBloodGlucoseArray(unitsBloodGlucose)
 	datum.RecommendedBasal = RandomRecommendedBasal()
 	datum.RecommendedBolus = RandomBolus()
 	datum.RequestedBolus = RandomBolus()
@@ -57,7 +57,7 @@ func CloneDosingDecision(datum *dataTypesDosingDecision.DosingDecision) *dataTyp
 	clone.InsulinOnBoard = CloneInsulinOnBoard(datum.InsulinOnBoard)
 	clone.BloodGlucoseTargetSchedule = dataTypesSettingsPumpTest.CloneBloodGlucoseTargetStartArray(datum.BloodGlucoseTargetSchedule)
 	clone.HistoricalBloodGlucose = CloneBloodGlucoseArray(datum.HistoricalBloodGlucose)
-	clone.ForecastBloodGlucose = CloneBloodGlucoseArray(datum.ForecastBloodGlucose)
+	clone.ForecastBloodGlucose = CloneForecastBloodGlucoseArray(datum.ForecastBloodGlucose)
 	clone.RecommendedBasal = CloneRecommendedBasal(datum.RecommendedBasal)
 	clone.RecommendedBolus = CloneBolus(datum.RecommendedBolus)
 	clone.RequestedBolus = CloneBolus(datum.RequestedBolus)
@@ -98,7 +98,7 @@ func NewObjectFromDosingDecision(datum *dataTypesDosingDecision.DosingDecision, 
 		object["bgHistorical"] = NewArrayFromBloodGlucoseArray(datum.HistoricalBloodGlucose, objectFormat)
 	}
 	if datum.ForecastBloodGlucose != nil {
-		object["bgForecast"] = NewArrayFromBloodGlucoseArray(datum.ForecastBloodGlucose, objectFormat)
+		object["bgForecast"] = NewArrayFromForecastBloodGlucoseArray(datum.ForecastBloodGlucose, objectFormat)
 	}
 	if datum.RecommendedBasal != nil {
 		object["recommendedBasal"] = NewObjectFromRecommendedBasal(datum.RecommendedBasal, objectFormat)
