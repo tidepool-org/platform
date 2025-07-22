@@ -168,12 +168,14 @@ func (b *Base) Delete(ctx context.Context, dataSet *data.DataSet) error {
 }
 
 func MapDataSetDataToSelectors(dataSetData data.Data, mapper func(datum data.Datum) *data.Selector) *data.Selectors {
-	if len(dataSetData) == 0 {
-		return nil
+	var selectors data.Selectors
+	for _, dataSetDatum := range dataSetData {
+		if selector := mapper(dataSetDatum); selector != nil {
+			selectors = append(selectors, selector)
+		}
 	}
-	selectors := make(data.Selectors, len(dataSetData))
-	for index, dataSetDatum := range dataSetData {
-		selectors[index] = mapper(dataSetDatum)
+	if len(selectors) == 0 {
+		return nil
 	}
 	return &selectors
 }
