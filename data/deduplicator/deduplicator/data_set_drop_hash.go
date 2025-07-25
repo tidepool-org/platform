@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -47,7 +46,9 @@ func (d *DataSetDropHash) AddData(ctx context.Context, dataSet *data.DataSet, da
 		return err
 	}
 
-	if selectors := MapDataSetDataToSelectors(dataSetData, d.getDatumSelector); selectors != nil {
+	dataSetData = DeduplicateDataSetDataByIdentity(dataSetData, GetDatumDeduplicatorHash)
+
+	if selectors := MapDataSetDataToSelectors(dataSetData, GetDatumDeduplicatorSelector); selectors != nil {
 		existingSelectors, err := d.DataStore.ExistingDataSetData(ctx, dataSet, selectors)
 		if err != nil {
 			return err
@@ -59,7 +60,7 @@ func (d *DataSetDropHash) AddData(ctx context.Context, dataSet *data.DataSet, da
 		}
 
 		dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
-			if datumSelector := d.getDatumSelector(datum); datumSelector != nil {
+			if datumSelector := GetDatumDeduplicatorSelector(datum); datumSelector != nil {
 				_, ok := existingSelectorsMap[*datumSelector.Deduplicator.Hash]
 				return !ok
 			}
@@ -68,15 +69,4 @@ func (d *DataSetDropHash) AddData(ctx context.Context, dataSet *data.DataSet, da
 	}
 
 	return d.Base.AddData(ctx, dataSet, dataSetData)
-}
-
-func (d *DataSetDropHash) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
-	if deduplicator := dataSetDatum.DeduplicatorDescriptor(); deduplicator != nil && deduplicator.Hash != nil {
-		return &data.Selector{
-			Deduplicator: &data.SelectorDeduplicator{
-				Hash: pointer.CloneString(deduplicator.Hash),
-			},
-		}
-	}
-	return nil
 }

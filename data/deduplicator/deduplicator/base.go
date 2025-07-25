@@ -167,6 +167,21 @@ func (b *Base) Delete(ctx context.Context, dataSet *data.DataSet) error {
 	return b.DataSetStore.DeleteDataSet(ctx, dataSet)
 }
 
+// First one wins, only datum with non-nil identity
+func DeduplicateDataSetDataByIdentity(dataSetData data.Data, identityFunc func(data.Datum) *string) data.Data {
+	identityMap := make(map[string]bool, len(dataSetData))
+	return dataSetData.Filter(func(datum data.Datum) bool {
+		if identity := identityFunc(datum); identity == nil {
+			return true
+		} else if _, ok := identityMap[*identity]; ok {
+			return false
+		} else {
+			identityMap[*identity] = true
+			return true
+		}
+	})
+}
+
 func MapDataSetDataToSelectors(dataSetData data.Data, mapper func(datum data.Datum) *data.Selector) *data.Selectors {
 	var selectors data.Selectors
 	for _, dataSetDatum := range dataSetData {
@@ -178,4 +193,22 @@ func MapDataSetDataToSelectors(dataSetData data.Data, mapper func(datum data.Dat
 		return nil
 	}
 	return &selectors
+}
+
+func GetDatumDeduplicatorSelector(dataSetDatum data.Datum) *data.Selector {
+	if deduplicatorHash := GetDatumDeduplicatorHash(dataSetDatum); deduplicatorHash != nil {
+		return &data.Selector{
+			Deduplicator: &data.SelectorDeduplicator{
+				Hash: pointer.CloneString(deduplicatorHash),
+			},
+		}
+	}
+	return nil
+}
+
+func GetDatumDeduplicatorHash(dataSetDatum data.Datum) *string {
+	if deduplicator := dataSetDatum.DeduplicatorDescriptor(); deduplicator != nil {
+		return deduplicator.Hash
+	}
+	return nil
 }
