@@ -21,6 +21,7 @@ import (
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
+	"github.com/tidepool-org/platform/user"
 )
 
 func (r *Router) OAuthRoutes() []*rest.Route {
@@ -28,6 +29,8 @@ func (r *Router) OAuthRoutes() []*rest.Route {
 		rest.Get("/v1/oauth/:name/authorize", r.OAuthProviderAuthorizeGet),
 		rest.Delete("/v1/oauth/:name/authorize", serviceApi.RequireUser(r.OAuthProviderAuthorizeDelete)),
 		rest.Get("/v1/oauth/:name/redirect", r.OAuthProviderRedirectGet),
+
+		rest.Delete("/v1/users/:userId/oauth/:name/authorize", serviceApi.RequireServer(r.UserOAuthProviderAuthorizeDelete)),
 	}
 }
 
@@ -67,9 +70,19 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
+	req.PathParams["userId"] = request.GetAuthDetails(req.Context()).UserID()
+	r.UserOAuthProviderAuthorizeDelete(res, req)
+}
+
+func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.GetAuthDetails(ctx)
+
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
 
 	prvdr, err := r.oauthProvider(req)
 	if err != nil {
@@ -83,14 +96,14 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 	providerSessionFilter := auth.NewProviderSessionFilter()
 	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
 	providerSessionFilter.Name = pointer.FromString(prvdr.Name())
-	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, details.UserID(), providerSessionFilter, page.NewPagination())
+	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, userID, providerSessionFilter, page.NewPagination())
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
 	if len(providerSessions) > 1 {
-		r.Logger().WithFields(log.Fields{"userId": details.UserID(), "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
+		r.Logger().WithFields(log.Fields{"userId": userID, "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
 	}
 
 	for _, providerSession := range providerSessions {
@@ -205,9 +218,9 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 }
 
 func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
-	name := req.PathParams["name"]
-	if name == "" {
-		return nil, request.ErrorParameterMissing("name")
+	name, err := request.DecodeRequestPathParameter(req, "name", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	prvdr, err := r.ProviderFactory().Get(auth.ProviderTypeOAuth, name)

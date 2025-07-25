@@ -140,6 +140,7 @@ var _ = Describe("Client", func() {
 				BeforeEach(func() {
 					httpClient = http.DefaultClient
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+					tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 				})
 
 				It("returns error when context is missing", func() {
@@ -305,6 +306,8 @@ var _ = Describe("Client", func() {
 				When("the server responds with unauthorized, the token is expired and the request retried", func() {
 					BeforeEach(func() {
 						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+						tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/v3/users/self/dataRange", requestQuery),
@@ -396,6 +399,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -545,6 +549,8 @@ var _ = Describe("Client", func() {
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
@@ -625,6 +631,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -775,6 +782,8 @@ var _ = Describe("Client", func() {
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
@@ -855,6 +864,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -1005,6 +1015,8 @@ var _ = Describe("Client", func() {
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
@@ -1085,6 +1097,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -1235,6 +1248,8 @@ var _ = Describe("Client", func() {
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
@@ -1315,6 +1330,7 @@ var _ = Describe("Client", func() {
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
 						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
+						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
 					})
 
 					It("returns error when context is missing", func() {
@@ -1465,6 +1481,8 @@ var _ = Describe("Client", func() {
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
 							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
+							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, nil)
+							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
