@@ -50,7 +50,7 @@ var _ = Describe("Glucose", func() {
 			g, err := NewGlucose(libreDatum)
 			Expect(err).ToNot(HaveOccurred())
 
-			duration := g.GetDuration()
+			duration := g.Duration()
 			Expect(duration).To(Equal(15))
 		})
 
@@ -63,7 +63,7 @@ var _ = Describe("Glucose", func() {
 			g, err := NewGlucose(otherDatum)
 			Expect(err).ToNot(HaveOccurred())
 
-			duration := g.GetDuration()
+			duration := g.Duration()
 			Expect(duration).To(Equal(7))
 		})
 
@@ -73,7 +73,7 @@ var _ = Describe("Glucose", func() {
 			g, err := NewGlucose(otherDatum)
 			Expect(err).ToNot(HaveOccurred())
 
-			duration := g.GetDuration()
+			duration := g.Duration()
 			Expect(duration).To(Equal(5))
 		})
 	})

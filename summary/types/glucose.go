@@ -18,14 +18,17 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 )
 
-const MaxRecordsPerBucket = 60 // one per minute max
+const (
+	MaxRecordsPerBucket          = 60 // one per minute max
+	DefaultSampleIntervalMinutes = 5
+)
 
 type Glucose interface {
-	GetNormalizedValue() float64
-	GetType() string
-	GetTime() *time.Time
-	GetCreatedTime() *time.Time
-	GetDuration() int
+	NormalizedValue() float64
+	Type() string
+	Time() *time.Time
+	CreatedTime() *time.Time
+	Duration() int
 }
 
 func NewGlucose(d data.Datum) (Glucose, error) {
@@ -47,23 +50,23 @@ type SelfMonitoredGlucoseAdapter struct {
 	datum *selfmonitored.SelfMonitored
 }
 
-func (s SelfMonitoredGlucoseAdapter) GetNormalizedValue() float64 {
+func (s SelfMonitoredGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(s.datum.Value, s.datum.Units)
 }
 
-func (s SelfMonitoredGlucoseAdapter) GetType() string {
+func (s SelfMonitoredGlucoseAdapter) Type() string {
 	return s.datum.GetType()
 }
 
-func (s SelfMonitoredGlucoseAdapter) GetTime() *time.Time {
+func (s SelfMonitoredGlucoseAdapter) Time() *time.Time {
 	return s.datum.GetTime()
 }
 
-func (s SelfMonitoredGlucoseAdapter) GetCreatedTime() *time.Time {
+func (s SelfMonitoredGlucoseAdapter) CreatedTime() *time.Time {
 	return s.datum.GetCreatedTime()
 }
 
-func (s SelfMonitoredGlucoseAdapter) GetDuration() int {
+func (s SelfMonitoredGlucoseAdapter) Duration() int {
 	return 0
 }
 
@@ -73,23 +76,23 @@ type ContinuousGlucoseAdapter struct {
 	datum *continuous.Continuous
 }
 
-func (c ContinuousGlucoseAdapter) GetNormalizedValue() float64 {
+func (c ContinuousGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(c.datum.Value, c.datum.Units)
 }
 
-func (c ContinuousGlucoseAdapter) GetType() string {
+func (c ContinuousGlucoseAdapter) Type() string {
 	return c.datum.GetType()
 }
 
-func (c ContinuousGlucoseAdapter) GetTime() *time.Time {
+func (c ContinuousGlucoseAdapter) Time() *time.Time {
 	return c.datum.GetTime()
 }
 
-func (s ContinuousGlucoseAdapter) GetCreatedTime() *time.Time {
+func (s ContinuousGlucoseAdapter) CreatedTime() *time.Time {
 	return s.datum.GetCreatedTime()
 }
 
-func (c ContinuousGlucoseAdapter) GetDuration() int {
+func (c ContinuousGlucoseAdapter) Duration() int {
 	if c.datum.SampleInterval != nil {
 		return *c.datum.SampleInterval / (1000 * 60)
 	} else if c.datum.DeviceID != nil {
@@ -102,8 +105,7 @@ func (c ContinuousGlucoseAdapter) GetDuration() int {
 		}
 	}
 
-	// assumes all others have 5 minute sample interval
-	return 5
+	return DefaultSampleIntervalMinutes
 }
 
 type GlucosePeriods map[string]*GlucosePeriod
@@ -128,15 +130,15 @@ func (r *Range) Add(new *Range) {
 }
 
 func (r *Range) Update(record Glucose) {
-	r.Minutes += record.GetDuration()
+	r.Minutes += record.Duration()
 	r.Records++
 }
 
 func (r *Range) UpdateTotal(record Glucose) {
-	normalizedValue := record.GetNormalizedValue()
+	normalizedValue := record.NormalizedValue()
 
 	// if this is bgm data, this will return 0
-	duration := record.GetDuration()
+	duration := record.Duration()
 
 	// this must occur before the regular update as the pre-increment counters are used during calc
 	if duration > 0 {
@@ -251,7 +253,7 @@ func (rs *GlucoseRanges) Finalize(days int) {
 }
 
 func (rs *GlucoseRanges) Update(record Glucose) {
-	normalizedValue := record.GetNormalizedValue()
+	normalizedValue := record.NormalizedValue()
 
 	if normalizedValue < veryLowBloodGlucose {
 		rs.VeryLow.Update(record)
@@ -301,13 +303,13 @@ func (b *GlucoseBucket) ShouldSkipDatum(d Glucose, lastData *time.Time) bool {
 	}
 
 	// if we have cgm data, we care about blackout periods
-	if d.GetType() == continuous.Type {
+	if d.Type() == continuous.Type {
 		// calculate blackoutWindow based on duration of previous value
 		// remove 10 seconds from the duration to prevent slight early reporting or exactly on time reporting from being skipped.
 		blackoutWindow := time.Duration(b.LastRecordDuration)*time.Minute - 10*time.Second
 
 		// Skip record if we are within the blackout window
-		if d.GetTime().Sub(*lastData) < blackoutWindow {
+		if d.Time().Sub(*lastData) < blackoutWindow {
 			return true
 		}
 	}
@@ -326,7 +328,7 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 	}
 
 	b.GlucoseRanges.Update(g)
-	b.LastRecordDuration = g.GetDuration()
+	b.LastRecordDuration = g.Duration()
 
 	return true, nil
 }
