@@ -60,7 +60,7 @@ func (b *ContinuousBucket) Update(r data.Datum, _ *time.Time) (bool, error) {
 	}
 
 	// NOTE we do not call range.update here, as we only require a single field of a range
-	if record.GetCreatedTime().Sub(*record.GetTime()).Hours() < 24 {
+	if record.CreatedTime().Sub(*record.Time()).Hours() < 24 {
 		b.Realtime.Records++
 	} else {
 		b.Deferred.Records++
