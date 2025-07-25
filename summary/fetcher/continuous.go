@@ -41,7 +41,14 @@ func (c *ContinuousDeviceDataCursor) GetNextBatch(ctx context.Context) ([]data.D
 			userData = make([]data.Datum, 0, c.RemainingBatchLength())
 		}
 
-		datum := c.create()
+		typ := &datumType{}
+		if err := c.Decode(typ); err != nil {
+			return nil, fmt.Errorf("unable to decode datum type: %w", err)
+		}
+		datum, err := c.create(typ.Type)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create datum with type: %w", err)
+		}
 		if err := c.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}

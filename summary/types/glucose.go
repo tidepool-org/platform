@@ -91,7 +91,7 @@ func (s ContinuousGlucoseAdapter) GetCreatedTime() *time.Time {
 
 func (c ContinuousGlucoseAdapter) GetDuration() int {
 	if c.datum.SampleInterval != nil {
-		return *c.datum.SampleInterval / 1000 * 60
+		return *c.datum.SampleInterval / (1000 * 60)
 	} else if c.datum.DeviceID != nil {
 		// Legacy Abbott data doesn't have sample interval set
 		if strings.Contains(*c.datum.DeviceID, "AbbottFreeStyleLibre3") {

@@ -14,8 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	. "github.com/tidepool-org/platform/summary/test"
@@ -38,17 +36,15 @@ var _ = Describe("Glucose", func() {
 		var datumTime time.Time
 		var deviceID string
 		var uploadId string
-		var typ *string
 
 		BeforeEach(func() {
-			typ = pointer.FromString("cbg")
 			deviceID = "SummaryTestDevice"
 			uploadId = test.RandomDataSetID()
 			datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
 		})
 
 		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+			libreDatum := NewContinuousGlucoseDatum(pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
 			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
 
 			g, err := NewGlucose(libreDatum)
@@ -59,15 +55,12 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Returns correct when sample interval is set", func() {
-			otherDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+			otherDatum := NewContinuousGlucoseDatum(pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
 			sevenMinutes := 7 * 60 * 1000
 
-			cont := &continuous.Continuous{
-				Glucose:        *otherDatum,
-				SampleInterval: &sevenMinutes,
-			}
+			otherDatum.SampleInterval = &sevenMinutes
 
-			g, err := NewGlucose(cont)
+			g, err := NewGlucose(otherDatum)
 			Expect(err).ToNot(HaveOccurred())
 
 			duration := g.GetDuration()
@@ -75,7 +68,7 @@ var _ = Describe("Glucose", func() {
 		})
 
 		It("Returns 5 minutes duration for other devices", func() {
-			otherDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+			otherDatum := NewContinuousGlucoseDatum(pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
 
 			g, err := NewGlucose(otherDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -88,7 +81,7 @@ var _ = Describe("Glucose", func() {
 	Context("Range", func() {
 		It("range.UpdateTotal", func() {
 			glucoseRange := Range{}
-			datum := NewGlucoseWithValue(continuous.Type, now, 5)
+			datum := NewContinuousGlucoseWithValue(now, 5)
 			g, err := NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -104,7 +97,7 @@ var _ = Describe("Glucose", func() {
 			glucoseRange := Range{}
 
 			By("adding 1 record of 5mmol")
-			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
+			datum := NewSelfMonitoredGlucoseWithValue(now, 5)
 			g, err := NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -115,7 +108,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
 			By("adding 1 record of 10mmol")
-			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
+			datum = NewSelfMonitoredGlucoseWithValue(now, 10)
 			g, err = NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -128,7 +121,7 @@ var _ = Describe("Glucose", func() {
 
 		It("range.Update", func() {
 			glucoseRange := Range{}
-			datum := NewGlucoseWithValue(continuous.Type, now, 5)
+			datum := NewContinuousGlucoseWithValue(now, 5)
 			g, err := NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -144,7 +137,7 @@ var _ = Describe("Glucose", func() {
 			glucoseRange := Range{}
 
 			By("adding 1 record of 5mmol")
-			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
+			datum := NewSelfMonitoredGlucoseWithValue(now, 5)
 			g, err := NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -155,7 +148,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
 			By("adding 1 record of 10mmol")
-			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
+			datum = NewSelfMonitoredGlucoseWithValue(now, 10)
 			g, err = NewGlucose(datum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -404,7 +397,7 @@ var _ = Describe("Glucose", func() {
 			glucoseRanges := GlucoseRanges{}
 
 			By("adding a VeryLow value")
-			glucoseRecord := NewGlucoseWithValue(continuous.Type, bucketTime, VeryLowBloodGlucose-0.1)
+			glucoseRecord := NewContinuousGlucoseWithValue(bucketTime, VeryLowBloodGlucose-0.1)
 			g, err := NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -415,7 +408,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Total.Records).To(Equal(1))
 
 			By("adding a Low value")
-			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, LowBloodGlucose-0.1)
+			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, LowBloodGlucose-0.1)
 			g, err = NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -425,7 +418,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Total.Records).To(Equal(2))
 
 			By("adding a Target value")
-			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, InTargetBloodGlucose+0.1)
+			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, InTargetBloodGlucose+0.1)
 			g, err = NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -435,7 +428,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Total.Records).To(Equal(3))
 
 			By("adding a High value")
-			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, HighBloodGlucose+0.1)
+			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, HighBloodGlucose+0.1)
 			g, err = NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -445,7 +438,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Total.Records).To(Equal(4))
 
 			By("adding a VeryHigh value")
-			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, VeryHighBloodGlucose+0.1)
+			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, VeryHighBloodGlucose+0.1)
 			g, err = NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -455,7 +448,7 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Total.Records).To(Equal(5))
 
 			By("adding a High value")
-			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, ExtremeHighBloodGlucose+0.1)
+			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, ExtremeHighBloodGlucose+0.1)
 			g, err = NewGlucose(glucoseRecord)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -572,7 +565,7 @@ var _ = Describe("Glucose", func() {
 		It("With a cgm value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(cgmDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -591,7 +584,7 @@ var _ = Describe("Glucose", func() {
 		It("With a bgm value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
-			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
+			bgmDatum := NewSelfMonitoredGlucoseWithValue(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(bgmDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -610,7 +603,7 @@ var _ = Describe("Glucose", func() {
 		It("With two cgm values within 5 minutes", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(cgmDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -621,7 +614,7 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
 
 			newDatumTime := bucketTime.Add(9 * time.Minute)
-			cgmDatum = NewGlucoseWithValue(continuous.Type, newDatumTime, InTargetBloodGlucose)
+			cgmDatum = NewContinuousGlucoseWithValue(newDatumTime, InTargetBloodGlucose)
 			err = userBucket.Update(cgmDatum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -634,7 +627,7 @@ var _ = Describe("Glucose", func() {
 		It("With two bgm values within 5 minutes", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
-			bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
+			bgmDatum := NewSelfMonitoredGlucoseWithValue(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(bgmDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -645,7 +638,7 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
 
 			newDatumTime := bucketTime.Add(9 * time.Minute)
-			bgmDatum = NewGlucoseWithValue(selfmonitored.Type, newDatumTime, InTargetBloodGlucose)
+			bgmDatum = NewSelfMonitoredGlucoseWithValue(newDatumTime, InTargetBloodGlucose)
 			err = userBucket.Update(bgmDatum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -682,7 +675,7 @@ var _ = Describe("Glucose", func() {
 
 			By("Inserting the first data")
 
-			cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)
 			err = userBucket.Update(cgmDatum)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -697,7 +690,7 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
 
 			secondDatumTime := datumTime.Add(5 * time.Minute)
-			cgmDatum = NewGlucoseWithValue(continuous.Type, secondDatumTime, InTargetBloodGlucose)
+			cgmDatum = NewContinuousGlucoseWithValue(secondDatumTime, InTargetBloodGlucose)
 
 			By("Inserting the second data")
 
@@ -751,7 +744,7 @@ var _ = Describe("Glucose", func() {
 				Expect(v.Glucose).To(BeZero())
 				Expect(v.Minutes).To(BeZero())
 
-				cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute*time.Duration(offset)), k)
+				cgmDatum = NewContinuousGlucoseWithValue(datumTime.Add(5*time.Minute*time.Duration(offset)), k)
 				err = userBucket.Update(cgmDatum)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -803,7 +796,7 @@ var _ = Describe("Glucose", func() {
 			period = GlucosePeriod{}
 
 			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
@@ -816,7 +809,7 @@ var _ = Describe("Glucose", func() {
 			period = GlucosePeriod{}
 
 			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
@@ -832,15 +825,15 @@ var _ = Describe("Glucose", func() {
 			period = GlucosePeriod{}
 
 			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			bucketTwo := NewBucket[*GlucoseBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
-			err = bucketTwo.Update(NewGlucoseWithValue(continuous.Type, datumTime.Add(time.Hour), InTargetBloodGlucose))
+			err = bucketTwo.Update(NewContinuousGlucoseWithValue(datumTime.Add(time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			bucketThree := NewBucket[*GlucoseBucket](userId, bucketTime.Add(24*time.Hour), SummaryTypeCGM)
-			err = bucketThree.Update(NewGlucoseWithValue(continuous.Type, datumTime.Add(24*time.Hour), InTargetBloodGlucose))
+			err = bucketThree.Update(NewContinuousGlucoseWithValue(datumTime.Add(24*time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
