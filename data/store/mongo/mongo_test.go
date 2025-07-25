@@ -1331,13 +1331,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.ActivateDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
 							Context("with selectors by id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeID)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
 									}
@@ -1347,8 +1348,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
+							Context("with selectors by deduplicator hash", func() {
+								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeDeduplicator)
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
 							Context("with selectors by origin id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeOrigin)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
@@ -1358,24 +1372,25 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
-							Context("with selectors by both id and origin id", func() {
+							Context("with selectors by id, deduplicator hash, and origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for _, datum := range selectedDataSetData {
-										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
 								})
 
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
-
+									err := repository.ActivateDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
-							Context("with selectors with neither id nor origin id", func() {
+							Context("with selectors with neither id, deduplicator hash, nor origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{})
 									}
@@ -1384,7 +1399,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.ActivateDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
@@ -1488,6 +1503,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 
 							Context("with selectors by id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeID)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
 									}
@@ -1497,8 +1513,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
+							Context("with selectors by deduplicator hash", func() {
+								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeDeduplicator)
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
 							Context("with selectors by origin id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeOrigin)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
@@ -1508,10 +1537,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
-							Context("with selectors by both id and origin id", func() {
+							Context("with selectors by id, deduplicator hash, and origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for _, datum := range selectedDataSetData {
-										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
 								})
 
@@ -1523,8 +1553,9 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								})
 							})
 
-							Context("with selectors with neither id nor origin id", func() {
+							Context("with selectors with neither id, deduplicator hash, nor origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{})
 									}
@@ -1619,13 +1650,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DeleteDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
 							Context("with selectors by id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeID)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
 									}
@@ -1635,8 +1667,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
+							Context("with selectors by deduplicator hash", func() {
+								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeDeduplicator)
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
 							Context("with selectors by origin id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeOrigin)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
@@ -1646,23 +1691,25 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
-							Context("with selectors by both id and origin id", func() {
+							Context("with selectors by id, deduplicator hash, and origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for _, datum := range selectedDataSetData {
-										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
 								})
 
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DeleteDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
-							Context("with selectors with neither id nor origin id", func() {
+							Context("with selectors with neither id, deduplicator hash, nor origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{})
 									}
@@ -1671,7 +1718,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DeleteDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
@@ -1757,13 +1804,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
 							Context("with selectors by id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeID)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
 									}
@@ -1773,8 +1821,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
+							Context("with selectors by deduplicator hash", func() {
+								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeDeduplicator)
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
 							Context("with selectors by origin id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeOrigin)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
@@ -1784,10 +1845,11 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
-							Context("with selectors by both id and origin id", func() {
+							Context("with selectors by id, deduplicator hash, and origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for _, datum := range selectedDataSetData {
-										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
 								})
 
@@ -1799,8 +1861,9 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								})
 							})
 
-							Context("with selectors with neither id nor origin id", func() {
+							Context("with selectors with neither id, deduplicator hash, nor origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{})
 									}
@@ -1809,7 +1872,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
@@ -1895,13 +1958,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DestroyDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
 							Context("with selectors by id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeID)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID})
 									}
@@ -1911,8 +1975,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
+							Context("with selectors by deduplicator hash", func() {
+								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeDeduplicator)
+									for _, datum := range selectedDataSetData {
+										*selectors = append(*selectors, &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}})
+									}
+								})
+
+								commonAssertions()
+								selectorAssertions()
+							})
+
 							Context("with selectors by origin id", func() {
 								BeforeEach(func() {
+									selectors = dataTest.RandomSelectorsWithType(dataTest.SelectorTypeOrigin)
 									for _, datum := range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
@@ -1922,23 +1999,25 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								selectorAssertions()
 							})
 
-							Context("with selectors by both id and origin id", func() {
+							Context("with selectors by id, deduplicator hash, and origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for _, datum := range selectedDataSetData {
-										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
+										*selectors = append(*selectors, &data.Selector{ID: datum.(*types.Base).ID, Deduplicator: &data.SelectorDeduplicator{Hash: datum.(*types.Base).Deduplicator.Hash}, Origin: &data.SelectorOrigin{ID: datum.(*types.Base).Origin.ID}})
 									}
 								})
 
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DestroyDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})
 
-							Context("with selectors with neither id nor origin id", func() {
+							Context("with selectors with neither id, deduplicator hash, nor origin id", func() {
 								BeforeEach(func() {
+									selectors = data.NewSelectors()
 									for range selectedDataSetData {
 										*selectors = append(*selectors, &data.Selector{})
 									}
@@ -1947,7 +2026,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								commonAssertions()
 
 								It("returns an error", func() {
-									err := repository.ArchiveDataSetData(ctx, dataSet, selectors)
+									err := repository.DestroyDataSetData(ctx, dataSet, selectors)
 									Expect(err).To(MatchError(dataStoreMongo.ErrSelectorsInvalid))
 								})
 							})

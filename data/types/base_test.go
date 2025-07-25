@@ -918,59 +918,126 @@ var _ = Describe("Base", func() {
 		})
 
 		Context("IdentityFields", func() {
-			It("returns error if user id is missing", func() {
-				datumBase.UserID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is missing"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDefault", func() {
+				It("returns error if user id is missing", func() {
+					datumBase.UserID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBase.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is missing", func() {
+					datumBase.DeviceID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("device id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is empty", func() {
+					datumBase.DeviceID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("device id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datumBase.Time = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datumBase.Time = pointer.FromTime(time.Time{})
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if type is empty", func() {
+					datumBase.Type = ""
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+				})
 			})
 
-			It("returns error if user id is empty", func() {
-				datumBase.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is empty"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDataSetID", func() {
+				It("returns error if user id is missing", func() {
+					datumBase.UserID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBase.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if data set id is missing", func() {
+					datumBase.UploadID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("data set id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if data set id is empty", func() {
+					datumBase.UploadID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("data set id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datumBase.Time = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datumBase.Time = pointer.FromTime(time.Time{})
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if type is empty", func() {
+					datumBase.Type = ""
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.UploadID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+				})
 			})
 
-			It("returns error if device id is missing", func() {
-				datumBase.DeviceID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("device id is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if device id is empty", func() {
-				datumBase.DeviceID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("device id is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is missing", func() {
-				datumBase.Time = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("time is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is empty", func() {
-				datumBase.Time = pointer.FromTime(time.Time{})
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("time is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if type is empty", func() {
-				datumBase.Type = ""
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("type is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+			When("version is invalid", func() {
+				It("returns an error", func() {
+					identityFields, err := datum.IdentityFields("invalid")
+					Expect(err).To(MatchError("version is invalid"))
+					Expect(identityFields).To(BeEmpty())
+				})
 			})
 		})
 

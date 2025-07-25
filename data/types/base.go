@@ -23,6 +23,9 @@ const (
 	TagLengthMaximum   = 100
 	TagsLengthMaximum  = 100
 	TimeFormat         = time.RFC3339Nano
+
+	IdentityFieldsVersionDeviceID  = "device-id"
+	IdentityFieldsVersionDataSetID = "data-set-id"
 )
 
 type Base struct {
@@ -225,30 +228,57 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Base) IdentityFields() ([]string, error) {
-	if b.UserID == nil {
-		return nil, errors.New("user id is missing")
+func (b *Base) IdentityFields(version string) ([]string, error) {
+	switch version {
+	case IdentityFieldsVersionDeviceID:
+		if b.UserID == nil {
+			return nil, errors.New("user id is missing")
+		}
+		if *b.UserID == "" {
+			return nil, errors.New("user id is empty")
+		}
+		if b.DeviceID == nil {
+			return nil, errors.New("device id is missing")
+		}
+		if *b.DeviceID == "" {
+			return nil, errors.New("device id is empty")
+		}
+		if b.Time == nil {
+			return nil, errors.New("time is missing")
+		}
+		if (*b.Time).IsZero() {
+			return nil, errors.New("time is empty")
+		}
+		if b.Type == "" {
+			return nil, errors.New("type is empty")
+		}
+		return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	case IdentityFieldsVersionDataSetID:
+		if b.UserID == nil {
+			return nil, errors.New("user id is missing")
+		}
+		if *b.UserID == "" {
+			return nil, errors.New("user id is empty")
+		}
+		if b.UploadID == nil {
+			return nil, errors.New("data set id is missing")
+		}
+		if *b.UploadID == "" {
+			return nil, errors.New("data set id is empty")
+		}
+		if b.Time == nil {
+			return nil, errors.New("time is missing")
+		}
+		if (*b.Time).IsZero() {
+			return nil, errors.New("time is empty")
+		}
+		if b.Type == "" {
+			return nil, errors.New("type is empty")
+		}
+		return []string{*b.UserID, *b.UploadID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-	if *b.UserID == "" {
-		return nil, errors.New("user id is empty")
-	}
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-	if b.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-	if (*b.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-	if b.Type == "" {
-		return nil, errors.New("type is empty")
-	}
-
-	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {
