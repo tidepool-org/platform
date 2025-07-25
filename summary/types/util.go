@@ -2,31 +2,10 @@ package types
 
 import (
 	"math"
-	"strings"
 	"time"
 
 	"golang.org/x/exp/constraints"
-
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 )
-
-// GetDuration assumes all except freestyle is 5 minutes
-func GetDuration(datum *glucoseDatum.Glucose) int {
-	if datum.Type != continuous.Type {
-		// non-continuous has no duration
-		return 0
-	}
-	if datum.DeviceID != nil {
-		if strings.Contains(*datum.DeviceID, "AbbottFreeStyleLibre3") {
-			return 5
-		}
-		if strings.Contains(*datum.DeviceID, "AbbottFreeStyleLibre") {
-			return 15
-		}
-	}
-	return 5
-}
 
 func CalculateGMI(averageGlucose float64) float64 {
 	gmi := 12.71 + 4.70587*averageGlucose

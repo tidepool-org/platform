@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	. "github.com/tidepool-org/platform/summary/test"
 	. "github.com/tidepool-org/platform/summary/types"
 )
@@ -32,7 +31,7 @@ var _ = Describe("Buckets", func() {
 		It("With no existing buckets", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBuckets = BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
-			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)}
+			cgmDatums = []data.Datum{NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)}
 
 			err = userBuckets.Update(bucketFactory, cgmDatums)
 			Expect(err).ToNot(HaveOccurred())
@@ -43,14 +42,14 @@ var _ = Describe("Buckets", func() {
 		It("Adding to existing buckets", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBuckets = BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
-			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)}
+			cgmDatums = []data.Datum{NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)}
 
 			err = userBuckets.Update(bucketFactory, cgmDatums)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(userBuckets).To(HaveKey(bucketTime))
 			Expect(userBuckets[bucketTime].Data.Target.Records).To(Equal(1))
 
-			cgmDatums = []data.Datum{NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute), InTargetBloodGlucose)}
+			cgmDatums = []data.Datum{NewContinuousGlucoseWithValue(datumTime.Add(5*time.Minute), InTargetBloodGlucose)}
 
 			err = userBuckets.Update(bucketFactory, cgmDatums)
 			Expect(err).ToNot(HaveOccurred())
@@ -61,8 +60,8 @@ var _ = Describe("Buckets", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBuckets = BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
 			cgmDatums = []data.Datum{
-				NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose),
-				NewGlucoseWithValue(continuous.Type, datumTime.Add(time.Hour), LowBloodGlucose-0.1),
+				NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose),
+				NewContinuousGlucoseWithValue(datumTime.Add(time.Hour), LowBloodGlucose-0.1),
 			}
 
 			err = userBuckets.Update(bucketFactory, cgmDatums)
@@ -76,8 +75,8 @@ var _ = Describe("Buckets", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBuckets = BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
 			cgmDatums = []data.Datum{
-				NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose),
-				NewGlucoseWithValue(continuous.Type, datumTime.Add(5*time.Minute), LowBloodGlucose-0.1),
+				NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose),
+				NewContinuousGlucoseWithValue(datumTime.Add(5*time.Minute), LowBloodGlucose-0.1),
 			}
 
 			err = userBuckets.Update(bucketFactory, cgmDatums)

@@ -9,7 +9,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	. "github.com/tidepool-org/platform/summary/test"
@@ -91,7 +90,7 @@ var _ = Describe("Continuous", func() {
 		It("With a realtime value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
-			continuousDatum = NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
+			continuousDatum = NewRealtimeGlucose(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(continuousDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -115,7 +114,7 @@ var _ = Describe("Continuous", func() {
 		It("With a deferred value", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
-			continuousDatum = NewDeferredGlucose(continuous.Type, datumTime, InTargetBloodGlucose)
+			continuousDatum = NewDeferredGlucose(datumTime, InTargetBloodGlucose)
 
 			err = userBucket.Update(continuousDatum)
 			Expect(err).ToNot(HaveOccurred())
@@ -146,7 +145,7 @@ var _ = Describe("Continuous", func() {
 			period = ContinuousPeriod{}
 
 			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewRealtimeGlucose(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
@@ -161,7 +160,7 @@ var _ = Describe("Continuous", func() {
 			period = ContinuousPeriod{}
 
 			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewRealtimeGlucose(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
@@ -178,11 +177,11 @@ var _ = Describe("Continuous", func() {
 			period = ContinuousPeriod{}
 
 			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
-			err = bucketOne.Update(NewRealtimeGlucose(continuous.Type, datumTime, InTargetBloodGlucose))
+			err = bucketOne.Update(NewRealtimeGlucose(datumTime, InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			bucketTwo := NewBucket[*ContinuousBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
-			err = bucketTwo.Update(NewRealtimeGlucose(continuous.Type, datumTime.Add(time.Hour), InTargetBloodGlucose))
+			err = bucketTwo.Update(NewRealtimeGlucose(datumTime.Add(time.Hour), InTargetBloodGlucose))
 			Expect(err).ToNot(HaveOccurred())
 
 			err = period.Update(bucketOne)
