@@ -7,7 +7,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -54,8 +55,12 @@ var _ Summarizer[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, type
 var _ Summarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket] = &GlucoseSummarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{}
 var _ Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket] = &GlucoseSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{}
 
-func CreateGlucoseDatum() data.Datum {
-	return &glucoseDatum.Glucose{}
+func CreateSelfMonitoredGlucoseDatum() data.Datum {
+	return selfmonitored.New()
+}
+
+func CreateContinuousGlucoseDatum() data.Datum {
+	return continuous.New()
 }
 
 type GlucoseSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
@@ -69,7 +74,7 @@ type GlucoseSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P
 func NewBGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher, mongoClient *mongo.Client) Summarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket] {
 	return &GlucoseSummarizer[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{
 		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
-			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+			return fetcher.NewDefaultCursor(c, CreateSelfMonitoredGlucoseDatum)
 		},
 		dataFetcher: dataFetcher,
 		summaries:   store.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](collection),
@@ -81,7 +86,7 @@ func NewBGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollec
 func NewCGMSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher, mongoClient *mongo.Client) Summarizer[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket] {
 	return &GlucoseSummarizer[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{
 		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
-			return fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
+			return fetcher.NewDefaultCursor(c, CreateContinuousGlucoseDatum)
 		},
 		dataFetcher: dataFetcher,
 		summaries:   store.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](collection),
@@ -329,8 +334,8 @@ func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Dat
 func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher, mongoClient *mongo.Client) Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket] {
 	return &GlucoseSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
 		cursorFactory: func(c *mongo.Cursor) fetcher.DeviceDataCursor {
-			defaultCursor := fetcher.NewDefaultCursor(c, CreateGlucoseDatum)
-			return fetcher.NewContinuousDeviceDataCursor(defaultCursor, dataFetcher, CreateGlucoseDatum)
+			defaultCursor := fetcher.NewDefaultCursor(c, CreateContinuousGlucoseDatum)
+			return fetcher.NewContinuousDeviceDataCursor(defaultCursor, dataFetcher, CreateContinuousGlucoseDatum)
 		},
 		dataFetcher: dataFetcher,
 		summaries:   store.NewSummaries[*types.ContinuousPeriods, *types.ContinuousBucket](collection),

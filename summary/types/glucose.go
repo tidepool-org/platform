@@ -6,17 +6,105 @@ import (
 	"fmt"
 	"math"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 )
 
 const MaxRecordsPerBucket = 60 // one per minute max
+
+type Glucose interface {
+	GetNormalizedValue() float64
+	GetType() string
+	GetTime() *time.Time
+	GetCreatedTime() *time.Time
+	GetDuration() int
+}
+
+func NewGlucose(d data.Datum) (Glucose, error) {
+	var g Glucose
+	if smbg, ok := d.(*selfmonitored.SelfMonitored); ok {
+		g = SelfMonitoredGlucoseAdapter{datum: smbg}
+	} else if cbg, ok := d.(*continuous.Continuous); ok {
+		g = ContinuousGlucoseAdapter{datum: cbg}
+	} else {
+		return nil, fmt.Errorf("record for calculation with type %s is not compatible with glucose type", d.GetType())
+	}
+
+	return g, nil
+}
+
+var _ Glucose = &SelfMonitoredGlucoseAdapter{}
+
+type SelfMonitoredGlucoseAdapter struct {
+	datum *selfmonitored.SelfMonitored
+}
+
+func (s SelfMonitoredGlucoseAdapter) GetNormalizedValue() float64 {
+	return *glucose.NormalizeValueForUnits(s.datum.Value, s.datum.Units)
+}
+
+func (s SelfMonitoredGlucoseAdapter) GetType() string {
+	return s.datum.GetType()
+}
+
+func (s SelfMonitoredGlucoseAdapter) GetTime() *time.Time {
+	return s.datum.GetTime()
+}
+
+func (s SelfMonitoredGlucoseAdapter) GetCreatedTime() *time.Time {
+	return s.datum.GetCreatedTime()
+}
+
+func (s SelfMonitoredGlucoseAdapter) GetDuration() int {
+	return 0
+}
+
+var _ Glucose = &ContinuousGlucoseAdapter{}
+
+type ContinuousGlucoseAdapter struct {
+	datum *continuous.Continuous
+}
+
+func (c ContinuousGlucoseAdapter) GetNormalizedValue() float64 {
+	return *glucose.NormalizeValueForUnits(c.datum.Value, c.datum.Units)
+}
+
+func (c ContinuousGlucoseAdapter) GetType() string {
+	return c.datum.GetType()
+}
+
+func (c ContinuousGlucoseAdapter) GetTime() *time.Time {
+	return c.datum.GetTime()
+}
+
+func (s ContinuousGlucoseAdapter) GetCreatedTime() *time.Time {
+	return s.datum.GetCreatedTime()
+}
+
+func (c ContinuousGlucoseAdapter) GetDuration() int {
+	if c.datum.SampleInterval != nil {
+		return *c.datum.SampleInterval / 1000 * 60
+	} else if c.datum.DeviceID != nil {
+		// Legacy Abbott data doesn't have sample interval set
+		if strings.Contains(*c.datum.DeviceID, "AbbottFreeStyleLibre3") {
+			return 5
+		}
+		if strings.Contains(*c.datum.DeviceID, "AbbottFreeStyleLibre") {
+			return 15
+		}
+	}
+
+	// assumes all others have 5 minute sample interval
+	return 5
+}
 
 type GlucosePeriods map[string]*GlucosePeriod
 
@@ -39,16 +127,16 @@ func (r *Range) Add(new *Range) {
 	r.Percent = 0
 }
 
-func (r *Range) Update(record *glucoseDatum.Glucose) {
-	r.Minutes += GetDuration(record)
+func (r *Range) Update(record Glucose) {
+	r.Minutes += record.GetDuration()
 	r.Records++
 }
 
-func (r *Range) UpdateTotal(record *glucoseDatum.Glucose) {
-	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
+func (r *Range) UpdateTotal(record Glucose) {
+	normalizedValue := record.GetNormalizedValue()
 
 	// if this is bgm data, this will return 0
-	duration := GetDuration(record)
+	duration := record.GetDuration()
 
 	// this must occur before the regular update as the pre-increment counters are used during calc
 	if duration > 0 {
@@ -162,8 +250,8 @@ func (rs *GlucoseRanges) Finalize(days int) {
 	}
 }
 
-func (rs *GlucoseRanges) Update(record *glucoseDatum.Glucose) {
-	normalizedValue := *glucose.NormalizeValueForUnits(record.Value, record.Units)
+func (rs *GlucoseRanges) Update(record Glucose) {
+	normalizedValue := record.GetNormalizedValue()
 
 	if normalizedValue < veryLowBloodGlucose {
 		rs.VeryLow.Update(record)
@@ -206,20 +294,20 @@ type GlucoseBucket struct {
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
 }
 
-func (b *GlucoseBucket) ShouldSkipDatum(d *glucoseDatum.Glucose, lastData *time.Time) bool {
+func (b *GlucoseBucket) ShouldSkipDatum(d Glucose, lastData *time.Time) bool {
 	// if we have more records than could possibly be in 1 hour of data
 	if b.Total.Records > MaxRecordsPerBucket {
 		return true
 	}
 
 	// if we have cgm data, we care about blackout periods
-	if d.Type == continuous.Type {
+	if d.GetType() == continuous.Type {
 		// calculate blackoutWindow based on duration of previous value
 		// remove 10 seconds from the duration to prevent slight early reporting or exactly on time reporting from being skipped.
 		blackoutWindow := time.Duration(b.LastRecordDuration)*time.Minute - 10*time.Second
 
 		// Skip record if we are within the blackout window
-		if d.Time.Sub(*lastData) < blackoutWindow {
+		if d.GetTime().Sub(*lastData) < blackoutWindow {
 			return true
 		}
 	}
@@ -227,18 +315,18 @@ func (b *GlucoseBucket) ShouldSkipDatum(d *glucoseDatum.Glucose, lastData *time.
 	return false
 }
 
-func (b *GlucoseBucket) Update(r data.Datum, lastData *time.Time) (bool, error) {
-	record, ok := r.(*glucoseDatum.Glucose)
-	if !ok {
-		return false, errors.New("record for calculation is not compatible with Glucose type")
+func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) {
+	g, err := NewGlucose(d)
+	if err != nil {
+		return false, err
 	}
 
-	if b.ShouldSkipDatum(record, lastData) {
+	if b.ShouldSkipDatum(g, lastData) {
 		return false, nil
 	}
 
-	b.GlucoseRanges.Update(record)
-	b.LastRecordDuration = GetDuration(record)
+	b.GlucoseRanges.Update(g)
+	b.LastRecordDuration = g.GetDuration()
 
 	return true, nil
 }
