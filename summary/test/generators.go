@@ -110,7 +110,7 @@ func PopStdDev(x []float64) float64 {
 	return math.Sqrt(variance)
 }
 
-func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
+func NewGlucoseDatum(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
 	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	datum := glucose.New(*typ)
 	datum.Units = units
@@ -132,7 +132,7 @@ func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *stri
 }
 
 func NewGlucoseWithValue(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
+	g = NewGlucoseDatum(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.Value = &value
 	return
 }
@@ -153,7 +153,7 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 		for i, glucoseValue := range glucoseValues {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+			datum := NewGlucoseDatum(&typ, &Units, &datumTime, &deviceId, &uploadId)
 			datum.Value = pointer.FromAny(glucoseValue)
 
 			dataSetData[requiredRecords-count-i-1] = datum
@@ -186,7 +186,7 @@ func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRang
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+			datum := NewGlucoseDatum(&typ, &Units, &datumTime, &deviceId, &uploadId)
 			datum.Value = pointer.FromAny(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
 
 			dataSetData[requiredRecords-count-i-1] = datum
@@ -210,7 +210,7 @@ func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, Standard
 		for inHour := 0; inHour < perHour; inHour++ {
 			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
 
-			datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+			datum := NewGlucoseDatum(&typ, &Units, &datumTime, &deviceId, &uploadId)
 			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + VeryHighBloodGlucose)
 
 			values = append(values, *datum.Value)
@@ -304,14 +304,14 @@ func CreateContinuousBuckets(startTime time.Time, hours int, recordsPerBucket in
 }
 
 func NewDeferredGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
+	g = NewGlucoseDatum(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.CreatedTime = pointer.FromAny(datumTime.AddDate(0, 0, 1))
 	g.Value = &value
 	return g
 }
 
 func NewRealtimeGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
+	g = NewGlucoseDatum(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
 	g.Value = &value
 	return g
@@ -328,7 +328,7 @@ func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTim
 	for count := 0; count < requiredRecords; count += 1 {
 		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
 
-		datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
+		datum := NewGlucoseDatum(&typ, &Units, &datumTime, &deviceId, &uploadId)
 		datum.Value = glucoseValue
 		datum.UserID = &userId
 

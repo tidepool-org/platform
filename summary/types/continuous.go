@@ -10,7 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
-	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 )
@@ -55,13 +54,13 @@ type ContinuousBucket struct {
 }
 
 func (b *ContinuousBucket) Update(r data.Datum, _ *time.Time) (bool, error) {
-	dataRecord, ok := r.(*glucoseDatum.Glucose)
-	if !ok {
-		return false, errors.New("cgm or bgm record for calculation is not compatible with Glucose type")
+	record, err := NewGlucose(r)
+	if err != nil {
+		return false, err
 	}
 
 	// NOTE we do not call range.update here, as we only require a single field of a range
-	if dataRecord.CreatedTime.Sub(*dataRecord.Time).Hours() < 24 {
+	if record.GetCreatedTime().Sub(*record.GetTime()).Hours() < 24 {
 		b.Realtime.Records++
 	} else {
 		b.Deferred.Records++

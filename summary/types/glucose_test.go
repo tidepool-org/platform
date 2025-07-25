@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tidepool-org/platform/data/test"
+	"github.com/tidepool-org/platform/pointer"
+
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -31,13 +34,66 @@ var _ = Describe("Glucose", func() {
 		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	})
 
+	Context("GetDuration", func() {
+		var datumTime time.Time
+		var deviceID string
+		var uploadId string
+		var typ *string
+
+		BeforeEach(func() {
+			typ = pointer.FromString("cbg")
+			deviceID = "SummaryTestDevice"
+			uploadId = test.RandomDataSetID()
+			datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
+		})
+
+		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
+			libreDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
+
+			g, err := NewGlucose(libreDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			duration := g.GetDuration()
+			Expect(duration).To(Equal(15))
+		})
+
+		It("Returns correct when sample interval is set", func() {
+			otherDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+			sevenMinutes := 7 * 60 * 1000
+
+			cont := &continuous.Continuous{
+				Glucose:        *otherDatum,
+				SampleInterval: &sevenMinutes,
+			}
+
+			g, err := NewGlucose(cont)
+			Expect(err).ToNot(HaveOccurred())
+
+			duration := g.GetDuration()
+			Expect(duration).To(Equal(7))
+		})
+
+		It("Returns 5 minutes duration for other devices", func() {
+			otherDatum := NewGlucoseDatum(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
+
+			g, err := NewGlucose(otherDatum)
+			Expect(err).ToNot(HaveOccurred())
+
+			duration := g.GetDuration()
+			Expect(duration).To(Equal(5))
+		})
+	})
+
 	Context("Range", func() {
 		It("range.UpdateTotal", func() {
 			glucoseRange := Range{}
 			datum := NewGlucoseWithValue(continuous.Type, now, 5)
+			g, err := NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
 
 			By("adding 5 minutes of 5mmol")
-			glucoseRange.UpdateTotal(datum)
+			glucoseRange.UpdateTotal(g)
 			Expect(glucoseRange.Glucose).To(Equal(5.0 * 5.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
@@ -49,7 +105,10 @@ var _ = Describe("Glucose", func() {
 
 			By("adding 1 record of 5mmol")
 			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
-			glucoseRange.UpdateTotal(datum)
+			g, err := NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.UpdateTotal(g)
 			Expect(glucoseRange.Glucose).To(Equal(5.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(0))
@@ -57,7 +116,10 @@ var _ = Describe("Glucose", func() {
 
 			By("adding 1 record of 10mmol")
 			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
-			glucoseRange.UpdateTotal(datum)
+			g, err = NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.UpdateTotal(g)
 			Expect(glucoseRange.Glucose).To(Equal(15.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
@@ -67,9 +129,11 @@ var _ = Describe("Glucose", func() {
 		It("range.Update", func() {
 			glucoseRange := Range{}
 			datum := NewGlucoseWithValue(continuous.Type, now, 5)
+			g, err := NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
 
 			By("adding 5 minutes of 5mmol")
-			glucoseRange.Update(datum)
+			glucoseRange.Update(g)
 			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
@@ -81,7 +145,10 @@ var _ = Describe("Glucose", func() {
 
 			By("adding 1 record of 5mmol")
 			datum := NewGlucoseWithValue(selfmonitored.Type, now, 5)
-			glucoseRange.Update(datum)
+			g, err := NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.Update(g)
 			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(0))
@@ -89,7 +156,10 @@ var _ = Describe("Glucose", func() {
 
 			By("adding 1 record of 10mmol")
 			datum = NewGlucoseWithValue(selfmonitored.Type, now, 10)
-			glucoseRange.Update(datum)
+			g, err = NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.Update(g)
 			Expect(glucoseRange.Glucose).To(Equal(0.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
@@ -335,44 +405,62 @@ var _ = Describe("Glucose", func() {
 
 			By("adding a VeryLow value")
 			glucoseRecord := NewGlucoseWithValue(continuous.Type, bucketTime, VeryLowBloodGlucose-0.1)
+			g, err := NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.Total.Records).To(Equal(0))
 			Expect(glucoseRanges.VeryLow.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.VeryLow.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(1))
 
 			By("adding a Low value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, LowBloodGlucose-0.1)
+			g, err = NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.Low.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.Low.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(2))
 
 			By("adding a Target value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, InTargetBloodGlucose+0.1)
+			g, err = NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.Target.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.Target.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(3))
 
 			By("adding a High value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, HighBloodGlucose+0.1)
+			g, err = NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.High.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.High.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(4))
 
 			By("adding a VeryHigh value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, VeryHighBloodGlucose+0.1)
+			g, err = NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(5))
 
 			By("adding a High value")
 			glucoseRecord = NewGlucoseWithValue(continuous.Type, bucketTime, ExtremeHighBloodGlucose+0.1)
+			g, err = NewGlucose(glucoseRecord)
+			Expect(err).ToNot(HaveOccurred())
+
 			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(0))
-			glucoseRanges.Update(glucoseRecord)
+			glucoseRanges.Update(g)
 			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(2))
 			Expect(glucoseRanges.Total.Records).To(Equal(6))
