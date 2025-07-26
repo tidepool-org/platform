@@ -50,17 +50,21 @@ func (b *Basal) Validate(validator structure.Validator) {
 	validator.String("deliveryType", &b.DeliveryType).Exists().NotEmpty()
 }
 
-func (b *Basal) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Basal) IdentityFields(version string) ([]string, error) {
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
 
-	if b.DeliveryType == "" {
-		return nil, errors.New("delivery type is empty")
+	switch version {
+	case types.IdentityFieldsVersionDeviceID, types.IdentityFieldsVersionDataSetID:
+		if b.DeliveryType == "" {
+			return nil, errors.New("delivery type is empty")
+		}
+		return append(identityFields, b.DeliveryType), nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-
-	return append(identityFields, b.DeliveryType), nil
 }
 
 func ParseDeliveryType(parser structure.ObjectParser) *string {

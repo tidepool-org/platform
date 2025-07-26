@@ -3,37 +3,47 @@ package test
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/twiist"
-
 	"github.com/onsi/gomega"
+
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/appvalidate"
-	"github.com/tidepool-org/platform/auth/service"
-	"github.com/tidepool-org/platform/auth/store"
-	"github.com/tidepool-org/platform/provider"
-	"github.com/tidepool-org/platform/task"
-
+	"github.com/tidepool-org/platform/auth"
+	authService "github.com/tidepool-org/platform/auth/service"
+	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
+	"github.com/tidepool-org/platform/provider"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
+	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
 )
 
 type Service struct {
 	*serviceTest.Service
-	DomainInvocations          int
-	DomainOutputs              []string
-	AuthStoreInvocations       int
-	AuthStoreImpl              *authStoreTest.Store
-	ProviderFactoryInvocations int
-	ProviderFactoryImpl        *providerTest.Factory
-	TaskClientInvocations      int
-	TaskClientImpl             *taskTest.Client
-	StatusInvocations          int
-	StatusOutputs              []*service.Status
-	confirmationClient         confirmationClient.ClientWithResponsesInterface
+	DomainInvocations                         int
+	DomainOutputs                             []string
+	AuthStoreInvocations                      int
+	AuthStoreImpl                             *authStoreTest.Store
+	ProviderFactoryInvocations                int
+	ProviderFactoryImpl                       *providerTest.Factory
+	AuthServiceClientInvocations              int
+	AuthServiceClientImpl                     authService.Client
+	TaskClientInvocations                     int
+	TaskClientImpl                            *taskTest.Client
+	ConfirmationClientInvocations             int
+	ConfirmationClientImpl                    confirmationClient.ClientWithResponsesInterface
+	DeviceCheckInvocations                    int
+	DeviceCheckImpl                           apple.DeviceCheck
+	StatusInvocations                         int
+	StatusOutputs                             []*authService.Status
+	AppvalidateValidatorInvocations           int
+	AppvalidateValidatorImpl                  *appvalidate.Validator
+	PartnerSecretsInvocations                 int
+	PartnerSecretsImpl                        *appvalidate.PartnerSecrets
+	TwiistServiceAccountAuthorizerInvocations int
+	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
 }
 
 func NewService() *Service {
@@ -55,7 +65,7 @@ func (s *Service) Domain() string {
 	return output
 }
 
-func (s *Service) AuthStore() store.Store {
+func (s *Service) AuthStore() authStore.Store {
 	s.AuthStoreInvocations++
 
 	return s.AuthStoreImpl
@@ -67,6 +77,12 @@ func (s *Service) ProviderFactory() provider.Factory {
 	return s.ProviderFactoryImpl
 }
 
+func (s *Service) AuthServiceClient() authService.Client {
+	s.AuthServiceClientInvocations++
+
+	return s.AuthServiceClientImpl
+}
+
 func (s *Service) TaskClient() task.Client {
 	s.TaskClientInvocations++
 
@@ -74,18 +90,18 @@ func (s *Service) TaskClient() task.Client {
 }
 
 func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
-	return s.confirmationClient
-}
+	s.ConfirmationClientInvocations++
 
-func (s *Service) AppValidator() *appvalidate.Validator {
-	return &appvalidate.Validator{}
+	return s.ConfirmationClientImpl
 }
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
-	return nil
+	s.DeviceCheckInvocations++
+
+	return s.DeviceCheckImpl
 }
 
-func (s *Service) Status(ctx context.Context) *service.Status {
+func (s *Service) Status(ctx context.Context) *authService.Status {
 	s.StatusInvocations++
 
 	gomega.Expect(s.StatusOutputs).ToNot(gomega.BeEmpty())
@@ -95,12 +111,22 @@ func (s *Service) Status(ctx context.Context) *service.Status {
 	return output
 }
 
-func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
-	return nil
+func (s *Service) AppValidator() *appvalidate.Validator {
+	s.AppvalidateValidatorInvocations++
+
+	return s.AppvalidateValidatorImpl
 }
 
-func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
-	return nil
+func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
+	s.PartnerSecretsInvocations++
+
+	return s.PartnerSecretsImpl
+}
+
+func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
+	s.TwiistServiceAccountAuthorizerInvocations++
+
+	return s.TwiistServiceAccountAuthorizerImpl
 }
 
 func (s *Service) Expectations() {

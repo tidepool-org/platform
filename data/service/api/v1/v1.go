@@ -1,6 +1,8 @@
 package v1
 
 import (
+	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
+
 	"github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/service/api"
 )
@@ -21,15 +23,17 @@ func Routes() []service.Route {
 		service.Get("/v1/time", TimeGet),
 		service.Post("/v1/users/:userId/data_sets", UsersDataSetsCreate, api.RequireAuth),
 
-		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireUser),
 		service.Get("/v1/partners/:partner/sector/:environment", PartnersSector),
 		service.Get("/v1/partners/:partner/sector", PartnersSector), // DEPRECATED: Remove once Abbott sandbox client uses environment in path
+
+		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireUser),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
+	routes = append(routes, abbottServiceApiV1.Routes()...)
 
 	return routes
 }

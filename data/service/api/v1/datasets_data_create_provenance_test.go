@@ -7,19 +7,17 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
+
+	"github.com/ant0ine/go-json-rest/rest"
 
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
-	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/log/null"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 )
-
-//go:generate mockgen -destination mocks/mocklogger_test_gen.go -package mocks github.com/tidepool-org/platform/log Logger
 
 var _ = Describe("collectProvenanceInfo", func() {
 	logger := null.NewLogger()
@@ -28,24 +26,24 @@ var _ = Describe("collectProvenanceInfo", func() {
 	It("assigns all the things", func() {
 		req, details := newTestReqAndDetails("foo", "baz", "192.0.2.1")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
-		Expect(prov.ByUserID).To(Equal("baz"))
-		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(*prov.ByUserID).To(Equal("baz"))
+		Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal("foo"))
 	})
 
 	It("handles a missing SourceIP", func() {
 		req, details := newTestReqAndDetails("foo", "baz", "")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
-		Expect(prov.ByUserID).To(Equal("baz"))
-		Expect(prov.SourceIP).To(Equal(""))
+		Expect(*prov.ByUserID).To(Equal("baz"))
+		Expect(prov.SourceIP).To(BeNil())
 		Expect(prov.ClientID).To(Equal("foo"))
 	})
 
 	It("handles a missing UserID", func() {
 		req, details := newTestReqAndDetails("foo", "", "192.0.2.1")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
-		Expect(prov.ByUserID).To(Equal(""))
-		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(prov.ByUserID).To(BeNil())
+		Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal("foo"))
 	})
 
@@ -53,37 +51,32 @@ var _ = Describe("collectProvenanceInfo", func() {
 		req, details := newTestReqAndDetails("", "bar", "192.0.2.1")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
 		Expect(prov).ToNot(BeNil())
-		Expect(prov.ByUserID).To(Equal("bar"))
-		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(*prov.ByUserID).To(Equal("bar"))
+		Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal(""))
 	})
 
 	It("logs missing ClientIDs when expected, but not found", func() {
-		ctrl := gomock.NewController(GinkgoT())
-		defer ctrl.Finish()
-		mockLogger := mocks.NewMockLogger(ctrl)
-		mockLogger.EXPECT().Warn("Unable to read ClientID: The request's access token is blank")
-		ctx := log.NewContextWithLogger(context.Background(), mockLogger)
+		testLogger := logTest.NewLogger()
+		ctx := log.NewContextWithLogger(context.Background(), testLogger)
 		req, _ := newTestReqAndDetails("", "", "192.0.2.1")
 		details := request.NewAuthDetails(request.MethodSessionToken, "bar", "")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
 		Expect(prov).ToNot(BeNil())
-		Expect(prov.ByUserID).To(Equal("bar"))
-		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(*prov.ByUserID).To(Equal("bar"))
+		Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal(""))
+		testLogger.AssertWarn("Unable to read ClientID: The request's access token is blank")
 	})
 
 	It("doesn't log missing ClientIDs for service secret authenticated requests", func() {
-		ctrl := gomock.NewController(GinkgoT())
-		defer ctrl.Finish()
-		mockLogger := mocks.NewMockLogger(ctrl)
-		ctx := log.NewContextWithLogger(context.Background(), mockLogger)
+		ctx := log.NewContextWithLogger(context.Background(), null.NewLogger())
 		req, _ := newTestReqAndDetails("", "", "192.0.2.1")
 		details := request.NewAuthDetails(request.MethodServiceSecret, "bar", "")
 		prov := v1.CollectProvenanceInfo(ctx, req, details)
 		Expect(prov).ToNot(BeNil())
-		Expect(prov.ByUserID).To(Equal("bar"))
-		Expect(prov.SourceIP).To(Equal("192.0.2.1"))
+		Expect(*prov.ByUserID).To(Equal("bar"))
+		Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
 		Expect(prov.ClientID).To(Equal(""))
 	})
 })

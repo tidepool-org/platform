@@ -3,8 +3,7 @@ package deduplicator
 import (
 	"context"
 
-	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -16,8 +15,8 @@ type DeviceTruncateDataSet struct {
 	*Base
 }
 
-func NewDeviceTruncateDataSet() (*DeviceTruncateDataSet, error) {
-	base, err := NewBase(DeviceTruncateDataSetName, "1.1.0")
+func NewDeviceTruncateDataSet(dependencies Dependencies) (*DeviceTruncateDataSet, error) {
+	base, err := NewBase(dependencies, DeviceTruncateDataSetName, "1.1.0")
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +26,7 @@ func NewDeviceTruncateDataSet() (*DeviceTruncateDataSet, error) {
 	}, nil
 }
 
-func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceTruncateDataSet) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -40,7 +39,7 @@ func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUploa
 	}
 
 	if dataSet.HasDeduplicatorName() {
-		return t.Get(ctx, dataSet)
+		return d.Get(ctx, dataSet)
 	}
 
 	if dataSet.DeviceManufacturers == nil {
@@ -58,20 +57,17 @@ func (t *DeviceTruncateDataSet) New(ctx context.Context, dataSet *dataTypesUploa
 	return false, nil
 }
 
-func (t *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
-	if found, err := t.Base.Get(ctx, dataSet); err != nil || found {
+func (d *DeviceTruncateDataSet) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
+	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
 
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.truncate"), nil // TODO: DEPRECATED
 }
 
-func (t *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceTruncateDataSet) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -80,9 +76,9 @@ func (t *DeviceTruncateDataSet) Close(ctx context.Context, repository dataStore.
 	// TODO: Technically, DeleteOtherDataSetData could succeed, but Close fail. This would
 	// temporarily result in missing data, which is better than the opposite (duplicate data).
 	// If this fails, a subsequent successful upload will resolve.
-	if err := repository.DeleteOtherDataSetData(ctx, dataSet); err != nil {
+	if err := d.DataStore.DeleteOtherDataSetData(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return t.Base.Close(ctx, repository, dataSet)
+	return d.Base.Close(ctx, dataSet)
 }

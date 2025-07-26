@@ -36,12 +36,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
-	}
-	if dataSet == nil {
+	} else if dataSet == nil {
 		dataServiceContext.RespondWithError(ErrorDataSetIDNotFound(dataSetID))
 		return
 	}
@@ -116,7 +115,7 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 		return
-	} else if err = deduplicator.AddData(ctx, dataServiceContext.DataRepository(), dataSet, datumArray); err != nil {
+	} else if err = deduplicator.AddData(ctx, dataSet, datumArray); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to add data", err)
 		return
 	}
@@ -158,17 +157,17 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 	}
 
 	if xff := SelectXFF(req.Header); xff != "" {
-		provenance.SourceIP = xff
+		provenance.SourceIP = &xff
 	} else {
 		if host, _, err := net.SplitHostPort(req.RemoteAddr); err != nil {
 			lgr.WithError(err).Warnf("Unable to read SourceIP from request for provenance")
 		} else {
-			provenance.SourceIP = host
+			provenance.SourceIP = &host
 		}
 	}
 
 	if userID := authDetails.UserID(); userID != "" {
-		provenance.ByUserID = userID
+		provenance.ByUserID = &userID
 	} else if shouldHaveJWT(authDetails) && !authDetails.IsService() {
 		lgr.Warnf("Unable to read the request's userID for provenance: userID is empty")
 	}

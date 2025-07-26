@@ -3,6 +3,7 @@ package fetch
 import (
 	"context"
 	"math/rand"
+	"net/http"
 	"sort"
 	"strconv"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/dexcom"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -24,8 +24,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-//go:generate mockgen -destination=./test/mock.go -package test . AuthClient,DataClient,DataSourceClient,DexcomClient,Provider
-
 const (
 	AvailableAfterDuration       = 120 * time.Minute
 	AvailableAfterDurationJitter = 15 * time.Minute
@@ -37,6 +35,7 @@ const (
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
 
+//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test AuthClient
 type AuthClient interface {
 	ServerSessionToken() (string, error)
 
@@ -44,6 +43,7 @@ type AuthClient interface {
 	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test DataClient
 type DataClient interface {
 	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
@@ -52,11 +52,13 @@ type DataClient interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test DataSourceClient
 type DataSourceClient interface {
 	Get(ctx context.Context, id string) (*dataSource.Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test DexcomClient
 type DexcomClient interface {
 	GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error)
 	GetCalibrations(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.CalibrationsResponse, error)
@@ -136,6 +138,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 	}
 }
 
+//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test Provider
 type Provider interface {
 	AuthClient() AuthClient
 	DataClient() DataClient
@@ -151,7 +154,7 @@ type TaskRunner struct {
 	logger           log.Logger
 	providerSession  *auth.ProviderSession
 	dataSource       *dataSource.Source
-	tokenSource      oauth.TokenSource
+	tokenSource      *oauthToken.Source
 	deviceHashes     map[string]string
 	dataSet          *data.DataSet
 	dataSetPreloaded bool
@@ -232,22 +235,20 @@ func (t *TaskRunner) getProviderSession() error {
 }
 
 func (t *TaskRunner) updateProviderSession() error {
-	refreshedToken, err := t.tokenSource.RefreshedToken()
-	if err != nil {
-		return t.retryOrRescheduleTaskWithDexcomClientError(errors.Wrap(err, "unable to get refreshed token"))
-	} else if refreshedToken == nil {
-		return nil // Token still valid, but has not changed, so no need to update
+	token := t.tokenSource.Token()
+	if token == t.providerSession.OAuthToken {
+		return nil // Token not changed, do not update
 	}
 
 	// Without cancel to ensure provider session is updated in the database
-	updateProviderSession := auth.NewProviderSessionUpdate()
-	updateProviderSession.OAuthToken = refreshedToken
-	updateProviderSession.ExternalID = t.providerSession.ExternalID
-	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, updateProviderSession)
+	providerSessionUpdate := auth.NewProviderSessionUpdate()
+	providerSessionUpdate.OAuthToken = token
+	providerSessionUpdate.ExternalID = t.providerSession.ExternalID
+	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, providerSessionUpdate)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update provider session"), updateProviderSession))
+		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
-		return t.failTaskWithInvalidStateError(errors.New("provider session is missing"))
+		return errors.New("provider session is missing")
 	}
 	t.providerSession = providerSession
 
@@ -272,9 +273,10 @@ func (t *TaskRunner) getDataSource() error {
 }
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
-	update := dataSource.NewUpdate()
-	update.DataSetIDs = pointer.FromStringArray(append(pointer.ToStringArray(t.dataSource.DataSetIDs), *dataSet.UploadID))
-	return t.updateDataSource(update)
+	if !t.dataSource.AddDataSetID(*dataSet.UploadID) {
+		return nil
+	}
+	return t.updateDataSource(&dataSource.Update{DataSetIDs: t.dataSource.DataSetIDs})
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {
@@ -439,7 +441,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 		lastSyncTime = t.dataSource.LatestDataTime
 	}
 
-	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t.tokenSource)
+	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -451,7 +453,7 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 	}
 
 	// Clamp data range, if none valid, then indicate nothing to fetch
-	latestDataTime := *pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
+	latestDataTime := pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
 	now := time.Now()
 	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), latestDataTime, now)
 	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), latestDataTime, now)
@@ -529,13 +531,13 @@ func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Dat
 	}
 	datumArray = append(datumArray, fetchDatumArray...)
 
-	sort.Stable(DataByTime(datumArray))
+	sort.Stable(data.DataByTime(datumArray))
 
 	return datumArray, nil
 }
 
 func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -562,7 +564,7 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 }
 
 func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -589,7 +591,7 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 }
 
 func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -616,7 +618,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.
 }
 
 func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -643,7 +645,7 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 }
 
 func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.Data, error) {
-	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t.tokenSource)
+	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -730,7 +732,7 @@ func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 	dataSetCreate.DeviceManufacturers = pointer.FromStringArray([]string{"Dexcom"})
 	dataSetCreate.DeviceTags = pointer.FromStringArray([]string{data.DeviceTagCGM})
 	dataSetCreate.Time = pointer.FromTime(time.Now())
-	dataSetCreate.TimeProcessing = pointer.FromString(dataTypesUpload.TimeProcessingNone)
+	dataSetCreate.TimeProcessing = pointer.FromString(data.TimeProcessingNone)
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
 	if err != nil {
@@ -791,9 +793,6 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 // Handle potential dexcom client error. Update provider session with latest token.
 // If error, then retry or reschedule. Otherwise, reset retry count.
 func (t *TaskRunner) handleDexcomClientError(err error) error {
-	if updateErr := t.updateProviderSession(); updateErr != nil {
-		return updateErr
-	}
 	if err != nil {
 		return t.retryOrRescheduleTaskWithDexcomClientError(err)
 	} else {
@@ -867,24 +866,22 @@ func (t *TaskRunner) resetTaskRetryCount() error {
 	return nil
 }
 
-type DataByTime data.Data
-
-func (d DataByTime) Len() int {
-	return len(d)
+func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+	return t.tokenSource.HTTPClient(ctx, tokenSourceSource)
 }
 
-func (d DataByTime) Less(left int, right int) bool {
-	if leftTime := d[left].GetTime(); leftTime == nil {
-		return true
-	} else if rightTime := d[right].GetTime(); rightTime == nil {
-		return false
-	} else {
-		return leftTime.Before(*rightTime)
+func (t *TaskRunner) UpdateToken() error {
+	if err := t.tokenSource.UpdateToken(); err != nil {
+		return err
 	}
+	return t.updateProviderSession()
 }
 
-func (d DataByTime) Swap(left int, right int) {
-	d[left], d[right] = d[right], d[left]
+func (t *TaskRunner) ExpireToken() error {
+	if err := t.tokenSource.ExpireToken(); err != nil {
+		return err
+	}
+	return t.updateProviderSession()
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {

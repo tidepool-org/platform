@@ -90,7 +90,7 @@ var _ = Describe("Client", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = userTest.RandomID()
+					id = userTest.RandomUserID()
 				})
 
 				Context("Get", func() {
@@ -202,7 +202,7 @@ var _ = Describe("Client", func() {
 				sessionToken := authTest.NewSessionToken()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
-				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomID(), sessionToken))
+				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomUserID(), sessionToken))
 			})
 
 			authorizeAssertions()

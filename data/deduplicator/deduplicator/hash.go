@@ -10,9 +10,9 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-func AssignDataSetDataIdentityHashes(dataSetData data.Data) error {
+func AssignDataSetDataIdentityHashes(dataSetData data.Data, identityFieldsVersion string) error {
 	for _, dataSetDatum := range dataSetData {
-		fields, err := dataSetDatum.IdentityFields()
+		fields, err := dataSetDatum.IdentityFields(identityFieldsVersion)
 		if err != nil {
 			return errors.Wrap(err, "unable to gather identity fields for datum")
 		}

@@ -59,14 +59,14 @@ func RandomClaimedPrescription() *prescription.Prescription {
 	create := RandomRevisionCreate()
 	prescr := prescription.NewPrescription(create)
 	prescr.AccessCode = ""
-	prescr.PatientUserID = userTest.RandomID()
+	prescr.PatientUserID = userTest.RandomUserID()
 	prescr.State = prescription.StateClaimed
 
 	return prescr
 }
 
 func RandomRevisionCreate() *prescription.RevisionCreate {
-	userID := userTest.RandomID()
+	userID := userTest.RandomUserID()
 	dataAttributes := RandomAttribtues().DataAttributes
 	create := &prescription.RevisionCreate{
 		ClinicID:       faker.Number().Hexadecimal(24),
@@ -130,7 +130,7 @@ func RandomAttribtues() *prescription.Attributes {
 		},
 		CreationAttributes: prescription.CreationAttributes{
 			CreatedTime:   time.Now(),
-			CreatedUserID: userTest.RandomID(),
+			CreatedUserID: userTest.RandomUserID(),
 		},
 	}
 }

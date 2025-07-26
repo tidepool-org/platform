@@ -74,7 +74,7 @@ func NewCalculatorWithBolusNormal(units *string) *calculator.Calculator {
 
 func NewCalculatorWithBolusID(units *string) *calculator.Calculator {
 	datum := NewCalculator(units)
-	datum.BolusID = pointer.FromString(dataTest.RandomID())
+	datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 	return datum
 }
 
@@ -1672,7 +1672,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units missing; bolus id exists",
 					nil,
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/units", NewMeta()),
 				),
@@ -1703,7 +1703,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units invalid; bolus id exists",
 					pointer.FromString("invalid"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"mmol/L", "mmol/l", "mg/dL", "mg/dl"}), "/units", NewMeta()),
 				),
@@ -1730,7 +1730,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/L; bolus id exists",
 					pointer.FromString("mmol/L"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 				),
 				Entry("units mmol/l; bolus missing",
@@ -1756,7 +1756,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mmol/l; bolus id exists",
 					pointer.FromString("mmol/l"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 				),
 				Entry("units mg/dL; bolus missing",
@@ -1782,7 +1782,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dL; bolus id exists",
 					pointer.FromString("mg/dL"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 				),
 				Entry("units mg/dl; bolus missing",
@@ -1808,7 +1808,7 @@ var _ = Describe("Calculator", func() {
 				Entry("units mg/dl; bolus id exists",
 					pointer.FromString("mg/dl"),
 					func(datum *calculator.Calculator, units *string) {
-						datum.BolusID = pointer.FromString(dataTest.RandomID())
+						datum.BolusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 				),
 			)

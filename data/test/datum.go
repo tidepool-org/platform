@@ -7,8 +7,12 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/metadata"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/origin"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/test"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 type IdentityFieldsOutput struct {
@@ -26,17 +30,22 @@ type Datum struct {
 	NormalizeInvocations                 int
 	NormalizeInputs                      []data.Normalizer
 	IdentityFieldsInvocations            int
+	IdentityFieldsInputs                 []string
 	IdentityFieldsOutputs                []IdentityFieldsOutput
 	GetPayloadInvocations                int
 	GetPayloadOutputs                    []*metadata.Metadata
 	GetOriginInvocations                 int
 	GetOriginOutputs                     []*origin.Origin
+	SetOriginInvocations                 int
+	SetOriginInputs                      []*origin.Origin
 	GetTimeInvocations                   int
 	GetTimeOutputs                       []*time.Time
 	GetTimeZoneOffsetInvocations         int
 	GetTimeZoneOffsetOutputs             []*int
 	GetTypeInvocations                   int
 	GetTypeOutputs                       []string
+	GetDeviceIDInvocations               int
+	GetDeviceIDOutputs                   []*string
 	SetTypeInvocations                   int
 	SetTypeInputs                        []string
 	SetUserIDInvocations                 int
@@ -102,8 +111,10 @@ func (d *Datum) Normalize(normalizer data.Normalizer) {
 	d.NormalizeInputs = append(d.NormalizeInputs, normalizer)
 }
 
-func (d *Datum) IdentityFields() ([]string, error) {
+func (d *Datum) IdentityFields(version string) ([]string, error) {
 	d.IdentityFieldsInvocations++
+
+	d.IdentityFieldsInputs = append(d.IdentityFieldsInputs, version)
 
 	gomega.Expect(d.IdentityFieldsOutputs).ToNot(gomega.BeEmpty())
 
@@ -132,6 +143,12 @@ func (d *Datum) GetOrigin() *origin.Origin {
 	return output
 }
 
+func (d *Datum) SetOrigin(origin *origin.Origin) {
+	d.SetOriginInvocations++
+
+	d.SetOriginInputs = append(d.SetOriginInputs, origin)
+}
+
 func (d *Datum) GetType() string {
 	d.GetTypeInvocations++
 
@@ -139,6 +156,16 @@ func (d *Datum) GetType() string {
 
 	output := d.GetTypeOutputs[0]
 	d.GetTypeOutputs = d.GetTypeOutputs[1:]
+	return output
+}
+
+func (d *Datum) GetDeviceID() *string {
+	d.GetDeviceIDInvocations++
+
+	gomega.Expect(d.GetDeviceIDOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetDeviceIDOutputs[0]
+	d.GetDeviceIDOutputs = d.GetDeviceIDOutputs[1:]
 	return output
 }
 
@@ -273,4 +300,23 @@ func (d *Datum) GetUploadID() *string {
 	d.GetUploadIDOutputs = d.GetUploadIDOutputs[1:]
 
 	return output
+}
+
+func RandomProvenance() *data.Provenance {
+	datum := data.NewProvenance()
+	datum.ClientID = test.RandomString()
+	datum.ByUserID = pointer.FromString(userTest.RandomUserID())
+	datum.SourceIP = pointer.FromString(netTest.RandomFQDN())
+	return datum
+}
+
+func CloneProvenance(datum *data.Provenance) *data.Provenance {
+	if datum == nil {
+		return nil
+	}
+	clone := data.NewProvenance()
+	clone.ClientID = datum.ClientID
+	clone.ByUserID = datum.ByUserID
+	clone.SourceIP = datum.SourceIP
+	return clone
 }

@@ -59,8 +59,8 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 
 			bgmStore = dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 
-			userId = userTest.RandomID()
-			userIdOther = userTest.RandomID()
+			userId = userTest.RandomUserID()
+			userIdOther = userTest.RandomUserID()
 		})
 
 		AfterEach(func() {
@@ -480,8 +480,8 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 			var userIdThree string
 
 			BeforeEach(func() {
-				userIdTwo = userTest.RandomID()
-				userIdThree = userTest.RandomID()
+				userIdTwo = userTest.RandomUserID()
+				userIdThree = userTest.RandomUserID()
 			})
 
 			It("With missing context", func() {
@@ -575,8 +575,8 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 			})
 
 			It("Get outdated summaries with all types present", func() {
-				userIdFour := userTest.RandomID()
-				userIdFive := userTest.RandomID()
+				userIdFour := userTest.RandomUserID()
+				userIdFive := userTest.RandomUserID()
 				continuousStore := dataStoreSummary.NewSummaries[*types.ContinuousPeriods, *types.ContinuousBucket](summaryRepository)
 				cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 

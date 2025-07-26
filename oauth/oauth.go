@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/golang-jwt/jwt/v4"
-
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
@@ -23,23 +22,21 @@ type Provider interface {
 	provider.Provider
 	TokenSourceSource
 
-	ParseIDToken(ctx context.Context, token string, claims jwt.Claims) error
+	ParseToken(token string, claims jwt.Claims) error
 
+	UseCookie() bool
 	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
 	GetAuthorizationCodeURLWithState(state string) string
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error)
+
 	SupportsUserInitiatedAccountUnlinking() bool
 }
 
-type HTTPClientSource interface {
-	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
-}
-
 type TokenSource interface {
-	HTTPClientSource
+	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
-	RefreshedToken() (*auth.OAuthToken, error)
-	ExpireToken()
+	UpdateToken() error
+	ExpireToken() error
 }
 
 func IsAccessTokenError(err error) bool {

@@ -19,12 +19,12 @@ import (
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	blobStoreUnstructuredTest "github.com/tidepool-org/platform/blob/store/unstructured/test"
 	blobTest "github.com/tidepool-org/platform/blob/test"
-	"github.com/tidepool-org/platform/crypto"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/page"
 	pageTest "github.com/tidepool-org/platform/page/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -100,7 +100,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 			})
 
 			Context("List", func() {
@@ -223,7 +223,7 @@ var _ = Describe("Client", func() {
 								BeforeEach(func() {
 									body := make([]byte, 104857601)
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
+									content.DigestMD5 = pointer.FromString(net.DigestMD5(body))
 								})
 
 								AfterEach(func() {
@@ -276,7 +276,7 @@ var _ = Describe("Client", func() {
 
 								BeforeEach(func() {
 									digestMD5 = *content.DigestMD5
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 								})
 
 								AfterEach(func() {
@@ -361,7 +361,7 @@ var _ = Describe("Client", func() {
 										BeforeEach(func() {
 											body := make([]byte, 104857600)
 											content.Body = io.NopCloser(bytes.NewReader(body))
-											content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
+											content.DigestMD5 = pointer.FromString(net.DigestMD5(body))
 										})
 
 										It("returns successfully", func() {
@@ -463,7 +463,7 @@ var _ = Describe("Client", func() {
 								BeforeEach(func() {
 									body := make([]byte, 104857601)
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(crypto.Base64EncodedMD5Hash(body))
+									content.DigestMD5 = pointer.FromString(net.DigestMD5(body))
 								})
 
 								AfterEach(func() {
@@ -516,7 +516,7 @@ var _ = Describe("Client", func() {
 
 								BeforeEach(func() {
 									digestMD5 = *content.DigestMD5
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 								})
 
 								AfterEach(func() {
@@ -651,7 +651,7 @@ var _ = Describe("Client", func() {
 			var id string
 
 			BeforeEach(func() {
-				id = blobTest.RandomID()
+				id = blobTest.RandomBlobID()
 			})
 
 			Context("Get", func() {

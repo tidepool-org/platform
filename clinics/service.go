@@ -13,9 +13,6 @@ import (
 	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
 
-	// workaround for mockgen incompatibility with vendored dependencies
-	_ "github.com/golang/mock/mockgen/model"
-
 	"github.com/tidepool-org/platform/auth"
 )
 
@@ -23,8 +20,7 @@ const ErrorCodeClinicClientFailure = "clinic-client-failure"
 
 var ClientModule = fx.Provide(NewClient)
 
-//go:generate mockgen --build_flags=--mod=mod -source=./service.go -destination=./mock.go -package clinics Client
-
+//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
 type Client interface {
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
 	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)

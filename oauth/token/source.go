@@ -13,14 +13,9 @@ import (
 )
 
 type Source struct {
-	token             *auth.OAuthToken
-	tokenSourceSource oauth.TokenSourceSource
-	tokenSource       oauth2.TokenSource
-	httpClient        *http.Client
-}
-
-func NewSource() (*Source, error) {
-	return &Source{}, nil
+	token       *auth.OAuthToken
+	tokenSource oauth2.TokenSource
+	httpClient  *http.Client
 }
 
 func NewSourceWithToken(tkn *auth.OAuthToken) (*Source, error) {
@@ -33,6 +28,10 @@ func NewSourceWithToken(tkn *auth.OAuthToken) (*Source, error) {
 	}, nil
 }
 
+func (s *Source) Token() *auth.OAuthToken {
+	return s.token
+}
+
 func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSource) (*http.Client, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -41,7 +40,7 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 		return nil, errors.New("token source source is missing")
 	}
 
-	if tknSrcSrc != s.tokenSourceSource {
+	if s.tokenSource == nil {
 		tknSrc, err := tknSrcSrc.TokenSource(ctx, s.token)
 		if err != nil {
 			return nil, err
@@ -52,7 +51,6 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 			return nil, errors.New("unable to create http client")
 		}
 
-		s.tokenSourceSource = tknSrcSrc
 		s.tokenSource = tknSrc
 		s.httpClient = httpClient
 	}
@@ -60,9 +58,9 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 	return s.httpClient, nil
 }
 
-func (s *Source) RefreshedToken() (*auth.OAuthToken, error) {
+func (s *Source) UpdateToken() error {
 	if s.tokenSource == nil {
-		return nil, errors.New("token source is missing")
+		return nil
 	}
 
 	tknSrcTkn, err := s.tokenSource.Token()
@@ -70,28 +68,25 @@ func (s *Source) RefreshedToken() (*auth.OAuthToken, error) {
 		if oauth.IsRefreshTokenError(err) {
 			err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 		}
-		return nil, errors.Wrap(err, "unable to get token")
+		return errors.Wrap(err, "unable to get token")
 	}
 
-	if s.token == nil || s.token.MatchesRawToken(tknSrcTkn) {
-		return nil, nil
+	if s.token.MatchesRawToken(tknSrcTkn) {
+		return nil
 	}
 
-	tkn, err := auth.NewOAuthTokenFromRawToken(tknSrcTkn)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create token")
+	tkn, err := s.token.Refreshed(tknSrcTkn)
+	if err != nil || tkn == nil {
+		return errors.Wrap(err, "unable to refresh token")
 	}
-
 	s.token = tkn
-	return s.token, nil
+
+	return nil
 }
 
-func (s *Source) ExpireToken() {
+func (s *Source) ExpireToken() error {
 	s.httpClient = nil
 	s.tokenSource = nil
-	s.tokenSourceSource = nil
-
-	if s.token != nil {
-		s.token.Expire()
-	}
+	s.token = s.token.Expired()
+	return nil
 }

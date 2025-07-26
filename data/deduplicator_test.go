@@ -5,14 +5,12 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/data"
-	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/net"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
-	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 )
@@ -105,6 +103,17 @@ var _ = Describe("Deduplicator", func() {
 					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString("") },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/hash"),
 				),
+				Entry("hash length in range (upper)",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Hash = pointer.FromString(test.RandomStringFromRange(data.DeduplicatorHashLengthMaximum, data.DeduplicatorHashLengthMaximum))
+					},
+				),
+				Entry("hash length out of range (upper)",
+					func(datum *data.DeduplicatorDescriptor) {
+						datum.Hash = pointer.FromString(test.RandomStringFromRange(data.DeduplicatorHashLengthMaximum+1, data.DeduplicatorHashLengthMaximum+1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorLengthNotLessThanOrEqualTo(data.DeduplicatorHashLengthMaximum+1, data.DeduplicatorHashLengthMaximum), "/hash"),
+				),
 				Entry("hash valid",
 					func(datum *data.DeduplicatorDescriptor) { datum.Hash = pointer.FromString(test.RandomString()) },
 				),
@@ -117,71 +126,6 @@ var _ = Describe("Deduplicator", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/name"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/version"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/hash"),
-				),
-			)
-		})
-
-		Context("Normalize", func() {
-			DescribeTable("normalizes the datum",
-				func(mutator func(datum *data.DeduplicatorDescriptor), expectator func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor)) {
-					datum := dataTest.RandomDeduplicatorDescriptor()
-					mutator(datum)
-					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
-					Expect(structureNormalizer.New(logTest.NewLogger()).Normalize(datum)).ToNot(HaveOccurred())
-					if expectator != nil {
-						expectator(datum, expectedDatum)
-					}
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("does not modify the datum",
-					func(datum *data.DeduplicatorDescriptor) {},
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; name missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Name = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; version missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Version = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; hash missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Hash = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-			)
-		})
-
-		Context("NormalizeDEPRECATED", func() {
-			DescribeTable("normalizes the datum",
-				func(mutator func(datum *data.DeduplicatorDescriptor), expectator func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor)) {
-					datum := dataTest.RandomDeduplicatorDescriptor()
-					mutator(datum)
-					expectedDatum := dataTest.CloneDeduplicatorDescriptor(datum)
-					normalizer := dataNormalizer.New(logTest.NewLogger())
-					Expect(normalizer).ToNot(BeNil())
-					datum.NormalizeDEPRECATED(normalizer)
-					Expect(normalizer.Error()).ToNot(HaveOccurred())
-					if expectator != nil {
-						expectator(datum, expectedDatum)
-					}
-					Expect(datum).To(Equal(expectedDatum))
-				},
-				Entry("does not modify the datum",
-					func(datum *data.DeduplicatorDescriptor) {},
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; name missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Name = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; version missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Version = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
-				),
-				Entry("does not modify the datum; hash missing",
-					func(datum *data.DeduplicatorDescriptor) { datum.Hash = nil },
-					func(datum *data.DeduplicatorDescriptor, expectedDatum *data.DeduplicatorDescriptor) {},
 				),
 			)
 		})

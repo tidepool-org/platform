@@ -2,9 +2,7 @@
 
 The Tidepool Platform API.
 
-[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg&branch=master)](https://app.travis-ci.com/tidepool-org/platform)
-[![Code Climate](https://codeclimate.com/github/tidepool-org/platform/badges/gpa.svg)](https://codeclimate.com/github/tidepool-org/platform)
-[![Issue Count](https://codeclimate.com/github/tidepool-org/platform/badges/issue_count.svg)](https://codeclimate.com/github/tidepool-org/platform)
+[![Build Status](https://app.travis-ci.com/tidepool-org/platform.svg?branch=master)](https://app.travis-ci.com/tidepool-org/platform)
 
 # Setup
 
@@ -35,6 +33,26 @@ cd platform
 . ./env.sh
 make buildable
 ```
+
+# Configure Plugin Visibility
+
+By default, all plugins are configured to use the public versions (which typically are nothing more than a bare minimum shell). Public visilibity is fine for developing, building, or using platform without any of the private plugin functionality.
+
+To change plugin visibility to private:
+
+```
+make plugins-visibility-private
+```
+
+This will update the private plugin submodules and create a Go workspace to use the private plugin during development and builds.
+
+To restore the plugin visibility to public:
+
+```
+make plugins-visibility-public
+```
+
+NOTE: Do **NOT** commit any `update = none` changes to `.gitmodules` nor the `go.work` or `go.work.sum` files. Furthermore, ensure no private code is committed to the public platform repository.
 
 # Execute
 
@@ -87,19 +105,7 @@ The environment variable `TEST` indicates which package hierarchy to test. If no
 TEST=user make test
 ```
 
-* To run all of the tests automatically after any changes are made, in a separate terminal window:
-
-```
-make test-watch
-```
-
-The environment variable `WATCH` indicates which package hierarchy to test. If not specified, then all packages are tested. For example,
-
-```
-WATCH=user make test-watch
-```
-
-* To run `gofmt`, `goimports`, `go vet`, and `golint`:
+* To run `gofmt`, `goimports`, and `go vet`:
 
 ```
 make pre-commit
@@ -109,24 +115,6 @@ make pre-commit
 
 ```
 make clean
-```
-
-# Sublime Text
-
-If you use the Sublime Text editor with the GoSublime plugin, open the `platform.sublime-project` project to ensure the `GOPATH` and `PATH` environment variables are set correctly within Sublime Text. In addition, the recommended user settings are:
-
-```
-{
-  "autocomplete_builtins": true,
-  "autocomplete_closures": true,
-  "autoinst": false,
-  "fmt_cmd": [
-    "goimports"
-  ],
-  "fmt_enabled": true,
-  "fmt_tab_width": 4,
-  "use_named_imports": true
-}
 ```
 
 # Upgrade Golang Version
@@ -147,8 +135,6 @@ Ensure you are using the target Golang version locally.
 
 Change the version in `.travis.yml` and all `Dockerfile.*` files.
 
-Add an entry in `CHANGELOG.md` and commit.
-
 ## Test
 
 Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
@@ -160,9 +146,8 @@ If you previously noted any changes or issues of concern, perform any explicit t
 ## Upgrade
 
 ```
-go get -u <dependacy>   # e.g. go get -u github.com/onsi/gomega
+go get -u <dependency> # e.g. go get -u github.com/onsi/gomega
 go mod tidy
-go mod vendor
 ```
 
 ## Review

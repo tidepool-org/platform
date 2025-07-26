@@ -119,7 +119,7 @@ var _ = Describe("Alert", func() {
 					datum.TriggerDelay = pointer.FromInt(test.RandomIntFromRange(dataTypesAlert.TriggerDelayMinimum, dataTypesAlert.TriggerDelayMaximum))
 					datum.Sound = pointer.FromString(test.RandomStringFromArray(dataTypesAlert.Sounds()))
 					datum.SoundName = pointer.FromString(test.RandomStringFromRange(1, dataTypesAlert.SoundNameLengthMaximum))
-					datum.IssuedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+					datum.IssuedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 					datum.AcknowledgedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
 					datum.RetractedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.IssuedTime, time.Now()))
 				},

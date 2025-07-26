@@ -23,7 +23,6 @@ import (
 	dataTypesStateReported "github.com/tidepool-org/platform/data/types/state/reported"
 	dataTypesStatusController "github.com/tidepool-org/platform/data/types/status/controller"
 	dataTypesStatusPump "github.com/tidepool-org/platform/data/types/status/pump"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	dataTypesWater "github.com/tidepool-org/platform/data/types/water"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -48,7 +47,6 @@ var types = []string{
 	dataTypesStateReported.Type,
 	dataTypesStatusController.Type,
 	dataTypesStatusPump.Type,
-	dataTypesUpload.Type,
 	dataTypesWater.Type,
 }
 
@@ -100,8 +98,6 @@ func NewDatum(parser structure.ObjectParser) data.Datum {
 		return dataTypesStatusController.New()
 	case dataTypesStatusPump.Type:
 		return dataTypesStatusPump.New()
-	case dataTypesUpload.Type:
-		return dataTypesUpload.New()
 	case dataTypesWater.Type:
 		return dataTypesWater.New()
 	}

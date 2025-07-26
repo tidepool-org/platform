@@ -9,9 +9,13 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
+func RandomOriginID() string {
+	return test.RandomStringFromRange(1, origin.IDLengthMaximum)
+}
+
 func RandomOrigin() *origin.Origin {
 	datum := origin.NewOrigin()
-	datum.ID = pointer.FromString(RandomID())
+	datum.ID = pointer.FromString(RandomOriginID())
 	datum.Name = pointer.FromString(RandomName())
 	datum.Payload = metadataTest.RandomMetadata()
 	datum.Time = pointer.FromString(RandomTime())
@@ -58,10 +62,6 @@ func NewObjectFromOrigin(datum *origin.Origin, objectFormat test.ObjectFormat) m
 		object["version"] = test.NewObjectFromString(*datum.Version, objectFormat)
 	}
 	return object
-}
-
-func RandomID() string {
-	return test.RandomStringFromRange(1, origin.IDLengthMaximum)
 }
 
 func RandomName() string {
