@@ -45,59 +45,6 @@ func (p *ProviderSessionRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ProviderSessionRepository) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	}
-	if filter == nil {
-		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
-
-	selector := bson.M{
-		"userId": userID,
-	}
-	if filter.Type != nil {
-		selector["type"] = *filter.Type
-	}
-	if filter.Name != nil {
-		selector["name"] = *filter.Name
-	}
-	if filter.ExternalID != nil {
-		selector["externalId"] = *filter.ExternalID
-	}
-	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": -1})
-	cursor, err := p.Find(ctx, selector, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to list user provider sessions")
-	}
-
-	providerSessions := auth.ProviderSessions{}
-	if err = cursor.All(ctx, &providerSessions); err != nil {
-		return nil, errors.Wrap(err, "unable to decode user provider sessions")
-	}
-
-	if providerSessions == nil {
-		providerSessions = auth.ProviderSessions{}
-	}
-	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListUserProviderSessions")
-
-	return providerSessions, nil
-}
-
 func (p *ProviderSessionRepository) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -140,6 +87,57 @@ func (p *ProviderSessionRepository) DeleteUserProviderSessions(ctx context.Conte
 	}
 
 	return nil
+}
+
+func (p *ProviderSessionRepository) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if filter == nil {
+		filter = auth.NewProviderSessionFilter()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
+
+	selector := bson.M{}
+	if filter.UserID != nil {
+		selector["userId"] = *filter.UserID
+	}
+	if filter.Type != nil {
+		selector["type"] = *filter.Type
+	}
+	if filter.Name != nil {
+		selector["name"] = *filter.Name
+	}
+	if filter.ExternalID != nil {
+		selector["externalId"] = *filter.ExternalID
+	}
+	opts := storeStructuredMongo.FindWithPagination(pagination).
+		SetSort(bson.M{"createdTime": -1})
+	cursor, err := p.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to list user provider sessions")
+	}
+
+	providerSessions := auth.ProviderSessions{}
+	if err = cursor.All(ctx, &providerSessions); err != nil {
+		return nil, errors.Wrap(err, "unable to decode user provider sessions")
+	}
+
+	if providerSessions == nil {
+		providerSessions = auth.ProviderSessions{}
+	}
+	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListProviderSessions")
+
+	return providerSessions, nil
 }
 
 func (p *ProviderSessionRepository) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {

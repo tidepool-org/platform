@@ -16,9 +16,9 @@ import (
 
 func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.ListUserProviderSessions)),
 		rest.Post("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.CreateUserProviderSession)),
 		rest.Delete("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.DeleteUserProviderSessions)),
+		rest.Get("/v1/provider_sessions", serviceApi.RequireServer(r.ListProviderSessions)),
 		rest.Get("/v1/provider_sessions/:id", serviceApi.RequireServer(r.GetProviderSession)),
 		rest.Put("/v1/provider_sessions/:id", serviceApi.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", serviceApi.RequireServer(r.DeleteProviderSession)),
@@ -26,31 +26,6 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 		// TODO: Temporary endpoint for deleting provider sessions given a twiist tidepool link id
 		rest.Delete("/v1/partners/twiist/links/:tidepoolLinkId", serviceApi.RequireAuth(r.DeleteProviderSessionByTidepoolLinkID)),
 	}
-}
-
-func (r *Router) ListUserProviderSessions(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
-
-	userID := req.PathParam("userId")
-	if userID == "" {
-		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("userId"))
-		return
-	}
-
-	filter := auth.NewProviderSessionFilter()
-	pagination := page.NewPagination()
-	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-
-	providerSessions, err := r.AuthClient().ListUserProviderSessions(req.Context(), userID, filter, pagination)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	responder.Data(http.StatusOK, providerSessions)
 }
 
 func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Request) {
@@ -92,6 +67,25 @@ func (r *Router) DeleteUserProviderSessions(res rest.ResponseWriter, req *rest.R
 	}
 
 	responder.Empty(http.StatusNoContent)
+}
+
+func (r *Router) ListProviderSessions(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	filter := auth.NewProviderSessionFilter()
+	pagination := page.NewPagination()
+	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	providerSessions, err := r.AuthClient().ListProviderSessions(req.Context(), filter, pagination)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusOK, providerSessions)
 }
 
 func (r *Router) GetProviderSession(res rest.ResponseWriter, req *rest.Request) {
