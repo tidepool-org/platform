@@ -2,15 +2,15 @@ package mongo
 
 import (
 	"context"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/summary/store"
 	"time"
+
+	"github.com/tidepool-org/platform/consent"
+	"github.com/tidepool-org/platform/pointer"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -20,7 +20,6 @@ import (
 
 type ConsentRecordRepository struct {
 	*storeStructuredMongo.Repository
-	consentRepository *ConsentRepository
 }
 
 func (p *ConsentRecordRepository) EnsureIndexes() error {
@@ -58,13 +57,13 @@ func (p *ConsentRecordRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ConsentRecordRepository) Get(ctx context.Context, userID string, id string) (*auth.ConsentRecord, error) {
+func (p *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID string, id string) (*consent.Record, error) {
 	selector := bson.M{
 		"userId": userID,
 		"id":     id,
 	}
 
-	consentRecord := &auth.ConsentRecord{}
+	consentRecord := &consent.Record{}
 	err := p.FindOne(ctx, selector).Decode(consentRecord)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
@@ -75,9 +74,9 @@ func (p *ConsentRecordRepository) Get(ctx context.Context, userID string, id str
 	return consentRecord, nil
 }
 
-func (p *ConsentRecordRepository) List(ctx context.Context, userID string, filter *auth.ConsentRecordFilter, pagination *page.Pagination) (auth.ConsentRecords, error) {
+func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (consent.Records, error) {
 	if filter == nil {
-		filter = auth.NewConsentRecordFilter()
+		filter = consent.NewConsentRecordFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
@@ -111,7 +110,7 @@ func (p *ConsentRecordRepository) List(ctx context.Context, userID string, filte
 		"createdTime": -1,
 	}
 
-	consentRecords := auth.ConsentRecords{}
+	consentRecords := consent.Records{}
 	var err error
 
 	if *filter.Latest {
@@ -121,7 +120,7 @@ func (p *ConsentRecordRepository) List(ctx context.Context, userID string, filte
 	}
 
 	if consentRecords == nil {
-		consentRecords = auth.ConsentRecords{}
+		consentRecords = consent.Records{}
 	}
 
 	logger.WithFields(log.Fields{"count": len(consentRecords), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsentRecords")
@@ -129,7 +128,7 @@ func (p *ConsentRecordRepository) List(ctx context.Context, userID string, filte
 	return consentRecords, nil
 }
 
-func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (auth.ConsentRecords, error) {
+func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (consent.Records, error) {
 	pipeline := bson.A{
 		bson.M{
 			"$match": selector,
@@ -159,7 +158,7 @@ func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.
 		return nil, errors.Wrap(err, "unable to list consent records")
 	}
 
-	consentRecords := auth.ConsentRecords{}
+	consentRecords := consent.Records{}
 	if err = cursor.All(ctx, &consentRecords); err != nil {
 		return nil, errors.Wrap(err, "unable to decode consent records")
 	}
@@ -167,14 +166,14 @@ func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.
 	return consentRecords, nil
 }
 
-func (p *ConsentRecordRepository) listAll(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (auth.ConsentRecords, error) {
+func (p *ConsentRecordRepository) listAll(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (consent.Records, error) {
 	opts := storeStructuredMongo.FindWithPagination(pagination).SetSort(sort)
 	cursor, err := p.Find(ctx, selector, opts)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consent records")
 	}
 
-	consentRecords := auth.ConsentRecords{}
+	consentRecords := consent.Records{}
 	if err = cursor.All(ctx, &consentRecords); err != nil {
 		return nil, errors.Wrap(err, "unable to decode consent records")
 	}
@@ -182,8 +181,8 @@ func (p *ConsentRecordRepository) listAll(ctx context.Context, selector bson.M, 
 	return consentRecords, nil
 }
 
-func (p *ConsentRecordRepository) Create(ctx context.Context, userID string, create *auth.ConsentRecordCreate) (*auth.ConsentRecord, error) {
-	consentRecord, err := auth.NewConsentRecord(ctx, userID, create)
+func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
+	consentRecord, err := consent.NewConsentRecord(ctx, userID, create)
 	if err != nil {
 		return nil, err
 	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(consentRecord); err != nil {
@@ -192,10 +191,10 @@ func (p *ConsentRecordRepository) Create(ctx context.Context, userID string, cre
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
-	result, err := p.List(ctx, userID, &auth.ConsentRecordFilter{
+	result, err := p.ListConsentRecords(ctx, userID, &consent.RecordFilter{
 		Type:   pointer.FromAny(create.Type),
 		Latest: pointer.FromAny(true),
-		Status: pointer.FromAny(auth.ConsentRecordStatusActive),
+		Status: pointer.FromAny(consent.RecordStatusActive),
 	}, &page.Pagination{Page: 0, Size: 1})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list existing active consent records for type")
@@ -204,67 +203,38 @@ func (p *ConsentRecordRepository) Create(ctx context.Context, userID string, cre
 		return nil, errors.Newf("active consent record with type %s already exists", consentRecord.Type)
 	}
 
-	_, err = store.WithTransaction(ctx, nil, func(sCtx mongo.SessionContext) (any, error) {
-		// Revoke existing records
-		selector := bson.M{
-			"status": auth.ConsentRecordStatusActive,
-			"type":   consentRecord.Type,
-			"userId": userID,
-		}
-		update := bson.M{
-			"$currentDate": bson.M{
-				"modifiedTime": true,
-			},
-			"$set": bson.M{
-				// Make sure we have a non-interrupted stream of data in case the user re-consents to a new version
-				"revocationTime": consentRecord.CreatedTime,
-				"status":         auth.ConsentRecordStatusRevoked,
-			},
-		}
+	_, err = p.InsertOne(ctx, consentRecord)
+	logger.WithFields(log.Fields{"id": consentRecord.ID}).WithError(err).Debug("CreateConsentRecord")
 
-		result, err := p.UpdateOne(ctx, selector, update)
-		if err != nil {
-			return nil, errors.Wrap(err, "unable to revoke existing consent records")
-		}
-		if result.ModifiedCount > 0 {
-			logger.Debugf("revoked %d existing consent records", result.ModifiedCount)
-		}
-
-		_, err = p.InsertOne(ctx, consentRecord)
-		logger.WithFields(log.Fields{"id": consentRecord.ID}).WithError(err).Debug("CreateConsentRecord")
-
-		return nil, err
-	})
-
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create consent record")
-	}
-
-	return consentRecord, nil
+	return consentRecord, err
 }
 
-func (p *ConsentRecordRepository) Revoke(ctx context.Context, userID string, id string) error {
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "id": id})
+func (p *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userID string, revoke *consent.RecordRevoke) error {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(revoke); err != nil {
+		return errors.Wrap(err, "revoke is invalid")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "id": revoke.ID})
 
 	selector := bson.M{
-		"id":     id,
-		"status": auth.ConsentRecordStatusActive,
+		"id":     revoke.ID,
+		"status": consent.RecordStatusActive,
 		"userId": userID,
 	}
 
 	update := bson.M{
 		"$set": bson.M{
-			"status": auth.ConsentRecordStatusRevoked,
+			"status":         consent.RecordStatusRevoked,
+			"revocationTime": revoke.RevocationTime,
 		},
 		"$currentDate": bson.M{
-			"revocationTime": true,
-			"modifiedTime":   true,
+			"modifiedTime": true,
 		},
 	}
 
 	result, err := p.UpdateOne(ctx, selector, update)
 	if err != nil {
-		return errors.Wrap(err, "unable to revoke existing consent records")
+		return errors.Wrap(err, "unable to revoke existing consent record")
 	}
 
 	if result.ModifiedCount == 0 {
@@ -274,7 +244,7 @@ func (p *ConsentRecordRepository) Revoke(ctx context.Context, userID string, id 
 	return nil
 }
 
-func (p *ConsentRecordRepository) Update(ctx context.Context, consentRecord *auth.ConsentRecord) (*auth.ConsentRecord, error) {
+func (p *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, consentRecord *consent.Record) (*consent.Record, error) {
 	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(consentRecord); err != nil {
 		return nil, errors.Wrap(err, "consent record is invalid")
 	}

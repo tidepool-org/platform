@@ -16,8 +16,6 @@ const (
 
 //go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
 type Client interface {
-	ConsentAccessor
-	ConsentRecordAccessor
 	ProviderSessionAccessor
 	RestrictedTokenAccessor
 	ExternalAccessor

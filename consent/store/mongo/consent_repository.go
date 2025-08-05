@@ -4,11 +4,12 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/consent"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -31,9 +32,9 @@ func (p *ConsentRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ConsentRepository) List(ctx context.Context, filter *auth.ConsentFilter, pagination *page.Pagination) (auth.Consents, error) {
+func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (consent.Consents, error) {
 	if filter == nil {
-		filter = auth.NewConsentFilter()
+		filter = consent.NewConsentFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
@@ -54,27 +55,61 @@ func (p *ConsentRepository) List(ctx context.Context, filter *auth.ConsentFilter
 		selector["version"] = *filter.Version
 	}
 
-	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"version": -1})
-	cursor, err := p.Find(ctx, selector, opts)
+	sort := bson.M{"version": -1}
+
+	var err error
+	var cursor *mongo.Cursor
+
+	if filter.Latest == nil || !*filter.Latest {
+		opts := storeStructuredMongo.FindWithPagination(pagination).
+			SetSort(sort)
+		cursor, err = p.Find(ctx, selector, opts)
+	} else {
+		pipeline := bson.A{
+			bson.M{
+				"$match": selector,
+			},
+			bson.M{
+				"$sort": sort,
+			},
+			bson.M{
+				"$group": bson.M{
+					"_id":        "$type",
+					"mostRecent": bson.M{"$first": "$$ROOT"},
+				},
+			},
+			bson.M{
+				"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
+			},
+			bson.M{
+				"$skip": pagination.Page * pagination.Size,
+			},
+			bson.M{
+				"$limit": pagination.Size,
+			},
+		}
+
+		cursor, err = p.Aggregate(ctx, pipeline)
+	}
+
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consents")
 	}
 
-	consents := auth.Consents{}
+	consents := consent.Consents{}
 	if err = cursor.All(ctx, &consents); err != nil {
 		return nil, errors.Wrap(err, "unable to decode consents")
 	}
 
 	if consents == nil {
-		consents = auth.Consents{}
+		consents = consent.Consents{}
 	}
 	logger.WithFields(log.Fields{"count": len(consents), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsents")
 
 	return consents, nil
 }
 
-func (p *ConsentRepository) EnsureConsent(ctx context.Context, consent *auth.Consent) error {
+func (p *ConsentRepository) EnsureConsent(ctx context.Context, consent *consent.Consent) error {
 	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(consent); err != nil {
 		return errors.Wrap(err, "filter is invalid")
 	}

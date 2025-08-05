@@ -2,9 +2,10 @@ package structure
 
 import (
 	"cmp"
-	"github.com/tidepool-org/platform/pointer"
 	"regexp"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Validatable interface {
@@ -262,5 +263,3 @@ type Bytes interface {
 func InRange[T cmp.Ordered](value T, minimum T, maximum T) bool {
 	return value >= minimum && value <= maximum
 }
-
-func MapValue[T any, S any, PT *T, PS *S](reference string, mapFn func(T) S)

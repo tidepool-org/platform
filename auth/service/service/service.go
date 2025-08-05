@@ -23,6 +23,10 @@ import (
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
+	"github.com/tidepool-org/platform/consent"
+	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
+	consentLoader "github.com/tidepool-org/platform/consent/loader"
+	consentService "github.com/tidepool-org/platform/consent/service"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
@@ -70,6 +74,7 @@ type Service struct {
 	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
+	consentService                 consent.Service
 }
 
 func New() *Service {
@@ -102,6 +107,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeAuthStore(); err != nil {
+		return err
+	}
+	if err := s.initializeConsentService(); err != nil {
 		return err
 	}
 	if err := s.initializeWorkStructuredStore(); err != nil {
@@ -184,6 +192,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 	return s.confirmationClient
 }
 
+func (s *Service) ConsentService() consent.Service {
+	return s.consentService
+}
+
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
 }
@@ -252,9 +264,16 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
 
+	s.Logger().Debug("Creating consent router")
+
+	consentV1Router, err := consentApiV1.NewRouter(s.consentService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create consent router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 
@@ -324,6 +343,17 @@ func (s *Service) initializeWorkStructuredStore() error {
 	}
 
 	return nil
+}
+
+func (s *Service) initializeConsentService() error {
+	s.Logger().Debug("Initializing consent service")
+
+	s.consentService = consentService.NewConsentService(s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return consentLoader.SeedConsents(ctx, s.consentService)
 }
 
 func (s *Service) terminateWorkStructuredStore() {
