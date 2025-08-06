@@ -219,19 +219,19 @@ func (mr *MockClientMockRecorder) GetUserPermissions(ctx, requestUserID, targetU
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserPermissions", reflect.TypeOf((*MockClient)(nil).GetUserPermissions), ctx, requestUserID, targetUserID)
 }
 
-// ListUserProviderSessions mocks base method.
-func (m *MockClient) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
+// ListProviderSessions mocks base method.
+func (m *MockClient) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListUserProviderSessions", ctx, userID, filter, pagination)
+	ret := m.ctrl.Call(m, "ListProviderSessions", ctx, filter, pagination)
 	ret0, _ := ret[0].(auth.ProviderSessions)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// ListUserProviderSessions indicates an expected call of ListUserProviderSessions.
-func (mr *MockClientMockRecorder) ListUserProviderSessions(ctx, userID, filter, pagination any) *gomock.Call {
+// ListProviderSessions indicates an expected call of ListProviderSessions.
+func (mr *MockClientMockRecorder) ListProviderSessions(ctx, filter, pagination any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListUserProviderSessions", reflect.TypeOf((*MockClient)(nil).ListUserProviderSessions), ctx, userID, filter, pagination)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListProviderSessions", reflect.TypeOf((*MockClient)(nil).ListProviderSessions), ctx, filter, pagination)
 }
 
 // ListUserRestrictedTokens mocks base method.
