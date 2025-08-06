@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	permissionClient "github.com/tidepool-org/platform/permission/client"
+
 	"go.uber.org/fx"
 
 	"github.com/kelseyhightower/envconfig"
@@ -99,6 +101,7 @@ func (e *ExternalConfig) Validate() error {
 }
 
 type External struct {
+	*permissionClient.Client
 	client                    *platform.Client
 	name                      string
 	logger                    log.Logger
@@ -129,7 +132,13 @@ func NewExternal(cfg *ExternalConfig, authorizeAs platform.AuthorizeAs, name str
 		return nil, err
 	}
 
+	permissionsClient, err := permissionClient.New(cfg.Config, authorizeAs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &External{
+		Client:                    permissionsClient,
 		client:                    clnt,
 		logger:                    lgr,
 		name:                      name,
@@ -277,34 +286,6 @@ func (e *External) EnsureAuthorizedUser(ctx context.Context, targetUserID string
 	}
 
 	return "", request.ErrorUnauthorized()
-}
-
-// GetUserPermissions implements permission.Client
-// TODO: consolidate this, this is the same as the permissions client but is
-// known to be available to service/service.Authenticated. This is here for
-// convenience to not require PermissionsClient within existing Authenticated
-// services
-func (e *External) GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (permission.Permissions, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if requestUserID == "" {
-		return nil, errors.New("request user id is missing")
-	}
-	if targetUserID == "" {
-		return nil, errors.New("target user id is missing")
-	}
-
-	url := e.client.ConstructURL("access", targetUserID, requestUserID)
-	result := permission.Permissions{}
-	if err := e.client.RequestData(ctx, "GET", url, nil, nil, &result); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, request.ErrorUnauthorized()
-		}
-		return nil, err
-	}
-
-	return permission.FixOwnerPermissions(result), nil
 }
 
 func (e *External) timeoutServerSessionToken(serverSessionTokenTimeout time.Duration) time.Duration {

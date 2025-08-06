@@ -102,6 +102,8 @@ var _ = Describe("Service", func() {
 				},
 			}
 
+			GinkgoT().Setenv("TIDEPOOL_BIG_DATA_DONATION_PROJECT_SHARING_DISABLED", "true")
+
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = authServiceConfig
 			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
 

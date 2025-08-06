@@ -14,13 +14,15 @@ import (
 )
 
 type ConsentService struct {
+	bddpSharer              BigDataDonationProjectSharer
 	consentRepository       *mongo.ConsentRepository
 	consentRecordRepository *mongo.ConsentRecordRepository
 	dbClient                *mongoDriver.Client
 }
 
-func NewConsentService(consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client) consent.Service {
+func NewConsentService(bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client) consent.Service {
 	return &ConsentService{
+		bddpSharer:              bddpSharer,
 		consentRepository:       consentRepository,
 		consentRecordRepository: consentRecordRepository,
 		dbClient:                dbClient,
@@ -65,6 +67,13 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 		}
 
 		if len(records) > 0 {
+			if create.Type == consent.TypeBigDataDonationProject {
+				err = c.bddpSharer.Unshare(ctx, userID)
+				if err != nil {
+					return nil, errors.New("could not unshare data with bddp account before revoking consent")
+				}
+			}
+
 			revoke := consent.NewConsentRecordRevoke()
 			revoke.ID = records[0].ID
 
@@ -77,7 +86,19 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			}
 		}
 
-		return c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, create)
+		cons, err := c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, create)
+		if err != nil {
+			return nil, errors.Wrapf(err, "unable to create consent record for type %s", create.Type)
+		}
+
+		if create.Type == consent.TypeBigDataDonationProject {
+			err = c.bddpSharer.Share(ctx, userID)
+			if err != nil {
+				return nil, errors.New("could not share data with bddp account after granting consent")
+			}
+		}
+
+		return cons, err
 	})
 
 	return res.(*consent.Record), err

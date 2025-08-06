@@ -109,9 +109,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
-	if err := s.initializeConsentService(); err != nil {
-		return err
-	}
 	if err := s.initializeWorkStructuredStore(); err != nil {
 		return err
 	}
@@ -134,6 +131,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeAuthClient(); err != nil {
+		return err
+	}
+	if err := s.initializeConsentService(); err != nil {
 		return err
 	}
 	if err := s.initializeProviders(); err != nil {
@@ -346,9 +346,21 @@ func (s *Service) initializeWorkStructuredStore() error {
 }
 
 func (s *Service) initializeConsentService() error {
+	s.Logger().Debug("Initializing big data donation project sharer")
+
+	bddpSharerConfig := consentService.BigDataDonationProjectConfig{}
+	if err := envconfig.Process("", &bddpSharerConfig); err != nil {
+		return errors.Wrap(err, "unable to load bddp sharer config")
+	}
+
+	bddpSharer, err := consentService.NewBigDataDonationProjectSharer(bddpSharerConfig, s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create bddp sharer")
+	}
+
 	s.Logger().Debug("Initializing consent service")
 
-	s.consentService = consentService.NewConsentService(s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
+	s.consentService = consentService.NewConsentService(bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
