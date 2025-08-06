@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -47,36 +46,28 @@ func (d *DataSetDropHash) AddData(ctx context.Context, dataSet *data.DataSet, da
 		return err
 	}
 
-	if selectors := MapDataSetDataToSelectors(dataSetData, d.getDatumSelector); selectors != nil {
+	dataSetData = DeduplicateDataSetDataByIdentity(dataSetData, GetDatumDeduplicatorHash)
+
+	if selectors := MapDataSetDataToSelectors(dataSetData, GetDatumDeduplicatorSelector); selectors != nil {
 		existingSelectors, err := d.DataStore.ExistingDataSetData(ctx, dataSet, selectors)
 		if err != nil {
 			return err
-		}
+		} else if existingSelectorsCount := len(*existingSelectors); existingSelectorsCount > 0 {
 
-		existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
-		for _, existingSelector := range *existingSelectors {
-			existingSelectorsMap[*existingSelector.Deduplicator.Hash] = existingSelector
-		}
-
-		dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
-			if datumSelector := d.getDatumSelector(datum); datumSelector != nil {
-				_, ok := existingSelectorsMap[*datumSelector.Deduplicator.Hash]
-				return !ok
+			existingSelectorsMap := make(map[string]*data.Selector, existingSelectorsCount)
+			for _, existingSelector := range *existingSelectors {
+				existingSelectorsMap[*existingSelector.Deduplicator.Hash] = existingSelector
 			}
-			return true
-		})
+
+			dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
+				if datumSelector := GetDatumDeduplicatorSelector(datum); datumSelector != nil {
+					_, ok := existingSelectorsMap[*datumSelector.Deduplicator.Hash]
+					return !ok
+				}
+				return true
+			})
+		}
 	}
 
 	return d.Base.AddData(ctx, dataSet, dataSetData)
-}
-
-func (d *DataSetDropHash) getDatumSelector(dataSetDatum data.Datum) *data.Selector {
-	if deduplicator := dataSetDatum.DeduplicatorDescriptor(); deduplicator != nil && deduplicator.Hash != nil {
-		return &data.Selector{
-			Deduplicator: &data.SelectorDeduplicator{
-				Hash: pointer.CloneString(deduplicator.Hash),
-			},
-		}
-	}
-	return nil
 }
