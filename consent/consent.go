@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -21,7 +23,7 @@ type Service interface {
 }
 
 type ConsentAccessor interface {
-	ListConsents(context.Context, *Filter, *page.Pagination) (Consents, error)
+	ListConsents(context.Context, *Filter, *page.Pagination) (*storeStructuredMongo.ListResult[Consent], error)
 	EnsureConsent(context.Context, *Consent) error
 }
 

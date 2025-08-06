@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"time"
 
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
@@ -22,17 +24,24 @@ const (
 	GrantorTypeOwner          GrantorType = "owner"
 	GrantorTypeParentGuardian GrantorType = "parent/guardian"
 
-	ConsentRecordAgeGroupUnderTwelve       AgeGroup = "<12"
-	ConsentRecordAgeGroupThirteenSeventeen AgeGroup = "13-17"
-	ConsentRecordAgeGroupOverEighteen      AgeGroup = ">18"
+	AgeGroupUnderTwelve       AgeGroup = "<12"
+	AgeGroupThirteenSeventeen AgeGroup = "13-17"
+	AgeGroupOverEighteen      AgeGroup = ">18"
 
-	BigDataDonationProjectOrganizationsADCES BigDataDonationProjectOrganization = "adces"
+	BigDataDonationProjectOrganizationsADCES                 BigDataDonationProjectOrganization = "ADCES Foundation"
+	BigDataDonationProjectOrganizationsBeyondType1           BigDataDonationProjectOrganization = "Beyond Type 1"
+	BigDataDonationProjectOrganizationsChildrenWithDiabetes  BigDataDonationProjectOrganization = "Children With Diabetes"
+	BigDataDonationProjectOrganizationsTheDiabetesLink       BigDataDonationProjectOrganization = "The Diabetes Link"
+	BigDataDonationProjectOrganizationsDYF                   BigDataDonationProjectOrganization = "Diabetes Youth Families (DYF)"
+	BigDataDonationProjectOrganizationsDiabetesSisters       BigDataDonationProjectOrganization = "DiabetesSisters"
+	BigDataDonationProjectOrganizationsTheDiaTribeFoundation BigDataDonationProjectOrganization = "The diaTribe Foundation"
+	BigDataDonationProjectOrganizationsBreakthroughT1D       BigDataDonationProjectOrganization = "Breakthrough T1D"
 )
 
 type RecordAccessor interface {
 	GetConsentRecord(context.Context, string, string) (*Record, error)
 	CreateConsentRecord(context.Context, string, *RecordCreate) (*Record, error)
-	ListConsentRecords(context.Context, string, *RecordFilter, *page.Pagination) (Records, error)
+	ListConsentRecords(context.Context, string, *RecordFilter, *page.Pagination) (*storeStructuredMongo.ListResult[Record], error)
 	RevokeConsentRecord(context.Context, string, *RecordRevoke) error
 	UpdateConsentRecord(context.Context, *Record) (*Record, error)
 }
@@ -184,9 +193,9 @@ type AgeGroup string
 
 func AgeGroups() []AgeGroup {
 	return []AgeGroup{
-		ConsentRecordAgeGroupUnderTwelve,
-		ConsentRecordAgeGroupThirteenSeventeen,
-		ConsentRecordAgeGroupOverEighteen,
+		AgeGroupUnderTwelve,
+		AgeGroupThirteenSeventeen,
+		AgeGroupOverEighteen,
 	}
 }
 
@@ -221,6 +230,13 @@ type BigDataDonationProjectOrganization string
 func BigDataDonationProjectOrganizations() []BigDataDonationProjectOrganization {
 	return []BigDataDonationProjectOrganization{
 		BigDataDonationProjectOrganizationsADCES,
+		BigDataDonationProjectOrganizationsBeyondType1,
+		BigDataDonationProjectOrganizationsChildrenWithDiabetes,
+		BigDataDonationProjectOrganizationsTheDiabetesLink,
+		BigDataDonationProjectOrganizationsDYF,
+		BigDataDonationProjectOrganizationsDiabetesSisters,
+		BigDataDonationProjectOrganizationsTheDiaTribeFoundation,
+		BigDataDonationProjectOrganizationsBreakthroughT1D,
 	}
 }
 

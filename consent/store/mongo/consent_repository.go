@@ -32,7 +32,7 @@ func (p *ConsentRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (consent.Consents, error) {
+func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Consent], error) {
 	if filter == nil {
 		filter = consent.NewConsentFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
@@ -57,56 +57,43 @@ func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pa
 
 	sort := bson.M{"version": -1}
 
-	var err error
-	var cursor *mongo.Cursor
-
+	var pipeline []bson.M
 	if filter.Latest == nil || !*filter.Latest {
-		opts := storeStructuredMongo.FindWithPagination(pagination).
-			SetSort(sort)
-		cursor, err = p.Find(ctx, selector, opts)
+		pipeline = storeStructuredMongo.ListResultQueryPipeline(selector, sort, *pagination)
 	} else {
-		pipeline := bson.A{
-			bson.M{
+		pipeline = []bson.M{
+			{
 				"$match": selector,
 			},
-			bson.M{
+			{
 				"$sort": sort,
 			},
-			bson.M{
+			{
 				"$group": bson.M{
 					"_id":        "$type",
 					"mostRecent": bson.M{"$first": "$$ROOT"},
 				},
 			},
-			bson.M{
+			{
 				"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
 			},
-			bson.M{
-				"$skip": pagination.Page * pagination.Size,
-			},
-			bson.M{
-				"$limit": pagination.Size,
-			},
 		}
-
-		cursor, err = p.Aggregate(ctx, pipeline)
+		pipeline = append(pipeline, storeStructuredMongo.PaginationFacetPipelineStages(*pagination)...)
 	}
 
+	cursor, err := p.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consents")
 	}
 
-	consents := consent.Consents{}
-	if err = cursor.All(ctx, &consents); err != nil {
+	result := storeStructuredMongo.ListResult[consent.Consent]{}
+	if err = cursor.All(ctx, &result); err != nil {
 		return nil, errors.Wrap(err, "unable to decode consents")
 	}
 
-	if consents == nil {
-		consents = consent.Consents{}
-	}
-	logger.WithFields(log.Fields{"count": len(consents), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsents")
+	logger.WithFields(log.Fields{"count": result.Count, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsents")
 
-	return consents, nil
+	return &result, nil
 }
 
 func (p *ConsentRepository) EnsureConsent(ctx context.Context, consent *consent.Consent) error {

@@ -74,7 +74,7 @@ func (p *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID s
 	return consentRecord, nil
 }
 
-func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (consent.Records, error) {
+func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 	if filter == nil {
 		filter = consent.NewConsentRecordFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
@@ -110,47 +110,11 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 		"createdTime": -1,
 	}
 
-	consentRecords := consent.Records{}
-	var err error
-
+	var pipeline []bson.M
 	if *filter.Latest {
-		consentRecords, err = p.listLatest(ctx, selector, sort, pagination)
+		pipeline = listLatestConsentRecordsPipeline(selector, sort, *pagination)
 	} else {
-		consentRecords, err = p.listAll(ctx, selector, sort, pagination)
-	}
-
-	if consentRecords == nil {
-		consentRecords = consent.Records{}
-	}
-
-	logger.WithFields(log.Fields{"count": len(consentRecords), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsentRecords")
-
-	return consentRecords, nil
-}
-
-func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (consent.Records, error) {
-	pipeline := bson.A{
-		bson.M{
-			"$match": selector,
-		},
-		bson.M{
-			"$sort": sort,
-		},
-		bson.M{
-			"$group": bson.M{
-				"_id":        "$type",
-				"mostRecent": bson.M{"$first": "$$ROOT"},
-			},
-		},
-		bson.M{
-			"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
-		},
-		bson.M{
-			"$skip": pagination.Page * pagination.Size,
-		},
-		bson.M{
-			"$limit": pagination.Size,
-		},
+		pipeline = listAllConsentRecordsPipeline(selector, sort, *pagination)
 	}
 
 	cursor, err := p.Aggregate(ctx, pipeline)
@@ -158,27 +122,14 @@ func (p *ConsentRecordRepository) listLatest(ctx context.Context, selector bson.
 		return nil, errors.Wrap(err, "unable to list consent records")
 	}
 
-	consentRecords := consent.Records{}
-	if err = cursor.All(ctx, &consentRecords); err != nil {
+	result := storeStructuredMongo.ListResult[consent.Record]{}
+	if err = cursor.All(ctx, &result); err != nil {
 		return nil, errors.Wrap(err, "unable to decode consent records")
 	}
 
-	return consentRecords, nil
-}
+	logger.WithFields(log.Fields{"count": len(result.Data), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsentRecords")
 
-func (p *ConsentRecordRepository) listAll(ctx context.Context, selector bson.M, sort bson.M, pagination *page.Pagination) (consent.Records, error) {
-	opts := storeStructuredMongo.FindWithPagination(pagination).SetSort(sort)
-	cursor, err := p.Find(ctx, selector, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to list consent records")
-	}
-
-	consentRecords := consent.Records{}
-	if err = cursor.All(ctx, &consentRecords); err != nil {
-		return nil, errors.Wrap(err, "unable to decode consent records")
-	}
-
-	return consentRecords, nil
+	return &result, nil
 }
 
 func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
@@ -199,7 +150,7 @@ func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userI
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list existing active consent records for type")
 	}
-	if len(result) > 0 {
+	if len(result.Data) > 0 {
 		return nil, errors.Newf("active consent record with type %s already exists", consentRecord.Type)
 	}
 
@@ -270,4 +221,31 @@ func (p *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, conse
 	}
 
 	return consentRecord, nil
+}
+
+func listLatestConsentRecordsPipeline(selector bson.M, sort bson.M, pagination page.Pagination) []bson.M {
+	pipeline := []bson.M{
+		{
+			"$match": selector,
+		},
+		{
+			"$sort": sort,
+		},
+		{
+			"$group": bson.M{
+				"_id":        "$type",
+				"mostRecent": bson.M{"$first": "$$ROOT"},
+			},
+		},
+		{
+			"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
+		},
+	}
+
+	pipeline = append(pipeline, storeStructuredMongo.PaginationFacetPipelineStages(pagination)...)
+	return pipeline
+}
+
+func listAllConsentRecordsPipeline(selector bson.M, sort bson.M, pagination page.Pagination) []bson.M {
+	return storeStructuredMongo.ListResultQueryPipeline(selector, sort, pagination)
 }

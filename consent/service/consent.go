@@ -29,7 +29,7 @@ func NewConsentService(bddpSharer BigDataDonationProjectSharer, consentRepositor
 	}
 }
 
-func (c *ConsentService) ListConsents(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (consent.Consents, error) {
+func (c *ConsentService) ListConsents(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (*structuredMongo.ListResult[consent.Consent], error) {
 	return c.consentRepository.List(ctx, filter, pagination)
 }
 
@@ -53,7 +53,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 		if err != nil {
 			return nil, err
 		}
-		if len(consents) == 0 {
+		if len(consents.Data) == 0 {
 			return nil, errors.New("invalid consent type and version combination")
 		}
 
@@ -66,7 +66,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			return nil, err
 		}
 
-		if len(records) > 0 {
+		if len(records.Data) > 0 {
 			if create.Type == consent.TypeBigDataDonationProject {
 				err = c.bddpSharer.Unshare(ctx, userID)
 				if err != nil {
@@ -75,7 +75,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			}
 
 			revoke := consent.NewConsentRecordRevoke()
-			revoke.ID = records[0].ID
+			revoke.ID = records.Data[0].ID
 
 			// Ensure non-interrupted stream of data if the user re-consents
 			revoke.RevocationTime = create.CreatedTime
@@ -104,7 +104,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 	return res.(*consent.Record), err
 }
 
-func (c *ConsentService) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (consent.Records, error) {
+func (c *ConsentService) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*structuredMongo.ListResult[consent.Record], error) {
 	return c.consentRecordRepository.ListConsentRecords(ctx, userID, filter, pagination)
 }
 
