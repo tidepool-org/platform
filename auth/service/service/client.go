@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/provider"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -53,11 +54,6 @@ func NewClient(cfg *authClient.ExternalConfig, authorizeAs platform.AuthorizeAs,
 	}, nil
 }
 
-func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	repository := c.authStore.NewProviderSessionRepository()
-	return repository.ListUserProviderSessions(ctx, userID, filter, pagination)
-}
-
 func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	prvdr, err := c.providerFactory.Get(create.Type, create.Name)
 	if err != nil {
@@ -97,7 +93,10 @@ func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) 
 	repository := c.authStore.NewProviderSessionRepository()
 
 	// TODO: Add pagination if/when we ever get over one page of provider sessions
-	if providerSessions, err := repository.ListUserProviderSessions(ctx, userID, nil, nil); err != nil {
+	filter := &auth.ProviderSessionFilter{
+		UserID: pointer.FromString(userID),
+	}
+	if providerSessions, err := repository.ListProviderSessions(ctx, filter, nil); err != nil {
 		logger.WithError(err).Warn("Unable to list user provider sessions")
 	} else {
 		for _, providerSession := range providerSessions {
@@ -151,6 +150,11 @@ func (c *Client) DeleteAllProviderSessions(ctx context.Context, filter auth.Prov
 	// a race condition and delete documents from the repository without invoking the 'OnDelete'
 	// callback of each provider for documents added after the loop above has completed.
 	return nil
+}
+
+func (c *Client) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
+	repository := c.authStore.NewProviderSessionRepository()
+	return repository.ListProviderSessions(ctx, filter, pagination)
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {

@@ -274,7 +274,7 @@ func (p *Provider) extractExternalIDsFromProviderSession(providerSession *auth.P
 	} else if claims.TidepoolLinkID == "" {
 		return "", "", errors.New("tidepool link id is missing from claims from id token")
 	} else {
-		return claims.TidepoolLinkID, claims.TidepoolLinkID, nil
+		return claims.TidepoolLinkID, claims.Subject, nil
 	}
 }
 
