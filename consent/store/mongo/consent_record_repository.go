@@ -123,8 +123,10 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	}
 
 	result := storeStructuredMongo.ListResult[consent.Record]{}
-	if err = cursor.All(ctx, &result); err != nil {
-		return nil, errors.Wrap(err, "unable to decode consent records")
+	if cursor.Next(ctx) {
+		if err = cursor.Decode(&result); err != nil {
+			return nil, errors.Wrap(err, "unable to decode consent records")
+		}
 	}
 
 	logger.WithFields(log.Fields{"count": len(result.Data), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListConsentRecords")
