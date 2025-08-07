@@ -103,9 +103,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDomain(); err != nil {
 		return err
 	}
-	if err := s.initializeRouter(); err != nil {
-		return err
-	}
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
@@ -149,6 +146,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
+	if err := s.initializeRouter(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
