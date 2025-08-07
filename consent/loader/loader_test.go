@@ -30,6 +30,7 @@ var _ = Describe("SeedConsents", func() {
 
 	AfterEach(func() {
 		mockCtrl.Finish()
+		loader.ResetContentFS()
 	})
 
 	Context("with embedded fs", func() {

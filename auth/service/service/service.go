@@ -365,7 +365,7 @@ func (s *Service) initializeConsentService() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return consentLoader.SeedConsents(ctx, s.consentService)
+	return consentLoader.SeedConsents(log.NewContextWithLogger(ctx, s.Logger()), s.consentService)
 }
 
 func (s *Service) terminateWorkStructuredStore() {

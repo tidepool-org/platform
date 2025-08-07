@@ -26,6 +26,11 @@ func SetContentFS(testFS fs.FS, dir string) {
 	directory = dir
 }
 
+func ResetContentFS() {
+	contentFS = content
+	directory = "content"
+}
+
 var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-]+)\\.v(?P<version>[0-9]+)\\.md$")
 
 func SeedConsents(ctx context.Context, service consent.Service) error {
