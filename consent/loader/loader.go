@@ -5,6 +5,7 @@ import (
 	"embed"
 	_ "embed"
 	"io/fs"
+	"path"
 	"regexp"
 	"strconv"
 
@@ -13,13 +14,27 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-//go:embed content/*
+//go:embed content/*.md
 var content embed.FS
+var directory = "content"
 
-var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-])\\.v(?P<version>[0-9]+)\\.md$")
+// Allow injecting FS in tests
+var contentFS fs.FS = content
+
+func SetContentFS(testFS fs.FS, dir string) {
+	contentFS = testFS
+	directory = dir
+}
+
+func ResetContentFS() {
+	contentFS = content
+	directory = "content"
+}
+
+var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-]+)\\.v(?P<version>[0-9]+)\\.md$")
 
 func SeedConsents(ctx context.Context, service consent.Service) error {
-	entries, err := fs.ReadDir(content, ".")
+	entries, err := fs.ReadDir(contentFS, directory)
 	if err != nil {
 		return errors.Wrap(err, "unable to read consent content directory")
 	}
@@ -45,7 +60,7 @@ func SeedConsents(ctx context.Context, service consent.Service) error {
 			return errors.Newf("invalid version %s for consent %s", matches[versionIndex], entry.Name())
 		}
 
-		consentContent, err := fs.ReadFile(content, entry.Name())
+		consentContent, err := fs.ReadFile(contentFS, path.Join(directory, entry.Name()))
 		if err != nil {
 			return errors.Wrapf(err, "unable to read consent content from %s", entry.Name())
 		}

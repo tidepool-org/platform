@@ -103,9 +103,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeDomain(); err != nil {
 		return err
 	}
-	if err := s.initializeRouter(); err != nil {
-		return err
-	}
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
@@ -149,6 +146,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
+	if err := s.initializeRouter(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -365,7 +365,7 @@ func (s *Service) initializeConsentService() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return consentLoader.SeedConsents(ctx, s.consentService)
+	return consentLoader.SeedConsents(log.NewContextWithLogger(ctx, s.Logger()), s.consentService)
 }
 
 func (s *Service) terminateWorkStructuredStore() {
