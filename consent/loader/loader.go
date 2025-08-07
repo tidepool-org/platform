@@ -16,7 +16,7 @@ import (
 //go:embed content/*
 var content embed.FS
 
-var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-])\\.v(?P<version>[0-9]+)\\.md$")
+var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-]+)\\.v(?P<version>[0-9]+)\\.md$")
 
 func SeedConsents(ctx context.Context, service consent.Service) error {
 	entries, err := fs.ReadDir(content, ".")
