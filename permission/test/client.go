@@ -46,6 +46,10 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 	panic("GetUserPermissions has no output")
 }
 
+func (c *Client) UpdateUserPermissions(_ context.Context, _ string, _ string, _ permission.Permissions) error {
+	panic("not implemented")
+}
+
 func (c *Client) AssertOutputsEmpty() {
 	if len(c.GetUserPermissionsOutputs) > 0 {
 		panic("GetUserPermissionsOutputs is not empty")

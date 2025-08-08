@@ -3,6 +3,7 @@ package mongo
 import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth/store"
+	consentStore "github.com/tidepool-org/platform/consent/store/mongo"
 	"github.com/tidepool-org/platform/devicetokens"
 	"github.com/tidepool-org/platform/errors"
 
@@ -41,7 +42,21 @@ func (s *Store) EnsureIndexes() error {
 	}
 
 	restrictedTokenRepository := s.restrictedTokenRepository()
-	return restrictedTokenRepository.EnsureIndexes()
+	if err := restrictedTokenRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	consentRepository := s.consentRepository()
+	if err := consentRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	consentRecordRepository := s.consentRecordRepository()
+	if err := consentRecordRepository.EnsureIndexes(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (s *Store) NewProviderSessionRepository() store.ProviderSessionRepository {
@@ -60,15 +75,22 @@ func (s *Store) NewAppValidateRepository() appvalidate.Repository {
 	return s.restrictedAppValidateRepository()
 }
 
+func (s *Store) NewConsentRepository() *consentStore.ConsentRepository {
+	return s.consentRepository()
+}
+func (s *Store) NewConsentRecordRepository() *consentStore.ConsentRecordRepository {
+	return s.consentRecordRepository()
+}
+
 func (s *Store) providerSessionRepository() *ProviderSessionRepository {
 	return &ProviderSessionRepository{
-		s.Store.GetRepository("provider_sessions"),
+		Repository: s.Store.GetRepository("provider_sessions"),
 	}
 }
 
 func (s *Store) restrictedTokenRepository() *RestrictedTokenRepository {
 	return &RestrictedTokenRepository{
-		s.Store.GetRepository("restricted_tokens"),
+		Repository: s.Store.GetRepository("restricted_tokens"),
 	}
 }
 
@@ -79,6 +101,18 @@ func (s *Store) deviceTokenRepository() devicetokens.Repository {
 
 func (s *Store) restrictedAppValidateRepository() *AppValidateRepository {
 	return &AppValidateRepository{
-		s.Store.GetRepository("app_validations"),
+		Repository: s.Store.GetRepository("app_validations"),
+	}
+}
+
+func (s *Store) consentRepository() *consentStore.ConsentRepository {
+	return &consentStore.ConsentRepository{
+		Repository: s.Store.GetRepository("consents"),
+	}
+}
+
+func (s *Store) consentRecordRepository() *consentStore.ConsentRecordRepository {
+	return &consentStore.ConsentRecordRepository{
+		Repository: s.Store.GetRepository("consent_records"),
 	}
 }

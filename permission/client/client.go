@@ -46,3 +46,20 @@ func (c *Client) GetUserPermissions(ctx context.Context, requestUserID string, t
 
 	return permission.FixOwnerPermissions(result), nil
 }
+
+func (c *Client) UpdateUserPermissions(ctx context.Context, sharerUserID string, recipientUserID string, permissions permission.Permissions) error {
+	if sharerUserID == "" {
+		return errors.New("sharer user id is missing")
+	}
+	if recipientUserID == "" {
+		return errors.New("recipient user id is missing")
+	}
+
+	url := c.client.ConstructURL("access", sharerUserID, recipientUserID)
+	err := c.client.RequestData(ctx, "POST", url, nil, permissions, nil)
+	if request.IsErrorResourceNotFound(err) {
+		return request.ErrorUnauthorized()
+	}
+
+	return err
+}
