@@ -11,7 +11,6 @@ import (
 
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 //go:embed content/*.md
@@ -67,7 +66,7 @@ func SeedConsents(ctx context.Context, service consent.Service) error {
 
 		cons := consent.NewConsent()
 		cons.ContentType = consent.ContentTypeMarkdown
-		cons.Type = *consent.NewConsentType(pointer.FromString(matches[nameIndex]))
+		cons.Type = matches[nameIndex]
 		cons.Version = version
 		cons.Content = string(consentContent)
 

@@ -42,7 +42,7 @@ func (r *Router) GetConsentByType(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	filter := consent.NewConsentFilter()
-	filter.Type = consent.NewConsentType(&typ)
+	filter.Type = pointer.FromString(typ)
 	filter.Latest = pointer.FromAny(true)
 
 	consents, err := r.service.ListConsents(req.Context(), filter, nil)
@@ -64,7 +64,7 @@ func (r *Router) GetConsentVersions(res rest.ResponseWriter, req *rest.Request) 
 	}
 
 	filter := consent.NewConsentFilter()
-	filter.Type = consent.NewConsentType(&typ)
+	filter.Type = pointer.FromString(typ)
 	if err := structValidator.New(log.LoggerFromContext(req.Context())).Validate(filter); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return

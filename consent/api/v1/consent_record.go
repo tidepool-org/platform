@@ -8,12 +8,10 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/consent"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
-	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 func (r *Router) ConsentRecordRoutes() []*rest.Route {
@@ -148,20 +146,13 @@ func (r *Router) UpdateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 	body, _ := io.ReadAll(req.Body)
 	req.Body = io.NopCloser(bytes.NewBuffer(body))
 
-	update, err := consent.NewConsentRecordUpdate(body)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+	update, err := consent.NewConsentRecordUpdate(body, consentRecord)
+	if err = request.DecodeRequestBody(req.Request, update); err != nil {
+		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	validator := structValidator.New(log.LoggerFromContext(req.Context()))
-	update.Validate(consentRecord, validator)
-	if validator.HasError() {
-		responder.Error(http.StatusBadRequest, validator.Error())
-		return
-	}
-
-	err = update.ApplyPatch(req.Context(), consentRecord)
+	consentRecord, err = update.ApplyPatch()
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return

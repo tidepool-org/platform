@@ -204,14 +204,13 @@ func (p *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, conse
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": consentRecord.UserID, "id": consentRecord.ID})
 
+	consentRecord.ModifiedTime = time.Now()
+
 	selector := bson.M{
 		"id": consentRecord.ID,
 	}
 	update := bson.M{
 		"$set": consentRecord,
-		"$currentDate": bson.M{
-			"modifiedTime": true,
-		},
 	}
 
 	result, err := p.UpdateOne(ctx, selector, update)

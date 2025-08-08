@@ -273,35 +273,30 @@ func BigDataDonationProjectOrganizations() []BigDataDonationProjectOrganization 
 }
 
 type RecordUpdate struct {
-	raw json.RawMessage
+	raw    json.RawMessage
+	record *Record
 
 	Metadata *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
 }
 
-func NewConsentRecordUpdate(body []byte) (*RecordUpdate, error) {
+func NewConsentRecordUpdate(body []byte, record *Record) (*RecordUpdate, error) {
 	raw := json.RawMessage{}
 	if err := json.Unmarshal(body, &raw); err != nil {
 		return nil, err
 	}
 
 	return &RecordUpdate{
-		raw: raw,
+		raw:    raw,
+		record: record,
 	}, nil
 }
 
-func (r *RecordUpdate) ApplyPatch(ctx context.Context, record *Record) error {
-	validator := structureValidator.New(log.LoggerFromContext(ctx))
-
-	r.Validate(record, validator)
-	if validator.HasError() {
-		return validator.Error()
+func (r *RecordUpdate) ApplyPatch() (*Record, error) {
+	if err := json.Unmarshal(r.raw, r.record); err != nil {
+		return nil, errors.Wrap(err, "unable to unmarshal patch")
 	}
 
-	if err := json.Unmarshal(r.raw, record); err != nil {
-		return errors.Wrap(err, "unable to unmarshal patch")
-	}
-
-	return nil
+	return r.record, nil
 }
 
 func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
@@ -311,8 +306,8 @@ func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
 	}
 }
 
-func (r *RecordUpdate) Validate(record *Record, validator structure.Validator) {
-	r.Metadata.Validator(record.Type)(validator.WithReference("metadata"))
+func (r *RecordUpdate) Validate(validator structure.Validator) {
+	r.Metadata.Validator(r.record.Type)(validator.WithReference("metadata"))
 }
 
 type RecordRevoke struct {
