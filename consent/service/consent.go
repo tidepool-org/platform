@@ -101,7 +101,11 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 		return cons, err
 	})
 
-	return res.(*consent.Record), err
+	if err != nil {
+		return nil, err
+	}
+
+	return res.(*consent.Record), nil
 }
 
 func (c *ConsentService) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*structuredMongo.ListResult[consent.Record], error) {

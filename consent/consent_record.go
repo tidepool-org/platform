@@ -126,15 +126,38 @@ func NewConsentRecordCreate() *RecordCreate {
 	}
 }
 
-func (c *RecordCreate) Validate(validator structure.Validator) {
-	validator.String("ageGroup", structure.ValueAsString(&c.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
-	validator.Time("createdTime", &c.CreatedTime).NotZero().BeforeNow(time.Second)
-	validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
-	c.Metadata.Validator(c.Type)(validator.WithReference("metadata"))
-	validator.String("ownerName", &c.OwnerName).Exists().LengthInRange(1, 256)
-	validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
-	validator.String("type", structure.ValueAsString(&c.Type)).Exists().OneOf(structure.ValuesAsStringArray(Types())...)
-	validator.Int("version", &c.Version).Exists().GreaterThan(0)
+func (r *RecordCreate) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("ageGroup"); ptr != nil {
+		r.AgeGroup = AgeGroup(*ptr)
+	}
+	if ptr := parser.String("grantorType"); ptr != nil {
+		r.GrantorType = *ptr
+	}
+	if metadataParser := parser.WithReferenceObjectParser("metadata"); metadataParser.Exists() {
+		r.Metadata = &RecordMetadata{}
+		r.Metadata.Parse(metadataParser)
+	}
+	if ptr := parser.String("ownerName"); ptr != nil {
+		r.OwnerName = *ptr
+	}
+	r.ParentGuardianName = parser.String("parentGuardianName")
+	if ptr := parser.String("type"); ptr != nil {
+		r.Type = Type(*ptr)
+	}
+	if ptr := parser.Int("version"); ptr != nil {
+		r.Version = *ptr
+	}
+}
+
+func (r *RecordCreate) Validate(validator structure.Validator) {
+	validator.String("ageGroup", structure.ValueAsString(&r.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
+	validator.Time("createdTime", &r.CreatedTime).NotZero().BeforeNow(time.Second)
+	validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
+	r.Metadata.Validator(r.Type)(validator.WithReference("metadata"))
+	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
+	validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
+	validator.String("type", structure.ValueAsString(&r.Type)).Exists().OneOf(structure.ValuesAsStringArray(Types())...)
+	validator.Int("version", &r.Version).Exists().GreaterThan(0)
 }
 
 func NewConsentRecordID() string {
@@ -155,22 +178,22 @@ func NewConsentRecordFilter() *RecordFilter {
 	}
 }
 
-func (p *RecordFilter) Parse(parser structure.ObjectParser) {
+func (r *RecordFilter) Parse(parser structure.ObjectParser) {
 	latest := parser.Bool("latest")
 	if latest != nil {
-		p.Latest = latest
+		r.Latest = latest
 	}
-	p.Status = NewConsentRecordStatus(parser.String("status"))
-	p.Type = NewConsentType(parser.String("type"))
-	p.Version = parser.Int("version")
+	r.Status = NewConsentRecordStatus(parser.String("status"))
+	r.Type = NewConsentType(parser.String("type"))
+	r.Version = parser.Int("version")
 }
 
-func (p *RecordFilter) Validate(validator structure.Validator) {
-	validator.String("id", p.ID).NotEmpty()
-	validator.Bool("latest", p.Latest).Exists()
-	validator.String("status", structure.ValueAsString(p.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
-	validator.String("type", structure.ValueAsString(p.Type)).OneOf(structure.ValuesAsStringArray(Types())...)
-	validator.Int("version", p.Version).GreaterThan(0)
+func (r *RecordFilter) Validate(validator structure.Validator) {
+	validator.String("id", r.ID).NotEmpty()
+	validator.Bool("latest", r.Latest).Exists()
+	validator.String("status", structure.ValueAsString(r.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
+	validator.String("type", structure.ValueAsString(r.Type)).OneOf(structure.ValuesAsStringArray(Types())...)
+	validator.Int("version", r.Version).GreaterThan(0)
 }
 
 type RecordStatus string
@@ -212,17 +235,26 @@ type RecordMetadata struct {
 	SupportedOrganizations []BigDataDonationProjectOrganization `json:"supportedOrganizations" bson:"supportedOrganizations"`
 }
 
-func (c *RecordMetadata) Validator(typ Type) func(structure.Validator) {
+func (r *RecordMetadata) Parse(parser structure.ObjectParser) {
+	if ptr := parser.StringArray("supportedOrganizations"); ptr != nil {
+		r.SupportedOrganizations = make([]BigDataDonationProjectOrganization, len(*ptr))
+		for i, v := range *ptr {
+			r.SupportedOrganizations[i] = BigDataDonationProjectOrganization(v)
+		}
+	}
+}
+
+func (r *RecordMetadata) Validator(typ Type) func(structure.Validator) {
 	switch typ {
 	case TypeBigDataDonationProject:
-		return c.ValidateBigDataDonationProject
+		return r.ValidateBigDataDonationProject
 	default:
 		return func(validator structure.Validator) {}
 	}
 }
 
-func (c *RecordMetadata) ValidateBigDataDonationProject(validator structure.Validator) {
-	validator.StringArray("supportedOrganizations", pointer.FromAny(structure.ValuesAsStringArray(c.SupportedOrganizations))).EachOneOf(structure.ValuesAsStringArray(BigDataDonationProjectOrganizations())...)
+func (r *RecordMetadata) ValidateBigDataDonationProject(validator structure.Validator) {
+	validator.StringArray("supportedOrganizations", pointer.FromAny(structure.ValuesAsStringArray(r.SupportedOrganizations))).EachOneOf(structure.ValuesAsStringArray(BigDataDonationProjectOrganizations())...)
 }
 
 type BigDataDonationProjectOrganization string
@@ -257,23 +289,30 @@ func NewConsentRecordUpdate(body []byte) (*RecordUpdate, error) {
 	}, nil
 }
 
-func (c *RecordUpdate) ApplyPatch(ctx context.Context, record *Record) error {
+func (r *RecordUpdate) ApplyPatch(ctx context.Context, record *Record) error {
 	validator := structureValidator.New(log.LoggerFromContext(ctx))
 
-	c.Validate(record, validator)
+	r.Validate(record, validator)
 	if validator.HasError() {
 		return validator.Error()
 	}
 
-	if err := json.Unmarshal(c.raw, record); err != nil {
+	if err := json.Unmarshal(r.raw, record); err != nil {
 		return errors.Wrap(err, "unable to unmarshal patch")
 	}
 
 	return nil
 }
 
-func (c *RecordUpdate) Validate(record *Record, validator structure.Validator) {
-	c.Metadata.Validator(record.Type)(validator.WithReference("metadata"))
+func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
+	if metadataParser := parser.WithReferenceObjectParser("metadata"); metadataParser.Exists() {
+		r.Metadata = &RecordMetadata{}
+		r.Metadata.Parse(metadataParser)
+	}
+}
+
+func (r *RecordUpdate) Validate(record *Record, validator structure.Validator) {
+	r.Metadata.Validator(record.Type)(validator.WithReference("metadata"))
 }
 
 type RecordRevoke struct {
@@ -287,7 +326,7 @@ func NewConsentRecordRevoke() *RecordRevoke {
 	}
 }
 
-func (c *RecordRevoke) Validate(validator structure.Validator) {
-	validator.String("id", &c.ID).NotEmpty()
-	validator.Time("revocationTime", &c.RevocationTime).NotZero()
+func (r *RecordRevoke) Validate(validator structure.Validator) {
+	validator.String("id", &r.ID).NotEmpty()
+	validator.Time("revocationTime", &r.RevocationTime).NotZero()
 }
