@@ -25,6 +25,6 @@ func (r *Router) Routes() []*rest.Route {
 		rest.Post("/v1/users/:userId/consents", serviceApi.RequireUser(r.CreateConsentRecord)),
 		rest.Get("/v1/users/:userId/consents/:id", serviceApi.RequireUser(r.GetConsentRecord)),
 		rest.Patch("/v1/users/:userId/consents/:id", serviceApi.RequireUser(r.UpdateConsentRecord)),
-		rest.Delete("/v1/users/:userId/consents/:id", serviceApi.RequireUser(r.UpdateConsentRecord)),
+		rest.Delete("/v1/users/:userId/consents/:id", serviceApi.RequireUser(r.RevokeConsentRecord)),
 	}
 }
