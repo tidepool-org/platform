@@ -75,7 +75,7 @@ func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pa
 				},
 			},
 			{
-				"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
+				"$replaceRoot": bson.M{"newRoot": "$mostRecent"},
 			},
 		}
 		pipeline = append(pipeline, storeStructuredMongo.PaginationFacetPipelineStages(*pagination)...)

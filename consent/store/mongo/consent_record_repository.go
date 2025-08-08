@@ -240,7 +240,7 @@ func listLatestConsentRecordsPipeline(selector bson.M, sort bson.M, pagination p
 			},
 		},
 		{
-			"$replaceRoot": bson.M{"$newRoot": "$mostRecent"},
+			"$replaceRoot": bson.M{"newRoot": "$mostRecent"},
 		},
 	}
 
