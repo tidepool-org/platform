@@ -55,7 +55,7 @@ type Record struct {
 	OwnerName          string          `json:"ownerName,omitempty" bson:"ownerName"`
 	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName"`
 	GrantorType        GrantorType     `json:"grantorType,omitempty" bson:"grantorType"`
-	Type               Type            `json:"type,omitempty" bson:"type"`
+	Type               string          `json:"type,omitempty" bson:"type"`
 	Version            int             `json:"version,omitempty" bson:"version"`
 	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
 	GrantTime          time.Time       `json:"grantTime" bson:"grantTime"`
@@ -100,7 +100,7 @@ func (c *Record) Validate(validator structure.Validator) {
 	validator.String("ownerName", &c.OwnerName).Exists().LengthInRange(1, 256)
 	validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
 	validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
-	validator.String("type", structure.ValueAsString(&c.Type)).Exists().OneOf(structure.ValuesAsStringArray(Types())...)
+	validator.String("type", &c.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
 	validator.Int("version", &c.Version).Exists().GreaterThan(0)
 	c.Metadata.Validator(c.Type)(validator.WithReference("metadata"))
 	validator.Time("grantTime", &c.GrantTime).Exists().NotZero().BeforeNow(time.Second)
@@ -116,7 +116,7 @@ type RecordCreate struct {
 	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
 	OwnerName          string          `json:"ownerName,omitempty" bson:"ownerName"`
 	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName"`
-	Type               Type            `json:"type,omitempty" bson:"type"`
+	Type               string          `json:"type,omitempty" bson:"type"`
 	Version            int             `json:"version,omitempty" bson:"version"`
 }
 
@@ -142,7 +142,7 @@ func (r *RecordCreate) Parse(parser structure.ObjectParser) {
 	}
 	r.ParentGuardianName = parser.String("parentGuardianName")
 	if ptr := parser.String("type"); ptr != nil {
-		r.Type = Type(*ptr)
+		r.Type = *ptr
 	}
 	if ptr := parser.Int("version"); ptr != nil {
 		r.Version = *ptr
@@ -156,7 +156,7 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	r.Metadata.Validator(r.Type)(validator.WithReference("metadata"))
 	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
 	validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
-	validator.String("type", structure.ValueAsString(&r.Type)).Exists().OneOf(structure.ValuesAsStringArray(Types())...)
+	validator.String("type", &r.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
 	validator.Int("version", &r.Version).Exists().GreaterThan(0)
 }
 
@@ -167,7 +167,7 @@ func NewConsentRecordID() string {
 type RecordFilter struct {
 	Latest  *bool
 	Status  *RecordStatus
-	Type    *Type
+	Type    *string
 	Version *int
 	ID      *string
 }
@@ -184,7 +184,7 @@ func (r *RecordFilter) Parse(parser structure.ObjectParser) {
 		r.Latest = latest
 	}
 	r.Status = NewConsentRecordStatus(parser.String("status"))
-	r.Type = NewConsentType(parser.String("type"))
+	r.Type = parser.String("type")
 	r.Version = parser.Int("version")
 }
 
@@ -192,7 +192,7 @@ func (r *RecordFilter) Validate(validator structure.Validator) {
 	validator.String("id", r.ID).NotEmpty()
 	validator.Bool("latest", r.Latest).Exists()
 	validator.String("status", structure.ValueAsString(r.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
-	validator.String("type", structure.ValueAsString(r.Type)).OneOf(structure.ValuesAsStringArray(Types())...)
+	validator.String("type", r.Type).LengthInRange(TypeMinLength, TypeMaxLength)
 	validator.Int("version", r.Version).GreaterThan(0)
 }
 
@@ -244,7 +244,7 @@ func (r *RecordMetadata) Parse(parser structure.ObjectParser) {
 	}
 }
 
-func (r *RecordMetadata) Validator(typ Type) func(structure.Validator) {
+func (r *RecordMetadata) Validator(typ string) func(structure.Validator) {
 	switch typ {
 	case TypeBigDataDonationProject:
 		return r.ValidateBigDataDonationProject
