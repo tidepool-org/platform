@@ -48,18 +48,18 @@ type RecordAccessor interface {
 
 type Records []Record
 type Record struct {
-	ID                 string          `json:"id,omitempty" bson:"id"`
+	ID                 string          `json:"id" bson:"id"`
 	UserID             string          `json:"userId" bson:"userId"`
-	Status             RecordStatus    `json:"status,omitempty" bson:"status"`
-	AgeGroup           AgeGroup        `json:"ageGroup,omitempty" bson:"ageGroup"`
-	OwnerName          string          `json:"ownerName,omitempty" bson:"ownerName"`
-	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName"`
-	GrantorType        GrantorType     `json:"grantorType,omitempty" bson:"grantorType"`
-	Type               string          `json:"type,omitempty" bson:"type"`
-	Version            int             `json:"version,omitempty" bson:"version"`
-	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
+	Status             RecordStatus    `json:"status" bson:"status"`
+	AgeGroup           AgeGroup        `json:"ageGroup" bson:"ageGroup"`
+	OwnerName          string          `json:"ownerName" bson:"ownerName"`
+	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName,omitempty"`
+	GrantorType        GrantorType     `json:"grantorType" bson:"grantorType"`
+	Type               string          `json:"type" bson:"type"`
+	Version            int             `json:"version" bson:"version"`
+	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	GrantTime          time.Time       `json:"grantTime" bson:"grantTime"`
-	RevocationTime     *time.Time      `json:"revocationTime" bson:"revocationTime"`
+	RevocationTime     *time.Time      `json:"revocationTime,omitempty" bson:"revocationTime,omitempty"`
 	CreatedTime        time.Time       `json:"createdTime" bson:"createdTime"`
 	ModifiedTime       time.Time       `json:"modifiedTime" bson:"modifiedTime"`
 }
@@ -98,26 +98,37 @@ func (c *Record) Validate(validator structure.Validator) {
 	validator.String("status", structure.ValueAsString(&c.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
 	validator.String("ageGroup", structure.ValueAsString(&c.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
 	validator.String("ownerName", &c.OwnerName).Exists().LengthInRange(1, 256)
-	validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
 	validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
 	validator.String("type", &c.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
 	validator.Int("version", &c.Version).Exists().GreaterThan(0)
-	c.Metadata.Validator(c.Type)(validator.WithReference("metadata"))
+
 	validator.Time("grantTime", &c.GrantTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("revocationTime", c.RevocationTime).BeforeNow(time.Second)
 	validator.Time("createdTime", &c.CreatedTime).Exists().BeforeNow(time.Second)
 	validator.Time("modifiedTime", &c.ModifiedTime).Exists().BeforeNow(time.Second)
+
+	c.Metadata.Validator(c.Type)(validator.WithReference("metadata"))
+
+	parentGuardianNameValidator := validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
+	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists()
+
+	if c.AgeGroup != AgeGroupOverEighteen {
+		parentGuardianNameValidator.Exists()
+		grantorTypeValidator.EqualTo(GrantorTypeParentGuardian)
+	} else {
+		parentGuardianNameValidator.NotExists()
+	}
 }
 
 type RecordCreate struct {
-	AgeGroup           AgeGroup        `json:"ageGroup,omitempty" bson:"ageGroup"`
+	AgeGroup           AgeGroup        `json:"ageGroup" bson:"ageGroup"`
 	CreatedTime        time.Time       `bson:"createdTime"`
-	GrantorType        GrantorType     `json:"grantorType,omitempty" bson:"grantorType"`
-	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
-	OwnerName          string          `json:"ownerName,omitempty" bson:"ownerName"`
+	GrantorType        GrantorType     `json:"grantorType" bson:"grantorType"`
+	Metadata           *RecordMetadata `json:"metadata" bson:"metadata"`
+	OwnerName          string          `json:"ownerName" bson:"ownerName"`
 	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName"`
-	Type               string          `json:"type,omitempty" bson:"type"`
-	Version            int             `json:"version,omitempty" bson:"version"`
+	Type               string          `json:"type" bson:"type"`
+	Version            int             `json:"version" bson:"version"`
 }
 
 func NewConsentRecordCreate() *RecordCreate {
@@ -158,6 +169,17 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
 	validator.String("type", &r.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
 	validator.Int("version", &r.Version).Exists().GreaterThan(0)
+
+	parentGuardianNameValidator := validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
+	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists()
+
+	if r.AgeGroup == AgeGroupOverEighteen {
+		parentGuardianNameValidator.NotExists()
+		grantorTypeValidator.EqualTo(GrantorTypeOwner)
+	} else {
+		parentGuardianNameValidator.Exists()
+		grantorTypeValidator.EqualTo(GrantorTypeParentGuardian)
+	}
 }
 
 func NewConsentRecordID() string {

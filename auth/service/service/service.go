@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"time"
 
+	mailer "github.com/tidepool-org/platform/mailer"
+	userClient "github.com/tidepool-org/platform/user/client"
+
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -358,9 +361,30 @@ func (s *Service) initializeConsentService() error {
 		return errors.Wrap(err, "unable to create bddp sharer")
 	}
 
-	s.Logger().Debug("Initializing consent service")
+	s.Logger().Debug("Initializing user client")
+	usrClient, err := userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
 
-	s.consentService = consentService.NewConsentService(bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
+	s.Logger().Debug("Initializing mailer client")
+	mlr, err := mailer.Client()
+	if err != nil {
+		return errors.Wrap(err, "unable to create mailer client")
+	}
+
+	s.Logger().Debug("Initializing consent mailer")
+	consentMailer, err := consentService.NewConsentMailer(mlr, usrClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create consent mailer")
+	}
+
+	s.Logger().Debug("Initializing consent service")
+	s.consentService = consentService.NewConsentService(consentMailer, bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

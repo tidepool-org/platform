@@ -3,7 +3,10 @@ package user
 import (
 	"context"
 	"regexp"
+	"slices"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/request"
@@ -12,12 +15,34 @@ import (
 )
 
 const (
-	RoleClinic = "clinic"
+	RoleBrokered         = "brokered"
+	RoleCarePartner      = "care_partner"
+	RoleClinic           = "clinic"
+	RoleClinician        = "clinician"
+	RoleCustodialAccount = "custodial_account"
+	RoleDemo             = "demo"
+	RolePatient          = "patient"
 )
+
+var rolesMap = map[string]any{
+	RoleBrokered:         struct{}{},
+	RoleCarePartner:      struct{}{},
+	RoleClinic:           struct{}{},
+	RoleClinician:        struct{}{},
+	RoleCustodialAccount: struct{}{},
+	RoleDemo:             struct{}{},
+	RolePatient:          struct{}{},
+}
 
 func Roles() []string {
 	return []string{
+		RoleBrokered,
+		RoleCarePartner,
 		RoleClinic,
+		RoleClinician,
+		RoleCustodialAccount,
+		RoleDemo,
+		RolePatient,
 	}
 }
 
@@ -39,6 +64,12 @@ func (u *User) Parse(parser structure.ObjectParser) {
 	u.EmailVerified = parser.Bool("emailVerified")
 	u.TermsAccepted = parser.String("termsAccepted")
 	u.Roles = parser.StringArray("roles")
+	if u.Roles != nil {
+		u.Roles = pointer.FromAny(slices.DeleteFunc(*u.Roles, func(role string) bool {
+			_, validRole := rolesMap[role]
+			return !validRole
+		}))
+	}
 	parser.Bool("passwordExists")
 	parser.StringArray("emails")
 }
@@ -62,7 +93,7 @@ func (u *User) HasRole(role string) bool {
 }
 
 func (u *User) IsPatient() bool {
-	if u.Roles == nil || len(*u.Roles) == 0 {
+	if u.Roles == nil || len(*u.Roles) == 0 || u.HasRole(RolePatient) {
 		return true
 	}
 	return false

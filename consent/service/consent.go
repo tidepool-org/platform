@@ -15,14 +15,16 @@ import (
 
 type ConsentService struct {
 	bddpSharer              BigDataDonationProjectSharer
+	consentMailer           *ConsentMailer
 	consentRepository       *mongo.ConsentRepository
 	consentRecordRepository *mongo.ConsentRecordRepository
 	dbClient                *mongoDriver.Client
 }
 
-func NewConsentService(bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client) consent.Service {
+func NewConsentService(consentMailer *ConsentMailer, bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client) consent.Service {
 	return &ConsentService{
 		bddpSharer:              bddpSharer,
+		consentMailer:           consentMailer,
 		consentRepository:       consentRepository,
 		consentRecordRepository: consentRecordRepository,
 		dbClient:                dbClient,
@@ -56,6 +58,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 		if len(consents.Data) == 0 {
 			return nil, errors.New("invalid consent type and version combination")
 		}
+		cons := consents.Data[0]
 
 		records, err := c.consentRecordRepository.ListConsentRecords(sessCtx, userID, &consent.RecordFilter{
 			Latest: pointer.FromAny(true),
@@ -86,7 +89,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			}
 		}
 
-		cons, err := c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, create)
+		record, err := c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, create)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create consent record for type %s", create.Type)
 		}
@@ -98,7 +101,11 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			}
 		}
 
-		return cons, err
+		if err = c.consentMailer.SendConsentGrantedEmailNotification(ctx, cons, *record); err != nil {
+			return nil, err
+		}
+
+		return record, err
 	})
 
 	if err != nil {

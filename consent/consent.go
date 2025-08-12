@@ -2,7 +2,11 @@ package consent
 
 import (
 	"context"
+	"strings"
 	"time"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 
@@ -83,4 +87,8 @@ func (p *Filter) Validate(validator structure.Validator) {
 		typeValidator.Exists()
 		versionValidator.NotExists()
 	}
+}
+
+func PrettifyType(typ string) string {
+	return cases.Title(language.English, cases.Compact).String(strings.ReplaceAll(typ, "_", " "))
 }
