@@ -54,33 +54,40 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
 			return
 		} else if length > 1 {
-			lgr.Errorf("multiple connected provider sessions found for tidepool link id %s", tidepoolLinkID)
+			lgr.Warnf("multiple connected provider sessions found for tidepool link id %s", tidepoolLinkID)
 		}
 		providerSession := providerSessions[0]
 
 		// Find matching data source
-		dataSourceFilter := &dataSource.Filter{
+		dataSrcFilter := &dataSource.Filter{
 			ProviderSessionID: pointer.FromAny([]string{providerSession.ID}),
 		}
-		dataSources, err := dataServiceContext.DataSourceClient().ListAll(ctx, dataSourceFilter, nil)
+		dataSrcs, err := dataServiceContext.DataSourceClient().ListAll(ctx, dataSrcFilter, nil)
 		if err != nil {
 			lgr.WithError(err).Errorf("unable to fetch data sources for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)
 			return
-		} else if length := len(dataSources); length == 0 {
-			lgr.Infof("no connected data sources found for tidepool link id %s", tidepoolLinkID)
+		} else if length := len(dataSrcs); length == 0 {
+			lgr.Warnf("no connected data sources found for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
 			return
 		} else if length > 1 {
-			lgr.Errorf("multiple connected data sources found for tidepool link id %s", tidepoolLinkID)
+			lgr.Warnf("multiple connected data sources found for tidepool link id %s", tidepoolLinkID)
 		}
-		dataSource := dataSources[0]
+		dataSrc := dataSrcs[0]
+
+		// Sanity check
+		if *dataSrc.State != dataSource.StateConnected {
+			lgr.Warnf("data source with id %s is not connected for tidepool link id %s", *dataSrc.ID, tidepoolLinkID)
+			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
+			return
+		}
 
 		// Use last data set id
-		dataSetID := dataSource.LastDataSetID()
+		dataSetID := dataSrc.LastDataSetID()
 		if dataSetID == nil {
-			lgr.Warnf("no data sets found for tidepool link id %s", tidepoolLinkID)
-			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %s", *dataSource.ID))
+			lgr.Warnf("no data sets found for tidepool link id %q", tidepoolLinkID)
+			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %q", *dataSrc.ID))
 			return
 		}
 
