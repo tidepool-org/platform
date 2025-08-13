@@ -26,7 +26,7 @@ func Routes() []service.Route {
 		service.Get("/v1/partners/:partner/sector/:environment", PartnersSector),
 		service.Get("/v1/partners/:partner/sector", PartnersSector), // DEPRECATED: Remove once Abbott sandbox client uses environment in path
 
-		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireUser),
+		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireAuth),
 	}
 
 	routes = append(routes, DataSetsRoutes()...)
