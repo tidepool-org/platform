@@ -301,17 +301,6 @@ func (s *Source) GetError() error {
 	return nil
 }
 
-type SourceArray []*Source
-
-func (s SourceArray) Sanitize(details request.AuthDetails) error {
-	for _, datum := range s {
-		if err := datum.Sanitize(details); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func (s *Source) AddDataSetID(dataSetID string) bool {
 	if s.DataSetIDs == nil {
 		s.DataSetIDs = &[]string{}
@@ -321,6 +310,27 @@ func (s *Source) AddDataSetID(dataSetID string) bool {
 	}
 	*s.DataSetIDs = append(*s.DataSetIDs, dataSetID)
 	return true
+}
+
+func (s *Source) LastDataSetID() *string {
+	if s.DataSetIDs == nil {
+		return nil
+	} else if length := len(*s.DataSetIDs); length < 1 {
+		return nil
+	} else {
+		return &(*s.DataSetIDs)[length-1]
+	}
+}
+
+type SourceArray []*Source
+
+func (s SourceArray) Sanitize(details request.AuthDetails) error {
+	for _, datum := range s {
+		if err := datum.Sanitize(details); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func NewID() string {

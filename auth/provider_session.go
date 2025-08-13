@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -26,16 +27,17 @@ func ProviderTypes() []string {
 }
 
 type ProviderSessionAccessor interface {
-	ListUserProviderSessions(ctx context.Context, userID string, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	CreateUserProviderSession(ctx context.Context, userID string, create *ProviderSessionCreate) (*ProviderSession, error)
 	DeleteUserProviderSessions(ctx context.Context, userID string) error
 
+	ListProviderSessions(ctx context.Context, filter *ProviderSessionFilter, pagination *page.Pagination) (ProviderSessions, error)
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
 }
 
 type ProviderSessionFilter struct {
+	UserID     *string `json:"userId,omitempty"`
 	Type       *string `json:"type,omitempty"`
 	Name       *string `json:"name,omitempty"`
 	ExternalID *string `json:"externalId,omitempty"`
@@ -46,12 +48,14 @@ func NewProviderSessionFilter() *ProviderSessionFilter {
 }
 
 func (p *ProviderSessionFilter) Parse(parser structure.ObjectParser) {
+	p.UserID = parser.String("userId")
 	p.Type = parser.String("type")
 	p.Name = parser.String("name")
 	p.ExternalID = parser.String("externalId")
 }
 
 func (p *ProviderSessionFilter) Validate(validator structure.Validator) {
+	validator.String("userId", p.UserID).Using(user.IDValidator)
 	validator.String("type", p.Type).OneOf(ProviderTypes()...)
 	validator.String("name", p.Name).Using(ProviderNameValidator)
 	validator.String("externalId", p.ExternalID).Using(ProviderExternalIDValidator)
@@ -59,6 +63,9 @@ func (p *ProviderSessionFilter) Validate(validator structure.Validator) {
 
 func (p *ProviderSessionFilter) MutateRequest(req *http.Request) error {
 	parameters := map[string]string{}
+	if p.UserID != nil {
+		parameters["userId"] = *p.UserID
+	}
 	if p.Type != nil {
 		parameters["type"] = *p.Type
 	}

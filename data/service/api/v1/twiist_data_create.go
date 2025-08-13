@@ -3,6 +3,7 @@ package v1
 import (
 	"fmt"
 
+	"github.com/tidepool-org/platform/auth"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/log"
@@ -37,37 +38,61 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		ctx := request.NewContextWithAuthDetails(req.Context(), request.NewAuthDetails(request.MethodServiceSecret, "", ""))
 		req.Request = dataServiceContext.Request().Clone(ctx)
 
-		filter := dataSource.NewFilter()
-		filter.ProviderType = pointer.FromAny([]string{oauthProvider.ProviderType})
-		filter.ProviderName = pointer.FromAny([]string{twiistProvider.ProviderName})
-		filter.ProviderExternalID = pointer.FromAny([]string{tidepoolLinkID})
-		filter.State = pointer.FromAny([]string{dataSource.StateConnected})
-
-		dataSources, err := dataServiceContext.DataSourceClient().ListAll(ctx, filter, nil)
+		// Find matching provider session
+		providerSessionFilter := &auth.ProviderSessionFilter{
+			Type:       pointer.FromString(oauthProvider.ProviderType),
+			Name:       pointer.FromString(twiistProvider.ProviderName),
+			ExternalID: pointer.FromString(tidepoolLinkID),
+		}
+		providerSessions, err := dataServiceContext.AuthClient().ListProviderSessions(ctx, providerSessionFilter, nil)
 		if err != nil {
-			lgr.WithError(err).Warnf("unable to fetch data source for tidepool link id %s", tidepoolLinkID)
+			lgr.WithError(err).Errorf("unable to fetch provider sessions for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithInternalServerFailure("unable to fetch provider sessions", err)
+			return
+		} else if length := len(providerSessions); length == 0 {
+			lgr.Infof("no connected provider sessions found for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
+			return
+		} else if length > 1 {
+			lgr.Warnf("multiple connected provider sessions found for tidepool link id %s", tidepoolLinkID)
+		}
+		providerSession := providerSessions[0]
+
+		// Find matching data source
+		dataSrcFilter := &dataSource.Filter{
+			ProviderSessionID: pointer.FromAny([]string{providerSession.ID}),
+		}
+		dataSrcs, err := dataServiceContext.DataSourceClient().ListAll(ctx, dataSrcFilter, nil)
+		if err != nil {
+			lgr.WithError(err).Errorf("unable to fetch data sources for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)
 			return
+		} else if length := len(dataSrcs); length == 0 {
+			lgr.Warnf("no connected data sources found for tidepool link id %s", tidepoolLinkID)
+			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
+			return
+		} else if length > 1 {
+			lgr.Warnf("multiple connected data sources found for tidepool link id %s", tidepoolLinkID)
 		}
-		if len(dataSources) == 0 {
-			lgr.WithError(err).Warnf("no connected data source found for tidepool link id %s", tidepoolLinkID)
+		dataSrc := dataSrcs[0]
+
+		// Sanity check
+		if *dataSrc.State != dataSource.StateConnected {
+			lgr.Warnf("data source with id %s is not connected for tidepool link id %s", *dataSrc.ID, tidepoolLinkID)
 			dataServiceContext.RespondWithError(ErrorTidepoolLinkIDNotFound())
 			return
 		}
 
-		var dataSetID string
-		dataSource := dataSources[0]
-		if dataSource.DataSetIDs != nil || len(*dataSource.DataSetIDs) > 0 {
-			dataSetID = (*dataSource.DataSetIDs)[len(*dataSource.DataSetIDs)-1]
-		}
-		if dataSetID == "" {
-			lgr.WithError(err).Warnf("no data sets found for tidepool link id %s", tidepoolLinkID)
-			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %s", *dataSource.ID), err)
+		// Use last data set id
+		dataSetID := dataSrc.LastDataSetID()
+		if dataSetID == nil {
+			lgr.Warnf("no data sets found for tidepool link id %q", tidepoolLinkID)
+			dataServiceContext.RespondWithInternalServerFailure(fmt.Sprintf("data set id is missing in data source %q", *dataSrc.ID))
 			return
 		}
 
 		// Inject the resolved data set id as a path parameter, so it can be used by DataSetsDataCreate
-		req.PathParams["dataSetId"] = dataSetID
+		req.PathParams["dataSetId"] = *dataSetID
 
 		datasetDataCreate(dataServiceContext)
 	}

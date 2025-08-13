@@ -72,33 +72,6 @@ func NewClient(cfg *Config, authorizeAs platform.AuthorizeAs, name string, lgr l
 	}, nil
 }
 
-func (c *Client) ListUserProviderSessions(ctx context.Context, userID string, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	}
-	if filter == nil {
-		filter = auth.NewProviderSessionFilter()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
-	providerSessions := auth.ProviderSessions{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &providerSessions); err != nil {
-		return nil, err
-	}
-
-	return providerSessions, nil
-}
-
 func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -131,6 +104,30 @@ func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) 
 
 	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func (c *Client) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if filter == nil {
+		filter = auth.NewProviderSessionFilter()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return nil, errors.Wrap(err, "filter is invalid")
+	}
+	if pagination == nil {
+		pagination = page.NewPagination()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "provider_sessions")
+	providerSessions := auth.ProviderSessions{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &providerSessions); err != nil {
+		return nil, err
+	}
+
+	return providerSessions, nil
 }
 
 func (c *Client) GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error) {
