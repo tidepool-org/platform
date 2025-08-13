@@ -170,7 +170,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
 	}
 
-	if errorCode := query.Get("error"); errorCode == oauth.ErrorAccessDenied {
+	if errorCode := query.Get("error"); prvdr.IsErrorCodeAccessDenied(errorCode) {
 		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined.String())
 		r.htmlOnRedirect(res, req, html)
 		return
@@ -260,7 +260,7 @@ func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Pro
 func (r *Router) authenticateRestrictedToken(req *http.Request, prvdr oauth.Provider, restrictedTokenID string, state string, errorCode string) (*auth.RestrictedToken, error) {
 	if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), restrictedTokenID); err != nil {
 		return nil, err
-	} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) || errorCode == oauth.ErrorAccessDenied) {
+	} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) || prvdr.IsErrorCodeAccessDenied(errorCode)) {
 		return restrictedToken, nil
 	} else {
 		return nil, nil
