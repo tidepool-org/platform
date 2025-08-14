@@ -132,7 +132,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Cont
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
-	result, err := store.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
+	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
 		userSummary, err := gs.GetSummary(sessionCtx, userId)
 		summaryType := types.GetType[PP, PB]()
 		dataTypes := types.GetDeviceDataType[PP, PB]()

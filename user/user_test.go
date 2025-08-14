@@ -25,7 +25,15 @@ var _ = Describe("User", func() {
 	})
 
 	It("Roles returns expected", func() {
-		Expect(user.Roles()).To(Equal([]string{"clinic"}))
+		Expect(user.Roles()).To(Equal([]string{
+			"brokered",
+			"care_partner",
+			"clinic",
+			"clinician",
+			"custodial_account",
+			"demo",
+			"patient",
+		}))
 	})
 
 	Context("User", func() {
@@ -120,10 +128,18 @@ var _ = Describe("User", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/roles"),
 				),
-				Entry("roles valid",
+				Entry("roles invalid value",
+					func(object map[string]interface{}, expectedDatum *user.User) {
+						object["roles"] = true
+						expectedDatum.Roles = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/roles"),
+				),
+				Entry("removes invalid roles",
 					func(object map[string]interface{}, expectedDatum *user.User) {
 						valid := user.Roles()
-						object["roles"] = valid
+						invalid := []string{"invalid"}
+						object["roles"] = append(invalid, valid...)
 						expectedDatum.Roles = pointer.FromStringArray(valid)
 					},
 				),

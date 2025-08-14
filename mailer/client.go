@@ -1,11 +1,11 @@
-package application
+package mailer
 
 import (
 	"github.com/tidepool-org/go-common/clients"
 	"github.com/tidepool-org/go-common/events"
 )
 
-func mailer() (clients.MailerClient, error) {
+func Client() (clients.MailerClient, error) {
 	config := events.NewConfig()
 	if err := config.LoadFromEnv(); err != nil {
 		return nil, err

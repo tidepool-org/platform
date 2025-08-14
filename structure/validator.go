@@ -4,6 +4,8 @@ import (
 	"cmp"
 	"regexp"
 	"time"
+
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Validatable interface {
@@ -94,6 +96,10 @@ type Int interface {
 
 type StringUsingFunc func(value string, errorReporter ErrorReporter)
 
+type StringLike interface {
+	~string
+}
+
 type String interface {
 	Exists() String
 	NotExists() String
@@ -127,6 +133,13 @@ type String interface {
 	Alphanumeric() String
 	Hexadecimal() String
 	UUID() String
+}
+
+func ValueAsString[T StringLike, PT *T](value PT) *string {
+	if value == nil {
+		return nil
+	}
+	return pointer.FromAny(string(*value))
 }
 
 type StringArrayEachFunc func(stringValidator String)
@@ -163,6 +176,18 @@ type StringArray interface {
 	EachUnique() StringArray
 
 	Using(usingFunc StringArrayUsingFunc) StringArray
+}
+
+func ValuesAsStringArray[T StringLike](values []T) []string {
+	if values == nil {
+		return nil
+	}
+
+	result := make([]string, len(values))
+	for i, v := range values {
+		result[i] = string(v)
+	}
+	return result
 }
 
 type TimeUsingFunc func(value time.Time, errorReporter ErrorReporter)
