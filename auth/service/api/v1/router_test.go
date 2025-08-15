@@ -89,7 +89,7 @@ var _ = Describe("Router", func() {
 				})
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 					res = testRest.NewResponseWriter()
 					res.HeaderOutput = &http.Header{}
 					req = testRest.NewRequest()
@@ -170,7 +170,7 @@ var _ = Describe("Router", func() {
 							var otherProfile *user.LegacyUserProfile
 							var otherDetails *user.User
 							BeforeEach(func() {
-								otherPersonID = userTest.RandomID()
+								otherPersonID = userTest.RandomUserID()
 								req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
 								otherProfile = &user.LegacyUserProfile{
 									Patient: &user.LegacyPatientProfile{
@@ -278,7 +278,7 @@ var _ = Describe("Router", func() {
 							Expect(json.Marshal(updatedProfile)).To(MatchJSON(res.WriteInputs[0]))
 						})
 						It("fails to update another person's profile that the user does not have custodian access to", func() {
-							otherPersonID := userTest.RandomID()
+							otherPersonID := userTest.RandomUserID()
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
 							permsClient.EXPECT().
 								HasCustodianPermissions(gomock.Any(), userID, gomock.Not(userID)).

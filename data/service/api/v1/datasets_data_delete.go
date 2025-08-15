@@ -19,7 +19,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
@@ -63,7 +63,7 @@ func DataSetsDataDelete(dataServiceContext dataService.Context) {
 	} else if deduplicator == nil {
 		dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 		return
-	} else if err = deduplicator.DeleteData(ctx, dataServiceContext.DataRepository(), dataSet, selectors); err != nil {
+	} else if err = deduplicator.DeleteData(ctx, dataSet, selectors); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to delete data", err)
 		return
 	}

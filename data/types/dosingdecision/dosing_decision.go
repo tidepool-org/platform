@@ -27,7 +27,7 @@ type DosingDecision struct {
 	InsulinOnBoard             *InsulinOnBoard                                     `json:"insulinOnBoard,omitempty" bson:"insulinOnBoard,omitempty"`
 	BloodGlucoseTargetSchedule *dataTypesSettingsPump.BloodGlucoseTargetStartArray `json:"bgTargetSchedule,omitempty" bson:"bgTargetSchedule,omitempty"`
 	HistoricalBloodGlucose     *BloodGlucoseArray                                  `json:"bgHistorical,omitempty" bson:"bgHistorical,omitempty"`
-	ForecastBloodGlucose       *BloodGlucoseArray                                  `json:"bgForecast,omitempty" bson:"bgForecast,omitempty"`
+	ForecastBloodGlucose       *ForecastBloodGlucoseArray                          `json:"bgForecast,omitempty" bson:"bgForecast,omitempty"`
 	RecommendedBasal           *RecommendedBasal                                   `json:"recommendedBasal,omitempty" bson:"recommendedBasal,omitempty"`
 	RecommendedBolus           *Bolus                                              `json:"recommendedBolus,omitempty" bson:"recommendedBolus,omitempty"`
 	RequestedBolus             *Bolus                                              `json:"requestedBolus,omitempty" bson:"requestedBolus,omitempty"`
@@ -58,7 +58,7 @@ func (d *DosingDecision) Parse(parser structure.ObjectParser) {
 	d.InsulinOnBoard = ParseInsulinOnBoard(parser.WithReferenceObjectParser("insulinOnBoard"))
 	d.BloodGlucoseTargetSchedule = dataTypesSettingsPump.ParseBloodGlucoseTargetStartArray(parser.WithReferenceArrayParser("bgTargetSchedule"))
 	d.HistoricalBloodGlucose = ParseBloodGlucoseArray(parser.WithReferenceArrayParser("bgHistorical"))
-	d.ForecastBloodGlucose = ParseBloodGlucoseArray(parser.WithReferenceArrayParser("bgForecast"))
+	d.ForecastBloodGlucose = ParseForecastBloodGlucoseArray(parser.WithReferenceArrayParser("bgForecast"))
 	d.RecommendedBasal = ParseRecommendedBasal(parser.WithReferenceObjectParser("recommendedBasal"))
 	d.RecommendedBolus = ParseBolus(parser.WithReferenceObjectParser("recommendedBolus"))
 	d.RequestedBolus = ParseBolus(parser.WithReferenceObjectParser("requestedBolus"))

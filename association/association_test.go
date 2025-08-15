@@ -67,7 +67,7 @@ var _ = Describe("Association", func() {
 			),
 			Entry("all",
 				func(datum *association.Association) {
-					datum.ID = pointer.FromString(dataTest.RandomID())
+					datum.ID = pointer.FromString(dataTest.RandomDatumID())
 					datum.Reason = pointer.FromString(associationTest.RandomReason())
 					datum.Type = pointer.FromString(associationTest.RandomType())
 					datum.URL = pointer.FromString(testHttp.NewURLString())
@@ -160,7 +160,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type missing; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/type"),
@@ -191,7 +191,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type blob; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = nil
 					},
@@ -222,7 +222,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
@@ -253,7 +253,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type image; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = nil
 					},
@@ -283,7 +283,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type url; id valid",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("url")
 						datum.URL = pointer.FromString(testHttp.NewURLString())
 					},
@@ -317,21 +317,21 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type blob",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = nil
 					},
 				),
 				Entry("type datum",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
 				),
 				Entry("type image",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = nil
 					},
@@ -373,14 +373,14 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type blob; url missing",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = nil
 					},
 				),
 				Entry("type blob; url empty",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = pointer.FromString("")
 					},
@@ -388,7 +388,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type blob; url length in range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
@@ -396,7 +396,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type blob; url length out of range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("blob")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
@@ -404,14 +404,14 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum; url missing",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = nil
 					},
 				),
 				Entry("type datum; url empty",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString("")
 					},
@@ -419,7 +419,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum; url length in range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
@@ -427,7 +427,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type datum; url length out of range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("datum")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},
@@ -435,14 +435,14 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type image; url missing",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = nil
 					},
 				),
 				Entry("type image; url empty",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = pointer.FromString("")
 					},
@@ -450,7 +450,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type image; url length in range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2047))
 					},
@@ -458,7 +458,7 @@ var _ = Describe("Association", func() {
 				),
 				Entry("type image; url length out of range (upper)",
 					func(datum *association.Association) {
-						datum.ID = pointer.FromString(dataTest.RandomID())
+						datum.ID = pointer.FromString(dataTest.RandomDatumID())
 						datum.Type = pointer.FromString("image")
 						datum.URL = pointer.FromString(strings.Repeat("x", 2048))
 					},

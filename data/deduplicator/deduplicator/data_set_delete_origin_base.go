@@ -4,57 +4,53 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/errors"
 )
 
-type DataSetDeleteOriginProvider interface {
-	FilterData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) (data.Data, error)
+type DataSetDeleteOriginDataFilter interface {
+	FilterData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) (data.Data, error)
 	GetDataSelectors(datum data.Data) *data.Selectors
+}
+
+type DataSetDeleteOriginDependencies struct {
+	Dependencies
+	DataFilter DataSetDeleteOriginDataFilter
+}
+
+func (d DataSetDeleteOriginDependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return err
+	}
+	if d.DataFilter == nil {
+		return errors.New("data filter is missing")
+	}
+	return nil
 }
 
 type DataSetDeleteOriginBase struct {
 	*Base
-	provider DataSetDeleteOriginProvider
+	DataFilter DataSetDeleteOriginDataFilter
 }
 
-func NewDataSetDeleteOriginBase(name string, version string, provider DataSetDeleteOriginProvider) (*DataSetDeleteOriginBase, error) {
-	base, err := NewBase(name, version)
+func NewDataSetDeleteOriginBase(dependencies DataSetDeleteOriginDependencies, name string, version string) (*DataSetDeleteOriginBase, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
+	}
+
+	base, err := NewBase(dependencies.Dependencies, name, version)
 	if err != nil {
 		return nil, err
 	}
 
 	return &DataSetDeleteOriginBase{
-		Base:     base,
-		provider: provider,
+		Base:       base,
+		DataFilter: dependencies.DataFilter,
 	}, nil
 }
 
-func (d *DataSetDeleteOriginBase) Open(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) (*dataTypesUpload.Upload, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if repository == nil {
-		return nil, errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return nil, errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSet.SetActive(true)
-	}
-
-	return d.Base.Open(ctx, repository, dataSet)
-}
-
-func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -63,34 +59,27 @@ func (d *DataSetDeleteOriginBase) AddData(ctx context.Context, repository dataSt
 		return errors.New("data set data is missing")
 	}
 
-	if dataSet.HasDataSetTypeContinuous() {
-		dataSetData.SetActive(true)
-	}
-
 	var err error
-	if dataSetData, err = d.provider.FilterData(ctx, repository, dataSet, dataSetData); err != nil {
+	if dataSetData, err = d.DataFilter.FilterData(ctx, dataSet, dataSetData); err != nil {
 		return err
 	}
 
-	if selectors := d.provider.GetDataSelectors(dataSetData); selectors != nil {
-		if err := repository.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
+	if selectors := d.DataFilter.GetDataSelectors(dataSetData); selectors != nil {
+		if err := d.DataStore.DeleteDataSetData(ctx, dataSet, selectors); err != nil {
 			return err
 		}
-		if err := d.Base.AddData(ctx, repository, dataSet, dataSetData); err != nil {
+		if err := d.Base.AddData(ctx, dataSet, dataSetData); err != nil {
 			return err
 		}
-		return repository.DestroyDeletedDataSetData(ctx, dataSet, selectors)
+		return d.DataStore.DestroyDeletedDataSetData(ctx, dataSet, selectors)
 	}
 
-	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
+	return d.Base.AddData(ctx, dataSet, dataSetData)
 }
 
-func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, selectors *data.Selectors) error {
+func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -99,23 +88,5 @@ func (d *DataSetDeleteOriginBase) DeleteData(ctx context.Context, repository dat
 		return errors.New("selectors is missing")
 	}
 
-	return repository.ArchiveDataSetData(ctx, dataSet, selectors)
-}
-
-func (d *DataSetDeleteOriginBase) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
-	}
-	if dataSet == nil {
-		return errors.New("data set is missing")
-	}
-
-	if dataSet.HasDataSetTypeContinuous() {
-		return nil
-	}
-
-	return d.Base.Close(ctx, repository, dataSet)
+	return d.DataStore.ArchiveDataSetData(ctx, dataSet, selectors)
 }

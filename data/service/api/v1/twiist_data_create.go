@@ -3,10 +3,10 @@ package v1
 import (
 	"fmt"
 
-	"github.com/tidepool-org/platform/log"
-
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/source"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/log"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
@@ -26,8 +26,8 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 
 		// Authorize the service account
 		authDetails := request.GetAuthDetails(req.Context())
-		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsAuthorized(authDetails.UserID()) {
-			lgr.Debugf("the subject is not authorized twiist service account")
+		if !authDetails.IsService() && !dataServiceContext.TwiistServiceAccountAuthorizer().IsServiceAccountAuthorized(authDetails.UserID()) {
+			lgr.Debug("the subject is not authorized twiist service account")
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
 		}
@@ -37,12 +37,13 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 		ctx := request.NewContextWithAuthDetails(req.Context(), request.NewAuthDetails(request.MethodServiceSecret, "", ""))
 		req.Request = dataServiceContext.Request().Clone(ctx)
 
-		filter := source.NewFilter()
+		filter := dataSource.NewFilter()
+		filter.ProviderType = pointer.FromAny([]string{oauthProvider.ProviderType})
 		filter.ProviderName = pointer.FromAny([]string{twiistProvider.ProviderName})
 		filter.ProviderExternalID = pointer.FromAny([]string{tidepoolLinkID})
-		filter.State = pointer.FromAny([]string{source.StateConnected})
+		filter.State = pointer.FromAny([]string{dataSource.StateConnected})
 
-		dataSources, err := dataServiceContext.DataSourceClient().List(ctx, filter, nil)
+		dataSources, err := dataServiceContext.DataSourceClient().ListAll(ctx, filter, nil)
 		if err != nil {
 			lgr.WithError(err).Warnf("unable to fetch data source for tidepool link id %s", tidepoolLinkID)
 			dataServiceContext.RespondWithInternalServerFailure("unable to fetch data sources", err)

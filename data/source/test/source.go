@@ -18,6 +18,10 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
+func RandomDataSourceID() string {
+	return dataSource.NewID()
+}
+
 func RandomState() string {
 	return test.RandomStringFromArray(dataSource.States())
 }
@@ -60,14 +64,9 @@ func NewObjectFromFilter(datum *dataSource.Filter, objectFormat test.ObjectForma
 }
 
 func RandomCreate() *dataSource.Create {
-	state := RandomState()
 	datum := &dataSource.Create{}
 	datum.ProviderType = pointer.FromString(authTest.RandomProviderType())
 	datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
-	switch state {
-	case dataSource.StateConnected, dataSource.StateError:
-		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-	}
 	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 	datum.Metadata = metadataTest.RandomMetadataMap()
 	return datum
@@ -83,9 +82,6 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	}
 	if datum.ProviderName != nil {
 		object["providerName"] = test.NewObjectFromString(*datum.ProviderName, objectFormat)
-	}
-	if datum.ProviderSessionID != nil {
-		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
 	}
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
@@ -107,8 +103,8 @@ func RandomUpdate() *dataSource.Update {
 	datum.State = pointer.FromString(state)
 	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.Error = errorsTest.RandomSerializable()
-	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomDataSetIDs())
+	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
 	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
 	return datum
@@ -186,8 +182,8 @@ func MatchUpdate(datum *dataSource.Update) gomegaTypes.GomegaMatcher {
 func RandomSource() *dataSource.Source {
 	state := RandomState()
 	datum := &dataSource.Source{}
-	datum.ID = pointer.FromString(RandomID())
-	datum.UserID = pointer.FromString(userTest.RandomID())
+	datum.ID = pointer.FromString(RandomDataSourceID())
+	datum.UserID = pointer.FromString(userTest.RandomUserID())
 	datum.ProviderType = pointer.FromString(authTest.RandomProviderType())
 	datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
 	switch state {
@@ -198,11 +194,11 @@ func RandomSource() *dataSource.Source {
 	datum.State = pointer.FromString(state)
 	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.Error = errorsTest.RandomSerializable()
-	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomDataSetIDs())
+	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
 	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()))
+	datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
 	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
 	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
 	return datum
@@ -337,8 +333,4 @@ func MatchSourceArray(datum dataSource.SourceArray) gomegaTypes.GomegaMatcher {
 		matchers = append(matchers, MatchSource(d))
 	}
 	return test.MatchArray(matchers)
-}
-
-func RandomID() string {
-	return dataSource.NewID()
 }

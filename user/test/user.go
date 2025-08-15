@@ -13,16 +13,20 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
+func RandomUserID() string {
+	return user.NewID()
+}
+
 func RandomPassword() string {
 	return test.RandomString()
 }
 
 func RandomUser() *user.User {
 	datum := &user.User{}
-	datum.UserID = pointer.FromString(RandomID())
+	datum.UserID = pointer.FromString(RandomUserID())
 	datum.Username = pointer.FromString(RandomUsername())
 	datum.EmailVerified = pointer.FromBool(test.RandomBool())
-	datum.TermsAccepted = pointer.FromString(test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now()).Format(time.RFC3339Nano))
+	datum.TermsAccepted = pointer.FromString(test.RandomTimeBeforeNow().Format(time.RFC3339Nano))
 	datum.Roles = nil
 	return datum
 }
@@ -106,8 +110,4 @@ func MatchUserArray(datum user.UserArray) gomegaTypes.GomegaMatcher {
 		matchers = append(matchers, MatchUser(d))
 	}
 	return test.MatchArray(matchers)
-}
-
-func RandomID() string {
-	return user.NewID()
 }

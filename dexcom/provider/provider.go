@@ -3,15 +3,14 @@ package provider
 import (
 	"context"
 
-	"github.com/tidepool-org/platform/oauth"
-
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
-	"github.com/tidepool-org/platform/dexcom/fetch"
+	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/oauth"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
@@ -25,7 +24,7 @@ type Provider struct {
 	taskClient       task.Client
 }
 
-// Compile time check for making sure Provider{} is a valid oauth.Provider
+// Compile time check for making sure Provider is a valid oauth.Provider
 var _ oauth.Provider = &Provider{}
 
 func New(configReporter config.Reporter, dataSourceClient dataSource.Client, taskClient task.Client) (*Provider, error) {
@@ -39,7 +38,7 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.New("task client is missing")
 	}
 
-	prvdr, err := oauthProvider.NewProvider(ProviderName, configReporter.WithScopes(ProviderName), nil)
+	prvdr, err := oauthProvider.New(ProviderName, configReporter.WithScopes(ProviderName), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -51,21 +50,17 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 	}, nil
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
-	if userID == "" {
-		return errors.New("user id is missing")
-	}
+func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	if providerSession == nil {
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "type": p.Type(), "name": p.Name()})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
 	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
-	filter.UserID = pointer.FromString(userID)
-	sources, err := p.dataSourceClient.List(ctx, filter, nil)
+	sources, err := p.dataSourceClient.List(ctx, providerSession.UserID, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
 	}
@@ -96,13 +91,13 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 		create.ProviderType = pointer.FromString(p.Type())
 		create.ProviderName = pointer.FromString(p.Name())
 
-		source, err = p.dataSourceClient.Create(ctx, userID, create)
+		source, err = p.dataSourceClient.Create(ctx, providerSession.UserID, create)
 		if err != nil {
 			return errors.Wrap(err, "unable to create data source")
 		}
 	}
 
-	taskCreate, err := fetch.NewTaskCreate(providerSession.ID, *source.ID)
+	taskCreate, err := dexcomFetch.NewTaskCreate(providerSession.ID, *source.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task create")
 	}
@@ -129,18 +124,15 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 	return nil
 }
 
-func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
-	if userID == "" {
-		return errors.New("user id is missing")
-	}
+func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
 	if providerSession == nil {
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "providerSessionId": providerSession.ID})
+	logger := log.LoggerFromContext(ctx)
 
 	taskFilter := task.NewTaskFilter()
-	taskFilter.Name = pointer.FromString(fetch.TaskName(providerSession.ID))
+	taskFilter.Name = pointer.FromString(dexcomFetch.TaskName(providerSession.ID))
 	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
 		logger.WithError(err).Error("unable to list tasks while deleting provider session")

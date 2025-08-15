@@ -20,14 +20,17 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/request"
-	"github.com/tidepool-org/platform/service/api"
+	serviceApi "github.com/tidepool-org/platform/service/api"
+	"github.com/tidepool-org/platform/user"
 )
 
 func (r *Router) OAuthRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/oauth/:name/authorize", r.OAuthProviderAuthorizeGet),
-		rest.Delete("/v1/oauth/:name/authorize", api.RequireUser(r.OAuthProviderAuthorizeDelete)),
+		rest.Delete("/v1/oauth/:name/authorize", serviceApi.RequireUser(r.OAuthProviderAuthorizeDelete)),
 		rest.Get("/v1/oauth/:name/redirect", r.OAuthProviderRedirectGet),
+
+		rest.Delete("/v1/users/:userId/oauth/:name/authorize", serviceApi.RequireServer(r.UserOAuthProviderAuthorizeDelete)),
 	}
 }
 
@@ -53,42 +56,54 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 		return
 	}
 
-	maxAge := restrictedToken.ExpirationTime.Sub(time.Now()) / time.Second
+	maxAge := time.Until(restrictedToken.ExpirationTime) / time.Second
 	if maxAge <= 0 {
 		r.htmlOnError(res, req, request.ErrorUnauthenticated())
 		return
 	}
 
-	responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
+	if prvdr.UseCookie() {
+		responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
+	}
+
 	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(details.Token())))
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
+	req.PathParams["userId"] = request.GetAuthDetails(req.Context()).UserID()
+	r.UserOAuthProviderAuthorizeDelete(res, req)
+}
+
+func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.GetAuthDetails(ctx)
+
+	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
+	if err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
 
 	prvdr, err := r.oauthProvider(req)
 	if err != nil {
 		responder.Error(request.StatusCodeForError(err), err)
 		return
-	}
-	if !prvdr.SupportsUserInitiatedAccountUnlinking() {
-		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking is not supported"))
+	} else if !prvdr.SupportsUserInitiatedAccountUnlinking() {
+		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking not supported"))
 		return
 	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()
 	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
 	providerSessionFilter.Name = pointer.FromString(prvdr.Name())
-	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, details.UserID(), providerSessionFilter, page.NewPagination())
+	providerSessions, err := r.AuthClient().ListUserProviderSessions(ctx, userID, providerSessionFilter, page.NewPagination())
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
 	if len(providerSessions) > 1 {
-		r.Logger().WithFields(log.Fields{"userId": details.UserID(), "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
+		r.Logger().WithFields(log.Fields{"userId": userID, "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
 	}
 
 	for _, providerSession := range providerSessions {
@@ -146,7 +161,9 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
 
-	responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
+	if prvdr.UseCookie() {
+		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
+	}
 
 	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
@@ -201,9 +218,9 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 }
 
 func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
-	name := req.PathParams["name"]
-	if name == "" {
-		return nil, request.ErrorParameterMissing("name")
+	name, err := request.DecodeRequestPathParameter(req, "name", nil)
+	if err != nil {
+		return nil, err
 	}
 
 	prvdr, err := r.ProviderFactory().Get(auth.ProviderTypeOAuth, name)
@@ -221,17 +238,31 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
 	state := req.URL.Query().Get("state")
 	errorCode := req.URL.Query().Get("error")
-	cookieName := r.providerCookieName(prvdr)
-	for _, cookie := range req.Cookies() {
-		if cookie.Name == cookieName {
-			if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), cookie.Value); err != nil {
-				return nil, err
-			} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (errorCode == oauth.ErrorAccessDenied || state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)) {
-				return restrictedToken, nil
+	if prvdr.UseCookie() {
+		cookieName := r.providerCookieName(prvdr)
+		for _, cookie := range req.Cookies() {
+			if cookie.Name == cookieName {
+				if restrictedToken, err := r.authenticateRestrictedToken(req, prvdr, cookie.Value, state, errorCode); err != nil || restrictedToken != nil {
+					return restrictedToken, err
+				}
 			}
+		}
+	} else {
+		if restrictedToken, err := r.authenticateRestrictedToken(req, prvdr, state, state, errorCode); err != nil || restrictedToken != nil {
+			return restrictedToken, err
 		}
 	}
 	return nil, request.ErrorUnauthenticated()
+}
+
+func (r *Router) authenticateRestrictedToken(req *http.Request, prvdr oauth.Provider, restrictedTokenID string, state string, errorCode string) (*auth.RestrictedToken, error) {
+	if restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), restrictedTokenID); err != nil {
+		return nil, err
+	} else if restrictedToken != nil && restrictedToken.Authenticates(req) && (state == prvdr.CalculateStateForRestrictedToken(restrictedToken.ID) || errorCode == oauth.ErrorAccessDenied) {
+		return restrictedToken, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (r *Router) htmlOnRedirect(res rest.ResponseWriter, req *rest.Request, html string) {

@@ -91,7 +91,7 @@ var _ = Describe("Buckets", Label("mongodb", "slow", "integration"), func() {
 			conStore = dataStoreSummary.NewBuckets[*types.ContinuousBucket](bucketsRepository, types.SummaryTypeContinuous)
 			Expect(conStore).ToNot(BeNil())
 
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 			bucketTime = time.Now().UTC().Truncate(time.Hour)
 		})
 
@@ -139,6 +139,54 @@ var _ = Describe("Buckets", Label("mongodb", "slow", "integration"), func() {
 				Expect(len(r)).To(Equal(2))
 				Expect(r).To(HaveKey(bucketTime.Truncate(time.Millisecond)))
 				Expect(r).To(HaveKey(bucketTime.Add(-time.Hour * 24).Truncate(time.Millisecond)))
+			})
+		})
+
+		When("two buckets are in range, and two are out of range", func() {
+			BeforeEach(func() {
+				buckets := []types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{
+					// A bucket that's too old by 1s
+					{BaseBucket: types.BaseBucket{
+						UserId: userId,
+						Type:   types.SummaryTypeContinuous,
+						Time:   bucketTime.Add(-(time.Hour*24 + time.Second)),
+					}},
+					// A bucket that's right on the lower edge
+					{BaseBucket: types.BaseBucket{
+						UserId: userId,
+						Type:   types.SummaryTypeContinuous,
+						Time:   bucketTime.Add(-time.Hour * 24),
+					}},
+					// A bucket that's right on the upper edge
+					{BaseBucket: types.BaseBucket{
+						UserId: userId,
+						Type:   types.SummaryTypeContinuous,
+						Time:   bucketTime,
+					}},
+					// A bucket that's too new by 1s
+					{BaseBucket: types.BaseBucket{
+						UserId: userId,
+						Type:   types.SummaryTypeContinuous,
+						Time:   bucketTime.Add(time.Second),
+					}},
+				}
+				opts := options.BulkWrite().SetOrdered(false)
+				_, err := bucketsRepository.BulkWrite(ctx, SliceToInsertWriteModel(buckets), opts)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			Context("GetBucketsRange", func() {
+				It("includes only the two in-time-range buckets", func() {
+					startTime := bucketTime.Add(-24 * time.Hour)
+					cursor, err := conStore.GetBucketsRange(ctx, userId, &startTime, &bucketTime)
+					Expect(err).To(Succeed())
+
+					conBuckets := []types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
+					Expect(cursor.All(context.Background(), &conBuckets)).To(Succeed())
+					Expect(len(conBuckets)).To(Equal(2))
+					Expect(conBuckets[0].Time).To(Equal(bucketTime))
+					Expect(conBuckets[1].Time).To(Equal(bucketTime.Add(-24 * time.Hour)))
+				})
 			})
 		})
 	})

@@ -44,7 +44,7 @@ func NewReservoirChangeWithStatus() *reservoirchange.ReservoirChange {
 
 func NewReservoirChangeWithStatusID() *reservoirchange.ReservoirChange {
 	datum := NewReservoirChange()
-	datum.StatusID = pointer.FromString(dataTest.RandomID())
+	datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
 	return datum
 }
 
@@ -148,12 +148,14 @@ var _ = Describe("Change", func() {
 					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
+					func(datum *reservoirchange.ReservoirChange) {
+						datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
+					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {
-						datum.StatusID = pointer.FromString(dataTest.RandomID())
+						datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -186,7 +188,9 @@ var _ = Describe("Change", func() {
 					errorsTest.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *reservoirchange.ReservoirChange) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
+					func(datum *reservoirchange.ReservoirChange) {
+						datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
+					},
 				),
 				Entry("multiple errors",
 					func(datum *reservoirchange.ReservoirChange) {

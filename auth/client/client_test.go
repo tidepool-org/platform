@@ -279,14 +279,20 @@ var _ = Describe("Client", func() {
 							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
 							VerifyBody(nil),
 							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
+						CombineHandlers(
+							VerifyRequest("POST", "/auth/serverlogin"),
+							VerifyHeaderKV("X-Tidepool-Server-Name", name),
+							VerifyHeaderKV("X-Tidepool-Server-Secret", serverTokenSecret),
+							VerifyBody(nil),
+							RespondWith(http.StatusOK, nil, http.Header{"X-Tidepool-Session-Token": []string{serverToken}})),
 					)
 				})
 
-				It("returns nil and only invokes server login thrice", func() {
+				It("returns nil and invokes server login three or more times (depending upon exact timing)", func() {
 					Expect(client.Start()).To(Succeed())
-					Eventually(func() []*http.Request {
-						return server.ReceivedRequests()
-					}, 10, 1).Should(HaveLen(3))
+					Eventually(func() int {
+						return len(server.ReceivedRequests())
+					}, 10, 1).Should(BeNumerically(">=", 3))
 				})
 			})
 
@@ -391,7 +397,7 @@ var _ = Describe("Client", func() {
 					})
 				})
 
-				Context("with a successful response, but not parseable", func() {
+				Context("with a successful response, but not parsable", func() {
 					BeforeEach(func() {
 						server.AppendHandlers(
 							CombineHandlers(

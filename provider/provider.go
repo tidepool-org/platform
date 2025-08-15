@@ -14,7 +14,6 @@ type Provider interface {
 	Type() string
 	Name() string
 
-	BeforeCreate(ctx context.Context, userID string, providerSession *auth.ProviderSessionCreate) error
-	OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error
-	OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error
+	OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error
+	OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error
 }

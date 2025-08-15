@@ -20,7 +20,7 @@ var _ = Describe("Provider", func() {
 
 	BeforeEach(func() {
 		application.VersionBase = netTest.RandomSemanticVersion()
-		application.VersionFullCommit = test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexidecimalLowercase)
+		application.VersionFullCommit = test.RandomStringFromRangeAndCharset(40, 40, test.CharsetHexadecimalLowercase)
 		application.VersionShortCommit = application.VersionFullCommit[0:8]
 		prefix = test.RandomStringFromRangeAndCharset(4, 8, test.CharsetUppercase)
 		name = test.RandomStringFromRangeAndCharset(4, 8, test.CharsetAlphaNumeric)

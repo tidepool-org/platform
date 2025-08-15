@@ -38,6 +38,7 @@ func (b *BloodGlucose) Parse(parser structure.ObjectParser) {
 }
 
 func (b *BloodGlucose) Validate(validator structure.Validator, units *string) {
+	validator.Time("time", b.Time).Exists()
 	validator.Float64("value", b.Value).Exists().InRange(dataBloodGlucose.ValueRangeForUnits(units))
 }
 

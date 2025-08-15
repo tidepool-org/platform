@@ -1,6 +1,15 @@
 package twiist
 
-const DataSetClientName = "com.sequelmedtech.tidepool-service"
-const DataSetClientVersion = "3.0.0"
+import (
+	"github.com/tidepool-org/platform/data"
+)
 
-var DeviceManufacturers = []string{"Sequel"}
+const (
+	DataSetClientName    = "com.sequelmedtech.tidepool-service"
+	DataSetClientVersion = "3.0.0"
+)
+
+var (
+	DeviceManufacturers = []string{"Sequel"}
+	DeviceTags          = []string{data.DeviceTagBGM, data.DeviceTagCGM, data.DeviceTagInsulinPump}
+)

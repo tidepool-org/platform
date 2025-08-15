@@ -4,8 +4,7 @@ import (
 	"context"
 
 	"github.com/tidepool-org/platform/data"
-	dataStore "github.com/tidepool-org/platform/data/store"
-	dataTypesUpload "github.com/tidepool-org/platform/data/types/upload"
+	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -22,8 +21,8 @@ type DeviceDeactivateHash struct {
 	*Base
 }
 
-func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
-	base, err := NewBase(DeviceDeactivateHashName, "1.1.0")
+func NewDeviceDeactivateHash(dependencies Dependencies) (*DeviceDeactivateHash, error) {
+	base, err := NewBase(dependencies, DeviceDeactivateHashName, "1.1.0")
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +32,7 @@ func NewDeviceDeactivateHash() (*DeviceDeactivateHash, error) {
 	}, nil
 }
 
-func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if dataSet == nil {
 		return false, errors.New("data set is missing")
 	}
@@ -66,7 +65,7 @@ func (d *DeviceDeactivateHash) New(ctx context.Context, dataSet *dataTypesUpload
 	return false, nil
 }
 
-func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload.Upload) (bool, error) {
+func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *data.DataSet) (bool, error) {
 	if found, err := d.Base.Get(ctx, dataSet); err != nil || found {
 		return found, err
 	}
@@ -74,12 +73,9 @@ func (d *DeviceDeactivateHash) Get(ctx context.Context, dataSet *dataTypesUpload
 	return dataSet.HasDeduplicatorNameMatch("org.tidepool.hash-deactivate-old"), nil // TODO: DEPRECATED
 }
 
-func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload, dataSetData data.Data) error {
+func (d *DeviceDeactivateHash) AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
@@ -88,45 +84,39 @@ func (d *DeviceDeactivateHash) AddData(ctx context.Context, repository dataStore
 		return errors.New("data set data is missing")
 	}
 
-	if err := AssignDataSetDataIdentityHashes(dataSetData); err != nil {
+	if err := AssignDataSetDataIdentityHashes(dataSetData, dataTypes.IdentityFieldsVersionDeviceID); err != nil {
 		return err
 	}
 
-	return d.Base.AddData(ctx, repository, dataSet, dataSetData)
+	return d.Base.AddData(ctx, dataSet, dataSetData)
 }
 
-func (d *DeviceDeactivateHash) Close(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Close(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := repository.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := d.DataStore.ArchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Close(ctx, repository, dataSet)
+	return d.Base.Close(ctx, dataSet)
 }
 
-func (d *DeviceDeactivateHash) Delete(ctx context.Context, repository dataStore.DataRepository, dataSet *dataTypesUpload.Upload) error {
+func (d *DeviceDeactivateHash) Delete(ctx context.Context, dataSet *data.DataSet) error {
 	if ctx == nil {
 		return errors.New("context is missing")
-	}
-	if repository == nil {
-		return errors.New("repository is missing")
 	}
 	if dataSet == nil {
 		return errors.New("data set is missing")
 	}
 
-	if err := repository.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
+	if err := d.DataStore.UnarchiveDeviceDataUsingHashesFromDataSet(ctx, dataSet); err != nil {
 		return err
 	}
 
-	return d.Base.Delete(ctx, repository, dataSet)
+	return d.Base.Delete(ctx, dataSet)
 }

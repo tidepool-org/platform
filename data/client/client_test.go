@@ -89,7 +89,7 @@ var _ = Describe("Client", func() {
 			var userID string
 
 			BeforeEach(func() {
-				userID = userTest.RandomID()
+				userID = userTest.RandomUserID()
 			})
 
 			It("returns error if context is missing", func() {
@@ -181,14 +181,14 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("SerializableDataErrorResponseParser", func() {
-		It("returns nil if response body is not parseable", func() {
+		It("returns nil if response body is not parsable", func() {
 			serializableErrorResponseParser := dataClient.NewSerializableDataErrorResponseParser()
 			err := serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader([]byte("NOT JSON")))}, testHttp.NewRequest())
 			Expect(err).To(BeNil())
 		})
 
-		It("returns deserialized error if response body is parseable", func() {
-			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+		It("returns deserialized error if response body is parsable", func() {
+			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 			body, err := json.Marshal(map[string]any{"errors": errors.Serializable{Error: responseErr}})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(body).ToNot(BeNil())

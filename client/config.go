@@ -33,6 +33,12 @@ func (c *Config) Load(loader ConfigLoader) error {
 	return loader.Load(c)
 }
 
+func (c *Config) LoadFromConfigReporter(reporter config.Reporter) error {
+	c.Address = reporter.GetWithDefault("address", c.Address)
+	c.UserAgent = reporter.GetWithDefault("user_agent", c.UserAgent)
+	return nil
+}
+
 func (c *Config) Validate() error {
 	if c.Address == "" {
 		return errors.New("address is missing")

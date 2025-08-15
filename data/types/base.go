@@ -17,17 +17,15 @@ import (
 )
 
 const (
-	ClockDriftOffsetMaximum = 24 * 60 * 60 * 1000  // TODO: Fix! Limit to reasonable values
-	ClockDriftOffsetMinimum = -24 * 60 * 60 * 1000 // TODO: Fix! Limit to reasonable values
-	DeviceTimeFormat        = "2006-01-02T15:04:05"
-	NoteLengthMaximum       = 1000
-	NotesLengthMaximum      = 100
-	TagLengthMaximum        = 100
-	TagsLengthMaximum       = 100
-	TimeFormat              = time.RFC3339Nano
-	TimeZoneOffsetMaximum   = 7 * 24 * 60  // TODO: Fix! Limit to reasonable values
-	TimeZoneOffsetMinimum   = -7 * 24 * 60 // TODO: Fix! Limit to reasonable values
-	VersionInternalMinimum  = 0
+	DeviceTimeFormat   = "2006-01-02T15:04:05"
+	NoteLengthMaximum  = 1000
+	NotesLengthMaximum = 100
+	TagLengthMaximum   = 100
+	TagsLengthMaximum  = 100
+	TimeFormat         = time.RFC3339Nano
+
+	IdentityFieldsVersionDeviceID  = "device-id"
+	IdentityFieldsVersionDataSetID = "data-set-id"
 )
 
 type Base struct {
@@ -133,7 +131,7 @@ func (b *Base) Validate(validator structure.Validator) {
 		}
 	}
 
-	validator.Int("clockDriftOffset", b.ClockDriftOffset).InRange(ClockDriftOffsetMinimum, ClockDriftOffsetMaximum)
+	validator.Int("clockDriftOffset", b.ClockDriftOffset).InRange(data.ClockDriftOffsetMinimum, data.ClockDriftOffsetMaximum)
 
 	if validator.Origin() <= structure.OriginInternal {
 		if b.CreatedTime != nil {
@@ -203,13 +201,10 @@ func (b *Base) Validate(validator structure.Validator) {
 		stringValidator.Exists().NotEmpty().LengthLessThanOrEqualTo(TagLengthMaximum)
 	}).EachUnique()
 
-	timeValidator := validator.Time("time", b.Time)
-	if b.Type != "upload" { // HACK: Need to replace upload.Upload with data.DataSet
-		timeValidator.Exists().NotZero()
-	}
+	validator.Time("time", b.Time).Exists().NotZero()
 
 	validator.String("timezone", b.TimeZoneName).Using(timeZone.NameValidator)
-	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(TimeZoneOffsetMinimum, TimeZoneOffsetMaximum)
+	validator.Int("timezoneOffset", b.TimeZoneOffset).InRange(data.TimeZoneOffsetMinimum, data.TimeZoneOffsetMaximum)
 	validator.String("type", &b.Type).Exists().NotEmpty()
 
 	if validator.Origin() <= structure.OriginInternal {
@@ -217,15 +212,11 @@ func (b *Base) Validate(validator structure.Validator) {
 	}
 	if validator.Origin() <= structure.OriginStore {
 		validator.String("_userId", b.UserID).Exists().Using(user.IDValidator)
-		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(VersionInternalMinimum)
+		validator.Int("_version", &b.VersionInternal).Exists().GreaterThanOrEqualTo(data.VersionInternalMinimum)
 	}
 }
 
 func (b *Base) Normalize(normalizer data.Normalizer) {
-	if b.Deduplicator != nil {
-		b.Deduplicator.NormalizeDEPRECATED(normalizer.WithReference("deduplicator"))
-	}
-
 	if normalizer.Origin() == structure.OriginExternal {
 		if b.ID == nil {
 			b.ID = pointer.FromString(data.NewID())
@@ -237,34 +228,65 @@ func (b *Base) Normalize(normalizer data.Normalizer) {
 	}
 }
 
-func (b *Base) IdentityFields() ([]string, error) {
-	if b.UserID == nil {
-		return nil, errors.New("user id is missing")
+func (b *Base) IdentityFields(version string) ([]string, error) {
+	switch version {
+	case IdentityFieldsVersionDeviceID:
+		if b.UserID == nil {
+			return nil, errors.New("user id is missing")
+		}
+		if *b.UserID == "" {
+			return nil, errors.New("user id is empty")
+		}
+		if b.DeviceID == nil {
+			return nil, errors.New("device id is missing")
+		}
+		if *b.DeviceID == "" {
+			return nil, errors.New("device id is empty")
+		}
+		if b.Time == nil {
+			return nil, errors.New("time is missing")
+		}
+		if (*b.Time).IsZero() {
+			return nil, errors.New("time is empty")
+		}
+		if b.Type == "" {
+			return nil, errors.New("type is empty")
+		}
+		return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	case IdentityFieldsVersionDataSetID:
+		if b.UserID == nil {
+			return nil, errors.New("user id is missing")
+		}
+		if *b.UserID == "" {
+			return nil, errors.New("user id is empty")
+		}
+		if b.UploadID == nil {
+			return nil, errors.New("data set id is missing")
+		}
+		if *b.UploadID == "" {
+			return nil, errors.New("data set id is empty")
+		}
+		if b.Time == nil {
+			return nil, errors.New("time is missing")
+		}
+		if (*b.Time).IsZero() {
+			return nil, errors.New("time is empty")
+		}
+		if b.Type == "" {
+			return nil, errors.New("type is empty")
+		}
+		return []string{*b.UserID, *b.UploadID, (*b.Time).Format(TimeFormat), b.Type}, nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-	if *b.UserID == "" {
-		return nil, errors.New("user id is empty")
-	}
-	if b.DeviceID == nil {
-		return nil, errors.New("device id is missing")
-	}
-	if *b.DeviceID == "" {
-		return nil, errors.New("device id is empty")
-	}
-	if b.Time == nil {
-		return nil, errors.New("time is missing")
-	}
-	if (*b.Time).IsZero() {
-		return nil, errors.New("time is empty")
-	}
-	if b.Type == "" {
-		return nil, errors.New("type is empty")
-	}
-
-	return []string{*b.UserID, *b.DeviceID, (*b.Time).Format(TimeFormat), b.Type}, nil
 }
 
 func (b *Base) GetOrigin() *origin.Origin {
 	return b.Origin
+}
+
+func (b *Base) SetOrigin(origin *origin.Origin) {
+	b.Origin = origin
 }
 
 func (b *Base) GetPayload() *metadata.Metadata {
@@ -289,6 +311,10 @@ func (b *Base) GetType() string {
 
 func (b *Base) IsActive() bool {
 	return b.Active
+}
+
+func (b *Base) GetDeviceID() *string {
+	return b.DeviceID
 }
 
 func (b *Base) SetType(typ string) {

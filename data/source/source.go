@@ -35,10 +35,9 @@ func States() []string {
 	}
 }
 
-//go:generate mockgen -destination=./test/mock.go -package test . Client
-
+//go:generate mockgen -source=source.go -destination=test/source_mocks.go -package=test Client
 type Client interface {
-	List(ctx context.Context, filter *Filter, pagination *page.Pagination) (SourceArray, error)
+	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)
 	DeleteAll(ctx context.Context, userID string) error
 
@@ -53,7 +52,6 @@ type Filter struct {
 	ProviderSessionID  *[]string `json:"providerSessionId,omitempty"`
 	ProviderExternalID *[]string `json:"providerExternalId,omitempty"`
 	State              *[]string `json:"state,omitempty"`
-	UserID             *string   `json:"userId,omitempty"`
 }
 
 func NewFilter() *Filter {
@@ -66,9 +64,6 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.ProviderSessionID = parser.StringArray("providerSessionId")
 	f.ProviderExternalID = parser.StringArray("providerExternalId")
 	f.State = parser.StringArray("state")
-	// The user id ought to be provided in the request path.
-	// Ignore user ids provided in the query parameters
-	_ = parser.String("userId")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
@@ -77,7 +72,6 @@ func (f *Filter) Validate(validator structure.Validator) {
 	validator.StringArray("providerSessionId", f.ProviderSessionID).NotEmpty().EachUsing(auth.ProviderSessionIDValidator).EachUnique()
 	validator.StringArray("providerExternalId", f.ProviderExternalID).NotEmpty().EachUsing(auth.ProviderExternalIDValidator).EachUnique()
 	validator.StringArray("state", f.State).NotEmpty().EachOneOf(States()...).EachUnique()
-	validator.String("userId", f.UserID).Using(user.IDValidator)
 }
 
 func (f *Filter) MutateRequest(req *http.Request) error {
@@ -103,7 +97,6 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 type Create struct {
 	ProviderType       *string        `json:"providerType,omitempty"`
 	ProviderName       *string        `json:"providerName,omitempty"`
-	ProviderSessionID  *string        `json:"providerSessionId,omitempty"`
 	ProviderExternalID *string        `json:"providerExternalId,omitempty"`
 	Metadata           map[string]any `json:"metadata,omitempty"`
 }
@@ -115,7 +108,6 @@ func NewCreate() *Create {
 func (c *Create) Parse(parser structure.ObjectParser) {
 	c.ProviderType = parser.String("providerType")
 	c.ProviderName = parser.String("providerName")
-	c.ProviderSessionID = parser.String("providerSessionId")
 	c.ProviderExternalID = parser.String("providerExternalId")
 	if ptr := parser.Object("metadata"); ptr != nil {
 		c.Metadata = *ptr
@@ -125,7 +117,6 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 func (c *Create) Validate(validator structure.Validator) {
 	validator.String("providerType", c.ProviderType).Exists().OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", c.ProviderName).Exists().Using(auth.ProviderNameValidator)
-	validator.String("providerSessionId", c.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 	validator.String("providerExternalId", c.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
 	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
 }

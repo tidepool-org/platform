@@ -4,25 +4,71 @@
 # Environment
 *.env
 .envrc
+env*.sh
+private/plugin/abbott/*.env
+private/plugin/abbott/env*.sh
+!version.env
 
-# Debug binaries
+# Debug
 debug
 __debug_bin*
 
-# Test output
-*.test
-ginkgo.report
-
-# Test coverage output
+# Test
 *.coverprofile
+*.test
 coverprofile.out
+ginkgo.report
+test
+*_test.go
+*/test
+*/*_test.go
+*/*/test
+*/*/*_test.go
+*/*/*/test
+*/*/*/*_test.go
+*/*/*/*/test
+*/*/*/*/*_test.go
+*/*/*/*/*/test
+*/*/*/*/*/*_test.go
+*/*/*/*/*/*/test
+*/*/*/*/*/*/*_test.go
+*/*/*/*/*/*/*/test
+*/*/*/*/*/*/*/*_test.go
 
-# Project directories
-/_bin/
-/_data/
-/_log/
-/_tmp/
-/deploy/
+# Project
+vendor
+_bin
+_data
+_log
+_tmp
 
-# Development environments
-/.idea
+# Development
+.gvm_local
+.idea
+.vscode
+.govetignore
+*.code-workspace
+private/plugin/abbott/.govetignore
+
+# Documentation
+CHANGELOG.md
+LICENSE
+README.md
+*/README.md
+*/*/README.md
+*/*/*/README.md
+
+# Git
+.git
+.gitignore
+.gitmodules
+private/plugin/abbott/.git
+private/plugin/abbott/.gitignore
+private/plugin/abbott/Makefile
+
+# Docker
+.dockerignore
+Dockerfile
+
+# Travis
+.travis.yml

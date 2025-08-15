@@ -6,22 +6,25 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
+
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
 	dataClient "github.com/tidepool-org/platform/data/client"
-	"github.com/tidepool-org/platform/data/deduplicator"
+	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/reporters"
+	summaryReporters "github.com/tidepool-org/platform/summary/reporters"
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
-	"github.com/tidepool-org/platform/twiist"
+	"github.com/tidepool-org/platform/work"
 )
 
 type Standard struct {
@@ -29,28 +32,36 @@ type Standard struct {
 	authClient                     auth.Client
 	metricClient                   metric.Client
 	permissionClient               permission.Client
-	dataDeduplicatorFactory        deduplicator.Factory
+	dataDeduplicatorFactory        dataDeduplicator.Factory
 	dataStore                      dataStore.Store
 	dataRepository                 dataStore.DataRepository
 	summaryRepository              dataStore.SummaryRepository
 	bucketsRepository              dataStore.BucketsRepository
 	summarizerRegistry             *summary.SummarizerRegistry
-	summaryReporter                *reporters.PatientRealtimeDaysReporter
+	summaryReporter                *summaryReporters.PatientRealtimeDaysReporter
 	syncTaskStore                  syncTaskStore.Store
 	syncTasksRepository            syncTaskStore.SyncTaskRepository
 	dataClient                     dataClient.Client
 	clinicsClient                  clinics.Client
-	dataSourceClient               dataSource.Client
+	dataRawClient                  dataRaw.Client
+	dataSourceClient               dataSourceService.Client
+	workClient                     work.Client
 	alertsRepository               alerts.Repository
-	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
-	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer, handler dataService.HandlerFunc) rest.HandlerFunc {
+	dataDeduplicatorFactory dataDeduplicator.Factory,
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer,
+	handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
-			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataSourceClient, twiistServiceAccountAuthorizer)
+			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataRawClient, dataSourceClient,
+			workClient, abbottServiceRequestAuthorizer, twiistServiceAccountAuthorizer)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -67,8 +78,11 @@ func WithContext(authClient auth.Client, metricClient metric.Client, permissionC
 
 func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
-	dataDeduplicatorFactory deduplicator.Factory,
-	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client, dataSourceClient dataSource.Client, twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer) (*Standard, error) {
+	dataDeduplicatorFactory dataDeduplicator.Factory,
+	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -90,8 +104,17 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if dataClient == nil {
 		return nil, errors.New("data client is missing")
 	}
+	if dataRawClient == nil {
+		return nil, errors.New("data raw client is missing")
+	}
 	if dataSourceClient == nil {
 		return nil, errors.New("data source client is missing")
+	}
+	if workClient == nil {
+		return nil, errors.New("work client is missing")
+	}
+	if abbottServiceRequestAuthorizer == nil {
+		return nil, errors.New("abbott service request authorizer is missing")
 	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
@@ -111,33 +134,35 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataStore:                      store,
 		syncTaskStore:                  syncTaskStore,
 		dataClient:                     dataClient,
+		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
+		workClient:                     workClient,
+		abbottServiceRequestAuthorizer: abbottServiceRequestAuthorizer,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
 }
 
 func (s *Standard) Close() {
-	if s.syncTasksRepository != nil {
-		s.syncTasksRepository = nil
-	}
-	if s.dataRepository != nil {
-		s.dataRepository = nil
-	}
-	if s.summaryRepository != nil {
-		s.summaryRepository = nil
-	}
-	if s.summarizerRegistry != nil {
-		s.summarizerRegistry = nil
-	}
-	if s.summaryReporter != nil {
-		s.summaryReporter = nil
-	}
-	if s.bucketsRepository != nil {
-		s.bucketsRepository = nil
-	}
-	if s.alertsRepository != nil {
-		s.alertsRepository = nil
-	}
+	s.twiistServiceAccountAuthorizer = nil
+	s.abbottServiceRequestAuthorizer = nil
+	s.alertsRepository = nil
+	s.workClient = nil
+	s.dataSourceClient = nil
+	s.dataRawClient = nil
+	s.clinicsClient = nil
+	s.dataClient = nil
+	s.syncTasksRepository = nil
+	s.syncTaskStore = nil
+	s.summaryReporter = nil
+	s.summarizerRegistry = nil
+	s.bucketsRepository = nil
+	s.summaryRepository = nil
+	s.dataRepository = nil
+	s.dataStore = nil
+	s.dataDeduplicatorFactory = nil
+	s.permissionClient = nil
+	s.metricClient = nil
+	s.authClient = nil
 }
 
 func (s *Standard) AuthClient() auth.Client {
@@ -152,11 +177,7 @@ func (s *Standard) PermissionClient() permission.Client {
 	return s.permissionClient
 }
 
-func (s *Standard) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
-	return s.twiistServiceAccountAuthorizer
-}
-
-func (s *Standard) DataDeduplicatorFactory() deduplicator.Factory {
+func (s *Standard) DataDeduplicatorFactory() dataDeduplicator.Factory {
 	return s.dataDeduplicatorFactory
 }
 
@@ -181,9 +202,9 @@ func (s *Standard) SummarizerRegistry() *summary.SummarizerRegistry {
 	return s.summarizerRegistry
 }
 
-func (s *Standard) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
+func (s *Standard) SummaryReporter() *summaryReporters.PatientRealtimeDaysReporter {
 	if s.summaryReporter == nil {
-		s.summaryReporter = reporters.NewReporter(s.SummarizerRegistry())
+		s.summaryReporter = summaryReporters.NewReporter(s.SummarizerRegistry())
 	}
 	return s.summaryReporter
 }
@@ -218,8 +239,24 @@ func (s *Standard) ClinicsClient() clinics.Client {
 	return s.clinicsClient
 }
 
-func (s *Standard) DataSourceClient() dataSource.Client {
+func (s *Standard) DataRawClient() dataRaw.Client {
+	return s.dataRawClient
+}
+
+func (s *Standard) DataSourceClient() dataSourceService.Client {
 	return s.dataSourceClient
+}
+
+func (s *Standard) WorkClient() work.Client {
+	return s.workClient
+}
+
+func (s *Standard) AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer {
+	return s.abbottServiceRequestAuthorizer
+}
+
+func (s *Standard) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
+	return s.twiistServiceAccountAuthorizer
 }
 
 func (s *Standard) AlertsRepository() alerts.Repository {

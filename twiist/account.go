@@ -6,24 +6,18 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-type ServiceAccountAuthorizer interface {
-	IsAuthorized(userID string) bool
-}
-
-func NewServiceAccountAuthorizer() (ServiceAccountAuthorizer, error) {
-	authorizer := &serviceAccountAuthorizer{}
-	err := envconfig.Process("", authorizer)
-	if err != nil {
+func NewServiceAccountAuthorizer() (*ServiceAccountAuthorizer, error) {
+	serviceAccountAuthorizer := &ServiceAccountAuthorizer{}
+	if err := envconfig.Process("", serviceAccountAuthorizer); err != nil {
 		return nil, err
 	}
-
-	return authorizer, nil
+	return serviceAccountAuthorizer, nil
 }
 
-type serviceAccountAuthorizer struct {
+type ServiceAccountAuthorizer struct {
 	ServiceAccountIDs []string `envconfig:"TIDEPOOL_TWIIST_SERVICE_ACCOUNT_IDS"`
 }
 
-func (s *serviceAccountAuthorizer) IsAuthorized(userID string) bool {
+func (s *ServiceAccountAuthorizer) IsServiceAccountAuthorized(userID string) bool {
 	return slices.Contains(s.ServiceAccountIDs, userID)
 }

@@ -22,7 +22,7 @@ import (
 )
 
 func NewSyncTask(userID string) bson.M {
-	createdTime := test.RandomTimeFromRange(test.RandomTimeMinimum(), time.Now())
+	createdTime := test.RandomTimeBeforeNow()
 	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now())
 	return bson.M{
 		"_createdTime":  createdTime.Format(time.RFC3339Nano),

@@ -117,6 +117,7 @@ var _ = Describe("BloodGlucose", func() {
 					func(datum *dataTypesDosingDecision.BloodGlucose, units *string) {
 						datum.Time = nil
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
 				Entry("time exists",
 					pointer.FromString("mmol/L"),

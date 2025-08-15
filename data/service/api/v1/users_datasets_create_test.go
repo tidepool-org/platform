@@ -5,24 +5,28 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/ant0ine/go-json-rest/rest"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/ant0ine/go-json-rest/rest"
+
+	abbottService "github.com/tidepool-org/platform-plugin-abbott/abbott/service"
 
 	"github.com/tidepool-org/platform/alerts"
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/clinics"
+	"github.com/tidepool-org/platform/data"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataDeduplicatorTest "github.com/tidepool-org/platform/data/deduplicator/test"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
-	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logtest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
@@ -34,7 +38,7 @@ import (
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/reporters"
 	synctaskStore "github.com/tidepool-org/platform/synctask/store"
-	"github.com/tidepool-org/platform/twiist"
+	"github.com/tidepool-org/platform/work"
 )
 
 var _ = Describe("UsersDataSetsCreate", func() {
@@ -42,9 +46,9 @@ var _ = Describe("UsersDataSetsCreate", func() {
 		It("does set the CreatedUserID if the auth details are for a user", func() {
 			dataServiceContext := newMockDataServiceContext(GinkgoT())
 			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodAccessToken, "test-auth-details-user-id", "token")
-			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
-				Expect(up.CreatedUserID).ToNot(BeNil())
-				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
+			dataServiceContext.DataSetTester = func(t testingT, dataSet *data.DataSet) {
+				Expect(dataSet.CreatedUserID).ToNot(BeNil())
+				Expect(*dataSet.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
 
 			v1.UsersDataSetsCreate(dataServiceContext)
@@ -61,9 +65,9 @@ var _ = Describe("UsersDataSetsCreate", func() {
 		It("does not set the CreatedUserID if the auth details are not for a user", func() {
 			dataServiceContext := newMockDataServiceContext(GinkgoT())
 			dataServiceContext.AuthDetails = request.NewAuthDetails(request.MethodServiceSecret, "", "token")
-			dataServiceContext.UploadTester = func(t testingT, up *upload.Upload) {
-				Expect(up.CreatedUserID).ToNot(BeNil())
-				Expect(*up.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
+			dataServiceContext.DataSetTester = func(t testingT, dataSet *data.DataSet) {
+				Expect(dataSet.CreatedUserID).ToNot(BeNil())
+				Expect(*dataSet.CreatedUserID).To(Equal("test-deduplicator-created-user-id"))
 			}
 
 			v1.UsersDataSetsCreate(dataServiceContext)
@@ -91,12 +95,12 @@ type mockDataServiceContext struct {
 
 	AuthDetails request.AuthDetails
 
-	// UploadTester tests the resulting upload.
-	UploadTester func(testingT, *upload.Upload)
+	// DataSetTester tests the resulting data set.
+	DataSetTester func(testingT, *data.DataSet)
 }
 
 func newMockDataServiceContext(t testingT) *mockDataServiceContext {
-	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet := dataTest.RandomDataSet()
 	dataSet.CreatedUserID = pointer.FromString("test-deduplicator-created-user-id")
 
 	dataDeduplicator := dataDeduplicatorTest.NewDeduplicator()
@@ -150,14 +154,14 @@ func (c *mockDataServiceContext) RespondWithStatusAndErrors(statusCode int, erro
 	panic("not implemented") // TODO: Implement
 }
 
-func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, data interface{}) {
-	up, ok := data.(*upload.Upload)
+func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, object interface{}) {
+	dataSet, ok := object.(*data.DataSet)
 	if !ok {
-		c.t.Errorf("expected upload.Upload response, got %v", data)
+		c.t.Errorf("expected data.DataSet response, got %v", object)
 	}
 
-	if c.UploadTester != nil {
-		c.UploadTester(c.t, up)
+	if c.DataSetTester != nil {
+		c.DataSetTester(c.t, dataSet)
 	}
 }
 
@@ -193,37 +197,49 @@ func (c *mockDataServiceContext) DataRepository() dataStore.DataRepository {
 }
 
 func (c *mockDataServiceContext) SummaryRepository() dataStore.SummaryRepository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SyncTaskRepository() synctaskStore.SyncTaskRepository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) AlertsRepository() alerts.Repository {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SummarizerRegistry() *summary.SummarizerRegistry {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) DataClient() dataClient.Client {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) ClinicsClient() clinics.Client {
-	panic("not implemented") // TODO: Implement
+	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
-	panic("not implemented") // TODO: Implement
+func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) DataSourceClient() dataSourceService.Client {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) WorkClient() work.Client {
+	panic("not implemented")
 }
 
 func (c *mockDataServiceContext) SummaryReporter() *reporters.PatientRealtimeDaysReporter {
 	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (c *mockDataServiceContext) AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	panic("not implemented")
 }

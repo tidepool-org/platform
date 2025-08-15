@@ -87,12 +87,15 @@ func (r *Buckets[PB, B]) GetBucketsRange(ctx context.Context, userId string, sta
 		"type":   r.Type,
 	}
 
+	timeSelector := bson.M{}
 	if startTime != nil && !startTime.IsZero() {
-		selector["time"] = bson.M{"$gte": startTime}
+		timeSelector["$gte"] = startTime
 	}
-
 	if endTime != nil && !endTime.IsZero() {
-		selector["time"] = bson.M{"$lte": endTime}
+		timeSelector["$lte"] = endTime
+	}
+	if len(timeSelector) > 0 {
+		selector["time"] = timeSelector
 	}
 
 	opts := options.Find()

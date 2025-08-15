@@ -6,45 +6,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/pointer"
-	. "github.com/tidepool-org/platform/summary/test"
 	. "github.com/tidepool-org/platform/summary/types"
 )
 
 var _ = Describe("Summary utils", func() {
-	var datumTime time.Time
-	var deviceID string
-	var uploadId string
-
-	BeforeEach(func() {
-		deviceID = "SummaryTestDevice"
-		uploadId = test.RandomSetID()
-		datumTime = time.Date(2016, time.Month(1), 1, 0, 0, 0, 0, time.UTC)
-	})
-
-	Context("GetDuration", func() {
-		var libreDatum *glucose.Glucose
-		var otherDatum *glucose.Glucose
-		typ := pointer.FromString("cbg")
-
-		It("Returns correct 15 minute duration for AbbottFreeStyleLibre", func() {
-			libreDatum = NewGlucose(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
-			libreDatum.DeviceID = pointer.FromString("a-AbbottFreeStyleLibre-a")
-
-			duration := GetDuration(libreDatum)
-			Expect(duration).To(Equal(15))
-		})
-
-		It("Returns correct duration for other devices", func() {
-			otherDatum = NewGlucose(typ, pointer.FromString(Units), &datumTime, &deviceID, &uploadId)
-
-			duration := GetDuration(otherDatum)
-			Expect(duration).To(Equal(5))
-		})
-	})
-
 	Context("CalculateGMI", func() {
 		// input and output examples sourced from https://diabetesjournals.org/care/article/41/11/2275/36593/
 		It("Returns correct GMI for medical example 1", func() {

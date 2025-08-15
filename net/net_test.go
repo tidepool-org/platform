@@ -13,6 +13,23 @@ import (
 )
 
 var _ = Describe("Validate", func() {
+	Context("IsValidDigestMD5, DigestMD5Validator, and ValidateDigestMD5", func() {
+		DescribeTable("return the expected results when the input",
+			func(value string, expectedErrors ...error) {
+				Expect(net.IsValidDigestMD5(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				net.DigestMD5Validator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(net.ValidateDigestMD5(value), expectedErrors...)
+			},
+			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
+			Entry("is not valid Base64 encoded", "QUJDREVGSElKS0xNTk9QUQ=$", net.ErrorValueStringAsDigestMD5NotValid("QUJDREVGSElKS0xNTk9QUQ=$")),
+			Entry("is valid Base64 encoded and byte length is out of range (lower)", "QUJDREVGSElKS0xNTk9Q", net.ErrorValueStringAsDigestMD5NotValid("QUJDREVGSElKS0xNTk9Q")),
+			Entry("is valid Base64 encoded and byte length is in range", "QUJDREVGSElKS0xNTk9QUQ=="),
+			Entry("is valid Base64 encoded and byte length is out of range (upper)", "QUJDREVGSElKS0xNTk9QUVI=", net.ErrorValueStringAsDigestMD5NotValid("QUJDREVGSElKS0xNTk9QUVI=")),
+		)
+	})
+
 	Context("IsValidMediaType, MediaTypeValidator, and ValidateMediaType", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
