@@ -25,7 +25,6 @@ import (
 	blobServiceApiV1 "github.com/tidepool-org/platform/blob/service/api/v1"
 	blobServiceApiV1Test "github.com/tidepool-org/platform/blob/service/api/v1/test"
 	blobTest "github.com/tidepool-org/platform/blob/test"
-	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -122,7 +121,7 @@ var _ = Describe("V1", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -398,7 +397,7 @@ var _ = Describe("V1", func() {
 							Context("with user details", func() {
 								var sharerUserID string
 								BeforeEach(func() {
-									sharerUserID = userTest.RandomID()
+									sharerUserID = userTest.RandomUserID()
 									details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 									req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 									granteeToGrantorPerms := map[string]map[string]permission.Permissions{
@@ -448,7 +447,7 @@ var _ = Describe("V1", func() {
 								})
 
 								It("responds with forbidden when user doesn't have access to another person's device logs", func() {
-									otherUserID := userTest.RandomID()
+									otherUserID := userTest.RandomUserID()
 									provider.BlobClientOutputs = nil
 									req.Method = http.MethodGet
 									req.URL.Path = fmt.Sprintf("/v1/users/%s/device_logs", otherUserID)
@@ -464,7 +463,7 @@ var _ = Describe("V1", func() {
 				Context("GetDeviceLogsContent", func() {
 					var id string
 					BeforeEach(func() {
-						id = blobTest.RandomID()
+						id = blobTest.RandomBlobID()
 						req.Method = http.MethodGet
 						req.URL.Path = fmt.Sprintf("/v1/device_logs/%s/content", id)
 					})
@@ -526,7 +525,7 @@ var _ = Describe("V1", func() {
 									content := blob.NewDeviceLogsContent()
 									body := test.RandomBytes()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
@@ -549,7 +548,7 @@ var _ = Describe("V1", func() {
 									content := blob.NewDeviceLogsContent()
 									body := test.RandomBytes()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString("text/plain; charset=utf-8")
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
@@ -573,8 +572,8 @@ var _ = Describe("V1", func() {
 								var userID string
 								var sharerUserID string
 								BeforeEach(func() {
-									userID = userTest.RandomID()
-									sharerUserID = userTest.RandomID()
+									userID = userTest.RandomUserID()
+									sharerUserID = userTest.RandomUserID()
 									details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 									req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 									granteeToGrantorPerms := map[string]map[string]permission.Permissions{
@@ -613,7 +612,7 @@ var _ = Describe("V1", func() {
 									content := blob.NewDeviceLogsContent()
 									body := test.RandomBytes()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
@@ -637,7 +636,7 @@ var _ = Describe("V1", func() {
 									content := blob.NewDeviceLogsContent()
 									body := test.RandomBytes()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString("text/plain; charset=utf-8")
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
@@ -662,7 +661,7 @@ var _ = Describe("V1", func() {
 									content := blob.NewDeviceLogsContent()
 									body := test.RandomBytes()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
 									content.StartAt = pointer.FromTime(test.RandomTime())
 									content.EndAt = pointer.FromTime(test.RandomTime())
@@ -857,7 +856,7 @@ var _ = Describe("V1", func() {
 
 								digestAssertions := func() {
 									It("responds with a bad request error when the client returns a digests not equal error", func() {
-										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
+										err := request.ErrorDigestsNotEqual(netTest.RandomDigestMD5(), netTest.RandomDigestMD5())
 										client.CreateOutputs = []blobTest.CreateOutput{{Blob: nil, Error: err}}
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusBadRequest}))
@@ -1137,7 +1136,7 @@ var _ = Describe("V1", func() {
 									var otherUserID string
 									BeforeEach(func() {
 										provider.AuthClientOutputs = []auth.Client{authClient}
-										otherUserID = userTest.RandomID()
+										otherUserID = userTest.RandomUserID()
 									})
 
 									It("returns an unauthorized error for a user uploading for another user", func() {
@@ -1178,7 +1177,7 @@ var _ = Describe("V1", func() {
 										}}))
 									})
 									It("responds with a bad request error when the client returns a digests not equal error", func() {
-										err := request.ErrorDigestsNotEqual(cryptoTest.RandomBase64EncodedMD5Hash(), cryptoTest.RandomBase64EncodedMD5Hash())
+										err := request.ErrorDigestsNotEqual(netTest.RandomDigestMD5(), netTest.RandomDigestMD5())
 										client.CreateDeviceLogsOutputs = []blobTest.CreateDeviceLogsOutput{{Blob: nil, Error: err}}
 										provider.BlobClientOutputs = []blob.Client{client}
 										handlerFunc(res, req)
@@ -1313,7 +1312,7 @@ var _ = Describe("V1", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = blobTest.RandomID()
+					id = blobTest.RandomBlobID()
 				})
 
 				Context("Get", func() {
@@ -1533,7 +1532,7 @@ var _ = Describe("V1", func() {
 									body := test.RandomBytes()
 									content := blob.NewContent()
 									content.Body = io.NopCloser(bytes.NewReader(body))
-									content.DigestMD5 = pointer.FromString(cryptoTest.RandomBase64EncodedMD5Hash())
+									content.DigestMD5 = pointer.FromString(netTest.RandomDigestMD5())
 									content.MediaType = pointer.FromString(netTest.RandomMediaType())
 									client.GetContentOutputs = []blobTest.GetContentOutput{{Content: content, Error: nil}}
 									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}

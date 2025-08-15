@@ -49,7 +49,7 @@ var _ = Describe("Reporters", func() {
 			bucketsRepo = store.NewBucketsRepository().GetStore()
 			dataRepo = store.NewDataRepository()
 			registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
 			realtimeReporter = reporters.NewReporter(registry)
@@ -169,7 +169,7 @@ var _ = Describe("Reporters", func() {
 			bucketsRepo = store.NewBucketsRepository().GetStore()
 			dataRepo = store.NewDataRepository()
 			registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 
 			continuousSummarizer = summary.GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
 			realtimeReporter = reporters.NewReporter(registry)
@@ -185,7 +185,7 @@ var _ = Describe("Reporters", func() {
 
 		It("realtime reporter run with mix of users", func() {
 			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
-			userIdTwo := userTest.RandomID()
+			userIdTwo := userTest.RandomUserID()
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
 			err = dataRepo.CreateDataSet(ctx, uploadRecord)
@@ -218,7 +218,7 @@ var _ = Describe("Reporters", func() {
 
 		It("run with a user that doesnt have a summary at all", func() {
 			realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
-			userIdTwo := userTest.RandomID()
+			userIdTwo := userTest.RandomUserID()
 
 			uploadRecord := NewDataSet(userId, data.DataSetTypeContinuous)
 			err = dataRepo.CreateDataSet(ctx, uploadRecord)

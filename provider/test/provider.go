@@ -10,13 +10,11 @@ import (
 
 type OnCreateInput struct {
 	Context         context.Context
-	UserID          string
 	ProviderSession *auth.ProviderSession
 }
 
 type OnDeleteInput struct {
 	Context         context.Context
-	UserID          string
 	ProviderSession *auth.ProviderSession
 }
 
@@ -38,10 +36,10 @@ func NewProvider(typ string, name string) *Provider {
 	}
 }
 
-func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	p.OnCreateInvocations++
 
-	p.OnCreateInputs = append(p.OnCreateInputs, OnCreateInput{Context: ctx, UserID: userID, ProviderSession: providerSession})
+	p.OnCreateInputs = append(p.OnCreateInputs, OnCreateInput{Context: ctx, ProviderSession: providerSession})
 
 	gomega.Expect(p.OnCreateOutputs).ToNot(gomega.BeEmpty())
 
@@ -50,10 +48,10 @@ func (p *Provider) OnCreate(ctx context.Context, userID string, providerSession 
 	return output
 }
 
-func (p *Provider) OnDelete(ctx context.Context, userID string, providerSession *auth.ProviderSession) error {
+func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
 	p.OnDeleteInvocations++
 
-	p.OnDeleteInputs = append(p.OnDeleteInputs, OnDeleteInput{Context: ctx, UserID: userID, ProviderSession: providerSession})
+	p.OnDeleteInputs = append(p.OnDeleteInputs, OnDeleteInput{Context: ctx, ProviderSession: providerSession})
 
 	gomega.Expect(p.OnDeleteOutputs).ToNot(gomega.BeEmpty())
 

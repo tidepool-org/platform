@@ -28,18 +28,22 @@ func (b *Blood) Parse(parser structure.ObjectParser) {
 	b.Value = parser.Float64("value")
 }
 
-func (b *Blood) IdentityFields() ([]string, error) {
-	identityFields, err := b.Base.IdentityFields()
+func (b *Blood) IdentityFields(version string) ([]string, error) {
+	identityFields, err := b.Base.IdentityFields(version)
 	if err != nil {
 		return nil, err
 	}
 
-	if b.Units == nil {
-		return nil, errors.New("units is missing")
+	switch version {
+	case types.IdentityFieldsVersionDeviceID, types.IdentityFieldsVersionDataSetID:
+		if b.Units == nil {
+			return nil, errors.New("units is missing")
+		}
+		if b.Value == nil {
+			return nil, errors.New("value is missing")
+		}
+		return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil
+	default:
+		return nil, errors.New("version is invalid")
 	}
-	if b.Value == nil {
-		return nil, errors.New("value is missing")
-	}
-
-	return append(identityFields, *b.Units, strconv.FormatFloat(*b.Value, 'f', -1, 64)), nil
 }

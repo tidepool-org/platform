@@ -225,7 +225,7 @@ var _ = Describe("Client", func() {
 			requestString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
 			requestBody = &RequestBody{Request: requestString}
 			responseString = test.RandomStringFromRangeAndCharset(0, 32, test.CharsetText)
-			inspectors = []request.ResponseInspector{request.NewHeadersInspector(log.LoggerFromContext(ctx))}
+			inspectors = []request.ResponseInspector{request.NewHeadersInspector()}
 			httpClient = http.DefaultClient
 		})
 
@@ -510,7 +510,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -535,7 +535,7 @@ var _ = Describe("Client", func() {
 
 				BeforeEach(func() {
 					errorResponseParser = nil
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -994,7 +994,7 @@ var _ = Describe("Client", func() {
 				var responseErr error
 
 				BeforeEach(func() {
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -1018,7 +1018,7 @@ var _ = Describe("Client", func() {
 
 				BeforeEach(func() {
 					errorResponseParser = nil
-					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+					responseErr = request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 					server.AppendHandlers(
 						CombineHandlers(
 							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
@@ -1144,7 +1144,7 @@ var _ = Describe("Client", func() {
 				})
 			})
 
-			Context("with an unparseable response", func() {
+			Context("with an unparsable response", func() {
 				BeforeEach(func() {
 					server.AppendHandlers(
 						CombineHandlers(
@@ -1295,14 +1295,14 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("SerializableErrorResponseParser", func() {
-		It("returns nil if response body is not parseable", func() {
+		It("returns nil if response body is not parsable", func() {
 			serializableErrorResponseParser := client.NewSerializableErrorResponseParser()
 			err := serializableErrorResponseParser.ParseErrorResponse(context.Background(), &http.Response{Body: io.NopCloser(bytes.NewReader([]byte("NOT JSON")))}, testHttp.NewRequest())
 			Expect(err).To(BeNil())
 		})
 
-		It("returns deserialized error if response body is parseable", func() {
-			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexidecimalLowercase))
+		It("returns deserialized error if response body is parsable", func() {
+			responseErr := request.ErrorResourceNotFoundWithID(test.RandomStringFromRangeAndCharset(1, 16, test.CharsetHexadecimalLowercase))
 			body, err := json.Marshal(errors.Serializable{Error: responseErr})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(body).ToNot(BeNil())

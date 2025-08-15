@@ -8,7 +8,6 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
-	"github.com/tidepool-org/platform/data/types/upload"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
@@ -28,7 +27,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	dataSet, err := dataServiceContext.DataRepository().GetDataSetByID(ctx, dataSetID)
+	dataSet, err := dataServiceContext.DataRepository().GetDataSet(ctx, dataSetID)
 	if err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to get data set by id", err)
 		return
@@ -62,7 +61,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 	}
 
 	update := data.NewDataSetUpdate()
-	if dataSet.DataSetType != nil && *dataSet.DataSetType == upload.DataSetTypeContinuous {
+	if dataSet.DataSetType != nil && *dataSet.DataSetType == data.DataSetTypeContinuous {
 		if !details.IsService() {
 			dataServiceContext.RespondWithError(service.ErrorUnauthorized())
 			return
@@ -89,7 +88,7 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 		} else if deduplicator == nil {
 			dataServiceContext.RespondWithInternalServerFailure("Deduplicator not found")
 			return
-		} else if err = deduplicator.Close(ctx, dataServiceContext.DataRepository(), dataSet); err != nil {
+		} else if err = deduplicator.Close(ctx, dataSet); err != nil {
 			dataServiceContext.RespondWithInternalServerFailure("Unable to close", err)
 			return
 		}

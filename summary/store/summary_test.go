@@ -57,7 +57,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 			summaryRepository = store.NewSummaryRepository().GetStore()
 			Expect(summaryRepository).ToNot(BeNil())
 
-			userId = userTest.RandomID()
+			userId = userTest.RandomUserID()
 			typelessStore = dataStoreSummary.NewTypeless(summaryRepository)
 		})
 
@@ -145,9 +145,9 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 				var userIdOther string
 
 				BeforeEach(func() {
-					userIdTwo = userTest.RandomID()
-					userIdThree = userTest.RandomID()
-					userIdOther = userTest.RandomID()
+					userIdTwo = userTest.RandomUserID()
+					userIdThree = userTest.RandomUserID()
+					userIdOther = userTest.RandomUserID()
 				})
 
 				It("With missing context", func() {
@@ -270,8 +270,8 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 				})
 
 				It("Get migratable summaries with all types present", func() {
-					userIdFour := userTest.RandomID()
-					userIdFive := userTest.RandomID()
+					userIdFour := userTest.RandomUserID()
+					userIdFive := userTest.RandomUserID()
 					bgmStore := dataStoreSummary.NewSummaries[*types.BGMPeriods, *types.GlucoseBucket](summaryRepository)
 					cgmStore := dataStoreSummary.NewSummaries[*types.CGMPeriods, *types.GlucoseBucket](summaryRepository)
 

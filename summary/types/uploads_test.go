@@ -45,7 +45,7 @@ var _ = Describe("Upload Helpers", func() {
 		bucketsRepo = store.NewBucketsRepository().GetStore()
 		dataRepo = store.NewDataRepository()
 		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, store.GetClient())
-		userId = userTest.RandomID()
+		userId = userTest.RandomUserID()
 
 		cgmStore = dataStoreSummary.NewSummaries[*CGMPeriods, *GlucoseBucket](summaryRepo)
 		bgmStore = dataStoreSummary.NewSummaries[*BGMPeriods, *GlucoseBucket](summaryRepo)

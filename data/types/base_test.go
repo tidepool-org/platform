@@ -148,7 +148,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/archivedDatasetId"),
 				),
 				Entry("archived data set id valid",
-					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID()) },
+					func(datum *types.Base) { datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomDataSetID()) },
 					structure.Origins(),
 				),
 				Entry("archived time missing; archived data set id missing",
@@ -160,7 +160,7 @@ var _ = Describe("Base", func() {
 				),
 				Entry("archived time missing; archived data set id exists",
 					func(datum *types.Base) {
-						datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomSetID())
+						datum.ArchivedDataSetID = pointer.FromString(dataTest.RandomDataSetID())
 						datum.ArchivedTime = nil
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
@@ -235,7 +235,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/createdUserId"),
 				),
 				Entry("created user id valid",
-					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *types.Base) { datum.CreatedUserID = pointer.FromString(userTest.RandomUserID()) },
 					structure.Origins(),
 				),
 				Entry("created time missing; created user id missing",
@@ -249,7 +249,7 @@ var _ = Describe("Base", func() {
 				Entry("created time missing; created user id exists",
 					func(datum *types.Base) {
 						datum.CreatedTime = nil
-						datum.CreatedUserID = pointer.FromString(userTest.RandomID())
+						datum.CreatedUserID = pointer.FromString(userTest.RandomUserID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/createdTime"),
@@ -283,7 +283,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/deletedUserId"),
 				),
 				Entry("deleted user id valid",
-					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *types.Base) { datum.DeletedUserID = pointer.FromString(userTest.RandomUserID()) },
 					structure.Origins(),
 				),
 				Entry("deleted time missing; deleted user id missing",
@@ -296,7 +296,7 @@ var _ = Describe("Base", func() {
 				Entry("deleted time missing; deleted user id exists",
 					func(datum *types.Base) {
 						datum.DeletedTime = nil
-						datum.DeletedUserID = pointer.FromString(userTest.RandomID())
+						datum.DeletedUserID = pointer.FromString(userTest.RandomUserID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/deletedUserId"),
@@ -398,7 +398,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(data.ErrorValueStringAsIDNotValid("invalid"), "/id"),
 				),
 				Entry("id valid",
-					func(datum *types.Base) { datum.ID = pointer.FromString(dataTest.RandomID()) },
+					func(datum *types.Base) { datum.ID = pointer.FromString(dataTest.RandomDatumID()) },
 					structure.Origins(),
 				),
 				Entry("location missing",
@@ -432,7 +432,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/modifiedUserId"),
 				),
 				Entry("modified user id valid",
-					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *types.Base) { datum.ModifiedUserID = pointer.FromString(userTest.RandomUserID()) },
 					structure.Origins(),
 				),
 				Entry("modified time missing; modified user id missing",
@@ -449,7 +449,7 @@ var _ = Describe("Base", func() {
 						datum.ArchivedTime = nil
 						datum.ArchivedDataSetID = nil
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
+						datum.ModifiedUserID = pointer.FromString(userTest.RandomUserID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/modifiedUserId"),
@@ -467,7 +467,7 @@ var _ = Describe("Base", func() {
 					func(datum *types.Base) {
 						datum.ArchivedTime = datum.ModifiedTime
 						datum.ModifiedTime = nil
-						datum.ModifiedUserID = pointer.FromString(userTest.RandomID())
+						datum.ModifiedUserID = pointer.FromString(userTest.RandomUserID())
 					},
 					[]structure.Origin{structure.OriginInternal, structure.OriginStore},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/modifiedTime"),
@@ -635,6 +635,11 @@ var _ = Describe("Base", func() {
 					structure.Origins(),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/time"),
 				),
+				Entry("time zero",
+					func(datum *types.Base) { datum.Time = pointer.FromTime(time.Time{}) },
+					structure.Origins(),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/time"),
+				),
 				Entry("time valid",
 					func(datum *types.Base) { datum.Time = pointer.FromTime(test.RandomTime()) },
 					structure.Origins(),
@@ -706,7 +711,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/uploadId"),
 				),
 				Entry("upload id valid",
-					func(datum *types.Base) { datum.UploadID = pointer.FromString(dataTest.RandomSetID()) },
+					func(datum *types.Base) { datum.UploadID = pointer.FromString(dataTest.RandomDataSetID()) },
 					structure.Origins(),
 				),
 				Entry("user id missing",
@@ -725,7 +730,7 @@ var _ = Describe("Base", func() {
 					errorsTest.WithPointerSource(user.ErrorValueStringAsIDNotValid("invalid"), "/_userId"),
 				),
 				Entry("user id valid",
-					func(datum *types.Base) { datum.UserID = pointer.FromString(userTest.RandomID()) },
+					func(datum *types.Base) { datum.UserID = pointer.FromString(userTest.RandomUserID()) },
 					structure.Origins(),
 				),
 				Entry("version; out of range (lower)",
@@ -913,59 +918,126 @@ var _ = Describe("Base", func() {
 		})
 
 		Context("IdentityFields", func() {
-			It("returns error if user id is missing", func() {
-				datumBase.UserID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is missing"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDefault", func() {
+				It("returns error if user id is missing", func() {
+					datumBase.UserID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBase.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is missing", func() {
+					datumBase.DeviceID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("device id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if device id is empty", func() {
+					datumBase.DeviceID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("device id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datumBase.Time = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datumBase.Time = pointer.FromTime(time.Time{})
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if type is empty", func() {
+					datumBase.Type = ""
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDeviceID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+				})
 			})
 
-			It("returns error if user id is empty", func() {
-				datumBase.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is empty"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDataSetID", func() {
+				It("returns error if user id is missing", func() {
+					datumBase.UserID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBase.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if data set id is missing", func() {
+					datumBase.UploadID = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("data set id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if data set id is empty", func() {
+					datumBase.UploadID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("data set id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is missing", func() {
+					datumBase.Time = nil
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("time is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if time is empty", func() {
+					datumBase.Time = pointer.FromTime(time.Time{})
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("time is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if type is empty", func() {
+					datumBase.Type = ""
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).To(MatchError("type is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(types.IdentityFieldsVersionDataSetID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.UploadID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+				})
 			})
 
-			It("returns error if device id is missing", func() {
-				datumBase.DeviceID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("device id is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if device id is empty", func() {
-				datumBase.DeviceID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("device id is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is missing", func() {
-				datumBase.Time = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("time is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if time is empty", func() {
-				datumBase.Time = pointer.FromTime(time.Time{})
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("time is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if type is empty", func() {
-				datumBase.Type = ""
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("type is empty"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datumBase.UserID, *datumBase.DeviceID, (*datumBase.Time).Format(ExpectedTimeFormat), datumBase.Type}))
+			When("version is invalid", func() {
+				It("returns an error", func() {
+					identityFields, err := datum.IdentityFields("invalid")
+					Expect(err).To(MatchError("version is invalid"))
+					Expect(identityFields).To(BeEmpty())
+				})
 			})
 		})
 
@@ -983,7 +1055,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetUserID", func() {
 			It("sets the user id", func() {
-				userID := pointer.FromString(userTest.RandomID())
+				userID := pointer.FromString(userTest.RandomUserID())
 				datum.SetUserID(userID)
 				Expect(datumBase.UserID).To(Equal(userID))
 			})
@@ -991,7 +1063,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDataSetID", func() {
 			It("sets the data set id", func() {
-				dataSetID := pointer.FromString(dataTest.RandomSetID())
+				dataSetID := pointer.FromString(dataTest.RandomDataSetID())
 				datum.SetDataSetID(dataSetID)
 				Expect(datumBase.UploadID).To(Equal(dataSetID))
 			})
@@ -1027,7 +1099,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetCreatedUserID", func() {
 			It("sets the created user id", func() {
-				createdUserID := pointer.FromString(userTest.RandomID())
+				createdUserID := pointer.FromString(userTest.RandomUserID())
 				datum.SetCreatedUserID(createdUserID)
 				Expect(datumBase.CreatedUserID).To(Equal(createdUserID))
 			})
@@ -1043,7 +1115,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetModifiedUserID", func() {
 			It("sets the modified user id", func() {
-				modifiedUserID := pointer.FromString(userTest.RandomID())
+				modifiedUserID := pointer.FromString(userTest.RandomUserID())
 				datum.SetModifiedUserID(modifiedUserID)
 				Expect(datumBase.ModifiedUserID).To(Equal(modifiedUserID))
 			})
@@ -1059,7 +1131,7 @@ var _ = Describe("Base", func() {
 
 		Context("SetDeletedUserID", func() {
 			It("sets the deleted user id", func() {
-				deletedUserID := pointer.FromString(userTest.RandomID())
+				deletedUserID := pointer.FromString(userTest.RandomUserID())
 				datum.SetDeletedUserID(deletedUserID)
 				Expect(datumBase.DeletedUserID).To(Equal(deletedUserID))
 			})

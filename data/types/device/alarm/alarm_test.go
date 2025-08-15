@@ -46,7 +46,7 @@ func NewAlarmWithStatus() *alarm.Alarm {
 
 func NewAlarmWithStatusID() *alarm.Alarm {
 	datum := NewAlarm()
-	datum.StatusID = pointer.FromString(dataTest.RandomID())
+	datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
 	return datum
 }
 
@@ -229,12 +229,12 @@ var _ = Describe("Change", func() {
 					func(datum *alarm.Alarm) { datum.StatusID = nil },
 				),
 				Entry("status id exists",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomDatumID()) },
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {
-						datum.StatusID = pointer.FromString(dataTest.RandomID())
+						datum.StatusID = pointer.FromString(dataTest.RandomDatumID())
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueExists(), "/statusId", NewMeta()),
 				),
@@ -267,7 +267,7 @@ var _ = Describe("Change", func() {
 					errorsTest.WithPointerSourceAndMeta(data.ErrorValueStringAsIDNotValid("invalid"), "/statusId", NewMeta()),
 				),
 				Entry("status id valid",
-					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomID()) },
+					func(datum *alarm.Alarm) { datum.StatusID = pointer.FromString(dataTest.RandomDatumID()) },
 				),
 				Entry("multiple errors",
 					func(datum *alarm.Alarm) {

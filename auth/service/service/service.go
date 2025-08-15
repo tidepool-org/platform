@@ -5,33 +5,32 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/twiist"
-
-	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
-
-	dataClient "github.com/tidepool-org/platform/data/client"
-
 	"github.com/kelseyhightower/envconfig"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
+	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/auth/client"
+	authClient "github.com/tidepool-org/platform/auth/client"
 	authEvents "github.com/tidepool-org/platform/auth/events"
-	"github.com/tidepool-org/platform/auth/service"
-	"github.com/tidepool-org/platform/auth/service/api"
+	authService "github.com/tidepool-org/platform/auth/service"
+	authServiceApi "github.com/tidepool-org/platform/auth/service/api"
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
-	"github.com/tidepool-org/platform/auth/store"
-	authMongo "github.com/tidepool-org/platform/auth/store/mongo"
+	authStore "github.com/tidepool-org/platform/auth/store"
+	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
+	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -39,7 +38,11 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
 	taskClient "github.com/tidepool-org/platform/task/client"
+	"github.com/tidepool-org/platform/twiist"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/work"
+	workService "github.com/tidepool-org/platform/work/service"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
 
 type confirmationClientConfig struct {
@@ -53,18 +56,20 @@ func (c *confirmationClientConfig) Load() error {
 type Service struct {
 	*serviceService.Service
 	domain                         string
-	authStore                      *authMongo.Store
+	authStore                      *authStoreMongo.Store
+	workStructuredStore            *workStoreStructuredMongo.Store
 	dataClient                     dataClient.Client
 	dataSourceClient               *dataSourceClient.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
 	taskClient                     task.Client
-	providerFactory                provider.Factory
+	workClient                     *workService.Client
+	providerFactory                *providerFactory.Factory
 	authClient                     *Client
 	userEventsHandler              events.Runner
 	deviceCheck                    apple.DeviceCheck
 	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
-	twiistServiceAccountAuthorizer twiist.ServiceAccountAuthorizer
+	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
 
 func New() *Service {
@@ -99,6 +104,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthStore(); err != nil {
 		return err
 	}
+	if err := s.initializeWorkStructuredStore(); err != nil {
+		return err
+	}
 	if err := s.initializeDataClient(); err != nil {
 		return err
 	}
@@ -111,10 +119,16 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeTaskClient(); err != nil {
 		return err
 	}
+	if err := s.initializeWorkClient(); err != nil {
+		return err
+	}
 	if err := s.initializeProviderFactory(); err != nil {
 		return err
 	}
 	if err := s.initializeAuthClient(); err != nil {
+		return err
+	}
+	if err := s.initializeProviders(); err != nil {
 		return err
 	}
 	if err := s.initializeDeviceCheck(); err != nil {
@@ -137,9 +151,11 @@ func (s *Service) Terminate() {
 	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
 	s.terminateProviderFactory()
+	s.terminateWorkClient()
 	s.terminateTaskClient()
 	s.terminateDataSourceClient()
 	s.terminateConfirmationClient()
+	s.terminateWorkStructuredStore()
 	s.terminateAuthStore()
 	s.terminateRouter()
 	s.terminateDomain()
@@ -149,11 +165,15 @@ func (s *Service) Domain() string {
 	return s.domain
 }
 
-func (s *Service) AuthStore() store.Store {
+func (s *Service) AuthStore() authStore.Store {
 	if s.authStore == nil {
 		return nil
 	}
 	return s.authStore
+}
+
+func (s *Service) AuthServiceClient() authService.Client {
+	return s.authClient
 }
 
 func (s *Service) DataSourceClient() dataSource.Client {
@@ -166,6 +186,10 @@ func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInt
 
 func (s *Service) TaskClient() task.Client {
 	return s.taskClient
+}
+
+func (s *Service) WorkClient() work.Client {
+	return s.workClient
 }
 
 func (s *Service) ProviderFactory() provider.Factory {
@@ -184,12 +208,12 @@ func (s *Service) PartnerSecrets() *appvalidate.PartnerSecrets {
 	return s.partnerSecrets
 }
 
-func (s *Service) TwiistServiceAccountAuthorizer() twiist.ServiceAccountAuthorizer {
+func (s *Service) TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer {
 	return s.twiistServiceAccountAuthorizer
 }
 
-func (s *Service) Status(ctx context.Context) *service.Status {
-	return &service.Status{
+func (s *Service) Status(ctx context.Context) *authService.Status {
+	return &authService.Status{
 		Version: s.VersionReporter().Long(),
 	}
 }
@@ -216,7 +240,7 @@ func (s *Service) terminateDomain() {
 func (s *Service) initializeRouter() error {
 	s.Logger().Debug("Creating api router")
 
-	apiRouter, err := api.NewRouter(s)
+	apiRouter, err := authServiceApi.NewRouter(s)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api router")
 	}
@@ -250,7 +274,7 @@ func (s *Service) initializeAuthStore() error {
 
 	s.Logger().Debug("Creating auth store")
 
-	str, err := authMongo.NewStore(cfg)
+	str, err := authStoreMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create auth store")
 	}
@@ -273,6 +297,42 @@ func (s *Service) terminateAuthStore() {
 
 		s.Logger().Debug("Destroying auth store")
 		s.authStore = nil
+	}
+}
+
+func (s *Service) initializeWorkStructuredStore() error {
+	s.Logger().Debug("Loading work structured store config")
+
+	cfg := storeStructuredMongo.NewConfig()
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load work structured store config")
+	}
+
+	s.Logger().Debug("Creating work structured store")
+
+	str, err := workStoreStructuredMongo.NewStore(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work structured store")
+	}
+	s.workStructuredStore = str
+
+	s.Logger().Debug("Ensuring work structured store indexes")
+
+	err = s.workStructuredStore.EnsureIndexes()
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure work structured store indexes")
+	}
+
+	return nil
+}
+
+func (s *Service) terminateWorkStructuredStore() {
+	if s.workStructuredStore != nil {
+		s.Logger().Debug("Closing work structured store")
+		s.workStructuredStore.Terminate(context.Background())
+
+		s.Logger().Debug("Destroying work structured store")
+		s.workStructuredStore = nil
 	}
 }
 
@@ -324,6 +384,25 @@ func (s *Service) terminateDataSourceClient() {
 	if s.dataSourceClient != nil {
 		s.Logger().Debug("Destroying data source client")
 		s.dataSourceClient = nil
+	}
+}
+
+func (s *Service) initializeWorkClient() error {
+	s.Logger().Debug("Creating work client")
+
+	clnt, err := workService.NewClient(s.workStructuredStore)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work client")
+	}
+	s.workClient = clnt
+
+	return nil
+}
+
+func (s *Service) terminateWorkClient() {
+	if s.workClient != nil {
+		s.Logger().Debug("Destroying work client")
+		s.workClient = nil
 	}
 }
 
@@ -397,24 +476,7 @@ func (s *Service) initializeProviderFactory() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create provider factory")
 	}
-
 	s.providerFactory = prvdrFctry
-
-	if prvdr, prvdrErr := dexcomProvider.New(s.ConfigReporter().WithScopes("provider"), s.DataSourceClient(), s.TaskClient()); prvdrErr != nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
-	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
-	}
-
-	twiistJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", twiistProvider.ProviderName))
-	if err != nil {
-		return errors.Wrap(err, "unable to create twiist jwks")
-	}
-	if prvdr, prvdrErr := twiistProvider.New(s.ConfigReporter().WithScopes("provider"), s.dataClient, s.DataSourceClient(), twiistJWKS); prvdrErr != nil {
-		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
-	} else if prvdrErr = prvdrFctry.Add(prvdr); prvdrErr != nil {
-		return errors.Wrap(prvdrErr, "unable to add twiist provider")
-	}
 
 	return nil
 }
@@ -429,10 +491,10 @@ func (s *Service) terminateProviderFactory() {
 func (s *Service) initializeAuthClient() error {
 	s.Logger().Debug("Loading auth client config")
 
-	cfg := client.NewExternalConfig()
+	cfg := authClient.NewExternalConfig()
 	cfg.UserAgent = s.UserAgent()
 	reporter := s.ConfigReporter().WithScopes("auth", "client", "external")
-	loader := client.NewExternalConfigReporterLoader(reporter)
+	loader := authClient.NewExternalConfigReporterLoader(reporter)
 	if err := cfg.Load(loader); err != nil {
 		return errors.Wrap(err, "unable to load auth client config")
 	}
@@ -468,10 +530,60 @@ func (s *Service) terminateAuthClient() {
 	}
 }
 
+func (s *Service) initializeProviders() error {
+
+	configReporter := s.ConfigReporter().WithScopes("provider")
+
+	// Abbott
+	abbottJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(abbottProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create abbott jwks")
+	}
+	abbottProviderDependencies := abbottProvider.ProviderDependencies{
+		ConfigReporter:        configReporter,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		WorkClient:            s.workClient,
+		JWKS:                  abbottJWKS,
+	}
+	if prvdr, prvdrErr := abbottProvider.New(abbottProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create abbott provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add abbott provider")
+	}
+
+	// Dexcom
+	if prvdr, prvdrErr := dexcomProvider.New(configReporter, s.DataSourceClient(), s.TaskClient()); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	// twiist
+	twiistJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(twiistProvider.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create twiist jwks")
+	}
+	twiistProviderDependencies := twiistProvider.ProviderDependencies{
+		ConfigReporter:        configReporter,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		DataSetClient:         s.dataClient,
+		JWKS:                  twiistJWKS,
+	}
+	if prvdr, prvdrErr := twiistProvider.New(twiistProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create twiist provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add twiist provider")
+	}
+
+	return nil
+}
+
 func (s *Service) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := authEvents.NewUserDataDeletionHandler(ctx, s.authClient)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -524,40 +636,40 @@ func (s *Service) initializePartnerSecrets() error {
 	s.Logger().Debug("Initializing partner secrets")
 	var err error
 	var coastalSecrets *appvalidate.CoastalSecrets
-	var palmtreeSecrets *appvalidate.PalmTreeSecrets
+	var palmTreeSecrets *appvalidate.PalmTreeSecrets
 
 	// We are OK with partner secrets being missing so we only log any errors.
-	coastalCfg, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
+	coastalConfig, err := appvalidate.NewCoastalSecretsConfig(s.Logger())
 	if err != nil {
-		s.Logger().Warnf("error initializing Coastal config: %v", err)
+		s.Logger().Warnf("error initializing coastal config: %v", err)
 	} else {
-		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalCfg)
+		coastalSecrets, err = appvalidate.NewCoastalSecrets(s.Logger(), *coastalConfig)
 		if err != nil {
-			s.Logger().Warnf("error initializing Coastal secrets: %v", err)
+			s.Logger().Warnf("error initializing coastal secrets: %v", err)
 		}
 	}
 
-	palmtreeCfg, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
+	palmTreeConfig, err := appvalidate.NewPalmTreeSecretsConfig(s.Logger())
 	if err != nil {
-		s.Logger().Warnf("error initializing Palmtree config: %v", err)
+		s.Logger().Warnf("error initializing palm tree config: %v", err)
 	} else {
-		palmtreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmtreeCfg)
+		palmTreeSecrets, err = appvalidate.NewPalmTreeSecrets(s.Logger(), *palmTreeConfig)
 		if err != nil {
-			s.Logger().Warnf("error initializing Palmtree secrets: %v", err)
+			s.Logger().Warnf("error initializing palm tree secrets: %v", err)
 		}
 	}
-	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmtreeSecrets)
+	s.partnerSecrets = appvalidate.NewPartnerSecrets(coastalSecrets, palmTreeSecrets)
 	return nil
 }
 
 func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
 	s.Logger().Debug("Initializing twiist service account authorizer")
 
-	var err error
-	s.twiistServiceAccountAuthorizer, err = twiist.NewServiceAccountAuthorizer()
+	twiistServiceAccountAuthorizer, err := twiist.NewServiceAccountAuthorizer()
 	if err != nil {
 		return errors.Wrap(err, "unable to initialize twiist service account authorizer")
 	}
+	s.twiistServiceAccountAuthorizer = twiistServiceAccountAuthorizer
 
 	return nil
 }

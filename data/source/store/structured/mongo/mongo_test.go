@@ -2,7 +2,6 @@ package mongo_test
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"sort"
 	"time"
@@ -168,7 +167,7 @@ var _ = Describe("Mongo", func() {
 				var userID string
 
 				BeforeEach(func() {
-					userID = userTest.RandomID()
+					userID = userTest.RandomUserID()
 				})
 
 				Context("List", func() {
@@ -177,34 +176,40 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						filter = dataSource.NewFilter()
-						filter.UserID = pointer.FromString(userID)
 						pagination = page.NewPagination()
 					})
 
 					It("returns an error when the context is missing", func() {
 						ctx = nil
-						result, err := repository.List(ctx, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
+					It("returns an error when the user id is missing", func() {
+						userID = ""
+						result, err := repository.List(ctx, userID, filter, pagination)
+						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the user id is invalid", func() {
-						filter.UserID = pointer.FromString("invalid")
-						result, err := repository.List(ctx, filter, pagination)
-						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
+						userID = "invalid"
+						result, err := repository.List(ctx, userID, filter, pagination)
+						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the filter is invalid", func() {
 						filter.ProviderType = pointer.FromStringArray([]string{""})
-						result, err := repository.List(ctx, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the pagination is invalid", func() {
 						pagination.Page = -1
-						result, err := repository.List(ctx, filter, pagination)
+						result, err := repository.List(ctx, userID, filter, pagination)
 						errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
 						Expect(result).To(BeNil())
 					})
@@ -238,10 +243,8 @@ var _ = Describe("Mongo", func() {
 									randomResult.ProviderExternalID = pointer.FromString(providerExternalID)
 								}
 								userResult := dataSourceTest.CloneSource(randomResult)
-								userResult.ID = pointer.FromString(dataSourceTest.RandomID())
+								userResult.ID = pointer.FromString(dataSourceTest.RandomDataSourceID())
 								userResult.UserID = pointer.FromString(userID)
-								// Make all results sortable
-								userResult.CreatedTime = pointer.FromAny(userResult.CreatedTime.Add(time.Millisecond))
 								allResult = append(allResult, randomResult, userResult)
 							}
 							rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
@@ -250,136 +253,135 @@ var _ = Describe("Mongo", func() {
 						})
 
 						It("returns no result when the user id is unknown", func() {
-							filter.UserID = pointer.FromString(userTest.RandomID())
-							Expect(repository.List(ctx, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 0})
+							userID = userTest.RandomUserID()
+							Expect(repository.List(ctx, userID, filter, pagination)).To(SatisfyAll(Not(BeNil()), BeEmpty()))
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 0})
 						})
 
 						It("returns expected result when the filter is missing", func() {
 							filter = nil
-							Expect(repository.List(ctx, filter, pagination)).To(HaveExactElements(SelectAndSort(allResult,
-								func(s *dataSource.Source) bool { return true },
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
+								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							fmt.Println(len(allResult))
-							logger.AssertDebug("List", log.Fields{"pagination": pagination, "count": 24})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider type is missing", func() {
 							filter.ProviderType = nil
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider type is specified", func() {
 							filter.ProviderType = pointer.FromStringArray([]string{providerType})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider name is missing", func() {
 							filter.ProviderName = nil
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider name is specified", func() {
 							filter.ProviderName = pointer.FromStringArray([]string{providerName})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderName == providerName
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 6})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 6})
 						})
 
 						It("returns expected result when the filter provider session id is missing", func() {
 							filter.ProviderSessionID = nil
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider session id is specified", func() {
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 6})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 6})
 						})
 
 						It("returns expected result when the filter state is missing", func() {
 							filter.State = nil
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter state is set to connected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateConnected
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateDisconnected
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateError})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.State == dataSource.StateError
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 4})
 						})
 
 						It("returns expected result when the filter state is set to both connected and disconnected", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 8})
 						})
 
 						It("returns expected result when the filter state is set to both disconnected and error", func() {
 							filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected, dataSource.StateError})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && (*s.State == dataSource.StateDisconnected || *s.State == dataSource.StateError)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 8})
 						})
 
 						It("returns expected result when the filter state is set to all states", func() {
 							filter.State = pointer.FromStringArray(dataSource.States())
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 12})
 						})
 
 						It("returns expected result when the filter provider type, provider name, provider session id, and state is set to connected and disconnected", func() {
@@ -388,7 +390,7 @@ var _ = Describe("Mongo", func() {
 							filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
 							filter.ProviderExternalID = pointer.FromStringArray([]string{providerExternalID})
 							filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool {
 									return *s.UserID == userID && *s.ProviderName == providerName &&
 										s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID &&
@@ -396,24 +398,24 @@ var _ = Describe("Mongo", func() {
 										(*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
 								},
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 2})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
 
 						It("returns expected result when the pagination is missing", func() {
 							pagination = nil
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "count": 12})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "count": 12})
 						})
 
 						It("returns expected result when the pagination limits result", func() {
 							pagination.Page = 1
 							pagination.Size = 2
-							Expect(repository.List(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							Expect(repository.List(ctx, userID, filter, pagination)).To(Equal(SelectAndSort(allResult,
 								func(s *dataSource.Source) bool { return *s.UserID == userID },
 							)[2:4]))
-							logger.AssertDebug("List", log.Fields{"filter": filter, "pagination": pagination, "count": 2})
+							logger.AssertDebug("List", log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "count": 2})
 						})
 					})
 				})
@@ -466,7 +468,7 @@ var _ = Describe("Mongo", func() {
 							"UserID":             PointTo(Equal(userID)),
 							"ProviderType":       Equal(create.ProviderType),
 							"ProviderName":       Equal(create.ProviderName),
-							"ProviderSessionID":  Equal(create.ProviderSessionID),
+							"ProviderSessionID":  BeNil(),
 							"ProviderExternalID": Equal(create.ProviderExternalID),
 							"State":              Equal(pointer.FromString(dataSource.StateDisconnected)),
 							"Metadata":           Equal(create.Metadata),
@@ -536,7 +538,7 @@ var _ = Describe("Mongo", func() {
 
 						It("returns false and does not destroy the original when the id does not exist", func() {
 							originalUserID := userID
-							userID = userTest.RandomID()
+							userID = userTest.RandomUserID()
 							Expect(repository.DestroyAll(ctx, userID)).To(BeFalse())
 							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"userId": originalUserID})).To(Equal(int64(len(originals))))
 							Expect(mongoCollection.CountDocuments(context.Background(), bson.M{})).To(Equal(int64(len(originals) + 2)))
@@ -555,7 +557,7 @@ var _ = Describe("Mongo", func() {
 				var id string
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -600,7 +602,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns nil when the id does not exist", func() {
-						id = dataSourceTest.RandomID()
+						id = dataSourceTest.RandomDataSourceID()
 						Expect(repository.Get(ctx, id)).To(BeNil())
 					})
 
@@ -627,7 +629,7 @@ var _ = Describe("Mongo", func() {
 				var update *dataSource.Update
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 					condition = requestTest.RandomCondition()
 					update = dataSourceTest.RandomUpdate()
 				})
@@ -812,7 +814,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = dataSourceTest.RandomID()
+								id = dataSourceTest.RandomDataSourceID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -827,7 +829,7 @@ var _ = Describe("Mongo", func() {
 							})
 
 							It("returns nil when the id does not exist", func() {
-								id = dataSourceTest.RandomID()
+								id = dataSourceTest.RandomDataSourceID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
 							})
 						})
@@ -864,7 +866,7 @@ var _ = Describe("Mongo", func() {
 				var condition *request.Condition
 
 				BeforeEach(func() {
-					id = dataSourceTest.RandomID()
+					id = dataSourceTest.RandomDataSourceID()
 					condition = requestTest.RandomCondition()
 				})
 
@@ -915,7 +917,7 @@ var _ = Describe("Mongo", func() {
 					})
 
 					It("returns false and does not destroy the original when the id does not exist", func() {
-						id = dataSourceTest.RandomID()
+						id = dataSourceTest.RandomDataSourceID()
 						Expect(repository.Destroy(ctx, id, condition)).To(BeFalse())
 						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(1)))
 					})
@@ -942,6 +944,237 @@ var _ = Describe("Mongo", func() {
 						condition.Revision = pointer.CloneInt(original.Revision)
 						Expect(repository.Destroy(ctx, id, condition)).To(BeTrue())
 						Expect(mongoCollection.CountDocuments(context.Background(), bson.M{"id": original.ID})).To(Equal(int64(0)))
+					})
+				})
+			})
+
+			Context("ListAll", func() {
+				var filter *dataSource.Filter
+				var pagination *page.Pagination
+
+				BeforeEach(func() {
+					filter = dataSource.NewFilter()
+					pagination = page.NewPagination()
+				})
+
+				It("returns an error when the context is missing", func() {
+					ctx = nil
+					result, err := repository.ListAll(ctx, filter, pagination)
+					errorsTest.ExpectEqual(err, errors.New("context is missing"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the filter is invalid", func() {
+					filter.ProviderType = pointer.FromStringArray([]string{""})
+					result, err := repository.ListAll(ctx, filter, pagination)
+					errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
+					Expect(result).To(BeNil())
+				})
+
+				It("returns an error when the pagination is invalid", func() {
+					pagination.Page = -1
+					result, err := repository.ListAll(ctx, filter, pagination)
+					errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
+					Expect(result).To(BeNil())
+				})
+
+				Context("with data", func() {
+					var providerType string
+					var providerName string
+					var providerSessionID string
+					var providerExternalID string
+					var allResult dataSource.SourceArray
+
+					BeforeEach(func() {
+						providerType = auth.ProviderTypeOAuth
+						providerName = authTest.RandomProviderName()
+						providerSessionID = authTest.RandomProviderSessionID()
+						providerExternalID = authTest.RandomProviderExternalID()
+						allResult = dataSource.SourceArray{}
+						for index, randomResult := range dataSourceTest.RandomSourceArray(12, 12) {
+							if index < 4 {
+								randomResult.State = pointer.FromString(dataSource.StateConnected)
+							} else if index < 8 {
+								randomResult.State = pointer.FromString(dataSource.StateDisconnected)
+							} else {
+								randomResult.State = pointer.FromString(dataSource.StateError)
+							}
+							if index%2 == 0 {
+								randomResult.ProviderName = pointer.FromString(providerName)
+							}
+							if (index/2)%2 == 0 {
+								randomResult.ProviderSessionID = pointer.FromString(providerSessionID)
+								randomResult.ProviderExternalID = pointer.FromString(providerExternalID)
+							}
+							userResult := dataSourceTest.CloneSource(randomResult)
+							userResult.ID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+							// Make all results sortable
+							userResult.CreatedTime = pointer.FromAny(userResult.CreatedTime.Add(time.Millisecond))
+							allResult = append(allResult, randomResult, userResult)
+						}
+						rand.Shuffle(len(allResult), func(i, j int) { allResult[i], allResult[j] = allResult[j], allResult[i] })
+						_, err := mongoCollection.InsertMany(context.Background(), AsInterfaceArray(allResult))
+						Expect(err).ToNot(HaveOccurred())
+					})
+
+					It("returns expected result when the filter is missing", func() {
+						filter = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(HaveExactElements(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider type is missing", func() {
+						filter.ProviderType = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider type is specified", func() {
+						filter.ProviderType = pointer.FromStringArray([]string{providerType})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider name is missing", func() {
+						filter.ProviderName = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider name is specified", func() {
+						filter.ProviderName = pointer.FromStringArray([]string{providerName})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.ProviderName == providerName
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+					})
+
+					It("returns expected result when the filter provider session id is missing", func() {
+						filter.ProviderSessionID = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider session id is specified", func() {
+						filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 12})
+					})
+
+					It("returns expected result when the filter state is missing", func() {
+						filter.State = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter state is set to connected", func() {
+						filter.State = pointer.FromStringArray([]string{dataSource.StateConnected})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.State == dataSource.StateConnected
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
+					})
+
+					It("returns expected result when the filter state is set to disconnected", func() {
+						filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.State == dataSource.StateDisconnected
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
+					})
+
+					It("returns expected result when the filter state is set to error", func() {
+						filter.State = pointer.FromStringArray([]string{dataSource.StateError})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.State == dataSource.StateError
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 8})
+					})
+
+					It("returns expected result when the filter state is set to both connected and disconnected", func() {
+						filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 16})
+					})
+
+					It("returns expected result when the filter state is set to both disconnected and error", func() {
+						filter.State = pointer.FromStringArray([]string{dataSource.StateDisconnected, dataSource.StateError})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.State == dataSource.StateDisconnected || *s.State == dataSource.StateError
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 16})
+					})
+
+					It("returns expected result when the filter state is set to all states", func() {
+						filter.State = pointer.FromStringArray(dataSource.States())
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 24})
+					})
+
+					It("returns expected result when the filter provider type, provider name, provider session id, and state is set to connected and disconnected", func() {
+						filter.ProviderType = pointer.FromStringArray([]string{providerType})
+						filter.ProviderName = pointer.FromStringArray([]string{providerName})
+						filter.ProviderSessionID = pointer.FromStringArray([]string{providerSessionID})
+						filter.ProviderExternalID = pointer.FromStringArray([]string{providerExternalID})
+						filter.State = pointer.FromStringArray([]string{dataSource.StateConnected, dataSource.StateDisconnected})
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool {
+								return *s.ProviderName == providerName &&
+									s.ProviderSessionID != nil && *s.ProviderSessionID == providerSessionID &&
+									s.ProviderExternalID != nil && *s.ProviderExternalID == providerExternalID &&
+									(*s.State == dataSource.StateConnected || *s.State == dataSource.StateDisconnected)
+							},
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 4})
+					})
+
+					It("returns expected result when the pagination is missing", func() {
+						pagination = nil
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "count": 24})
+					})
+
+					It("returns expected result when the pagination limits result", func() {
+						pagination.Page = 1
+						pagination.Size = 2
+						Expect(repository.ListAll(ctx, filter, pagination)).To(Equal(SelectAndSort(allResult,
+							func(s *dataSource.Source) bool { return true },
+						)[2:4]))
+						logger.AssertDebug("ListAll", log.Fields{"filter": filter, "pagination": pagination, "count": 2})
 					})
 				})
 			})

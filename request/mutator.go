@@ -50,6 +50,42 @@ func (h *HeaderMutator) MutateResponse(res http.ResponseWriter) error {
 	return nil
 }
 
+type HeadersMutator struct {
+	Header http.Header
+}
+
+func NewHeadersMutator(header http.Header) *HeadersMutator {
+	return &HeadersMutator{
+		Header: header,
+	}
+}
+
+func (h *HeadersMutator) MutateRequest(req *http.Request) error {
+	if req == nil {
+		return errors.New("request is missing")
+	}
+
+	for key, values := range h.Header {
+		for _, value := range values {
+			req.Header.Add(key, value)
+		}
+	}
+	return nil
+}
+
+func (h *HeadersMutator) MutateResponse(res http.ResponseWriter) error {
+	if res == nil {
+		return errors.New("response is missing")
+	}
+
+	for key, values := range h.Header {
+		for _, value := range values {
+			res.Header().Add(key, value)
+		}
+	}
+	return nil
+}
+
 type ParameterMutator struct {
 	Key   string
 	Value string

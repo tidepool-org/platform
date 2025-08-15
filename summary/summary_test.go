@@ -70,7 +70,7 @@ var _ = Describe("End to end summary calculations", func() {
 		bucketsRepo = mongoStore.NewBucketsRepository().GetStore()
 		dataRepo = mongoStore.NewDataRepository()
 		registry = summary.New(summaryRepo, bucketsRepo, dataRepo, mongoStore.GetClient())
-		userId = userTest.RandomID()
+		userId = userTest.RandomUserID()
 		datumTime = time.Now().UTC().Truncate(time.Hour)
 		dataCollection = mongoStore.GetCollection("deviceData")
 

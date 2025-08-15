@@ -2,15 +2,17 @@ package test
 
 import (
 	"math"
+	"math/rand/v2"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/test"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
-	"github.com/tidepool-org/platform/data/types/upload"
-	dataTypesUploadTest "github.com/tidepool-org/platform/data/types/upload/test"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/summary/types"
 )
@@ -84,7 +86,19 @@ func CalculateStdDevAndVariance(x []float64) (float64, float64) {
 	return math.Sqrt(variance), variance
 }
 
-func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
+func NewContinuousGlucoseDatum(units *string, datumTime *time.Time, deviceID *string, uploadID *string) *continuous.Continuous {
+	c := continuous.New()
+	c.Glucose = *newGlucoseDatum(&c.Type, units, datumTime, deviceID, uploadID)
+	return c
+}
+
+func NewSelfMonitoredGlucoseDatum(units *string, datumTime *time.Time, deviceID *string, uploadID *string) *selfmonitored.SelfMonitored {
+	s := selfmonitored.New()
+	s.Glucose = *newGlucoseDatum(&s.Type, units, datumTime, deviceID, uploadID)
+	return s
+}
+
+func newGlucoseDatum(typ *string, units *string, datumTime *time.Time, deviceID *string, uploadId *string) *glucose.Glucose {
 	timestamp := time.Now().UTC().Truncate(time.Millisecond)
 	datum := glucose.New(*typ)
 	datum.Units = units
@@ -105,10 +119,105 @@ func NewGlucose(typ *string, units *string, datumTime *time.Time, deviceID *stri
 	return &datum
 }
 
+func NewContinuousGlucoseWithValue(datumTime time.Time, value float64) *continuous.Continuous {
+	c := NewContinuousGlucoseDatum(&Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
+	c.Value = &value
+	return c
+}
+
+func NewSelfMonitoredGlucoseWithValue(datumTime time.Time, value float64) *selfmonitored.SelfMonitored {
+	s := NewSelfMonitoredGlucoseDatum(&Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
+	s.Value = &value
+	return s
+}
+
 func NewGlucoseWithValue(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomSetID()))
+	g = newGlucoseDatum(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.Value = &value
 	return
+}
+
+func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []data.Datum {
+	requiredRecords := int(hours * 12)
+	dataSetData := make([]data.Datum, requiredRecords)
+	deviceId := "SummaryTestDevice"
+	uploadId := test.RandomDataSetID()
+
+	// generate X hours of data
+	for count := 0; count < requiredRecords; count += 2 {
+		randValue := 1 + rand.Float64()*(reqAvg-1)
+		glucoseValues := [2]float64{reqAvg + randValue, reqAvg - randValue}
+
+		// this adds 2 entries, one for each side of the average so that the calculated average is the requested value
+		for i, glucoseValue := range glucoseValues {
+			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
+
+			datum := NewContinuousGlucoseDatum(&Units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(glucoseValue)
+
+			dataSetData[requiredRecords-count-i-1] = datum
+		}
+	}
+
+	return dataSetData
+}
+
+// creates a dataset with random values evenly divided between ranges
+func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
+	perHour := 12.0
+	requiredRecords := int(hours * perHour)
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomDataSetID()
+	deviceId := "SummaryTestDevice"
+
+	glucoseBrackets := [6][2]float64{
+		{ranges.Min, ranges.VeryLow - ranges.Padding},
+		{ranges.VeryLow, ranges.Low - ranges.Padding},
+		{ranges.Low, ranges.High - ranges.Padding},
+		{ranges.High, ranges.VeryHigh - ranges.Padding},
+		{ranges.VeryHigh, ranges.ExtremeHigh - ranges.Padding},
+		{ranges.ExtremeHigh, ranges.Max},
+	}
+
+	// generate requiredRecords of data
+	for count := 0; count < requiredRecords; count += 6 {
+		for i, bracket := range glucoseBrackets {
+			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
+
+			datum := NewContinuousGlucoseDatum(&Units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(bracket[0] + (bracket[1]-bracket[0])*rand.Float64())
+
+			dataSetData[requiredRecords-count-i-1] = datum
+		}
+	}
+
+	return dataSetData
+}
+
+func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, StandardDeviation float64) ([]data.Datum, float64) {
+	requiredRecords := hours * perHour
+	dataSetData := make([]data.Datum, requiredRecords)
+	uploadId := test.RandomDataSetID()
+	deviceId := "SummaryTestDevice"
+
+	var values []float64
+
+	// generate requiredRecords of data
+	for count := 0; count < requiredRecords; count += perHour {
+		for inHour := 0; inHour < perHour; inHour++ {
+			datumTime := startTime.Add(time.Duration(-(count + inHour + 1)) * time.Hour / time.Duration(perHour))
+
+			datum := NewContinuousGlucoseDatum(&Units, &datumTime, &deviceId, &uploadId)
+			datum.Value = pointer.FromAny(rand.NormFloat64()*StandardDeviation + VeryHighBloodGlucose)
+
+			values = append(values, *datum.Value)
+
+			dataSetData[requiredRecords-(count+inHour+1)] = datum
+		}
+	}
+
+	stdDev, _ := CalculateStdDevAndVariance(values)
+	return dataSetData, stdDev
 }
 
 func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, minutes bool) []*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket] {
@@ -195,15 +304,15 @@ func CreateContinuousBuckets(startTime time.Time, hours int, recordsPerBucket in
 	return buckets
 }
 
-func NewDeferredGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomSetID()))
+func NewDeferredGlucose(datumTime time.Time, value float64) (g *continuous.Continuous) {
+	g = NewContinuousGlucoseDatum(&Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.CreatedTime = pointer.FromAny(datumTime.AddDate(0, 0, 1))
 	g.Value = &value
 	return g
 }
 
-func NewRealtimeGlucose(typ string, datumTime time.Time, value float64) (g *glucose.Glucose) {
-	g = NewGlucose(&typ, &Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomSetID()))
+func NewRealtimeGlucose(datumTime time.Time, value float64) (g *continuous.Continuous) {
+	g = NewContinuousGlucoseDatum(&Units, &datumTime, pointer.FromAny("SummaryTestDevice"), pointer.FromAny(test.RandomDataSetID()))
 	g.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
 	g.Value = &value
 	return g
@@ -220,15 +329,28 @@ func NewDataSetDataRealtime(typ string, userId string, uploadId string, startTim
 	for count := 0; count < requiredRecords; count += 1 {
 		datumTime := startTime.Add(time.Duration(count-requiredRecords) * time.Minute * 30)
 
-		datum := NewGlucose(&typ, &Units, &datumTime, &deviceId, &uploadId)
-		datum.Value = glucoseValue
-		datum.UserID = &userId
+		if typ == "cbg" {
+			datum := NewContinuousGlucoseDatum(&Units, &datumTime, &deviceId, &uploadId)
+			datum.Value = glucoseValue
+			datum.UserID = &userId
 
-		if realtime {
-			datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+			if realtime {
+				datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+			}
+
+			dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
+		} else if typ == "smbg" {
+			datum := NewSelfMonitoredGlucoseDatum(&Units, &datumTime, &deviceId, &uploadId)
+			datum.Value = glucoseValue
+			datum.UserID = &userId
+
+			if realtime {
+				datum.CreatedTime = pointer.FromAny(datumTime.Add(5 * time.Minute))
+			}
+
+			dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
 		}
 
-		dataSetData[count] = mongo.NewInsertOneModel().SetDocument(datum)
 	}
 
 	return dataSetData
@@ -244,24 +366,20 @@ func SliceToInsertWriteModel[T any](d []T) []mongo.WriteModel {
 	return w
 }
 
-func NewDataSet(userID string, typ string) *upload.Upload {
+func NewDataSet(userID string, typ string) *data.DataSet {
 	var deviceId = "SummaryTestDevice"
 	var timestamp = time.Now().UTC().Truncate(time.Millisecond)
 
-	dataSet := dataTypesUploadTest.RandomUpload()
+	dataSet := test.RandomDataSet()
 	dataSet.DataSetType = &typ
 	dataSet.Active = true
-	dataSet.ArchivedDataSetID = nil
-	dataSet.ArchivedTime = nil
 	dataSet.CreatedTime = &timestamp
 	dataSet.CreatedUserID = nil
 	dataSet.DeletedTime = nil
 	dataSet.DeletedUserID = nil
 	dataSet.DeviceID = &deviceId
-	dataSet.Location.GPS.Origin.Time = nil
 	dataSet.ModifiedTime = &timestamp
 	dataSet.ModifiedUserID = nil
-	dataSet.Origin.Time = nil
 	dataSet.UserID = &userID
 	return dataSet
 }

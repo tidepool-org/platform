@@ -9,8 +9,12 @@ import (
 	"github.com/tidepool-org/platform/data"
 )
 
-type DatumCreator func() data.Datum
+type DatumCreator func(typ string) (data.Datum, error)
 type DataCursorFactory func(cursor *mongo.Cursor) DeviceDataCursor
+
+type datumType struct {
+	Type string `bson:"type"`
+}
 
 func NewDefaultCursor(c *mongo.Cursor, create DatumCreator) DeviceDataCursor {
 	return &DefaultCursor{
@@ -54,7 +58,17 @@ func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) 
 		if userData == nil {
 			userData = make([]data.Datum, 0, d.RemainingBatchLength())
 		}
-		datum := d.create()
+
+		typ := &datumType{}
+		if err := d.Decode(typ); err != nil {
+			return nil, fmt.Errorf("unable to decode datum type: %w", err)
+		}
+
+		datum, err := d.create(typ.Type)
+		if err != nil {
+			return nil, fmt.Errorf("unable to create datum with type: %w", err)
+		}
+
 		if err := d.Decode(datum); err != nil {
 			return nil, fmt.Errorf("unable to decode userData: %w", err)
 		}

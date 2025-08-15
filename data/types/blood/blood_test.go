@@ -91,44 +91,77 @@ var _ = Describe("Blood", func() {
 		Context("IdentityFields", func() {
 			var datumBlood *blood.Blood
 			var datum data.Datum
+			var version string
 
 			BeforeEach(func() {
 				datumBlood = dataTypesBloodTest.NewBlood()
 				datum = datumBlood
 			})
 
-			It("returns error if user id is missing", func() {
-				datumBlood.UserID = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is missing"))
-				Expect(identityFields).To(BeEmpty())
+			identityFieldsAssertions := func() {
+				It("returns error if user id is missing", func() {
+					datumBlood.UserID = nil
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("user id is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if user id is empty", func() {
+					datumBlood.UserID = pointer.FromString("")
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("user id is empty"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if units is missing", func() {
+					datumBlood.Units = nil
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("units is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+
+				It("returns error if value is missing", func() {
+					datumBlood.Value = nil
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).To(MatchError("value is missing"))
+					Expect(identityFields).To(BeEmpty())
+				})
+			}
+
+			When("version is IdentityFieldsVersionDefault", func() {
+				BeforeEach(func() {
+					version = types.IdentityFieldsVersionDeviceID
+				})
+
+				identityFieldsAssertions()
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBlood.UserID, *datumBlood.DeviceID, (*datumBlood.Time).Format(ExpectedTimeFormat), datumBlood.Type, *datumBlood.Units, strconv.FormatFloat(*datumBlood.Value, 'f', -1, 64)}))
+				})
 			})
 
-			It("returns error if user id is empty", func() {
-				datumBlood.UserID = pointer.FromString("")
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("user id is empty"))
-				Expect(identityFields).To(BeEmpty())
+			When("version is IdentityFieldsVersionDataSetID", func() {
+				BeforeEach(func() {
+					version = types.IdentityFieldsVersionDataSetID
+				})
+
+				identityFieldsAssertions()
+
+				It("returns the expected identity fields", func() {
+					identityFields, err := datum.IdentityFields(version)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(identityFields).To(Equal([]string{*datumBlood.UserID, *datumBlood.UploadID, (*datumBlood.Time).Format(ExpectedTimeFormat), datumBlood.Type, *datumBlood.Units, strconv.FormatFloat(*datumBlood.Value, 'f', -1, 64)}))
+				})
 			})
 
-			It("returns error if units is missing", func() {
-				datumBlood.Units = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("units is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns error if value is missing", func() {
-				datumBlood.Value = nil
-				identityFields, err := datum.IdentityFields()
-				Expect(err).To(MatchError("value is missing"))
-				Expect(identityFields).To(BeEmpty())
-			})
-
-			It("returns the expected identity fields", func() {
-				identityFields, err := datum.IdentityFields()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(identityFields).To(Equal([]string{*datumBlood.UserID, *datumBlood.DeviceID, (*datumBlood.Time).Format(ExpectedTimeFormat), datumBlood.Type, *datumBlood.Units, strconv.FormatFloat(*datumBlood.Value, 'f', -1, 64)}))
+			When("version is invalid", func() {
+				It("returns an error", func() {
+					identityFields, err := datum.IdentityFields("invalid")
+					Expect(err).To(MatchError("version is invalid"))
+					Expect(identityFields).To(BeEmpty())
+				})
 			})
 		})
 	})

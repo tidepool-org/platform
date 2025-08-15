@@ -50,7 +50,7 @@ func NewObjectFromBasalDelivery(datum *dataTypesStatusPump.BasalDelivery, object
 func RandomBasalDose() *dataTypesStatusPump.BasalDose {
 	datum := dataTypesStatusPump.NewBasalDose()
 	datum.StartTime = pointer.FromTime(test.RandomTime())
-	datum.EndTime = pointer.FromTime(test.RandomTimeFromRange(*datum.StartTime, test.RandomTimeMaximum()))
+	datum.EndTime = pointer.FromTime(test.RandomTimeAfter(*datum.StartTime))
 	datum.Rate = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseRateMinimum, dataTypesStatusPump.BasalDoseRateMaximum))
 	datum.AmountDelivered = pointer.FromFloat64(test.RandomFloat64FromRange(dataTypesStatusPump.BasalDoseAmountDeliveredMinimum, dataTypesStatusPump.BasalDoseAmountDeliveredMaximum))
 	return datum

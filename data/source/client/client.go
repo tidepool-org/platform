@@ -29,28 +29,27 @@ func New(config *platform.Config, authorizeAs platform.AuthorizeAs) (*Client, er
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *Client) List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
+	}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return nil, errors.New("user id is invalid")
 	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
-	if filter.UserID == nil {
-		return nil, errors.New("user id is missing")
-	} else if !user.IsValidID(*filter.UserID) {
-		return nil, errors.New("user id is invalid")
-	}
-
 	if pagination == nil {
 		pagination = page.NewPagination()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	url := c.client.ConstructURL("v1", "users", *filter.UserID, "data_sources")
+	url := c.client.ConstructURL("v1", "users", userID, "data_sources")
 	result := dataSource.SourceArray{}
 	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{filter, pagination}, nil, &result); err != nil {
 		return nil, err
