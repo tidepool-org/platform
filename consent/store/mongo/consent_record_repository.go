@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/consent"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/pointer"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -134,32 +135,34 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	return &result, nil
 }
 
-func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
-	consentRecord, err := consent.NewConsentRecord(ctx, userID, create)
+func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, record *consent.Record) error {
+	err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(record)
 	if err != nil {
-		return nil, err
-	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(consentRecord); err != nil {
-		return nil, errors.Wrap(err, "consent record is invalid")
+		return errors.Wrap(err, "consent record is invalid")
 	}
-
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
-
+	if record.ID == "" {
+		record.ID = id.Must(id.New(16))
+	}
+	if record.CreatedTime.IsZero() {
+		record.CreatedTime = time.Now()
+	}
 	result, err := p.ListConsentRecords(ctx, userID, &consent.RecordFilter{
-		Type:   pointer.FromAny(create.Type),
+		Type:   pointer.FromAny(record.Type),
 		Latest: pointer.FromAny(true),
 		Status: pointer.FromAny(consent.RecordStatusActive),
 	}, &page.Pagination{Page: 0, Size: 1})
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to list existing active consent records for type")
+		return errors.Wrap(err, "unable to list existing active consent records for type")
 	}
 	if len(result.Data) > 0 {
-		return nil, errors.Newf("active consent record with type %s already exists", consentRecord.Type)
+		return errors.Newf("active consent record with type %s already exists", record.Type)
 	}
 
-	_, err = p.InsertOne(ctx, consentRecord)
-	logger.WithFields(log.Fields{"id": consentRecord.ID}).WithError(err).Debug("CreateConsentRecord")
+	if _, err := p.InsertOne(ctx, record); err != nil {
+		return err
+	}
 
-	return consentRecord, err
+	return nil
 }
 
 func (p *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userID string, revoke *consent.RecordRevoke) error {
