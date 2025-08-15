@@ -21,6 +21,8 @@ type ConsentService struct {
 	dbClient                *mongoDriver.Client
 }
 
+var _ consent.Service = (*ConsentService)(nil)
+
 func NewConsentService(consentMailer *ConsentMailer, bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client) consent.Service {
 	return &ConsentService{
 		bddpSharer:              bddpSharer,
@@ -89,7 +91,8 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			}
 		}
 
-		record, err := c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, create)
+		record := create.ToRecord()
+		err = c.consentRecordRepository.CreateConsentRecord(sessCtx, userID, record)
 		if err != nil {
 			return nil, errors.Wrapf(err, "unable to create consent record for type %s", create.Type)
 		}

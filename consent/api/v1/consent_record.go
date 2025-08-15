@@ -1,8 +1,6 @@
 package v1
 
 import (
-	"bytes"
-	"io"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -98,11 +96,13 @@ func (r *Router) CreateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 		return
 	}
 
-	create := consent.NewConsentRecordCreate()
+	create := &consent.RecordCreate{}
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
+	create.UserID = userID
+	create.Status = consent.RecordStatusActive
 
 	consentRecord, err := r.service.CreateConsentRecord(req.Context(), userID, create)
 	if err != nil {
@@ -143,18 +143,8 @@ func (r *Router) UpdateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 		return
 	}
 
-	body, _ := io.ReadAll(req.Body)
-	req.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	update, err := consent.NewConsentRecordUpdate(body, consentRecord)
-	if err = request.DecodeRequestBody(req.Request, update); err != nil {
+	if err = request.DecodeRequestBody(req.Request, consentRecord.ToUpdate()); err != nil {
 		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-
-	consentRecord, err = update.ApplyPatch()
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 

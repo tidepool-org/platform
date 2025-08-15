@@ -2,19 +2,14 @@ package consent
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/id"
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
 const (
@@ -46,7 +41,6 @@ type RecordAccessor interface {
 	UpdateConsentRecord(context.Context, *Record) (*Record, error)
 }
 
-type Records []Record
 type Record struct {
 	ID                 string          `json:"id" bson:"id"`
 	UserID             string          `json:"userId" bson:"userId"`
@@ -62,34 +56,6 @@ type Record struct {
 	RevocationTime     *time.Time      `json:"revocationTime,omitempty" bson:"revocationTime,omitempty"`
 	CreatedTime        time.Time       `json:"createdTime" bson:"createdTime"`
 	ModifiedTime       time.Time       `json:"modifiedTime" bson:"modifiedTime"`
-}
-
-func NewConsentRecord(ctx context.Context, userID string, create *RecordCreate) (*Record, error) {
-	if userID == "" {
-		return nil, errors.New("user id is missing")
-	}
-	if create == nil {
-		return nil, errors.New("create is missing")
-	}
-	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
-		return nil, errors.Wrap(err, "create is invalid")
-	}
-
-	return &Record{
-		ID:                 NewConsentRecordID(),
-		UserID:             userID,
-		Status:             RecordStatusActive,
-		AgeGroup:           create.AgeGroup,
-		OwnerName:          create.OwnerName,
-		ParentGuardianName: create.ParentGuardianName,
-		GrantorType:        create.GrantorType,
-		Type:               create.Type,
-		Version:            create.Version,
-		Metadata:           create.Metadata,
-		GrantTime:          create.CreatedTime,
-		CreatedTime:        create.CreatedTime,
-		ModifiedTime:       time.Now(),
-	}, nil
 }
 
 func (c *Record) Validate(validator structure.Validator) {
@@ -120,22 +86,14 @@ func (c *Record) Validate(validator structure.Validator) {
 	}
 }
 
-type RecordCreate struct {
-	AgeGroup           AgeGroup        `json:"ageGroup" bson:"ageGroup"`
-	CreatedTime        time.Time       `bson:"createdTime"`
-	GrantorType        GrantorType     `json:"grantorType" bson:"grantorType"`
-	Metadata           *RecordMetadata `json:"metadata" bson:"metadata"`
-	OwnerName          string          `json:"ownerName" bson:"ownerName"`
-	ParentGuardianName *string         `json:"parentGuardianName,omitempty" bson:"parentGuardianName"`
-	Type               string          `json:"type" bson:"type"`
-	Version            int             `json:"version" bson:"version"`
+// ToUpdate is a helper for changing the Parse and/or Validation behavior of Record.
+func (r *Record) ToUpdate() *RecordUpdate {
+	update := RecordUpdate(*r)
+	return &update
 }
 
-func NewConsentRecordCreate() *RecordCreate {
-	return &RecordCreate{
-		CreatedTime: time.Now(),
-	}
-}
+// RecordCreate extends Record to allow only specific fields at creation.
+type RecordCreate Record
 
 func (r *RecordCreate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("ageGroup"); ptr != nil {
@@ -162,7 +120,6 @@ func (r *RecordCreate) Parse(parser structure.ObjectParser) {
 
 func (r *RecordCreate) Validate(validator structure.Validator) {
 	validator.String("ageGroup", structure.ValueAsString(&r.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
-	validator.Time("createdTime", &r.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
 	r.Metadata.Validator(r.Type)(validator.WithReference("metadata"))
 	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
@@ -182,8 +139,9 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	}
 }
 
-func NewConsentRecordID() string {
-	return id.Must(id.New(16))
+func (r *RecordCreate) ToRecord() *Record {
+	record := Record(*r)
+	return &record
 }
 
 type RecordFilter struct {
@@ -294,32 +252,8 @@ func BigDataDonationProjectOrganizations() []BigDataDonationProjectOrganization 
 	}
 }
 
-type RecordUpdate struct {
-	raw    json.RawMessage
-	record *Record
-
-	Metadata *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
-}
-
-func NewConsentRecordUpdate(body []byte, record *Record) (*RecordUpdate, error) {
-	raw := json.RawMessage{}
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, err
-	}
-
-	return &RecordUpdate{
-		raw:    raw,
-		record: record,
-	}, nil
-}
-
-func (r *RecordUpdate) ApplyPatch() (*Record, error) {
-	if err := json.Unmarshal(r.raw, r.record); err != nil {
-		return nil, errors.Wrap(err, "unable to unmarshal patch")
-	}
-
-	return r.record, nil
-}
+// RecordUpdate extends Record to allow only specific fields to be modified.
+type RecordUpdate Record
 
 func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
 	if metadataParser := parser.WithReferenceObjectParser("metadata"); metadataParser.Exists() {
@@ -329,7 +263,12 @@ func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RecordUpdate) Validate(validator structure.Validator) {
-	r.Metadata.Validator(r.record.Type)(validator.WithReference("metadata"))
+	r.ToRecord().Validate(validator)
+}
+
+func (r *RecordUpdate) ToRecord() *Record {
+	record := Record(*r)
+	return &record
 }
 
 type RecordRevoke struct {
