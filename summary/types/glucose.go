@@ -9,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 )
 
 const (
@@ -141,8 +140,9 @@ func (r *Range) UpdateTotal(record Glucose) {
 	duration := record.Duration()
 
 	// this must occur before the regular update as the pre-increment counters are used during calc
+	r.Variance = r.CalculateVariance(normalizedValue, float64(duration))
+
 	if duration > 0 {
-		r.Variance = r.CalculateVariance(normalizedValue, float64(duration))
 		r.Glucose += normalizedValue * float64(duration)
 	} else {
 		r.Glucose += normalizedValue
@@ -164,27 +164,42 @@ func (r *Range) CombineVariance(new *Range) float64 {
 	}
 
 	// if we have no values in either bucket, this will result in NaN, and cant be added anyway, return what we started with
-	if r.Minutes == 0 || new.Minutes == 0 {
+	if r.Records == 0 || new.Records == 0 {
 		return r.Variance
 	}
 
-	n1 := float64(r.Minutes)
-	n2 := float64(new.Minutes)
+	n1 := float64(r.Records)
+	n2 := float64(new.Records)
+	if r.Minutes > 0 {
+		n1 = float64(r.Minutes)
+		n2 = float64(new.Minutes)
+	}
+
 	n := n1 + n2
 	delta := new.Glucose/n2 - r.Glucose/n1
 	return r.Variance + new.Variance + math.Pow(delta, 2)*n1*n2/n
 }
 
 // CalculateVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Weighted_incremental_algorithm
-func (r *Range) CalculateVariance(value float64, duration float64) float64 {
-	var mean float64 = 0
-	if r.Minutes > 0 {
-		mean = r.Glucose / float64(r.Minutes)
+func (r *Range) CalculateVariance(value float64, newWeight float64) float64 {
+	// exit early if we have no records in the current range, variance will always be 0
+	if r.Records == 0 {
+		return 0
 	}
 
-	weight := float64(r.Minutes) + duration
-	newMean := mean + (duration/weight)*(value-mean)
-	return r.Variance + duration*(value-mean)*(value-newMean)
+	mean := 0.0
+	weight := 0.0
+	if newWeight > 0 {
+		mean = r.Glucose / float64(r.Minutes)
+		weight = float64(r.Minutes) + newWeight
+	} else {
+		mean = r.Glucose / float64(r.Records)
+		weight = float64(r.Records) + 1
+		newWeight = 1
+	}
+
+	newMean := mean + (newWeight/weight)*(value-mean)
+	return r.Variance + newWeight*(value-mean)*(value-newMean)
 }
 
 func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
@@ -291,8 +306,43 @@ func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
 	rs.AnyHigh.CalculateDelta(&current.AnyHigh, &previous.AnyHigh)
 }
 
+type MinMax struct {
+	Min float64 `json:"min,omitempty" bson:"min,omitempty"`
+	Max float64 `json:"max,omitempty" bson:"max,omitempty"`
+}
+
+func (m *MinMax) Update(g Glucose) {
+	normalizedValue := g.NormalizedValue()
+
+	// we need to catch the starting min value of 0 which will always be impossibly low
+	if m.Min == 0 || normalizedValue < m.Min {
+		m.Min = normalizedValue
+	}
+
+	if m.Max == 0 || normalizedValue > m.Max {
+		m.Max = normalizedValue
+	}
+}
+
+func (m *MinMax) Add(new *MinMax) {
+	if m.Min == 0 || new.Min < m.Min {
+		m.Min = new.Min
+	}
+
+	if m.Max == 0 || new.Max > m.Max {
+		m.Max = new.Max
+	}
+}
+
+func (m *MinMax) CalculateDelta(current *MinMax, previous *MinMax) {
+	m.Min = current.Min - previous.Min
+	m.Max = current.Max - previous.Max
+}
+
 type GlucoseBucket struct {
-	GlucoseRanges      `json:",inline" bson:",inline"`
+	GlucoseRanges `json:",inline" bson:",inline"`
+	MinMax        `json:",inline" bson:",inline"`
+
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
 }
 
@@ -327,6 +377,7 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 		return false, nil
 	}
 
+	b.MinMax.Update(g)
 	b.GlucoseRanges.Update(g)
 	b.LastRecordDuration = g.Duration()
 
@@ -335,6 +386,8 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 
 type GlucosePeriod struct {
 	GlucoseRanges `json:",inline" bson:",inline"`
+	MinMax        `json:",inline" bson:",inline"`
+
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
 
@@ -353,6 +406,7 @@ type GlucosePeriod struct {
 
 func (p *GlucosePeriod) CalculateDelta(current *GlucosePeriod, previous *GlucosePeriod) {
 	p.GlucoseRanges.CalculateDelta(&current.GlucoseRanges, &previous.GlucoseRanges)
+	p.MinMax.CalculateDelta(&current.MinMax, &previous.MinMax)
 
 	Delta(&current.AverageGlucose, &previous.AverageGlucose, &p.AverageGlucose)
 	Delta(&current.GlucoseManagementIndicator, &previous.GlucoseManagementIndicator, &p.GlucoseManagementIndicator)
@@ -361,6 +415,8 @@ func (p *GlucosePeriod) CalculateDelta(current *GlucosePeriod, previous *Glucose
 	Delta(&current.CoefficientOfVariation, &previous.CoefficientOfVariation, &p.CoefficientOfVariation)
 	Delta(&current.DaysWithData, &previous.DaysWithData, &p.DaysWithData)
 	Delta(&current.HoursWithData, &previous.HoursWithData, &p.HoursWithData)
+
+	p.state.Final = true
 }
 
 func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) error {
@@ -412,7 +468,8 @@ func (p *GlucosePeriod) Update(bucket *Bucket[*GlucoseBucket, GlucoseBucket]) er
 		}
 	}
 
-	p.Add(&bucket.Data.GlucoseRanges)
+	p.MinMax.Add(&bucket.Data.MinMax)
+	p.GlucoseRanges.Add(&bucket.Data.GlucoseRanges)
 
 	return nil
 }
@@ -423,15 +480,19 @@ func (p *GlucosePeriod) Finalize(days int) {
 	}
 	p.GlucoseRanges.Finalize(days)
 
-	if p.Total.Minutes != 0 {
-		// if we have minutes
-		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
-		p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
-		p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
-		p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
-	} else if p.Total.Records != 0 {
-		// if we have only records
-		p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
+	if p.Total.Glucose != 0 {
+		if p.Total.Minutes != 0 {
+			// if we have minutes
+			p.AverageGlucose = p.Total.Glucose / float64(p.Total.Minutes)
+			p.GlucoseManagementIndicator = CalculateGMI(p.AverageGlucose)
+			p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Minutes))
+			p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
+		} else if p.Total.Records != 0 {
+			// if we have only records
+			p.AverageGlucose = p.Total.Glucose / float64(p.Total.Records)
+			p.StandardDeviation = math.Sqrt(p.Total.Variance / float64(p.Total.Records))
+			p.CoefficientOfVariation = p.StandardDeviation / p.AverageGlucose
+		}
 	}
 
 	if p.Total.Records != 0 {
