@@ -26,6 +26,12 @@ func LoadConfig() (*Config, error) {
 	return cfg, err
 }
 
+func LoadConfigPrefix(prefix string) (*Config, error) {
+	cfg := NewConfig()
+	err := cfg.LoadPrefix(prefix)
+	return cfg, err
+}
+
 // Config describe parameters need to make a connection to a Mongo database
 type Config struct {
 	Scheme           string        `json:"scheme" envconfig:"TIDEPOOL_STORE_SCHEME"`
@@ -72,7 +78,11 @@ func (c *Config) AsConnectionString() string {
 }
 
 func (c *Config) Load() error {
-	return envconfig.Process("", c)
+	return c.LoadPrefix("")
+}
+
+func (c *Config) LoadPrefix(prefix string) error {
+	return envconfig.Process(prefix, c)
 }
 
 func (c *Config) SetDatabaseFromReporter(configReporter platformConfig.Reporter) error {

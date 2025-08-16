@@ -1,20 +1,45 @@
 package v1_test
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	gomock "go.uber.org/mock/gomock"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/ant0ine/go-json-rest/rest"
+
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	serviceTest "github.com/tidepool-org/platform/auth/service/test"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/permission"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
+	testRest "github.com/tidepool-org/platform/test/rest"
+	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Router", func() {
+	var ctrl *gomock.Controller
 	var svc *serviceTest.Service
+	var userAccessor *user.MockUserAccessor
+	var profileAccessor *user.MockProfileAccessor
+	var permsClient *permission.MockExtendedClient
 
 	BeforeEach(func() {
-		svc = serviceTest.NewService()
+		ctrl = gomock.NewController(GinkgoT())
+		svc, userAccessor, profileAccessor, permsClient = serviceTest.NewMockedService(ctrl)
 	})
 
 	Context("NewRouter", func() {
@@ -44,6 +69,226 @@ var _ = Describe("Router", func() {
 		Context("Routes", func() {
 			It("returns the expected routes", func() {
 				Expect(rtr.Routes()).ToNot(BeEmpty())
+			})
+
+			Context("Profile", func() {
+				var res *testRest.ResponseWriter
+				var req *rest.Request
+				var ctx context.Context
+				var handlerFunc rest.HandlerFunc
+				var userID string
+				var details request.AuthDetails
+				var userProfile *user.LegacyUserProfile
+				var userDetails *user.User
+
+				JustBeforeEach(func() {
+					app, err := rest.MakeRouter(rtr.Routes()...)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(app).ToNot(BeNil())
+					handlerFunc = app.AppFunc()
+				})
+
+				BeforeEach(func() {
+					userID = userTest.RandomUserID()
+					res = testRest.NewResponseWriter()
+					res.HeaderOutput = &http.Header{}
+					req = testRest.NewRequest()
+					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
+					req.Request = req.WithContext(ctx)
+
+					userProfile = &user.LegacyUserProfile{
+						Patient: &user.LegacyPatientProfile{
+							FullName:      pointer.FromString("Some User Profile"),
+							Birthday:      "2001-02-03",
+							DiagnosisDate: "2002-03-04",
+							About:         "About me",
+							MRN:           "11223344",
+						},
+					}
+					userDetails = &user.User{
+						UserID:   pointer.FromString(userID),
+						Username: pointer.FromString("dev@tidepool.org"),
+					}
+
+					profileAccessor.EXPECT().
+						FindUserProfile(gomock.Any(), userID).
+						Return(userProfile, nil).AnyTimes()
+
+					userAccessor.EXPECT().
+						FindUserById(gomock.Any(), userID).
+						Return(userDetails, nil).AnyTimes()
+				})
+
+				Context("GetProfile", func() {
+					BeforeEach(func() {
+						req.Method = http.MethodGet
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", userID)
+					})
+					BeforeEach(func() {
+						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					})
+					AfterEach(func() {
+						res.AssertOutputsEmpty()
+					})
+
+					Context("as service", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+						})
+
+						It("it succeeds if the profile exists", func() {
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userProfile)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+
+					Context("as user", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+						})
+
+						It("retrieves user's own profile", func() {
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userProfile)).To(MatchJSON(res.WriteInputs[0]))
+						})
+
+						Context("other persons profile", func() {
+							var otherPersonID string
+							var otherProfile *user.LegacyUserProfile
+							var otherDetails *user.User
+							BeforeEach(func() {
+								otherPersonID = userTest.RandomUserID()
+								req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
+								otherProfile = &user.LegacyUserProfile{
+									Patient: &user.LegacyPatientProfile{
+
+										FullName:      pointer.FromString("Someone Else's Profile"),
+										Birthday:      "2002-03-04",
+										DiagnosisDate: "2003-04-05",
+										About:         "Not about me",
+										MRN:           "11223346",
+									},
+								}
+								otherDetails = &user.User{
+									UserID:   pointer.FromString(otherPersonID),
+									Username: pointer.FromString("dev+other@tidepool.org"),
+								}
+							})
+							It("retrieves another person's profile if user has access", func() {
+								permsClient.EXPECT().
+									HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+									Return(true, nil).AnyTimes()
+								profileAccessor.EXPECT().
+									FindUserProfile(gomock.Any(), otherPersonID).
+									Return(otherProfile, nil).AnyTimes()
+								userAccessor.EXPECT().
+									FindUserById(gomock.Any(), otherPersonID).
+									Return(otherDetails, nil).AnyTimes()
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
+							})
+							It("fails to retrieve another person's profile if user does not have access", func() {
+								permsClient.EXPECT().
+									HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+									Return(false, nil).AnyTimes()
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								res.WriteOutputs = nil
+							})
+						})
+					})
+				})
+
+				Context("UpdateProfile", func() {
+					var updatedProfile *user.UserProfile
+					BeforeEach(func() {
+						req.Method = http.MethodPost
+						req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", userID)
+
+						updatedProfile = &user.UserProfile{
+							FullName:      "Updated User Profile",
+							Birthday:      "2000-01-02",
+							DiagnosisDate: "2001-02-03",
+							About:         "Updated info",
+							MRN:           "11223345",
+						}
+
+						bites, err := json.Marshal(updatedProfile)
+
+						Expect(err).ToNot(HaveOccurred())
+						req.Body = io.NopCloser(bytes.NewReader(bites))
+						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+					})
+					AfterEach(func() {
+						res.AssertOutputsEmpty()
+					})
+
+					Context("as service", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+
+							profileAccessor.EXPECT().
+								UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
+								Return(nil).AnyTimes()
+						})
+
+						It("succeeds", func() {
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(updatedProfile)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+
+					Context("as user", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							profileAccessor.EXPECT().
+								UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
+								Return(nil).AnyTimes()
+						})
+
+						It("successfully updates own profile", func() {
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(updatedProfile)).To(MatchJSON(res.WriteInputs[0]))
+						})
+						It("fails to update another person's profile that the user does not have custodian access to", func() {
+							otherPersonID := userTest.RandomUserID()
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
+							permsClient.EXPECT().
+								HasCustodianPermissions(gomock.Any(), userID, gomock.Not(userID)).
+								Return(false, nil).AnyTimes()
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+							res.WriteOutputs = nil
+						})
+					})
+				})
 			})
 		})
 	})

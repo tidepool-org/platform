@@ -61,3 +61,24 @@ export TIDEPOOL_NOTIFICATION_SERVICE_SECRET="Service secret used for interservic
 export TIDEPOOL_PRESCRIPTION_SERVICE_SECRET="Service secret used for interservice requests with the prescription service"
 export TIDEPOOL_TASK_SERVICE_SECRET="Service secret used for interservice requests with the task service"
 export TIDEPOOL_USER_SERVICE_SECRET="Service secret used for interservice requests with the user service"
+
+export TIDEPOOL_KEYCLOAK_CLIENT_ID="client_id"
+export TIDEPOOL_KEYCLOAK_CLIENT_SECRET="client_secret"
+export TIDEPOOL_KEYCLOAK_LONG_LIVED_CLIENT_ID="long_lived_client_id"
+export TIDEPOOL_KEYCLOAK_LONG_LIVED_CLIENT_SECRET="long_lived_client_secret"
+export TIDEPOOL_KEYCLOAK_BACKEND_CLIENT_ID="backend_client_id"
+export TIDEPOOL_KEYCLOAK_BACKEND_CLIENT_SECRET="backend_client_secret"
+export TIDEPOOL_KEYCLOAK_BASE_URL="http://localhost:8080"
+export TIDEPOOL_KEYCLOAK_REALM="realm"
+export TIDEPOOL_KEYCLOAK_ADMIN_USERNAME="admin_username"
+export TIDEPOOL_KEYCLOAK_ADMIN_PASSWORD="admin_password"
+
+# legacy seagull env vars until profiles migrated.
+export SEAGULL_TIDEPOOL_STORE_SCHEME="mongodb"
+export SEAGULL_TIDEPOOL_STORE_ADDRESSES="localhost:27017"
+export SEAGULL_TIDEPOOL_STORE_TLS="false"
+export SEAGULL_TIDEPOOL_STORE_DATABASE="seagull"
+export SEAGULL_TIDEPOOL_STORE_USERNAME="admin_username"
+export SEAGULL_TIDEPOOL_STORE_PASSWORD="admin_password"
+export SEAGULL_TIDEPOOL_STORE_OPT_PARAMS="authSource=admin"
+
