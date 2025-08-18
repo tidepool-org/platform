@@ -267,11 +267,16 @@ func (r *RecordMetadata) Parse(parser structure.ObjectParser) {
 }
 
 func (r *RecordMetadata) Validator(typ string) func(structure.Validator) {
+	defaultValidator := func(validator structure.Validator) {}
+	if r == nil {
+		return defaultValidator
+	}
+
 	switch typ {
 	case TypeBigDataDonationProject:
 		return r.ValidateBigDataDonationProject
 	default:
-		return func(validator structure.Validator) {}
+		return defaultValidator
 	}
 }
 
