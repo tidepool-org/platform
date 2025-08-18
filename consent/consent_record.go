@@ -24,9 +24,9 @@ const (
 	GrantorTypeOwner          GrantorType = "owner"
 	GrantorTypeParentGuardian GrantorType = "parent/guardian"
 
-	AgeGroupUnderTwelve       AgeGroup = "<12"
+	AgeGroupUnderThirteen     AgeGroup = "<13"
 	AgeGroupThirteenSeventeen AgeGroup = "13-17"
-	AgeGroupOverEighteen      AgeGroup = ">18"
+	AgeGroupEighteenOrOver    AgeGroup = ">=18"
 
 	BigDataDonationProjectOrganizationsADCES                 BigDataDonationProjectOrganization = "ADCES Foundation"
 	BigDataDonationProjectOrganizationsBeyondType1           BigDataDonationProjectOrganization = "Beyond Type 1"
@@ -112,7 +112,7 @@ func (c *Record) Validate(validator structure.Validator) {
 	parentGuardianNameValidator := validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
 	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists()
 
-	if c.AgeGroup != AgeGroupOverEighteen {
+	if c.AgeGroup != AgeGroupEighteenOrOver {
 		parentGuardianNameValidator.Exists()
 		grantorTypeValidator.EqualTo(GrantorTypeParentGuardian)
 	} else {
@@ -173,7 +173,7 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	parentGuardianNameValidator := validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
 	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists()
 
-	if r.AgeGroup == AgeGroupOverEighteen {
+	if r.AgeGroup == AgeGroupEighteenOrOver {
 		parentGuardianNameValidator.NotExists()
 		grantorTypeValidator.EqualTo(GrantorTypeOwner)
 	} else {
@@ -238,9 +238,9 @@ type AgeGroup string
 
 func AgeGroups() []AgeGroup {
 	return []AgeGroup{
-		AgeGroupUnderTwelve,
+		AgeGroupUnderThirteen,
 		AgeGroupThirteenSeventeen,
-		AgeGroupOverEighteen,
+		AgeGroupEighteenOrOver,
 	}
 }
 
