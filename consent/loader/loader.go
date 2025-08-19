@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strconv"
 
+	"github.com/tidepool-org/platform/log"
+
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/errors"
 )
@@ -30,9 +32,10 @@ func ResetContentFS() {
 	directory = "content"
 }
 
-var markdownContent = regexp.MustCompile("^(?P<name>[a-zA-Z0-9_-]+)\\.v(?P<version>[0-9]+)\\.md$")
+// Matches (name).v(version).md
+var markdownContent = regexp.MustCompile(`(?P<name>[a-zA-Z0-9_-]+)\.v(?P<version>[0-9]+)\.md$`)
 
-func SeedConsents(ctx context.Context, service consent.Service) error {
+func SeedConsents(ctx context.Context, logger log.Logger, service consent.Service) error {
 	entries, err := fs.ReadDir(contentFS, directory)
 	if err != nil {
 		return errors.Wrap(err, "unable to read consent content directory")
@@ -70,7 +73,7 @@ func SeedConsents(ctx context.Context, service consent.Service) error {
 		cons.Version = version
 		cons.Content = string(consentContent)
 
-		err = service.EnsureConsent(ctx, cons)
+		err = service.EnsureConsent(log.NewContextWithLogger(ctx, logger), cons)
 		if err != nil {
 			return errors.Wrapf(err, "unable to ensure consent %s exists", entry.Name())
 		}

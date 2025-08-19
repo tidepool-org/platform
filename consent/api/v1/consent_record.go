@@ -1,9 +1,10 @@
 package v1
 
 import (
-	"bytes"
-	"io"
 	"net/http"
+
+	"github.com/tidepool-org/platform/log"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 
 	"github.com/ant0ine/go-json-rest/rest"
 
@@ -35,7 +36,7 @@ func (r *Router) ListConsentRecords(res rest.ResponseWriter, req *rest.Request) 
 		return
 	}
 
-	filter := consent.NewConsentRecordFilter()
+	filter := consent.NewRecordFilter()
 	filter.Latest = pointer.FromAny(true)
 
 	pagination := page.NewPagination()
@@ -98,7 +99,7 @@ func (r *Router) CreateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 		return
 	}
 
-	create := consent.NewConsentRecordCreate()
+	create := consent.NewRecordCreate()
 	if err := request.DecodeRequestBody(req.Request, create); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -143,22 +144,15 @@ func (r *Router) UpdateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 		return
 	}
 
-	body, _ := io.ReadAll(req.Body)
-	req.Body = io.NopCloser(bytes.NewBuffer(body))
-
-	update, err := consent.NewConsentRecordUpdate(body, consentRecord)
-	if err = request.DecodeRequestBody(req.Request, update); err != nil {
+	update := consentRecord.ToUpdate()
+	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
+	} else if err := structureValidator.New(log.LoggerFromContext(req.Context())).Validate(update); err != nil {
+		responder.Error(http.StatusBadRequest, err)
 	}
 
-	consentRecord, err = update.ApplyPatch()
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
-		return
-	}
-
-	consentRecord, err = r.service.UpdateConsentRecord(req.Context(), consentRecord)
+	consentRecord, err = r.service.UpdateConsentRecord(req.Context(), update.ToRecord())
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -188,7 +182,7 @@ func (r *Router) RevokeConsentRecord(res rest.ResponseWriter, req *rest.Request)
 		return
 	}
 
-	revoke := consent.NewConsentRecordRevoke()
+	revoke := consent.NewRecordRevoke()
 	revoke.ID = id
 
 	err := r.service.RevokeConsentRecord(req.Context(), userID, revoke)

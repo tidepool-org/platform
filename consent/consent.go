@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	TypeMinLength = 0
+	TypeMinLength = 1
 	TypeMaxLength = 64
 
 	TypeBigDataDonationProject = "big_data_donation_project"

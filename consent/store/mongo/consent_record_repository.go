@@ -76,7 +76,7 @@ func (p *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID s
 
 func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 	if filter == nil {
-		filter = consent.NewConsentRecordFilter()
+		filter = consent.NewRecordFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
@@ -135,7 +135,7 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 }
 
 func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
-	consentRecord, err := consent.NewConsentRecord(ctx, userID, create)
+	consentRecord, err := consent.NewRecord(ctx, userID, create)
 	if err != nil {
 		return nil, err
 	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(consentRecord); err != nil {

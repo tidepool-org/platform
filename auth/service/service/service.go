@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	mailer "github.com/tidepool-org/platform/mailer"
 	userClient "github.com/tidepool-org/platform/user/client"
 
 	"github.com/kelseyhightower/envconfig"
@@ -371,25 +370,19 @@ func (s *Service) initializeConsentService() error {
 		return errors.Wrap(err, "unable to create user client")
 	}
 
-	s.Logger().Debug("Initializing mailer client")
-	mlr, err := mailer.Client()
-	if err != nil {
-		return errors.Wrap(err, "unable to create mailer client")
-	}
-
 	s.Logger().Debug("Initializing consent mailer")
-	consentMailer, err := consentService.NewConsentMailer(mlr, usrClient)
+	consentMailer, err := consentService.NewConsentMailer(usrClient, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create consent mailer")
 	}
 
 	s.Logger().Debug("Initializing consent service")
-	s.consentService = consentService.NewConsentService(consentMailer, bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient())
+	s.consentService = consentService.NewConsentService(consentMailer, bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient(), s.Logger())
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	return consentLoader.SeedConsents(log.NewContextWithLogger(ctx, s.Logger()), s.consentService)
+	return consentLoader.SeedConsents(ctx, s.Logger(), s.consentService)
 }
 
 func (s *Service) terminateWorkStructuredStore() {

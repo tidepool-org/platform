@@ -51,15 +51,9 @@ func PaginationFacetPipelineStages(pagination page.Pagination) []bson.M {
 		{
 			"$project": bson.M{
 				"data": "$data",
-				"temp_count": bson.M{
-					"$arrayElemAt": bson.A{"$meta", 0},
+				"count": bson.M{
+					"$arrayElemAt": bson.A{"$meta.count", 0},
 				},
-			},
-		},
-		{
-			"$project": bson.M{
-				"data":  "$data",
-				"count": "$temp_count.count",
 			},
 		},
 	}

@@ -6,6 +6,12 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/tidepool-org/platform/mailer"
+
+	"github.com/tidepool-org/platform/log"
+
+	"github.com/kelseyhightower/envconfig"
+
 	"github.com/tidepool-org/go-common/clients"
 	"github.com/tidepool-org/go-common/events"
 
@@ -25,20 +31,48 @@ var (
 	}
 )
 
-type ConsentMailer struct {
+type ConsentMailerConfig struct {
+	Disabled bool `envconfig:"TIDEPOOL_CONSENT_MAILER_DISABLED"`
+}
+
+type ConsentMailer interface {
+	SendConsentGrantedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error
+	SendConsentRevokedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error
+}
+
+type defaultConsentMailer struct {
+	logger     log.Logger
 	mailer     clients.MailerClient
 	userClient user.Client
 }
 
-func NewConsentMailer(mailer clients.MailerClient, userClient user.Client) (*ConsentMailer, error) {
-	return &ConsentMailer{
-		mailer:     mailer,
+func NewConsentMailer(userClient user.Client, logger log.Logger) (ConsentMailer, error) {
+	config := &ConsentMailerConfig{}
+	err := envconfig.Process("", config)
+	if err != nil {
+		return nil, err
+	}
+
+	if config.Disabled {
+		return &disabledConsentMailer{
+			logger: logger,
+		}, nil
+	}
+
+	mlr, err := mailer.Client()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create mailer client")
+	}
+
+	return &defaultConsentMailer{
+		logger:     logger,
+		mailer:     mlr,
 		userClient: userClient,
 	}, nil
 }
 
-func (c *ConsentMailer) SendConsentGrantedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error {
-	usr, err := c.userClient.Get(ctx, record.UserID)
+func (d *defaultConsentMailer) SendConsentGrantedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error {
+	usr, err := d.userClient.Get(ctx, record.UserID)
 	if err != nil || usr == nil {
 		return errors.Wrap(err, "could not get user")
 	}
@@ -76,11 +110,11 @@ func (c *ConsentMailer) SendConsentGrantedEmailNotification(ctx context.Context,
 		}},
 	}
 
-	return c.mailer.SendEmailTemplate(ctx, email)
+	return d.mailer.SendEmailTemplate(ctx, email)
 }
 
-func (c *ConsentMailer) SendConsentRevokedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error {
-	usr, err := c.userClient.Get(ctx, record.UserID)
+func (d *defaultConsentMailer) SendConsentRevokedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error {
+	usr, err := d.userClient.Get(ctx, record.UserID)
 	if err != nil || usr == nil {
 		return errors.Wrap(err, "could not get user")
 	}
@@ -98,5 +132,19 @@ func (c *ConsentMailer) SendConsentRevokedEmailNotification(ctx context.Context,
 		},
 	}
 
-	return c.mailer.SendEmailTemplate(ctx, email)
+	return d.mailer.SendEmailTemplate(ctx, email)
+}
+
+type disabledConsentMailer struct {
+	logger log.Logger
+}
+
+func (d *disabledConsentMailer) SendConsentGrantedEmailNotification(_ context.Context, _ consent.Consent, record consent.Record) error {
+	d.logger.WithFields(log.Fields{"userId": record.UserID}).WithError(errors.New("consent mailer is disabled")).Info("SendConsentGrantedNotification")
+	return nil
+}
+
+func (d *disabledConsentMailer) SendConsentRevokedEmailNotification(_ context.Context, _ consent.Consent, record consent.Record) error {
+	d.logger.WithFields(log.Fields{"userId": record.UserID}).WithError(errors.New("consent mailer is disabled")).Info("SendConsentRevokedEmailNotification")
+	return nil
 }

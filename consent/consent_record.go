@@ -2,7 +2,6 @@ package consent
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -46,7 +45,6 @@ type RecordAccessor interface {
 	UpdateConsentRecord(context.Context, *Record) (*Record, error)
 }
 
-type Records []Record
 type Record struct {
 	ID                 string          `json:"id" bson:"id"`
 	UserID             string          `json:"userId" bson:"userId"`
@@ -64,7 +62,7 @@ type Record struct {
 	ModifiedTime       time.Time       `json:"modifiedTime" bson:"modifiedTime"`
 }
 
-func NewConsentRecord(ctx context.Context, userID string, create *RecordCreate) (*Record, error) {
+func NewRecord(ctx context.Context, userID string, create *RecordCreate) (*Record, error) {
 	if userID == "" {
 		return nil, errors.New("user id is missing")
 	}
@@ -76,7 +74,7 @@ func NewConsentRecord(ctx context.Context, userID string, create *RecordCreate) 
 	}
 
 	return &Record{
-		ID:                 NewConsentRecordID(),
+		ID:                 NewRecordID(),
 		UserID:             userID,
 		Status:             RecordStatusActive,
 		AgeGroup:           create.AgeGroup,
@@ -92,32 +90,37 @@ func NewConsentRecord(ctx context.Context, userID string, create *RecordCreate) 
 	}, nil
 }
 
-func (c *Record) Validate(validator structure.Validator) {
-	validator.String("id", &c.ID).NotEmpty()
-	validator.String("userId", &c.UserID).Exists().Using(auth.UserIDValidator)
-	validator.String("status", structure.ValueAsString(&c.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
-	validator.String("ageGroup", structure.ValueAsString(&c.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
-	validator.String("ownerName", &c.OwnerName).Exists().LengthInRange(1, 256)
-	validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
-	validator.String("type", &c.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
-	validator.Int("version", &c.Version).Exists().GreaterThan(0)
+func (r *Record) Validate(validator structure.Validator) {
+	validator.String("id", &r.ID).NotEmpty()
+	validator.String("userId", &r.UserID).Exists().Using(auth.UserIDValidator)
+	validator.String("status", structure.ValueAsString(&r.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
+	validator.String("ageGroup", structure.ValueAsString(&r.AgeGroup)).OneOf(structure.ValuesAsStringArray(AgeGroups())...)
+	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
+	validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
+	validator.String("type", &r.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
+	validator.Int("version", &r.Version).Exists().GreaterThan(0)
 
-	validator.Time("grantTime", &c.GrantTime).Exists().NotZero().BeforeNow(time.Second)
-	validator.Time("revocationTime", c.RevocationTime).BeforeNow(time.Second)
-	validator.Time("createdTime", &c.CreatedTime).Exists().BeforeNow(time.Second)
-	validator.Time("modifiedTime", &c.ModifiedTime).Exists().BeforeNow(time.Second)
+	validator.Time("grantTime", &r.GrantTime).Exists().NotZero().BeforeNow(time.Second)
+	validator.Time("revocationTime", r.RevocationTime).BeforeNow(time.Second)
+	validator.Time("createdTime", &r.CreatedTime).Exists().BeforeNow(time.Second)
+	validator.Time("modifiedTime", &r.ModifiedTime).Exists().BeforeNow(time.Second)
 
-	c.Metadata.Validator(c.Type)(validator.WithReference("metadata"))
+	r.Metadata.Validator(r.Type)(validator.WithReference("metadata"))
 
-	parentGuardianNameValidator := validator.String("parentGuardianName", c.ParentGuardianName).LengthInRange(1, 256)
-	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&c.GrantorType)).Exists()
+	parentGuardianNameValidator := validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
+	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists()
 
-	if c.AgeGroup != AgeGroupEighteenOrOver {
+	if r.AgeGroup != AgeGroupEighteenOrOver {
 		parentGuardianNameValidator.Exists()
 		grantorTypeValidator.EqualTo(GrantorTypeParentGuardian)
 	} else {
 		parentGuardianNameValidator.NotExists()
 	}
+}
+
+func (r *Record) ToUpdate() *RecordUpdate {
+	update := RecordUpdate(*r)
+	return &update
 }
 
 type RecordCreate struct {
@@ -131,7 +134,7 @@ type RecordCreate struct {
 	Version            int             `json:"version" bson:"version"`
 }
 
-func NewConsentRecordCreate() *RecordCreate {
+func NewRecordCreate() *RecordCreate {
 	return &RecordCreate{
 		CreatedTime: time.Now(),
 	}
@@ -182,7 +185,7 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	}
 }
 
-func NewConsentRecordID() string {
+func NewRecordID() string {
 	return id.Must(id.New(16))
 }
 
@@ -194,7 +197,7 @@ type RecordFilter struct {
 	ID      *string
 }
 
-func NewConsentRecordFilter() *RecordFilter {
+func NewRecordFilter() *RecordFilter {
 	return &RecordFilter{
 		Latest: pointer.FromBool(true),
 	}
@@ -205,7 +208,7 @@ func (r *RecordFilter) Parse(parser structure.ObjectParser) {
 	if latest != nil {
 		r.Latest = latest
 	}
-	r.Status = NewConsentRecordStatus(parser.String("status"))
+	r.Status = NewRecordStatus(parser.String("status"))
 	r.Type = parser.String("type")
 	r.Version = parser.Int("version")
 }
@@ -220,7 +223,7 @@ func (r *RecordFilter) Validate(validator structure.Validator) {
 
 type RecordStatus string
 
-func NewConsentRecordStatus(value *string) *RecordStatus {
+func NewRecordStatus(value *string) *RecordStatus {
 	if value == nil {
 		return nil
 	}
@@ -299,42 +302,25 @@ func BigDataDonationProjectOrganizations() []BigDataDonationProjectOrganization 
 	}
 }
 
-type RecordUpdate struct {
-	raw    json.RawMessage
-	record *Record
-
-	Metadata *RecordMetadata `json:"metadata,omitempty" bson:"metadata"`
-}
-
-func NewConsentRecordUpdate(body []byte, record *Record) (*RecordUpdate, error) {
-	raw := json.RawMessage{}
-	if err := json.Unmarshal(body, &raw); err != nil {
-		return nil, err
-	}
-
-	return &RecordUpdate{
-		raw:    raw,
-		record: record,
-	}, nil
-}
-
-func (r *RecordUpdate) ApplyPatch() (*Record, error) {
-	if err := json.Unmarshal(r.raw, r.record); err != nil {
-		return nil, errors.Wrap(err, "unable to unmarshal patch")
-	}
-
-	return r.record, nil
-}
+// RecordUpdate extends Record to allow only specific fields to be modified
+type RecordUpdate Record
 
 func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
 	if metadataParser := parser.WithReferenceObjectParser("metadata"); metadataParser.Exists() {
 		r.Metadata = &RecordMetadata{}
 		r.Metadata.Parse(metadataParser)
 	}
+
+	_ = parser.NotParsed()
 }
 
 func (r *RecordUpdate) Validate(validator structure.Validator) {
-	r.Metadata.Validator(r.record.Type)(validator.WithReference("metadata"))
+	r.Metadata.Validator(r.Type)(validator.WithReference("metadata"))
+}
+
+func (r *RecordUpdate) ToRecord() *Record {
+	record := Record(*r)
+	return &record
 }
 
 type RecordRevoke struct {
@@ -342,7 +328,7 @@ type RecordRevoke struct {
 	RevocationTime time.Time
 }
 
-func NewConsentRecordRevoke() *RecordRevoke {
+func NewRecordRevoke() *RecordRevoke {
 	return &RecordRevoke{
 		RevocationTime: time.Now(),
 	}

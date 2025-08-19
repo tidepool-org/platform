@@ -6,26 +6,32 @@ import (
 	"io/fs"
 	"testing/fstest"
 
+	"github.com/tidepool-org/platform/log/test"
+
+	"github.com/tidepool-org/platform/log"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/consent/loader"
-	"github.com/tidepool-org/platform/consent/test"
+	serviceTest "github.com/tidepool-org/platform/consent/service/test"
 )
 
 var _ = Describe("SeedConsents", func() {
 	var (
 		ctx         context.Context
 		mockCtrl    *gomock.Controller
-		mockService *test.MockService
+		mockService *serviceTest.MockService
+		logger      log.Logger
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockService = test.NewMockService(mockCtrl)
+		mockService = serviceTest.NewMockService(mockCtrl)
+		logger = test.NewLogger()
 	})
 
 	AfterEach(func() {
@@ -45,7 +51,7 @@ var _ = Describe("SeedConsents", func() {
 				return nil
 			}).Times(1)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -58,7 +64,7 @@ var _ = Describe("SeedConsents", func() {
 				return nil
 			}).Times(1)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Verify we captured
@@ -103,7 +109,7 @@ var _ = Describe("SeedConsents", func() {
 				return nil
 			}).Times(3)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
@@ -116,7 +122,7 @@ var _ = Describe("SeedConsents", func() {
 				return nil
 			}).Times(3)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Verify we captured all 3 consents
@@ -169,7 +175,7 @@ var _ = Describe("SeedConsents", func() {
 			// Expect exactly 2 calls for the valid files
 			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).Return(nil).Times(2)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -188,7 +194,7 @@ var _ = Describe("SeedConsents", func() {
 			serviceErr := errors.New("service error")
 			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).Return(serviceErr).Times(1)
 
-			err := loader.SeedConsents(ctx, mockService)
+			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("unable to ensure consent privacy.v1.md exists"))
 		})
@@ -210,7 +216,7 @@ var _ = Describe("SeedConsents", func() {
 				}
 				// If shouldMatch is false, no expectations are set
 
-				err := loader.SeedConsents(ctx, mockService)
+				err := loader.SeedConsents(ctx, logger, mockService)
 				Expect(err).ToNot(HaveOccurred())
 			},
 			Entry("valid simple name", "test.v1.md", true),
