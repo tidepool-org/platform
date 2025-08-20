@@ -13,6 +13,7 @@ type BigDataDonationProjectConfig struct {
 	RecipientUserID string `envconfig:"TIDEPOOL_BIG_DATA_DONATION_PROJECT_DATA_RECIPIENT_USER_ID"`
 }
 
+//go:generate mockgen -source=bddp.go -destination=test/bddp_mocks.go -package=test BigDataDonationProjectSharer
 type BigDataDonationProjectSharer interface {
 	Share(ctx context.Context, sharerUserID string) error
 	Unshare(ctx context.Context, sharerUserID string) error

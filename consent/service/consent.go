@@ -77,6 +77,8 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 			existing := &records.Data[0]
 			if existing.Version == create.Version {
 				return nil, errors.New("consent record for the same type and version already exists")
+			} else if existing.Version > create.Version {
+				return nil, errors.New("consent record for a greater version already exists")
 			}
 
 			revoke := consent.NewRecordRevoke()
@@ -129,6 +131,14 @@ func (c *ConsentService) RevokeConsentRecord(ctx context.Context, userID string,
 		return errors.Wrapf(err, "consent record doesn't exist")
 	}
 
+	consents, err := c.ListConsents(ctx, &consent.Filter{
+		Type:    pointer.FromAny(record.Type),
+		Version: pointer.FromAny(record.Version),
+	}, page.NewPagination())
+	if err != nil {
+		return err
+	}
+
 	_, err = structuredMongo.WithTransaction(ctx, c.dbClient, func(sessCtx mongoDriver.SessionContext) (any, error) {
 		if err := c.consentRecordRepository.RevokeConsentRecord(ctx, userID, revoke); err != nil {
 			return nil, err
@@ -142,7 +152,19 @@ func (c *ConsentService) RevokeConsentRecord(ctx context.Context, userID string,
 		return nil, nil
 	})
 
-	return err
+	if len(consents.Data) == 0 {
+		c.logger.WithField("user", userID).Warn("revoking record for missing consent type and version")
+		return nil
+	}
+
+	// Sending an email is executed outside the transaction to prevent a failure from reverting the consent record
+	// revocation
+	if err := c.consentMailer.SendConsentRevokedEmailNotification(ctx, consents.Data[0], *record); err != nil {
+		// Just log the error, there's no need to fail the request
+		c.logger.WithError(err).WithField("user", userID).Warn("unable to send email notification")
+	}
+
+	return nil
 }
 
 func (c *ConsentService) UpdateConsentRecord(ctx context.Context, record *consent.Record) (*consent.Record, error) {

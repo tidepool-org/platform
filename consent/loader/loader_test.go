@@ -42,7 +42,7 @@ var _ = Describe("SeedConsents", func() {
 	Context("with embedded fs", func() {
 		It("should successfully seed all valid consent files", func() {
 			// Set up expectations for each valid file
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, cons *consent.Consent) error {
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, cons *consent.Consent) error {
 				// Verify the consent object is properly constructed
 				Expect(cons.ContentType).To(Equal(consent.ContentTypeMarkdown))
 				Expect(len(cons.Type)).To(BeNumerically(">", 0))
@@ -58,7 +58,7 @@ var _ = Describe("SeedConsents", func() {
 		It("should create consents with correct properties", func() {
 			var capturedConsents []*consent.Consent
 
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, consent *consent.Consent) error {
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, consent *consent.Consent) error {
 				// Capture the consent for detailed verification
 				capturedConsents = append(capturedConsents, consent)
 				return nil
@@ -100,7 +100,7 @@ var _ = Describe("SeedConsents", func() {
 
 		It("should successfully seed all valid consent files", func() {
 			// Set up expectations for each valid file
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, cons *consent.Consent) error {
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, cons *consent.Consent) error {
 				// Verify the consent object is properly constructed
 				Expect(cons.ContentType).To(Equal(consent.ContentTypeMarkdown))
 				Expect(cons.Type).ToNot(BeNil())
@@ -116,7 +116,7 @@ var _ = Describe("SeedConsents", func() {
 		It("should create consents with correct properties", func() {
 			var capturedConsents []*consent.Consent
 
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, consent *consent.Consent) error {
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, consent *consent.Consent) error {
 				// Capture the consent for detailed verification
 				capturedConsents = append(capturedConsents, consent)
 				return nil
@@ -173,7 +173,7 @@ var _ = Describe("SeedConsents", func() {
 
 		It("should only process valid markdown files and ignore others", func() {
 			// Expect exactly 2 calls for the valid files
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).Return(nil).Times(2)
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 
 			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
@@ -192,7 +192,7 @@ var _ = Describe("SeedConsents", func() {
 
 		It("should return an error", func() {
 			serviceErr := errors.New("service error")
-			mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).Return(serviceErr).Times(1)
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(serviceErr).Times(1)
 
 			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).To(HaveOccurred())
@@ -212,7 +212,7 @@ var _ = Describe("SeedConsents", func() {
 				loader.SetContentFS(mockFS, ".")
 
 				if shouldMatch {
-					mockService.EXPECT().EnsureConsent(ctx, gomock.Any()).Return(nil).Times(1)
+					mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				}
 				// If shouldMatch is false, no expectations are set
 

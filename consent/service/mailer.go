@@ -35,6 +35,7 @@ type ConsentMailerConfig struct {
 	Disabled bool `envconfig:"TIDEPOOL_CONSENT_MAILER_DISABLED"`
 }
 
+//go:generate mockgen -source=mailer.go -destination=test/mailer_mocks.go -package=test ConsentMailer
 type ConsentMailer interface {
 	SendConsentGrantedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error
 	SendConsentRevokedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error

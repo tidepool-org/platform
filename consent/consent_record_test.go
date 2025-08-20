@@ -2,7 +2,13 @@ package consent_test
 
 import (
 	"context"
+	"strings"
 	"time"
+
+	errorsTest "github.com/tidepool-org/platform/errors/test"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
+
+	"github.com/tidepool-org/platform/request"
 
 	"github.com/tidepool-org/platform/log"
 
@@ -821,6 +827,88 @@ var _ = Describe("Consent", func() {
 			Expect(string(consent.BigDataDonationProjectOrganizationsDiabetesSisters)).To(Equal("DiabetesSisters"))
 			Expect(string(consent.BigDataDonationProjectOrganizationsTheDiaTribeFoundation)).To(Equal("The diaTribe Foundation"))
 			Expect(string(consent.BigDataDonationProjectOrganizationsBreakthroughT1D)).To(Equal("Breakthrough T1D"))
+		})
+	})
+
+	Describe("Update", func() {
+		var record *consent.Record
+
+		BeforeEach(func() {
+			recordCreate := consentTest.RandomRecordCreate()
+			recordCreate.Metadata = &consent.RecordMetadata{
+				SupportedOrganizations: []consent.BigDataDonationProjectOrganization{
+					consent.BigDataDonationProjectOrganizationsADCES,
+				},
+			}
+
+			var err error
+			record, err = consent.NewRecord(context.Background(), userTest.RandomUserID(), recordCreate)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("updates metadata supported organizations", func() {
+			updateBody := `{"metadata": {"supportedOrganizations": ["Beyond Type 1"]}}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			Expect(err).ToNot(HaveOccurred())
+
+			updated := update.ToRecord()
+			Expect(updated.Metadata).ToNot(BeNil())
+			Expect(updated.Metadata.SupportedOrganizations).To(ConsistOf(consent.BigDataDonationProjectOrganizationsBeyondType1))
+		})
+
+		It("allows removing supported organizations from metadata", func() {
+			updateBody := `{"metadata": {"supportedOrganizations": null}}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			Expect(err).ToNot(HaveOccurred())
+
+			updated := update.ToRecord()
+			Expect(updated.Metadata).ToNot(BeNil())
+			Expect(updated.Metadata.SupportedOrganizations).To(BeNil())
+		})
+
+		It("allows setting supported organizations to an empty array", func() {
+			updateBody := `{"metadata": {"supportedOrganizations": []}}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			Expect(err).ToNot(HaveOccurred())
+
+			updated := update.ToRecord()
+			Expect(updated.Metadata).ToNot(BeNil())
+			Expect(updated.Metadata.SupportedOrganizations).ToNot(BeNil())
+			Expect(updated.Metadata.SupportedOrganizations).To(HaveLen(0))
+		})
+
+		It("allows removing metadata", func() {
+			updateBody := `{"metadata": null}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			Expect(err).ToNot(HaveOccurred())
+
+			updated := update.ToRecord()
+			Expect(updated.Metadata).To(BeNil())
+		})
+
+		It("preserves supported organizations if not in the body", func() {
+			updateBody := `{"metadata": {"other": "test"}}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			Expect(err).ToNot(HaveOccurred())
+
+			updated := update.ToRecord()
+			Expect(updated.Metadata).ToNot(BeNil())
+			Expect(updated.Metadata.SupportedOrganizations).To(ConsistOf(record.Metadata.SupportedOrganizations))
+		})
+
+		It("returns an error if a invalid attribute is present in the body", func() {
+			updateBody := `{"metadata": {"other": "test"}, "userID":"01234567890"}`
+			update := record.ToUpdate()
+			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/userID"))
+
+			updated := update.ToRecord()
+			Expect(updated.UserID).To(Equal(record.UserID))
 		})
 	})
 

@@ -111,7 +111,7 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	}
 
 	var pipeline []bson.M
-	if *filter.Latest {
+	if filter.Latest != nil && *filter.Latest {
 		pipeline = listLatestConsentRecordsPipeline(selector, sort, *pagination)
 	} else {
 		pipeline = listAllConsentRecordsPipeline(selector, sort, *pagination)
@@ -234,7 +234,7 @@ func listLatestConsentRecordsPipeline(selector bson.M, sort bson.M, pagination p
 		},
 		{
 			"$group": bson.M{
-				"_id":        "$type",
+				"_id":        bson.M{"type": "$type"},
 				"mostRecent": bson.M{"$first": "$$ROOT"},
 			},
 		},

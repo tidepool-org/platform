@@ -2,11 +2,9 @@ package mongo
 
 import (
 	"github.com/tidepool-org/platform/appvalidate"
-	"github.com/tidepool-org/platform/auth/store"
+	authStore "github.com/tidepool-org/platform/auth/store"
 	consentStore "github.com/tidepool-org/platform/consent/store/mongo"
 	"github.com/tidepool-org/platform/devicetokens"
-	"github.com/tidepool-org/platform/errors"
-
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
@@ -15,14 +13,17 @@ type Store struct {
 }
 
 func NewStore(c *storeStructuredMongo.Config) (*Store, error) {
-	if c == nil {
-		return nil, errors.New("config is missing")
+	store, err := storeStructuredMongo.NewStore(c)
+	if err != nil {
+		return nil, err
 	}
+	return NewStoreFromBase(store), nil
+}
 
-	str, err := storeStructuredMongo.NewStore(c)
+func NewStoreFromBase(base *storeStructuredMongo.Store) *Store {
 	return &Store{
-		str,
-	}, err
+		Store: base,
+	}
 }
 
 func (s *Store) EnsureIndexes() error {
@@ -59,15 +60,15 @@ func (s *Store) EnsureIndexes() error {
 	return nil
 }
 
-func (s *Store) NewProviderSessionRepository() store.ProviderSessionRepository {
+func (s *Store) NewProviderSessionRepository() authStore.ProviderSessionRepository {
 	return s.providerSessionRepository()
 }
 
-func (s *Store) NewRestrictedTokenRepository() store.RestrictedTokenRepository {
+func (s *Store) NewRestrictedTokenRepository() authStore.RestrictedTokenRepository {
 	return s.restrictedTokenRepository()
 }
 
-func (s *Store) NewDeviceTokenRepository() store.DeviceTokenRepository {
+func (s *Store) NewDeviceTokenRepository() authStore.DeviceTokenRepository {
 	return s.deviceTokenRepository()
 }
 

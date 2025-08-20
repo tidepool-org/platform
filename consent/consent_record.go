@@ -55,7 +55,7 @@ type Record struct {
 	GrantorType        GrantorType     `json:"grantorType" bson:"grantorType"`
 	Type               string          `json:"type" bson:"type"`
 	Version            int             `json:"version" bson:"version"`
-	Metadata           *RecordMetadata `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Metadata           *RecordMetadata `json:"metadata" bson:"metadata"`
 	GrantTime          time.Time       `json:"grantTime" bson:"grantTime"`
 	RevocationTime     *time.Time      `json:"revocationTime,omitempty" bson:"revocationTime,omitempty"`
 	CreatedTime        time.Time       `json:"createdTime" bson:"createdTime"`
@@ -260,27 +260,30 @@ type RecordMetadata struct {
 	SupportedOrganizations []BigDataDonationProjectOrganization `json:"supportedOrganizations" bson:"supportedOrganizations"`
 }
 
+func (r *RecordMetadata) Validate(validator structure.Validator) {
+	if r == nil {
+		return
+	}
+
+	validator.StringArray("supportedOrganizations", pointer.FromAny(structure.ValuesAsStringArray(r.SupportedOrganizations))).Empty()
+}
+
 func (r *RecordMetadata) Parse(parser structure.ObjectParser) {
 	if ptr := parser.StringArray("supportedOrganizations"); ptr != nil {
 		r.SupportedOrganizations = make([]BigDataDonationProjectOrganization, len(*ptr))
 		for i, v := range *ptr {
 			r.SupportedOrganizations[i] = BigDataDonationProjectOrganization(v)
 		}
+	} else {
+		r.SupportedOrganizations = nil
 	}
 }
 
 func (r *RecordMetadata) Validator(typ string) func(structure.Validator) {
-	defaultValidator := func(validator structure.Validator) {}
-	if r == nil {
-		return defaultValidator
-	}
-
-	switch typ {
-	case TypeBigDataDonationProject:
+	if r != nil && typ == TypeBigDataDonationProject {
 		return r.ValidateBigDataDonationProject
-	default:
-		return defaultValidator
 	}
+	return r.Validate
 }
 
 func (r *RecordMetadata) ValidateBigDataDonationProject(validator structure.Validator) {
@@ -307,11 +310,13 @@ type RecordUpdate Record
 
 func (r *RecordUpdate) Parse(parser structure.ObjectParser) {
 	if metadataParser := parser.WithReferenceObjectParser("metadata"); metadataParser.Exists() {
-		r.Metadata = &RecordMetadata{}
+		if r.Metadata == nil {
+			r.Metadata = &RecordMetadata{}
+		}
 		r.Metadata.Parse(metadataParser)
+	} else {
+		r.Metadata = nil
 	}
-
-	_ = parser.NotParsed()
 }
 
 func (r *RecordUpdate) Validate(validator structure.Validator) {
