@@ -159,6 +159,10 @@ func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, author
 	return auth.NewOAuthTokenFromRawToken(token)
 }
 
+func (p *Provider) IsErrorCodeAccessDenied(errorCode string) bool {
+	return errorCode == "access_denied"
+}
+
 func SplitScopes(scopes string) []string {
 	return config.SplitTrimCompact(scopes)
 }
