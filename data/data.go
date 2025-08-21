@@ -38,21 +38,7 @@ func (s *SelectorDeduplicator) Validate(validator structure.Validator) {
 }
 
 func (s *SelectorDeduplicator) Matches(other *SelectorDeduplicator) bool {
-	if s == nil || other == nil { // Must not be missing
-		return false
-	} else if s.Hash != nil && (other.Hash == nil || *s.Hash != *other.Hash) { // If hash matters, then must match
-		return false
-	} else {
-		return true
-	}
-}
-
-func (s *SelectorDeduplicator) NewerThan(other *SelectorDeduplicator) bool {
-	if s == nil || other == nil { // Must not be missing
-		return false
-	} else {
-		return true
-	}
+	return s != nil && other != nil && s.Hash != nil && other.Hash != nil && *s.Hash == *other.Hash
 }
 
 type SelectorOrigin struct {
@@ -84,30 +70,20 @@ func (s *SelectorOrigin) Validate(validator structure.Validator) {
 }
 
 func (s *SelectorOrigin) Matches(other *SelectorOrigin) bool {
-	if s == nil || other == nil { // Must not be missing
-		return false
-	} else if s.ID != nil && (other.ID == nil || *s.ID != *other.ID) { // If id matters, then must match
-		return false
-	} else {
-		return true
-	}
+	return s != nil && other != nil && s.ID != nil && other.ID != nil && *s.ID == *other.ID
 }
 
 func (s *SelectorOrigin) NewerThan(other *SelectorOrigin) bool {
-	if s == nil || other == nil { // Must not be missing
+	if s == nil || s.Time == nil { // Must not be missing
 		return false
-	} else if s.Time == nil { // If time does not matter, success
+	} else if sTime, err := time.Parse(time.RFC3339Nano, *s.Time); err != nil { // Must parse
+		return false
+	} else if other == nil || other.Time == nil { // Must not be missing
 		return true
-	} else if other.Time == nil { // Must exist
-		return false
-	} else if sTime, err := time.Parse(time.RFC3339Nano, *s.Time); err != nil || sTime.IsZero() { // Must parse
-		return false
-	} else if otherTime, err := time.Parse(time.RFC3339Nano, *other.Time); err != nil || otherTime.IsZero() { // Must parse
-		return false
-	} else if sTime.Before(otherTime) { // Must be newer
-		return false
+	} else if otherTime, err := time.Parse(time.RFC3339Nano, *other.Time); err != nil { // Must parse
+		return true
 	} else {
-		return true
+		return sTime.After(otherTime) // Must be newer
 	}
 }
 
@@ -168,28 +144,30 @@ func (s *Selector) Validate(validator structure.Validator) {
 func (s *Selector) Matches(other *Selector) bool {
 	if s == nil || other == nil { // Must not be missing
 		return false
-	} else if s.ID != nil && (other.ID == nil || *s.ID != *other.ID) { // If id matters, then must match
-		return false
-	} else if s.Deduplicator != nil && (other.Deduplicator == nil || !s.Deduplicator.Matches(other.Deduplicator)) { // If deduplicator matters, then must match
-		return false
-	} else if s.Origin != nil && (other.Origin == nil || !s.Origin.Matches(other.Origin)) { // If origin matters, then must match
-		return false
+	} else if s.ID != nil { // If id matters, then must match
+		return other.ID != nil && *s.ID == *other.ID
+	} else if s.Deduplicator != nil { // If deduplicator matters, then must match
+		return other.Deduplicator != nil && s.Deduplicator.Matches(other.Deduplicator)
+	} else if s.Origin != nil { // If origin matters, then must match
+		return other.Origin != nil && s.Origin.Matches(other.Origin)
 	} else {
-		return true
+		return false
 	}
 }
 
 func (s *Selector) NewerThan(other *Selector) bool {
-	if s == nil || other == nil { // Must not be missing
+	if s == nil { // Must not be missing
 		return false
-	} else if s.Time != nil && (other.Time == nil || s.Time.Before(*other.Time)) { // If time matters, then must be newer
-		return false
-	} else if s.Deduplicator != nil && (other.Deduplicator == nil || !s.Deduplicator.NewerThan(other.Deduplicator)) { // If deduplicator matters, then must be newer
-		return false
-	} else if s.Origin != nil && (other.Origin == nil || !s.Origin.NewerThan(other.Origin)) { // If origin matters, then must be newer
-		return false
-	} else {
+	} else if other == nil { // Must not be missing
 		return true
+	} else if s.ID != nil { // If id matters, then must be newer
+		return s.Time != nil && (other.Time == nil || s.Time.After(*other.Time))
+	} else if s.Deduplicator != nil { // If deduplicator matters, then must be newer
+		return true
+	} else if s.Origin != nil { // If origin matters, then must be newer
+		return other.Origin == nil || s.Origin.NewerThan(other.Origin)
+	} else {
+		return false
 	}
 }
 
