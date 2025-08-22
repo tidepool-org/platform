@@ -5,6 +5,11 @@ import (
 	"github.com/tidepool-org/go-common/events"
 )
 
+//go:generate mockgen -source=client.go -destination=test/mailer_mocks.go -package=test Mailer
+type Mailer interface {
+	clients.MailerClient
+}
+
 func Client() (clients.MailerClient, error) {
 	config := events.NewConfig()
 	if err := config.LoadFromEnv(); err != nil {

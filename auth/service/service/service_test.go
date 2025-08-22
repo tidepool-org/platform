@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"os"
 
-	eventsTest "github.com/tidepool-org/platform/events/test"
+	mailerTest "github.com/tidepool-org/platform/mailer/test"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -40,7 +40,6 @@ var _ = Describe("Service", func() {
 		var userClientConfig map[string]interface{}
 		var authServiceConfig map[string]interface{}
 		var service *authServiceService.Service
-		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			t := GinkgoT()
@@ -112,10 +111,12 @@ var _ = Describe("Service", func() {
 			}
 
 			t.Setenv("TIDEPOOL_BIG_DATA_DONATION_PROJECT_SHARING_DISABLED", "true")
-			t.Setenv("TIDEPOOL_CONSENT_MAILER_DISABLED", "true")
 
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = authServiceConfig
-			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
+
+			t = GinkgoT()
+			mockBroker := mailerTest.NewMockBroker(t)
+			mailerTest.SetKafkaConfig(t, mockBroker)
 
 			service = authServiceService.New()
 			Expect(service).ToNot(BeNil())
@@ -125,7 +126,6 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
-			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 		})
 
 		Context("Initialize", func() {

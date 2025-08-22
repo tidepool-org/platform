@@ -1,8 +1,7 @@
 package test
 
 import (
-	"log"
-	"os"
+	"github.com/onsi/ginkgo/v2"
 )
 
 var testConfig = map[string]string{
@@ -15,29 +14,8 @@ var testConfig = map[string]string{
 	"KAFKA_VERSION":        "2.4.0",
 }
 
-func SetTestEnvironmentVariables() map[string]string {
-	old := make(map[string]string)
+func SetTestEnvironmentVariables(t ginkgo.FullGinkgoTInterface) {
 	for k, v := range testConfig {
-		if oldValue, exists := os.LookupEnv(k); exists {
-			old[k] = oldValue
-		}
-		if err := os.Setenv(k, v); err != nil {
-			log.Panicf("could not set env variable: %v", err)
-		}
-	}
-	return old
-}
-
-func RestoreOldEnvironmentVariables(old map[string]string) {
-	for k := range testConfig {
-		var err error
-		if old, exists := old[k]; exists {
-			err = os.Setenv(k, old)
-		} else {
-			err = os.Unsetenv(k)
-		}
-		if err != nil {
-			log.Panicf("could not reset env variable: %v", err)
-		}
+		t.Setenv(k, v)
 	}
 }

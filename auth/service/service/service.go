@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/mailer"
+
 	userClient "github.com/tidepool-org/platform/user/client"
 
 	"github.com/kelseyhightower/envconfig"
@@ -370,8 +372,14 @@ func (s *Service) initializeConsentService() error {
 		return errors.Wrap(err, "unable to create user client")
 	}
 
+	s.Logger().Debug("Initializing mailer")
+	mailr, err := mailer.Client()
+	if err != nil {
+		return errors.Wrap(err, "unable to create mailer")
+	}
+
 	s.Logger().Debug("Initializing consent mailer")
-	consentMailer, err := consentService.NewConsentMailer(usrClient, s.Logger())
+	consentMailer, err := consentService.NewConsentMailer(mailr, usrClient, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create consent mailer")
 	}

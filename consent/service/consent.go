@@ -17,14 +17,14 @@ import (
 
 type ConsentService struct {
 	bddpSharer              BigDataDonationProjectSharer
-	consentMailer           ConsentMailer
+	consentMailer           *ConsentMailer
 	consentRepository       *mongo.ConsentRepository
 	consentRecordRepository *mongo.ConsentRecordRepository
 	dbClient                *mongoDriver.Client
 	logger                  log.Logger
 }
 
-func NewConsentService(consentMailer ConsentMailer, bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client, logger log.Logger) consent.Service {
+func NewConsentService(consentMailer *ConsentMailer, bddpSharer BigDataDonationProjectSharer, consentRepository *mongo.ConsentRepository, consentRecordRepository *mongo.ConsentRecordRepository, dbClient *mongoDriver.Client, logger log.Logger) consent.Service {
 	return &ConsentService{
 		bddpSharer:              bddpSharer,
 		consentMailer:           consentMailer,
