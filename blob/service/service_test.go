@@ -38,7 +38,6 @@ var _ = Describe("Service", func() {
 		var deviceLogsUnstructuredStoreConfig map[string]interface{}
 		var blobServiceConfig map[string]interface{}
 		var service *blobService.Service
-		var oldKafkaConfig map[string]string
 
 		BeforeEach(func() {
 			provider = applicationTest.NewProviderWithDefaults()
@@ -103,7 +102,7 @@ var _ = Describe("Service", func() {
 				},
 			}
 			(*provider.ConfigReporterOutput).(*configTest.Reporter).Config = blobServiceConfig
-			oldKafkaConfig = eventsTest.SetTestEnvironmentVariables()
+			eventsTest.SetTestEnvironmentVariables(GinkgoT())
 			service = blobService.New()
 			Expect(service).ToNot(BeNil())
 		})
@@ -112,7 +111,6 @@ var _ = Describe("Service", func() {
 			if server != nil {
 				server.Close()
 			}
-			eventsTest.RestoreOldEnvironmentVariables(oldKafkaConfig)
 			provider.AssertOutputsEmpty()
 		})
 
