@@ -5,15 +5,14 @@ import (
 	"math/rand/v2"
 	"time"
 
-	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
-	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/test"
 	baseDatum "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/summary/types"
 )
@@ -61,32 +60,6 @@ type DataRanges struct {
 	ExtremeHigh float64
 }
 
-func NewDataRanges() DataRanges {
-	return DataRanges{
-		Min:         1,
-		Max:         25,
-		Padding:     0.01,
-		VeryLow:     VeryLowBloodGlucose,
-		Low:         LowBloodGlucose,
-		High:        HighBloodGlucose,
-		VeryHigh:    VeryHighBloodGlucose,
-		ExtremeHigh: ExtremeHighBloodGlucose,
-	}
-}
-
-func NewDataRangesSingle(value float64) DataRanges {
-	return DataRanges{
-		Min:         value,
-		Max:         value,
-		Padding:     0,
-		VeryLow:     value,
-		Low:         value,
-		High:        value,
-		VeryHigh:    value,
-		ExtremeHigh: value,
-	}
-}
-
 func Mean(x []float64) float64 {
 	sum := 0.0
 	for i := 0; i < len(x); i++ {
@@ -95,7 +68,7 @@ func Mean(x []float64) float64 {
 	return sum / float64(len(x))
 }
 
-func calcVariance(x []float64, mean float64) float64 {
+func CalculateVariance(x []float64, mean float64) float64 {
 	var (
 		ss           float64
 		compensation float64
@@ -108,9 +81,9 @@ func calcVariance(x []float64, mean float64) float64 {
 	return ss - compensation*compensation/float64(len(x))
 }
 
-func PopStdDev(x []float64) float64 {
-	variance := calcVariance(x, Mean(x)) / float64(len(x))
-	return math.Sqrt(variance)
+func CalculateStdDevAndVariance(x []float64) (float64, float64) {
+	variance := CalculateVariance(x, Mean(x)) / float64(len(x))
+	return math.Sqrt(variance), variance
 }
 
 func NewContinuousGlucoseDatum(units *string, datumTime *time.Time, deviceID *string, uploadID *string) *continuous.Continuous {
@@ -243,7 +216,8 @@ func NewDataSetCGMVariance(startTime time.Time, hours int, perHour int, Standard
 		}
 	}
 
-	return dataSetData, PopStdDev(values)
+	stdDev, _ := CalculateStdDevAndVariance(values)
+	return dataSetData, stdDev
 }
 
 func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, minutes bool) []*types.Bucket[*types.GlucoseBucket, types.GlucoseBucket] {
@@ -284,13 +258,16 @@ func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, 
 			}
 		}
 
-		buckets[i].Data.Total.Glucose = float64(recordsPerBucket) * InTargetBloodGlucose * 5
+		glucoseMultiplier := 1.0
+		if minutes {
+			glucoseMultiplier = 5.0
+			buckets[i].Data.Total.Minutes = recordsPerBucket * 5
+		}
+
+		buckets[i].Data.Total.Glucose = float64(recordsPerBucket) * InTargetBloodGlucose * glucoseMultiplier
 		buckets[i].Data.Total.Records = recordsPerBucket
 		buckets[i].Data.Total.Variance = 1
 
-		if minutes {
-			buckets[i].Data.Total.Minutes = recordsPerBucket * 5
-		}
 	}
 
 	return buckets
