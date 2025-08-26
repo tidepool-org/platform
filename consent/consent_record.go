@@ -35,6 +35,8 @@ const (
 	BigDataDonationProjectOrganizationsDiabetesSisters       BigDataDonationProjectOrganization = "DiabetesSisters"
 	BigDataDonationProjectOrganizationsTheDiaTribeFoundation BigDataDonationProjectOrganization = "The diaTribe Foundation"
 	BigDataDonationProjectOrganizationsBreakthroughT1D       BigDataDonationProjectOrganization = "Breakthrough T1D"
+	BigDataDonationProjectOrganizationsNightscoutFoundation  BigDataDonationProjectOrganization = "Nightscout Foundation"
+	BigDataDonationProjectOrganizationsT1DExchange           BigDataDonationProjectOrganization = "T1D Exchange"
 )
 
 type RecordAccessor interface {
@@ -84,7 +86,7 @@ func NewRecord(ctx context.Context, userID string, create *RecordCreate) (*Recor
 		Type:               create.Type,
 		Version:            create.Version,
 		Metadata:           create.Metadata,
-		GrantTime:          create.CreatedTime,
+		GrantTime:          create.GrantTime,
 		CreatedTime:        create.CreatedTime,
 		ModifiedTime:       time.Now(),
 	}, nil
@@ -126,6 +128,7 @@ func (r *Record) ToUpdate() *RecordUpdate {
 type RecordCreate struct {
 	AgeGroup           AgeGroup        `json:"ageGroup" bson:"ageGroup"`
 	CreatedTime        time.Time       `bson:"createdTime"`
+	GrantTime          time.Time       `bson:"grantTime"`
 	GrantorType        GrantorType     `json:"grantorType" bson:"grantorType"`
 	Metadata           *RecordMetadata `json:"metadata" bson:"metadata"`
 	OwnerName          string          `json:"ownerName" bson:"ownerName"`
@@ -135,8 +138,10 @@ type RecordCreate struct {
 }
 
 func NewRecordCreate() *RecordCreate {
+	now := time.Now()
 	return &RecordCreate{
-		CreatedTime: time.Now(),
+		CreatedTime: now,
+		GrantTime:   now,
 	}
 }
 
@@ -302,6 +307,8 @@ func BigDataDonationProjectOrganizations() []BigDataDonationProjectOrganization 
 		BigDataDonationProjectOrganizationsDiabetesSisters,
 		BigDataDonationProjectOrganizationsTheDiaTribeFoundation,
 		BigDataDonationProjectOrganizationsBreakthroughT1D,
+		BigDataDonationProjectOrganizationsNightscoutFoundation,
+		BigDataDonationProjectOrganizationsT1DExchange,
 	}
 }
 

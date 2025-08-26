@@ -5,12 +5,12 @@
 **TITLE:**    Tidepool Big Data Donation Project Study Protocol
 
 **PROTOCOL NO.:**    None   
-WCG IRB Protocol \\#20243599
+WCG IRB Protocol #20243599
 
 **SPONSOR:**    Tidepool Project
 
 **INVESTIGATOR:**    Saira Khan-Gallo, MPH  
-555 Bryant St. \\#429  
+555 Bryant St. #429  
 Palo Alto, California 94301  
 United States
 
@@ -26,7 +26,7 @@ phone number(s) listed in this document.
 ## Introduction
 
 You are being asked if you would like to participate in the Tidepool Big Data Donation Project which is being conducted
-entirely online by Tidepool and its partners (the \"**Project**\"). Participation in this Project is completely
+entirely online by Tidepool and its partners (the "**Project**"). Participation in this Project is completely
 voluntary.
 It is your choice whether you would like to participate or not. Before agreeing to participate in this Project, you must
 read and understand this consent form. This consent document describes the purpose, procedures, benefits, risks, and
@@ -75,9 +75,9 @@ Information that will be included in the pool of datasets available to researche
 * **Demographic Information**: such as your age, biological sex, race/ethnicity, socioeconomic status, education level,
   and general geographic location.
 * **Health and Device Information**: such as diabetes type, diagnosis month and year, insulin delivery data, carb
-  entries, events tracked by the continuous glucose meters (\"CGM\") including estimated glucose values, meals,
+  entries, events tracked by the continuous glucose meters ("CGM") including estimated glucose values, meals,
   exercise,
-  blood glucose (\"BG\") readings and log, trends, basal rates, insulin to carb ratios, insulin sensitivity factors,
+  blood glucose ("BG") readings and log, trends, basal rates, insulin to carb ratios, insulin sensitivity factors,
   device generated alerts and alarms, device component changes, and upload history.
 * **Survey Information**: such as your responses to how your experience in the Project is, questions about your health
   habits and wellness, and other information you may choose to provide in response to surveys that may be provided from
@@ -125,7 +125,7 @@ without your further consent.
 ## Withdrawal from the Project
 
 You can decide to leave the Project at any time. You can opt out of this Project by logging into your account, clicking
-on the account name at the top of the page to navigate to your profile settings, clicking the link to ‘Stop sharing
+on the account name at the top of the page to navigate to your profile settings, clicking the link to 'Stop sharing
 data', and confirming your decision.
 
 If you decide to opt out of the Project, the information that was collected before you left the Project will still be
@@ -154,13 +154,13 @@ released by applicable law.
 The Project team may also share Anonymized Project Data with the following:
 
 * Tidepool, its representatives, or others working on its behalf;
-* Partner companies and research institutions \\[including monitor(s) and auditor(s)\\] or designees who have entered
+* Partner companies and research institutions [including monitor(s) and auditor(s)] or designees who have entered
   into
   agreements with Tidepool to conduct research on Project data;
-* The U.S. Food and Drug Administration (\"FDA\");
-* The U.S. Department of Health and Human Services (\"HHS\");
+* The U.S. Food and Drug Administration ("FDA");
+* The U.S. Department of Health and Human Services ("HHS");
 * Other U.S. state or federal regulatory or law enforcement agencies, only with valid subpoena;
-* Institutional Review Boards (\"IRB\");
+* Institutional Review Boards ("IRB");
 * Outside individuals and companies, such as laboratories and data storage companies, that work with the Project team
   and Tidepool and need to access your information to support this Project;
 * Other research personnel and institutions participating in this Project who have been approved by Tidepool and entered
@@ -209,10 +209,10 @@ This research is being overseen by WCG IRB. An IRB is a group of people who perf
 studies. You may talk to them at 855-818-2289 or clientcare@wcgclinical.com if:
 
 * You have questions, concerns, or complaints that are not being answered by the research team.
-    * You are not getting answers from the research team.
-    * You cannot reach the research team.
-    * You want to talk to someone else about the research.
-    * You have questions about your rights as a research subject.
+* You are not getting answers from the research team.
+* You cannot reach the research team.
+* You want to talk to someone else about the research.
+* You have questions about your rights as a research subject.
 
 ## Consent
 

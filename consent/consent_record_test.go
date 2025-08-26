@@ -777,7 +777,9 @@ var _ = Describe("Consent", func() {
 			Expect(orgs).To(ContainElement(consent.BigDataDonationProjectOrganizationsDiabetesSisters))
 			Expect(orgs).To(ContainElement(consent.BigDataDonationProjectOrganizationsTheDiaTribeFoundation))
 			Expect(orgs).To(ContainElement(consent.BigDataDonationProjectOrganizationsBreakthroughT1D))
-			Expect(len(orgs)).To(Equal(8))
+			Expect(orgs).To(ContainElement(consent.BigDataDonationProjectOrganizationsNightscoutFoundation))
+			Expect(orgs).To(ContainElement(consent.BigDataDonationProjectOrganizationsT1DExchange))
+			Expect(len(orgs)).To(Equal(10))
 		})
 	})
 
@@ -827,6 +829,8 @@ var _ = Describe("Consent", func() {
 			Expect(string(consent.BigDataDonationProjectOrganizationsDiabetesSisters)).To(Equal("DiabetesSisters"))
 			Expect(string(consent.BigDataDonationProjectOrganizationsTheDiaTribeFoundation)).To(Equal("The diaTribe Foundation"))
 			Expect(string(consent.BigDataDonationProjectOrganizationsBreakthroughT1D)).To(Equal("Breakthrough T1D"))
+			Expect(string(consent.BigDataDonationProjectOrganizationsNightscoutFoundation)).To(Equal("Nightscout Foundation"))
+			Expect(string(consent.BigDataDonationProjectOrganizationsT1DExchange)).To(Equal("T1D Exchange"))
 		})
 	})
 
