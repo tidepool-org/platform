@@ -108,6 +108,10 @@ type SeagullDocument struct {
 	Value  string             `bson:"value"`
 }
 
+type SeagullUserDocument struct {
+	Profile Profile `json:"profile"`
+}
+
 type Profile struct {
 	FullName *string        `json:"fullName"`
 	Patient  PatientProfile `json:"patient"`
@@ -417,12 +421,13 @@ func (m *Migration) populateAttributesFromUserProfile(ctx context.Context, userI
 		return errors.Wrapf(err, "unable to find profile of user %s", userID)
 	}
 
-	profile := Profile{}
-	err = json.NewDecoder(strings.NewReader(document.Value)).Decode(&profile)
+	userDocument := SeagullUserDocument{}
+	err = json.NewDecoder(strings.NewReader(document.Value)).Decode(&userDocument)
 	if err != nil {
 		return errors.Wrapf(err, "unable to decode profile of user %s", userID)
 	}
 
+	profile := userDocument.Profile
 	if profile.Patient.Birthday == nil {
 		return errors.Newf("profile birthday is nil for user %s", userID)
 	}
