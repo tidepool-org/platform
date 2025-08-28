@@ -365,6 +365,7 @@ func (m *Migration) migrateUser(ctx context.Context, share Permission) error {
 	result, err := m.consentRecordRepository.ListConsentRecords(ctx, share.SharerID, &consent.RecordFilter{
 		Type:    pointer.FromAny(create.Type),
 		Version: pointer.FromAny(create.Version),
+		Latest:  pointer.FromAny(true),
 	}, pagination)
 	if err != nil {
 		return errors.Wrapf(err, "error listing consent records of user %s", share.SharerID)

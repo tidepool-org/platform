@@ -12,14 +12,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
-	serviceApi "github.com/tidepool-org/platform/service/api"
 )
-
-func (r *Router) ConsentRecordRoutes() []*rest.Route {
-	return []*rest.Route{
-		rest.Get("/v1/consents", serviceApi.RequireServer(r.ListConsents)),
-	}
-}
 
 func (r *Router) ListConsentRecords(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)

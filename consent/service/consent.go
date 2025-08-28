@@ -97,7 +97,7 @@ func (c *ConsentService) CreateConsentRecord(ctx context.Context, userID string,
 		}
 
 		if create.Type == consent.TypeBigDataDonationProject {
-			err = c.bddpSharer.Share(ctx, userID)
+			err = c.bddpSharer.Share(sessCtx, userID)
 			if err != nil {
 				return nil, errors.New("could not share data with bddp account after granting consent")
 			}
@@ -140,11 +140,11 @@ func (c *ConsentService) RevokeConsentRecord(ctx context.Context, userID string,
 	}
 
 	_, err = structuredMongo.WithTransaction(ctx, c.dbClient, func(sessCtx mongoDriver.SessionContext) (any, error) {
-		if err := c.consentRecordRepository.RevokeConsentRecord(ctx, userID, revoke); err != nil {
+		if err := c.consentRecordRepository.RevokeConsentRecord(sessCtx, userID, revoke); err != nil {
 			return nil, err
 		}
 		if record.Type == consent.TypeBigDataDonationProject {
-			err = c.bddpSharer.Unshare(ctx, userID)
+			err = c.bddpSharer.Unshare(sessCtx, userID)
 			if err != nil {
 				return nil, errors.New("could not unshare data with bddp account after revoking consent")
 			}
