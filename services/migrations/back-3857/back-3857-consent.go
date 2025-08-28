@@ -199,6 +199,9 @@ func (m *Migration) execute(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+	if err := authClnt.Start(); err != nil {
+		return err
+	}
 	ctx = auth.NewContextWithServerSessionTokenProvider(ctx, authClnt)
 
 	m.userClient, err = userClient.NewDefaultClient(userClient.Params{
@@ -307,6 +310,7 @@ func (m *Migration) migrateOrganizationUsers(ctx context.Context, organizationUs
 	batchSize := 1000
 	opts := options.Find().SetSort(sort).SetLimit(int64(batchSize))
 	id := primitive.NilObjectID
+	var successCount, errorCount int
 
 	for {
 		selector := bson.M{
@@ -328,7 +332,10 @@ func (m *Migration) migrateOrganizationUsers(ctx context.Context, organizationUs
 
 		for _, result := range results {
 			if err := migrate(ctx, result); err != nil {
+				errorCount++
 				m.Logger().WithError(err).Errorf("error migrating consent for user %s", result.SharerID)
+			} else {
+				successCount++
 			}
 		}
 
@@ -337,6 +344,8 @@ func (m *Migration) migrateOrganizationUsers(ctx context.Context, organizationUs
 		}
 		id = results[len(results)-1].ID
 	}
+
+	m.Logger().Infof("Success count: %d, error count: %d", successCount, errorCount)
 
 	return nil
 }
@@ -448,6 +457,31 @@ func (m *Migration) populateAttributesFromUserProfile(ctx context.Context, userI
 	return nil
 }
 
+func (m *Migration) resolveUserID(ctx context.Context, email string) (string, error) {
+	usr, err := m.userClient.Get(ctx, email)
+	if err != nil {
+		return "", err
+	}
+	if usr == nil || usr.UserID == nil {
+		return "", errors.New("user not found")
+	}
+	return *usr.UserID, nil
+}
+
+func (m *Migration) migrate(ctx context.Context, userID string, create *consent.RecordCreate) error {
+	if m.DryRun() {
+		m.Logger().Infof("[DRY RUN] migrating user %s", userID)
+		return nil
+	}
+	created, err := m.consentRecordRepository.CreateConsentRecord(ctx, userID, create)
+	if err != nil {
+		return errors.Wrapf(err, "unable to create consent record for user %s", userID)
+	}
+
+	m.Logger().Infof("sucessfully created consent record for user %s", created.UserID)
+	return nil
+}
+
 func getOrganizationNames(permissions []Permission, orgs map[string]Organization) []consent.BigDataDonationProjectOrganization {
 	var names = make([]consent.BigDataDonationProjectOrganization, 0, len(permissions))
 	for _, permission := range permissions {
@@ -479,29 +513,4 @@ func yearsDifference(start, end time.Time) int {
 	}
 
 	return years
-}
-
-func (m *Migration) resolveUserID(ctx context.Context, email string) (string, error) {
-	usr, err := m.userClient.Get(ctx, email)
-	if err != nil {
-		return "", err
-	}
-	if usr == nil || usr.UserID == nil {
-		return "", errors.New("user not found")
-	}
-	return *usr.UserID, nil
-}
-
-func (m *Migration) migrate(ctx context.Context, userID string, create *consent.RecordCreate) error {
-	if m.DryRun() {
-		m.Logger().Infof("[DRY RUN] migrating user %s", userID)
-		return nil
-	}
-	created, err := m.consentRecordRepository.CreateConsentRecord(ctx, userID, create)
-	if err != nil {
-		return errors.Wrapf(err, "unable to create consent record for user %s", userID)
-	}
-
-	m.Logger().Infof("sucessfully created consent record for user %s", created.UserID)
-	return nil
 }
