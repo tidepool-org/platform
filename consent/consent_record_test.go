@@ -206,12 +206,6 @@ var _ = Describe("Consent", func() {
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("fails when version is zero", func() {
-					record.Version = 0
-					record.Validate(validate)
-					Expect(validate.Error()).To(HaveOccurred())
-				})
-
 				It("fails when version is negative", func() {
 					record.Version = -1
 					record.Validate(validate)
@@ -462,12 +456,6 @@ var _ = Describe("Consent", func() {
 					Expect(validate.Error()).To(HaveOccurred())
 				})
 
-				It("fails when version is missing", func() {
-					recordCreate.Version = 0
-					recordCreate.Validate(validate)
-					Expect(validate.Error()).To(HaveOccurred())
-				})
-
 				It("fails when version is negative", func() {
 					recordCreate.Version = -1
 					recordCreate.Validate(validate)
@@ -513,12 +501,6 @@ var _ = Describe("Consent", func() {
 				It("fails when status is invalid", func() {
 					invalidStatus := consent.RecordStatus("invalid")
 					filter.Status = &invalidStatus
-					filter.Validate(validate)
-					Expect(validate.Error()).To(HaveOccurred())
-				})
-
-				It("fails when version is zero", func() {
-					filter.Version = pointer.FromInt(0)
 					filter.Validate(validate)
 					Expect(validate.Error()).To(HaveOccurred())
 				})

@@ -100,7 +100,7 @@ func (r *Record) Validate(validator structure.Validator) {
 	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
 	validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists().OneOf(structure.ValuesAsStringArray(GrantorTypes())...)
 	validator.String("type", &r.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
-	validator.Int("version", &r.Version).Exists().GreaterThan(0)
+	validator.Int("version", &r.Version).Exists().GreaterThanOrEqualTo(0)
 
 	validator.Time("grantTime", &r.GrantTime).Exists().NotZero().BeforeNow(time.Second)
 	validator.Time("revocationTime", r.RevocationTime).BeforeNow(time.Second)
@@ -176,7 +176,7 @@ func (r *RecordCreate) Validate(validator structure.Validator) {
 	validator.String("ownerName", &r.OwnerName).Exists().LengthInRange(1, 256)
 	validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
 	validator.String("type", &r.Type).Exists().LengthInRange(TypeMinLength, TypeMaxLength)
-	validator.Int("version", &r.Version).Exists().GreaterThan(0)
+	validator.Int("version", &r.Version).Exists().GreaterThanOrEqualTo(0)
 
 	parentGuardianNameValidator := validator.String("parentGuardianName", r.ParentGuardianName).LengthInRange(1, 256)
 	grantorTypeValidator := validator.String("grantorType", structure.ValueAsString(&r.GrantorType)).Exists()
@@ -223,7 +223,7 @@ func (r *RecordFilter) Validate(validator structure.Validator) {
 	validator.Bool("latest", r.Latest).Exists()
 	validator.String("status", structure.ValueAsString(r.Status)).OneOf(structure.ValuesAsStringArray(RecordStatuses())...)
 	validator.String("type", r.Type).LengthInRange(TypeMinLength, TypeMaxLength)
-	validator.Int("version", r.Version).GreaterThan(0)
+	validator.Int("version", r.Version).GreaterThanOrEqualTo(0)
 }
 
 type RecordStatus string

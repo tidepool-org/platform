@@ -2,12 +2,12 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
+
+	"github.com/tidepool-org/platform/services/migrations/back-3857/util"
 
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
@@ -106,21 +106,6 @@ type SeagullDocument struct {
 	ID     primitive.ObjectID `bson:"_id"`
 	UserID string             `bson:"userId"`
 	Value  string             `bson:"value"`
-}
-
-type SeagullUserDocument struct {
-	Profile Profile `json:"profile"`
-}
-
-type Profile struct {
-	FullName *string        `json:"fullName"`
-	Patient  PatientProfile `json:"patient"`
-}
-
-type PatientProfile struct {
-	Birthday      *string `json:"birthday"`
-	IsOtherPerson bool    `json:"isOtherPerson"`
-	FullName      *string `json:"fullName"`
 }
 
 func main() {
@@ -266,6 +251,7 @@ func (m *Migration) ensureUsersShareWithBigdataAccount(ctx context.Context, bigd
 			}
 
 			for _, result := range results {
+				logger := m.Logger().WithFields(log.Fields{"userId": result.SharerID})
 				bigdataShareSelector := bson.M{
 					"sharerId": result.SharerID,
 					"userId":   bigdataUserID,
@@ -280,9 +266,9 @@ func (m *Migration) ensureUsersShareWithBigdataAccount(ctx context.Context, bigd
 				if m.DryRun() {
 					if err := m.permissionsCollection.FindOne(ctx, bigdataShareSelector).Err(); err != nil {
 						if errors.Is(err, mongo.ErrNoDocuments) {
-							m.Logger().Infof("[DRY RUN] creating big data sharing relationship for user %s", result.SharerID)
+							logger.Info("[DRY RUN] creating big data sharing relationship")
 						} else {
-							m.Logger().WithError(err).Errorf("[DRY RUN] error finding big data sharing relationship for user %s", result.SharerID)
+							logger.WithError(err).Errorf("[DRY RUN] error finding big data sharing relationship")
 						}
 					}
 					continue
@@ -292,10 +278,11 @@ func (m *Migration) ensureUsersShareWithBigdataAccount(ctx context.Context, bigd
 					"$setOnInsert": insert,
 				}, options.Update().SetUpsert(true))
 				if err != nil {
-					return errors.Wrapf(err, "error creating big data permission for user %s", result.SharerID)
+					logger.WithError(err).Error("error creating organization permission")
+					return errors.Wrapf(err, "error creating big data permission for user")
 				}
 				if res.UpsertedCount > 0 {
-					m.Logger().Infof("successfully created big data permission relationship for user %s", result.SharerID)
+					logger.Info("successfully created big data permission relationship")
 				}
 			}
 
@@ -335,9 +322,10 @@ func (m *Migration) migrateOrganizationUsers(ctx context.Context, organizationUs
 		}
 
 		for _, result := range results {
+			logger := m.Logger().WithFields(log.Fields{"userId": result.SharerID})
 			if err := migrate(ctx, result); err != nil {
 				errorCount++
-				m.Logger().WithError(err).Errorf("error migrating consent for user %s", result.SharerID)
+				logger.WithError(err).Error("error migrating consent")
 			} else {
 				successCount++
 			}
@@ -355,31 +343,34 @@ func (m *Migration) migrateOrganizationUsers(ctx context.Context, organizationUs
 }
 
 func (m *Migration) migrateUser(ctx context.Context, share Permission) error {
+	logger := m.Logger().WithFields(log.Fields{"userId": share.SharerID})
+
 	create, err := m.createRecordForUser(ctx, share)
 	if err != nil {
-		return errors.Wrapf(err, "error generating create record for user %s", share.SharerID)
+		return errors.Wrap(err, "error generating create record")
 	}
+
+	logger.WithFields(log.Fields{"create": create}).Debugf("create record")
 
 	pagination := page.NewPagination()
 	pagination.Size = 1
 	result, err := m.consentRecordRepository.ListConsentRecords(ctx, share.SharerID, &consent.RecordFilter{
-		Type:    pointer.FromAny(create.Type),
-		Version: pointer.FromAny(create.Version),
-		Latest:  pointer.FromAny(true),
+		Type:   pointer.FromAny(create.Type),
+		Latest: pointer.FromAny(true),
 	}, pagination)
 	if err != nil {
-		return errors.Wrapf(err, "error listing consent records of user %s", share.SharerID)
+		return errors.Wrap(err, "error listing consent records")
 	}
 	if result.Count > 0 {
-		m.Logger().Infof("skipping migration of user %s, because consent record already exists", share.SharerID)
+		logger.Info("skipping migration, because consent record already exists")
 		return nil
 	}
 
-	if err := m.migrate(ctx, share.SharerID, create); err != nil {
-		return errors.Wrapf(err, "error migrating consent of user %s", share.SharerID)
+	if err := m.createConsentRecord(ctx, share.SharerID, create); err != nil {
+		return errors.Wrap(err, "error creating consent record")
 	}
 
-	m.Logger().Debugf("successfully migrated user %s", share.SharerID)
+	logger.Debug("successfully migrated user")
 	return nil
 }
 
@@ -400,7 +391,7 @@ func (m *Migration) createRecordForUser(ctx context.Context, share Permission) (
 
 	record := consent.NewRecordCreate()
 	record.Type = "big_data_donation_project"
-	record.Version = 1
+	record.Version = 0
 	record.Metadata = &consent.RecordMetadata{
 		SupportedOrganizations: getOrganizationNames(organizationsForUser, m.organizationsMap),
 	}
@@ -416,50 +407,17 @@ func (m *Migration) createRecordForUser(ctx context.Context, share Permission) (
 }
 
 func (m *Migration) populateAttributesFromUserProfile(ctx context.Context, userID string, create *consent.RecordCreate) error {
+	logger := m.Logger().WithFields(log.Fields{"userId": userID})
+
 	document := SeagullDocument{}
 	err := m.profilesCollection.FindOne(ctx, bson.M{"userId": userID}).Decode(&document)
-	if err != nil {
-		return errors.Wrapf(err, "unable to find profile of user %s", userID)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		logger.WithError(err).Error("error finding seagull document")
+	} else if err != nil {
+		return err
 	}
 
-	userDocument := SeagullUserDocument{}
-	err = json.NewDecoder(strings.NewReader(document.Value)).Decode(&userDocument)
-	if err != nil {
-		return errors.Wrapf(err, "unable to decode profile of user %s", userID)
-	}
-
-	profile := userDocument.Profile
-	if profile.Patient.Birthday == nil {
-		return errors.Newf("profile birthday is nil for user %s", userID)
-	}
-	if profile.FullName == nil {
-		return errors.New("profile full name is nil for user " + userID)
-	}
-
-	// Determine approximate age at grant time
-	birthday, err := time.Parse(time.DateOnly, *profile.Patient.Birthday)
-	if err != nil {
-		return errors.Wrapf(err, "unable to parse birthday for user %s", userID)
-	}
-	if age := yearsDifference(create.GrantTime, birthday); age >= 18 {
-		create.AgeGroup = consent.AgeGroupEighteenOrOver
-		create.GrantorType = consent.GrantorTypeOwner
-		create.OwnerName = *profile.FullName
-	} else {
-		if profile.Patient.FullName == nil {
-			return errors.Newf("patient full name is nil for user %s", userID)
-		}
-
-		if age > 13 {
-			create.AgeGroup = consent.AgeGroupThirteenSeventeen
-		} else {
-			create.AgeGroup = consent.AgeGroupUnderThirteen
-		}
-		create.GrantorType = consent.GrantorTypeParentGuardian
-		create.ParentGuardianName = profile.FullName
-		create.OwnerName = *profile.Patient.FullName
-	}
-
+	util.PopulateCreateFromSeagullDocumentValue(document.Value, create, logger)
 	return nil
 }
 
@@ -474,17 +432,18 @@ func (m *Migration) resolveUserID(ctx context.Context, email string) (string, er
 	return *usr.UserID, nil
 }
 
-func (m *Migration) migrate(ctx context.Context, userID string, create *consent.RecordCreate) error {
+func (m *Migration) createConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) error {
+	logger := m.Logger().WithFields(log.Fields{"userId": userID})
 	if m.DryRun() {
-		m.Logger().Infof("[DRY RUN] migrating user %s", userID)
+		logger.Info("[DRY RUN] creating consent record")
 		return nil
 	}
-	created, err := m.consentRecordRepository.CreateConsentRecord(ctx, userID, create)
+	_, err := m.consentRecordRepository.CreateConsentRecord(ctx, userID, create)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create consent record for user %s", userID)
 	}
 
-	m.Logger().Infof("sucessfully created consent record for user %s", created.UserID)
+	logger.Info("successfully created consent record for user")
 	return nil
 }
 
@@ -506,17 +465,4 @@ func getEarliestPermissionTime(permissions []Permission) time.Time {
 		}
 	}
 	return earliest
-}
-
-func yearsDifference(start, end time.Time) int {
-	if start.After(end) {
-		start, end = end, start
-	}
-
-	years := end.Year() - start.Year()
-	if end.YearDay() < start.YearDay() {
-		years--
-	}
-
-	return years
 }

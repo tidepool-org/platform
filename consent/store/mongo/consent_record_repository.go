@@ -87,7 +87,7 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
 	selector := bson.M{
 		"userId": userID,
