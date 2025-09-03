@@ -125,8 +125,8 @@ without your further consent.
 ## Withdrawal from the Project
 
 You can decide to leave the Project at any time. You can opt out of this Project by logging into your account, clicking
-on the account name at the top of the page to navigate to your profile settings, clicking the link to 'Stop sharing
-data', and confirming your decision.
+on the account name at the top of the page to navigate to your profile settings, clicking the link to 'Stop Sharing
+Data', and confirming your decision.
 
 If you decide to opt out of the Project, the information that was collected before you left the Project will still be
 used to support this Project, and the previously donated/anonymized data cannot be removed. No new information will be

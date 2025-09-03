@@ -30,7 +30,7 @@ var _ = Describe("Consent", func() {
 		It("Should populate the create record correctly", func() {
 			util.PopulateCreateFromSeagullDocumentValue(value, create, null.NewLogger())
 			Expect(create.OwnerName).To(Equal("James Jellyfish"))
-			Expect(create.ParentGuardianName).To(PointTo(Equal("James Jellyfish")))
+			Expect(create.ParentGuardianName).To(PointTo(Equal("Jill Jellyfish")))
 			Expect(create.AgeGroup).To(Equal(consent.AgeGroupThirteenSeventeen))
 		})
 	})
