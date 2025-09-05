@@ -103,9 +103,8 @@ type Permission struct {
 }
 
 type SeagullDocument struct {
-	ID     primitive.ObjectID `bson:"_id"`
-	UserID string             `bson:"userId"`
-	Value  string             `bson:"value"`
+	UserID string `bson:"userId"`
+	Value  string `bson:"value"`
 }
 
 func main() {
