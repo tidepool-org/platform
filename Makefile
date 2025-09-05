@@ -342,7 +342,7 @@ ifdef DOCKER
 		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
 endif
 
-docker-login: 
+docker-login:
 ifdef DOCKER_REPOSITORY
 	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
 endif

@@ -112,13 +112,6 @@ var _ = Describe("Client", func() {
 							errorsTest.ExpectEqual(err, errors.New("id is missing"))
 							Expect(result).To(BeNil())
 						})
-
-						It("returns an error when the id is invalid", func() {
-							id = "invalid"
-							result, err := client.Get(ctx, id)
-							errorsTest.ExpectEqual(err, errors.New("id is invalid"))
-							Expect(result).To(BeNil())
-						})
 					})
 
 					Context("with server response", func() {

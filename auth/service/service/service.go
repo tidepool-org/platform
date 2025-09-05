@@ -5,6 +5,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/mailer"
+
+	userClient "github.com/tidepool-org/platform/user/client"
+
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -23,6 +27,10 @@ import (
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
+	"github.com/tidepool-org/platform/consent"
+	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
+	consentLoader "github.com/tidepool-org/platform/consent/loader"
+	consentService "github.com/tidepool-org/platform/consent/service"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
@@ -70,6 +78,7 @@ type Service struct {
 	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
+	consentService                 consent.Service
 }
 
 func New() *Service {
@@ -96,9 +105,6 @@ func (s *Service) Initialize(provider application.Provider) error {
 	}
 
 	if err := s.initializeDomain(); err != nil {
-		return err
-	}
-	if err := s.initializeRouter(); err != nil {
 		return err
 	}
 	if err := s.initializeAuthStore(); err != nil {
@@ -128,6 +134,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthClient(); err != nil {
 		return err
 	}
+	if err := s.initializeConsentService(); err != nil {
+		return err
+	}
 	if err := s.initializeProviders(); err != nil {
 		return err
 	}
@@ -141,6 +150,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
+	if err := s.initializeRouter(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -182,6 +194,10 @@ func (s *Service) DataSourceClient() dataSource.Client {
 
 func (s *Service) ConfirmationClient() confirmationClient.ClientWithResponsesInterface {
 	return s.confirmationClient
+}
+
+func (s *Service) ConsentService() consent.Service {
+	return s.consentService
 }
 
 func (s *Service) TaskClient() task.Client {
@@ -252,9 +268,16 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create v1 router")
 	}
 
+	s.Logger().Debug("Creating consent router")
+
+	consentV1Router, err := consentApiV1.NewRouter(s.consentService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create consent router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 
@@ -324,6 +347,50 @@ func (s *Service) initializeWorkStructuredStore() error {
 	}
 
 	return nil
+}
+
+func (s *Service) initializeConsentService() error {
+	s.Logger().Debug("Initializing big data donation project sharer")
+
+	bddpSharerConfig := consentService.BigDataDonationProjectConfig{}
+	if err := envconfig.Process("", &bddpSharerConfig); err != nil {
+		return errors.Wrap(err, "unable to load bddp sharer config")
+	}
+
+	bddpSharer, err := consentService.NewBigDataDonationProjectSharer(bddpSharerConfig, s.AuthClient())
+	if err != nil {
+		return errors.Wrap(err, "unable to create bddp sharer")
+	}
+
+	s.Logger().Debug("Initializing user client")
+	usrClient, err := userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+
+	s.Logger().Debug("Initializing mailer")
+	mailr, err := mailer.Client()
+	if err != nil {
+		return errors.Wrap(err, "unable to create mailer")
+	}
+
+	s.Logger().Debug("Initializing consent mailer")
+	consentMailer, err := consentService.NewConsentMailer(mailr, usrClient, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create consent mailer")
+	}
+
+	s.Logger().Debug("Initializing consent service")
+	s.consentService = consentService.NewConsentService(consentMailer, bddpSharer, s.authStore.NewConsentRepository(), s.authStore.NewConsentRecordRepository(), s.authStore.Store.GetClient(), s.Logger())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	return consentLoader.SeedConsents(ctx, s.Logger(), s.consentService)
 }
 
 func (s *Service) terminateWorkStructuredStore() {
