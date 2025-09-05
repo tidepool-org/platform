@@ -82,7 +82,7 @@ func (p *Filter) Parse(parser structure.ObjectParser) {
 
 func (p *Filter) Validate(validator structure.Validator) {
 	typeValidator := validator.String("type", p.Type).LengthInRange(TypeMinLength, TypeMaxLength)
-	versionValidator := validator.Int("version", p.Version).GreaterThan(0)
+	versionValidator := validator.Int("version", p.Version).GreaterThanOrEqualTo(0)
 	if p.Latest != nil {
 		typeValidator.Exists()
 		versionValidator.NotExists()
