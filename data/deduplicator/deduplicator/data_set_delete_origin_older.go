@@ -49,21 +49,22 @@ func (d *dataSetDeleteOriginOlderDataFilter) FilterData(ctx context.Context, dat
 		existingSelectors, err := d.dataStore.ExistingDataSetData(ctx, dataSet, selectors)
 		if err != nil {
 			return nil, err
-		}
+		} else if existingSelectorsCount := len(*existingSelectors); existingSelectorsCount > 0 {
 
-		existingSelectorsMap := make(map[string]*data.Selector, len(*existingSelectors))
-		for _, existingSelector := range *existingSelectors {
-			existingSelectorsMap[*existingSelector.Origin.ID] = existingSelector
-		}
-
-		dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
-			if datumSelector := d.getDatumSelector(datum); datumSelector != nil {
-				if existingSelector, ok := existingSelectorsMap[*datumSelector.Origin.ID]; ok {
-					return datumSelector.NewerThan(existingSelector)
-				}
+			existingSelectorsMap := make(map[string]*data.Selector, existingSelectorsCount)
+			for _, existingSelector := range *existingSelectors {
+				existingSelectorsMap[*existingSelector.Origin.ID] = existingSelector
 			}
-			return true
-		})
+
+			dataSetData = dataSetData.Filter(func(datum data.Datum) bool {
+				if datumSelector := d.getDatumSelector(datum); datumSelector != nil {
+					if existingSelector, ok := existingSelectorsMap[*datumSelector.Origin.ID]; ok {
+						return datumSelector.NewerThan(existingSelector)
+					}
+				}
+				return true
+			})
+		}
 	}
 
 	return dataSetData, nil
