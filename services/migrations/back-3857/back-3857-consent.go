@@ -201,7 +201,7 @@ func (m *Migration) execute(ctx context.Context) error {
 		Repository: storeStructuredMongo.NewRepository(client.Database(consentDBName).Collection(consentRecordsCollectionName)),
 	}
 
-	orgs := make(map[string]Organization)
+	m.organizationsMap = make(map[string]Organization)
 	m.organizationUserIDs = make([]string, 0, len(bddpOrganizations))
 	for _, org := range bddpOrganizations {
 		userID, err := m.resolveUserID(ctx, org.Email)
@@ -209,7 +209,7 @@ func (m *Migration) execute(ctx context.Context) error {
 			m.Logger().WithError(err).Warnf("unable to resolve user id of %s organization", org.Email)
 			continue
 		}
-		orgs[userID] = org
+		m.organizationsMap[userID] = org
 		m.organizationUserIDs = append(m.organizationUserIDs, userID)
 	}
 
