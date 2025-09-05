@@ -65,7 +65,7 @@ var (
 			Name:  consent.BigDataDonationProjectOrganizationsTheDiabetesLink,
 		},
 		{
-			Email: "bigdata+dyf1@tidepool.org",
+			Email: "bigdata+dyf@tidepool.org",
 			Name:  consent.BigDataDonationProjectOrganizationsDYF,
 		},
 		{
