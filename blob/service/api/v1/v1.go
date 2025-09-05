@@ -280,12 +280,11 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 	}
 
 	content, err := blobClient.GetDeviceLogsContent(req.Context(), *deviceLogMetadata.ID)
-	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+	if responder.RespondIfError(err) {
 		return
 	}
 	if content == nil || content.Body == nil {
-		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(deviceLogID))
+		responder.RespondIfError(request.ErrorResourceNotFoundWithID(deviceLogID))
 		return
 	}
 	defer content.Body.Close()
