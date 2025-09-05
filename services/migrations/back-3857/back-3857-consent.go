@@ -230,8 +230,8 @@ func (m *Migration) ensureUsersShareWithBigdataAccount(ctx context.Context, bigd
 	opts := options.Find().SetSort(sort).SetLimit(int64(batchSize))
 
 	for _, organizationUserID := range m.organizationUserIDs {
+		id := primitive.NilObjectID
 		for {
-			id := primitive.NilObjectID
 			selector := bson.M{
 				"_id": bson.M{
 					"$gt": id,
