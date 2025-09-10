@@ -294,6 +294,20 @@ func (mr *MockClientMockRecorder) UpdateRestrictedToken(ctx, id, update any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRestrictedToken", reflect.TypeOf((*MockClient)(nil).UpdateRestrictedToken), ctx, id, update)
 }
 
+// UpdateUserPermissions mocks base method.
+func (m *MockClient) UpdateUserPermissions(ctx context.Context, requestUserID, targetUserID string, permissions permission.Permissions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserPermissions", ctx, requestUserID, targetUserID, permissions)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserPermissions indicates an expected call of UpdateUserPermissions.
+func (mr *MockClientMockRecorder) UpdateUserPermissions(ctx, requestUserID, targetUserID, permissions any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserPermissions", reflect.TypeOf((*MockClient)(nil).UpdateUserPermissions), ctx, requestUserID, targetUserID, permissions)
+}
+
 // ValidateSessionToken mocks base method.
 func (m *MockClient) ValidateSessionToken(ctx context.Context, token string) (request.AuthDetails, error) {
 	m.ctrl.T.Helper()

@@ -82,3 +82,7 @@ func (p *Permission) GetUserPermissions(ctx context.Context, requestUserID strin
 
 	return p.Default, nil
 }
+
+func (p *Permission) UpdateUserPermissions(ctx context.Context, requestUserID string, targetUserID string, perms permission.Permissions) error {
+	panic("not implemented")
+}

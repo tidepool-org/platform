@@ -67,8 +67,6 @@ func (c *Client) Get(ctx context.Context, id string) (*user.User, error) {
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
-	} else if !user.IsValidID(id) {
-		return nil, errors.New("id is invalid")
 	}
 
 	url := c.client.ConstructURL("auth", "user", id)

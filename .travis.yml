@@ -23,6 +23,8 @@ cache:
     - $HOME/.cache/go-build
 
 before_install:
+  # Remove broken RabbitMQ repos
+  - sudo rm -f /etc/apt/sources.list.d/rabbitmq*
   - sudo apt-get update
   - sudo apt-get install --allow-downgrades -y docker-buildx-plugin mongodb-org=${MONGODB} mongodb-org-database=${MONGODB} mongodb-org-server=${MONGODB} mongodb-mongosh=${MONGOSH} mongodb-org-mongos=${MONGODB} mongodb-org-tools
   - mkdir -p /var/ramfs/mongodb/data

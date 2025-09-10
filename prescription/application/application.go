@@ -3,6 +3,8 @@ package application
 import (
 	"go.uber.org/fx"
 
+	"github.com/tidepool-org/platform/mailer"
+
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/devices"
 	structuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -36,5 +38,5 @@ var Dependencies = fx.Options(
 	devices.ClientModule,
 	structuredMongo.StoreModule,
 	clinics.ClientModule,
-	fx.Provide(mailer),
+	fx.Provide(mailer.Client),
 )

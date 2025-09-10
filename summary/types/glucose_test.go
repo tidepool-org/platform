@@ -3,10 +3,8 @@ package types_test
 import (
 	"context"
 	"fmt"
+	"math"
 	"time"
-
-	"github.com/tidepool-org/platform/data/test"
-	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
 	. "github.com/onsi/ginkgo/v2"
@@ -14,8 +12,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	. "github.com/tidepool-org/platform/summary/test"
 	. "github.com/tidepool-org/platform/summary/types"
 )
@@ -30,6 +30,119 @@ var _ = Describe("Glucose", func() {
 		now = time.Now()
 		userId = "1234"
 		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+	})
+
+	Context("MinMax", func() {
+		Context("Update", func() {
+
+			It("Adding 1 value", func() {
+				minMax := MinMax{}
+				datum := NewContinuousGlucoseWithValue(now, 5)
+				g, err := NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(5.0))
+				Expect(minMax.Min).To(Equal(5.0))
+			})
+
+			It("Adding 2 values, replacing Max", func() {
+				minMax := MinMax{}
+
+				By("adding the first number")
+				datum := NewContinuousGlucoseWithValue(now, 3)
+				g, err := NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(3.0))
+				Expect(minMax.Min).To(Equal(3.0))
+
+				By("adding the second number")
+				datum = NewContinuousGlucoseWithValue(now, 7)
+				g, err = NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+			It("Adding 2 values, replacing Min", func() {
+				minMax := MinMax{}
+
+				By("adding the first number")
+				datum := NewContinuousGlucoseWithValue(now, 7)
+				g, err := NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(7.0))
+
+				By("adding the second number")
+				datum = NewContinuousGlucoseWithValue(now, 3)
+				g, err = NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+			It("Adding one value, leaving unchanged", func() {
+				minMax := MinMax{Min: 3, Max: 7}
+
+				datum := NewContinuousGlucoseWithValue(now, 5)
+				g, err := NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+
+				minMax.Update(g)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+		})
+
+		Context("Add", func() {
+
+			It("replacing Min", func() {
+				minMax := MinMax{Min: 3, Max: 7}
+				minMaxNew := MinMax{Min: 2, Max: 7}
+
+				minMax.Add(&minMaxNew)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(2.0))
+			})
+
+			It("replacing Max", func() {
+				minMax := MinMax{Min: 3, Max: 4}
+				minMaxNew := MinMax{Min: 3, Max: 7}
+
+				minMax.Add(&minMaxNew)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+			It("replacing both", func() {
+				minMax := MinMax{Min: 4, Max: 5}
+				minMaxNew := MinMax{Min: 3, Max: 7}
+
+				minMax.Add(&minMaxNew)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+			It("replacing neither", func() {
+				minMax := MinMax{Min: 3, Max: 7}
+				minMaxNew := MinMax{Min: 4, Max: 5}
+
+				minMax.Add(&minMaxNew)
+				Expect(minMax.Max).To(Equal(7.0))
+				Expect(minMax.Min).To(Equal(3.0))
+			})
+
+		})
 	})
 
 	Context("GetDuration", func() {
@@ -91,6 +204,38 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Records).To(Equal(1))
 			Expect(glucoseRange.Minutes).To(Equal(5))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
+
+			values := []float64{5, 10}
+			_, expectedVariance := CalculateStdDevAndVariance(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 10
+
+			By("adding 5 minutes of 10mmol")
+			datum = NewContinuousGlucoseWithValue(now, 10)
+			g, err = NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.UpdateTotal(g)
+			Expect(glucoseRange.Glucose).To(Equal(15.0 * 5.0))
+			Expect(glucoseRange.Records).To(Equal(2))
+			Expect(glucoseRange.Minutes).To(Equal(10))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
+
+			values = []float64{5, 10, 7}
+			_, expectedVariance = CalculateStdDevAndVariance(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 15
+
+			By("adding 5 minutes of 7mmol")
+			datum = NewContinuousGlucoseWithValue(now, 7)
+			g, err = NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.UpdateTotal(g)
+			Expect(glucoseRange.Glucose).To(Equal(15.0*5.0 + 7*5))
+			Expect(glucoseRange.Records).To(Equal(3))
+			Expect(glucoseRange.Minutes).To(Equal(15))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 		})
 
 		It("range.UpdateTotal without minutes", func() {
@@ -107,6 +252,11 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Minutes).To(Equal(0))
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 
+			values := []float64{5, 10}
+			_, expectedVariance := CalculateStdDevAndVariance(values)
+			// multiply by expected records as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 2
+
 			By("adding 1 record of 10mmol")
 			datum = NewSelfMonitoredGlucoseWithValue(now, 10)
 			g, err = NewGlucose(datum)
@@ -116,7 +266,23 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Glucose).To(Equal(15.0))
 			Expect(glucoseRange.Records).To(Equal(2))
 			Expect(glucoseRange.Minutes).To(Equal(0))
-			Expect(glucoseRange.Variance).To(Equal(0.0))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
+
+			values = []float64{5, 10, 7}
+			_, expectedVariance = CalculateStdDevAndVariance(values)
+			// multiply by expected minutes as this is removed at the end later in the workflow, not each sample
+			expectedVariance *= 3
+
+			By("adding 1 record of 7mmol")
+			datum = NewSelfMonitoredGlucoseWithValue(now, 7)
+			g, err = NewGlucose(datum)
+			Expect(err).ToNot(HaveOccurred())
+
+			glucoseRange.UpdateTotal(g)
+			Expect(glucoseRange.Glucose).To(Equal(22.0))
+			Expect(glucoseRange.Records).To(Equal(3))
+			Expect(glucoseRange.Minutes).To(Equal(0))
+			Expect(glucoseRange.Variance).To(BeNumerically("~", expectedVariance))
 		})
 
 		It("range.Update", func() {
@@ -159,29 +325,61 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRange.Variance).To(Equal(0.0))
 		})
 
-		It("range.Add", func() {
+		It("range.Add with minutes", func() {
 			firstRange := Range{
-				Glucose:  5,
-				Minutes:  5,
-				Records:  5,
-				Percent:  5,
+				Glucose:  1,
+				Minutes:  2,
+				Records:  3,
+				Percent:  4,
 				Variance: 5,
 			}
 
 			secondRange := Range{
-				Glucose:  10,
-				Minutes:  10,
-				Records:  10,
-				Percent:  10,
-				Variance: 10,
+				Glucose:  11,
+				Minutes:  12,
+				Records:  13,
+				Percent:  14,
+				Variance: 15,
 			}
 
 			firstRange.Add(&secondRange)
 
-			Expect(firstRange.Glucose).To(Equal(15.0))
-			Expect(firstRange.Minutes).To(Equal(15))
-			Expect(firstRange.Records).To(Equal(15))
-			Expect(firstRange.Variance).To(Equal(15.0))
+			Expect(firstRange.Glucose).To(Equal(12.0))
+			Expect(firstRange.Minutes).To(Equal(14))
+			Expect(firstRange.Records).To(Equal(16))
+
+			// 20.29761905 = 5 + 15 + (11/12 - 1/2)^2*2*12/14
+			Expect(firstRange.Variance).To(BeNumerically("~", 20.29761905))
+
+			// expect percent cleared, we don't handle percent on add
+			Expect(firstRange.Percent).To(BeZero())
+		})
+
+		It("range.Add without minutes", func() {
+			firstRange := Range{
+				Glucose:  1,
+				Minutes:  0,
+				Records:  3,
+				Percent:  4,
+				Variance: 5,
+			}
+
+			secondRange := Range{
+				Glucose:  11,
+				Minutes:  0,
+				Records:  13,
+				Percent:  14,
+				Variance: 15,
+			}
+
+			firstRange.Add(&secondRange)
+
+			Expect(firstRange.Glucose).To(Equal(12.0))
+			Expect(firstRange.Minutes).To(Equal(0))
+			Expect(firstRange.Records).To(Equal(16))
+
+			// 20.64102564 = 5 + 15 + (11/13 - 1/3)^2*3*13/16
+			Expect(firstRange.Variance).To(BeNumerically("~", 20.64102564))
 
 			// expect percent cleared, we don't handle percent on add
 			Expect(firstRange.Percent).To(BeZero())
@@ -575,10 +773,9 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 			Expect(userBucket.IsModified()).To(BeTrue())
-
-			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
-			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
 		})
 
 		It("With a bgm value", func() {
@@ -594,10 +791,9 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 			Expect(userBucket.IsModified()).To(BeTrue())
-
-			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
-			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
 		})
 
 		It("With two cgm values within 5 minutes", func() {
@@ -612,6 +808,8 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 
 			newDatumTime := bucketTime.Add(9 * time.Minute)
 			cgmDatum = NewContinuousGlucoseWithValue(newDatumTime, InTargetBloodGlucose)
@@ -622,6 +820,8 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.LastData).To(Equal(datumTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 		})
 
 		It("With two bgm values within 5 minutes", func() {
@@ -636,6 +836,8 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.FirstData).To(Equal(datumTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 
 			newDatumTime := bucketTime.Add(9 * time.Minute)
 			bgmDatum = NewSelfMonitoredGlucoseWithValue(newDatumTime, InTargetBloodGlucose)
@@ -646,28 +848,9 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.LastData).To(Equal(newDatumTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(2))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(0))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 		})
-
-		// we no longer check this
-		//It("With a smbg value in a cgm bucket", func() {
-		//	datumTime := bucketTime.Add(5 * time.Minute)
-		//	userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
-		//	bgmDatum := NewGlucoseWithValue(selfmonitored.Type, datumTime, InTargetBloodGlucose)
-		//
-		//	err = userBucket.Update(bgmDatum)
-		//	Expect(err).To(HaveOccurred())
-		//	Expect(err).To(MatchError("record for cgm calculation is of invald type smbg"))
-		//})
-
-		//It("With a cbg value in a bgm bucket", func() {
-		//	datumTime := bucketTime.Add(5 * time.Minute)
-		//	userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
-		//	cgmDatum = NewGlucoseWithValue(continuous.Type, datumTime, InTargetBloodGlucose)
-		//
-		//	err = userBucket.Update(cgmDatum)
-		//	Expect(err).To(HaveOccurred())
-		//	Expect(err).To(MatchError("record for bgm calculation is of invald type cbg"))
-		//})
 
 		It("With two values in a range", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
@@ -684,10 +867,9 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(1))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(5))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 			Expect(userBucket.IsModified()).To(BeTrue())
-
-			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
-			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
 
 			secondDatumTime := datumTime.Add(5 * time.Minute)
 			cgmDatum = NewContinuousGlucoseWithValue(secondDatumTime, InTargetBloodGlucose)
@@ -702,11 +884,9 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.Time).To(Equal(bucketTime))
 			Expect(userBucket.Data.Target.Records).To(Equal(2))
 			Expect(userBucket.Data.Target.Minutes).To(Equal(10))
+			Expect(userBucket.Data.Min).To(Equal(InTargetBloodGlucose))
+			Expect(userBucket.Data.Max).To(Equal(InTargetBloodGlucose))
 			Expect(userBucket.IsModified()).To(BeTrue())
-
-			Expect(userBucket.Data.Target.Records).To(Equal(userBucket.Data.Total.Records))
-			Expect(userBucket.Data.Target.Minutes).To(Equal(userBucket.Data.Total.Minutes))
-
 		})
 
 		It("With values in all ranges", func() {
@@ -720,6 +900,9 @@ var _ = Describe("Glucose", func() {
 				HighBloodGlucose + 0.1:        &userBucket.Data.High,
 				ExtremeHighBloodGlucose + 0.1: &userBucket.Data.ExtremeHigh,
 			}
+
+			expectedMin := 9999.9
+			expectedMax := -1.0
 
 			expectedGlucose := 0.0
 			expectedMinutes := 0
@@ -782,7 +965,19 @@ var _ = Describe("Glucose", func() {
 				Expect(userBucket.Data.VeryHigh.Records).To(Equal(expectedVeryHighRecords))
 				Expect(userBucket.Data.VeryHigh.Minutes).To(Equal(expectedVeryHighMinutes))
 
-				// we should check that total gets variance
+				if k > expectedMax {
+					expectedMax = k
+				}
+				if k < expectedMin {
+					expectedMin = k
+				}
+				Expect(userBucket.Data.Min).To(Equal(expectedMin))
+				Expect(userBucket.Data.Max).To(Equal(expectedMax))
+
+				if offset > 0 {
+					Expect(userBucket.Data.Total.Variance).ToNot(BeZero())
+				}
+
 				offset++
 			}
 		})
@@ -841,18 +1036,24 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Target.Records).To(Equal(1))
 			Expect(period.HoursWithData).To(Equal(1))
 			Expect(period.DaysWithData).To(Equal(1))
+			Expect(period.Min).To(Equal(InTargetBloodGlucose))
+			Expect(period.Max).To(Equal(InTargetBloodGlucose))
 
 			err = period.Update(bucketTwo)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(period.Target.Records).To(Equal(2))
 			Expect(period.HoursWithData).To(Equal(2))
 			Expect(period.DaysWithData).To(Equal(1))
+			Expect(period.Min).To(Equal(InTargetBloodGlucose))
+			Expect(period.Max).To(Equal(InTargetBloodGlucose))
 
 			err = period.Update(bucketThree)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(period.Target.Records).To(Equal(3))
 			Expect(period.HoursWithData).To(Equal(3))
 			Expect(period.DaysWithData).To(Equal(2))
+			Expect(period.Min).To(Equal(InTargetBloodGlucose))
+			Expect(period.Max).To(Equal(InTargetBloodGlucose))
 		})
 
 		It("Finalize a 1d period", func() {
@@ -880,9 +1081,39 @@ var _ = Describe("Glucose", func() {
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
 			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
-			// we only validate these are set here, as this requires more specific validation
-			Expect(period.StandardDeviation).ToNot(Equal(0.0))
-			Expect(period.CoefficientOfVariation).ToNot(Equal(0.0))
+			expectedStdev := math.Sqrt(24 / 12 * 5)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
+		})
+
+		It("Finalize a 1d period without minutes", func() {
+			period = GlucosePeriod{}
+			buckets := CreateGlucoseBuckets(bucketTime, 24, 12, false)
+
+			for i := range buckets {
+				err = period.Update(buckets[i])
+				Expect(err).ToNot(HaveOccurred())
+			}
+
+			period.Finalize(1)
+
+			// data is generated at 100% per range
+			Expect(period.VeryHigh.Percent).To(Equal(1.0))
+			Expect(period.AnyLow.Percent).To(Equal(1.0))
+			Expect(period.AnyHigh.Percent).To(Equal(1.0))
+			Expect(period.Target.Percent).To(Equal(1.0))
+			Expect(period.Low.Percent).To(Equal(1.0))
+			Expect(period.High.Percent).To(Equal(1.0))
+			Expect(period.VeryLow.Percent).To(Equal(1.0))
+			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
+
+			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
+			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
+			Expect(period.GlucoseManagementIndicator).To(Equal(0.0))
+
+			expectedStdev := math.Sqrt(24 / 12)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
 		})
 
 		It("Finalize a 7d period", func() {
@@ -910,9 +1141,9 @@ var _ = Describe("Glucose", func() {
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
 			Expect(period.GlucoseManagementIndicator).To(Equal(CalculateGMI(InTargetBloodGlucose)))
 
-			// we only validate these are set here, as this requires more specific validation
-			Expect(period.StandardDeviation).ToNot(Equal(0.0))
-			Expect(period.CoefficientOfVariation).ToNot(Equal(0.0))
+			expectedStdev := math.Sqrt(24 * 5 / 12 * 5 * 5)
+			Expect(period.StandardDeviation).ToNot(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).ToNot(Equal(expectedStdev / InTargetBloodGlucose))
 		})
 
 		It("Finalize a 1d period with insufficient data", func() {
@@ -1211,6 +1442,7 @@ var _ = Describe("Glucose", func() {
 							Variance: 8,
 						},
 					},
+					MinMax:                     MinMax{Min: 3, Max: 5},
 					HoursWithData:              0,
 					DaysWithData:               1,
 					AverageGlucose:             2,
@@ -1218,8 +1450,8 @@ var _ = Describe("Glucose", func() {
 					CoefficientOfVariation:     4,
 					StandardDeviation:          5,
 					AverageDailyRecords:        6,
-				},
-				}
+				}}
+
 				offset := GlucosePeriods{"1d": &GlucosePeriod{
 					GlucoseRanges: GlucoseRanges{
 						Total: Range{
@@ -1286,6 +1518,7 @@ var _ = Describe("Glucose", func() {
 							Variance: 15,
 						},
 					},
+					MinMax:                     MinMax{Min: 5, Max: 6},
 					HoursWithData:              99,
 					DaysWithData:               98,
 					AverageGlucose:             97,
@@ -1293,8 +1526,7 @@ var _ = Describe("Glucose", func() {
 					CoefficientOfVariation:     95,
 					StandardDeviation:          94,
 					AverageDailyRecords:        93,
-				},
-				}
+				}}
 
 				s.CalculateDelta(offset)
 
@@ -1346,6 +1578,7 @@ var _ = Describe("Glucose", func() {
 							Percent: -8,
 						},
 					},
+					MinMax:                     MinMax{Min: -2, Max: -1},
 					HoursWithData:              -99,
 					DaysWithData:               -97,
 					AverageGlucose:             -95,
