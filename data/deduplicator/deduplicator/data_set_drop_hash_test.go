@@ -258,10 +258,17 @@ var _ = Describe("DataSetDropHash", func() {
 				})
 
 				Context("AddData", func() {
-					var allData data.Data
 					var createdData data.Data
 					var databaseData data.Data
+					var uniqueData data.Data
+					var allData data.Data
 					var expectedActive bool
+
+					duplicateBase := func(base *dataTypes.Base) *dataTypes.Base {
+						duplicate := dataTypesTest.CloneBase(base)
+						duplicate.ID = pointer.FromString(dataTest.RandomDatumID())
+						return duplicate
+					}
 
 					selectorsFromData := func(dataSetData data.Data) *data.Selectors {
 						selectors := data.Selectors{}
@@ -272,27 +279,40 @@ var _ = Describe("DataSetDropHash", func() {
 					}
 
 					BeforeEach(func() {
-						allData = data.Data{}
 						createdData = data.Data{}
 						databaseData = data.Data{}
+						uniqueData = data.Data{}
+						allData = data.Data{}
 						expectedActive = false
 
 						// Not in database
-						for range test.RandomIntFromRange(1, 3) {
+						for range test.RandomIntFromRange(3, 5) {
 							base := dataTypesTest.RandomBase()
 							base.Deduplicator = nil
 
-							allData = append(allData, base)
+							// Add duplicate first because last one wins
+							if test.RandomBool() {
+								allData = append(allData, duplicateBase(base))
+							}
+
 							createdData = append(createdData, base)
+							uniqueData = append(uniqueData, base)
+							allData = append(allData, base)
 						}
 
 						// In database
-						for range test.RandomIntFromRange(1, 3) {
+						for range test.RandomIntFromRange(3, 5) {
 							base := dataTypesTest.RandomBase()
 							base.Deduplicator = nil
 
-							allData = append(allData, base)
+							// Add duplicate first because last one wins
+							if test.RandomBool() {
+								allData = append(allData, duplicateBase(base))
+							}
+
 							databaseData = append(databaseData, base)
+							uniqueData = append(uniqueData, base)
+							allData = append(allData, base)
 						}
 					})
 
@@ -311,7 +331,7 @@ var _ = Describe("DataSetDropHash", func() {
 					dataSetTypeAssertions := func() {
 						When("existing data set data using deduplicator hashes is invoked", func() {
 							AfterEach(func() {
-								Expect(dataRepository.ExistingDataSetDataInputs).To(Equal([]dataStoreTest.ExistingDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectorsFromData(allData)}}))
+								Expect(dataRepository.ExistingDataSetDataInputs).To(Equal([]dataStoreTest.ExistingDataSetDataInput{{Context: ctx, DataSet: dataSet, Selectors: selectorsFromData(uniqueData)}}))
 							})
 
 							It("returns an error when existing data set data using deduplicator hash returns an error", func() {
