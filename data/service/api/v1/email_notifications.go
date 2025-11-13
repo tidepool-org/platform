@@ -9,6 +9,7 @@ import (
 	serviceApi "github.com/tidepool-org/platform/service/api"
 
 	"github.com/tidepool-org/platform/work/service/emailnotificationsprocessor"
+	"github.com/tidepool-org/platform/work/service/emailnotificationsprocessor/metadata"
 )
 
 func EmailNotificationRoutes() []dataService.Route {
@@ -25,7 +26,7 @@ func queueClaimAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data emailnotificationsprocessor.ClaimAccountReminderData
+	var data metadata.ClaimAccountReminderData
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
@@ -47,7 +48,7 @@ func queueConnectAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data emailnotificationsprocessor.ConnectAccountReminderData
+	var data metadata.ConnectAccountReminderData
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
@@ -69,7 +70,7 @@ func sendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data emailnotificationsprocessor.DeviceConnectionIssuesData
+	var data metadata.DeviceConnectionIssuesData
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return

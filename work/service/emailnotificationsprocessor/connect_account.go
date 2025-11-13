@@ -8,22 +8,14 @@ import (
 	"github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
+
+	. "github.com/tidepool-org/platform/work/service/emailnotificationsprocessor/metadata"
 )
 
 const (
 	connectAccountProcessorType = "org.tidepool.processors.connect.account"
 )
-
-// ConnectAccountReminderData is the metadata added to a [work.Work] item for reminding users to connect their account to a C2C provider.
-type ConnectAccountReminderData struct {
-	UserId            string
-	PatientName       string
-	ProviderName      string
-	RestrictedTokenId string
-	EmailTemplate     string
-}
 
 type connectAccountProcessor struct {
 	dependencies Dependencies
@@ -86,22 +78,6 @@ func (p *connectAccountProcessor) Process(ctx context.Context, wrk *work.Work, u
 		return NewFailedResult(err, wrk)
 	}
 	return *work.NewProcessResultDelete()
-}
-
-func (d *ConnectAccountReminderData) Parse(parser structure.ObjectParser) {
-	d.UserId = *parser.String("userId")
-	d.ProviderName = *parser.String("providerName")
-	d.PatientName = *parser.String("patientName")
-	d.RestrictedTokenId = *parser.String("restrictedTokenId")
-	d.EmailTemplate = *parser.String("emailTemplate")
-}
-
-func (d ConnectAccountReminderData) Validate(validator structure.Validator) {
-	validator.String("userId", &d.UserId).NotEmpty()
-	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("patientName", &d.PatientName).NotEmpty()
-	validator.String("restrictedTokenId", &d.RestrictedTokenId).NotEmpty()
-	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
 }
 
 func NewConnectAccountWorkCreate(notBefore time.Time, metadata ConnectAccountReminderData) *work.Create {
