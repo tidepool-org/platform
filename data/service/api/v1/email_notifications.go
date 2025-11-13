@@ -16,7 +16,7 @@ func EmailNotificationRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Post("/v1/notifications/account/claims", queueClaimAccountNotification, serviceApi.RequireServer),
 		dataService.Post("/v1/notifications/account/connections", queueConnectAccountNotification, serviceApi.RequireServer),
-		dataService.Post("/v1/notifications/device/connections/issues", sendDeviceIssuesNotification, serviceApi.RequireServer),
+		dataService.Post("/v1/notifications/account/connections/issues", sendDeviceIssuesNotification, serviceApi.RequireServer),
 	}
 }
 
