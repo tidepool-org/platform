@@ -8,15 +8,16 @@ import (
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 
-	"github.com/tidepool-org/platform/work/service/emailnotificationsprocessor"
-	"github.com/tidepool-org/platform/work/service/emailnotificationsprocessor/metadata"
+	"github.com/tidepool-org/platform/conditionalnotifications/claimaccount"
+	"github.com/tidepool-org/platform/conditionalnotifications/connectaccount"
+	"github.com/tidepool-org/platform/conditionalnotifications/connectionissues"
 )
 
-func EmailNotificationRoutes() []dataService.Route {
+func NotificationRoutes() []dataService.Route {
 	return []dataService.Route{
 		dataService.Post("/v1/notifications/account/claims", queueClaimAccountNotification, serviceApi.RequireServer),
 		dataService.Post("/v1/notifications/account/connections", queueConnectAccountNotification, serviceApi.RequireServer),
-		dataService.Post("/v1/notifications/account/connections/issues", sendDeviceIssuesNotification, serviceApi.RequireServer),
+		dataService.Post("/v1/notifications/device/issues", sendDeviceIssuesNotification, serviceApi.RequireServer),
 	}
 }
 
@@ -26,13 +27,18 @@ func queueClaimAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data metadata.ClaimAccountReminderData
+	var data claimaccount.Metadata
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	createDetails := emailnotificationsprocessor.NewClaimAccountWorkCreate(time.Now().Add(time.Hour*24*7), data)
+	notBefore := data.WhenToSend
+	if notBefore.IsZero() {
+		notBefore = time.Now().Add(time.Hour * 24 * 7)
+	}
+
+	createDetails := claimaccount.NewWorkCreate(notBefore, data)
 	_, err := dataServiceContext.WorkClient().Create(req.Context(), createDetails)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -48,13 +54,13 @@ func queueConnectAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data metadata.ConnectAccountReminderData
+	var data connectaccount.Metadata
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	createDetails := emailnotificationsprocessor.NewConnectAccountWorkCreate(time.Now().Add(time.Hour*24*7), data)
+	createDetails := connectaccount.NewWorkCreate(time.Now().Add(time.Hour*24*7), data)
 	_, err := dataServiceContext.WorkClient().Create(req.Context(), createDetails)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
@@ -70,13 +76,13 @@ func sendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data metadata.DeviceConnectionIssuesData
+	var data connectionissues.Metadata
 	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	createDetails := emailnotificationsprocessor.NewDeviceConnectionIssuesWorkCreate(data)
+	createDetails := connectionissues.NewWorkCreate(data)
 	_, err := dataServiceContext.WorkClient().Create(req.Context(), createDetails)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)

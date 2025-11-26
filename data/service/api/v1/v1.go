@@ -33,7 +33,7 @@ func Routes() []service.Route {
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
-	routes = append(routes, EmailNotificationRoutes()...)
+	routes = append(routes, NotificationRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
 
 	return routes
