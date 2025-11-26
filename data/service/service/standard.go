@@ -48,10 +48,14 @@ import (
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/work"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 
-	"github.com/tidepool-org/platform/work/service/emailnotificationsprocessor"
+	notifications "github.com/tidepool-org/platform/conditionalnotifications"
+	"github.com/tidepool-org/platform/conditionalnotifications/claimaccount"
+	"github.com/tidepool-org/platform/conditionalnotifications/connectaccount"
+	"github.com/tidepool-org/platform/conditionalnotifications/connectionissues"
 )
 
 type Standard struct {
@@ -698,21 +702,23 @@ func (s *Standard) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to register abbott processors")
 	}
 
-	emailDependencies := emailnotificationsprocessor.Dependencies{
-		DataSources:   s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		Mailer:        s.mailerClient,
+	notificationDependencies := notifications.Dependencies{
 		Auth:          s.AuthClient(),
-		Users:         s.userClient,
 		Clinics:       s.clinicsClient,
 		Confirmations: s.confirmationClient,
+		DataSources:   s.dataSourceStructuredStore.NewDataSourcesRepository(),
+		Mailer:        s.mailerClient,
+		Users:         s.userClient,
+		Worker:        s.workClient,
 	}
-	emailNotifProcessors, err := emailnotificationsprocessor.NewProcessors(emailDependencies)
-	if err != nil {
-		return errors.Wrap(err, "unable to create email notifications processor")
+	scheduledProcessors := []work.Processor{
+		claimaccount.NewProcessor(notificationDependencies),
+		connectaccount.NewProcessor(notificationDependencies),
+		connectionissues.NewProcessor(notificationDependencies),
 	}
 
-	if err = s.workCoordinator.RegisterProcessors(emailNotifProcessors); err != nil {
-		return errors.Wrap(err, "unable to register email notifications processor")
+	if err = s.workCoordinator.RegisterProcessors(scheduledProcessors); err != nil {
+		return errors.Wrap(err, "unable to register conditional notifications processors")
 	}
 
 	s.Logger().Debug("Starting work coordinator")
