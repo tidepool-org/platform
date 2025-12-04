@@ -163,7 +163,7 @@ ifdef PLUGIN
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
 		go work edit -go=`sed -n 's/^go //p' go.mod` && \
-		go work edit -toolchain=`sed -n 's/^toolchain //p' go.mod` && \
+		go work edit -toolchain=`grep -q '^toolchain' go.mod && sed -n 's/^toolchain //p' go.mod || sed -n 's/^go /go/p' go.mod` && \
 		$(MAKE) plugin-visibility
 endif
 
