@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/oura/jotform"
 
 	userClient "github.com/tidepool-org/platform/user/client"
 
@@ -37,6 +39,8 @@ import (
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
+	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/platform"
@@ -275,9 +279,35 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create consent router")
 	}
 
+	s.Logger().Debug("Creating jotform router")
+
+	jotformConfig := jotform.Config{}
+	if err := envconfig.Process("", &jotformConfig); err != nil {
+		return errors.Wrap(err, "unable to load jotform config")
+	}
+
+	customerIOConfig := customerio.Config{}
+	if err := envconfig.Process("", &customerIOConfig); err != nil {
+		return errors.Wrap(err, "unable to load customerio config")
+	}
+	customerIOClient, err := customerio.NewClient(customerIOConfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create customerio client")
+	}
+
+	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform webhook processor")
+	}
+
+	jotformRouter, err := jotformAPI.NewRouter(webhookProcessor)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 
