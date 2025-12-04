@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.24.13
+go 1.25.7
 
 require (
 	github.com/IBM/sarama v1.45.1
