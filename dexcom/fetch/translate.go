@@ -680,6 +680,8 @@ func TranslateDeviceIDPrefixFromTransmitterGeneration(transmitterGeneration *str
 		return pointer.FromString("DexcomPro")
 	case dexcom.DeviceTransmitterGenerationG7:
 		return pointer.FromString("DexcomG7")
+	case dexcom.DeviceTransmitterGenerationG715Day:
+		return pointer.FromString("DexcomG7-15Day")
 	default:
 		return nil
 	}
