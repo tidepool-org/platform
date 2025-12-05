@@ -16,8 +16,6 @@ import (
 )
 
 const (
-	BaseURL = "https://api.jotform.com"
-
 	EligibleField    = "eligible"
 	NameField        = "name"
 	DateOfBirthField = "dateOfBirth"
@@ -164,7 +162,7 @@ func (w *WebhookProcessor) ensureConsentRecordExists(ctx context.Context, userID
 }
 
 func (w *WebhookProcessor) getSubmission(ctx context.Context, submissionID string) (*SubmissionResponse, error) {
-	url := fmt.Sprintf("%s/v1/submissions/%s", BaseURL, submissionID)
+	url := fmt.Sprintf("%s/v1/submission/%s", w.baseURL, submissionID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -188,6 +186,11 @@ func (w *WebhookProcessor) getSubmission(ctx context.Context, submissionID strin
 	var response SubmissionResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
 		return nil, errors.Wrap(err, "failed to decode response")
+	}
+
+	// Sometimes the jotform webhook returns a 200 http response with a non-200 response code in the body
+	if response.ResponseCode != http.StatusOK {
+		return nil, errors.Newf("unexpected response code: %d", response.ResponseCode)
 	}
 
 	return &response, nil

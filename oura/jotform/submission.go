@@ -6,7 +6,8 @@ import (
 )
 
 type SubmissionResponse struct {
-	Content Content `json:"content"`
+	ResponseCode int     `json:"responseCode"`
+	Content      Content `json:"content"`
 }
 
 type Content struct {
@@ -96,7 +97,7 @@ func (a *Answers) UnmarshalJSON(data []byte) error {
 			}
 			answer = cf
 		default:
-			return fmt.Errorf("unknown answer type: %s for key %s", typeInfo.Type, key)
+			continue
 		}
 
 		(*a)[answer.Name()] = answer
