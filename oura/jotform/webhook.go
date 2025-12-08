@@ -133,7 +133,7 @@ func (w *WebhookProcessor) ensureConsentRecordExists(ctx context.Context, userID
 	v := validator.New(w.logger)
 	survey.Validate(v)
 	if err := v.Error(); err != nil {
-		logger.Warn("consent survey is invalid")
+		logger.WithError(err).Warn("consent survey is invalid")
 		return nil
 	}
 

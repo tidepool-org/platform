@@ -55,6 +55,27 @@ func (c ControlFullname) Answer() string {
 	return c.PrettyFormat
 }
 
+type ControlDateTime struct {
+	BaseAnswer
+	AnswerField  DateTimeAnswerField `json:"answer"`
+	PrettyFormat string              `json:"prettyFormat"`
+}
+
+func (c ControlDateTime) Name() string {
+	return c.NameField
+}
+
+func (c ControlDateTime) Answer() string {
+	return c.AnswerField.DateTime
+}
+
+type DateTimeAnswerField struct {
+	Year     string `json:"year"`
+	Month    string `json:"month"`
+	Day      string `json:"day"`
+	DateTime string `json:"datetime"`
+}
+
 type Answers map[string]Answer
 
 func (a Answers) GetAnswerTextByName(name string) string {
@@ -96,6 +117,12 @@ func (a *Answers) UnmarshalJSON(data []byte) error {
 				return fmt.Errorf("failed to unmarshal ControlFullname for key %s: %w", key, err)
 			}
 			answer = cf
+		case "control_datetime":
+			var cd ControlDateTime
+			if err := json.Unmarshal(rawMsg, &cd); err != nil {
+				return fmt.Errorf("failed to unmarshal ControlDateTime for key %s: %w", key, err)
+			}
+			answer = cd
 		default:
 			continue
 		}

@@ -13,6 +13,6 @@ type OuraEligibilitySurvey struct {
 
 func (o *OuraEligibilitySurvey) Validate(v *validator.Validator) {
 	eighteenYearsAgo := time.Now().AddDate(-18, 0, 0)
-	v.String("dateOfBirth", &o.DateOfBirth).NotEmpty().AsTime(time.DateOnly).Before(eighteenYearsAgo)
+	v.String("dateOfBirth", &o.DateOfBirth).NotEmpty().AsTime(time.DateTime).Before(eighteenYearsAgo)
 	v.String("name", &o.Name).NotEmpty()
 }
