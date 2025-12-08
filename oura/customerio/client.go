@@ -1,5 +1,7 @@
 package customerio
 
+import "github.com/tidepool-org/platform/log"
+
 const appAPIBaseURL = "https://api.customer.io"
 const trackAPIBaseURL = "https://track.customer.io/api/"
 
@@ -9,6 +11,7 @@ type Client struct {
 	siteID          string
 	appAPIBaseURL   string
 	trackAPIBaseURL string
+	logger          log.Logger
 }
 
 type Config struct {
@@ -18,12 +21,13 @@ type Config struct {
 	SegmentID   string `envconfig:"TIDEPOOL_CUSTOMERIO_SEGMENT_ID"`
 }
 
-func NewClient(config Config) (*Client, error) {
+func NewClient(config Config, logger log.Logger) (*Client, error) {
 	return &Client{
 		appAPIKey:       config.AppAPIKey,
 		trackAPIKey:     config.TrackAPIKey,
 		siteID:          config.SiteID,
 		appAPIBaseURL:   appAPIBaseURL,
 		trackAPIBaseURL: trackAPIBaseURL,
+		logger:          logger,
 	}, nil
 }

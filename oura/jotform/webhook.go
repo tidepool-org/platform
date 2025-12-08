@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 const (
@@ -20,8 +21,8 @@ const (
 	NameField        = "name"
 	DateOfBirthField = "dateOfBirth"
 
-	UserIDField        = "participantId"
-	ParticipantIDField = "userId"
+	UserIDField        = "userId"
+	ParticipantIDField = "participantId"
 )
 
 type WebhookProcessor struct {
@@ -32,6 +33,7 @@ type WebhookProcessor struct {
 
 	consentService   consent.Service
 	customerIOClient *customerio.Client
+	userClient       user.Client
 }
 
 type Config struct {
@@ -39,7 +41,7 @@ type Config struct {
 	APIKey  string `envconfig:"TIDEPOOL_JOTFORM_API_KEY"`
 }
 
-func NewWebhookProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client) (*WebhookProcessor, error) {
+func NewWebhookProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client, userClient user.Client) (*WebhookProcessor, error) {
 	return &WebhookProcessor{
 		apiKey:  config.APIKey,
 		baseURL: config.BaseURL,
@@ -48,6 +50,7 @@ func NewWebhookProcessor(config Config, logger log.Logger, consentService consen
 
 		consentService:   consentService,
 		customerIOClient: customerIOClient,
+		userClient:       userClient,
 	}, nil
 }
 
@@ -98,27 +101,33 @@ func (w *WebhookProcessor) validateUser(ctx context.Context, submissionID string
 
 	customer, err := w.customerIOClient.GetCustomer(ctx, userID, customerio.IDTypeUserID)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to get customer")
+		return "", errors.Wrapf(err, "unable to get customer with id %s", userID)
 	}
 
 	if customer == nil {
-		return "", errors.New("customer not found")
+		return "", errors.Newf("customer with id %s not found", userID)
 	}
 	if customer.OuraParticipantID != participantID {
-		return "", errors.New("participant id mismatch")
+		return "", errors.Newf("participant id mismatch for user with id %s", userID)
 	}
+
+	usr, err := w.userClient.Get(ctx, userID)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to get user")
+	}
+	if usr == nil {
+		return "", errors.New("user not found")
+	}
+
 	return userID, nil
 }
 
 func (w *WebhookProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse) error {
 	logger := w.logger.WithField("submission", submission.Content.ID)
 
-	survey := OuraEligibilitySurvey{}
-	if dob, ok := submission.Content.Answers[DateOfBirthField]; ok && dob.Answer() != "" {
-		survey.DateOfBirth = dob.Answer()
-	}
-	if name, ok := submission.Content.Answers[NameField]; ok && name.Answer() != "" {
-		survey.Name = name.Answer()
+	survey := OuraEligibilitySurvey{
+		DateOfBirth: submission.Content.Answers.GetAnswerTextByName(DateOfBirthField),
+		Name:        submission.Content.Answers.GetAnswerTextByName(NameField),
 	}
 
 	v := validator.New(w.logger)

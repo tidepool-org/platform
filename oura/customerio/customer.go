@@ -71,6 +71,8 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.appAPIKey))
 	req.Header.Set("Content-Type", "application/json")
 
+	c.logger.WithField("cid", cid).WithField("url", req.URL.String()).Debug("fetching customer")
+
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)

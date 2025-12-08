@@ -290,12 +290,22 @@ func (s *Service) initializeRouter() error {
 	if err := envconfig.Process("", &customerIOConfig); err != nil {
 		return errors.Wrap(err, "unable to load customerio config")
 	}
-	customerIOClient, err := customerio.NewClient(customerIOConfig)
+	customerIOClient, err := customerio.NewClient(customerIOConfig, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create customerio client")
 	}
 
-	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient)
+	s.Logger().Debug("Initializing user client")
+	usrClient, err := userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+
+	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient, usrClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform webhook processor")
 	}
