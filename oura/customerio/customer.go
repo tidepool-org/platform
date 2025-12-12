@@ -39,6 +39,10 @@ type customerResponse struct {
 	} `json:"customer"`
 }
 
+type FindCustomersResponse struct {
+	Identifiers []Identifiers `json:"identifiers"`
+}
+
 type entityRequest struct {
 	Type        string            `json:"type"`
 	Identifiers map[string]string `json:"identifiers"`
@@ -94,6 +98,39 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 		Identifiers: response.Customer.Identifiers,
 		Attributes:  response.Customer.Attributes,
 	}, nil
+}
+
+func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*FindCustomersResponse, error) {
+	url := fmt.Sprintf("%s/v1/customers", c.appAPIBaseURL)
+
+	body, _ := json.Marshal(filter)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Add authorization header
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.appAPIKey))
+	req.Header.Set("Content-Type", "application/json")
+
+	c.logger.WithField("url", req.URL.String()).WithField("filter", filter).Debug("finding customer")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var response FindCustomersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", err)
+	}
+
+	return &response, nil
 }
 
 func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
