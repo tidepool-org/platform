@@ -6,7 +6,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/oura/shopify/generated"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 //go:generate go run github.com/Khan/genqlient
@@ -34,42 +36,36 @@ mutation CreateDiscountCode($basicCodeDiscount: DiscountCodeBasicInput!) {
 }
 `
 
-type DiscountCodeInput struct {
-	Title     string
-	Code      string
-	ProductID string
-}
-
-func (c *Client) CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error {
-	input := ptr(generated.DiscountCodeBasicInput{
-		Title:                  ptr(discountCodeInput.Title),
-		AppliesOncePerCustomer: ptr(true),
-		Code:                   ptr(discountCodeInput.Code),
-		UsageLimit:             ptr(1),
-		Context: ptr(generated.DiscountContextInput{
-			All: ptr(generated.DiscountBuyerSelectionAll),
+func (c *defaultClient) CreateDiscountCode(ctx context.Context, discountCodeInput shopify.DiscountCodeInput) error {
+	input := pointer.FromAny(generated.DiscountCodeBasicInput{
+		Title:                  pointer.FromAny(discountCodeInput.Title),
+		AppliesOncePerCustomer: pointer.FromAny(true),
+		Code:                   pointer.FromAny(discountCodeInput.Code),
+		UsageLimit:             pointer.FromAny(1),
+		Context: pointer.FromAny(generated.DiscountContextInput{
+			All: pointer.FromAny(generated.DiscountBuyerSelectionAll),
 		}),
-		CustomerGets: ptr(generated.DiscountCustomerGetsInput{
-			Value: ptr(generated.DiscountCustomerGetsValueInput{
-				DiscountOnQuantity: ptr(generated.DiscountOnQuantityInput{
-					Quantity: ptr("1"),
-					Effect: ptr(generated.DiscountEffectInput{
-						Percentage: ptr(float64(1)),
+		CustomerGets: pointer.FromAny(generated.DiscountCustomerGetsInput{
+			Value: pointer.FromAny(generated.DiscountCustomerGetsValueInput{
+				DiscountOnQuantity: pointer.FromAny(generated.DiscountOnQuantityInput{
+					Quantity: pointer.FromAny("1"),
+					Effect: pointer.FromAny(generated.DiscountEffectInput{
+						Percentage: pointer.FromAny(float64(1)),
 					}),
 				}),
 			}),
-			Items: ptr(generated.DiscountItemsInput{
-				Products: ptr(generated.DiscountProductsInput{
+			Items: pointer.FromAny(generated.DiscountItemsInput{
+				Products: pointer.FromAny(generated.DiscountProductsInput{
 					ProductsToAdd: []string{discountCodeInput.ProductID},
 				}),
 			}),
 		}),
-		MinimumRequirement: ptr(generated.DiscountMinimumRequirementInput{
-			Quantity: ptr(generated.DiscountMinimumQuantityInput{
-				GreaterThanOrEqualToQuantity: ptr("1"),
+		MinimumRequirement: pointer.FromAny(generated.DiscountMinimumRequirementInput{
+			Quantity: pointer.FromAny(generated.DiscountMinimumQuantityInput{
+				GreaterThanOrEqualToQuantity: pointer.FromAny("1"),
 			}),
 		}),
-		StartsAt: ptr(time.Now()),
+		StartsAt: pointer.FromAny(time.Now()),
 	})
 
 	resp, err := generated.CreateDiscountCode(ctx, c.gql, input)

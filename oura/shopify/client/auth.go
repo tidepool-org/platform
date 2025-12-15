@@ -11,7 +11,7 @@ type authedTransport struct {
 	wrapped     http.RoundTripper
 }
 
-func NewAuthedTransport(tokenSource oauth2.TokenSource, wrapped http.RoundTripper) *authedTransport {
+func newAuthedTransport(tokenSource oauth2.TokenSource, wrapped http.RoundTripper) *authedTransport {
 	return &authedTransport{tokenSource, wrapped}
 }
 

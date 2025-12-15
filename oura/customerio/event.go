@@ -15,7 +15,7 @@ type Event struct {
 }
 
 func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
-	url := fmt.Sprintf("%s/v1/customers/%s/events", c.trackAPIBaseURL, cid)
+	url := fmt.Sprintf("%s/api/v1/customers/%s/events", c.trackAPIBaseURL, cid)
 
 	jsonBody, err := json.Marshal(event)
 	if err != nil {

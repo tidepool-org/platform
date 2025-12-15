@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 
+	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/oura/shopify/generated"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -30,13 +31,7 @@ query GetOrder($identifier: OrderIdentifierInput!) {
 }
 `
 
-type DeliveredProducts struct {
-	OrderID      string   `json:"order_id"`
-	IDs          []string `json:"products"`
-	DiscountCode string   `json:"discount_code"`
-}
-
-func (c *Client) GetDeliveredProducts(ctx context.Context, orderID string) (*DeliveredProducts, error) {
+func (c *defaultClient) GetDeliveredProducts(ctx context.Context, orderID string) (*shopify.DeliveredProducts, error) {
 	resp, err := generated.GetOrder(ctx, c.gql, &generated.OrderIdentifierInput{
 		Id: pointer.FromAny(orderID),
 	})
@@ -64,5 +59,5 @@ func (c *Client) GetDeliveredProducts(ctx context.Context, orderID string) (*Del
 		}
 	}
 
-	return &DeliveredProducts{IDs: ids}, nil
+	return &shopify.DeliveredProducts{IDs: ids}, nil
 }

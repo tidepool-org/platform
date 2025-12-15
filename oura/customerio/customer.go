@@ -134,7 +134,7 @@ func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*Fin
 }
 
 func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
-	url := fmt.Sprintf("%s/v2/entity", c.trackAPIBaseURL)
+	url := fmt.Sprintf("%s/api/v2/entity", c.trackAPIBaseURL)
 
 	// Prepare the request body
 	reqBody := entityRequest{

@@ -7,19 +7,15 @@ import (
 
 	"github.com/Khan/genqlient/graphql"
 	"golang.org/x/oauth2/clientcredentials"
+
+	"github.com/tidepool-org/platform/oura/shopify"
 )
 
-type ClientConfig struct {
-	StoreID      string `envconfig:"TIDEPOOL_SHOPIFY_STORE_ID" required:"true"`
-	ClientID     string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_ID" required:"true"`
-	ClientSecret string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_SECRET" required:"true"`
-}
-
-type Client struct {
+type defaultClient struct {
 	gql graphql.Client
 }
 
-func NewClient(ctx context.Context, cfg ClientConfig) (*Client, error) {
+func NewClient(ctx context.Context, cfg shopify.ClientConfig) (shopify.Client, error) {
 	oauthConfig := clientcredentials.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,
@@ -27,12 +23,12 @@ func NewClient(ctx context.Context, cfg ClientConfig) (*Client, error) {
 	}
 
 	httpClient := http.Client{
-		Transport: NewAuthedTransport(oauthConfig.TokenSource(ctx), http.DefaultTransport),
+		Transport: newAuthedTransport(oauthConfig.TokenSource(ctx), http.DefaultTransport),
 	}
 
 	endpoint := fmt.Sprintf("https://%s.myshopify.com/admin/api/2025-10/graphql.json", cfg.StoreID)
 
-	return &Client{
+	return &defaultClient{
 		gql: graphql.NewClient(endpoint, &httpClient),
 	}, nil
 }
