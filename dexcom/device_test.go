@@ -109,6 +109,10 @@ var _ = Describe("Device", func() {
 		Expect(dexcom.DeviceTransmitterGenerationG7).To(Equal("g7"))
 	})
 
+	It("DeviceTransmitterGenerationG715Day returns expected", func() {
+		Expect(dexcom.DeviceTransmitterGenerationG715Day).To(Equal("g715day"))
+	})
+
 	It("DeviceDisplayDevices returns expected", func() {
 		Expect(dexcom.DeviceDisplayDevices()).To(Equal([]string{"unknown", "android", "iOS", "receiver", "shareReceiver", "touchscreenReceiver"}))
 	})
@@ -118,7 +122,7 @@ var _ = Describe("Device", func() {
 	})
 
 	It("DeviceTransmitterGenerations returns expected", func() {
-		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"unknown", "g4", "g5", "g6", "g6 pro", "g6+", "dexcomPro", "g7"}))
+		Expect(dexcom.DeviceTransmitterGenerations()).To(Equal([]string{"unknown", "g4", "g5", "g6", "g6 pro", "g6+", "dexcomPro", "g7", "g715day"}))
 	})
 
 	Context("ParseDevicesResponse", func() {

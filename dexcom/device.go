@@ -37,6 +37,7 @@ const (
 	DeviceTransmitterGenerationG6Plus  = "g6+"
 	DeviceTransmitterGenerationPro     = "dexcomPro"
 	DeviceTransmitterGenerationG7      = "g7"
+	DeviceTransmitterGenerationG715Day = "g715day"
 )
 
 func DeviceDisplayDevices() []string {
@@ -71,6 +72,7 @@ func DeviceTransmitterGenerations() []string {
 		DeviceTransmitterGenerationG6Plus,
 		DeviceTransmitterGenerationPro,
 		DeviceTransmitterGenerationG7,
+		DeviceTransmitterGenerationG715Day,
 	}
 }
 

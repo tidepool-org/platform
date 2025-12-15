@@ -374,6 +374,7 @@ var _ = Describe("Translate", func() {
 			Entry("DeviceTransmitterGenerationG6Plus", dexcom.DeviceTransmitterGenerationG6Plus, "DexcomG6Plus"),
 			Entry("DeviceTransmitterGenerationPro", dexcom.DeviceTransmitterGenerationPro, "DexcomPro"),
 			Entry("DeviceTransmitterGenerationG7", dexcom.DeviceTransmitterGenerationG7, "DexcomG7"),
+			Entry("DeviceTransmitterGenerationG715Day", dexcom.DeviceTransmitterGenerationG715Day, "DexcomG7-15Day"),
 		)
 	})
 
