@@ -15,7 +15,7 @@ type defaultClient struct {
 	gql graphql.Client
 }
 
-func NewClient(ctx context.Context, cfg shopify.ClientConfig) (shopify.Client, error) {
+func New(ctx context.Context, cfg shopify.ClientConfig) (shopify.Client, error) {
 	oauthConfig := clientcredentials.Config{
 		ClientID:     cfg.ClientID,
 		ClientSecret: cfg.ClientSecret,

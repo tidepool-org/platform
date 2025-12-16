@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/mailer"
 	"github.com/tidepool-org/platform/oura/customerio"
 	"github.com/tidepool-org/platform/oura/jotform"
+	"github.com/tidepool-org/platform/oura/shopify"
 
 	userClient "github.com/tidepool-org/platform/user/client"
 
@@ -40,6 +41,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
+	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
 
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
@@ -305,7 +308,17 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create user client")
 	}
 
-	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient, usrClient)
+	shopifyConfig := shopify.ClientConfig{}
+	if err := envconfig.Process("", &shopifyConfig); err != nil {
+		return errors.Wrap(err, "unable to load shopify config")
+	}
+
+	shopifyClnt, err := shopifyClient.New(context.Background(), shopifyConfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify client")
+	}
+
+	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient, usrClient, shopifyClnt)
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform webhook processor")
 	}
@@ -315,9 +328,19 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create jotform router")
 	}
 
+	fulfillmentEventCreatedProcessor, err := shopify.NewFulfillmentCreatedEventProcessor(s.Logger(), customerIOClient, shopifyClnt)
+	if err != nil {
+		return errors.Wrap(err, "unable to create fulfillment created event processor")
+	}
+
+	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventCreatedProcessor)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter, shopifyRouter); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 

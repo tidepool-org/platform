@@ -3,9 +3,9 @@ package shopify
 import "context"
 
 type ClientConfig struct {
-	StoreID      string `envconfig:"TIDEPOOL_SHOPIFY_STORE_ID" required:"true"`
-	ClientID     string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_ID" required:"true"`
-	ClientSecret string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_SECRET" required:"true"`
+	StoreID      string `envconfig:"TIDEPOOL_SHOPIFY_STORE_ID"`
+	ClientID     string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_ID"`
+	ClientSecret string `envconfig:"TIDEPOOL_SHOPIFY_CLIENT_SECRET"`
 }
 
 //go:generate mockgen -source=client.go -destination=./test/client.go -package=test Client

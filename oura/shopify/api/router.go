@@ -13,8 +13,10 @@ type Router struct {
 	fulfillmentCreatedEventProcessor *shopify.FulfillmentCreatedEventProcessor
 }
 
-func NewRouter() (*Router, error) {
-	return &Router{}, nil
+func NewRouter(fulfillmentCreatedEventProcessor *shopify.FulfillmentCreatedEventProcessor) (*Router, error) {
+	return &Router{
+		fulfillmentCreatedEventProcessor: fulfillmentCreatedEventProcessor,
+	}, nil
 }
 
 func (r *Router) Routes() []*rest.Route {
