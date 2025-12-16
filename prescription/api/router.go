@@ -38,7 +38,7 @@ func NewRouter(p Params) router.Router {
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Get("/v1/clinics/:clinicId/prescriptions", api.RequireUser(r.ListClinicPrescriptions)),
+		rest.Get("/v1/clinics/:clinicId/prescriptions", api.RequireAuth(r.ListClinicPrescriptions)),
 		rest.Post("/v1/clinics/:clinicId/prescriptions", api.RequireUser(r.CreatePrescription)),
 		rest.Get("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireUser(r.GetClinicPrescription)),
 		rest.Post("/v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions", api.RequireUser(r.AddRevision)),
