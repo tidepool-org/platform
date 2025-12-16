@@ -130,12 +130,16 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 	details := request.GetAuthDetails(ctx)
 	responder := request.MustNewResponder(res, req)
 
-	userID := details.UserID()
 	clinicID := req.PathParam("clinicId")
 	prescriptionID := req.PathParam("prescriptionId")
-	clinician := r.getClinicianOrRespondWithError(ctx, clinicID, userID, responder)
-	if clinician == nil {
-		return
+
+	// Only validate clinician if request is from a user (not an internal service)
+	if !details.IsService() {
+		userID := details.UserID()
+		clinician := r.getClinicianOrRespondWithError(ctx, clinicID, userID, responder)
+		if clinician == nil {
+			return
+		}
 	}
 
 	filter, err := prescription.NewClinicFilter(clinicID)

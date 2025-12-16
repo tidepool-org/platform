@@ -40,7 +40,7 @@ func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/clinics/:clinicId/prescriptions", api.RequireAuth(r.ListClinicPrescriptions)),
 		rest.Post("/v1/clinics/:clinicId/prescriptions", api.RequireUser(r.CreatePrescription)),
-		rest.Get("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireUser(r.GetClinicPrescription)),
+		rest.Get("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireAuth(r.GetClinicPrescription)),
 		rest.Post("/v1/clinics/:clinicId/prescriptions/:prescriptionId/revisions", api.RequireUser(r.AddRevision)),
 		rest.Delete("/v1/clinics/:clinicId/prescriptions/:prescriptionId", api.RequireUser(r.DeletePrescription)),
 
