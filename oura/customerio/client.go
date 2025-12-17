@@ -16,7 +16,7 @@ type Config struct {
 	AppAPIKey       string `envconfig:"TIDEPOOL_CUSTOMERIO_APP_API_KEY"`
 	SegmentID       string `envconfig:"TIDEPOOL_CUSTOMERIO_SEGMENT_ID"`
 	SiteID          string `envconfig:"TIDEPOOL_CUSTOMERIO_SITE_ID"`
-	TrackAPIBaseURL string `envconfig:"TIDEPOOL_CUSTOMERIO_TRACK_API_BASE_URL" default:"https://track.customer.io/api/"`
+	TrackAPIBaseURL string `envconfig:"TIDEPOOL_CUSTOMERIO_TRACK_API_BASE_URL" default:"https://track.customer.io"`
 	TrackAPIKey     string `envconfig:"TIDEPOOL_CUSTOMERIO_TRACK_API_KEY"`
 }
 
