@@ -48,12 +48,7 @@ func (c *defaultClient) CreateDiscountCode(ctx context.Context, discountCodeInpu
 		}),
 		CustomerGets: pointer.FromAny(generated.DiscountCustomerGetsInput{
 			Value: pointer.FromAny(generated.DiscountCustomerGetsValueInput{
-				DiscountOnQuantity: pointer.FromAny(generated.DiscountOnQuantityInput{
-					Quantity: pointer.FromAny("1"),
-					Effect: pointer.FromAny(generated.DiscountEffectInput{
-						Percentage: pointer.FromAny(float64(1)),
-					}),
-				}),
+				Percentage: pointer.FromAny(float64(1)),
 			}),
 			Items: pointer.FromAny(generated.DiscountItemsInput{
 				Products: pointer.FromAny(generated.DiscountProductsInput{
