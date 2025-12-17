@@ -19,26 +19,22 @@ var (
 )
 
 type FulfillmentEvent struct {
-	ID                int64            `json:"id"`
-	OrderID           int64            `json:"order_id"`
-	Status            string           `json:"status"`
-	CreatedAt         time.Time        `json:"created_at"`
-	Service           *string          `json:"service"`
-	UpdatedAt         time.Time        `json:"updated_at"`
-	TrackingCompany   string           `json:"tracking_company"`
-	ShipmentStatus    *string          `json:"shipment_status"`
-	LocationID        *int64           `json:"location_id"`
-	OriginAddress     map[string]any   `json:"origin_address"`
-	Email             string           `json:"email"`
-	Destination       map[string]any   `json:"destination"`
-	LineItems         []map[string]any `json:"line_items"`
-	TrackingNumber    string           `json:"tracking_number"`
-	TrackingNumbers   []string         `json:"tracking_numbers"`
-	TrackingURL       string           `json:"tracking_url"`
-	TrackingURLs      []string         `json:"tracking_urls"`
-	Receipt           map[string]any   `json:"receipt"`
-	Name              string           `json:"name"`
-	AdminGraphQLAPIID string           `json:"admin_graphql_api_id"`
+	ID                int64     `json:"id"`
+	OrderID           int64     `json:"order_id"`
+	Status            string    `json:"status"`
+	CreatedAt         time.Time `json:"created_at"`
+	Service           *string   `json:"service"`
+	UpdatedAt         time.Time `json:"updated_at"`
+	TrackingCompany   string    `json:"tracking_company"`
+	ShipmentStatus    *string   `json:"shipment_status"`
+	LocationID        *int64    `json:"location_id"`
+	Email             string    `json:"email"`
+	TrackingNumber    string    `json:"tracking_number"`
+	TrackingNumbers   []string  `json:"tracking_numbers"`
+	TrackingURL       string    `json:"tracking_url"`
+	TrackingURLs      []string  `json:"tracking_urls"`
+	Name              string    `json:"name"`
+	AdminGraphQLAPIID string    `json:"admin_graphql_api_id"`
 }
 
 type FulfillmentEventProcessor struct {
