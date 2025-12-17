@@ -6,11 +6,12 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+
+	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/tidepool-org/platform/oura/shopify"
 
@@ -22,10 +23,10 @@ import (
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 )
 
-var _ = Describe("FulfillmentCreatedEventProcessor", func() {
+var _ = Describe("FulfillmentEventProcessor", func() {
 	var (
 		ctx       context.Context
-		processor *shopify.FulfillmentCreatedEventProcessor
+		processor *shopify.FulfillmentEventProcessor
 		logger    log.Logger
 
 		shopifyCtrl *gomock.Controller
@@ -58,7 +59,7 @@ var _ = Describe("FulfillmentCreatedEventProcessor", func() {
 		shopifyCtrl = gomock.NewController(GinkgoT())
 		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
 
-		processor, err = shopify.NewFulfillmentCreatedEventProcessor(logger, customerIOClient, shopifyClnt)
+		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -76,10 +77,10 @@ var _ = Describe("FulfillmentCreatedEventProcessor", func() {
 			cid := "cio_0987654321"
 			sizingKitDiscountCode := shopify.RandomDiscountCode()
 
-			event := shopify.FulfillmentEventCreated{
-				ID:      9876543,
-				Status:  "delivered",
-				OrderID: rand.Int63n(999999999999),
+			event := shopify.FulfillmentEvent{
+				ID:             9876543,
+				ShipmentStatus: pointer.FromAny("delivered"),
+				OrderID:        rand.Int63n(999999999999),
 			}
 
 			shopifyClnt.EXPECT().
@@ -122,7 +123,7 @@ var _ = Describe("FulfillmentCreatedEventProcessor", func() {
 							ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events"),
 							ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "oura_sizing_kit_delivered",
-						        "id": "` + strconv.Itoa(event.ID) + `",
+						        "id": "` + fmt.Sprintf("%d", event.ID) + `",
 						        "data": {
                                     "oura_ring_discount_code": "` + input.Code + `"
                                 }
@@ -143,10 +144,10 @@ var _ = Describe("FulfillmentCreatedEventProcessor", func() {
 			cid := "cio_0987654321"
 			discountCode := shopify.RandomDiscountCode()
 
-			event := shopify.FulfillmentEventCreated{
-				ID:      9876543,
-				Status:  "delivered",
-				OrderID: rand.Int63n(999999999999),
+			event := shopify.FulfillmentEvent{
+				ID:             9876543,
+				ShipmentStatus: pointer.FromAny("delivered"),
+				OrderID:        rand.Int63n(999999999999),
 			}
 
 			shopifyClnt.EXPECT().
@@ -182,7 +183,7 @@ var _ = Describe("FulfillmentCreatedEventProcessor", func() {
 					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	"name": "oura_ring_delivered",
-						"id": "` + strconv.Itoa(event.ID) + `",
+						"id": "` + fmt.Sprintf("%d", event.ID) + `",
 						"data": {}
 					}`),
 				},

@@ -3,7 +3,7 @@ package shopify
 import (
 	"context"
 	"fmt"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -18,38 +18,47 @@ var (
 	}
 )
 
-type FulfillmentEventCreated struct {
-	ID                int       `json:"id"`
-	FulfillmentID     int       `json:"fulfillment_id"`
-	Status            string    `json:"status"`
-	Message           string    `json:"message"`
-	HappenedAt        time.Time `json:"happened_at"`
-	Country           string    `json:"country"`
-	ShopID            int       `json:"shop_id"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
-	OrderID           int64     `json:"order_id"`
-	AdminGraphqlApiID string    `json:"admin_graphql_api_id"`
+type FulfillmentEvent struct {
+	ID                int64            `json:"id"`
+	OrderID           int64            `json:"order_id"`
+	Status            string           `json:"status"`
+	CreatedAt         time.Time        `json:"created_at"`
+	Service           *string          `json:"service"`
+	UpdatedAt         time.Time        `json:"updated_at"`
+	TrackingCompany   string           `json:"tracking_company"`
+	ShipmentStatus    *string          `json:"shipment_status"`
+	LocationID        *int64           `json:"location_id"`
+	OriginAddress     map[string]any   `json:"origin_address"`
+	Email             string           `json:"email"`
+	Destination       map[string]any   `json:"destination"`
+	LineItems         []map[string]any `json:"line_items"`
+	TrackingNumber    string           `json:"tracking_number"`
+	TrackingNumbers   []string         `json:"tracking_numbers"`
+	TrackingURL       string           `json:"tracking_url"`
+	TrackingURLs      []string         `json:"tracking_urls"`
+	Receipt           map[string]any   `json:"receipt"`
+	Name              string           `json:"name"`
+	AdminGraphQLAPIID string           `json:"admin_graphql_api_id"`
 }
 
-type FulfillmentCreatedEventProcessor struct {
+type FulfillmentEventProcessor struct {
 	logger log.Logger
 
 	customerIOClient *customerio.Client
 	shopifyClient    Client
 }
 
-func NewFulfillmentCreatedEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client) (*FulfillmentCreatedEventProcessor, error) {
-	return &FulfillmentCreatedEventProcessor{
+func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client) (*FulfillmentEventProcessor, error) {
+	return &FulfillmentEventProcessor{
 		logger:           logger,
 		customerIOClient: customerIOClient,
 		shopifyClient:    shopifyClient,
 	}, nil
 }
 
-func (f *FulfillmentCreatedEventProcessor) Process(ctx context.Context, event FulfillmentEventCreated) error {
-	logger := f.logger.WithField("fulfillmentId", event.FulfillmentID)
-	if event.Status != "delivered" {
+func (f *FulfillmentEventProcessor) Process(ctx context.Context, event FulfillmentEvent) error {
+	logger := f.logger.WithField("fulfillmentId", event.ID)
+	if event.ShipmentStatus == nil || !strings.EqualFold(*event.ShipmentStatus, "delivered") {
 		logger.Warn("ignoring non-delivery fulfillment event")
 		return nil
 	}
@@ -122,7 +131,7 @@ func (f *FulfillmentCreatedEventProcessor) Process(ctx context.Context, event Fu
 	return nil
 }
 
-func (f *FulfillmentCreatedEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEventCreated) error {
+func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent) error {
 	discountCode := RandomDiscountCode()
 	err := f.shopifyClient.CreateDiscountCode(ctx, DiscountCodeInput{
 		Title:     OuraRingDiscountCodeTitle,
@@ -135,7 +144,7 @@ func (f *FulfillmentCreatedEventProcessor) onSizingKitDelivered(ctx context.Cont
 
 	sizingKitDelivered := customerio.Event{
 		Name: customerio.OuraSizingKitDeliveredEventType,
-		ID:   strconv.Itoa(event.ID),
+		ID:   fmt.Sprintf("%d", event.ID),
 		Data: customerio.OuraSizingKitDeliveredData{
 			OuraRingDiscountCode: discountCode,
 		},
@@ -144,10 +153,10 @@ func (f *FulfillmentCreatedEventProcessor) onSizingKitDelivered(ctx context.Cont
 	return f.customerIOClient.SendEvent(ctx, identifiers.CID, sizingKitDelivered)
 }
 
-func (f *FulfillmentCreatedEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEventCreated) error {
+func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent) error {
 	ringDelivered := customerio.Event{
 		Name: customerio.OuraRingDeliveredEventType,
-		ID:   strconv.Itoa(event.ID),
+		ID:   fmt.Sprintf("%d", event.ID),
 		Data: customerio.OuraRingDeliveredData{},
 	}
 

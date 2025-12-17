@@ -10,32 +10,32 @@ import (
 )
 
 type Router struct {
-	fulfillmentCreatedEventProcessor *shopify.FulfillmentCreatedEventProcessor
+	fulfillmentEventProcessor *shopify.FulfillmentEventProcessor
 }
 
-func NewRouter(fulfillmentCreatedEventProcessor *shopify.FulfillmentCreatedEventProcessor) (*Router, error) {
+func NewRouter(fulfillmentEventProcessor *shopify.FulfillmentEventProcessor) (*Router, error) {
 	return &Router{
-		fulfillmentCreatedEventProcessor: fulfillmentCreatedEventProcessor,
+		fulfillmentEventProcessor: fulfillmentEventProcessor,
 	}, nil
 }
 
 func (r *Router) Routes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/partners/shopify/fulfillment_event/created", r.HandleFulfillmentEventCreated),
+		rest.Post("/v1/partners/shopify/fulfillment", r.HandleFulfillmentEvent),
 	}
 }
 
-func (r *Router) HandleFulfillmentEventCreated(res rest.ResponseWriter, req *rest.Request) {
+func (r *Router) HandleFulfillmentEvent(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	responder := request.MustNewResponder(res, req)
 
-	event := shopify.FulfillmentEventCreated{}
+	event := shopify.FulfillmentEvent{}
 	if err := request.DecodeRequestBody(req.Request, event); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := r.fulfillmentCreatedEventProcessor.Process(ctx, event); err != nil {
+	if err := r.fulfillmentEventProcessor.Process(ctx, event); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}

@@ -328,12 +328,12 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create jotform router")
 	}
 
-	fulfillmentEventCreatedProcessor, err := shopify.NewFulfillmentCreatedEventProcessor(s.Logger(), customerIOClient, shopifyClnt)
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), customerIOClient, shopifyClnt)
 	if err != nil {
-		return errors.Wrap(err, "unable to create fulfillment created event processor")
+		return errors.Wrap(err, "unable to create fulfillment event processor")
 	}
 
-	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventCreatedProcessor)
+	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventProcessor)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify router")
 	}
