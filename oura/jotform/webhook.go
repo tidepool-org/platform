@@ -183,7 +183,7 @@ func (w *WebhookProcessor) handleSurveyCompleted(ctx context.Context, identifier
 		Data: surveyCompletedData,
 	}
 
-	err := w.customerIOClient.SendEvent(ctx, identifiers.CID, surveyCompleted)
+	err := w.customerIOClient.SendEvent(ctx, identifiers.ID, surveyCompleted)
 	if err != nil {
 		return errors.Wrap(err, "unable to send sizing kit delivered event")
 	}

@@ -100,7 +100,6 @@ var _ = Describe("WebhookProcessor", func() {
 		It("should successfully process an eligible submission and create consent record", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
-			cid := "cio_0987654321"
 
 			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
@@ -118,7 +117,7 @@ var _ = Describe("WebhookProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
 			)
 			trackAPIResponses.AddResponse(
-				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events")},
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events")},
 				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
 			)
 
@@ -171,7 +170,6 @@ var _ = Describe("WebhookProcessor", func() {
 		It("should successfully process an eligible submission and not attempt to create consent record if one already exists", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
-			cid := "cio_0987654321"
 
 			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
@@ -189,7 +187,7 @@ var _ = Describe("WebhookProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
 			)
 			trackAPIResponses.AddResponse(
-				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events")},
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events")},
 				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
 			)
 

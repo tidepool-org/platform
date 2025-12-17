@@ -74,7 +74,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 	Context("ProcessSubmission", func() {
 		It("should successfully process a sizing kit delivery", func() {
-			cid := "cio_0987654321"
+			id := "1aacb960-430c-4081-8b3b-a32688807dc5"
 			sizingKitDiscountCode := shopify.RandomDiscountCode()
 
 			event := shopify.FulfillmentEvent{
@@ -120,7 +120,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 					trackAPIResponses.AddResponse(
 						[]ouraTest.RequestMatcher{
-							ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events"),
+							ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 							ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "oura_sizing_kit_delivered",
 						        "id": "` + fmt.Sprintf("%d", event.ID) + `",
@@ -141,7 +141,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		})
 
 		It("should successfully process a ring delivery", func() {
-			cid := "cio_0987654321"
+			id := "1aacb960-430c-4081-8b3b-a32688807dc5"
 			discountCode := shopify.RandomDiscountCode()
 
 			event := shopify.FulfillmentEvent{
@@ -180,7 +180,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 			trackAPIResponses.AddResponse(
 				[]ouraTest.RequestMatcher{
-					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+cid+"/events"),
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	"name": "oura_ring_delivered",
 						"id": "` + fmt.Sprintf("%d", event.ID) + `",

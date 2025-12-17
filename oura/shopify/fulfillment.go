@@ -150,7 +150,7 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 		},
 	}
 
-	return f.customerIOClient.SendEvent(ctx, identifiers.CID, sizingKitDelivered)
+	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitDelivered)
 }
 
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent) error {
@@ -160,5 +160,5 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 		Data: customerio.OuraRingDeliveredData{},
 	}
 
-	return f.customerIOClient.SendEvent(ctx, identifiers.CID, ringDelivered)
+	return f.customerIOClient.SendEvent(ctx, identifiers.ID, ringDelivered)
 }
