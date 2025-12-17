@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -56,7 +57,7 @@ func (c *defaultClient) CreateDiscountCode(ctx context.Context, discountCodeInpu
 			}),
 			Items: pointer.FromAny(generated.DiscountItemsInput{
 				Products: pointer.FromAny(generated.DiscountProductsInput{
-					ProductsToAdd: []string{discountCodeInput.ProductID},
+					ProductsToAdd: []string{fmt.Sprintf("gid://shopify/Product/%s", discountCodeInput.ProductID)},
 				}),
 			}),
 		}),
