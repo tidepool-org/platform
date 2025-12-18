@@ -21,7 +21,6 @@ type DiscountCodeInput struct {
 }
 
 type DeliveredProducts struct {
-	OrderID      string   `json:"order_id"`
 	IDs          []string `json:"products"`
 	DiscountCode string   `json:"discount_code"`
 }

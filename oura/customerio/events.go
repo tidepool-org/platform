@@ -2,7 +2,9 @@ package customerio
 
 const (
 	OuraEligibilitySurveyCompletedEventType = "oura_eligibility_survey_completed"
+	OuraSizingKitOrderedEventType           = "oura_sizing_kit_ordered"
 	OuraSizingKitDeliveredEventType         = "oura_sizing_kit_delivered"
+	OuraRingOrderedEventType                = "oura_ring_ordered"
 	OuraRingDeliveredEventType              = "oura_ring_delivered"
 )
 
@@ -12,8 +14,18 @@ type OuraEligibilitySurveyCompletedData struct {
 	OuraSizingKitDiscountCode     string `json:"oura_sizing_kit_discount_code,omitempty"`
 }
 
-type OuraSizingKitDeliveredData struct {
-	OuraRingDiscountCode string `json:"oura_ring_discount_code"`
+type OuraSizingKitOrderedData struct {
+	OuraSizingKitDiscountCode string `json:"oura_sizing_kit_discount_code"`
 }
 
-type OuraRingDeliveredData struct{}
+type OuraSizingKitDeliveredData struct {
+	OuraSizingKitDiscountCode string `json:"oura_sizing_kit_discount_code"`
+	OuraRingDiscountCode      string `json:"oura_ring_discount_code"`
+}
+
+type OuraRingOrderedData struct {
+	OuraRingDiscountCode string `json:"oura_ring_discount_code"`
+}
+type OuraRingDeliveredData struct {
+	OuraRingDiscountCode string `json:"oura_ring_discount_code"`
+}

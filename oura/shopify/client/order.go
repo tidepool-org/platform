@@ -2,10 +2,15 @@ package client
 
 import (
 	"context"
+	"strings"
 
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/oura/shopify/generated"
 	"github.com/tidepool-org/platform/pointer"
+)
+
+const (
+	productGIDPrefix = "gid://shopify/Product/"
 )
 
 //go:generate go run github.com/Khan/genqlient
@@ -55,9 +60,20 @@ func (c *defaultClient) GetDeliveredProducts(ctx context.Context, orderID string
 			if lineItem == nil || lineItem.GetLineItem() == nil {
 				continue
 			}
-			ids = append(ids, lineItem.GetLineItem().GetProduct().GetId())
+			id := lineItem.GetLineItem().GetProduct().GetId()
+			if strings.HasPrefix(id, productGIDPrefix) {
+				id = strings.TrimPrefix(id, productGIDPrefix)
+			}
+			ids = append(ids, id)
 		}
 	}
 
-	return &shopify.DeliveredProducts{IDs: ids}, nil
+	var discountCode string
+	if resp.GetOrderByIdentifier().GetDiscountCode() != nil {
+		discountCode = *resp.GetOrderByIdentifier().GetDiscountCode()
+	}
+	return &shopify.DeliveredProducts{
+		IDs:          ids,
+		DiscountCode: discountCode,
+	}, nil
 }

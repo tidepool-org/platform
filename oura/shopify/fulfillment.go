@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	deliveredProductIDToOuraDiscountAttribute = map[string]string{
+	productIDToOuraDiscountAttribute = map[string]string{
 		OuraSizingKitProductID: "oura_sizing_kit_discount_code",
 		OuraRingProductID:      "oura_ring_discount_code",
 	}
@@ -75,7 +75,7 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 	deliveredProductID := deliveredProducts.IDs[0]
 	logger = logger.WithField("orderId", orderId).WithField("productId", deliveredProductID)
 
-	attribute, ok := deliveredProductIDToOuraDiscountAttribute[deliveredProductID]
+	attribute, ok := productIDToOuraDiscountAttribute[deliveredProductID]
 	if !ok {
 		logger.Warn("unable to find discount attribute for delivered product")
 		return nil
@@ -85,9 +85,11 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 		"filter": map[string]any{
 			"and": []any{
 				map[string]any{
-					"field":    attribute,
-					"operator": "eq",
-					"value":    deliveredProducts.DiscountCode,
+					"attribute": map[string]any{
+						"field":    attribute,
+						"operator": "eq",
+						"value":    deliveredProducts.DiscountCode,
+					},
 				},
 			},
 		},
@@ -111,12 +113,12 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 
 	switch deliveredProductID {
 	case OuraSizingKitProductID:
-		if err := f.onSizingKitDelivered(ctx, customers.Identifiers[0], event); err != nil {
+		if err := f.onSizingKitDelivered(ctx, customers.Identifiers[0], event, deliveredProducts.DiscountCode); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit delivered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := f.onRingDelivered(ctx, customers.Identifiers[0], event); err != nil {
+		if err := f.onRingDelivered(ctx, customers.Identifiers[0], event, deliveredProducts.DiscountCode); err != nil {
 			logger.WithError(err).Warn("unable to send ring delivered event")
 			return err
 		}
@@ -127,7 +129,7 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 	return nil
 }
 
-func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent) error {
+func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, sizingKitDiscountCode string) error {
 	discountCode := RandomDiscountCode()
 	err := f.shopifyClient.CreateDiscountCode(ctx, DiscountCodeInput{
 		Title:     OuraRingDiscountCodeTitle,
@@ -142,18 +144,21 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 		Name: customerio.OuraSizingKitDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
 		Data: customerio.OuraSizingKitDeliveredData{
-			OuraRingDiscountCode: discountCode,
+			OuraRingDiscountCode:      discountCode,
+			OuraSizingKitDiscountCode: sizingKitDiscountCode,
 		},
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitDelivered)
 }
 
-func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent) error {
+func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
 	ringDelivered := customerio.Event{
 		Name: customerio.OuraRingDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
-		Data: customerio.OuraRingDeliveredData{},
+		Data: customerio.OuraRingDeliveredData{
+			OuraRingDiscountCode: ringDiscountCode,
+		},
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, ringDelivered)

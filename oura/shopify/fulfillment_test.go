@@ -86,7 +86,6 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 			shopifyClnt.EXPECT().
 				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
 				Return(&shopify.DeliveredProducts{
-					OrderID:      fmt.Sprintf("%d", event.OrderID),
 					IDs:          []string{shopify.OuraSizingKitProductID},
 					DiscountCode: sizingKitDiscountCode,
 				}, nil)
@@ -100,9 +99,11 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					    "filter": {
 				  		    "and": [
 				 		        {
-							        "field": "oura_sizing_kit_discount_code",
-							        "operator": "eq",
-							        "value": "` + sizingKitDiscountCode + `"
+									"attribute": {
+										"field": "oura_sizing_kit_discount_code",
+							        	"operator": "eq",
+							        	"value": "` + sizingKitDiscountCode + `"
+                                    }
 						        }
 						    ]
 					    }
@@ -125,7 +126,8 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					  	        "name": "oura_sizing_kit_delivered",
 						        "id": "` + fmt.Sprintf("%d", event.ID) + `",
 						        "data": {
-                                    "oura_ring_discount_code": "` + input.Code + `"
+                                    "oura_ring_discount_code": "` + input.Code + `",
+                                    "oura_sizing_kit_discount_code": "` + sizingKitDiscountCode + `"
                                 }
 					        }`),
 						},
@@ -153,7 +155,6 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 			shopifyClnt.EXPECT().
 				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
 				Return(&shopify.DeliveredProducts{
-					OrderID:      fmt.Sprintf("%d", event.OrderID),
 					IDs:          []string{shopify.OuraRingProductID},
 					DiscountCode: discountCode,
 				}, nil)
@@ -167,9 +168,11 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					    "filter": {
 				  		    "and": [
 				 		        {
-							        "field": "oura_ring_discount_code",
-							        "operator": "eq",
-							        "value": "` + discountCode + `"
+									"attribute": {
+										"field": "oura_ring_discount_code",
+										"operator": "eq",
+										"value": "` + discountCode + `"
+									}
 						        }
 						    ]
 					    }
@@ -184,7 +187,9 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	"name": "oura_ring_delivered",
 						"id": "` + fmt.Sprintf("%d", event.ID) + `",
-						"data": {}
+                        "data": {
+                          "oura_ring_discount_code": "` + discountCode + `"
+                        }
 					}`),
 				},
 				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
