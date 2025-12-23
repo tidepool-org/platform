@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/oura/jotform"
+	"github.com/tidepool-org/platform/oura/shopify"
 
 	userClient "github.com/tidepool-org/platform/user/client"
 
@@ -37,6 +40,10 @@ import (
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
+	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
+	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
+
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/platform"
@@ -275,9 +282,70 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create consent router")
 	}
 
+	s.Logger().Debug("Creating jotform router")
+
+	jotformConfig := jotform.Config{}
+	if err := envconfig.Process("", &jotformConfig); err != nil {
+		return errors.Wrap(err, "unable to load jotform config")
+	}
+
+	customerIOConfig := customerio.Config{}
+	if err := envconfig.Process("", &customerIOConfig); err != nil {
+		return errors.Wrap(err, "unable to load customerio config")
+	}
+	customerIOClient, err := customerio.NewClient(customerIOConfig, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create customerio client")
+	}
+
+	s.Logger().Debug("Initializing user client")
+	usrClient, err := userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+
+	shopifyConfig := shopify.ClientConfig{}
+	if err := envconfig.Process("", &shopifyConfig); err != nil {
+		return errors.Wrap(err, "unable to load shopify config")
+	}
+
+	shopifyClnt, err := shopifyClient.New(context.Background(), shopifyConfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify client")
+	}
+
+	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, customerIOClient, usrClient, shopifyClnt)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform webhook processor")
+	}
+
+	jotformRouter, err := jotformAPI.NewRouter(webhookProcessor)
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform router")
+	}
+
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), customerIOClient, shopifyClnt)
+	if err != nil {
+		return errors.Wrap(err, "unable to create fulfillment event processor")
+	}
+
+	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), customerIOClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create orders create event processor")
+	}
+
+	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventProcessor, ordersCreateEventProcessor)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter, shopifyRouter); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 

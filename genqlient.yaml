@@ -1,0 +1,14 @@
+# See https://github.com/Khan/genqlient/blob/main/docs/genqlient.yaml for detailed documentation.
+schema: ./oura/shopify/schema/shopify.graphql
+operations:
+- "./oura/shopify/client/*.go"
+generated: ./oura/shopify/generated/generated.go
+bindings:
+  DateTime:
+    type: time.Time
+  UnsignedInt64:
+    type: string
+  Decimal:
+    type: string
+use_struct_references: true
+optional: pointer_omitempty
