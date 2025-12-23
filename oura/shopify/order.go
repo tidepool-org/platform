@@ -3,32 +3,16 @@ package shopify
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura/customerio"
 )
 
 type OrdersCreateEvent struct {
-	ID                 int64          `json:"id"`
-	AdminGraphQLAPIID  string         `json:"admin_graphql_api_id"`
-	ConfirmationNumber interface{}    `json:"confirmation_number"`
-	Confirmed          bool           `json:"confirmed"`
-	ContactEmail       string         `json:"contact_email"`
-	CreatedAt          time.Time      `json:"created_at"`
-	DiscountCodes      []DiscountCode `json:"discount_codes"`
-	Email              string         `json:"email"`
-	LineItems          []LineItem     `json:"line_items"`
-	Name               string         `json:"name"`
-	Note               interface{}    `json:"note"`
-	NoteAttributes     []interface{}  `json:"note_attributes"`
-	OrderNumber        int            `json:"order_number"`
-	OrderStatusUrl     string         `json:"order_status_url"`
-	ProcessedAt        time.Time      `json:"processed_at"`
-	Reference          interface{}    `json:"reference"`
-	UpdatedAt          time.Time      `json:"updated_at"`
-	UserId             interface{}    `json:"user_id"`
-	Returns            []interface{}  `json:"returns"`
+	ID                int64          `json:"id"`
+	AdminGraphQLAPIID string         `json:"admin_graphql_api_id"`
+	DiscountCodes     []DiscountCode `json:"discount_codes"`
+	LineItems         []LineItem     `json:"line_items"`
 }
 
 type DiscountCode struct {
@@ -47,14 +31,12 @@ type OrdersCreateEventProcessor struct {
 	logger log.Logger
 
 	customerIOClient *customerio.Client
-	shopifyClient    Client
 }
 
-func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client) (*OrdersCreateEventProcessor, error) {
+func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client) (*OrdersCreateEventProcessor, error) {
 	return &OrdersCreateEventProcessor{
 		logger:           logger,
 		customerIOClient: customerIOClient,
-		shopifyClient:    shopifyClient,
 	}, nil
 }
 

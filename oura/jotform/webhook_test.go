@@ -23,7 +23,6 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/oura/customerio"
 	"github.com/tidepool-org/platform/oura/jotform"
-	jotformTest "github.com/tidepool-org/platform/oura/jotform/test"
 	shopfiyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
@@ -101,7 +100,7 @@ var _ = Describe("WebhookProcessor", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
-			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			jotformResponses.AddResponse(
@@ -109,7 +108,7 @@ var _ = Describe("WebhookProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
 			)
 
-			customer, err := jotformTest.LoadFixture("./test/fixtures/customer.json")
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			appAPIResponses.AddResponse(
@@ -171,7 +170,7 @@ var _ = Describe("WebhookProcessor", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
-			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			jotformResponses.AddResponse(
@@ -179,7 +178,7 @@ var _ = Describe("WebhookProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
 			)
 
-			customer, err := jotformTest.LoadFixture("./test/fixtures/customer.json")
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			appAPIResponses.AddResponse(
@@ -231,7 +230,7 @@ var _ = Describe("WebhookProcessor", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
-			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			jotformResponses.AddResponse(
@@ -252,7 +251,7 @@ var _ = Describe("WebhookProcessor", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
-			submission, err := jotformTest.LoadFixture("./test/fixtures/submission_participant_mismatch.json")
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission_participant_mismatch.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			jotformResponses.AddResponse(
@@ -273,7 +272,7 @@ var _ = Describe("WebhookProcessor", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
-			submission, err := jotformTest.LoadFixture("./test/fixtures/submission.json")
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			jotformResponses.AddResponse(
@@ -281,7 +280,7 @@ var _ = Describe("WebhookProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
 			)
 
-			customer, err := jotformTest.LoadFixture("./test/fixtures/customer.json")
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer.json")
 			Expect(err).ToNot(HaveOccurred())
 
 			appAPIResponses.AddResponse(
