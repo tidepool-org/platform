@@ -192,11 +192,12 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 			)
 
 			tokenID := authTest.RandomRestrictedTokenID()
+			tokenExpirationTime := time.Now().Add(time.Hour * 24 * 30)
 			token := auth.RestrictedToken{
 				ID:             tokenID,
 				UserID:         id,
 				Paths:          pointer.FromAny([]string{"/v1/oauth/oura"}),
-				ExpirationTime: time.Now().Add(time.Hour * 24 * 30),
+				ExpirationTime: tokenExpirationTime,
 				CreatedTime:    time.Now(),
 			}
 			authClient.EXPECT().
@@ -211,7 +212,8 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 						"id": "` + fmt.Sprintf("%d", event.ID) + `",
                         "data": {
                           "oura_ring_discount_code": "` + discountCode + `",
-                          "oura_account_linking_token": "` + tokenID + `"
+                          "oura_account_linking_token": "` + tokenID + `",
+                          "oura_account_linking_token_expiration_time": ` + fmt.Sprintf("%d", tokenExpirationTime.Unix()) + `
                         }
 					}`),
 				},

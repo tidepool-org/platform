@@ -163,6 +163,7 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
 	create := auth.NewRestrictedTokenCreate()
 	create.Paths = pointer.FromAny([]string{ouraAccountLinkingTokenPath})
+	create.ExpirationTime = pointer.FromTime(time.Now().Add(time.Hour * 24 * 30))
 
 	token, err := f.restrictedTokenClient.CreateUserRestrictedToken(ctx, identifiers.ID, create)
 	if err != nil {
@@ -173,8 +174,9 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 		Name: customerio.OuraRingDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
 		Data: customerio.OuraRingDeliveredData{
-			OuraRingDiscountCode:    ringDiscountCode,
-			OuraAccountLinkingToken: token.ID,
+			OuraRingDiscountCode:                  ringDiscountCode,
+			OuraAccountLinkingToken:               token.ID,
+			OuraAccountLinkingTokenExpirationTime: token.ExpirationTime.Unix(),
 		},
 	}
 
