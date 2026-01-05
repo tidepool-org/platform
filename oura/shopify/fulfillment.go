@@ -6,9 +6,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/pointer"
+)
+
+const (
+	ouraAccountLinkingTokenPath = "/v1/oauth/oura"
 )
 
 var (
@@ -40,15 +46,17 @@ type FulfillmentEvent struct {
 type FulfillmentEventProcessor struct {
 	logger log.Logger
 
-	customerIOClient *customerio.Client
-	shopifyClient    Client
+	customerIOClient      *customerio.Client
+	restrictedTokenClient auth.RestrictedTokenAccessor
+	shopifyClient         Client
 }
 
-func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client) (*FulfillmentEventProcessor, error) {
+func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor) (*FulfillmentEventProcessor, error) {
 	return &FulfillmentEventProcessor{
-		logger:           logger,
-		customerIOClient: customerIOClient,
-		shopifyClient:    shopifyClient,
+		logger:                logger,
+		customerIOClient:      customerIOClient,
+		restrictedTokenClient: restrictedTokenClient,
+		shopifyClient:         shopifyClient,
 	}, nil
 }
 
@@ -153,11 +161,20 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 }
 
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
+	create := auth.NewRestrictedTokenCreate()
+	create.Paths = pointer.FromAny([]string{ouraAccountLinkingTokenPath})
+
+	token, err := f.restrictedTokenClient.CreateUserRestrictedToken(ctx, identifiers.ID, create)
+	if err != nil {
+		return errors.Wrap(err, "unable to create restricted token")
+	}
+
 	ringDelivered := customerio.Event{
 		Name: customerio.OuraRingDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
 		Data: customerio.OuraRingDeliveredData{
-			OuraRingDiscountCode: ringDiscountCode,
+			OuraRingDiscountCode:    ringDiscountCode,
+			OuraAccountLinkingToken: token.ID,
 		},
 	}
 

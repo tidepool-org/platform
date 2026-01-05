@@ -27,5 +27,6 @@ type OuraRingOrderedData struct {
 	OuraRingDiscountCode string `json:"oura_ring_discount_code"`
 }
 type OuraRingDeliveredData struct {
-	OuraRingDiscountCode string `json:"oura_ring_discount_code"`
+	OuraRingDiscountCode    string `json:"oura_ring_discount_code"`
+	OuraAccountLinkingToken string `json:"oura_account_linking_token"`
 }

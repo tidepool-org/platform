@@ -6,10 +6,14 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
+
+	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 
 	"github.com/tidepool-org/platform/pointer"
 
@@ -27,6 +31,9 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		ctx       context.Context
 		processor *shopify.FulfillmentEventProcessor
 		logger    log.Logger
+
+		authClientCtrl *gomock.Controller
+		authClient     *authTest.MockClient
 
 		shopifyCtrl *gomock.Controller
 		shopifyClnt *shopfiyTest.MockClient
@@ -58,7 +65,10 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		shopifyCtrl = gomock.NewController(GinkgoT())
 		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
 
-		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt)
+		authClientCtrl = gomock.NewController(GinkgoT())
+		authClient = authTest.NewMockClient(authClientCtrl)
+
+		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt, authClient)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -68,6 +78,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 		appAPIServer.Close()
 		trackAPIServer.Close()
+		authClientCtrl.Finish()
 		shopifyCtrl.Finish()
 	})
 
@@ -180,6 +191,18 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				ouraTest.Response{StatusCode: http.StatusOK, Body: customers},
 			)
 
+			tokenID := authTest.RandomRestrictedTokenID()
+			token := auth.RestrictedToken{
+				ID:             tokenID,
+				UserID:         id,
+				Paths:          pointer.FromAny([]string{"/v1/oauth/oura"}),
+				ExpirationTime: time.Now().Add(time.Hour * 24 * 30),
+				CreatedTime:    time.Now(),
+			}
+			authClient.EXPECT().
+				CreateUserRestrictedToken(gomock.Any(), id, gomock.Any()).
+				Return(&token, nil)
+
 			trackAPIResponses.AddResponse(
 				[]ouraTest.RequestMatcher{
 					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
@@ -187,7 +210,8 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					  	"name": "oura_ring_delivered",
 						"id": "` + fmt.Sprintf("%d", event.ID) + `",
                         "data": {
-                          "oura_ring_discount_code": "` + discountCode + `"
+                          "oura_ring_discount_code": "` + discountCode + `",
+                          "oura_account_linking_token": "` + tokenID + `"
                         }
 					}`),
 				},
