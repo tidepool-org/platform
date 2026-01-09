@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Event struct {
@@ -19,12 +21,12 @@ func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
 
 	jsonBody, err := json.Marshal(event)
 	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
+		return errors.Wrap(err, "failed to marshal request body")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return errors.Wrap(err, "failed to create request")
 	}
 
 	// Add the authorization header (Basic Auth for Track API)
@@ -33,16 +35,16 @@ func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		return errors.Wrap(err, "failed to execute request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp errorResponse
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && len(errResp.Errors) > 0 {
-			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
+			return errors.Newf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
 		}
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return errors.Newf("unexpected status code: %s", resp.Status)
 	}
 
 	return nil

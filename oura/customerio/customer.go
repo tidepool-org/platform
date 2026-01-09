@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 const (
@@ -63,7 +65,7 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, errors.Wrap(err, "failed to create request")
 	}
 
 	// Add query parameter for id_type if using cio_id
@@ -79,19 +81,19 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
+		return nil, errors.Wrap(err, "failed to execute request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, nil
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, errors.Newf("unexpected status code: %s", resp.Status)
 	}
 
 	var response customerResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
 	return &Customer{
@@ -103,10 +105,13 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*FindCustomersResponse, error) {
 	url := fmt.Sprintf("%s/v1/customers", c.appAPIBaseURL)
 
-	body, _ := json.Marshal(filter)
+	body, err := json.Marshal(filter)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal filter")
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return nil, errors.Wrap(err, "failed to create request")
 	}
 
 	// Add authorization header
@@ -117,17 +122,17 @@ func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*Fin
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
+		return nil, errors.Wrap(err, "failed to execute request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, errors.Newf("unexpected status code: %s", resp.Status)
 	}
 
 	var response FindCustomersResponse
 	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, errors.Wrap(err, "failed to decode response")
 	}
 
 	return &response, nil
@@ -147,12 +152,12 @@ func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
 
 	jsonBody, err := json.Marshal(reqBody)
 	if err != nil {
-		return fmt.Errorf("failed to marshal request body: %w", err)
+		return errors.Wrap(err, "failed to marshal request body")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return errors.Wrap(err, "failed to create request")
 	}
 
 	// Add the authorization header (Basic Auth for Track API)
@@ -161,16 +166,16 @@ func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to execute request: %w", err)
+		return errors.Wrap(err, "failed to execute request")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		var errResp errorResponse
 		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && len(errResp.Errors) > 0 {
-			return fmt.Errorf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
+			return errors.Newf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
 		}
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return errors.Newf("unexpected status code: %s", resp.Status)
 	}
 
 	return nil

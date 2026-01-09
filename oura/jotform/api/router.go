@@ -40,13 +40,13 @@ func (r *Router) HandleJotformSubmission(res rest.ResponseWriter, req *rest.Requ
 		return
 	}
 
-	values, ok := req.MultipartForm.Value["submissionID"]
-	if !ok || len(values) == 0 || len(values[0]) == 0 {
+	submissionID := req.PostFormValue("submissionID")
+	if len(submissionID) == 0 {
 		responder.Error(http.StatusBadRequest, fmt.Errorf("missing submission ID"))
 		return
 	}
 
-	err := r.webhookProcessor.ProcessSubmission(req.Context(), values[0])
+	err := r.webhookProcessor.ProcessSubmission(req.Context(), submissionID)
 	if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to process submission")
 		responder.Error(http.StatusInternalServerError, err)

@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/tidepool-org/platform/errors"
 )
 
 type Identifiers struct {
@@ -28,7 +30,7 @@ func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) (
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create request: %w", err)
+			return nil, errors.Wrap(err, "failed to create request")
 		}
 
 		// Add pagination parameter if available
@@ -44,17 +46,17 @@ func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) (
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			return nil, fmt.Errorf("failed to execute request: %w", err)
+			return nil, errors.Wrap(err, "failed to execute request")
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+			return nil, errors.Newf("unexpected status code: %s", resp.Status)
 		}
 
 		var response segmentMembershipResponse
 		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-			return nil, fmt.Errorf("failed to decode response: %w", err)
+			return nil, errors.Wrap(err, "failed to decode response")
 		}
 
 		allIdentifiers = append(allIdentifiers, response.Identifiers...)
