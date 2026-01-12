@@ -228,7 +228,7 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		if err := recover(); err != nil {
 			stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
 			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": stack}).Error("unhandled panic")
-			completion.ProcessResult = *work.NewProcessResultFailing(work.FailingUpdate{
+			completion.ProcessResult = work.NewProcessResultFailing(work.FailingUpdate{
 				FailingError:      errors.Serializable{Error: errors.WithMeta(errors.Newf("unhandled panic: %v", err), stack)},
 				FailingRetryCount: 1,
 				FailingRetryTime:  time.Now().Add(5 * time.Second),
@@ -239,7 +239,7 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 
 	processor, ok := c.processors[wrk.Type]
 	if !ok {
-		completion.ProcessResult = *work.NewProcessResultFailed(work.FailedUpdate{
+		completion.ProcessResult = work.NewProcessResultFailed(work.FailedUpdate{
 			FailedError: errors.Serializable{Error: errors.New("processor not found for type")},
 			Metadata:    wrk.Metadata,
 		})
@@ -267,6 +267,9 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		}()
 	}
 
+	// TODO: DO NOT COMMIT!!!
+	ctx = context.WithoutCancel(ctx)
+
 	completion.ProcessResult = processor.Process(ctx, wrk, updater)
 }
 
@@ -285,28 +288,33 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	// Validate process result, if invalid, then fail
 	processResult := completion.ProcessResult
 
-	if err := structureValidator.New(lgr).Validate(&processResult); err != nil {
+	if processResult != nil {
+		if err := structureValidator.New(lgr).Validate(processResult); err != nil {
 
-		// Add process result to metadata
-		failedUpdateMetadata := processResult.Metadata()
-		if failedUpdateMetadata == nil {
-			failedUpdateMetadata = map[string]any{}
-		}
-		failedUpdateMetadata["processResult"] = processResult
+			// Add process result to metadata
+			failedUpdateMetadata := processResult.Metadata()
+			if failedUpdateMetadata == nil {
+				failedUpdateMetadata = map[string]any{}
+			}
+			failedUpdateMetadata["processResult"] = processResult
 
-		// Create failed process result
-		failedUpdate := work.FailedUpdate{
-			FailedError: errors.Serializable{Error: errors.New("invalid process result")},
-			Metadata:    failedUpdateMetadata,
+			// Create failed process result
+			processResult = work.NewProcessResultFailed(work.FailedUpdate{
+				FailedError: errors.Serializable{Error: errors.New("invalid process result")},
+				Metadata:    failedUpdateMetadata,
+			})
 		}
-		processResult = *work.NewProcessResultFailed(failedUpdate)
-	}
 
-	if processResult.Result == work.ResultDelete {
-		if _, err := c.workClient.Delete(ctx, completion.Identifier.ID, condition); err != nil {
-			lgr.WithError(err).Error("unable to delete work when processing complete")
+		if processResult.Result == work.ResultDelete {
+			if _, err := c.workClient.Delete(ctx, completion.Identifier.ID, condition); err != nil {
+				lgr.WithError(err).Error("unable to delete work when processing complete")
+			}
+			return
 		}
-		return
+	} else {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.New("process result is missing")},
+		})
 	}
 
 	wrk, err := c.workClient.Update(ctx, completion.Identifier.ID, condition, processResultToUpdate(processResult))
@@ -378,10 +386,15 @@ func (c *coordinatorProcessingUpdater) ProcessingUpdate(ctx context.Context, pro
 
 type coordinatorProcessingCompletion struct {
 	Identifier    *coordinatorProcessingIdentifier `json:"identifier,omitempty"` // Must be pointer, shared revision
-	ProcessResult work.ProcessResult               `json:"processResult,omitempty"`
+	ProcessResult *work.ProcessResult              `json:"processResult,omitempty"`
 }
 
-func processResultToUpdate(processResult work.ProcessResult) *work.Update {
+func processResultToUpdate(processResult *work.ProcessResult) *work.Update {
+	if processResult == nil {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.New("process result is missing")},
+		})
+	}
 	switch processResult.Result {
 	case work.ResultPending:
 		return &work.Update{

@@ -58,6 +58,44 @@ func (mr *MockProcessingUpdaterMockRecorder) ProcessingUpdate(ctx, processingUpd
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessingUpdate", reflect.TypeOf((*MockProcessingUpdater)(nil).ProcessingUpdate), ctx, processingUpdate)
 }
 
+// MockProcessing is a mock of Processing interface.
+type MockProcessing struct {
+	ctrl     *gomock.Controller
+	recorder *MockProcessingMockRecorder
+	isgomock struct{}
+}
+
+// MockProcessingMockRecorder is the mock recorder for MockProcessing.
+type MockProcessingMockRecorder struct {
+	mock *MockProcessing
+}
+
+// NewMockProcessing creates a new mock instance.
+func NewMockProcessing(ctrl *gomock.Controller) *MockProcessing {
+	mock := &MockProcessing{ctrl: ctrl}
+	mock.recorder = &MockProcessingMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockProcessing) EXPECT() *MockProcessingMockRecorder {
+	return m.recorder
+}
+
+// Process mocks base method.
+func (m *MockProcessing) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Process", ctx, wrk, updater)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// Process indicates an expected call of Process.
+func (mr *MockProcessingMockRecorder) Process(ctx, wrk, updater any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Process", reflect.TypeOf((*MockProcessing)(nil).Process), ctx, wrk, updater)
+}
+
 // MockProcessor is a mock of Processor interface.
 type MockProcessor struct {
 	ctrl     *gomock.Controller
@@ -97,10 +135,10 @@ func (mr *MockProcessorMockRecorder) Frequency() *gomock.Call {
 }
 
 // Process mocks base method.
-func (m *MockProcessor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
+func (m *MockProcessor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) *work.ProcessResult {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Process", ctx, wrk, updater)
-	ret0, _ := ret[0].(work.ProcessResult)
+	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
