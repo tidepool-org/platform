@@ -267,9 +267,6 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		}()
 	}
 
-	// TODO: DO NOT COMMIT!!!
-	ctx = context.WithoutCancel(ctx)
-
 	completion.ProcessResult = processor.Process(ctx, wrk, updater)
 }
 

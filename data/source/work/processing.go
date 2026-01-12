@@ -168,13 +168,11 @@ func (p *Processing) ReplaceDataSource(dataSrc *dataSource.Source) *work.Process
 		}
 	}
 
-	// TODO: Consider various ways the above workflow can fail and how to resolve edge cases
-
 	return nil
 }
 
 func (p *Processing) DeviceHashes() (map[string]string, error) {
-	parser := p.MetadataParser().WithReferenceObjectParser(MetadataKeyDeviceHashes) // TODO: WRONG!
+	parser := p.MetadataParser().WithReferenceObjectParser(MetadataKeyDeviceHashes)
 	deviceHashes := map[string]string{}
 	for _, deviceID := range parser.References() {
 		if deviceHash := parser.String(deviceID); deviceHash != nil {
