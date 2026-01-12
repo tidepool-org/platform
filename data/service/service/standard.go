@@ -52,10 +52,10 @@ import (
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 
-	notifications "github.com/tidepool-org/platform/conditionalnotifications"
-	"github.com/tidepool-org/platform/conditionalnotifications/claimaccount"
-	"github.com/tidepool-org/platform/conditionalnotifications/connectaccount"
-	"github.com/tidepool-org/platform/conditionalnotifications/connectionissues"
+	notifications "github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/notifications/work/claims"
+	connissues "github.com/tidepool-org/platform/notifications/work/connections/issues"
+	connreqs "github.com/tidepool-org/platform/notifications/work/connections/requests"
 )
 
 type Standard struct {
@@ -89,6 +89,10 @@ func NewStandard() *Standard {
 	return &Standard{
 		DEPRECATEDService: service.NewDEPRECATEDService(),
 	}
+}
+
+type confirmationClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
 }
 
 func (s *Standard) Initialize(provider application.Provider) error {
@@ -560,10 +564,6 @@ func (s *Standard) initializeUserClient() error {
 	return nil
 }
 
-type confirmationClientConfig struct {
-	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
-}
-
 func (c *confirmationClientConfig) Load() error {
 	return envconfig.Process("", c)
 }
@@ -573,7 +573,7 @@ func (s *Standard) initializeConfirmationClient() error {
 
 	cfg := &confirmationClientConfig{}
 	if err := cfg.Load(); err != nil {
-		return errors.Wrap(err, "unable to load confirmations client config")
+		return errors.Wrap(err, "unable to load confirmation client config")
 	}
 
 	opts := confirmationClient.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
@@ -588,7 +588,7 @@ func (s *Standard) initializeConfirmationClient() error {
 
 	client, err := confirmationClient.NewClientWithResponses(cfg.ServiceAddress, opts)
 	if err != nil {
-		return errors.Wrap(err, "unable to create confirmations client")
+		return errors.Wrap(err, "unable to create confirmation client")
 	}
 	s.confirmationClient = client
 
@@ -702,23 +702,23 @@ func (s *Standard) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to register abbott processors")
 	}
 
-	notificationDependencies := notifications.Dependencies{
-		Auth:          s.AuthClient(),
-		Clinics:       s.clinicsClient,
-		Confirmations: s.confirmationClient,
-		DataSources:   s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		Mailer:        s.mailerClient,
-		Users:         s.userClient,
-		Worker:        s.workClient,
+	notificationsDependencies := notifications.Dependencies{
+		Auth:         s.AuthClient(),
+		Clinics:      s.clinicsClient,
+		Confirmation: s.confirmationClient,
+		DataSources:  s.dataSourceStructuredStore.NewDataSourcesRepository(),
+		Mailer:       s.mailerClient,
+		Users:        s.userClient,
+		Worker:       s.workClient,
 	}
-	scheduledProcessors := []work.Processor{
-		claimaccount.NewProcessor(notificationDependencies),
-		connectaccount.NewProcessor(notificationDependencies),
-		connectionissues.NewProcessor(notificationDependencies),
+	notificationProcessors := []work.Processor{
+		claims.NewProcessor(notificationsDependencies),
+		connreqs.NewProcessor(notificationsDependencies),
+		connissues.NewProcessor(notificationsDependencies),
 	}
 
-	if err = s.workCoordinator.RegisterProcessors(scheduledProcessors); err != nil {
-		return errors.Wrap(err, "unable to register conditional notifications processors")
+	if err = s.workCoordinator.RegisterProcessors(notificationProcessors); err != nil {
+		return errors.Wrap(err, "unable to register notifications processors")
 	}
 
 	s.Logger().Debug("Starting work coordinator")
