@@ -1,4 +1,4 @@
-package connectaccount
+package requests
 
 import (
 	"context"
@@ -6,23 +6,23 @@ import (
 	"time"
 
 	"github.com/tidepool-org/go-common/events"
-	"github.com/tidepool-org/platform/conditionalnotifications"
 	"github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
 
 const (
-	processorType            = "org.tidepool.processors.connect.account"
-	quantity                 = 4
+	processorType            = "org.tidepool.processors.connections.requests"
+	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
 )
 
 // NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
-func NewGroupID(email, providerName string) string {
-	return fmt.Sprintf("%s:%s:%s", processorType, email, providerName)
+func NewGroupID(userID, providerName string) string {
+	return fmt.Sprintf("%s:%s:%s", processorType, userID, providerName)
 }
 
 type Metadata struct {
@@ -40,11 +40,28 @@ type processor struct {
 	dependencies conditionalnotifications.Dependencies
 }
 
-func NewWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
+func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+	whenToSend := metadata.WhenToSend
+	if whenToSend.IsZero() {
+		whenToSend = time.Now().Add(time.Hour * 24 * 7)
+	}
+	create := newWorkCreate(whenToSend, metadata)
+	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
+		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
+			return fmt.Errorf(`unable to delete existing groups by id "%s": %w`, groupID, err)
+		}
+	}
+	if _, err := client.Create(ctx, create); err != nil {
+		return err
+	}
+	return nil
+}
+
+func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 	return &work.Create{
 		Type:                    processorType,
 		SerialID:                pointer.FromString(metadata.UserId),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.Email, metadata.ProviderName)),
+		GroupID:                 pointer.FromString(NewGroupID(metadata.UserId, metadata.ProviderName)),
 		ProcessingTimeout:       processingTimeoutSeconds,
 		ProcessingAvailableTime: notBefore,
 		Metadata:                fromConnectAccountData(metadata),

@@ -1,4 +1,4 @@
-package connectionissues
+package issues
 
 import (
 	"context"
@@ -9,12 +9,12 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 
-	"github.com/tidepool-org/platform/conditionalnotifications"
+	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	processorType            = "org.tidepool.processors.device.connection.issues"
+	processorType            = "org.tidepool.processors.connections.issues"
 	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
@@ -58,7 +58,15 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("userId", &d.UserId).NotEmpty()
 }
 
-func NewWorkCreate(metadata Metadata) *work.Create {
+func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+	create := newWorkCreate(metadata)
+	if _, err := client.Create(ctx, create); err != nil {
+		return err
+	}
+	return nil
+}
+
+func newWorkCreate(metadata Metadata) *work.Create {
 	return &work.Create{
 		Type:              processorType,
 		SerialID:          pointer.FromString(metadata.UserId),

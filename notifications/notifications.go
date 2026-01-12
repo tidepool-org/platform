@@ -20,14 +20,17 @@ const (
 	retryDurationJitter = 5 * time.Second
 )
 
+//go:generate mockgen -source=../work/processor.go -destination=test/processor_mocks.go -package=test MockProcessor
+
+//go:generate mockgen -source=../ -destination=test/processor_mocks.go -package=test MockProcessor
 type Dependencies struct {
-	Auth          auth.RestrictedTokenAccessor
-	Clinics       clinics.Client
-	Confirmations confirmationClient.ClientWithResponsesInterface
-	DataSources   dataSourceStore.DataSourcesRepository
-	Mailer        mailer.Mailer
-	Users         user.Client
-	Worker        work.Client
+	Auth         auth.RestrictedTokenAccessor
+	Clinics      clinics.Client
+	Confirmation confirmationClient.ClientWithResponsesInterface
+	DataSources  dataSourceStore.DataSourcesRepository
+	Mailer       mailer.Mailer
+	Users        user.Client
+	Worker       work.Client
 }
 
 func NewFailingResult(err error, wrk *work.Work) work.ProcessResult {
