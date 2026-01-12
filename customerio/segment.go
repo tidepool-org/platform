@@ -26,7 +26,7 @@ func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) (
 	start := ""
 
 	for {
-		url := fmt.Sprintf("%s/v1/segments/%s/membership", c.appAPIBaseURL, segmentID)
+		url := fmt.Sprintf("%s/v1/segments/%s/membership", c.config.AppAPIBaseURL, segmentID)
 
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		if err != nil {
@@ -41,7 +41,7 @@ func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) (
 		}
 
 		// Add authorization header
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.appAPIKey))
+		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(req)

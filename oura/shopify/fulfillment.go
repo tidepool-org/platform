@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -149,9 +150,9 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 	}
 
 	sizingKitDelivered := customerio.Event{
-		Name: customerio.OuraSizingKitDeliveredEventType,
+		Name: oura.OuraSizingKitDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
-		Data: customerio.OuraSizingKitDeliveredData{
+		Data: oura.OuraSizingKitDeliveredData{
 			OuraRingDiscountCode:      discountCode,
 			OuraSizingKitDiscountCode: sizingKitDiscountCode,
 		},
@@ -171,9 +172,9 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 	}
 
 	ringDelivered := customerio.Event{
-		Name: customerio.OuraRingDeliveredEventType,
+		Name: oura.OuraRingDeliveredEventType,
 		ID:   fmt.Sprintf("%d", event.ID),
-		Data: customerio.OuraRingDeliveredData{
+		Data: oura.OuraRingDeliveredData{
 			OuraRingDiscountCode:                  ringDiscountCode,
 			OuraAccountLinkingToken:               token.ID,
 			OuraAccountLinkingTokenExpirationTime: token.ExpirationTime.Unix(),

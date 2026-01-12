@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	customerio2 "github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/oura"
 )
 
 type OrdersCreateEvent struct {
@@ -30,10 +31,10 @@ type LineItem struct {
 type OrdersCreateEventProcessor struct {
 	logger log.Logger
 
-	customerIOClient *customerio.Client
+	customerIOClient *customerio2.Client
 }
 
-func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client) (*OrdersCreateEventProcessor, error) {
+func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio2.Client) (*OrdersCreateEventProcessor, error) {
 	return &OrdersCreateEventProcessor{
 		logger:           logger,
 		customerIOClient: customerIOClient,
@@ -127,11 +128,11 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 	return nil
 }
 
-func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
-	sizingKitOrdered := customerio.Event{
-		Name: customerio.OuraSizingKitOrderedEventType,
+func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio2.Identifiers, discountCode string) error {
+	sizingKitOrdered := customerio2.Event{
+		Name: oura.OuraSizingKitOrderedEventType,
 		ID:   discountCode,
-		Data: customerio.OuraSizingKitOrderedData{
+		Data: oura.OuraSizingKitOrderedData{
 			OuraSizingKitDiscountCode: discountCode,
 		},
 	}
@@ -139,11 +140,11 @@ func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, ide
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitOrdered)
 }
 
-func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
-	ringOrdered := customerio.Event{
-		Name: customerio.OuraRingOrderedEventType,
+func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio2.Identifiers, discountCode string) error {
+	ringOrdered := customerio2.Event{
+		Name: oura.OuraRingOrderedEventType,
 		ID:   discountCode,
-		Data: customerio.OuraRingOrderedData{
+		Data: oura.OuraRingOrderedData{
 			OuraRingDiscountCode: discountCode,
 		},
 	}

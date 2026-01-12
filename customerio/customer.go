@@ -61,7 +61,7 @@ type errorResponse struct {
 }
 
 func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Customer, error) {
-	url := fmt.Sprintf("%s/v1/customers/%s/attributes", c.appAPIBaseURL, cid)
+	url := fmt.Sprintf("%s/v1/customers/%s/attributes", c.config.AppAPIBaseURL, cid)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -74,7 +74,7 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 	req.URL.RawQuery = q.Encode()
 
 	// Add authorization header
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.appAPIKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	c.logger.WithField("cid", cid).WithField("url", req.URL.String()).Debug("fetching customer")
@@ -103,7 +103,7 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 }
 
 func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*FindCustomersResponse, error) {
-	url := fmt.Sprintf("%s/v1/customers", c.appAPIBaseURL)
+	url := fmt.Sprintf("%s/v1/customers", c.config.AppAPIBaseURL)
 
 	body, err := json.Marshal(filter)
 	if err != nil {
@@ -115,7 +115,7 @@ func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*Fin
 	}
 
 	// Add authorization header
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.appAPIKey))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
 	req.Header.Set("Content-Type", "application/json")
 
 	c.logger.WithField("url", req.URL.String()).WithField("filter", filter).Debug("finding customer")
@@ -139,7 +139,7 @@ func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*Fin
 }
 
 func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
-	url := fmt.Sprintf("%s/api/v2/entity", c.trackAPIBaseURL)
+	url := fmt.Sprintf("%s/api/v2/entity", c.config.TrackAPIBaseURL)
 
 	// Prepare the request body
 	reqBody := entityRequest{
@@ -161,7 +161,7 @@ func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
 	}
 
 	// Add the authorization header (Basic Auth for Track API)
-	req.SetBasicAuth(c.siteID, c.trackAPIKey)
+	req.SetBasicAuth(c.config.SiteID, c.config.TrackAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)

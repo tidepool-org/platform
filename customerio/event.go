@@ -17,7 +17,7 @@ type Event struct {
 }
 
 func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
-	url := fmt.Sprintf("%s/api/v1/customers/%s/events", c.trackAPIBaseURL, cid)
+	url := fmt.Sprintf("%s/api/v1/customers/%s/events", c.config.TrackAPIBaseURL, cid)
 
 	jsonBody, err := json.Marshal(event)
 	if err != nil {
@@ -30,7 +30,7 @@ func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
 	}
 
 	// Add the authorization header (Basic Auth for Track API)
-	req.SetBasicAuth(c.siteID, c.trackAPIKey)
+	req.SetBasicAuth(c.config.SiteID, c.config.TrackAPIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)

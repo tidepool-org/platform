@@ -1,4 +1,4 @@
-package customerio
+package oura
 
 const (
 	OuraEligibilitySurveyCompletedEventType = "oura_eligibility_survey_completed"

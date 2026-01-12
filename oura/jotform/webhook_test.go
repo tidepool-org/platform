@@ -10,6 +10,8 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"go.uber.org/mock/gomock"
 
+	"github.com/tidepool-org/platform/customerio"
+
 	"github.com/tidepool-org/platform/oura/shopify"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 
@@ -21,7 +23,6 @@ import (
 	consentTest "github.com/tidepool-org/platform/consent/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/oura/customerio"
 	"github.com/tidepool-org/platform/oura/jotform"
 	shopfiyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	userTest "github.com/tidepool-org/platform/user/test"

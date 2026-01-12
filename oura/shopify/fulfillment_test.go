@@ -12,6 +12,8 @@ import (
 	. "github.com/onsi/gomega"
 	"go.uber.org/mock/gomock"
 
+	"github.com/tidepool-org/platform/customerio"
+
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
 
@@ -21,7 +23,6 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/oura/customerio"
 	shopfiyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 )

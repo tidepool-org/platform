@@ -11,11 +11,12 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/customerio"
+
 	"github.com/tidepool-org/platform/oura/shopify"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	"github.com/tidepool-org/platform/oura/customerio"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 )
 

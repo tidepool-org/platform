@@ -7,9 +7,10 @@ import (
 	"net/http"
 
 	"github.com/tidepool-org/platform/consent"
+	customerio2 "github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/oura/customerio"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -27,26 +28,24 @@ const (
 )
 
 type WebhookProcessor struct {
-	baseURL string
-	apiKey  string
+	config Config
 
 	logger log.Logger
 
 	consentService   consent.Service
-	customerIOClient *customerio.Client
+	customerIOClient *customerio2.Client
 	shopifyClient    shopify.Client
 	userClient       user.Client
 }
 
 type Config struct {
-	BaseURL string `envconfig:"TIDEPOOL_JOTFORM_BASE_URL"`
-	APIKey  string `envconfig:"TIDEPOOL_JOTFORM_API_KEY"`
+	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL"`
+	APIKey  string `envconfig:"TIDEPOOL_OURA_JOTFORM_API_KEY"`
 }
 
-func NewWebhookProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client, userClient user.Client, shopifyClient shopify.Client) (*WebhookProcessor, error) {
+func NewWebhookProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio2.Client, userClient user.Client, shopifyClient shopify.Client) (*WebhookProcessor, error) {
 	return &WebhookProcessor{
-		apiKey:  config.APIKey,
-		baseURL: config.BaseURL,
+		config: config,
 
 		logger: logger,
 
@@ -81,7 +80,7 @@ func (w *WebhookProcessor) ProcessSubmission(ctx context.Context, submissionID s
 
 // validateUser validates the user id by comparing the participant id from the submission with the participant id from customer.io
 // this is required because jotform webhooks are not signed or authenticated
-func (w *WebhookProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Identifiers, error) {
+func (w *WebhookProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio2.Identifiers, error) {
 	logger := w.logger.WithField("submission", submissionID)
 
 	userID := answers.GetAnswerTextByName(UserIDField)
@@ -96,7 +95,7 @@ func (w *WebhookProcessor) validateUser(ctx context.Context, submissionID string
 		return nil, nil
 	}
 
-	customer, err := w.customerIOClient.GetCustomer(ctx, userID, customerio.IDTypeUserID)
+	customer, err := w.customerIOClient.GetCustomer(ctx, userID, customerio2.IDTypeUserID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get customer with id %s", userID)
 	}
@@ -120,7 +119,7 @@ func (w *WebhookProcessor) validateUser(ctx context.Context, submissionID string
 }
 
 func (w *WebhookProcessor) getSubmission(ctx context.Context, submissionID string) (*SubmissionResponse, error) {
-	url := fmt.Sprintf("%s/v1/submission/%s", w.baseURL, submissionID)
+	url := fmt.Sprintf("%s/v1/submission/%s", w.config.BaseURL, submissionID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
@@ -128,7 +127,7 @@ func (w *WebhookProcessor) getSubmission(ctx context.Context, submissionID strin
 	}
 
 	// Add authorization header
-	req.Header.Set("APIKEY", w.apiKey)
+	req.Header.Set("APIKEY", w.config.APIKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -154,8 +153,8 @@ func (w *WebhookProcessor) getSubmission(ctx context.Context, submissionID strin
 	return &response, nil
 }
 
-func (w *WebhookProcessor) handleSurveyCompleted(ctx context.Context, identifiers customerio.Identifiers, submission *SubmissionResponse) error {
-	surveyCompletedData := customerio.OuraEligibilitySurveyCompletedData{
+func (w *WebhookProcessor) handleSurveyCompleted(ctx context.Context, identifiers customerio2.Identifiers, submission *SubmissionResponse) error {
+	surveyCompletedData := oura.OuraEligibilitySurveyCompletedData{
 		OuraEligibilitySurveyID:       submission.Content.ID,
 		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == "true",
 	}
@@ -177,8 +176,8 @@ func (w *WebhookProcessor) handleSurveyCompleted(ctx context.Context, identifier
 		}
 	}
 
-	surveyCompleted := customerio.Event{
-		Name: customerio.OuraEligibilitySurveyCompletedEventType,
+	surveyCompleted := customerio2.Event{
+		Name: oura.OuraEligibilitySurveyCompletedEventType,
 		ID:   surveyCompletedData.OuraEligibilitySurveyID,
 		Data: surveyCompletedData,
 	}

@@ -3,12 +3,8 @@ package customerio
 import "github.com/tidepool-org/platform/log"
 
 type Client struct {
-	appAPIBaseURL   string
-	appAPIKey       string
-	trackAPIBaseURL string
-	trackAPIKey     string
-	siteID          string
-	logger          log.Logger
+	config Config
+	logger log.Logger
 }
 
 type Config struct {
@@ -22,11 +18,7 @@ type Config struct {
 
 func NewClient(config Config, logger log.Logger) (*Client, error) {
 	return &Client{
-		appAPIKey:       config.AppAPIKey,
-		trackAPIKey:     config.TrackAPIKey,
-		siteID:          config.SiteID,
-		appAPIBaseURL:   config.AppAPIBaseURL,
-		trackAPIBaseURL: config.TrackAPIBaseURL,
-		logger:          logger,
+		config: config,
+		logger: logger,
 	}, nil
 }
