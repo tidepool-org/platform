@@ -2,11 +2,10 @@ package customerio
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Identifiers struct {
@@ -22,41 +21,25 @@ type segmentMembershipResponse struct {
 }
 
 func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) ([]Identifiers, error) {
+	ctx = log.NewContextWithLogger(ctx, c.logger)
 	var allIdentifiers []Identifiers
 	start := ""
 
 	for {
-		url := fmt.Sprintf("%s/v1/segments/%s/membership", c.config.AppAPIBaseURL, segmentID)
+		url := c.appClient.ConstructURL("v1", "segments", segmentID, "membership")
 
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to create request")
+		mutators := []request.RequestMutator{
+			c.appAPIAuthMutator(),
 		}
 
 		// Add pagination parameter if available
 		if start != "" {
-			q := req.URL.Query()
-			q.Add("start", start)
-			req.URL.RawQuery = q.Encode()
-		}
-
-		// Add authorization header
-		req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(req)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed to execute request")
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			return nil, errors.Newf("unexpected status code: %s", resp.Status)
+			mutators = append(mutators, request.NewParameterMutator("start", start))
 		}
 
 		var response segmentMembershipResponse
-		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-			return nil, errors.Wrap(err, "failed to decode response")
+		if err := c.appClient.RequestDataWithHTTPClient(ctx, http.MethodGet, url, mutators, nil, &response, nil, c.httpClient); err != nil {
+			return nil, err
 		}
 
 		allIdentifiers = append(allIdentifiers, response.Identifiers...)

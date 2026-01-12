@@ -1,13 +1,11 @@
 package customerio
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 )
 
 const (
@@ -52,48 +50,23 @@ type entityRequest struct {
 	Attributes  Attributes        `json:"attributes,omitempty"`
 }
 
-type errorResponse struct {
-	Errors []struct {
-		Reason  string `json:"reason,omitempty"`
-		Field   string `json:"field,omitempty"`
-		Message string `json:"message,omitempty"`
-	} `json:"errors,omitempty"`
-}
-
 func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Customer, error) {
-	url := fmt.Sprintf("%s/v1/customers/%s/attributes", c.config.AppAPIBaseURL, cid)
+	ctx = log.NewContextWithLogger(ctx, c.logger)
+	url := c.appClient.ConstructURL("v1", "customers", cid, "attributes")
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+	mutators := []request.RequestMutator{
+		request.NewParameterMutator("id_type", string(typ)),
+		c.appAPIAuthMutator(),
 	}
 
-	// Add query parameter for id_type if using cio_id
-	q := req.URL.Query()
-	q.Add("id_type", string(typ))
-	req.URL.RawQuery = q.Encode()
-
-	// Add authorization header
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	c.logger.WithField("cid", cid).WithField("url", req.URL.String()).Debug("fetching customer")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute request")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
-	} else if resp.StatusCode != http.StatusOK {
-		return nil, errors.Newf("unexpected status code: %s", resp.Status)
-	}
+	c.logger.WithField("cid", cid).WithField("url", url).Debug("fetching customer")
 
 	var response customerResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response")
+	if err := c.appClient.RequestDataWithHTTPClient(ctx, http.MethodGet, url, mutators, nil, &response, nil, c.httpClient); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
 	}
 
 	return &Customer{
@@ -103,43 +76,26 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 }
 
 func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*FindCustomersResponse, error) {
-	url := fmt.Sprintf("%s/v1/customers", c.config.AppAPIBaseURL)
+	ctx = log.NewContextWithLogger(ctx, c.logger)
+	url := c.appClient.ConstructURL("v1", "customers")
 
-	body, err := json.Marshal(filter)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to marshal filter")
-	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(body))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to create request")
+	mutators := []request.RequestMutator{
+		c.appAPIAuthMutator(),
 	}
 
-	// Add authorization header
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))
-	req.Header.Set("Content-Type", "application/json")
-
-	c.logger.WithField("url", req.URL.String()).WithField("filter", filter).Debug("finding customer")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to execute request")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Newf("unexpected status code: %s", resp.Status)
-	}
+	c.logger.WithField("url", url).WithField("filter", filter).Debug("finding customer")
 
 	var response FindCustomersResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return nil, errors.Wrap(err, "failed to decode response")
+	if err := c.appClient.RequestDataWithHTTPClient(ctx, http.MethodPost, url, mutators, filter, &response, nil, c.httpClient); err != nil {
+		return nil, err
 	}
 
 	return &response, nil
 }
 
 func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
-	url := fmt.Sprintf("%s/api/v2/entity", c.config.TrackAPIBaseURL)
+	ctx = log.NewContextWithLogger(ctx, c.logger)
+	url := c.trackClient.ConstructURL("api", "v2", "entity")
 
 	// Prepare the request body
 	reqBody := entityRequest{
@@ -150,32 +106,12 @@ func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
 	}
 	reqBody.Attributes.Update = true
 
-	jsonBody, err := json.Marshal(reqBody)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal request body")
+	mutators := []request.RequestMutator{
+		c.trackAPIAuthMutator(),
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return errors.Wrap(err, "failed to create request")
-	}
-
-	// Add the authorization header (Basic Auth for Track API)
-	req.SetBasicAuth(c.config.SiteID, c.config.TrackAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "failed to execute request")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errResp errorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && len(errResp.Errors) > 0 {
-			return errors.Newf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
-		}
-		return errors.Newf("unexpected status code: %s", resp.Status)
+	if err := c.trackClient.RequestDataWithHTTPClient(ctx, http.MethodPost, url, mutators, reqBody, nil, nil, c.httpClient); err != nil {
+		return err
 	}
 
 	return nil

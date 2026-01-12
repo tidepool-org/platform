@@ -1,13 +1,11 @@
 package customerio
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 
-	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 )
 
 type Event struct {
@@ -17,34 +15,15 @@ type Event struct {
 }
 
 func (c *Client) SendEvent(ctx context.Context, cid string, event Event) error {
-	url := fmt.Sprintf("%s/api/v1/customers/%s/events", c.config.TrackAPIBaseURL, cid)
+	ctx = log.NewContextWithLogger(ctx, c.logger)
+	url := c.trackClient.ConstructURL("api", "v1", "customers", cid, "events")
 
-	jsonBody, err := json.Marshal(event)
-	if err != nil {
-		return errors.Wrap(err, "failed to marshal request body")
+	mutators := []request.RequestMutator{
+		c.trackAPIAuthMutator(),
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonBody))
-	if err != nil {
-		return errors.Wrap(err, "failed to create request")
-	}
-
-	// Add the authorization header (Basic Auth for Track API)
-	req.SetBasicAuth(c.config.SiteID, c.config.TrackAPIKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.Wrap(err, "failed to execute request")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		var errResp errorResponse
-		if err := json.NewDecoder(resp.Body).Decode(&errResp); err == nil && len(errResp.Errors) > 0 {
-			return errors.Newf("API error (status %d): %s", resp.StatusCode, errResp.Errors[0].Message)
-		}
-		return errors.Newf("unexpected status code: %s", resp.Status)
+	if err := c.trackClient.RequestDataWithHTTPClient(ctx, http.MethodPost, url, mutators, event, nil, nil, c.httpClient); err != nil {
+		return err
 	}
 
 	return nil
