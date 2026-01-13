@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	customerio2 "github.com/tidepool-org/platform/customerio"
+	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
 )
@@ -31,10 +31,10 @@ type LineItem struct {
 type OrdersCreateEventProcessor struct {
 	logger log.Logger
 
-	customerIOClient *customerio2.Client
+	customerIOClient *customerio.Client
 }
 
-func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio2.Client) (*OrdersCreateEventProcessor, error) {
+func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client) (*OrdersCreateEventProcessor, error) {
 	return &OrdersCreateEventProcessor{
 		logger:           logger,
 		customerIOClient: customerIOClient,
@@ -128,8 +128,8 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 	return nil
 }
 
-func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio2.Identifiers, discountCode string) error {
-	sizingKitOrdered := customerio2.Event{
+func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
+	sizingKitOrdered := customerio.Event{
 		Name: oura.OuraSizingKitOrderedEventType,
 		ID:   discountCode,
 		Data: oura.OuraSizingKitOrderedData{
@@ -140,8 +140,8 @@ func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, ide
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitOrdered)
 }
 
-func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio2.Identifiers, discountCode string) error {
-	ringOrdered := customerio2.Event{
+func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
+	ringOrdered := customerio.Event{
 		Name: oura.OuraRingOrderedEventType,
 		ID:   discountCode,
 		Data: oura.OuraRingOrderedData{
