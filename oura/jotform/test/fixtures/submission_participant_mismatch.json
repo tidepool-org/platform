@@ -1,0 +1,87 @@
+{
+  "responseCode": 200,
+  "message": "success",
+  "content": {
+    "id": "6410095903544943563",
+    "form_id": "253343950262051",
+    "ip": "130.204.74.53",
+    "created_at": "2025-12-08 08:26:30",
+    "status": "ACTIVE",
+    "new": "0",
+    "flag": "0",
+    "notes": "",
+    "updated_at": null,
+    "answers": {
+      "1": {
+        "name": "heading",
+        "order": "1",
+        "text": "Form",
+        "type": "control_head"
+      },
+      "2": {
+        "name": "submit2",
+        "order": "8",
+        "text": "Submit",
+        "type": "control_button"
+      },
+      "3": {
+        "name": "name",
+        "order": "2",
+        "sublabels": "{\"prefix\":\"Prefix\",\"first\":\"First Name\",\"middle\":\"Middle Name\",\"last\":\"Last Name\",\"suffix\":\"Suffix\"}",
+        "text": "Name",
+        "type": "control_fullname",
+        "answer": {
+          "first": "James",
+          "last": "Jellyfish"
+        },
+        "prettyFormat": "James Jellyfish"
+      },
+      "4": {
+        "name": "userId",
+        "order": "4",
+        "text": "userId",
+        "type": "control_textbox",
+        "answer": "1aacb960-430c-4081-8b3b-a32688807dc5"
+      },
+      "5": {
+        "name": "participantId",
+        "order": "5",
+        "text": "participantId",
+        "type": "control_textbox",
+        "answer": "0123456789"
+      },
+      "8": {
+        "name": "eligible",
+        "order": "6",
+        "text": "eligible",
+        "type": "control_textbox",
+        "answer": "true"
+      },
+      "9": {
+        "name": "dateOfBirth",
+        "order": "3",
+        "sublabels": "{\"day\":\"Day\",\"month\":\"Month\",\"year\":\"Year\",\"last\":\"Last Name\",\"hour\":\"Hour\",\"minutes\":\"Minutes\",\"litemode\":\"Date\"}",
+        "text": "Date Of Birth",
+        "timeFormat": "AM/PM",
+        "type": "control_datetime",
+        "answer": {
+          "year": "1988",
+          "month": "11",
+          "day": "22",
+          "datetime": "1988-11-22 00:00:00"
+        },
+        "prettyFormat": "1989-11-22"
+      },
+      "10": {
+        "name": "truevalue",
+        "order": "7",
+        "text": "trueValue",
+        "type": "control_textbox",
+        "answer": "true"
+      }
+    }
+  },
+  "duration": "64.92ms",
+  "info": null,
+  "limit-left": 983
+}
