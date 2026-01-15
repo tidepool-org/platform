@@ -26,13 +26,14 @@ var _ = Describe("Processor", func() {
 		Expect(dataRawWork.MetadataKeyID).To(Equal("dataRawId"))
 	})
 
-	Context("with base processing and client", func() {
+	Context("with base processor and client", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
 		var mockClient *dataRawWorkTest.MockClient
-		var baseProcessing *workBase.Processing
+		var baseProcessor *workBase.Processor
 
 		BeforeEach(func() {
+			var err error
 			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockClient = dataRawWorkTest.NewMockClient(mockController)
@@ -44,48 +45,50 @@ var _ = Describe("Processor", func() {
 					Duration: time.Second,
 				},
 			}
-			baseProcessing = workBase.NewProcessing(processResultBuilder)
+			baseProcessor, err = workBase.NewProcessor(processResultBuilder)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(baseProcessor).ToNot(BeNil())
 		})
 
-		Context("NewProcessing", func() {
-			It("returns error if base processing is missing", func() {
-				processing, err := dataRawWork.NewProcessing(nil, mockClient)
-				Expect(err).To(MatchError("processing is missing"))
-				Expect(processing).To(BeNil())
+		Context("NewProcessor", func() {
+			It("returns error if processor is missing", func() {
+				processor, err := dataRawWork.NewProcessor(nil, mockClient)
+				Expect(err).To(MatchError("processor is missing"))
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns error if base processing is missing", func() {
-				processing, err := dataRawWork.NewProcessing(baseProcessing, nil)
+			It("returns error if client is missing", func() {
+				processor, err := dataRawWork.NewProcessor(baseProcessor, nil)
 				Expect(err).To(MatchError("client is missing"))
-				Expect(processing).To(BeNil())
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns processing success", func() {
-				processing, err := dataRawWork.NewProcessing(baseProcessing, mockClient)
+			It("returns processor success", func() {
+				processor, err := dataRawWork.NewProcessor(baseProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 			})
 		})
 
-		Context("Processing", func() {
-			var processing *dataRawWork.Processing
+		Context("Processor", func() {
+			var processor *dataRawWork.Processor
 			var wrk *work.Work
 			var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 			BeforeEach(func() {
 				var err error
-				processing, err = dataRawWork.NewProcessing(baseProcessing, mockClient)
+				processor, err = dataRawWork.NewProcessor(baseProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 				ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 				wrk = workTest.RandomWork()
-				Expect(processing.Process(ctx, wrk, mockProcessingUpdater)()).To(BeNil())
+				Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(BeNil())
 			})
 
 			Context("DataRawIDFromMetadata", func() {
 				It("returns error if unable to parse", func() {
 					wrk.Metadata[dataRawWork.MetadataKeyID] = true
-					id, err := processing.DataRawIDFromMetadata()
+					id, err := processor.DataRawIDFromMetadata()
 					Expect(id).To(BeNil())
 					Expect(err).To(MatchError("unable to parse data raw id from metadata; type is not string, but bool"))
 				})
@@ -93,7 +96,7 @@ var _ = Describe("Processor", func() {
 				It("returns successfully", func() {
 					expectedID := test.RandomString()
 					wrk.Metadata[dataRawWork.MetadataKeyID] = expectedID
-					id, err := processing.DataRawIDFromMetadata()
+					id, err := processor.DataRawIDFromMetadata()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(id).ToNot(BeNil())
 					Expect(*id).To(Equal(expectedID))
@@ -113,12 +116,12 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id, nil).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.FetchDataRaw(id)
+					processResult := processor.FetchDataRaw(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to fetch data raw; " + testErr.Error()))
-					Expect(processing.DataRaw).To(BeNil())
+					Expect(processor.DataRaw).To(BeNil())
 				})
 
 				It("returns failed process result if client returns nil", func() {
@@ -126,12 +129,12 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id, nil).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.FetchDataRaw(id)
+					processResult := processor.FetchDataRaw(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("data raw is missing"))
-					Expect(processing.DataRaw).To(BeNil())
+					Expect(processor.DataRaw).To(BeNil())
 				})
 
 				It("returns successfully", func() {
@@ -140,16 +143,16 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id, nil).
 						Return(expectedDataRaw, nil).
 						Times(1)
-					processResult := processing.FetchDataRaw(id)
+					processResult := processor.FetchDataRaw(id)
 					Expect(processResult).To(BeNil())
-					Expect(processing.DataRaw).To(Equal(expectedDataRaw))
+					Expect(processor.DataRaw).To(Equal(expectedDataRaw))
 				})
 			})
 
 			Context("UpdateDataRaw", func() {
 				It("returns failed process result if existing data raw is missing", func() {
 					dataRawUpdate := dataRawTest.RandomUpdate()
-					processResult := processing.UpdateDataRaw(*dataRawUpdate)
+					processResult := processor.UpdateDataRaw(*dataRawUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
@@ -158,49 +161,49 @@ var _ = Describe("Processor", func() {
 
 				It("returns failing process result if client returns error", func() {
 					existingDataRaw := dataRawTest.RandomRaw()
-					processing.DataRaw = existingDataRaw
+					processor.DataRaw = existingDataRaw
 					dataRawUpdate := dataRawTest.RandomUpdate()
 					testErr := errorsTest.RandomError()
 					mockClient.EXPECT().
 						Update(gomock.Any(), existingDataRaw.ID, nil, dataRawUpdate).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.UpdateDataRaw(*dataRawUpdate)
+					processResult := processor.UpdateDataRaw(*dataRawUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to update data raw; " + testErr.Error()))
-					Expect(processing.DataRaw).To(Equal(existingDataRaw))
+					Expect(processor.DataRaw).To(Equal(existingDataRaw))
 				})
 
 				It("returns failed process result if client returns nil", func() {
 					existingDataRaw := dataRawTest.RandomRaw()
-					processing.DataRaw = existingDataRaw
+					processor.DataRaw = existingDataRaw
 					dataRawUpdate := dataRawTest.RandomUpdate()
 					mockClient.EXPECT().
 						Update(gomock.Any(), existingDataRaw.ID, nil, dataRawUpdate).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.UpdateDataRaw(*dataRawUpdate)
+					processResult := processor.UpdateDataRaw(*dataRawUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("data raw is missing"))
-					Expect(processing.DataRaw).To(Equal(existingDataRaw))
+					Expect(processor.DataRaw).To(Equal(existingDataRaw))
 				})
 
 				It("returns successfully", func() {
 					existingDataRaw := dataRawTest.RandomRaw()
-					processing.DataRaw = existingDataRaw
+					processor.DataRaw = existingDataRaw
 					expectedDataRaw := dataRawTest.RandomRaw()
 					dataRawUpdate := dataRawTest.RandomUpdate()
 					mockClient.EXPECT().
 						Update(gomock.Any(), existingDataRaw.ID, nil, dataRawUpdate).
 						Return(expectedDataRaw, nil).
 						Times(1)
-					processResult := processing.UpdateDataRaw(*dataRawUpdate)
+					processResult := processor.UpdateDataRaw(*dataRawUpdate)
 					Expect(processResult).To(BeNil())
-					Expect(processing.DataRaw).To(Equal(expectedDataRaw))
+					Expect(processor.DataRaw).To(Equal(expectedDataRaw))
 				})
 			})
 		})

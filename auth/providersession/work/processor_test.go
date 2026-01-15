@@ -26,13 +26,14 @@ var _ = Describe("Processor", func() {
 		Expect(authProviderSessionWork.MetadataKeyID).To(Equal("providerSessionId"))
 	})
 
-	Context("with base processing and client", func() {
+	Context("with base processor and client", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
 		var mockClient *authProviderSessionWorkTest.MockClient
-		var baseProcessing *workBase.Processing
+		var baseProcessor *workBase.Processor
 
 		BeforeEach(func() {
+			var err error
 			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockClient = authProviderSessionWorkTest.NewMockClient(mockController)
@@ -44,48 +45,50 @@ var _ = Describe("Processor", func() {
 					Duration: time.Second,
 				},
 			}
-			baseProcessing = workBase.NewProcessing(processResultBuilder)
+			baseProcessor, err = workBase.NewProcessor(processResultBuilder)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(baseProcessor).ToNot(BeNil())
 		})
 
-		Context("NewProcessing", func() {
-			It("returns error if base processing is missing", func() {
-				processing, err := authProviderSessionWork.NewProcessing(nil, mockClient)
-				Expect(err).To(MatchError("processing is missing"))
-				Expect(processing).To(BeNil())
+		Context("NewProcessor", func() {
+			It("returns error if processor is missing", func() {
+				processor, err := authProviderSessionWork.NewProcessor(nil, mockClient)
+				Expect(err).To(MatchError("processor is missing"))
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns error if base processing is missing", func() {
-				processing, err := authProviderSessionWork.NewProcessing(baseProcessing, nil)
+			It("returns error if client is missing", func() {
+				processor, err := authProviderSessionWork.NewProcessor(baseProcessor, nil)
 				Expect(err).To(MatchError("client is missing"))
-				Expect(processing).To(BeNil())
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns processing success", func() {
-				processing, err := authProviderSessionWork.NewProcessing(baseProcessing, mockClient)
+			It("returns processor success", func() {
+				processor, err := authProviderSessionWork.NewProcessor(baseProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 			})
 		})
 
-		Context("Processing", func() {
-			var processing *authProviderSessionWork.Processing
+		Context("Processor", func() {
+			var processor *authProviderSessionWork.Processor
 			var wrk *work.Work
 			var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 			BeforeEach(func() {
 				var err error
-				processing, err = authProviderSessionWork.NewProcessing(baseProcessing, mockClient)
+				processor, err = authProviderSessionWork.NewProcessor(baseProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 				ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 				wrk = workTest.RandomWork()
-				Expect(processing.Process(ctx, wrk, mockProcessingUpdater)()).To(BeNil())
+				Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(BeNil())
 			})
 
 			Context("ProviderSessionIDFromMetadata", func() {
 				It("returns error if unable to parse", func() {
 					wrk.Metadata[authProviderSessionWork.MetadataKeyID] = true
-					id, err := processing.ProviderSessionIDFromMetadata()
+					id, err := processor.ProviderSessionIDFromMetadata()
 					Expect(id).To(BeNil())
 					Expect(err).To(MatchError("unable to parse provider session id from metadata; type is not string, but bool"))
 				})
@@ -93,7 +96,7 @@ var _ = Describe("Processor", func() {
 				It("returns successfully", func() {
 					expectedID := test.RandomString()
 					wrk.Metadata[authProviderSessionWork.MetadataKeyID] = expectedID
-					id, err := processing.ProviderSessionIDFromMetadata()
+					id, err := processor.ProviderSessionIDFromMetadata()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(id).ToNot(BeNil())
 					Expect(*id).To(Equal(expectedID))
@@ -113,12 +116,12 @@ var _ = Describe("Processor", func() {
 						GetProviderSession(gomock.Any(), id).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.FetchProviderSession(id)
+					processResult := processor.FetchProviderSession(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to fetch provider session; " + testErr.Error()))
-					Expect(processing.ProviderSession).To(BeNil())
+					Expect(processor.ProviderSession).To(BeNil())
 				})
 
 				It("returns failed process result if client returns nil", func() {
@@ -126,12 +129,12 @@ var _ = Describe("Processor", func() {
 						GetProviderSession(gomock.Any(), id).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.FetchProviderSession(id)
+					processResult := processor.FetchProviderSession(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("provider session is missing"))
-					Expect(processing.ProviderSession).To(BeNil())
+					Expect(processor.ProviderSession).To(BeNil())
 				})
 
 				It("returns successfully", func() {
@@ -140,16 +143,16 @@ var _ = Describe("Processor", func() {
 						GetProviderSession(gomock.Any(), id).
 						Return(expectedProviderSession, nil).
 						Times(1)
-					processResult := processing.FetchProviderSession(id)
+					processResult := processor.FetchProviderSession(id)
 					Expect(processResult).To(BeNil())
-					Expect(processing.ProviderSession).To(Equal(expectedProviderSession))
+					Expect(processor.ProviderSession).To(Equal(expectedProviderSession))
 				})
 			})
 
 			Context("UpdateProviderSession", func() {
 				It("returns failed process result if existing provider session is missing", func() {
 					providerSessionUpdate := authTest.RandomProviderSessionUpdate()
-					processResult := processing.UpdateProviderSession(*providerSessionUpdate)
+					processResult := processor.UpdateProviderSession(*providerSessionUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
@@ -158,49 +161,49 @@ var _ = Describe("Processor", func() {
 
 				It("returns failing process result if client returns error", func() {
 					existingProviderSession := authTest.RandomProviderSession()
-					processing.ProviderSession = existingProviderSession
+					processor.ProviderSession = existingProviderSession
 					providerSessionUpdate := authTest.RandomProviderSessionUpdate()
 					testErr := errorsTest.RandomError()
 					mockClient.EXPECT().
 						UpdateProviderSession(gomock.Any(), existingProviderSession.ID, providerSessionUpdate).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.UpdateProviderSession(*providerSessionUpdate)
+					processResult := processor.UpdateProviderSession(*providerSessionUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to update provider session; " + testErr.Error()))
-					Expect(processing.ProviderSession).To(Equal(existingProviderSession))
+					Expect(processor.ProviderSession).To(Equal(existingProviderSession))
 				})
 
 				It("returns failed process result if client returns nil", func() {
 					existingProviderSession := authTest.RandomProviderSession()
-					processing.ProviderSession = existingProviderSession
+					processor.ProviderSession = existingProviderSession
 					providerSessionUpdate := authTest.RandomProviderSessionUpdate()
 					mockClient.EXPECT().
 						UpdateProviderSession(gomock.Any(), existingProviderSession.ID, providerSessionUpdate).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.UpdateProviderSession(*providerSessionUpdate)
+					processResult := processor.UpdateProviderSession(*providerSessionUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("provider session is missing"))
-					Expect(processing.ProviderSession).To(Equal(existingProviderSession))
+					Expect(processor.ProviderSession).To(Equal(existingProviderSession))
 				})
 
 				It("returns successfully", func() {
 					existingProviderSession := authTest.RandomProviderSession()
-					processing.ProviderSession = existingProviderSession
+					processor.ProviderSession = existingProviderSession
 					expectedProviderSession := authTest.RandomProviderSession()
 					providerSessionUpdate := authTest.RandomProviderSessionUpdate()
 					mockClient.EXPECT().
 						UpdateProviderSession(gomock.Any(), existingProviderSession.ID, providerSessionUpdate).
 						Return(expectedProviderSession, nil).
 						Times(1)
-					processResult := processing.UpdateProviderSession(*providerSessionUpdate)
+					processResult := processor.UpdateProviderSession(*providerSessionUpdate)
 					Expect(processResult).To(BeNil())
-					Expect(processing.ProviderSession).To(Equal(expectedProviderSession))
+					Expect(processor.ProviderSession).To(Equal(expectedProviderSession))
 				})
 			})
 		})

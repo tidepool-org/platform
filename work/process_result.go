@@ -138,11 +138,11 @@ type ProcessResultFailingBuilder interface {
 	FailingRetryDuration(ctx context.Context, wrk *Work, err error, retryCount int) time.Duration
 }
 
-type PipelineFunction func() *ProcessResult
+type ProcessPipelineFunc func() *ProcessResult
 
-type Pipeline []PipelineFunction
+type ProcessPipeline []ProcessPipelineFunc
 
-func (p Pipeline) Process() *ProcessResult {
+func (p ProcessPipeline) Process() *ProcessResult {
 	for _, fn := range p {
 		if result := fn(); result != nil {
 			return result
@@ -151,6 +151,6 @@ func (p Pipeline) Process() *ProcessResult {
 	return nil
 }
 
-func ProcessingPipelineFunction(processing Processing, ctx context.Context, wrk *Work, processingUpdater ProcessingUpdater) PipelineFunction {
-	return func() *ProcessResult { return processing.Process(ctx, wrk, processingUpdater) }
+func ProcessPipelineFuncWrapper(processor Processor, ctx context.Context, wrk *Work, processingUpdater ProcessingUpdater) ProcessPipelineFunc {
+	return func() *ProcessResult { return processor.Process(ctx, wrk, processingUpdater) }
 }

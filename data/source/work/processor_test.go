@@ -28,16 +28,15 @@ var _ = Describe("Processor", func() {
 		Expect(dataSourceWork.MetadataKeyID).To(Equal("dataSourceId"))
 	})
 
-	Context("with base processing and client", func() {
+	Context("with base processor and client", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
 		var mockClient *dataSourceWorkTest.MockClient
-		var baseProcessing *workBase.Processing
-		var providerSessionProcessing *authProviderSessionWork.Processing
+		var baseProcessor *workBase.Processor
+		var providerSessionProcessor *authProviderSessionWork.Processor
 
 		BeforeEach(func() {
 			var err error
-
 			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockProviderSessionClient := authProviderSessionWorkTest.NewMockClient(mockController)
@@ -50,50 +49,52 @@ var _ = Describe("Processor", func() {
 					Duration: time.Second,
 				},
 			}
-			baseProcessing = workBase.NewProcessing(processResultBuilder)
-			providerSessionProcessing, err = authProviderSessionWork.NewProcessing(baseProcessing, mockProviderSessionClient)
+			baseProcessor, err = workBase.NewProcessor(processResultBuilder)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(baseProcessor).ToNot(BeNil())
+			providerSessionProcessor, err = authProviderSessionWork.NewProcessor(baseProcessor, mockProviderSessionClient)
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("NewProcessing", func() {
-			It("returns error if base processing is missing", func() {
-				processing, err := dataSourceWork.NewProcessing(nil, mockClient)
-				Expect(err).To(MatchError("processing is missing"))
-				Expect(processing).To(BeNil())
+		Context("NewProcessor", func() {
+			It("returns error if processor is missing", func() {
+				processor, err := dataSourceWork.NewProcessor(nil, mockClient)
+				Expect(err).To(MatchError("processor is missing"))
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns error if base processing is missing", func() {
-				processing, err := dataSourceWork.NewProcessing(providerSessionProcessing, nil)
+			It("returns error if client is missing", func() {
+				processor, err := dataSourceWork.NewProcessor(providerSessionProcessor, nil)
 				Expect(err).To(MatchError("client is missing"))
-				Expect(processing).To(BeNil())
+				Expect(processor).To(BeNil())
 			})
 
-			It("returns processing success", func() {
-				processing, err := dataSourceWork.NewProcessing(providerSessionProcessing, mockClient)
+			It("returns processor success", func() {
+				processor, err := dataSourceWork.NewProcessor(providerSessionProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 			})
 		})
 
-		Context("Processing", func() {
-			var processing *dataSourceWork.Processing
+		Context("Processor", func() {
+			var processor *dataSourceWork.Processor
 			var wrk *work.Work
 			var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 			BeforeEach(func() {
 				var err error
-				processing, err = dataSourceWork.NewProcessing(providerSessionProcessing, mockClient)
+				processor, err = dataSourceWork.NewProcessor(providerSessionProcessor, mockClient)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(processing).ToNot(BeNil())
+				Expect(processor).ToNot(BeNil())
 				ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 				wrk = workTest.RandomWork()
-				Expect(processing.Process(ctx, wrk, mockProcessingUpdater)()).To(BeNil())
+				Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(BeNil())
 			})
 
 			Context("DataSourceIDFromMetadata", func() {
 				It("returns error if unable to parse", func() {
 					wrk.Metadata[dataSourceWork.MetadataKeyID] = true
-					id, err := processing.DataSourceIDFromMetadata()
+					id, err := processor.DataSourceIDFromMetadata()
 					Expect(id).To(BeNil())
 					Expect(err).To(MatchError("unable to parse data source id from metadata; type is not string, but bool"))
 				})
@@ -101,7 +102,7 @@ var _ = Describe("Processor", func() {
 				It("returns successfully", func() {
 					expectedID := test.RandomString()
 					wrk.Metadata[dataSourceWork.MetadataKeyID] = expectedID
-					id, err := processing.DataSourceIDFromMetadata()
+					id, err := processor.DataSourceIDFromMetadata()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(id).ToNot(BeNil())
 					Expect(*id).To(Equal(expectedID))
@@ -121,12 +122,12 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.FetchDataSource(id)
+					processResult := processor.FetchDataSource(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to fetch data source; " + testErr.Error()))
-					Expect(processing.DataSource).To(BeNil())
+					Expect(processor.DataSource).To(BeNil())
 				})
 
 				It("returns failed process result if client returns nil", func() {
@@ -134,12 +135,12 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.FetchDataSource(id)
+					processResult := processor.FetchDataSource(id)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("data source is missing"))
-					Expect(processing.DataSource).To(BeNil())
+					Expect(processor.DataSource).To(BeNil())
 				})
 
 				It("returns successfully", func() {
@@ -148,16 +149,16 @@ var _ = Describe("Processor", func() {
 						Get(gomock.Any(), id).
 						Return(expectedDataSource, nil).
 						Times(1)
-					processResult := processing.FetchDataSource(id)
+					processResult := processor.FetchDataSource(id)
 					Expect(processResult).To(BeNil())
-					Expect(processing.DataSource).To(Equal(expectedDataSource))
+					Expect(processor.DataSource).To(Equal(expectedDataSource))
 				})
 			})
 
 			Context("UpdateDataSource", func() {
 				It("returns failed process result if existing data source is missing", func() {
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
-					processResult := processing.UpdateDataSource(*dataSourceUpdate)
+					processResult := processor.UpdateDataSource(*dataSourceUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
@@ -166,49 +167,49 @@ var _ = Describe("Processor", func() {
 
 				It("returns failing process result if client returns error", func() {
 					existingDataSource := dataSourceTest.RandomSource()
-					processing.DataSource = existingDataSource
+					processor.DataSource = existingDataSource
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					testErr := errorsTest.RandomError()
 					mockClient.EXPECT().
 						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
 						Return(nil, testErr).
 						Times(1)
-					processResult := processing.UpdateDataSource(*dataSourceUpdate)
+					processResult := processor.UpdateDataSource(*dataSourceUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailing))
 					Expect(processResult.FailingUpdate).ToNot(BeNil())
 					Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to update data source; " + testErr.Error()))
-					Expect(processing.DataSource).To(Equal(existingDataSource))
+					Expect(processor.DataSource).To(Equal(existingDataSource))
 				})
 
 				It("returns failed process result if client returns nil", func() {
 					existingDataSource := dataSourceTest.RandomSource()
-					processing.DataSource = existingDataSource
+					processor.DataSource = existingDataSource
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					mockClient.EXPECT().
 						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
 						Return(nil, nil).
 						Times(1)
-					processResult := processing.UpdateDataSource(*dataSourceUpdate)
+					processResult := processor.UpdateDataSource(*dataSourceUpdate)
 					Expect(processResult).ToNot(BeNil())
 					Expect(processResult.Result).To(Equal(work.ResultFailed))
 					Expect(processResult.FailedUpdate).ToNot(BeNil())
 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("data source is missing"))
-					Expect(processing.DataSource).To(Equal(existingDataSource))
+					Expect(processor.DataSource).To(Equal(existingDataSource))
 				})
 
 				It("returns successfully", func() {
 					existingDataSource := dataSourceTest.RandomSource()
-					processing.DataSource = existingDataSource
+					processor.DataSource = existingDataSource
 					expectedDataSource := dataSourceTest.RandomSource()
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					mockClient.EXPECT().
 						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
 						Return(expectedDataSource, nil).
 						Times(1)
-					processResult := processing.UpdateDataSource(*dataSourceUpdate)
+					processResult := processor.UpdateDataSource(*dataSourceUpdate)
 					Expect(processResult).To(BeNil())
-					Expect(processing.DataSource).To(Equal(expectedDataSource))
+					Expect(processor.DataSource).To(Equal(expectedDataSource))
 				})
 			})
 		})

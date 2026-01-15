@@ -18,7 +18,7 @@ const (
 	MetadataKeyDeviceHashes = "deviceHashes"
 )
 
-//go:generate mockgen -source=processing.go -destination=test/processing_mocks.go -package=test Client
+//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Client
 type Client interface {
 	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 
@@ -27,33 +27,33 @@ type Client interface {
 	Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error)
 }
 
-type Processing struct {
-	*authProviderSessionWork.Processing
+type Processor struct {
+	*authProviderSessionWork.Processor
 	Client     Client
 	DataSource *dataSource.Source
 }
 
-func NewProcessing(processing *authProviderSessionWork.Processing, client Client) (*Processing, error) {
-	if processing == nil {
-		return nil, errors.New("processing is missing")
+func NewProcessor(processor *authProviderSessionWork.Processor, client Client) (*Processor, error) {
+	if processor == nil {
+		return nil, errors.New("processor is missing")
 	}
 	if client == nil {
 		return nil, errors.New("client is missing")
 	}
-	return &Processing{
-		Processing: processing,
-		Client:     client,
+	return &Processor{
+		Processor: processor,
+		Client:    client,
 	}, nil
 }
 
-func (p *Processing) ProviderSessionIDFromDataSource() (*string, error) {
+func (p *Processor) ProviderSessionIDFromDataSource() (*string, error) {
 	if p.DataSource == nil {
 		return nil, errors.New("data source is missing")
 	}
 	return p.DataSource.ProviderSessionID, nil
 }
 
-func (p *Processing) FetchProviderSessionFromDataSource() *work.ProcessResult {
+func (p *Processor) FetchProviderSessionFromDataSource() *work.ProcessResult {
 	if p.DataSource == nil {
 		if result := p.FetchDataSourceFromMetadata(); result != nil {
 			return result
@@ -66,7 +66,7 @@ func (p *Processing) FetchProviderSessionFromDataSource() *work.ProcessResult {
 	return p.FetchProviderSession(*providerSessionID)
 }
 
-func (p *Processing) DataSourceIDFromMetadata() (*string, error) {
+func (p *Processor) DataSourceIDFromMetadata() (*string, error) {
 	parser := p.MetadataParser()
 	dataSrcID := parser.String(MetadataKeyID)
 	if err := parser.Error(); err != nil {
@@ -75,7 +75,7 @@ func (p *Processing) DataSourceIDFromMetadata() (*string, error) {
 	return dataSrcID, nil
 }
 
-func (p *Processing) FetchDataSourceFromMetadata() *work.ProcessResult {
+func (p *Processor) FetchDataSourceFromMetadata() *work.ProcessResult {
 	dataSrcID, err := p.DataSourceIDFromMetadata()
 	if err != nil || dataSrcID == nil {
 		return p.Failed(errors.Wrap(err, "unable to get data source id from metadata"))
@@ -83,7 +83,7 @@ func (p *Processing) FetchDataSourceFromMetadata() *work.ProcessResult {
 	return p.FetchDataSource(*dataSrcID)
 }
 
-func (p *Processing) FetchDataSource(dataSrcID string) *work.ProcessResult {
+func (p *Processor) FetchDataSource(dataSrcID string) *work.ProcessResult {
 	dataSrc, err := p.Client.Get(p.Context(), dataSrcID)
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to fetch data source"))
@@ -97,7 +97,7 @@ func (p *Processing) FetchDataSource(dataSrcID string) *work.ProcessResult {
 	return nil
 }
 
-func (p *Processing) UpdateDataSource(dataSrcUpdate dataSource.Update) *work.ProcessResult {
+func (p *Processor) UpdateDataSource(dataSrcUpdate dataSource.Update) *work.ProcessResult {
 	if p.DataSource == nil {
 		return p.Failed(errors.New("data source is missing"))
 	}
@@ -113,7 +113,7 @@ func (p *Processing) UpdateDataSource(dataSrcUpdate dataSource.Update) *work.Pro
 	return nil
 }
 
-func (p *Processing) ReplaceDataSource(dataSrc *dataSource.Source) *work.ProcessResult {
+func (p *Processor) ReplaceDataSource(dataSrc *dataSource.Source) *work.ProcessResult {
 	if dataSrc == nil {
 		return p.Failed(errors.New("replacement data source is missing"))
 	}
@@ -124,7 +124,7 @@ func (p *Processing) ReplaceDataSource(dataSrc *dataSource.Source) *work.Process
 	if *dataSrc.State != dataSource.StateDisconnected {
 		p.Logger().WithField("dataSourceId", dataSrc.ID).Warn("replacement data source not disconnected")
 		if dataSrc.ProviderSessionID != nil {
-			if err := p.Processing.Client.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
+			if err := p.Processor.Client.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
 				return p.Failing(errors.Wrap(err, "unable to delete replacement data source provider session"))
 			}
 		} else {
@@ -152,7 +152,7 @@ func (p *Processing) ReplaceDataSource(dataSrc *dataSource.Source) *work.Process
 	if metadata := p.Metadata(); metadata != nil {
 		if _, ok := metadata[MetadataKeyID]; ok {
 			metadata[MetadataKeyID] = *dataSrc.ID
-			if result := p.Processing.ProcessingUpdate(); result != nil {
+			if result := p.Processor.ProcessingUpdate(); result != nil {
 				return result
 			}
 		}
@@ -171,7 +171,7 @@ func (p *Processing) ReplaceDataSource(dataSrc *dataSource.Source) *work.Process
 	return nil
 }
 
-func (p *Processing) DeviceHashes() (map[string]string, error) {
+func (p *Processor) DeviceHashes() (map[string]string, error) {
 	parser := p.MetadataParser().WithReferenceObjectParser(MetadataKeyDeviceHashes)
 	deviceHashes := map[string]string{}
 	for _, deviceID := range parser.References() {

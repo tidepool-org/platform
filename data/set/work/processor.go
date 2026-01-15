@@ -15,32 +15,32 @@ const (
 	MetadataKeyID = "dataSetId"
 )
 
-//go:generate mockgen -source=processing.go -destination=test/processing_mocks.go -package=test Client
+//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Client
 type Client interface {
 	Get(ctx context.Context, id string, condition *request.Condition) (*data.DataSet, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *data.DataSetUpdate) (*data.DataSet, error)
 }
 
-type Processing struct {
-	*workBase.Processing
+type Processor struct {
+	*workBase.Processor
 	Client  Client
 	DataSet *data.DataSet
 }
 
-func NewProcessing(processing *workBase.Processing, client Client) (*Processing, error) {
-	if processing == nil {
-		return nil, errors.New("processing is missing")
+func NewProcessor(processor *workBase.Processor, client Client) (*Processor, error) {
+	if processor == nil {
+		return nil, errors.New("processor is missing")
 	}
 	if client == nil {
 		return nil, errors.New("client is missing")
 	}
-	return &Processing{
-		Processing: processing,
-		Client:     client,
+	return &Processor{
+		Processor: processor,
+		Client:    client,
 	}, nil
 }
 
-func (p *Processing) DataSetIDFromMetadata() (*string, error) {
+func (p *Processor) DataSetIDFromMetadata() (*string, error) {
 	parser := p.MetadataParser()
 	dataSetID := parser.String(MetadataKeyID)
 	if err := parser.Error(); err != nil {
@@ -49,7 +49,7 @@ func (p *Processing) DataSetIDFromMetadata() (*string, error) {
 	return dataSetID, nil
 }
 
-func (p *Processing) FetchDataSetFromMetadata() *work.ProcessResult {
+func (p *Processor) FetchDataSetFromMetadata() *work.ProcessResult {
 	dataSetID, err := p.DataSetIDFromMetadata()
 	if err != nil || dataSetID == nil {
 		return p.Failed(errors.Wrap(err, "unable to get data set id from metadata"))
@@ -57,7 +57,7 @@ func (p *Processing) FetchDataSetFromMetadata() *work.ProcessResult {
 	return p.FetchDataSet(*dataSetID)
 }
 
-func (p *Processing) FetchDataSet(dataSetID string) *work.ProcessResult {
+func (p *Processor) FetchDataSet(dataSetID string) *work.ProcessResult {
 	dataSet, err := p.Client.Get(p.Context(), dataSetID, nil)
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to fetch data set"))
@@ -71,7 +71,7 @@ func (p *Processing) FetchDataSet(dataSetID string) *work.ProcessResult {
 	return nil
 }
 
-func (p *Processing) UpdateDataSet(dataSetUpdate data.DataSetUpdate) *work.ProcessResult {
+func (p *Processor) UpdateDataSet(dataSetUpdate data.DataSetUpdate) *work.ProcessResult {
 	if p.DataSet == nil {
 		return p.Failed(errors.New("data set is missing"))
 	}

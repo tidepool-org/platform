@@ -17,7 +17,7 @@ type ProcessResultBuilder struct {
 
 func (p *ProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work) *work.ProcessResult {
 	if p.ProcessResultPendingBuilder == nil {
-		return p.Failed(ctx, wrk, errors.New("pending process resulter is not configured"))
+		return p.Failed(ctx, wrk, errors.New("pending process result builder is not configured"))
 	}
 	processingAvailableDuration := p.ProcessResultPendingBuilder.ProcessingAvailableDuration(ctx, wrk)
 	return work.NewProcessResultPending(work.PendingUpdate{
@@ -28,7 +28,7 @@ func (p *ProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work) *wor
 
 func (p *ProcessResultBuilder) Failing(ctx context.Context, wrk *work.Work, err error) *work.ProcessResult {
 	if p.ProcessResultFailingBuilder == nil {
-		return p.Failed(ctx, wrk, errors.New("failing process resulter is not configured"))
+		return p.Failed(ctx, wrk, errors.New("failing process result builder is not configured"))
 	}
 	failingRetryCount := p.ProcessResultFailingBuilder.FailingRetryCount(ctx, wrk, err)
 	failingRetryDuration := p.ProcessResultFailingBuilder.FailingRetryDuration(ctx, wrk, err, failingRetryCount)
@@ -59,7 +59,6 @@ func (p *ProcessResultBuilder) Delete(ctx context.Context, wrk *work.Work) *work
 	return work.NewProcessResultDelete()
 }
 
-// Constant duration pending process resulter
 type ConstantProcessResultPendingBuilder struct {
 	Duration time.Duration
 }
@@ -68,7 +67,6 @@ func (c *ConstantProcessResultPendingBuilder) ProcessingAvailableDuration(ctx co
 	return c.Duration
 }
 
-// Linear failing process resulter
 type LinearProcessResultFailingBuilder struct{}
 
 func (l *LinearProcessResultFailingBuilder) FailingRetryCount(ctx context.Context, wrk *work.Work, err error) int {
@@ -90,7 +88,7 @@ func (c *ConstantProcessResultFailingBuilder) FailingRetryDuration(ctx context.C
 type ExponentialProcessResultFailingBuilder struct {
 	LinearProcessResultFailingBuilder
 	Duration       time.Duration
-	JitterDuration time.Duration
+	DurationJitter time.Duration
 }
 
 func (e *ExponentialProcessResultFailingBuilder) FailingRetryDuration(ctx context.Context, wrk *work.Work, err error, retryCount int) time.Duration {
@@ -98,6 +96,6 @@ func (e *ExponentialProcessResultFailingBuilder) FailingRetryDuration(ctx contex
 		return 0
 	}
 	fallbackFactor := time.Duration(1 << (retryCount - 1))
-	jitterDuration := int64(e.JitterDuration * fallbackFactor)
-	return e.Duration*fallbackFactor + time.Duration(rand.Int63n(2*jitterDuration)-jitterDuration)
+	durationJitter := int64(e.DurationJitter * fallbackFactor)
+	return e.Duration*fallbackFactor + time.Duration(rand.Int63n(2*durationJitter)-durationJitter)
 }

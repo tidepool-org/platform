@@ -12,33 +12,33 @@ import (
 
 const MetadataKeyID = "providerSessionId"
 
-//go:generate mockgen -source=processing.go -destination=test/processing_mocks.go -package=test Client
+//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Client
 type Client interface {
 	GetProviderSession(ctx context.Context, id string) (*auth.ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
 }
 
-type Processing struct {
-	*workBase.Processing
+type Processor struct {
+	*workBase.Processor
 	Client          Client
 	ProviderSession *auth.ProviderSession
 }
 
-func NewProcessing(processing *workBase.Processing, client Client) (*Processing, error) {
-	if processing == nil {
-		return nil, errors.New("processing is missing")
+func NewProcessor(processor *workBase.Processor, client Client) (*Processor, error) {
+	if processor == nil {
+		return nil, errors.New("processor is missing")
 	}
 	if client == nil {
 		return nil, errors.New("client is missing")
 	}
-	return &Processing{
-		Processing: processing,
-		Client:     client,
+	return &Processor{
+		Processor: processor,
+		Client:    client,
 	}, nil
 }
 
-func (p *Processing) ProviderSessionIDFromMetadata() (*string, error) {
+func (p *Processor) ProviderSessionIDFromMetadata() (*string, error) {
 	parser := p.MetadataParser()
 	providerSessionID := parser.String(MetadataKeyID)
 	if err := parser.Error(); err != nil {
@@ -47,7 +47,7 @@ func (p *Processing) ProviderSessionIDFromMetadata() (*string, error) {
 	return providerSessionID, nil
 }
 
-func (p *Processing) FetchProviderSessionFromMetadata() *work.ProcessResult {
+func (p *Processor) FetchProviderSessionFromMetadata() *work.ProcessResult {
 	providerSessionID, err := p.ProviderSessionIDFromMetadata()
 	if err != nil || providerSessionID == nil {
 		return p.Failed(errors.Wrap(err, "unable to get provider session id from metadata"))
@@ -55,7 +55,7 @@ func (p *Processing) FetchProviderSessionFromMetadata() *work.ProcessResult {
 	return p.FetchProviderSession(*providerSessionID)
 }
 
-func (p *Processing) FetchProviderSession(providerSessionID string) *work.ProcessResult {
+func (p *Processor) FetchProviderSession(providerSessionID string) *work.ProcessResult {
 	providerSession, err := p.Client.GetProviderSession(p.Context(), providerSessionID)
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to fetch provider session"))
@@ -69,7 +69,7 @@ func (p *Processing) FetchProviderSession(providerSessionID string) *work.Proces
 	return nil
 }
 
-func (p *Processing) UpdateProviderSession(providerSessionUpdate auth.ProviderSessionUpdate) *work.ProcessResult {
+func (p *Processor) UpdateProviderSession(providerSessionUpdate auth.ProviderSessionUpdate) *work.ProcessResult {
 	if p.ProviderSession == nil {
 		return p.Failed(errors.New("provider session is missing"))
 	}
