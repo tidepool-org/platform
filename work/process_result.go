@@ -106,17 +106,37 @@ func (p *ProcessResult) Validate(validator structure.Validator) {
 }
 
 func (p *ProcessResult) Metadata() map[string]any {
-	if p.PendingUpdate != nil && p.PendingUpdate.Metadata != nil {
-		return p.PendingUpdate.Metadata
+	switch p.Result {
+	case ResultPending:
+		if p.PendingUpdate != nil {
+			return p.PendingUpdate.Metadata
+		}
+	case ResultFailing:
+		if p.FailingUpdate != nil {
+			return p.FailingUpdate.Metadata
+		}
+	case ResultFailed:
+		if p.FailedUpdate != nil {
+			return p.FailedUpdate.Metadata
+		}
+	case ResultSuccess:
+		if p.SuccessUpdate != nil {
+			return p.SuccessUpdate.Metadata
+		}
 	}
-	if p.FailingUpdate != nil && p.FailingUpdate.Metadata != nil {
-		return p.FailingUpdate.Metadata
-	}
-	if p.FailedUpdate != nil && p.FailedUpdate.Metadata != nil {
-		return p.FailedUpdate.Metadata
-	}
-	if p.SuccessUpdate != nil && p.SuccessUpdate.Metadata != nil {
-		return p.SuccessUpdate.Metadata
+	return nil
+}
+
+func (p *ProcessResult) Error() error {
+	switch p.Result {
+	case ResultFailing:
+		if p.FailingUpdate != nil {
+			return p.FailingUpdate.FailingError.Error
+		}
+	case ResultFailed:
+		if p.FailedUpdate != nil {
+			return p.FailedUpdate.FailedError.Error
+		}
 	}
 	return nil
 }
@@ -149,8 +169,4 @@ func (p ProcessPipeline) Process() *ProcessResult {
 		}
 	}
 	return nil
-}
-
-func ProcessPipelineFuncWrapper(processor Processor, ctx context.Context, wrk *Work, processingUpdater ProcessingUpdater) ProcessPipelineFunc {
-	return func() *ProcessResult { return processor.Process(ctx, wrk, processingUpdater) }
 }

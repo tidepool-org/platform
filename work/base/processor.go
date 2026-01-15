@@ -41,20 +41,26 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 	p.work = wrk
 	p.processingUpdater = processingUpdater
 
-	p.ContextWithField("work", p.Work())
+	p.AddFieldToContext("work", p.Work())
 
 	return nil
+}
+
+func (p *Processor) ProcessPipelineFunc(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) work.ProcessPipelineFunc {
+	return func() *work.ProcessResult {
+		return p.Process(ctx, wrk, processingUpdater)
+	}
 }
 
 func (p *Processor) Context() context.Context {
 	return p.context
 }
 
-func (p *Processor) ContextWithField(key string, value any) {
+func (p *Processor) AddFieldToContext(key string, value any) {
 	p.context = log.ContextWithField(p.Context(), key, value)
 }
 
-func (p *Processor) ContextWithFields(fields log.Fields) {
+func (p *Processor) AddFieldsToContext(fields log.Fields) {
 	p.context = log.ContextWithFields(p.Context(), fields)
 }
 
@@ -89,7 +95,7 @@ func (p *Processor) ProcessingUpdate() *work.ProcessResult {
 	}
 	p.work = wrk
 
-	p.ContextWithField("work", p.Work())
+	p.AddFieldToContext("work", p.Work())
 
 	return nil
 }
