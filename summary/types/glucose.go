@@ -153,15 +153,10 @@ func (r *Range) UpdateTotal(record Glucose) {
 
 // CombineVariance Implemented using https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance#Parallel_algorithm
 func (r *Range) CombineVariance(new *Range) float64 {
-	// Exit early for No-Op case
-	if r.Variance == 0 && new.Variance == 0 {
-		return 0
-	}
-
-	// Return new if existing is 0
-	if r.Variance == 0 {
-		return new.Variance
-	}
+	// [BACK-4044] Only return early if either range has 0 records. Otherwise
+	// proceed with variance calculation even if one range has no variance in
+	// order to properly handle the case where multiple ranges only have one
+	// record each.
 
 	// if we have no values in either bucket, this will result in NaN, and cant be added anyway, return what we started with
 	if r.Records == 0 || new.Records == 0 {
