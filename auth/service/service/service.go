@@ -42,6 +42,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+	jotformStore "github.com/tidepool-org/platform/oura/jotform/store"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
 
@@ -322,7 +323,12 @@ func (s *Service) createJotformRouter() (*jotformAPI.Router, error) {
 		return nil, errors.Wrap(err, "unable to load jotform config")
 	}
 
-	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient)
+	submissionStore, err := jotformStore.NewStore(s.authStore.Store)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create jotform submission store")
+	}
+
+	webhookProcessor, err := jotform.NewSubmissionProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient, submissionStore)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create jotform webhook processor")
 	}

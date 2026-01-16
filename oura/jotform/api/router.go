@@ -16,12 +16,12 @@ const (
 )
 
 type Router struct {
-	webhookProcessor *jotform.WebhookProcessor
+	submissionProcessor *jotform.SubmissionProcessor
 }
 
-func NewRouter(webhookProcessor *jotform.WebhookProcessor) (*Router, error) {
+func NewRouter(submissionProcessor *jotform.SubmissionProcessor) (*Router, error) {
 	return &Router{
-		webhookProcessor: webhookProcessor,
+		submissionProcessor: submissionProcessor,
 	}, nil
 }
 
@@ -46,7 +46,7 @@ func (r *Router) HandleJotformSubmission(res rest.ResponseWriter, req *rest.Requ
 		return
 	}
 
-	err := r.webhookProcessor.ProcessSubmission(req.Context(), submissionID)
+	err := r.submissionProcessor.ProcessSubmission(req.Context(), submissionID)
 	if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to process submission")
 		responder.Error(http.StatusInternalServerError, err)
