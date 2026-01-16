@@ -28,10 +28,10 @@ import (
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
-var _ = Describe("WebhookProcessor", func() {
+var _ = Describe("SubmissionProcessor", func() {
 	var (
 		ctx       context.Context
-		processor *jotform.WebhookProcessor
+		processor *jotform.SubmissionProcessor
 		logger    log.Logger
 
 		consentCtrl    *gomock.Controller
@@ -54,8 +54,8 @@ var _ = Describe("WebhookProcessor", func() {
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
 		logger = logTest.NewLogger()
+		ctx = log.NewContextWithLogger(context.Background(), logger)
 
 		consentCtrl = gomock.NewController(GinkgoT())
 		consentService = consentTest.NewMockService(consentCtrl)
@@ -83,7 +83,7 @@ var _ = Describe("WebhookProcessor", func() {
 		shopifyCtrl = gomock.NewController(GinkgoT())
 		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
 
-		processor, err = jotform.NewWebhookProcessor(jotformConfig, logger, consentService, customerIOClient, userClient, shopifyClnt)
+		processor, err = jotform.NewSubmissionProcessor(jotformConfig, logger, consentService, customerIOClient, userClient, shopifyClnt, nil)
 		Expect(err).ToNot(HaveOccurred())
 	})
 

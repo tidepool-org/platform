@@ -11,8 +11,10 @@ type SubmissionResponse struct {
 }
 
 type Content struct {
-	ID      string  `json:"id"`
-	Answers Answers `json:"answers"`
+	ID        string  `json:"id"`
+	FormID    string  `json:"form_id"`
+	Answers   Answers `json:"answers"`
+	CreatedAt string  `json:"created_at"`
 }
 
 type Answer interface {
