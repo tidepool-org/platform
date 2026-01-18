@@ -607,14 +607,14 @@ func (s *Standard) initializeWorkCoordinator() error {
 		AbbottClient:            s.abbottClient,
 		WorkClient:              s.workClient,
 	}
-	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
+	abbottProcessors, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
 	if err != nil {
 		return errors.Wrap(err, "unable to create abbott processors")
 	}
 
 	s.Logger().Debug("Registering abbott processors")
 
-	if err = s.workCoordinator.RegisterProcessors(abbottProcessors); err != nil {
+	if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessors); err != nil {
 		return errors.Wrap(err, "unable to register abbott processors")
 	}
 

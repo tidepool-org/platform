@@ -35,7 +35,7 @@ type Coordinator struct {
 	logger                     log.Logger
 	serverSessionTokenProvider ServerSessionTokenProvider
 	workClient                 WorkClient
-	processors                 map[string]work.Processor
+	processorFactories         map[string]work.ProcessorFactory
 	typeQuantities             work.TypeQuantities
 	frequency                  time.Duration
 	workersCompletionChannel   chan *coordinatorProcessingCompletion
@@ -63,35 +63,35 @@ func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionT
 		logger:                     logger,
 		serverSessionTokenProvider: serverSessionTokenProvider,
 		workClient:                 workClient,
-		processors:                 map[string]work.Processor{},
+		processorFactories:         map[string]work.ProcessorFactory{},
 		typeQuantities:             work.TypeQuantities{},
 		frequency:                  CoordinatorFrequencyDefault,
 	}, nil
 }
 
-func (c *Coordinator) RegisterProcessors(processors []work.Processor) error {
-	for _, processor := range processors {
-		if err := c.RegisterProcessor(processor); err != nil {
+func (c *Coordinator) RegisterProcessorFactories(processorFactoriess []work.ProcessorFactory) error {
+	for _, processorFactory := range processorFactoriess {
+		if err := c.RegisterProcessorFactory(processorFactory); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (c *Coordinator) RegisterProcessor(processor work.Processor) error {
-	if processor == nil {
-		return errors.New("processor is missing")
+func (c *Coordinator) RegisterProcessorFactory(processorFactory work.ProcessorFactory) error {
+	if processorFactory == nil {
+		return errors.New("processor factory is missing")
 	}
 
-	processorType := processor.Type()
+	processorType := processorFactory.Type()
 	if processorType == "" {
 		return errors.New("processor type is empty")
 	}
-	processorQuantity := processor.Quantity()
+	processorQuantity := processorFactory.Quantity()
 	if processorQuantity <= 0 {
 		return errors.New("processor quantity is invalid")
 	}
-	processorFrequency := processor.Frequency()
+	processorFrequency := processorFactory.Frequency()
 	if processorFrequency <= 0 {
 		return errors.New("processor frequency is invalid")
 	}
@@ -100,7 +100,7 @@ func (c *Coordinator) RegisterProcessor(processor work.Processor) error {
 		return errors.New("coordinator already started")
 	}
 
-	c.processors[processorType] = processor
+	c.processorFactories[processorType] = processorFactory
 	c.typeQuantities.Set(processorType, processorQuantity)
 	if c.frequency > processorFrequency {
 		c.frequency = processorFrequency
@@ -228,7 +228,7 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		if err := recover(); err != nil {
 			stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
 			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": stack}).Error("unhandled panic")
-			completion.ProcessResult = *work.NewProcessResultFailing(work.FailingUpdate{
+			completion.ProcessResult = work.NewProcessResultFailing(work.FailingUpdate{
 				FailingError:      errors.Serializable{Error: errors.WithMeta(errors.Newf("unhandled panic: %v", err), stack)},
 				FailingRetryCount: 1,
 				FailingRetryTime:  time.Now().Add(5 * time.Second),
@@ -237,16 +237,16 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		}
 	}()
 
-	processor, ok := c.processors[wrk.Type]
+	processorFactory, ok := c.processorFactories[wrk.Type]
 	if !ok {
-		completion.ProcessResult = *work.NewProcessResultFailed(work.FailedUpdate{
-			FailedError: errors.Serializable{Error: errors.New("processor not found for type")},
+		completion.ProcessResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.New("processor factory not found for type")},
 			Metadata:    wrk.Metadata,
 		})
 		return
 	}
 
-	updater := &coordinatorProcessingUpdater{
+	processingUpdater := &coordinatorProcessingUpdater{
 		WorkClient: c.workClient,
 		Identifier: completion.Identifier,
 	}
@@ -267,7 +267,22 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		}()
 	}
 
-	completion.ProcessResult = processor.Process(ctx, wrk, updater)
+	// Create a new processor and process
+	var processResult *work.ProcessResult
+	if processor, err := processorFactory.New(); err != nil {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.Wrap(err, "unable to create processor")},
+			Metadata:    wrk.Metadata,
+		})
+	} else if processor == nil {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.Wrap(err, "processor is missing")},
+			Metadata:    wrk.Metadata,
+		})
+	} else {
+		processResult = processor.Process(ctx, wrk, processingUpdater)
+	}
+	completion.ProcessResult = processResult
 }
 
 func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) {
@@ -285,28 +300,33 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	// Validate process result, if invalid, then fail
 	processResult := completion.ProcessResult
 
-	if err := structureValidator.New(lgr).Validate(&processResult); err != nil {
+	if processResult != nil {
+		if err := structureValidator.New(lgr).Validate(processResult); err != nil {
 
-		// Add process result to metadata
-		failedUpdateMetadata := processResult.Metadata()
-		if failedUpdateMetadata == nil {
-			failedUpdateMetadata = map[string]any{}
-		}
-		failedUpdateMetadata["processResult"] = processResult
+			// Add process result to metadata
+			failedUpdateMetadata := processResult.Metadata()
+			if failedUpdateMetadata == nil {
+				failedUpdateMetadata = map[string]any{}
+			}
+			failedUpdateMetadata["processResult"] = processResult
 
-		// Create failed process result
-		failedUpdate := work.FailedUpdate{
-			FailedError: errors.Serializable{Error: errors.New("invalid process result")},
-			Metadata:    failedUpdateMetadata,
+			// Create failed process result
+			processResult = work.NewProcessResultFailed(work.FailedUpdate{
+				FailedError: errors.Serializable{Error: errors.New("invalid process result")},
+				Metadata:    failedUpdateMetadata,
+			})
 		}
-		processResult = *work.NewProcessResultFailed(failedUpdate)
-	}
 
-	if processResult.Result == work.ResultDelete {
-		if _, err := c.workClient.Delete(ctx, completion.Identifier.ID, condition); err != nil {
-			lgr.WithError(err).Error("unable to delete work when processing complete")
+		if processResult.Result == work.ResultDelete {
+			if _, err := c.workClient.Delete(ctx, completion.Identifier.ID, condition); err != nil {
+				lgr.WithError(err).Error("unable to delete work when processing complete")
+			}
+			return
 		}
-		return
+	} else {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.New("process result is missing")},
+		})
 	}
 
 	wrk, err := c.workClient.Update(ctx, completion.Identifier.ID, condition, processResultToUpdate(processResult))
@@ -378,10 +398,15 @@ func (c *coordinatorProcessingUpdater) ProcessingUpdate(ctx context.Context, pro
 
 type coordinatorProcessingCompletion struct {
 	Identifier    *coordinatorProcessingIdentifier `json:"identifier,omitempty"` // Must be pointer, shared revision
-	ProcessResult work.ProcessResult               `json:"processResult,omitempty"`
+	ProcessResult *work.ProcessResult              `json:"processResult,omitempty"`
 }
 
-func processResultToUpdate(processResult work.ProcessResult) *work.Update {
+func processResultToUpdate(processResult *work.ProcessResult) *work.Update {
+	if processResult == nil {
+		processResult = work.NewProcessResultFailed(work.FailedUpdate{
+			FailedError: errors.Serializable{Error: errors.New("process result is missing")},
+		})
+	}
 	switch processResult.Result {
 	case work.ResultPending:
 		return &work.Update{
