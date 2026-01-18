@@ -28,6 +28,7 @@ type Client interface {
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error)
+	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 }
 
 type config struct {
@@ -155,7 +156,7 @@ func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patie
 	}
 	if response.StatusCode() == http.StatusConflict {
 		// User is already shared with the clinic
-		return d.getPatient(ctx, clinicID, patientID)
+		return d.GetPatient(ctx, clinicID, patientID)
 	}
 	if response.StatusCode() != http.StatusOK {
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
@@ -182,7 +183,7 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 	return nil
 }
 
-func (d *defaultClient) getPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
+func (d *defaultClient) GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
 	response, err := d.httpClient.GetPatientWithResponse(ctx, clinic.ClinicId(clinicID), clinic.PatientId(patientID))
 	if err != nil {
 		return nil, err
