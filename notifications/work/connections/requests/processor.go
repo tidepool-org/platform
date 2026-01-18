@@ -37,7 +37,7 @@ type Metadata struct {
 }
 
 type processor struct {
-	dependencies conditionalnotifications.Dependencies
+	dependencies notifications.Dependencies
 }
 
 func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
@@ -89,7 +89,7 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("userId", &d.UserId).NotEmpty()
 }
 
-func NewProcessor(dependencies conditionalnotifications.Dependencies) *processor {
+func NewProcessor(dependencies notifications.Dependencies) *processor {
 	return &processor{
 		dependencies: dependencies,
 	}
@@ -110,22 +110,22 @@ func (p *processor) Frequency() time.Duration {
 func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
 	data, err := toConnectAccountData(wrk)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 
 	user, err := p.dependencies.Users.Get(ctx, data.UserId)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return conditionalnotifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
 	}
 	filter := source.NewFilter()
 	filter.ProviderName = pointer.FromStringArray([]string{data.ProviderName})
 	filter.State = pointer.FromStringArray([]string{"connected"})
 	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserId, filter, nil)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	if len(connectedDataSources) > 0 {
 		// User now has a connected dataSource so no email to send.
@@ -143,7 +143,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Variables: emailVars,
 	}
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	return *work.NewProcessResultDelete()
 }

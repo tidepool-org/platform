@@ -1,4 +1,4 @@
-package conditionalnotifications
+package notifications
 
 import (
 	"math/rand"
@@ -20,9 +20,6 @@ const (
 	retryDurationJitter = 5 * time.Second
 )
 
-//go:generate mockgen -source=../work/processor.go -destination=test/processor_mocks.go -package=test MockProcessor
-
-//go:generate mockgen -source=../ -destination=test/processor_mocks.go -package=test MockProcessor
 type Dependencies struct {
 	Auth         auth.RestrictedTokenAccessor
 	Clinics      clinics.Client

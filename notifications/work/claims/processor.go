@@ -75,10 +75,10 @@ func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 }
 
 type processor struct {
-	dependencies conditionalnotifications.Dependencies
+	dependencies notifications.Dependencies
 }
 
-func NewProcessor(dependencies conditionalnotifications.Dependencies) *processor {
+func NewProcessor(dependencies notifications.Dependencies) *processor {
 	return &processor{
 		dependencies: dependencies,
 	}
@@ -99,18 +99,18 @@ func (p *processor) Frequency() time.Duration {
 func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
 	data, err := toClaimAccountData(wrk)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 
 	patient, err := p.dependencies.Clinics.GetPatient(ctx, data.ClinicID, data.UserId)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	if patient == nil {
-		return conditionalnotifications.NewFailingResult(fmt.Errorf(`unable to find patient with userId "%v"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find patient with userId "%v"`, data.UserId), wrk)
 	}
 	if pointer.ToString(patient.Email) == "" {
-		return conditionalnotifications.NewFailingResult(fmt.Errorf(`unable to find email for patient with userId "%v"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find email for patient with userId "%v"`, data.UserId), wrk)
 	}
 	// If user already claimed they will no longer have the custodian field set
 	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
@@ -118,7 +118,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 
 	if _, err := p.dependencies.Confirmation.ResendAccountSignupWithResponse(ctx, *patient.Email); err != nil {
-		return conditionalnotifications.NewFailingResult(fmt.Errorf(`unable to resend account signup email: %w`, err), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to resend account signup email: %w`, err), wrk)
 	}
 	return *work.NewProcessResultDelete()
 }

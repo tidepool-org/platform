@@ -20,8 +20,6 @@ func NotificationsRoutes() []dataService.Route {
 	}
 }
 
-//go:generate mockgen -source=../../context.go -destination=mocks/data_service_context_mock.go -package=mocks Context
-
 func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
