@@ -5,7 +5,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/oura/jotform"
+	"github.com/tidepool-org/platform/oura/shopify"
+	"github.com/tidepool-org/platform/user"
 
 	userClient "github.com/tidepool-org/platform/user/client"
 
@@ -37,6 +41,10 @@ import (
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
+	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
+	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
+
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/platform"
@@ -64,21 +72,24 @@ func (c *confirmationClientConfig) Load() error {
 type Service struct {
 	*serviceService.Service
 	domain                         string
+	appValidator                   *appvalidate.Validator
+	authClient                     *Client
 	authStore                      *authStoreMongo.Store
-	workStructuredStore            *workStoreStructuredMongo.Store
+	confirmationClient             confirmationClient.ClientWithResponsesInterface
+	customerIOClient               *customerio.Client
 	dataClient                     dataClient.Client
 	dataSourceClient               *dataSourceClient.Client
-	confirmationClient             confirmationClient.ClientWithResponsesInterface
-	taskClient                     task.Client
-	workClient                     *workService.Client
-	providerFactory                *providerFactory.Factory
-	authClient                     *Client
-	userEventsHandler              events.Runner
 	deviceCheck                    apple.DeviceCheck
-	appValidator                   *appvalidate.Validator
 	partnerSecrets                 *appvalidate.PartnerSecrets
+	providerFactory                *providerFactory.Factory
+	shopifyClient                  shopify.Client
+	taskClient                     task.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
+	userEventsHandler              events.Runner
+	userClient                     user.Client
 	consentService                 consent.Service
+	workClient                     *workService.Client
+	workStructuredStore            *workStoreStructuredMongo.Store
 }
 
 func New() *Service {
@@ -134,6 +145,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeAuthClient(); err != nil {
 		return err
 	}
+	if err := s.initializeUserClient(); err != nil {
+		return err
+	}
 	if err := s.initializeConsentService(); err != nil {
 		return err
 	}
@@ -150,6 +164,12 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
+		return err
+	}
+	if err := s.initializeCustomerIOClient(); err != nil {
+		return err
+	}
+	if err := s.initializeShopifyClient(); err != nil {
 		return err
 	}
 	if err := s.initializeRouter(); err != nil {
@@ -253,6 +273,87 @@ func (s *Service) terminateDomain() {
 	}
 }
 
+func (s *Service) initializeUserClient() error {
+	s.Logger().Debug("Initializing user client")
+	var err error
+	s.userClient, err = userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+	return nil
+}
+
+func (s *Service) initializeShopifyClient() error {
+	shopifyConfig := shopify.ClientConfig{}
+	if err := envconfig.Process("", &shopifyConfig); err != nil {
+		return errors.Wrap(err, "unable to load shopify config")
+	}
+
+	var err error
+	s.shopifyClient, err = shopifyClient.New(context.Background(), shopifyConfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify client")
+	}
+
+	return nil
+}
+func (s *Service) initializeCustomerIOClient() error {
+	customerIOConfig := customerio.Config{}
+	if err := envconfig.Process("", &customerIOConfig); err != nil {
+		return errors.Wrap(err, "unable to load customerio config")
+	}
+
+	var err error
+	s.customerIOClient, err = customerio.NewClient(customerIOConfig, s.Logger())
+	if err != nil {
+		return errors.Wrap(err, "unable to create customerio client")
+	}
+
+	return nil
+}
+
+func (s *Service) createJotformRouter() (*jotformAPI.Router, error) {
+	jotformConfig := jotform.Config{}
+	if err := envconfig.Process("", &jotformConfig); err != nil {
+		return nil, errors.Wrap(err, "unable to load jotform config")
+	}
+
+	webhookProcessor, err := jotform.NewWebhookProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create jotform webhook processor")
+	}
+
+	jotformRouter, err := jotformAPI.NewRouter(webhookProcessor)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create jotform router")
+	}
+
+	return jotformRouter, nil
+}
+
+func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient())
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
+	}
+
+	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), s.customerIOClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create orders create event processor")
+	}
+
+	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventProcessor, ordersCreateEventProcessor)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create shopify router")
+	}
+
+	return shopifyRouter, nil
+}
+
 func (s *Service) initializeRouter() error {
 	s.Logger().Debug("Creating api router")
 
@@ -275,9 +376,23 @@ func (s *Service) initializeRouter() error {
 		return errors.Wrap(err, "unable to create consent router")
 	}
 
+	s.Logger().Debug("Creating jotform router")
+
+	jotformRouter, err := s.createJotformRouter()
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform router")
+	}
+
+	s.Logger().Debug("Creating shopify router")
+
+	shopifyRouter, err := s.createShopifyRouter()
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify router")
+	}
+
 	s.Logger().Debug("Initializing routers")
 
-	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router); err != nil {
+	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter, shopifyRouter); err != nil {
 		return errors.Wrap(err, "unable to initialize routers")
 	}
 
@@ -362,16 +477,6 @@ func (s *Service) initializeConsentService() error {
 		return errors.Wrap(err, "unable to create bddp sharer")
 	}
 
-	s.Logger().Debug("Initializing user client")
-	usrClient, err := userClient.NewDefaultClient(userClient.Params{
-		ConfigReporter: s.ConfigReporter(),
-		Logger:         s.Logger(),
-		UserAgent:      s.UserAgent(),
-	})
-	if err != nil {
-		return errors.Wrap(err, "unable to create user client")
-	}
-
 	s.Logger().Debug("Initializing mailer")
 	mailr, err := mailer.Client()
 	if err != nil {
@@ -379,7 +484,7 @@ func (s *Service) initializeConsentService() error {
 	}
 
 	s.Logger().Debug("Initializing consent mailer")
-	consentMailer, err := consentService.NewConsentMailer(mailr, usrClient, s.Logger())
+	consentMailer, err := consentService.NewConsentMailer(mailr, s.userClient, s.Logger())
 	if err != nil {
 		return errors.Wrap(err, "unable to create consent mailer")
 	}
