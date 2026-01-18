@@ -26,14 +26,14 @@ func NewGroupID(dataSourceId string) string {
 }
 
 type processor struct {
-	dependencies conditionalnotifications.Dependencies
+	dependencies notifications.Dependencies
 }
 
 type Metadata struct {
 	DataSourceState   string `json:"dataSourceState,omitempty"`
 	DataSourceId      string `json:"dataSourceId,omitempty"`
 	EmailTemplate     string `json:"emailTemplate,omitempty"`
-	PatientName       string `json:"patientName,omitempty"`
+	FullName          string `json:"fullName,omitempty"`
 	ProviderName      string `json:"providerName,omitempty"`
 	RestrictedTokenId string `json:"restrictedTokenId,omitempty"`
 	UserId            string `json:"userId,omitempty"`
@@ -43,7 +43,7 @@ func (d *Metadata) Parse(parser structure.ObjectParser) {
 	d.DataSourceState = pointer.ToString(parser.String("dataSourceState"))
 	d.DataSourceId = pointer.ToString(parser.String("dataSourceId"))
 	d.EmailTemplate = pointer.ToString(parser.String("emailTemplate"))
-	d.PatientName = pointer.ToString(parser.String("patientName"))
+	d.FullName = pointer.ToString(parser.String("fullName"))
 	d.ProviderName = pointer.ToString(parser.String("providerName"))
 	d.RestrictedTokenId = pointer.ToString(parser.String("restrictedTokenId"))
 	d.UserId = pointer.ToString(parser.String("userId"))
@@ -53,7 +53,7 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("dataSourceState", &d.DataSourceState).NotEmpty()
 	validator.String("dataSourceId", &d.DataSourceId).NotEmpty()
 	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
-	validator.String("patientName", &d.PatientName).NotEmpty()
+	validator.String("fullName", &d.FullName).NotEmpty()
 	validator.String("providerName", &d.ProviderName).NotEmpty()
 	validator.String("userId", &d.UserId).NotEmpty()
 }
@@ -76,7 +76,7 @@ func newWorkCreate(metadata Metadata) *work.Create {
 	}
 }
 
-func NewProcessor(dependencies conditionalnotifications.Dependencies) *processor {
+func NewProcessor(dependencies notifications.Dependencies) *processor {
 	return &processor{
 		dependencies: dependencies,
 	}
@@ -97,20 +97,20 @@ func (p *processor) Frequency() time.Duration {
 func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
 	data, err := toMetadata(wrk)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 
 	user, err := p.dependencies.Users.Get(ctx, data.UserId)
 	if err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return conditionalnotifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
 	}
 
 	emailVars := map[string]string{
 		"RestrictedTokenId": data.RestrictedTokenId,
-		"PatientName":       data.PatientName,
+		"FullName":          data.FullName,
 		"ProviderName":      data.ProviderName,
 	}
 	templateEvent := events.SendEmailTemplateEvent{
@@ -119,7 +119,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Variables: emailVars,
 	}
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
-		return conditionalnotifications.NewFailingResult(err, wrk)
+		return notifications.NewFailingResult(err, wrk)
 	}
 	return *work.NewProcessResultDelete()
 }
@@ -142,10 +142,10 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 	} else {
 		return nil, fmt.Errorf(`expected field "dataSourceState" to exist and be a string, received %T`, wrk.Metadata["dataSourceState"])
 	}
-	if patientName, ok := wrk.Metadata["patientName"].(string); ok {
-		data.PatientName = patientName
+	if fullName, ok := wrk.Metadata["fullName"].(string); ok {
+		data.FullName = fullName
 	} else {
-		return nil, fmt.Errorf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
+		return nil, fmt.Errorf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
 	}
 	if restrictedTokenId, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
 		data.RestrictedTokenId = restrictedTokenId
@@ -165,7 +165,7 @@ func fromMetadata(data Metadata) map[string]any {
 		"userId":            data.UserId,
 		"providerName":      data.ProviderName,
 		"dataSourceState":   data.DataSourceState,
-		"patientName":       data.PatientName,
+		"fullName":          data.FullName,
 		"restrictedTokenId": data.RestrictedTokenId,
 		"emailTemplate":     data.EmailTemplate,
 	}
