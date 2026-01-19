@@ -26,6 +26,10 @@ var _ = Describe("Mixin", func() {
 		Expect(dataRawWork.MetadataKeyID).To(Equal("dataRawId"))
 	})
 
+	It("MetadataKeyIngestionOffset is expected", func() {
+		Expect(dataRawWork.MetadataKeyIngestionOffset).To(Equal("ingestionOffset"))
+	})
+
 	Context("with base processor and client", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
@@ -272,6 +276,23 @@ var _ = Describe("Mixin", func() {
 					processResult := mixin.UpdateDataRaw(*dataRawUpdate)
 					Expect(processResult).To(BeNil())
 					Expect(mixin.DataRaw).To(Equal(expectedDataRaw))
+				})
+			})
+
+			Context("IngestionOffsetFromMetadata", func() {
+				It("returns error if unable to parse", func() {
+					wrk.Metadata[dataRawWork.MetadataKeyIngestionOffset] = true
+					ingestionOffset, err := mixin.IngestionOffsetFromMetadata()
+					Expect(ingestionOffset).To(BeNil())
+					Expect(err).To(MatchError("unable to parse ingestion offset from metadata; type is not int, but bool"))
+				})
+
+				It("returns successfully", func() {
+					expectedID := test.RandomInt()
+					wrk.Metadata[dataRawWork.MetadataKeyIngestionOffset] = expectedID
+					ingestionOffset, err := mixin.IngestionOffsetFromMetadata()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(ingestionOffset).To(PointTo(Equal(expectedID)))
 				})
 			})
 		})

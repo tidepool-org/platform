@@ -19,9 +19,11 @@ func (p *ProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work) *wor
 	if p.ProcessResultPendingBuilder == nil {
 		return p.Failed(ctx, wrk, errors.New("pending process result builder is not configured"))
 	}
-	processingAvailableDuration := p.ProcessResultPendingBuilder.ProcessingAvailableDuration(ctx, wrk)
+	processingAvailableTime := p.ProcessResultPendingBuilder.ProcessingAvailableTime(ctx, wrk, time.Now())
 	return work.NewProcessResultPending(work.PendingUpdate{
-		ProcessingAvailableTime: time.Now().Add(processingAvailableDuration),
+		ProcessingAvailableTime: processingAvailableTime,
+		ProcessingPriority:      wrk.ProcessingPriority,
+		ProcessingTimeout:       wrk.ProcessingTimeout,
 		Metadata:                wrk.Metadata,
 	})
 }
@@ -31,12 +33,12 @@ func (p *ProcessResultBuilder) Failing(ctx context.Context, wrk *work.Work, err 
 		return p.Failed(ctx, wrk, errors.New("failing process result builder is not configured"))
 	}
 	failingRetryCount := p.ProcessResultFailingBuilder.FailingRetryCount(ctx, wrk, err)
-	failingRetryDuration := p.ProcessResultFailingBuilder.FailingRetryDuration(ctx, wrk, err, failingRetryCount)
-	log.LoggerFromContext(ctx).WithFields(log.Fields{"failingRetryCount": failingRetryCount, "failingRetryDuration": failingRetryDuration}).WithError(err).Error("processor failing")
+	failingRetryTime := p.ProcessResultFailingBuilder.FailingRetryTime(ctx, wrk, err, failingRetryCount, time.Now())
+	log.LoggerFromContext(ctx).WithFields(log.Fields{"failingRetryCount": failingRetryCount, "failingRetryTime": failingRetryTime}).WithError(err).Error("processor failing")
 	return work.NewProcessResultFailing(work.FailingUpdate{
 		FailingError:      errors.Serializable{Error: err},
 		FailingRetryCount: failingRetryCount,
-		FailingRetryTime:  time.Now().Add(failingRetryDuration),
+		FailingRetryTime:  failingRetryTime,
 		Metadata:          wrk.Metadata,
 	})
 }
@@ -63,8 +65,8 @@ type ConstantProcessResultPendingBuilder struct {
 	Duration time.Duration
 }
 
-func (c *ConstantProcessResultPendingBuilder) ProcessingAvailableDuration(ctx context.Context, wrk *work.Work) time.Duration {
-	return c.Duration
+func (c *ConstantProcessResultPendingBuilder) ProcessingAvailableTime(ctx context.Context, wrk *work.Work, now time.Time) time.Time {
+	return now.Add(c.Duration)
 }
 
 type LinearProcessResultFailingBuilder struct{}
@@ -81,8 +83,8 @@ type ConstantProcessResultFailingBuilder struct {
 	Duration time.Duration
 }
 
-func (c *ConstantProcessResultFailingBuilder) FailingRetryDuration(ctx context.Context, wrk *work.Work, err error, retryCount int) time.Duration {
-	return c.Duration
+func (c *ConstantProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, now time.Time) time.Time {
+	return now.Add(c.Duration)
 }
 
 type ExponentialProcessResultFailingBuilder struct {
@@ -91,11 +93,12 @@ type ExponentialProcessResultFailingBuilder struct {
 	DurationJitter time.Duration
 }
 
-func (e *ExponentialProcessResultFailingBuilder) FailingRetryDuration(ctx context.Context, wrk *work.Work, err error, retryCount int) time.Duration {
-	if retryCount < 1 {
-		return 0
+func (e *ExponentialProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, now time.Time) time.Time {
+	if failingRetryCount < 1 {
+		return now
 	}
-	fallbackFactor := time.Duration(1 << (retryCount - 1))
+	fallbackFactor := time.Duration(1 << (failingRetryCount - 1))
 	durationJitter := int64(e.DurationJitter * fallbackFactor)
-	return e.Duration*fallbackFactor + time.Duration(rand.Int63n(2*durationJitter)-durationJitter)
+	duration := e.Duration*fallbackFactor + time.Duration(rand.Int63n(2*durationJitter)-durationJitter)
+	return now.Add(duration)
 }

@@ -141,6 +141,7 @@ func (p *ProcessResult) Error() error {
 	return nil
 }
 
+//go:generate mockgen -source=process_result.go -destination=test/process_result_mocks.go -package=test ProcessResultBuilder
 type ProcessResultBuilder interface {
 	Pending(ctx context.Context, wrk *Work) *ProcessResult
 	Failing(ctx context.Context, wrk *Work, err error) *ProcessResult
@@ -149,13 +150,15 @@ type ProcessResultBuilder interface {
 	Delete(ctx context.Context, wrk *Work) *ProcessResult
 }
 
+//go:generate mockgen -source=process_result.go -destination=test/process_result_mocks.go -package=test ProcessResultPendingBuilder
 type ProcessResultPendingBuilder interface {
-	ProcessingAvailableDuration(ctx context.Context, wrk *Work) time.Duration
+	ProcessingAvailableTime(ctx context.Context, wrk *Work, now time.Time) time.Time
 }
 
+//go:generate mockgen -source=process_result.go -destination=test/process_result_mocks.go -package=test ProcessResultFailingBuilder
 type ProcessResultFailingBuilder interface {
 	FailingRetryCount(ctx context.Context, wrk *Work, err error) int
-	FailingRetryDuration(ctx context.Context, wrk *Work, err error, retryCount int) time.Duration
+	FailingRetryTime(ctx context.Context, wrk *Work, err error, failingRetryCount int, now time.Time) time.Time
 }
 
 type ProcessPipelineFunc func() *ProcessResult

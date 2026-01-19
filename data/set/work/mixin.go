@@ -7,17 +7,11 @@ import (
 	dataSet "github.com/tidepool-org/platform/data/set"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const MetadataKeyID = "dataSetId"
-
-type Client interface {
-	Get(ctx context.Context, id string, condition *request.Condition) (*data.DataSet, error)
-	Update(ctx context.Context, id string, condition *request.Condition, update *data.DataSetUpdate) (*data.DataSet, error)
-}
 
 type Mixin struct {
 	*workBase.Processor

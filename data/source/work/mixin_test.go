@@ -26,19 +26,20 @@ var _ = Describe("Mixin", func() {
 		Expect(dataSourceWork.MetadataKeyID).To(Equal("dataSourceId"))
 	})
 
+	It("MetadataKeyDeviceHashes is expected", func() {
+		Expect(dataSourceWork.MetadataKeyDeviceHashes).To(Equal("deviceHashes"))
+	})
+
 	Context("with base processor and client", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
-		// var mockProviderSessionClient *providerSessionTest.MockClient
 		var mockClient *dataSourceTest.MockClient
 		var processor *workBase.Processor
-		// var providerSessionMixin *providerSessionWork.Mixin
 
 		BeforeEach(func() {
 			var err error
 			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
-			// mockProviderSessionClient = providerSessionTest.NewMockClient(mockController)
 			mockClient = dataSourceTest.NewMockClient(mockController)
 			processResultBuilder := &workBase.ProcessResultBuilder{
 				ProcessResultPendingBuilder: &workBase.ConstantProcessResultPendingBuilder{
@@ -51,8 +52,6 @@ var _ = Describe("Mixin", func() {
 			processor, err = workBase.NewProcessor(processResultBuilder)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(processor).ToNot(BeNil())
-			// providerSessionMixin, err = providerSessionWork.NewMixin(processor, mockProviderSessionClient)
-			// Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("NewMixin", func() {
@@ -89,93 +88,6 @@ var _ = Describe("Mixin", func() {
 				wrk = workTest.RandomWork()
 				Expect(mixin.Process(ctx, wrk, mockProcessingUpdater)).To(BeNil())
 			})
-
-			// 			Context("ProviderSessionIDFromDataSource", func() {
-			// 				It("returns error if data source is missing", func() {
-			// 					id, err := mixin.ProviderSessionIDFromDataSource()
-			// 					Expect(err).To(MatchError("data source is missing"))
-			// 					Expect(id).To(BeNil())
-			// 				})
-			//
-			// 				It("returns successfully", func() {
-			// 					expectedID := test.RandomString()
-			// 					mixin.DataSource = dataSourceTest.RandomSource()
-			// 					mixin.DataSource.ProviderSessionID = pointer.FromString(expectedID)
-			// 					id, err := mixin.ProviderSessionIDFromDataSource()
-			// 					Expect(err).ToNot(HaveOccurred())
-			// 					Expect(id).To(PointTo(Equal(expectedID)))
-			// 				})
-			// 			})
-			//
-			// 			Context("FetchProviderSessionFromDataSource", func() {
-			// 				It("returns failed process result if data source is missing", func() {
-			// 					processResult := mixin.FetchProviderSessionFromDataSource()
-			// 					Expect(processResult).ToNot(BeNil())
-			// 					Expect(processResult.Result).To(Equal(work.ResultFailed))
-			// 					Expect(processResult.FailedUpdate).ToNot(BeNil())
-			// 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("unable to get provider session id from data source; data source is missing"))
-			// 					Expect(mixin.ProviderSession).To(BeNil())
-			// 				})
-			//
-			// 				It("returns failed process result if data source provider session id is missing", func() {
-			// 					mixin.DataSource = dataSourceTest.RandomSource()
-			// 					mixin.DataSource.ProviderSessionID = nil
-			// 					processResult := mixin.FetchProviderSessionFromDataSource()
-			// 					Expect(processResult).ToNot(BeNil())
-			// 					Expect(processResult.Result).To(Equal(work.ResultFailed))
-			// 					Expect(processResult.FailedUpdate).ToNot(BeNil())
-			// 					Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("unable to get provider session id from data source"))
-			// 					Expect(mixin.ProviderSession).To(BeNil())
-			// 				})
-			//
-			// 				When("id is valid", func() {
-			// 					var id string
-			//
-			// 					BeforeEach(func() {
-			// 						id = test.RandomString()
-			// 						mixin.DataSource = dataSourceTest.RandomSource()
-			// 						mixin.DataSource.ProviderSessionID = pointer.FromString(id)
-			// 					})
-			//
-			// 					It("returns failing process result if client returns error", func() {
-			// 						testErr := errorsTest.RandomError()
-			// 						mockProviderSessionClient.EXPECT().
-			// 							GetProviderSession(gomock.Any(), id).
-			// 							Return(nil, testErr).
-			// 							Times(1)
-			// 						processResult := mixin.FetchProviderSessionFromDataSource()
-			// 						Expect(processResult).ToNot(BeNil())
-			// 						Expect(processResult.Result).To(Equal(work.ResultFailing))
-			// 						Expect(processResult.FailingUpdate).ToNot(BeNil())
-			// 						Expect(processResult.FailingUpdate.FailingError.Error).To(MatchError("unable to fetch provider session; " + testErr.Error()))
-			// 						Expect(mixin.ProviderSession).To(BeNil())
-			// 					})
-			//
-			// 					It("returns failed process result if client returns nil", func() {
-			// 						mockProviderSessionClient.EXPECT().
-			// 							GetProviderSession(gomock.Any(), id).
-			// 							Return(nil, nil).
-			// 							Times(1)
-			// 						processResult := mixin.FetchProviderSessionFromDataSource()
-			// 						Expect(processResult).ToNot(BeNil())
-			// 						Expect(processResult.Result).To(Equal(work.ResultFailed))
-			// 						Expect(processResult.FailedUpdate).ToNot(BeNil())
-			// 						Expect(processResult.FailedUpdate.FailedError.Error).To(MatchError("provider session is missing"))
-			// 						Expect(mixin.ProviderSession).To(BeNil())
-			// 					})
-			//
-			// 					It("returns successfully", func() {
-			// 						expectedProviderSession := authTest.RandomProviderSession()
-			// 						mockProviderSessionClient.EXPECT().
-			// 							GetProviderSession(gomock.Any(), id).
-			// 							Return(expectedProviderSession, nil).
-			// 							Times(1)
-			// 						processResult := mixin.FetchProviderSessionFromDataSource()
-			// 						Expect(processResult).To(BeNil())
-			// 						Expect(mixin.ProviderSession).To(Equal(expectedProviderSession))
-			// 					})
-			// 				})
-			// 			})
 
 			Context("DataSourceIDFromMetadata", func() {
 				It("returns error if unable to parse", func() {
@@ -364,6 +276,32 @@ var _ = Describe("Mixin", func() {
 					processResult := mixin.UpdateDataSource(*dataSourceUpdate)
 					Expect(processResult).To(BeNil())
 					Expect(mixin.DataSource).To(Equal(expectedDataSource))
+				})
+			})
+
+			Context("DeviceHashesFromMetadata", func() {
+				It("returns error if unable to parse because it is not an object", func() {
+					wrk.Metadata[dataSourceWork.MetadataKeyDeviceHashes] = true
+					deviceHashes, err := mixin.DeviceHashesFromMetadata()
+					Expect(deviceHashes).To(BeNil())
+					Expect(err).To(MatchError("unable to parse device hashes from metadata; type is not object, but bool"))
+				})
+
+				It("returns error if unable to parse because an object value is not a string", func() {
+					invalidDeviceHashes := dataSourceTest.RandomDeviceHashMap()
+					invalidDeviceHashes["invalid"] = true
+					wrk.Metadata[dataSourceWork.MetadataKeyDeviceHashes] = invalidDeviceHashes
+					deviceHashes, err := mixin.DeviceHashesFromMetadata()
+					Expect(deviceHashes).To(BeNil())
+					Expect(err).To(MatchError("unable to parse device hashes from metadata; type is not string, but bool"))
+				})
+
+				It("returns successfully", func() {
+					expectedDeviceHashes := dataSourceTest.RandomDeviceHashMap()
+					wrk.Metadata[dataSourceWork.MetadataKeyDeviceHashes] = expectedDeviceHashes
+					deviceHashes, err := mixin.DeviceHashesFromMetadata()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(deviceHashes).To(test.MatchMap(expectedDeviceHashes))
 				})
 			})
 		})

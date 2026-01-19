@@ -16,6 +16,8 @@ type ProcessorFactory struct {
 	newProcessorFunc NewProcessorFunc
 }
 
+var _ work.ProcessorFactory = &ProcessorFactory{}
+
 func NewProcessorFactory(typ string, quantity int, frequency time.Duration, newProcessorFunc NewProcessorFunc) (*ProcessorFactory, error) {
 	if typ == "" {
 		return nil, errors.New("type is missing")

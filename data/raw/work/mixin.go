@@ -81,7 +81,7 @@ func (m *Mixin) UpdateDataRaw(dataRawUpdate dataRaw.Update) *work.ProcessResult 
 	return nil
 }
 
-func (m *Mixin) IngestionOffset() (*int, error) {
+func (m *Mixin) IngestionOffsetFromMetadata() (*int, error) {
 	parser := m.MetadataParser()
 	ingestionOffset := parser.Int(MetadataKeyIngestionOffset)
 	if err := parser.Error(); err != nil {

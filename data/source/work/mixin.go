@@ -81,7 +81,7 @@ func (m *Mixin) UpdateDataSource(dataSrcUpdate dataSource.Update) *work.ProcessR
 	return nil
 }
 
-func (m *Mixin) DeviceHashes() (map[string]string, error) {
+func (m *Mixin) DeviceHashesFromMetadata() (map[string]string, error) {
 	parser := m.MetadataParser().WithReferenceObjectParser(MetadataKeyDeviceHashes)
 	deviceHashes := map[string]string{}
 	for _, deviceID := range parser.References() {

@@ -263,38 +263,32 @@ ci-test: ci-test-go
 test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		. ./env.test.sh && ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
 test-go:
 	@echo "go test $(GOTEST_FLAGS) $(GOTEST_PKGS)"

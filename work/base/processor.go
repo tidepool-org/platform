@@ -28,13 +28,13 @@ func NewProcessor(processResultBuilder work.ProcessResultBuilder) (*Processor, e
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	if ctx == nil {
-		return NewProcessResultFailedFromError(errors.New("context is missing"))
+		return newProcessResultFailedFromError(errors.New("context is missing"))
 	}
 	if wrk == nil {
-		return NewProcessResultFailedFromError(errors.New("work is missing"))
+		return newProcessResultFailedFromError(errors.New("work is missing"))
 	}
 	if processingUpdater == nil {
-		return NewProcessResultFailedFromError(errors.New("processing updater is missing"))
+		return newProcessResultFailedFromError(errors.New("processing updater is missing"))
 	}
 
 	p.context = ctx
@@ -89,7 +89,7 @@ func (p *Processor) ProcessingUpdate() *work.ProcessResult {
 
 	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.Context()), work.ProcessingUpdate{Metadata: p.Metadata()})
 	if err != nil {
-		return p.Failing(errors.New("unable to update work"))
+		return p.Failing(errors.Wrap(err, "unable to update work"))
 	} else if wrk == nil {
 		return p.Failed(errors.New("work is missing"))
 	}
@@ -120,7 +120,7 @@ func (p *Processor) Delete() *work.ProcessResult {
 	return p.processResultBuilder.Delete(p.Context(), p.Work())
 }
 
-func NewProcessResultFailedFromError(err error) *work.ProcessResult {
+func newProcessResultFailedFromError(err error) *work.ProcessResult {
 	return work.NewProcessResultFailed(work.FailedUpdate{
 		FailedError: errors.Serializable{Error: err},
 	})
