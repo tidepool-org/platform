@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/oura/jotform"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/user"
@@ -48,6 +49,7 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -730,6 +732,26 @@ func (s *Service) initializeProviders() error {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create dexcom provider")
 	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add dexcom provider")
+	}
+
+	// Oura
+	if cfg, prvdrErr := ouraProvider.NewConfigWithConfigReporter(configReporter.WithScopes(oura.ProviderName)); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to create oura provider config")
+	} else if prvdrErr = cfg.Validate(); prvdrErr != nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create oura provider")
+	} else {
+		cfg.Client.UserAgent = s.UserAgent()
+		dependencies := ouraProvider.Dependencies{
+			Config:                *cfg,
+			ProviderSessionClient: s.authClient,
+			DataSourceClient:      s.DataSourceClient(),
+			WorkClient:            s.workClient,
+		}
+		if prvdr, err := ouraProvider.New(dependencies); err != nil {
+			return errors.Wrap(err, "unable to create oura provider")
+		} else if err = s.providerFactory.Add(prvdr); err != nil {
+			return errors.Wrap(err, "unable to add oura provider")
+		}
 	}
 
 	// twiist
