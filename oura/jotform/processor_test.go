@@ -8,7 +8,10 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/mock/gomock"
+
+	"github.com/tidepool-org/platform/oura/jotform/store"
 
 	"github.com/tidepool-org/platform/customerio"
 
@@ -83,11 +86,14 @@ var _ = Describe("SubmissionProcessor", func() {
 		shopifyCtrl = gomock.NewController(GinkgoT())
 		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
 
-		processor, err = jotform.NewSubmissionProcessor(jotformConfig, logger, consentService, customerIOClient, userClient, shopifyClnt, nil)
+		processor, err = jotform.NewSubmissionProcessor(jotformConfig, logger, consentService, customerIOClient, userClient, shopifyClnt, GetSuiteStore())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
+		_, err := mongoStore.GetCollection(store.CollectionName).DeleteMany(context.Background(), bson.M{})
+		Expect(err).ToNot(HaveOccurred())
+
 		jotformServer.Close()
 		appAPIServer.Close()
 		trackAPIServer.Close()

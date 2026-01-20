@@ -179,6 +179,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeShopifyClient(); err != nil {
 		return err
 	}
+	if err := s.initializeSubmissionProcessor(); err != nil {
+		return err
+	}
 	if err := s.initializeRouter(); err != nil {
 		return err
 	}
@@ -887,7 +890,7 @@ func (s *Service) terminateUserEventsHandler() {
 }
 
 func (s *Service) initializeWorkCoordinator() error {
-	s.Logger().Debug("Creating work coordinator")
+	s.Logger().Info("Creating work coordinator")
 
 	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
 	if err != nil {
@@ -895,17 +898,28 @@ func (s *Service) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Debug("Creating jotform work processor")
+	s.Logger().Info("Ensuring reconciler work item exists")
 
-	processor := jotformWork.NewProcessor(s.submissionProcessor)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
 
-	s.Logger().Debug("Registering jotform work processor")
+	ctx = log.NewContextWithLogger(ctx, s.Logger())
+	err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure reconciler work item exists")
+	}
+
+	s.Logger().Info("Creating jotform work processor")
+
+	processor := jotformWork.NewProcessor(s.submissionProcessor, s.Logger())
+
+	s.Logger().Info("Registering jotform work processor")
 
 	if err = s.workCoordinator.RegisterProcessors([]work.Processor{processor}); err != nil {
 		return errors.Wrap(err, "unable to register jotform work processor")
 	}
 
-	s.Logger().Debug("Starting work coordinator")
+	s.Logger().Info("Starting work coordinator")
 
 	s.workCoordinator.Start()
 

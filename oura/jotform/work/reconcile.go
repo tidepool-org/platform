@@ -18,36 +18,30 @@ const (
 	quantity          = 1
 	frequency         = 60 * time.Minute
 	processingTimeout = 3 * time.Minute
+	reconcilerWorkID  = "reconciler"
 
-	JotformReconcileMetadataFormIDKey                 = "formId"
 	JotformReconcileMetadataLastProcessedSubmissionID = "lastProcessedSubmissionID"
 )
 
 type Metadata struct {
-	FormID                    string
 	LastProcessedSubmissionID string
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
-	if formId := parser.String(JotformReconcileMetadataFormIDKey); formId != nil {
-		m.FormID = *formId
-	}
 	parser.String(JotformReconcileMetadataLastProcessedSubmissionID)
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
-	validator.String(JotformReconcileMetadataFormIDKey, &m.FormID).NotEmpty()
 	validator.String(JotformReconcileMetadataLastProcessedSubmissionID, &m.LastProcessedSubmissionID).NotEmpty()
 }
 
-func CreateReconcilerWorkItemIfNotExists(ctx context.Context, client work.Client, formID string) error {
+func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
 	create := &work.Create{
 		Type:                    processorType,
-		DeduplicationID:         pointer.FromAny(formID),
+		DeduplicationID:         pointer.FromString(reconcilerWorkID),
 		ProcessingTimeout:       int(processingTimeout.Seconds()),
 		ProcessingAvailableTime: time.Now(),
 		Metadata: map[string]any{
-			JotformReconcileMetadataFormIDKey:                 formID,
 			JotformReconcileMetadataLastProcessedSubmissionID: "0",
 		},
 	}
@@ -58,12 +52,13 @@ func CreateReconcilerWorkItemIfNotExists(ctx context.Context, client work.Client
 }
 
 type Processor struct {
-	submissionProcessor *jotform.SubmissionProcessor
 	logger              log.Logger
+	submissionProcessor *jotform.SubmissionProcessor
 }
 
-func NewProcessor(submissionProcessor *jotform.SubmissionProcessor) *Processor {
+func NewProcessor(submissionProcessor *jotform.SubmissionProcessor, logger log.Logger) *Processor {
 	return &Processor{
+		logger:              logger,
 		submissionProcessor: submissionProcessor,
 	}
 }
@@ -85,20 +80,13 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	metadata := &Metadata{}
 	metadata.Parse(parser)
 
-	if metadata.FormID == "" {
-		return *work.NewProcessResultFailed(work.FailedUpdate{
-			FailedError: *errors.NewSerializable(errors.New("form id is missing")),
-		})
-	}
-
-	result, err := p.submissionProcessor.Reconcile(ctx, metadata.FormID, metadata.LastProcessedSubmissionID)
+	result, err := p.submissionProcessor.Reconcile(ctx, metadata.LastProcessedSubmissionID)
 	logger := p.logger.WithFields(log.Fields{
 		"processed": result.TotalProcessed,
 		"errors":    result.TotalErrors,
 	})
 
 	updatedMetadata := map[string]any{
-		JotformReconcileMetadataFormIDKey:                 metadata.FormID,
 		JotformReconcileMetadataLastProcessedSubmissionID: metadata.LastProcessedSubmissionID,
 	}
 

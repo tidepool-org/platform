@@ -13,7 +13,7 @@ import (
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-const CollectionName = "jotformSubmissions"
+const CollectionName = "jotform_submissions"
 
 type ProcessedSubmission struct {
 	SubmissionID string          `bson:"submissionId"`

@@ -43,7 +43,7 @@ type SubmissionProcessor struct {
 }
 
 type Config struct {
-	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL"`
+	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL" default:"https://api.jotform.com"`
 	APIKey  string `envconfig:"TIDEPOOL_OURA_JOTFORM_API_KEY"`
 	FormID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_FORM_ID"`
 }
@@ -68,18 +68,19 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 	}, nil
 }
 
+func (s *SubmissionProcessor) Reconcile(ctx context.Context, lastSubmissionID string) (ReconcileResult, error) {
+	return s.reconcile(ctx, s.config.FormID, lastSubmissionID)
+}
+
 // Reconcile fetches new submissions from Jotform and processes any that haven't been processed yet
 // returns the last processed submission ID and an error if one occurred during processing
-func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, lastSubmissionID string) (ReconcileResult, error) {
+func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, lastSubmissionID string) (ReconcileResult, error) {
 	logger := s.logger.WithField("formId", s.config.FormID)
 	logger.Info("Starting Jotform submission reconciliation")
 
-	filter := &SubmissionFilter{
-		IDGreaterThan: lastSubmissionID,
-		Limit:         DefaultReconcileLimit,
+	result := ReconcileResult{
+		LastProcessedID: lastSubmissionID,
 	}
-
-	var result ReconcileResult
 	var err error
 
 	for {
@@ -88,6 +89,10 @@ func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, last
 			break
 		}
 
+		filter := &SubmissionFilter{
+			IDGreaterThan: result.LastProcessedID,
+			Limit:         DefaultReconcileLimit,
+		}
 		var submissions *FormSubmissionsResponse
 		submissions, err = s.jotformClient.ListFormSubmissions(ctx, formID, filter)
 		if err != nil {
@@ -110,7 +115,7 @@ func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, last
 				err = errors.Wrapf(err, "failed to reconcile submission %s", submission.Content.ID)
 				break
 			}
-			filter.IDGreaterThan = submission.Content.ID
+			result.LastProcessedID = submission.Content.ID
 			result.TotalProcessed++
 		}
 
