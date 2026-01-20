@@ -870,15 +870,15 @@ func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.Tok
 	return t.tokenSource.HTTPClient(ctx, tokenSourceSource)
 }
 
-func (t *TaskRunner) UpdateToken() error {
-	if err := t.tokenSource.UpdateToken(); err != nil {
+func (t *TaskRunner) UpdateToken(ctx context.Context) error {
+	if err := t.tokenSource.UpdateToken(ctx); err != nil {
 		return err
 	}
 	return t.updateProviderSession()
 }
 
-func (t *TaskRunner) ExpireToken() error {
-	if err := t.tokenSource.ExpireToken(); err != nil {
+func (t *TaskRunner) ExpireToken(ctx context.Context) error {
+	if err := t.tokenSource.ExpireToken(ctx); err != nil {
 		return err
 	}
 	return t.updateProviderSession()

@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -11,76 +10,52 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/oauth"
 )
 
-const ProviderType = "oauth"
-
 type Provider struct {
-	name      string
-	config    *oauth2.Config
-	stateSalt string
-	jwks      jwk.Set
+	name         string
+	config       Config
+	jwks         jwk.Set
+	oauth2Config *oauth2.Config
 }
 
-func New(name string, configReporter config.Reporter, jwks jwk.Set) (*Provider, error) {
+func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
-	if configReporter == nil {
-		return nil, errors.New("config reporter is missing")
+	if config == nil {
+		return nil, errors.New("config is missing")
+	} else if err := config.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	cfg := &oauth2.Config{}
-	cfg.ClientID = configReporter.GetWithDefault("client_id", "")
-	if cfg.ClientID == "" {
-		return nil, errors.New("client id is missing")
+	oauth2Config := &oauth2.Config{
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  config.AuthorizeURL,
+			TokenURL: config.TokenURL,
+		},
+		RedirectURL: config.RedirectURL,
+		Scopes:      config.Scopes,
 	}
-	cfg.ClientSecret = configReporter.GetWithDefault("client_secret", "")
-	if cfg.ClientSecret == "" {
-		return nil, errors.New("client secret is missing")
-	}
-	cfg.Endpoint.AuthURL = configReporter.GetWithDefault("authorize_url", "")
-	if cfg.Endpoint.AuthURL == "" {
-		return nil, errors.New("authorize url is missing")
-	}
-	cfg.Endpoint.TokenURL = configReporter.GetWithDefault("token_url", "")
-	if cfg.Endpoint.TokenURL == "" {
-		return nil, errors.New("token url is missing")
-	}
-	cfg.RedirectURL = configReporter.GetWithDefault("redirect_url", "")
-	if cfg.RedirectURL == "" {
-		return nil, errors.New("redirect url is missing")
-	}
-	cfg.Scopes = SplitScopes(configReporter.GetWithDefault("scopes", ""))
-
-	if authStyleInParams, err := strconv.ParseBool(configReporter.GetWithDefault("auth_style_in_params", "false")); err != nil {
-		return nil, errors.New("auth style in params is invalid")
-	} else if authStyleInParams {
-		cfg.Endpoint.AuthStyle = oauth2.AuthStyleInParams
-	}
-
-	var stateSalt string
-	if useCookie, err := strconv.ParseBool(configReporter.GetWithDefault("use_cookie", "true")); err != nil {
-		return nil, errors.New("use cookie is invalid")
-	} else if useCookie {
-		if stateSalt = configReporter.GetWithDefault("state_salt", ""); stateSalt == "" {
-			return nil, errors.New("state salt is missing")
-		}
+	if config.AuthStyleInParams {
+		oauth2Config.Endpoint.AuthStyle = oauth2.AuthStyleInParams
 	}
 
 	return &Provider{
-		name:      name,
-		config:    cfg,
-		stateSalt: stateSalt,
-		jwks:      jwks,
+		name:         name,
+		config:       *config,
+		jwks:         jwks,
+		oauth2Config: oauth2Config,
 	}, nil
 }
 
 func (p *Provider) Type() string {
-	return ProviderType
+	return oauth.ProviderType
 }
 
 func (p *Provider) Name() string {
@@ -91,12 +66,20 @@ func (p *Provider) ClientID() string {
 	return p.config.ClientID
 }
 
+func (p *Provider) ClientSecret() string {
+	return p.config.ClientSecret
+}
+
 func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
 func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
+}
+
+func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
+	return true
 }
 
 func (p *Provider) ParseToken(token string, claims jwt.Claims) error {
@@ -126,7 +109,7 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 		return nil, errors.New("token is missing")
 	}
 
-	tknSrc := p.config.TokenSource(ctx, token.RawToken())
+	tknSrc := p.oauth2Config.TokenSource(ctx, token.RawToken())
 	if tknSrc == nil {
 		return nil, errors.New("unable to create token source")
 	}
@@ -134,24 +117,24 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 	return tknSrc, nil
 }
 
-func (p *Provider) UseCookie() bool {
-	return p.stateSalt != ""
+func (p *Provider) CookieDisabled() bool {
+	return p.config.CookieDisabled
 }
 
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
-	if p.stateSalt != "" {
-		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, p.stateSalt))
+	if !p.CookieDisabled() {
+		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
 	} else {
 		return restrictedToken
 	}
 }
 
 func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
-	return p.config.AuthCodeURL(state)
+	return p.oauth2Config.AuthCodeURL(state)
 }
 
 func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error) {
-	token, err := p.config.Exchange(ctx, authorizationCode)
+	token, err := p.oauth2Config.Exchange(ctx, authorizationCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to exchange authorization code for token")
 	}
@@ -161,8 +144,4 @@ func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, author
 
 func (p *Provider) IsErrorCodeAccessDenied(errorCode string) bool {
 	return errorCode == "access_denied"
-}
-
-func SplitScopes(scopes string) []string {
-	return config.SplitTrimCompact(scopes)
 }

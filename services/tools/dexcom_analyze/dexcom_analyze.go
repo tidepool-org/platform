@@ -20,7 +20,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
-	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
@@ -848,7 +847,7 @@ func (t *Tool) load() error {
 	}
 	dataSourcesMap := map[string]*DataSource{}
 	for _, dataSource := range dataSources {
-		if dataSource.ProviderType != nil && *dataSource.ProviderType == auth.ProviderTypeOAuth && dataSource.ProviderName != nil && *dataSource.ProviderName == dexcomProvider.ProviderName {
+		if dataSource.ProviderType != nil && *dataSource.ProviderType == auth.ProviderTypeOAuth && dataSource.ProviderName != nil && *dataSource.ProviderName == dexcom.ProviderName {
 			dataSourcesMap[*dataSource.ID] = dataSource
 		}
 	}
@@ -859,7 +858,7 @@ func (t *Tool) load() error {
 	}
 	providerSessionsMap := map[string]*ProviderSession{}
 	for _, providerSession := range providerSessions {
-		if providerSession.Type == auth.ProviderTypeOAuth && providerSession.Name == dexcomProvider.ProviderName {
+		if providerSession.Type == auth.ProviderTypeOAuth && providerSession.Name == dexcom.ProviderName {
 			providerSessionsMap[providerSession.ID] = providerSession
 		}
 	}

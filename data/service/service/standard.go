@@ -9,6 +9,7 @@ import (
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
@@ -548,7 +549,7 @@ func (s *Standard) initializeAbbottClient() error {
 	s.Logger().Debug("Loading abbott provider")
 
 	// Abbott
-	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbottProvider.ProviderName))
+	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbott.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create abbott jwks")
 	}
@@ -566,8 +567,7 @@ func (s *Standard) initializeAbbottClient() error {
 
 		cfg := abbottClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		reporter := s.ConfigReporter().WithScopes("abbott", "client")
-		if err = cfg.LoadFromConfigReporter(reporter); err != nil {
+		if err = cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("abbott", "client")); err != nil {
 			return errors.Wrap(err, "unable to load abbott client config")
 		}
 
@@ -595,27 +595,29 @@ func (s *Standard) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Debug("Creating abbott processors")
+	if s.abbottClient != nil {
+		s.Logger().Debug("Creating abbott processor factories")
 
-	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
-		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
-		DataSetClient:           s.dataClient,
-		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		SummaryClient:           s.summaryClient,
-		ProviderSessionClient:   s.AuthClient(),
-		DataRawClient:           s.dataRawClient,
-		AbbottClient:            s.abbottClient,
-		WorkClient:              s.workClient,
-	}
-	abbottProcessors, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
-	if err != nil {
-		return errors.Wrap(err, "unable to create abbott processors")
-	}
+		abbottProcessorDependencies := abbottWork.ProcessorDependencies{
+			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+			DataSetClient:           s.dataClient,
+			DataSourceClient:        s.dataSourceClient,
+			SummaryClient:           s.summaryClient,
+			ProviderSessionClient:   s.AuthClient(),
+			DataRawClient:           s.dataRawClient,
+			AbbottClient:            s.abbottClient,
+			WorkClient:              s.workClient,
+		}
+		abbottProcessors, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
+		if err != nil {
+			return errors.Wrap(err, "unable to create abbott processor factories")
+		}
 
-	s.Logger().Debug("Registering abbott processors")
+		s.Logger().Debug("Registering abbott processor factories")
 
-	if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessors); err != nil {
-		return errors.Wrap(err, "unable to register abbott processors")
+		if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessors); err != nil {
+			return errors.Wrap(err, "unable to register abbott processor factories")
+		}
 	}
 
 	s.Logger().Debug("Starting work coordinator")

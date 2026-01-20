@@ -58,7 +58,7 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 	return s.httpClient, nil
 }
 
-func (s *Source) UpdateToken() error {
+func (s *Source) UpdateToken(ctx context.Context) error {
 	if s.tokenSource == nil {
 		return nil
 	}
@@ -84,7 +84,7 @@ func (s *Source) UpdateToken() error {
 	return nil
 }
 
-func (s *Source) ExpireToken() error {
+func (s *Source) ExpireToken(ctx context.Context) error {
 	s.httpClient = nil
 	s.tokenSource = nil
 	s.token = s.token.Expired()
