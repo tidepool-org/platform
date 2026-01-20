@@ -155,8 +155,13 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	return nil
 }
 
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return false
+func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error) {
+	switch action {
+	case oauth.ActionRevoke:
+		return false, nil
+	default:
+		return p.Provider.AllowUserInitiatedAction(ctx, userID, action)
+	}
 }
 
 func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.ProviderSession) (*dataSource.Source, error) {

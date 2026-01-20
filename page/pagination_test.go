@@ -49,6 +49,15 @@ var _ = Describe("Pagination", func() {
 			})
 		})
 
+		Context("NewPaginationMinimum", func() {
+			It("returns successfully with default values", func() {
+				datum := page.NewPaginationMinimum()
+				Expect(datum).ToNot(BeNil())
+				Expect(datum.Page).To(Equal(page.PaginationPageMinimum))
+				Expect(datum.Size).To(Equal(page.PaginationSizeMinimum))
+			})
+		})
+
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *page.Pagination), expectedErrors ...error) {
@@ -176,8 +185,19 @@ var _ = Describe("Pagination", func() {
 		})
 
 		Context("Paginate", func() {
+			It("returns error if paginator is missing", func() {
+				err := page.Paginate(nil)
+				Expect(err).To(MatchError("paginator is missing"))
+			})
+
+			It("returns error if paginator returns error", func() {
+				err := errorsTest.RandomError()
+				paginator := func(p page.Pagination) (bool, error) { return false, err }
+				Expect(page.Paginate(paginator)).To(Equal(err))
+			})
+
 			It("calls paginator with default size and increments page until done", func() {
-				expectedPages := make([]int, test.RandomIntFromRange(1, 100))
+				expectedPages := make([]int, test.RandomIntFromRange(1, 10))
 				for index := range expectedPages {
 					expectedPages[index] = index
 				}
@@ -192,12 +212,6 @@ var _ = Describe("Pagination", func() {
 				Expect(page.Paginate(paginator)).To(Succeed())
 				Expect(actualPages).To(Equal(expectedPages))
 			})
-
-			It("returns error if paginator returns error", func() {
-				err := errorsTest.RandomError()
-				paginator := func(p page.Pagination) (bool, error) { return false, err }
-				Expect(page.Paginate(paginator)).To(Equal(err))
-			})
 		})
 
 		Context("PaginateWithSize", func() {
@@ -211,9 +225,16 @@ var _ = Describe("Pagination", func() {
 				Expect(err).To(MatchError("paginator is missing"))
 			})
 
+			It("returns error if paginator returns error", func() {
+				size := pageTest.RandomSize()
+				err := errorsTest.RandomError()
+				paginator := func(p page.Pagination) (bool, error) { return false, err }
+				Expect(page.PaginateWithSize(size, paginator)).To(Equal(err))
+			})
+
 			It("calls paginator with given size and increments page until done", func() {
 				size := pageTest.RandomSize()
-				expectedPages := make([]int, test.RandomIntFromRange(1, 100))
+				expectedPages := make([]int, test.RandomIntFromRange(1, 10))
 				for index := range expectedPages {
 					expectedPages[index] = index
 				}
@@ -228,11 +249,95 @@ var _ = Describe("Pagination", func() {
 				Expect(page.PaginateWithSize(size, paginator)).To(Succeed())
 				Expect(actualPages).To(Equal(expectedPages))
 			})
+		})
 
-			It("returns error if paginator returns error", func() {
+		Context("Collect", func() {
+			It("returns error if collector is missing", func() {
+				result, err := page.Collect[string](nil)
+				Expect(err).To(MatchError("collector is missing"))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns error if collector returns error", func() {
 				err := errorsTest.RandomError()
-				paginator := func(p page.Pagination) (bool, error) { return false, err }
-				Expect(page.Paginate(paginator)).To(Equal(err))
+				collector := func(p page.Pagination) ([]string, error) { return nil, err }
+				result, err := page.Collect(collector)
+				Expect(err).To(Equal(err))
+				Expect(result).To(BeNil())
+			})
+
+			It("calls collector with default size and increments page until done", func() {
+				expectedCollection := make([]string, test.RandomIntFromRange(0, page.PaginationSizeDefault*test.RandomIntFromRange(1, 10)))
+				for index := range expectedCollection {
+					expectedCollection[index] = strconv.Itoa(index)
+				}
+				expectedPages := make([]int, (len(expectedCollection)+page.PaginationSizeDefault)/page.PaginationSizeDefault)
+				for index := range expectedPages {
+					expectedPages[index] = index
+				}
+
+				var actualPages []int
+				collector := func(p page.Pagination) ([]string, error) {
+					Expect(p.Size).To(Equal(page.PaginationSizeDefault))
+					actualPages = append(actualPages, p.Page)
+					startIndex := p.Page * p.Size
+					endIndex := min(startIndex+p.Size, len(expectedCollection))
+					return expectedCollection[startIndex:endIndex], nil
+				}
+
+				actualCollection, err := page.Collect(collector)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(actualCollection).To(Equal(expectedCollection))
+				Expect(actualPages).To(Equal(expectedPages))
+			})
+		})
+
+		Context("CollectWithSize", func() {
+			It("returns error if size is less than minimum", func() {
+				result, err := page.CollectWithSize(page.PaginationSizeMinimum-1, func(p page.Pagination) ([]string, error) { return nil, nil })
+				Expect(err).To(MatchError("size is less than minimum"))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns error if collector is missing", func() {
+				result, err := page.CollectWithSize[string](page.PaginationSizeDefault, nil)
+				Expect(err).To(MatchError("collector is missing"))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns error if collector returns error", func() {
+				size := pageTest.RandomSize()
+				err := errorsTest.RandomError()
+				collector := func(p page.Pagination) ([]string, error) { return nil, err }
+				result, err := page.CollectWithSize(size, collector)
+				Expect(err).To(Equal(err))
+				Expect(result).To(BeNil())
+			})
+
+			It("calls collector with given size and increments page until done", func() {
+				size := pageTest.RandomSize()
+				expectedCollection := make([]string, test.RandomIntFromRange(0, size*test.RandomIntFromRange(1, 10)))
+				for index := range expectedCollection {
+					expectedCollection[index] = strconv.Itoa(index)
+				}
+				expectedPages := make([]int, (len(expectedCollection)+size)/size)
+				for index := range expectedPages {
+					expectedPages[index] = index
+				}
+
+				var actualPages []int
+				collector := func(p page.Pagination) ([]string, error) {
+					Expect(p.Size).To(Equal(size))
+					actualPages = append(actualPages, p.Page)
+					startIndex := p.Page * p.Size
+					endIndex := min(startIndex+p.Size, len(expectedCollection))
+					return expectedCollection[startIndex:endIndex], nil
+				}
+
+				actualCollection, err := page.CollectWithSize(size, collector)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(actualCollection).To(Equal(expectedCollection))
+				Expect(actualPages).To(Equal(expectedPages))
 			})
 		})
 	})

@@ -82,6 +82,14 @@ func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
 	return true
 }
 
+func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error) {
+	return true, nil
+}
+
+func (p *Provider) UserActionAcceptURL(ctx context.Context, userID string, action string) (*string, error) {
+	return nil, nil
+}
+
 func (p *Provider) ParseToken(token string, claims jwt.Claims) error {
 	if token == "" {
 		return errors.New("token is missing")
