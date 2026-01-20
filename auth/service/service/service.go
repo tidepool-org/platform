@@ -45,6 +45,7 @@ import (
 	"github.com/tidepool-org/platform/events"
 	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
 	jotformStore "github.com/tidepool-org/platform/oura/jotform/store"
+	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
 
@@ -87,6 +88,7 @@ type Service struct {
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	providerFactory                *providerFactory.Factory
 	shopifyClient                  shopify.Client
+	submissionProcessor            *jotform.SubmissionProcessor
 	taskClient                     task.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 	userEventsHandler              events.Runner
@@ -94,6 +96,7 @@ type Service struct {
 	consentService                 consent.Service
 	workClient                     *workService.Client
 	workStructuredStore            *workStoreStructuredMongo.Store
+	workCoordinator                *workService.Coordinator
 }
 
 func New() *Service {
@@ -177,6 +180,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeRouter(); err != nil {
+		return err
+	}
+	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -320,28 +326,23 @@ func (s *Service) initializeCustomerIOClient() error {
 	return nil
 }
 
-func (s *Service) createJotformRouter() (*jotformAPI.Router, error) {
+func (s *Service) initializeSubmissionProcessor() error {
 	jotformConfig := jotform.Config{}
 	if err := envconfig.Process("", &jotformConfig); err != nil {
-		return nil, errors.Wrap(err, "unable to load jotform config")
+		return errors.Wrap(err, "unable to load jotform config")
 	}
 
 	submissionStore, err := jotformStore.NewStore(s.authStore.Store)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create jotform submission store")
+		return errors.Wrap(err, "unable to create jotform submission store")
 	}
 
-	webhookProcessor, err := jotform.NewSubmissionProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient, submissionStore)
+	s.submissionProcessor, err = jotform.NewSubmissionProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient, submissionStore)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create jotform webhook processor")
+		return errors.Wrap(err, "unable to create jotform webhook processor")
 	}
 
-	jotformRouter, err := jotformAPI.NewRouter(webhookProcessor)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create jotform router")
-	}
-
-	return jotformRouter, nil
+	return nil
 }
 
 func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
@@ -387,9 +388,9 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating jotform router")
 
-	jotformRouter, err := s.createJotformRouter()
+	jotformRouter, err := jotformAPI.NewRouter(s.submissionProcessor)
 	if err != nil {
-		return errors.Wrap(err, "unable to create jotform router")
+		errors.Wrap(err, "unable to create jotform router")
 	}
 
 	s.Logger().Debug("Creating shopify router")
@@ -883,4 +884,30 @@ func (s *Service) terminateUserEventsHandler() {
 		}
 		s.userEventsHandler = nil
 	}
+}
+
+func (s *Service) initializeWorkCoordinator() error {
+	s.Logger().Debug("Creating work coordinator")
+
+	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work coordinator")
+	}
+	s.workCoordinator = coordinator
+
+	s.Logger().Debug("Creating jotform work processor")
+
+	processor := jotformWork.NewProcessor(s.submissionProcessor)
+
+	s.Logger().Debug("Registering jotform work processor")
+
+	if err = s.workCoordinator.RegisterProcessors([]work.Processor{processor}); err != nil {
+		return errors.Wrap(err, "unable to register jotform work processor")
+	}
+
+	s.Logger().Debug("Starting work coordinator")
+
+	s.workCoordinator.Start()
+
+	return nil
 }

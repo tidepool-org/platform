@@ -70,7 +70,7 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 
 // Reconcile fetches new submissions from Jotform and processes any that haven't been processed yet
 // returns the last processed submission ID and an error if one occurred during processing
-func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, lastSubmissionID string) (string, error) {
+func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, lastSubmissionID string) (ReconcileResult, error) {
 	logger := s.logger.WithField("formId", s.config.FormID)
 	logger.Info("Starting Jotform submission reconciliation")
 
@@ -119,17 +119,7 @@ func (s *SubmissionProcessor) Reconcile(ctx context.Context, formID string, last
 		}
 	}
 
-	logger = logger.WithFields(log.Fields{
-		"processed": result.TotalProcessed,
-		"errors":    result.TotalErrors,
-	})
-	if err != nil {
-		logger = logger.WithError(err)
-	}
-
-	logger.Info("Completed Jotform submission reconciliation")
-
-	return filter.IDGreaterThan, err
+	return result, err
 }
 
 func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionID string) error {

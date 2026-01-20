@@ -91,17 +91,33 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		})
 	}
 
-	id, err := p.submissionProcessor.Reconcile(ctx, metadata.FormID, metadata.LastProcessedSubmissionID)
+	result, err := p.submissionProcessor.Reconcile(ctx, metadata.FormID, metadata.LastProcessedSubmissionID)
+	logger := p.logger.WithFields(log.Fields{
+		"processed": result.TotalProcessed,
+		"errors":    result.TotalErrors,
+	})
+
+	updatedMetadata := map[string]any{
+		JotformReconcileMetadataFormIDKey:                 metadata.FormID,
+		JotformReconcileMetadataLastProcessedSubmissionID: metadata.LastProcessedSubmissionID,
+	}
+
+	if result.LastProcessedID != "" {
+		updatedMetadata[JotformReconcileMetadataLastProcessedSubmissionID] = result.LastProcessedID
+	}
+
 	if err != nil {
+		logger.WithError(err).Error("unable to reconcile submissions")
+
 		return *work.NewProcessResultFailing(work.FailingUpdate{
 			FailingError: *errors.NewSerializable(err),
+			Metadata:     updatedMetadata,
 		})
 	}
 
+	logger.Info("reconciled submissions")
+
 	return *work.NewProcessResultSuccess(work.SuccessUpdate{
-		Metadata: map[string]any{
-			JotformReconcileMetadataFormIDKey:                 metadata.FormID,
-			JotformReconcileMetadataLastProcessedSubmissionID: id,
-		},
+		Metadata: updatedMetadata,
 	})
 }
