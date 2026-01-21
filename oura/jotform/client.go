@@ -49,11 +49,6 @@ func NewClient(config Config) (Client, error) {
 	}, nil
 }
 
-// apiKeyMutator returns a request mutator for Jotform API authentication
-func (c *defaultClient) apiKeyMutator() *request.HeaderMutator {
-	return request.NewHeaderMutator("APIKEY", c.config.APIKey)
-}
-
 // errorResponseParser implements client.ErrorResponseParser for Jotform API errors
 type errorResponseParser struct{}
 
@@ -95,7 +90,7 @@ func (c *defaultClient) ListFormSubmissions(ctx context.Context, formID string, 
 	url = c.client.AppendURLQuery(url, query)
 
 	mutators := []request.RequestMutator{
-		c.apiKeyMutator(),
+		request.NewParameterMutator("apiKey", c.config.APIKey),
 	}
 
 	var response FormSubmissionsResponse
@@ -115,7 +110,7 @@ func (c *defaultClient) GetSubmission(ctx context.Context, submissionID string) 
 	url := c.client.ConstructURL("v1", "submission", submissionID)
 
 	mutators := []request.RequestMutator{
-		c.apiKeyMutator(),
+		request.NewHeaderMutator("APIKEY", c.config.APIKey),
 	}
 
 	var response SubmissionResponse

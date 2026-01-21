@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -20,6 +21,10 @@ const (
 	processingTimeout = 3 * time.Minute
 	reconcilerWorkID  = "reconciler"
 
+	retryDurationJitter = 10 * time.Second
+	retryDuration       = processingTimeout * 2
+
+	initialSubmissionID                               = "0"
 	JotformReconcileMetadataLastProcessedSubmissionID = "lastProcessedSubmissionID"
 )
 
@@ -28,7 +33,7 @@ type Metadata struct {
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
-	parser.String(JotformReconcileMetadataLastProcessedSubmissionID)
+	m.LastProcessedSubmissionID = pointer.Default(parser.String(JotformReconcileMetadataLastProcessedSubmissionID), initialSubmissionID)
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
@@ -42,7 +47,7 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 		ProcessingTimeout:       int(processingTimeout.Seconds()),
 		ProcessingAvailableTime: time.Now(),
 		Metadata: map[string]any{
-			JotformReconcileMetadataLastProcessedSubmissionID: "0",
+			JotformReconcileMetadataLastProcessedSubmissionID: initialSubmissionID,
 		},
 	}
 	if _, err := client.Create(ctx, create); err != nil {
@@ -97,9 +102,13 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	if err != nil {
 		logger.WithError(err).Error("unable to reconcile submissions")
 
+		failingRetryCount := pointer.Default(wrk.FailingRetryCount, 0) + 1
+
 		return *work.NewProcessResultFailing(work.FailingUpdate{
-			FailingError: *errors.NewSerializable(err),
-			Metadata:     updatedMetadata,
+			FailingError:      *errors.NewSerializable(err),
+			FailingRetryCount: failingRetryCount,
+			FailingRetryTime:  time.Now().Add(exponentialBackoff(failingRetryCount)),
+			Metadata:          updatedMetadata,
 		})
 	}
 
@@ -108,4 +117,10 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	return *work.NewProcessResultSuccess(work.SuccessUpdate{
 		Metadata: updatedMetadata,
 	})
+}
+
+func exponentialBackoff(retryCount int) time.Duration {
+	fallbackFactor := time.Duration(1 << (retryCount - 1))
+	retryDurationJitter := int64(retryDurationJitter * fallbackFactor)
+	return retryDuration*fallbackFactor + time.Duration(rand.Int63n(2*retryDurationJitter)-retryDurationJitter)
 }
