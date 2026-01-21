@@ -12,7 +12,7 @@ import (
 )
 
 type Client interface {
-	ListSubcriptions(ctx context.Context) ([]*ouraWebhook.Subscription, error)
+	ListSubscriptions(ctx context.Context) ([]*ouraWebhook.Subscription, error)
 	CreateSubscription(ctx context.Context, create *ouraWebhook.CreateSubscription) (*ouraWebhook.Subscription, error)
 	RenewSubscription(ctx context.Context, id string) (*ouraWebhook.Subscription, error)
 	DeleteSubscription(ctx context.Context, id string) error

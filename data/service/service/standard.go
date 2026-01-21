@@ -665,6 +665,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 			ProviderSessionClient: s.AuthClient(),
 			DataSourceClient:      s.dataSourceClient,
 			DataRawClient:         s.dataRawClient,
+			DataSetClient:         s.dataClient,
 			WorkClient:            s.workClient,
 			Client:                s.ouraClient,
 		}

@@ -6,6 +6,7 @@ import (
 	"slices"
 
 	"github.com/tidepool-org/platform/auth"
+	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -18,34 +19,14 @@ import (
 	ouraWorkUsersRevoke "github.com/tidepool-org/platform/oura/work/users/revoke"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/work"
 )
 
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test ProviderSessionClient
-type ProviderSessionClient interface {
-	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
-	DeleteProviderSession(ctx context.Context, id string) error
-}
-
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSourceClient
-type DataSourceClient interface {
-	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
-	Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
-	Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error)
-}
-
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test WorkClient
-type WorkClient interface {
-	Create(ctx context.Context, create *work.Create) (*work.Work, error)
-	DeleteAllByGroupID(ctx context.Context, groupID string) (int, error)
-}
-
 type Dependencies struct {
 	Config                Config
-	ProviderSessionClient ProviderSessionClient
-	DataSourceClient      DataSourceClient
-	WorkClient            WorkClient
+	ProviderSessionClient authProviderSession.Client
+	DataSourceClient      dataSource.Client
+	WorkClient            work.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -66,9 +47,9 @@ func (d Dependencies) Validate() error {
 
 type Provider struct {
 	*oauthProviderClient.Provider
-	providerSessionClient ProviderSessionClient
-	dataSourceClient      DataSourceClient
-	workClient            WorkClient
+	providerSessionClient authProviderSession.Client
+	dataSourceClient      dataSource.Client
+	workClient            work.Client
 	acceptURL             *string
 	partnerURL            *url.URL
 	partnerSecret         string

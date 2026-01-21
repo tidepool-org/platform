@@ -67,7 +67,7 @@ func (c *Client) GetData(ctx context.Context, dataType string, timeRange dataWor
 	return nil, nil
 }
 
-func (c *Client) ListSubcriptions(ctx context.Context) ([]*ouraWebhook.Subscription, error) {
+func (c *Client) ListSubscriptions(ctx context.Context) ([]*ouraWebhook.Subscription, error) {
 	return nil, nil
 }
 

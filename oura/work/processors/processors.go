@@ -3,6 +3,7 @@ package work
 import (
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
+	dataSet "github.com/tidepool-org/platform/data/set"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataWork "github.com/tidepool-org/platform/data/work"
 	ouraWork "github.com/tidepool-org/platform/oura/work"
@@ -18,6 +19,7 @@ type Dependencies struct {
 	ProviderSessionClient providerSession.Client
 	DataSourceClient      dataSource.Client
 	DataRawClient         dataRaw.Client
+	DataSetClient         dataSet.Client
 	WorkClient            work.Client
 	Client                ouraWork.Client
 }
@@ -30,6 +32,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 			ProviderSessionClient: dependencies.ProviderSessionClient,
 			DataSourceClient:      dependencies.DataSourceClient,
 			DataRawClient:         dependencies.DataRawClient,
+			DataSetClient:         dependencies.DataSetClient,
 		},
 		Client: dependencies.Client,
 	}); err != nil {
@@ -43,6 +46,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 			ProviderSessionClient: dependencies.ProviderSessionClient,
 			DataSourceClient:      dependencies.DataSourceClient,
 			DataRawClient:         dependencies.DataRawClient,
+			DataSetClient:         dependencies.DataSetClient,
 		},
 		Client: dependencies.Client,
 	}); err != nil {
@@ -62,13 +66,17 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	if processorFactory, err := ouraWorkSubscribe.NewProcessorFactory(ouraWorkSubscribe.Dependencies{Client: dependencies.Client}); err != nil {
+	if processorFactory, err := ouraWorkSubscribe.NewProcessorFactory(ouraWorkSubscribe.Dependencies{
+		Client: dependencies.Client,
+	}); err != nil {
 		return nil, err
 	} else {
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	if processorFactory, err := ouraWorkUsersRevoke.NewProcessorFactory(ouraWorkUsersRevoke.Dependencies{Client: dependencies.Client}); err != nil {
+	if processorFactory, err := ouraWorkUsersRevoke.NewProcessorFactory(ouraWorkUsersRevoke.Dependencies{
+		Client: dependencies.Client,
+	}); err != nil {
 		return nil, err
 	} else {
 		processorFactories = append(processorFactories, processorFactory)
