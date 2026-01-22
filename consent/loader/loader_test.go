@@ -16,21 +16,21 @@ import (
 
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/consent/loader"
-	serviceTest "github.com/tidepool-org/platform/consent/service/test"
+	consentTest "github.com/tidepool-org/platform/consent/test"
 )
 
 var _ = Describe("SeedConsents", func() {
 	var (
 		ctx         context.Context
 		mockCtrl    *gomock.Controller
-		mockService *serviceTest.MockService
+		mockService *consentTest.MockService
 		logger      log.Logger
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockService = serviceTest.NewMockService(mockCtrl)
+		mockService = consentTest.NewMockService(mockCtrl)
 		logger = test.NewLogger()
 	})
 

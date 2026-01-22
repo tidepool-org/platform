@@ -1,6 +1,8 @@
 package test
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -28,6 +30,23 @@ func RandomState() string {
 
 func RandomStates() []string {
 	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(dataSource.States()), dataSource.States())
+}
+
+func RandomDeviceID() string {
+	return test.RandomString()
+}
+
+func RandomDeviceHash() string {
+	md5Sum := md5.Sum([]byte(test.RandomString()))
+	return hex.EncodeToString(md5Sum[:])
+}
+
+func RandomDeviceHashMap() map[string]any {
+	deviceHashMap := map[string]any{}
+	for range test.RandomIntFromRange(1, 3) {
+		deviceHashMap[RandomDeviceID()] = RandomDeviceHash()
+	}
+	return deviceHashMap
 }
 
 func RandomFilter() *dataSource.Filter {

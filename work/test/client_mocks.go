@@ -119,21 +119,6 @@ func (mr *MockClientMockRecorder) List(ctx, filter, pagination any) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "List", reflect.TypeOf((*MockClient)(nil).List), ctx, filter, pagination)
 }
 
-// Poll mocks base method.
-func (m *MockClient) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Poll", ctx, poll)
-	ret0, _ := ret[0].([]*work.Work)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// Poll indicates an expected call of Poll.
-func (mr *MockClientMockRecorder) Poll(ctx, poll any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Poll", reflect.TypeOf((*MockClient)(nil).Poll), ctx, poll)
-}
-
 // Update mocks base method.
 func (m *MockClient) Update(ctx context.Context, id string, condition *request.Condition, update *work.Update) (*work.Work, error) {
 	m.ctrl.T.Helper()
