@@ -90,7 +90,7 @@ func (c *defaultClient) ListFormSubmissions(ctx context.Context, formID string, 
 	url = c.client.AppendURLQuery(url, query)
 
 	mutators := []request.RequestMutator{
-		request.NewParameterMutator("apiKey", c.config.APIKey),
+		request.NewHeaderMutator("APIKEY", c.config.APIKey),
 	}
 
 	var response FormSubmissionsResponse
