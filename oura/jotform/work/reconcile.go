@@ -25,7 +25,7 @@ const (
 	retryDuration       = processingTimeout * 2
 
 	initialSubmissionID                               = "0"
-	JotformReconcileMetadataLastProcessedSubmissionID = "lastProcessedSubmissionID"
+	JotformReconcileMetadataLastProcessedSubmissionID = "lastProcessedSubmissionId"
 )
 
 type Metadata struct {
