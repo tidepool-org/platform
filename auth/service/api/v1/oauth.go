@@ -62,11 +62,11 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 		return
 	}
 
-	if prvdr.UseCookie() {
-		responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
+	if !prvdr.CookieDisabled() {
+		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, int(maxAge)))
 	}
 
-	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(details.Token())))
+	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)))
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
@@ -162,7 +162,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
 
-	if prvdr.UseCookie() {
+	if !prvdr.CookieDisabled() {
 		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
 	}
 
@@ -240,7 +240,7 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
 	state := req.URL.Query().Get("state")
 	errorCode := req.URL.Query().Get("error")
-	if prvdr.UseCookie() {
+	if !prvdr.CookieDisabled() {
 		cookieName := r.providerCookieName(prvdr)
 		for _, cookie := range req.Cookies() {
 			if cookie.Name == cookieName {

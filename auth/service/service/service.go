@@ -18,6 +18,7 @@ import (
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 
 	"github.com/tidepool-org/platform/apple"
@@ -707,7 +708,7 @@ func (s *Service) initializeProviders() error {
 	configReporter := s.ConfigReporter().WithScopes("provider")
 
 	// Abbott
-	abbottJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(abbottProvider.ProviderName))
+	abbottJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(abbott.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create abbott jwks")
 	}
@@ -732,7 +733,7 @@ func (s *Service) initializeProviders() error {
 	}
 
 	// twiist
-	twiistJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(twiistProvider.ProviderName))
+	twiistJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(twiist.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create twiist jwks")
 	}

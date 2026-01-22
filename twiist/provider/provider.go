@@ -21,8 +21,6 @@ import (
 	"github.com/tidepool-org/platform/twiist"
 )
 
-const ProviderName = "twiist"
-
 //go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test ProviderSessionClient
 type ProviderSessionClient interface {
 	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
@@ -81,7 +79,12 @@ func New(providerDependencies ProviderDependencies) (*Provider, error) {
 		return nil, err
 	}
 
-	prvdr, err := oauthProvider.New(ProviderName, providerDependencies.ConfigReporter.WithScopes(ProviderName), providerDependencies.JWKS)
+	cfg, err := oauthProvider.NewConfigWithConfigReporter(providerDependencies.ConfigReporter.WithScopes(twiist.ProviderName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create provider config")
+	}
+
+	prvdr, err := oauthProvider.New(twiist.ProviderName, cfg, providerDependencies.JWKS)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +143,7 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 		State: pointer.FromString(dataSource.StateDisconnected),
 	}
 	for _, dataSrc := range dataSrcs {
-		dataSrcCtx, dataSrcLgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
+		dataSrcCtx, dataSrcLgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", *dataSrc.ID)
 
 		if _, err = p.dataSourceClient.Update(dataSrcCtx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
 			dataSrcLgr.WithError(err).Error("unable to update data source while deleting provider session")
@@ -265,7 +268,7 @@ func (p *Provider) extractExternalIDsFromProviderSession(providerSession *auth.P
 		return "", "", nil
 	} else if idToken := providerSession.OAuthToken.IDToken; idToken == nil {
 		return "", "", nil
-	} else if err := p.Provider.ParseToken(*idToken, &claims); err != nil {
+	} else if err := p.ParseToken(*idToken, &claims); err != nil {
 		return "", "", errors.Wrap(err, "unable to parse id token")
 	} else if !claims.VerifyAudience(p.ClientID(), true) {
 		return "", "", errors.New("unable to verify id token audience claim")
