@@ -11,10 +11,23 @@ type SubmissionResponse struct {
 }
 
 type Content struct {
-	ID        string  `json:"id"`
-	FormID    string  `json:"form_id"`
-	Answers   Answers `json:"answers"`
-	CreatedAt string  `json:"created_at"`
+	ID         string          `json:"id"`
+	FormID     string          `json:"form_id"`
+	Answers    Answers         `json:"answers"`
+	CreatedAt  string          `json:"created_at"`
+	RawContent json.RawMessage `json:"-"`
+}
+
+func (c *Content) UnmarshalJSON(data []byte) error {
+	type contentAlias Content
+	var alias contentAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+	*c = Content(alias)
+	c.RawContent = make(json.RawMessage, len(data))
+	copy(c.RawContent, data)
+	return nil
 }
 
 type Answer interface {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/errors"
@@ -168,9 +170,17 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 		return err
 	}
 
+	var rawContent bson.Raw
+	if submission.Content.RawContent != nil {
+		if err := bson.UnmarshalExtJSON(submission.Content.RawContent, true, &rawContent); err != nil {
+			logger.WithError(err).Warn("failed to unmarshal raw content to bson")
+		}
+	}
+
 	processedSubmission := &store.ProcessedSubmission{
 		SubmissionID: submission.Content.ID,
 		FormID:       submission.Content.FormID,
+		RawContent:   rawContent,
 		CreatedTime:  time.Now(),
 	}
 	if err := s.store.SaveProcessedSubmission(ctx, processedSubmission); err != nil {

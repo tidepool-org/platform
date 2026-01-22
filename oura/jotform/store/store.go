@@ -2,7 +2,6 @@ package store
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -16,10 +15,10 @@ import (
 const CollectionName = "jotform_submissions"
 
 type ProcessedSubmission struct {
-	SubmissionID string          `bson:"submissionId"`
-	FormID       string          `bson:"formId"`
-	RawPayload   json.RawMessage `bson:"rawPayload"`
-	CreatedTime  time.Time       `bson:"createdTime"`
+	SubmissionID string    `bson:"submissionId"`
+	FormID       string    `bson:"formId"`
+	RawContent   bson.Raw  `bson:"rawContent"`
+	CreatedTime  time.Time `bson:"createdTime"`
 }
 
 type Store interface {
