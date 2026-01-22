@@ -13,6 +13,7 @@ import (
 type Config struct {
 	ClientID          string   `json:"client_id,omitempty"`
 	ClientSecret      string   `json:"client_secret,omitempty"`
+	AcceptURL         *string  `json:"accept_url,omitempty"`
 	AuthorizeURL      string   `json:"authorize_url,omitempty"`
 	RedirectURL       string   `json:"redirect_url,omitempty"`
 	TokenURL          string   `json:"token_url,omitempty"`
@@ -41,6 +42,9 @@ func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
 	}
 	c.ClientID = configReporter.GetWithDefault("client_id", c.ClientID)
 	c.ClientSecret = configReporter.GetWithDefault("client_secret", c.ClientSecret)
+	if acceptURL, err := configReporter.Get("accept_url"); err == nil && acceptURL != "" {
+		c.AcceptURL = &acceptURL
+	}
 	c.AuthorizeURL = configReporter.GetWithDefault("authorize_url", c.AuthorizeURL)
 	c.RedirectURL = configReporter.GetWithDefault("redirect_url", c.RedirectURL)
 	c.TokenURL = configReporter.GetWithDefault("token_url", c.ClientID)
@@ -76,6 +80,11 @@ func (c *Config) Validate() error {
 	}
 	if c.ClientSecret == "" {
 		return errors.New("client secret is empty")
+	}
+	if c.AcceptURL != nil {
+		if _, err := url.Parse(*c.AcceptURL); err != nil {
+			return errors.New("accept url is invalid")
+		}
 	}
 	if c.AuthorizeURL == "" {
 		return errors.New("authorize url is empty")

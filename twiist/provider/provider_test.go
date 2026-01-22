@@ -19,6 +19,7 @@ import (
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
+	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -355,6 +356,22 @@ var _ = Describe("Provider", func() {
 			}
 
 			Expect(prvdr.OnDelete(ctx, session)).To(Succeed())
+		})
+	})
+
+	Describe("AllowUserInitiatedAction", func() {
+		var ctx context.Context
+
+		BeforeEach(func() {
+			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
+		})
+
+		It("allows authorize action for any user", func() {
+			Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)).To(BeTrue())
+		})
+
+		It("disallows authorize action for any user", func() {
+			Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionRevoke)).To(BeFalse())
 		})
 	})
 })

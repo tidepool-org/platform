@@ -16,6 +16,9 @@ import (
 
 const (
 	ProviderType = "oauth"
+
+	ActionAuthorize = "authorize"
+	ActionRevoke    = "revoke"
 )
 
 type TokenSourceSource interface {
@@ -26,6 +29,9 @@ type Provider interface {
 	provider.Provider
 	TokenSourceSource
 
+	AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error)
+	UserActionAcceptURL(ctx context.Context, userID string, action string) (*string, error)
+
 	ParseToken(token string, claims jwt.Claims) error
 
 	CookieDisabled() bool
@@ -34,8 +40,6 @@ type Provider interface {
 	GetAuthorizationCodeURLWithState(state string) string
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error)
 	IsErrorCodeAccessDenied(errorCode string) bool
-
-	SupportsUserInitiatedAccountUnlinking() bool
 }
 
 type TokenSource interface {

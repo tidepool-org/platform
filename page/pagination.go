@@ -29,6 +29,13 @@ func NewPagination() *Pagination {
 	}
 }
 
+func NewPaginationMinimum() *Pagination {
+	return &Pagination{
+		Page: PaginationPageMinimum,
+		Size: PaginationSizeMinimum,
+	}
+}
+
 func (p *Pagination) Parse(parser structure.ObjectParser) {
 	if page := parser.Int("page"); page != nil {
 		p.Page = *page
@@ -73,6 +80,33 @@ func PaginateWithSize(size int, paginator Paginator) error {
 			return err
 		} else if done {
 			return nil
+		}
+	}
+}
+
+type Collector[T any] func(pagination Pagination) ([]T, error)
+
+func Collect[T any](collector Collector[T]) ([]T, error) {
+	return CollectWithSize(PaginationSizeDefault, collector)
+}
+
+func CollectWithSize[T any](size int, collector Collector[T]) ([]T, error) {
+	if size < PaginationSizeMinimum {
+		return nil, errors.New("size is less than minimum")
+	}
+	if collector == nil {
+		return nil, errors.New("collector is missing")
+	}
+
+	var collection []T
+	for page := 0; ; page++ {
+		collected, err := collector(Pagination{Page: page, Size: size})
+		if err != nil {
+			return nil, err
+		}
+		collection = append(collection, collected...)
+		if len(collected) < size {
+			return collection, nil
 		}
 	}
 }
