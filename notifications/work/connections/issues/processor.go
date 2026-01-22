@@ -21,8 +21,8 @@ const (
 )
 
 // NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
-func NewGroupID(dataSourceId string) string {
-	return fmt.Sprintf("%s:%s", processorType, dataSourceId)
+func NewGroupID(dataSourceID string) string {
+	return fmt.Sprintf("%s:%s", processorType, dataSourceID)
 }
 
 type processor struct {
@@ -31,31 +31,31 @@ type processor struct {
 
 type Metadata struct {
 	DataSourceState   string `json:"dataSourceState,omitempty"`
-	DataSourceId      string `json:"dataSourceId,omitempty"`
+	DataSourceID      string `json:"dataSourceId,omitempty"`
 	EmailTemplate     string `json:"emailTemplate,omitempty"`
 	FullName          string `json:"fullName,omitempty"`
 	ProviderName      string `json:"providerName,omitempty"`
-	RestrictedTokenId string `json:"restrictedTokenId,omitempty"`
-	UserId            string `json:"userId,omitempty"`
+	RestrictedTokenID string `json:"restrictedTokenId,omitempty"`
+	UserID            string `json:"userId,omitempty"`
 }
 
 func (d *Metadata) Parse(parser structure.ObjectParser) {
 	d.DataSourceState = pointer.ToString(parser.String("dataSourceState"))
-	d.DataSourceId = pointer.ToString(parser.String("dataSourceId"))
+	d.DataSourceID = pointer.ToString(parser.String("dataSourceId"))
 	d.EmailTemplate = pointer.ToString(parser.String("emailTemplate"))
 	d.FullName = pointer.ToString(parser.String("fullName"))
 	d.ProviderName = pointer.ToString(parser.String("providerName"))
-	d.RestrictedTokenId = pointer.ToString(parser.String("restrictedTokenId"))
-	d.UserId = pointer.ToString(parser.String("userId"))
+	d.RestrictedTokenID = pointer.ToString(parser.String("restrictedTokenId"))
+	d.UserID = pointer.ToString(parser.String("userId"))
 }
 
 func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("dataSourceState", &d.DataSourceState).NotEmpty()
-	validator.String("dataSourceId", &d.DataSourceId).NotEmpty()
+	validator.String("dataSourceId", &d.DataSourceID).NotEmpty()
 	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
 	validator.String("fullName", &d.FullName).NotEmpty()
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("userId", &d.UserId).NotEmpty()
+	validator.String("userId", &d.UserID).NotEmpty()
 }
 
 func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
@@ -69,8 +69,8 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 func newWorkCreate(metadata Metadata) *work.Create {
 	return &work.Create{
 		Type:              processorType,
-		SerialID:          pointer.FromString(metadata.UserId),
-		GroupID:           pointer.FromString(NewGroupID(metadata.DataSourceId)),
+		SerialID:          pointer.FromString(metadata.UserID),
+		GroupID:           pointer.FromString(NewGroupID(metadata.DataSourceID)),
 		ProcessingTimeout: processingTimeoutSeconds,
 		Metadata:          fromMetadata(metadata),
 	}
@@ -100,16 +100,16 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 
-	user, err := p.dependencies.Users.Get(ctx, data.UserId)
+	user, err := p.dependencies.Users.Get(ctx, data.UserID)
 	if err != nil {
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 
 	emailVars := map[string]string{
-		"RestrictedTokenId": data.RestrictedTokenId,
+		"RestrictedTokenId": data.RestrictedTokenID,
 		"FullName":          data.FullName,
 		"ProviderName":      data.ProviderName,
 	}
@@ -127,8 +127,8 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 func toMetadata(wrk *work.Work) (*Metadata, error) {
 	wrk.EnsureMetadata()
 	var data Metadata
-	if userId, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserId = userId
+	if userID, ok := wrk.Metadata["userId"].(string); ok {
+		data.UserID = userID
 	} else {
 		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
@@ -147,8 +147,8 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 	} else {
 		return nil, fmt.Errorf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
 	}
-	if restrictedTokenId, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
-		data.RestrictedTokenId = restrictedTokenId
+	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
+		data.RestrictedTokenID = restrictedTokenID
 	} else {
 		return nil, fmt.Errorf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
 	}
@@ -162,11 +162,11 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 
 func fromMetadata(data Metadata) map[string]any {
 	return map[string]any{
-		"userId":            data.UserId,
+		"userId":            data.UserID,
 		"providerName":      data.ProviderName,
 		"dataSourceState":   data.DataSourceState,
 		"fullName":          data.FullName,
-		"restrictedTokenId": data.RestrictedTokenId,
+		"restrictedTokenId": data.RestrictedTokenID,
 		"emailTemplate":     data.EmailTemplate,
 	}
 }

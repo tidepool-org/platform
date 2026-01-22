@@ -24,25 +24,25 @@ const (
 // user has already claimed their account but there is a pending notification
 // that hasn't been processed yetm the processor should delete all work items
 // of the same group id when it is time to process the item.
-func NewGroupID(userId string) string {
-	return fmt.Sprintf("%s:%s", processorType, userId)
+func NewGroupID(userID string) string {
+	return fmt.Sprintf("%s:%s", processorType, userID)
 }
 
 type Metadata struct {
 	ClinicID   string    `json:"clinicId,omitempty"`
-	UserId     string    `json:"userId,omitempty"`
+	UserID     string    `json:"userId,omitempty"`
 	WhenToSend time.Time `json:"whenToSend,omitzero"`
 }
 
 func (d *Metadata) Parse(parser structure.ObjectParser) {
 	d.ClinicID = pointer.ToString(parser.String("clinicId"))
-	d.UserId = pointer.ToString(parser.String("userId"))
+	d.UserID = pointer.ToString(parser.String("userId"))
 	d.WhenToSend = pointer.ToTime(parser.Time("whenToSend", time.RFC3339Nano))
 }
 
 func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("clinicId", &d.ClinicID).NotEmpty()
-	validator.String("userId", &d.UserId).NotEmpty()
+	validator.String("userId", &d.UserID).NotEmpty()
 }
 
 func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
@@ -66,8 +66,8 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 	return &work.Create{
 		Type:                    processorType,
-		SerialID:                pointer.FromString(metadata.UserId),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.UserId)),
+		SerialID:                pointer.FromString(metadata.UserID),
+		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID)),
 		ProcessingTimeout:       processingTimeoutSeconds,
 		ProcessingAvailableTime: notBefore,
 		Metadata:                fromClaimAccountData(metadata),
@@ -102,15 +102,15 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 
-	patient, err := p.dependencies.Clinics.GetPatient(ctx, data.ClinicID, data.UserId)
+	patient, err := p.dependencies.Clinics.GetPatient(ctx, data.ClinicID, data.UserID)
 	if err != nil {
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if patient == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find patient with userId "%v"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find patient with userId "%v"`, data.UserID), wrk)
 	}
 	if pointer.ToString(patient.Email) == "" {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find email for patient with userId "%v"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find email for patient with userId "%v"`, data.UserID), wrk)
 	}
 	// If user already claimed they will no longer have the custodian field set
 	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
@@ -126,13 +126,13 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 func toClaimAccountData(wrk *work.Work) (*Metadata, error) {
 	wrk.EnsureMetadata()
 	var data Metadata
-	if userId, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserId = userId
+	if userID, ok := wrk.Metadata["userId"].(string); ok {
+		data.UserID = userID
 	} else {
 		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
-	if clinicId, ok := wrk.Metadata["clinicId"].(string); ok {
-		data.ClinicID = clinicId
+	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
+		data.ClinicID = clinicID
 	} else {
 		return nil, fmt.Errorf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
 	}
@@ -141,7 +141,7 @@ func toClaimAccountData(wrk *work.Work) (*Metadata, error) {
 
 func fromClaimAccountData(data Metadata) map[string]any {
 	return map[string]any{
-		"userId":   data.UserId,
+		"userId":   data.UserID,
 		"clinicId": data.ClinicID,
 	}
 }

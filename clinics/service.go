@@ -22,6 +22,7 @@ var ClientModule = fx.Provide(NewClient)
 
 //go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
 type Client interface {
+	GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error)
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
 	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
@@ -75,6 +76,24 @@ func NewClient(authClient auth.ExternalAccessor) (Client, error) {
 
 func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error) {
 	response, err := d.httpClient.GetClinicianWithResponse(ctx, clinic.ClinicId(clinicID), clinic.ClinicianId(clinicianID))
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode() == http.StatusNotFound {
+		return nil, nil
+	}
+	if response.StatusCode() != http.StatusOK {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return nil, err
+	}
+	return response.JSON200, nil
+}
+
+func (d *defaultClient) GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error) {
+	response, err := d.httpClient.GetClinicWithResponse(ctx, clinic.ClinicId(clinicID))
 	if err != nil {
 		return nil, err
 	}

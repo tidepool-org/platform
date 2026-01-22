@@ -26,13 +26,13 @@ func NewGroupID(userID, providerName string) string {
 }
 
 type Metadata struct {
-	ClinicId          string    `json:"clinicId,omitempty"`
+	ClinicID          string    `json:"clinicId,omitempty"`
 	Email             string    `json:"email,omitempty"`
 	EmailTemplate     string    `json:"emailTemplate,omitempty"`
 	PatientName       string    `json:"patientName,omitempty"`
 	ProviderName      string    `json:"providerName,omitempty"`
-	RestrictedTokenId string    `json:"restrictedTokenId,omitempty"`
-	UserId            string    `json:"userId,omitempty"`
+	RestrictedTokenID string    `json:"restrictedTokenId,omitempty"`
+	UserID            string    `json:"userId,omitempty"`
 	WhenToSend        time.Time `json:"whenToSend,omitzero"`
 }
 
@@ -60,8 +60,8 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 	return &work.Create{
 		Type:                    processorType,
-		SerialID:                pointer.FromString(metadata.UserId),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.UserId, metadata.ProviderName)),
+		SerialID:                pointer.FromString(metadata.UserID),
+		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID, metadata.ProviderName)),
 		ProcessingTimeout:       processingTimeoutSeconds,
 		ProcessingAvailableTime: notBefore,
 		Metadata:                fromConnectAccountData(metadata),
@@ -69,24 +69,24 @@ func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 }
 
 func (d *Metadata) Parse(parser structure.ObjectParser) {
-	d.ClinicId = pointer.ToString(parser.String("clinicId"))
+	d.ClinicID = pointer.ToString(parser.String("clinicId"))
 	d.Email = pointer.ToString(parser.String("email"))
 	d.EmailTemplate = pointer.ToString(parser.String("emailTemplate"))
 	d.PatientName = pointer.ToString(parser.String("patientName"))
 	d.ProviderName = pointer.ToString(parser.String("providerName"))
-	d.RestrictedTokenId = pointer.ToString(parser.String("restrictedTokenId"))
-	d.UserId = pointer.ToString(parser.String("userId"))
+	d.RestrictedTokenID = pointer.ToString(parser.String("restrictedTokenId"))
+	d.UserID = pointer.ToString(parser.String("userId"))
 	d.WhenToSend = pointer.ToTime(parser.Time("whenToSend", time.RFC3339Nano))
 }
 
 func (d *Metadata) Validate(validator structure.Validator) {
-	validator.String("clinicId", &d.ClinicId).NotEmpty()
+	validator.String("clinicId", &d.ClinicID).NotEmpty()
 	validator.String("email", &d.Email).NotEmpty()
 	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
 	validator.String("patientName", &d.PatientName).NotEmpty()
 	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("restrictedTokenId", &d.RestrictedTokenId).NotEmpty()
-	validator.String("userId", &d.UserId).NotEmpty()
+	validator.String("restrictedTokenId", &d.RestrictedTokenID).NotEmpty()
+	validator.String("userId", &d.UserID).NotEmpty()
 }
 
 func NewProcessor(dependencies notifications.Dependencies) *processor {
@@ -113,17 +113,17 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 
-	user, err := p.dependencies.Users.Get(ctx, data.UserId)
+	user, err := p.dependencies.Users.Get(ctx, data.UserID)
 	if err != nil {
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserId), wrk)
+		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 	filter := source.NewFilter()
 	filter.ProviderName = pointer.FromStringArray([]string{data.ProviderName})
-	filter.State = pointer.FromStringArray([]string{"connected"})
-	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserId, filter, nil)
+	filter.State = pointer.FromStringArray([]string{source.StateDisconnected})
+	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserID, filter, nil)
 	if err != nil {
 		return notifications.NewFailingResult(err, wrk)
 	}
@@ -132,10 +132,19 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return *work.NewProcessResultDelete()
 	}
 
+	var clinicName string
+	clinic, err := p.dependencies.Clinics.GetClinic(ctx, data.ClinicID)
+	if err != nil {
+		return notifications.NewFailingResult(fmt.Errorf(`error getting clinic: %w`, err), wrk)
+	}
+	if clinic != nil {
+		clinicName = clinic.Name
+	}
 	emailVars := map[string]string{
-		"RestrictedTokenId": data.RestrictedTokenId,
+		"ClinicName":        clinicName,
 		"PatientName":       data.PatientName,
 		"ProviderName":      data.ProviderName,
+		"RestrictedTokenId": data.RestrictedTokenID,
 	}
 	templateEvent := events.SendEmailTemplateEvent{
 		Recipient: *user.Username,
@@ -151,8 +160,8 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 	wrk.EnsureMetadata()
 	var data Metadata
-	if userId, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserId = userId
+	if userID, ok := wrk.Metadata["userId"].(string); ok {
+		data.UserID = userID
 	} else {
 		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
@@ -166,8 +175,8 @@ func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 	} else {
 		return nil, fmt.Errorf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
 	}
-	if restrictedTokenId, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
-		data.RestrictedTokenId = restrictedTokenId
+	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
+		data.RestrictedTokenID = restrictedTokenID
 	} else {
 		return nil, fmt.Errorf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
 	}
@@ -181,10 +190,10 @@ func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 
 func fromConnectAccountData(data Metadata) map[string]any {
 	return map[string]any{
-		"userId":            data.UserId,
+		"userId":            data.UserID,
 		"providerName":      data.ProviderName,
 		"patientName":       data.PatientName,
-		"restrictedTokenId": data.RestrictedTokenId,
+		"restrictedTokenId": data.RestrictedTokenID,
 		"emailTemplate":     data.EmailTemplate,
 	}
 }
