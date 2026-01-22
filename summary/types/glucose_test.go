@@ -354,8 +354,10 @@ var _ = Describe("Glucose", func() {
 			// expect percent cleared, we don't handle percent on add
 			Expect(firstRange.Percent).To(BeZero())
 		})
+	})
 
-		It("range.Add without minutes", func() {
+	Describe("range.Add without minutes", func() {
+		It("multiple samples per range", func() {
 			firstRange := Range{
 				Glucose:  1,
 				Minutes:  0,
@@ -383,6 +385,46 @@ var _ = Describe("Glucose", func() {
 
 			// expect percent cleared, we don't handle percent on add
 			Expect(firstRange.Percent).To(BeZero())
+		})
+
+		It("one sample per range", func() {
+			// Test to cover [BACK-4044]
+			ranges := []Range{
+				{
+					Glucose: 10,
+					Minutes: 0,
+					Records: 1,
+				},
+				{
+					Glucose: 15,
+					Minutes: 0,
+					Records: 1,
+				},
+				{
+					Glucose: 8,
+					Minutes: 0,
+					Records: 1,
+				},
+				{
+					Glucose: 11,
+					Minutes: 0,
+					Records: 1,
+				},
+			}
+			rootRange := Range{}
+			vals := []float64{}
+			var runningTotal float64
+			for i, rng := range ranges {
+				rootRange.Add(&rng)
+				runningTotal += rng.Glucose
+				mean := runningTotal / float64(i+1)
+				vals = append(vals, rng.Glucose)
+				variance := CalculateVariance(vals, mean)
+				Expect(rootRange.Variance).To(Equal(variance))
+				if i > 0 {
+					Expect(rootRange.Variance).To(BeNumerically(">", math.SmallestNonzeroFloat64))
+				}
+			}
 		})
 	})
 
@@ -1054,6 +1096,79 @@ var _ = Describe("Glucose", func() {
 			Expect(period.DaysWithData).To(Equal(2))
 			Expect(period.Min).To(Equal(InTargetBloodGlucose))
 			Expect(period.Max).To(Equal(InTargetBloodGlucose))
+		})
+
+		It("Add four single record buckets to a period", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			period = GlucosePeriod{}
+
+			bucketOne := NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
+			err = bucketOne.Update(NewSelfMonitoredGlucoseWithValue(datumTime, 5.0))
+			Expect(err).ToNot(HaveOccurred())
+
+			bucketTwo := NewBucket[*GlucoseBucket](userId, bucketTime.Add(time.Hour), SummaryTypeBGM)
+			err = bucketTwo.Update(NewSelfMonitoredGlucoseWithValue(datumTime.Add(time.Hour), 5.0))
+			Expect(err).ToNot(HaveOccurred())
+
+			bucketThree := NewBucket[*GlucoseBucket](userId, bucketTime.Add(26*time.Hour), SummaryTypeBGM)
+			err = bucketThree.Update(NewSelfMonitoredGlucoseWithValue(datumTime.Add(26*time.Hour), 11.0))
+			Expect(err).ToNot(HaveOccurred())
+
+			bucketFour := NewBucket[*GlucoseBucket](userId, bucketTime.Add(27*time.Hour), SummaryTypeBGM)
+			err = bucketFour.Update(NewSelfMonitoredGlucoseWithValue(datumTime.Add(27*time.Hour), 11.0))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = period.Update(bucketOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Target.Records).To(Equal(1))
+			Expect(period.HoursWithData).To(Equal(1))
+			Expect(period.DaysWithData).To(Equal(1))
+			Expect(period.Min).To(Equal(5.0))
+			Expect(period.Max).To(Equal(5.0))
+
+			err = period.Update(bucketTwo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Target.Records).To(Equal(2))
+			Expect(period.HoursWithData).To(Equal(2))
+			Expect(period.DaysWithData).To(Equal(1))
+			Expect(period.Min).To(Equal(5.0))
+			Expect(period.Max).To(Equal(5.0))
+
+			err = period.Update(bucketThree)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Target.Records).To(Equal(2))
+			Expect(period.HoursWithData).To(Equal(3))
+			Expect(period.DaysWithData).To(Equal(2))
+			Expect(period.Min).To(Equal(5.0))
+			Expect(period.Max).To(Equal(11.0))
+
+			err = period.Update(bucketFour)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Target.Records).To(Equal(2))
+			Expect(period.HoursWithData).To(Equal(4))
+			Expect(period.DaysWithData).To(Equal(2))
+			Expect(period.Min).To(Equal(5.0))
+			Expect(period.Max).To(Equal(11.0))
+
+			periodDays := 7
+			period.Finalize(periodDays)
+
+			Expect(period.AnyLow.Percent).To(Equal(0.0))
+			Expect(period.AnyHigh.Percent).To(Equal(0.5))
+			Expect(period.Target.Percent).To(Equal(0.5))
+			Expect(period.Low.Percent).To(Equal(0.0))
+			Expect(period.High.Percent).To(Equal(0.5))
+			Expect(period.VeryLow.Percent).To(Equal(0.0))
+			Expect(period.ExtremeHigh.Percent).To(Equal(0.0))
+
+			avgGlucose := (5.0 + 5.0 + 11.0 + 11.0) / 4.0
+			Expect(period.AverageDailyRecords).To(Equal(4.0 / float64(periodDays)))
+			Expect(period.AverageGlucose).To(Equal(avgGlucose))
+
+			expectedStdev := ((5-avgGlucose)*(5-avgGlucose) + (5-avgGlucose)*(5-avgGlucose) + (11-avgGlucose)*(11-avgGlucose) + (11-avgGlucose)*(11-avgGlucose)) / 4.0 / 3.0
+			expectedCV := expectedStdev / avgGlucose
+			Expect(period.StandardDeviation).To(Equal(expectedStdev))
+			Expect(period.CoefficientOfVariation).To(Equal(expectedCV))
 		})
 
 		It("Finalize a 1d period", func() {
