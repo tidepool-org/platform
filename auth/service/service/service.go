@@ -911,12 +911,15 @@ func (s *Service) initializeWorkCoordinator() error {
 
 	s.Logger().Info("Creating jotform work processor")
 
-	processor := jotformWork.NewProcessor(s.submissionProcessor, s.Logger())
+	factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.submissionProcessor})
+	if err != nil {
+		return errors.Wrap(err, "unable to create jotform work processor factory")
+	}
 
 	s.Logger().Info("Registering jotform work processor")
 
-	if err = s.workCoordinator.RegisterProcessors([]work.Processor{processor}); err != nil {
-		return errors.Wrap(err, "unable to register jotform work processor")
+	if err = s.workCoordinator.RegisterProcessorFactory(factory); err != nil {
+		return errors.Wrap(err, "unable to register jotform work processor factory")
 	}
 
 	s.Logger().Info("Starting work coordinator")

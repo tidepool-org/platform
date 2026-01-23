@@ -2,53 +2,80 @@ package work
 
 import (
 	"context"
-	"math/rand"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura/jotform"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/structure"
-	structureParser "github.com/tidepool-org/platform/structure/parser"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const (
-	processorType = "org.tidepool.processors.oura.jotform.reconcile"
-	quantity      = 1
-	frequency     = 30 * time.Minute
+	Type      = "org.tidepool.processors.oura.jotform.reconcile"
+	Quantity  = 1
+	Frequency = time.Minute
 
-	processingTimeout = 3 * time.Minute
-	reconcilerWorkID  = "reconciler"
+	PendingRetryDuration       = 30 * time.Minute
+	FailingRetryDurationJitter = 10 * time.Second
+	FailingRetryDuration       = ProcessingTimeout * 2
+	ProcessingTimeout          = 3 * time.Minute
 
-	retryDurationJitter = 10 * time.Second
-	retryDuration       = processingTimeout * 2
-
-	initialSubmissionID                               = "0"
-	JotformReconcileMetadataLastProcessedSubmissionID = "lastProcessedSubmissionId"
+	MetadataKeyLastProcessedSubmissionID = "lastProcessedSubmissionId"
+	initialSubmissionID                  = "0"
+	reconcilerWorkID                     = "reconciler"
 )
 
-type Metadata struct {
-	LastProcessedSubmissionID string
+type Dependencies struct {
+	SubmissionProcessor *jotform.SubmissionProcessor
 }
 
-func (m *Metadata) Parse(parser structure.ObjectParser) {
-	m.LastProcessedSubmissionID = pointer.Default(parser.String(JotformReconcileMetadataLastProcessedSubmissionID), initialSubmissionID)
+func (d Dependencies) Validate() error {
+	if d.SubmissionProcessor == nil {
+		return errors.New("submission processor is missing")
+	}
+	return nil
 }
 
-func (m *Metadata) Validate(validator structure.Validator) {
-	validator.String(JotformReconcileMetadataLastProcessedSubmissionID, &m.LastProcessedSubmissionID).NotEmpty()
+func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies are invalid")
+	}
+	processorFactory := func() (work.Processor, error) { return NewProcessor(dependencies) }
+	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
+}
+
+func NewProcessor(dependencies Dependencies) (*Processor, error) {
+	processResultBuilder := &workBase.ProcessResultBuilder{
+		ProcessResultPendingBuilder: &workBase.ConstantProcessResultPendingBuilder{
+			Duration: PendingRetryDuration,
+		},
+		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
+			Duration:       FailingRetryDuration,
+			DurationJitter: FailingRetryDurationJitter,
+		},
+	}
+
+	base, err := workBase.NewProcessor(processResultBuilder)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create processor")
+	}
+
+	return &Processor{
+		Dependencies: dependencies,
+		Processor:    base,
+	}, nil
 }
 
 func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
 	create := &work.Create{
-		Type:                    processorType,
+		Type:                    Type,
 		DeduplicationID:         pointer.FromString(reconcilerWorkID),
-		ProcessingTimeout:       int(processingTimeout.Seconds()),
+		ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
 		ProcessingAvailableTime: time.Now(),
 		Metadata: map[string]any{
-			JotformReconcileMetadataLastProcessedSubmissionID: initialSubmissionID,
+			MetadataKeyLastProcessedSubmissionID: initialSubmissionID,
 		},
 	}
 	if _, err := client.Create(ctx, create); err != nil {
@@ -58,72 +85,35 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 }
 
 type Processor struct {
-	logger              log.Logger
-	submissionProcessor *jotform.SubmissionProcessor
+	*workBase.Processor
+	Dependencies
 }
 
-func NewProcessor(submissionProcessor *jotform.SubmissionProcessor, logger log.Logger) *Processor {
-	return &Processor{
-		logger:              logger,
-		submissionProcessor: submissionProcessor,
-	}
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) *work.ProcessResult {
+	return work.ProcessPipeline{
+		p.ProcessPipelineFunc(ctx, wrk, updater),
+		p.reconcile,
+		p.Pending,
+	}.Process()
 }
 
-func (p *Processor) Type() string {
-	return processorType
-}
-
-func (p *Processor) Quantity() int {
-	return quantity
-}
-
-func (p *Processor) Frequency() time.Duration {
-	return time.Minute
-}
-
-func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
-	parser := structureParser.NewObject(p.logger, &wrk.Metadata)
-	metadata := &Metadata{}
-	metadata.Parse(parser)
-
-	result, err := p.submissionProcessor.Reconcile(ctx, metadata.LastProcessedSubmissionID)
-	logger := p.logger.WithFields(log.Fields{
+func (p *Processor) reconcile() *work.ProcessResult {
+	result, err := p.SubmissionProcessor.Reconcile(p.Context(), p.lastProcessedSubmissionIDFromMetadata())
+	p.AddFieldsToContext(log.Fields{
 		"processed": result.TotalProcessed,
 		"errors":    result.TotalErrors,
 	})
 
-	updatedMetadata := map[string]any{
-		JotformReconcileMetadataLastProcessedSubmissionID: metadata.LastProcessedSubmissionID,
-	}
-
-	if result.LastProcessedID != "" {
-		updatedMetadata[JotformReconcileMetadataLastProcessedSubmissionID] = result.LastProcessedID
-	}
-
 	if err != nil {
-		logger.WithError(err).Error("unable to reconcile submissions")
-
-		failingRetryCount := pointer.Default(wrk.FailingRetryCount, 0) + 1
-
-		return *work.NewProcessResultFailing(work.FailingUpdate{
-			FailingError:      *errors.NewSerializable(err),
-			FailingRetryCount: failingRetryCount,
-			FailingRetryTime:  time.Now().Add(exponentialBackoff(failingRetryCount)),
-			Metadata:          updatedMetadata,
-		})
+		return p.Failing(err)
 	}
 
-	logger.Info("reconciled submissions")
-
-	return *work.NewProcessResultPending(work.PendingUpdate{
-		Metadata:                updatedMetadata,
-		ProcessingAvailableTime: time.Now().Add(frequency),
-		ProcessingTimeout:       int(processingTimeout.Seconds()),
-	})
+	p.Work().Metadata[MetadataKeyLastProcessedSubmissionID] = result.LastProcessedID
+	p.Logger().Info("reconciled submissions")
+	return nil
 }
 
-func exponentialBackoff(retryCount int) time.Duration {
-	fallbackFactor := time.Duration(1 << (retryCount - 1))
-	retryDurationJitter := int64(retryDurationJitter * fallbackFactor)
-	return retryDuration*fallbackFactor + time.Duration(rand.Int63n(2*retryDurationJitter)-retryDurationJitter)
+func (p *Processor) lastProcessedSubmissionIDFromMetadata() string {
+	parser := p.MetadataParser()
+	return pointer.Default(parser.String(MetadataKeyLastProcessedSubmissionID), initialSubmissionID)
 }
