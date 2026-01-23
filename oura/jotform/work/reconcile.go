@@ -15,9 +15,10 @@ import (
 )
 
 const (
-	processorType     = "org.tidepool.processors.oura.jotform.reconcile"
-	quantity          = 1
-	frequency         = 60 * time.Minute
+	processorType = "org.tidepool.processors.oura.jotform.reconcile"
+	quantity      = 1
+	frequency     = 30 * time.Minute
+
 	processingTimeout = 3 * time.Minute
 	reconcilerWorkID  = "reconciler"
 
@@ -77,7 +78,7 @@ func (p *Processor) Quantity() int {
 }
 
 func (p *Processor) Frequency() time.Duration {
-	return frequency
+	return time.Minute
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
@@ -114,8 +115,10 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 	logger.Info("reconciled submissions")
 
-	return *work.NewProcessResultSuccess(work.SuccessUpdate{
-		Metadata: updatedMetadata,
+	return *work.NewProcessResultPending(work.PendingUpdate{
+		Metadata:                updatedMetadata,
+		ProcessingAvailableTime: time.Now().Add(frequency),
+		ProcessingTimeout:       int(processingTimeout.Seconds()),
 	})
 }
 
