@@ -85,7 +85,7 @@ func (c *defaultClient) ListFormSubmissions(ctx context.Context, formID string, 
 		query["limit"] = strconv.Itoa(filter.Limit)
 		query["filter"] = fmt.Sprintf(`{"id:gt":"%s"}`, filter.IDGreaterThan)
 	}
-	query["orderby"] = "id"
+	query["orderby"] = "-id"
 
 	url = c.client.AppendURLQuery(url, query)
 

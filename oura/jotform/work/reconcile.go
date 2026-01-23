@@ -99,6 +99,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 func (p *Processor) reconcile() *work.ProcessResult {
 	result, err := p.SubmissionProcessor.Reconcile(p.Context(), p.lastProcessedSubmissionIDFromMetadata())
+	p.Work().Metadata[MetadataKeyLastProcessedSubmissionID] = result.LastProcessedID
 	p.AddFieldsToContext(log.Fields{
 		"processed": result.TotalProcessed,
 		"errors":    result.TotalErrors,
@@ -107,8 +108,7 @@ func (p *Processor) reconcile() *work.ProcessResult {
 	if err != nil {
 		return p.Failing(err)
 	}
-
-	p.Work().Metadata[MetadataKeyLastProcessedSubmissionID] = result.LastProcessedID
+	
 	p.Logger().Info("reconciled submissions")
 	return nil
 }
