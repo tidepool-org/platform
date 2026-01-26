@@ -2,8 +2,12 @@ package jotform_test
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -54,6 +58,8 @@ var _ = Describe("SubmissionProcessor", func() {
 
 		jotformServer    *httptest.Server
 		jotformResponses *ouraTest.StubResponses
+
+		formID string
 	)
 
 	BeforeEach(func() {
@@ -68,8 +74,11 @@ var _ = Describe("SubmissionProcessor", func() {
 
 		jotformResponses = ouraTest.NewStubResponses()
 		jotformServer = ouraTest.NewStubServer(jotformResponses)
+
+		formID = strconv.Itoa(rand.Intn(1000000000))
 		jotformConfig := jotform.Config{
 			BaseURL: jotformServer.URL,
+			FormID:  formID,
 		}
 
 		appAPIResponses = ouraTest.NewStubResponses()
@@ -299,6 +308,122 @@ var _ = Describe("SubmissionProcessor", func() {
 
 			err = processor.ProcessSubmission(ctx, submissionID)
 			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("Reconcile", func() {
+		type expected struct {
+			SubmissionID    string
+			UserID          string
+			Name            string
+			CustomerFixture string
+		}
+
+		var expectedSubmissions []expected
+		var lastSubmissionID string
+
+		BeforeEach(func() {
+			expectedSubmissions = []expected{
+				{SubmissionID: "6410095903544943563", UserID: "1aacb960-430c-4081-8b3b-a32688807dc5", Name: "James Jellyfish", CustomerFixture: "./test/fixtures/customer.json"},
+				{SubmissionID: "6441197313548135134", UserID: "db3fcb48-1da5-4a4a-aa92-14564a5b8fea", Name: "Jill Jellyfish", CustomerFixture: "./test/fixtures/customer_jill.json"},
+			}
+
+			lastSubmissionID = "6410095903544943561"
+
+			submissions, err := ouraTest.LoadFixture("./test/fixtures/submissions.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			limit := 100
+			filter := url.QueryEscape(fmt.Sprintf(`{"id:gt":"%s"}`, lastSubmissionID))
+			orderBy := "-id"
+
+			jotformResponses.AddResponse(
+				[]ouraTest.RequestMatcher{
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, fmt.Sprintf("/v1/form/%s/submissions", formID)),
+					ouraTest.NewRequestQueryMatcher(fmt.Sprintf("filter=%s&limit=%d&orderby=%s", filter, limit, orderBy)),
+				},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: submissions},
+			)
+
+			for _, expected := range expectedSubmissions {
+				userID := expected.UserID
+				name := expected.Name
+				customer, err := ouraTest.LoadFixture(expected.CustomerFixture)
+				Expect(err).ToNot(HaveOccurred())
+
+				appAPIResponses.AddResponse(
+					[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/customers/"+userID+"/attributes")},
+					ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
+				)
+				trackAPIResponses.AddResponse(
+					[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events")},
+					ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
+				)
+
+				usr := &user.User{UserID: &userID}
+				userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
+
+				consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+						Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
+						Expect(filter.Version).To(PointTo(Equal(1)))
+						Expect(filter.Latest).To(PointTo(Equal(true)))
+					}).
+					Return(&storeStructuredMongo.ListResult[consent.Record]{
+						Count: 0,
+					}, nil)
+
+				consentService.EXPECT().CreateConsentRecord(gomock.Any(), userID, gomock.Any()).
+					Do(func(ctx context.Context, userID string, create *consent.RecordCreate) {
+						Expect(create).ToNot(BeNil())
+						Expect(create.Type).To(Equal("big_data_donation_project"))
+						Expect(create.Version).To(Equal(1))
+						Expect(create.OwnerName).To(Equal(name))
+						Expect(create.AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
+						Expect(create.GrantorType).To(Equal(consent.GrantorTypeOwner))
+					}).
+					Return(&consent.Record{
+						ID:          "1234567890",
+						UserID:      userID,
+						Status:      consent.RecordStatusActive,
+						AgeGroup:    consent.AgeGroupEighteenOrOver,
+						OwnerName:   name,
+						GrantorType: "owner",
+						Type:        "big_data_donation_project",
+						Version:     1,
+					}, nil)
+
+				shopifyClnt.EXPECT().
+					CreateDiscountCode(gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+						Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
+						Expect(len(input.Code)).To(BeNumerically(">=", 12))
+						//Expect(input.ProductID).To(Equal("9122899853526"))
+						return nil
+					})
+
+			}
+		})
+
+		It("should process all returned submissions", func() {
+			result, err := processor.Reconcile(ctx, lastSubmissionID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.TotalProcessed).To(Equal(len(expectedSubmissions)))
+			Expect(result.TotalErrors).To(Equal(0))
+			Expect(result.LastProcessedID).To(Equal(expectedSubmissions[len(expectedSubmissions)-1].SubmissionID))
+		})
+
+		It("should be idempotent", func() {
+			count := 3
+
+			// The user service mock will fail if it's invoked more than once. We are using this fact to verify that the processor is idempotent.
+			for range count {
+				result, err := processor.Reconcile(ctx, lastSubmissionID)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.TotalProcessed).To(Equal(len(expectedSubmissions)))
+				Expect(result.TotalErrors).To(Equal(0))
+				Expect(result.LastProcessedID).To(Equal(expectedSubmissions[len(expectedSubmissions)-1].SubmissionID))
+			}
 		})
 	})
 })

@@ -108,7 +108,7 @@ func (p *Processor) reconcile() *work.ProcessResult {
 	if err != nil {
 		return p.Failing(err)
 	}
-	
+
 	p.Logger().Info("reconciled submissions")
 	return nil
 }
