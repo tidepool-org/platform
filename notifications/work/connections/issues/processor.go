@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -105,7 +106,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserID), wrk)
+		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 
 	emailVars := map[string]string{
@@ -130,32 +131,32 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 	if userID, ok := wrk.Metadata["userId"].(string); ok {
 		data.UserID = userID
 	} else {
-		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
+		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
 	if providerName, ok := wrk.Metadata["providerName"].(string); ok {
 		data.ProviderName = providerName
 	} else {
-		return nil, fmt.Errorf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
+		return nil, errors.Newf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
 	}
 	if dataSourceState, ok := wrk.Metadata["dataSourceState"].(string); ok {
 		data.DataSourceState = dataSourceState
 	} else {
-		return nil, fmt.Errorf(`expected field "dataSourceState" to exist and be a string, received %T`, wrk.Metadata["dataSourceState"])
+		return nil, errors.Newf(`expected field "dataSourceState" to exist and be a string, received %T`, wrk.Metadata["dataSourceState"])
 	}
 	if fullName, ok := wrk.Metadata["fullName"].(string); ok {
 		data.FullName = fullName
 	} else {
-		return nil, fmt.Errorf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
+		return nil, errors.Newf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
 	}
 	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
 		data.RestrictedTokenID = restrictedTokenID
 	} else {
-		return nil, fmt.Errorf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
+		return nil, errors.Newf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
 	}
 	if emailTemplate, ok := wrk.Metadata["emailTemplate"].(string); ok {
 		data.EmailTemplate = emailTemplate
 	} else {
-		return nil, fmt.Errorf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
+		return nil, errors.Newf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
 	}
 	return &data, nil
 }

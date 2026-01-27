@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/go-common/events"
 	"github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -48,7 +49,7 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 	create := newWorkCreate(whenToSend, metadata)
 	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
 		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
-			return fmt.Errorf(`unable to delete existing groups by id "%s": %w`, groupID, err)
+			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
 		}
 	}
 	if _, err := client.Create(ctx, create); err != nil {
@@ -118,11 +119,11 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find user for userId "%s"`, data.UserID), wrk)
+		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 	filter := source.NewFilter()
 	filter.ProviderName = pointer.FromStringArray([]string{data.ProviderName})
-	filter.State = pointer.FromStringArray([]string{source.StateDisconnected})
+	filter.State = pointer.FromStringArray([]string{source.StateConnected})
 	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserID, filter, nil)
 	if err != nil {
 		return notifications.NewFailingResult(err, wrk)
@@ -135,7 +136,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	var clinicName string
 	clinic, err := p.dependencies.Clinics.GetClinic(ctx, data.ClinicID)
 	if err != nil {
-		return notifications.NewFailingResult(fmt.Errorf(`error getting clinic: %w`, err), wrk)
+		return notifications.NewFailingResult(errors.Wrapf(err, `error getting clinic`), wrk)
 	}
 	if clinic != nil {
 		clinicName = clinic.Name
@@ -163,27 +164,27 @@ func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 	if userID, ok := wrk.Metadata["userId"].(string); ok {
 		data.UserID = userID
 	} else {
-		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
+		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
 	if providerName, ok := wrk.Metadata["providerName"].(string); ok {
 		data.ProviderName = providerName
 	} else {
-		return nil, fmt.Errorf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
+		return nil, errors.Newf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
 	}
 	if patientName, ok := wrk.Metadata["patientName"].(string); ok {
 		data.PatientName = patientName
 	} else {
-		return nil, fmt.Errorf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
+		return nil, errors.Newf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
 	}
 	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
 		data.RestrictedTokenID = restrictedTokenID
 	} else {
-		return nil, fmt.Errorf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
+		return nil, errors.Newf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
 	}
 	if emailTemplate, ok := wrk.Metadata["emailTemplate"].(string); ok {
 		data.EmailTemplate = emailTemplate
 	} else {
-		return nil, fmt.Errorf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
+		return nil, errors.Newf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
 	}
 	return &data, nil
 }

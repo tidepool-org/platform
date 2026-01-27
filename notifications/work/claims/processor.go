@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -54,7 +55,7 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
 		// Delete any other work items with the same group id because if a new reminder is added, any older ones would be too early since the last reminder of the same group id.
 		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
-			return fmt.Errorf(`unable to delete existing groups by id "%s": %w`, groupID, err)
+			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
 		}
 	}
 	if _, err := client.Create(ctx, create); err != nil {
@@ -107,10 +108,10 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if patient == nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find patient with userId "%v"`, data.UserID), wrk)
+		return notifications.NewFailingResult(errors.Newf(`unable to find patient with userId "%v"`, data.UserID), wrk)
 	}
 	if pointer.ToString(patient.Email) == "" {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to find email for patient with userId "%v"`, data.UserID), wrk)
+		return notifications.NewFailingResult(errors.Newf(`unable to find email for patient with userId "%v"`, data.UserID), wrk)
 	}
 	// If user already claimed they will no longer have the custodian field set
 	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
@@ -118,7 +119,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 
 	if _, err := p.dependencies.Confirmation.ResendAccountSignupWithResponse(ctx, *patient.Email); err != nil {
-		return notifications.NewFailingResult(fmt.Errorf(`unable to resend account signup email: %w`, err), wrk)
+		return notifications.NewFailingResult(errors.Newf(`unable to resend account signup email`), wrk)
 	}
 	return *work.NewProcessResultDelete()
 }
@@ -129,12 +130,12 @@ func toClaimAccountData(wrk *work.Work) (*Metadata, error) {
 	if userID, ok := wrk.Metadata["userId"].(string); ok {
 		data.UserID = userID
 	} else {
-		return nil, fmt.Errorf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
+		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
 	}
 	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
 		data.ClinicID = clinicID
 	} else {
-		return nil, fmt.Errorf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
+		return nil, errors.Newf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
 	}
 	return &data, nil
 }
