@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/go-common/events"
+
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 

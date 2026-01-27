@@ -16,6 +16,7 @@ import (
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"

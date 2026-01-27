@@ -5,6 +5,7 @@ import (
 	"time"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
 	dataSourceStore "github.com/tidepool-org/platform/data/source/store/structured"

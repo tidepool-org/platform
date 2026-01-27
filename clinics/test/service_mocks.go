@@ -42,6 +42,21 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// GetClinic mocks base method.
+func (m *MockClient) GetClinic(ctx context.Context, clinicID string) (*client.Clinic, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClinic", ctx, clinicID)
+	ret0, _ := ret[0].(*client.Clinic)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClinic indicates an expected call of GetClinic.
+func (mr *MockClientMockRecorder) GetClinic(ctx, clinicID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinic", reflect.TypeOf((*MockClient)(nil).GetClinic), ctx, clinicID)
+}
+
 // GetClinician mocks base method.
 func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*client.Clinician, error) {
 	m.ctrl.T.Helper()
