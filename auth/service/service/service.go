@@ -88,7 +88,7 @@ type Service struct {
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	providerFactory                *providerFactory.Factory
 	shopifyClient                  shopify.Client
-	submissionProcessor            *jotform.SubmissionProcessor
+	jotformSubmissionProcessor     *jotform.SubmissionProcessor
 	taskClient                     task.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 	userEventsHandler              events.Runner
@@ -340,7 +340,7 @@ func (s *Service) initializeSubmissionProcessor() error {
 		return errors.Wrap(err, "unable to create jotform submission store")
 	}
 
-	s.submissionProcessor, err = jotform.NewSubmissionProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient, submissionStore)
+	s.jotformSubmissionProcessor, err = jotform.NewSubmissionProcessor(jotformConfig, s.Logger(), s.consentService, s.customerIOClient, s.userClient, s.shopifyClient, submissionStore)
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform webhook processor")
 	}
@@ -391,9 +391,9 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating jotform router")
 
-	jotformRouter, err := jotformAPI.NewRouter(s.submissionProcessor)
+	jotformRouter, err := jotformAPI.NewRouter(s.jotformSubmissionProcessor)
 	if err != nil {
-		errors.Wrap(err, "unable to create jotform router")
+		return errors.Wrap(err, "unable to create jotform router")
 	}
 
 	s.Logger().Debug("Creating shopify router")
@@ -909,14 +909,14 @@ func (s *Service) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to ensure reconciler work item exists")
 	}
 
-	s.Logger().Info("Creating jotform work processor")
+	s.Logger().Info("Creating jotform work processor factory")
 
-	factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.submissionProcessor})
+	factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.jotformSubmissionProcessor})
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform work processor factory")
 	}
 
-	s.Logger().Info("Registering jotform work processor")
+	s.Logger().Info("Registering jotform work processor factory")
 
 	if err = s.workCoordinator.RegisterProcessorFactory(factory); err != nil {
 		return errors.Wrap(err, "unable to register jotform work processor factory")

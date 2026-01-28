@@ -409,7 +409,6 @@ var _ = Describe("SubmissionProcessor", func() {
 			result, err := processor.Reconcile(ctx, lastSubmissionID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.TotalProcessed).To(Equal(len(expectedSubmissions)))
-			Expect(result.TotalErrors).To(Equal(0))
 			Expect(result.LastProcessedID).To(Equal(expectedSubmissions[len(expectedSubmissions)-1].SubmissionID))
 		})
 
@@ -421,7 +420,6 @@ var _ = Describe("SubmissionProcessor", func() {
 				result, err := processor.Reconcile(ctx, lastSubmissionID)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result.TotalProcessed).To(Equal(len(expectedSubmissions)))
-				Expect(result.TotalErrors).To(Equal(0))
 				Expect(result.LastProcessedID).To(Equal(expectedSubmissions[len(expectedSubmissions)-1].SubmissionID))
 			}
 		})

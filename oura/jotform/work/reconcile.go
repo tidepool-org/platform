@@ -70,10 +70,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
 	create := &work.Create{
-		Type:                    Type,
-		DeduplicationID:         pointer.FromString(reconcilerWorkID),
-		ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
-		ProcessingAvailableTime: time.Now(),
+		Type:              Type,
+		DeduplicationID:   pointer.FromString(Type),
+		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 		Metadata: map[string]any{
 			MetadataKeyLastProcessedSubmissionID: initialSubmissionID,
 		},
@@ -98,11 +97,17 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 }
 
 func (p *Processor) reconcile() *work.ProcessResult {
-	result, err := p.SubmissionProcessor.Reconcile(p.Context(), p.lastProcessedSubmissionIDFromMetadata())
+	lastProcessedSubmissionID, err := p.lastProcessedSubmissionIDFromMetadata()
+	if err != nil {
+		return p.Failed(err)
+	} else if lastProcessedSubmissionID == nil {
+		return p.Failed(errors.New("last processed submission id is missing"))
+	}
+
+	result, err := p.SubmissionProcessor.Reconcile(p.Context(), *lastProcessedSubmissionID)
 	p.Work().Metadata[MetadataKeyLastProcessedSubmissionID] = result.LastProcessedID
 	p.AddFieldsToContext(log.Fields{
 		"processed": result.TotalProcessed,
-		"errors":    result.TotalErrors,
 	})
 
 	if err != nil {
@@ -113,7 +118,8 @@ func (p *Processor) reconcile() *work.ProcessResult {
 	return nil
 }
 
-func (p *Processor) lastProcessedSubmissionIDFromMetadata() string {
+func (p *Processor) lastProcessedSubmissionIDFromMetadata() (*string, error) {
 	parser := p.MetadataParser()
-	return pointer.Default(parser.String(MetadataKeyLastProcessedSubmissionID), initialSubmissionID)
+	lastProcessedSubmissionID := parser.String(MetadataKeyLastProcessedSubmissionID)
+	return lastProcessedSubmissionID, parser.Error()
 }

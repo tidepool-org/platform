@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -71,6 +72,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 			event := shopify.OrdersCreateEvent{
 				ID:                9999999999,
+				CreatedAt:         time.Now(),
 				AdminGraphQLAPIID: "gid://shopify/Order/9999999999",
 				DiscountCodes: []shopify.DiscountCode{{
 					Code:   sizingKitDiscountCode,
@@ -83,6 +85,9 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ProductID:         int64(productId),
 				}},
 			}
+
+			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, sizingKitDiscountCode)
+			Expect(err).ToNot(HaveOccurred())
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")
 			Expect(err).ToNot(HaveOccurred())
@@ -111,7 +116,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "oura_sizing_kit_ordered",
-						        "id": "` + sizingKitDiscountCode + `",
+						        "id": "` + deduplicationID.String() + `",
 						        "data": {
                                     "oura_sizing_kit_discount_code": "` + sizingKitDiscountCode + `"
                                 }
@@ -132,6 +137,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 			event := shopify.OrdersCreateEvent{
 				ID:                9999999999,
+				CreatedAt:         time.Now(),
 				AdminGraphQLAPIID: "gid://shopify/Order/9999999999",
 				DiscountCodes: []shopify.DiscountCode{{
 					Code:   ringDiscountCode,
@@ -144,6 +150,9 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ProductID:         int64(productId),
 				}},
 			}
+
+			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, ringDiscountCode)
+			Expect(err).ToNot(HaveOccurred())
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")
 			Expect(err).ToNot(HaveOccurred())
@@ -172,7 +181,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "oura_ring_ordered",
-						        "id": "` + ringDiscountCode + `",
+						        "id": "` + deduplicationID.String() + `",
 						        "data": {
                                     "oura_ring_discount_code": "` + ringDiscountCode + `"
                                 }

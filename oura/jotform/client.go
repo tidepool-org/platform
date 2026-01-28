@@ -37,7 +37,7 @@ type defaultClient struct {
 func NewClient(config Config) (Client, error) {
 	c, err := client.NewWithErrorParser(&client.Config{
 		Address: config.BaseURL,
-	}, newErrorResponseParser())
+	}, &errorResponseParser{})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create defaultClient")
 	}
@@ -51,10 +51,6 @@ func NewClient(config Config) (Client, error) {
 
 // errorResponseParser implements client.ErrorResponseParser for Jotform API errors
 type errorResponseParser struct{}
-
-func newErrorResponseParser() *errorResponseParser {
-	return &errorResponseParser{}
-}
 
 func (p *errorResponseParser) ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error {
 	var errResp struct {

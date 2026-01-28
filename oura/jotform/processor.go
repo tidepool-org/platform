@@ -6,6 +6,8 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/tidepool-org/platform/store/structured/mongo"
+
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/customerio"
 	"github.com/tidepool-org/platform/errors"
@@ -85,6 +87,7 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 	}
 	var err error
 
+listSubmissions:
 	for {
 		if result.TotalProcessed >= MaxReconcileLimit {
 			logger.WithField("limit", MaxReconcileLimit).Warn("Reached maximum reconciliation limit")
@@ -102,10 +105,6 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 			break
 		}
 
-		if len(submissions.Content) == 0 {
-			break
-		}
-
 		for _, content := range submissions.Content {
 			submission := &SubmissionResponse{
 				ResponseCode: submissions.ResponseCode,
@@ -115,7 +114,7 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 			err = s.processSubmission(ctx, submission)
 			if err != nil {
 				err = errors.Wrapf(err, "failed to reconcile submission %s", submission.Content.ID)
-				break
+				break listSubmissions
 			}
 			result.LastProcessedID = submission.Content.ID
 			result.TotalProcessed++
@@ -135,21 +134,28 @@ func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionI
 		return errors.Wrap(err, "failed to get submission")
 	}
 
-	return s.processSubmission(ctx, submission)
+	err = s.processSubmission(ctx, submission)
+	if err != nil {
+		s.logger.WithField("submissionId", submissionID).WithError(err).Warn("failed to process submission")
+		return err
+	}
+
+	return nil
 }
 
 func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission *SubmissionResponse) error {
 	if submission == nil {
 		return errors.New("submission is missing")
 	}
-	logger := s.logger.WithField("submission", submission.Content.ID)
+
+	logger := s.logger.WithField("submissionId", submission.Content.ID)
 
 	processed, err := s.store.GetProcessedSubmission(ctx, submission.Content.FormID, submission.Content.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get processed submission")
 	}
 	if processed != nil {
-		logger.Debug("submission is already processed")
+		logger.Info("submission is already processed")
 		return nil
 	}
 
@@ -159,8 +165,7 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 	}
 	identifiers, err := s.validateUser(ctx, submission.Content.ID, submission.Content.Answers)
 	if err != nil {
-		logger.WithError(err).Warn("user is invalid")
-		return nil
+		return errors.Wrap(err, "unable to validate user")
 	} else if identifiers == nil {
 		logger.Warn("invalid user")
 		return nil
@@ -170,21 +175,8 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 		return err
 	}
 
-	var rawContent bson.Raw
-	if submission.Content.RawContent != nil {
-		if err := bson.UnmarshalExtJSON(submission.Content.RawContent, true, &rawContent); err != nil {
-			logger.WithError(err).Warn("failed to unmarshal raw content to bson")
-		}
-	}
-
-	processedSubmission := &store.ProcessedSubmission{
-		SubmissionID: submission.Content.ID,
-		FormID:       submission.Content.FormID,
-		RawContent:   rawContent,
-		CreatedTime:  time.Now(),
-	}
-	if err := s.store.SaveProcessedSubmission(ctx, processedSubmission); err != nil {
-		logger.WithError(err).Warn("failed to save processed submission")
+	if err := s.saveProcessedSubmission(ctx, submission); err != nil {
+		return errors.Wrap(err, "failed to save processed submission")
 	}
 
 	return nil
@@ -193,17 +185,17 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 // validateUser validates the user id by comparing the participant id from the submission with the participant id from customer.io
 // this is required because jotform webhooks are not signed or authenticated
 func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Identifiers, error) {
-	logger := s.logger.WithField("submission", submissionID)
+	logger := s.logger.WithField("submissionId", submissionID)
 
 	userID := answers.GetAnswerTextByName(UserIDField)
 	if userID == "" {
-		logger.Debugf("submission has no user id")
+		logger.Info("submission has no user id")
 		return nil, nil
 	}
 
 	participantID := answers.GetAnswerTextByName(ParticipantIDField)
 	if participantID == "" {
-		logger.Debugf("submission has no participant id")
+		logger.Info("submission has no participant id")
 		return nil, nil
 	}
 
@@ -213,10 +205,12 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 	}
 
 	if customer == nil {
-		return nil, errors.Newf("customer with id %s not found", userID)
+		logger.Warnf("customer not found for user with id %s", userID)
+		return nil, nil
 	}
 	if customer.OuraParticipantID != participantID {
-		return nil, errors.Newf("participant id mismatch for user with id %s", userID)
+		logger.Warnf("participant id mismatch for user with id %s", userID)
+		return nil, nil
 	}
 
 	usr, err := s.userClient.Get(ctx, userID)
@@ -224,7 +218,8 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		return nil, errors.Wrap(err, "unable to get user")
 	}
 	if usr == nil {
-		return nil, errors.New("user not found")
+		logger.Warnf("participant id mismatch for user with id %s", userID)
+		return nil, nil
 	}
 
 	return &customer.Identifiers, nil
@@ -253,13 +248,17 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, identif
 		}
 	}
 
-	surveyCompleted := customerio.Event{
+	surveyCompleted := &customerio.Event{
 		Name: oura.OuraEligibilitySurveyCompletedEventType,
-		ID:   surveyCompletedData.OuraEligibilitySurveyID,
 		Data: surveyCompletedData,
 	}
 
-	err := s.customerIOClient.SendEvent(ctx, identifiers.ID, surveyCompleted)
+	err := surveyCompleted.SetDeduplicationID(submission.Content.CreatedAt.Time, surveyCompletedData.OuraEligibilitySurveyID)
+	if err != nil {
+		return errors.Wrap(err, "unable to set event id")
+	}
+
+	err = s.customerIOClient.SendEvent(ctx, identifiers.ID, surveyCompleted)
 	if err != nil {
 		return errors.Wrap(err, "unable to send sizing kit delivered event")
 	}
@@ -288,7 +287,7 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 	filter.Type = pointer.FromAny(consent.TypeBigDataDonationProject)
 	filter.Version = pointer.FromAny(1)
 
-	pagination := page.NewPagination()
+	pagination := page.NewPaginationMinimum()
 
 	records, err := s.consentService.ListConsentRecords(ctx, userID, filter, pagination)
 	if err != nil {
@@ -315,8 +314,29 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 	return nil
 }
 
+func (s *SubmissionProcessor) saveProcessedSubmission(ctx context.Context, submission *SubmissionResponse) error {
+	var rawContent bson.Raw
+	if submission.Content.RawContent != nil {
+		if err := bson.UnmarshalExtJSON(submission.Content.RawContent, true, &rawContent); err != nil {
+			return errors.Wrap(err, "failed to unmarshal raw content to bson")
+		}
+	}
+
+	processedSubmission := &store.ProcessedSubmission{
+		SubmissionID: submission.Content.ID,
+		FormID:       submission.Content.FormID,
+		RawContent:   rawContent,
+		CreatedTime:  time.Now(),
+	}
+
+	if err := s.store.SaveProcessedSubmission(ctx, processedSubmission); err != nil && !mongo.IsDup(err) {
+		return err
+	}
+
+	return nil
+}
+
 type ReconcileResult struct {
-	TotalErrors     int
 	TotalProcessed  int
 	LastProcessedID string
 }
