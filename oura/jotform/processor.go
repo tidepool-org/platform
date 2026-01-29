@@ -85,24 +85,20 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 	result := ReconcileResult{
 		LastProcessedID: lastSubmissionID,
 	}
-	var err error
 
-listSubmissions:
 	for {
 		if result.TotalProcessed >= MaxReconcileLimit {
 			logger.WithField("limit", MaxReconcileLimit).Warn("Reached maximum reconciliation limit")
-			break
+			return result, nil
 		}
 
 		filter := &SubmissionFilter{
 			IDGreaterThan: result.LastProcessedID,
 			Limit:         DefaultReconcileLimit,
 		}
-		var submissions *FormSubmissionsResponse
-		submissions, err = s.jotformClient.ListFormSubmissions(ctx, formID, filter)
+		submissions, err := s.jotformClient.ListFormSubmissions(ctx, formID, filter)
 		if err != nil {
-			err = errors.Wrap(err, "failed to fetch submissions")
-			break
+			return result, errors.Wrap(err, "failed to fetch submissions")
 		}
 
 		for _, content := range submissions.Content {
@@ -113,8 +109,7 @@ listSubmissions:
 
 			err = s.processSubmission(ctx, submission)
 			if err != nil {
-				err = errors.Wrapf(err, "failed to reconcile submission %s", submission.Content.ID)
-				break listSubmissions
+				return result, errors.Wrapf(err, "failed to reconcile submission %s", submission.Content.ID)
 			}
 			result.LastProcessedID = submission.Content.ID
 			result.TotalProcessed++
@@ -125,7 +120,7 @@ listSubmissions:
 		}
 	}
 
-	return result, err
+	return result, nil
 }
 
 func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionID string) error {
