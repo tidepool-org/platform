@@ -149,13 +149,16 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 		return errors.Wrap(err, "unable to create oura discount code")
 	}
 
-	sizingKitDelivered := customerio.Event{
+	sizingKitDelivered := &customerio.Event{
 		Name: oura.OuraSizingKitDeliveredEventType,
-		ID:   fmt.Sprintf("%d", event.ID),
 		Data: oura.OuraSizingKitDeliveredData{
 			OuraRingDiscountCode:      discountCode,
 			OuraSizingKitDiscountCode: sizingKitDiscountCode,
 		},
+	}
+
+	if err = sizingKitDelivered.SetDeduplicationID(event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+		return err
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitDelivered)
@@ -171,14 +174,17 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 		return errors.Wrap(err, "unable to create restricted token")
 	}
 
-	ringDelivered := customerio.Event{
+	ringDelivered := &customerio.Event{
 		Name: oura.OuraRingDeliveredEventType,
-		ID:   fmt.Sprintf("%d", event.ID),
 		Data: oura.OuraRingDeliveredData{
 			OuraRingDiscountCode:                  ringDiscountCode,
 			OuraAccountLinkingToken:               token.ID,
 			OuraAccountLinkingTokenExpirationTime: token.ExpirationTime.Unix(),
 		},
+	}
+
+	if err = ringDelivered.SetDeduplicationID(event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+		return err
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, ringDelivered)

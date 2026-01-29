@@ -45,6 +45,12 @@ func NewRequestMethodAndPathMatcher(method, path string) RequestMatcher {
 	}
 }
 
+func NewRequestQueryMatcher(query string) RequestMatcher {
+	return func(r *http.Request) bool {
+		return r.URL.RawQuery == query
+	}
+}
+
 func NewRequestJSONBodyMatcher(expected string) RequestMatcher {
 	return func(r *http.Request) bool {
 		expectedJSON := map[string]interface{}{}

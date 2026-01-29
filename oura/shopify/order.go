@@ -3,14 +3,17 @@ package shopify
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/tidepool-org/platform/customerio"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
 )
 
 type OrdersCreateEvent struct {
 	ID                int64          `json:"id"`
+	CreatedAt         time.Time      `json:"created_at"`
 	AdminGraphQLAPIID string         `json:"admin_graphql_api_id"`
 	DiscountCodes     []DiscountCode `json:"discount_codes"`
 	LineItems         []LineItem     `json:"line_items"`
@@ -112,12 +115,12 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 
 	switch productID {
 	case OuraSizingKitProductID:
-		if err := f.onSizingKitOrdered(ctx, customers.Identifiers[0], discountCode); err != nil {
+		if err := f.onSizingKitOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit ordered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := f.onRingOrdered(ctx, customers.Identifiers[0], discountCode); err != nil {
+		if err := f.onRingOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
 			logger.WithError(err).Warn("unable to send ring ordered event")
 			return err
 		}
@@ -128,25 +131,30 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 	return nil
 }
 
-func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
-	sizingKitOrdered := customerio.Event{
+func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
+	sizingKitOrdered := &customerio.Event{
 		Name: oura.OuraSizingKitOrderedEventType,
-		ID:   discountCode,
 		Data: oura.OuraSizingKitOrderedData{
 			OuraSizingKitDiscountCode: discountCode,
 		},
+	}
+	if err := sizingKitOrdered.SetDeduplicationID(event.CreatedAt, discountCode); err != nil {
+		return errors.Wrap(err, "unable to set event id")
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitOrdered)
 }
 
-func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, discountCode string) error {
-	ringOrdered := customerio.Event{
+func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
+	ringOrdered := &customerio.Event{
 		Name: oura.OuraRingOrderedEventType,
-		ID:   discountCode,
 		Data: oura.OuraRingOrderedData{
 			OuraRingDiscountCode: discountCode,
 		},
+	}
+
+	if err := ringOrdered.SetDeduplicationID(event.CreatedAt, discountCode); err != nil {
+		return errors.Wrap(err, "unable to set event id")
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, ringOrdered)

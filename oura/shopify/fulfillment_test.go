@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -90,9 +91,13 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 			event := shopify.FulfillmentEvent{
 				ID:             9876543,
+				CreatedAt:      time.Now(),
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
+
+			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
 				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
@@ -135,7 +140,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 							ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 							ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "oura_sizing_kit_delivered",
-						        "id": "` + fmt.Sprintf("%d", event.ID) + `",
+						        "id": "` + deduplicationID.String() + `",
 						        "data": {
                                     "oura_ring_discount_code": "` + input.Code + `",
                                     "oura_sizing_kit_discount_code": "` + sizingKitDiscountCode + `"
@@ -159,9 +164,13 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 			event := shopify.FulfillmentEvent{
 				ID:             9876543,
+				CreatedAt:      time.Now(),
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
+
+			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
 				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
@@ -210,7 +219,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+id+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	"name": "oura_ring_delivered",
-						"id": "` + fmt.Sprintf("%d", event.ID) + `",
+						"id": "` + deduplicationID.String() + `",
                         "data": {
                           "oura_ring_discount_code": "` + discountCode + `",
                           "oura_account_linking_token": "` + tokenID + `",

@@ -3,6 +3,8 @@ package jotform
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+	"time"
 )
 
 type SubmissionResponse struct {
@@ -11,8 +13,36 @@ type SubmissionResponse struct {
 }
 
 type Content struct {
-	ID      string  `json:"id"`
-	Answers Answers `json:"answers"`
+	ID         string          `json:"id"`
+	FormID     string          `json:"form_id"`
+	Answers    Answers         `json:"answers"`
+	CreatedAt  SubmissionTime  `json:"created_at"`
+	RawContent json.RawMessage `json:"-"`
+}
+
+func (c *Content) UnmarshalJSON(data []byte) error {
+	type contentAlias Content
+	var alias contentAlias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+	*c = Content(alias)
+	c.RawContent = make(json.RawMessage, len(data))
+	copy(c.RawContent, data)
+	return nil
+}
+
+type SubmissionTime struct {
+	time.Time
+}
+
+func (st *SubmissionTime) UnmarshalJSON(data []byte) (err error) {
+	value := strings.Trim(string(data), "\"")
+	if value == "null" {
+		return
+	}
+	st.Time, err = time.Parse(time.DateTime, value)
+	return
 }
 
 type Answer interface {
