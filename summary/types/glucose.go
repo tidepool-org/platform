@@ -2,8 +2,8 @@ package types
 
 import (
 	"context"
-	"errors"
 	"fmt"
+	"log/slog"
 	"math"
 	"strconv"
 	"strings"
@@ -15,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/errors"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 
 type Glucose interface {
 	NormalizedValue() float64
+	RawValueAndUnits() (float64, string, error)
 	Type() string
 	Time() *time.Time
 	CreatedTime() *time.Time
@@ -47,6 +49,17 @@ var _ Glucose = &SelfMonitoredGlucoseAdapter{}
 
 type SelfMonitoredGlucoseAdapter struct {
 	datum *selfmonitored.SelfMonitored
+}
+
+func (s SelfMonitoredGlucoseAdapter) RawValueAndUnits() (float64, string, error) {
+	if s.datum == nil {
+		return 0, "", errors.New("datum is nil")
+	} else if s.datum.Value == nil {
+		return 0, "", errors.New("datum's value is nil")
+	} else if s.datum.Units == nil {
+		return 0, "", errors.New("datum's units are nil")
+	}
+	return *s.datum.Value, *s.datum.Units, nil
 }
 
 func (s SelfMonitoredGlucoseAdapter) NormalizedValue() float64 {
@@ -73,6 +86,17 @@ var _ Glucose = &ContinuousGlucoseAdapter{}
 
 type ContinuousGlucoseAdapter struct {
 	datum *continuous.Continuous
+}
+
+func (c ContinuousGlucoseAdapter) RawValueAndUnits() (float64, string, error) {
+	if c.datum == nil {
+		return 0, "", errors.New("datum is nil")
+	} else if c.datum.Value == nil {
+		return 0, "", errors.New("datum value is nil")
+	} else if c.datum.Units == nil {
+		return 0, "", errors.New("datum units are nil")
+	}
+	return *c.datum.Value, *c.datum.Units, nil
 }
 
 func (c ContinuousGlucoseAdapter) NormalizedValue() float64 {
@@ -262,24 +286,44 @@ func (rs *GlucoseRanges) Finalize(days int) {
 	}
 }
 
-func (rs *GlucoseRanges) Update(record Glucose) {
-	normalizedValue := record.NormalizedValue()
+const (
+	veryLowBloodGlucoseMgdL     int = 54
+	lowBloodGlucoseMgdL         int = 70
+	highBloodGlucoseMgdL        int = 180
+	veryHighBloodGlucoseMgdL    int = 250
+	extremeHighBloodGlucoseMgdL int = 350
+)
 
-	if normalizedValue < veryLowBloodGlucose {
+func (rs *GlucoseRanges) Update(record Glucose) {
+	rawValue, rawUnits, err := record.RawValueAndUnits()
+	if err != nil {
+		// TODO pass in a proper platform logger
+		slog.Error("unable to update datum", "error", err)
+		return
+	}
+	mgdlValue, err := glucose.ConvertValue(rawValue, rawUnits, glucose.MgdL)
+	if err != nil {
+		// TODO pass in a proper platform logger
+		slog.Error("unable to update datum: conversion error", "error", err)
+		return
+	}
+	mgdlRounded := int(math.Round(mgdlValue))
+
+	if mgdlRounded < veryLowBloodGlucoseMgdL {
 		rs.VeryLow.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > veryHighBloodGlucose {
+	} else if mgdlRounded > veryHighBloodGlucoseMgdL {
 		rs.VeryHigh.Update(record)
 		rs.AnyHigh.Update(record)
 
 		// VeryHigh is inclusive of extreme high, this is intentional
-		if normalizedValue >= extremeHighBloodGlucose {
+		if mgdlRounded >= extremeHighBloodGlucoseMgdL {
 			rs.ExtremeHigh.Update(record)
 		}
-	} else if normalizedValue < lowBloodGlucose {
+	} else if mgdlRounded < lowBloodGlucoseMgdL {
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > highBloodGlucose {
+	} else if mgdlRounded > highBloodGlucoseMgdL {
 		rs.AnyHigh.Update(record)
 		rs.High.Update(record)
 	} else {
