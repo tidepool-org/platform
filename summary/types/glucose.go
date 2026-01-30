@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"math"
 	"strconv"
 	"strings"
@@ -25,7 +24,8 @@ const (
 
 type Glucose interface {
 	NormalizedValue() float64
-	RawValueAndUnits() (float64, string, error)
+	Value() float64
+	Units() string
 	Type() string
 	Time() *time.Time
 	CreatedTime() *time.Time
@@ -51,19 +51,22 @@ type SelfMonitoredGlucoseAdapter struct {
 	datum *selfmonitored.SelfMonitored
 }
 
-func (s SelfMonitoredGlucoseAdapter) RawValueAndUnits() (float64, string, error) {
-	if s.datum == nil {
-		return 0, "", errors.New("datum is nil")
-	} else if s.datum.Value == nil {
-		return 0, "", errors.New("datum's value is nil")
-	} else if s.datum.Units == nil {
-		return 0, "", errors.New("datum's units are nil")
-	}
-	return *s.datum.Value, *s.datum.Units, nil
-}
-
 func (s SelfMonitoredGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(s.datum.Value, s.datum.Units)
+}
+
+func (s SelfMonitoredGlucoseAdapter) Units() string {
+	if s.datum == nil || s.datum.Units == nil {
+		return ""
+	}
+	return *s.datum.Units
+}
+
+func (s SelfMonitoredGlucoseAdapter) Value() float64 {
+	if s.datum == nil || s.datum.Value == nil {
+		return 0
+	}
+	return *s.datum.Value
 }
 
 func (s SelfMonitoredGlucoseAdapter) Type() string {
@@ -88,19 +91,22 @@ type ContinuousGlucoseAdapter struct {
 	datum *continuous.Continuous
 }
 
-func (c ContinuousGlucoseAdapter) RawValueAndUnits() (float64, string, error) {
-	if c.datum == nil {
-		return 0, "", errors.New("datum is nil")
-	} else if c.datum.Value == nil {
-		return 0, "", errors.New("datum value is nil")
-	} else if c.datum.Units == nil {
-		return 0, "", errors.New("datum units are nil")
-	}
-	return *c.datum.Value, *c.datum.Units, nil
-}
-
 func (c ContinuousGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(c.datum.Value, c.datum.Units)
+}
+
+func (c ContinuousGlucoseAdapter) Units() string {
+	if c.datum == nil || c.datum.Units == nil {
+		return ""
+	}
+	return *c.datum.Units
+}
+
+func (c ContinuousGlucoseAdapter) Value() float64 {
+	if c.datum == nil || c.datum.Value == nil {
+		return 0
+	}
+	return *c.datum.Value
 }
 
 func (c ContinuousGlucoseAdapter) Type() string {
@@ -294,36 +300,30 @@ const (
 	extremeHighBloodGlucoseMgdL int = 350
 )
 
-func (rs *GlucoseRanges) Update(record Glucose) {
-	rawValue, rawUnits, err := record.RawValueAndUnits()
-	if err != nil {
-		// TODO pass in a proper platform logger
-		slog.Error("unable to update datum", "error", err)
-		return
-	}
-	mgdlValue, err := glucose.ConvertValue(rawValue, rawUnits, glucose.MgdL)
-	if err != nil {
-		// TODO pass in a proper platform logger
-		slog.Error("unable to update datum: conversion error", "error", err)
-		return
-	}
-	mgdlRounded := int(math.Round(mgdlValue))
+var (
+	veryLowBloodGlucose  = glucose.MmolLRounded(float64(veryLowBloodGlucoseMgdL), glucose.MmolL)
+	lowBloodGlucose      = glucose.MmolLRounded(float64(lowBloodGlucoseMgdL), glucose.MmolL)
+	highBloodGlucose     = glucose.MmolLRounded(float64(highBloodGlucoseMgdL), glucose.MmolL)
+	veryHighBloodGlucose = glucose.MmolLRounded(float64(veryHighBloodGlucoseMgdL), glucose.MmolL)
+)
 
-	if mgdlRounded < veryLowBloodGlucoseMgdL {
+func (rs *GlucoseRanges) Update(record Glucose) {
+	mgdLRounded := glucose.MgdLRounded(record.Value(), record.Units())
+	if mgdLRounded < veryLowBloodGlucoseMgdL {
 		rs.VeryLow.Update(record)
 		rs.AnyLow.Update(record)
-	} else if mgdlRounded > veryHighBloodGlucoseMgdL {
+	} else if mgdLRounded > veryHighBloodGlucoseMgdL {
 		rs.VeryHigh.Update(record)
 		rs.AnyHigh.Update(record)
 
 		// VeryHigh is inclusive of extreme high, this is intentional
-		if mgdlRounded >= extremeHighBloodGlucoseMgdL {
+		if mgdLRounded >= extremeHighBloodGlucoseMgdL {
 			rs.ExtremeHigh.Update(record)
 		}
-	} else if mgdlRounded < lowBloodGlucoseMgdL {
+	} else if mgdLRounded < lowBloodGlucoseMgdL {
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	} else if mgdlRounded > highBloodGlucoseMgdL {
+	} else if mgdLRounded > highBloodGlucoseMgdL {
 		rs.AnyHigh.Update(record)
 		rs.High.Update(record)
 	} else {

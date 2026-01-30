@@ -1,9 +1,7 @@
 package glucose
 
 import (
-	"fmt"
 	"math"
-	"slices"
 	"strings"
 
 	"github.com/tidepool-org/platform/pointer"
@@ -85,32 +83,22 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 	return value
 }
 
-func ConvertValue(value float64, fromUnits, toUnits string) (float64, error) {
-	if fromUnits == toUnits {
-		return value, nil
+func MmolLRounded(value float64, units string) float64 {
+	mmolLValue := 0.0
+	if strings.EqualFold(units, MmolL) {
+		mmolLValue = value
+	} else {
+		normalized := NormalizeValueForUnits(&value, &units)
+		mmolLValue = *normalized
 	}
-	units := Units()
-	if !slices.Contains(units, fromUnits) {
-		return 0, fmt.Errorf("unrecognized from units %q not found in %q", fromUnits, units)
-	}
-	if !slices.Contains(units, toUnits) {
-		return 0, fmt.Errorf("unrecognized to units %q not found in %q", fromUnits, units)
-	}
+	return math.Round(mmolLValue*10) / 10
+}
 
-	switch strings.ToLower(fromUnits + toUnits) {
-	case strings.ToLower(Mgdl + MmolL):
-		v := NormalizeValueForUnits(&value, &fromUnits)
-		// NormalizeValueForUnits will return the original value if the from units aren't
-		// recognized.
-		if *v == value {
-			return 0, fmt.Errorf("unhandled from units: %q", fromUnits)
-		}
-		return *v, nil
-	case strings.ToLower(MmolL + MgdL):
-		return value * MmolLToMgdLConversionFactor, nil
-	default:
-		return 0, fmt.Errorf("unhandled from units: %q", fromUnits)
+func MgdLRounded(value float64, units string) int {
+	if strings.EqualFold(units, MmolL) {
+		value *= MmolLToMgdLConversionFactor
 	}
+	return int(math.Round(value))
 }
 
 func ValueRangeForRateUnits(rateUnits *string) (float64, float64) {
