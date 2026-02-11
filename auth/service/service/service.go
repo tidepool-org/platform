@@ -349,7 +349,7 @@ func (s *Service) initializeSubmissionProcessor() error {
 }
 
 func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient())
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient())
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
 	}
