@@ -314,6 +314,7 @@ func (s *Service) initializeShopifyClient() error {
 
 	return nil
 }
+
 func (s *Service) initializeCustomerIOClient() error {
 	customerIOConfig := customerio.Config{}
 	if err := envconfig.Process("", &customerIOConfig); err != nil {

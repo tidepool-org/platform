@@ -28,13 +28,13 @@ func (e *Event) SetDeduplicationID(time time.Time, deduplicationID string) (err 
 	return
 }
 
-func (c *Client) SendEvent(ctx context.Context, cid string, event *Event) error {
+func (c *Client) SendEvent(ctx context.Context, userID string, event *Event) error {
 	if event == nil {
 		return errors.New("event is missing")
 	}
 
 	ctx = log.NewContextWithLogger(ctx, c.logger)
-	url := c.trackClient.ConstructURL("api", "v1", "customers", cid, "events")
+	url := c.trackClient.ConstructURL("api", "v1", "customers", userID, "events")
 
 	mutators := []request.RequestMutator{
 		c.trackAPIAuthMutator(),

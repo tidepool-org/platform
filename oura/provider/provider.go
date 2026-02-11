@@ -236,6 +236,28 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 	return nil
 }
 
+func (p *Provider) sendProviderConnectedEvent(ctx context.Context, providerSession *auth.ProviderSession, dataSrc *dataSource.Source) error {
+	providerSessionUpdate := &auth.ProviderSessionUpdate{
+		OAuthToken: providerSession.OAuthToken,
+		ExternalID: providerSession.ExternalID,
+	}
+	if _, err := p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
+		return errors.Wrap(err, "unable to update provider session")
+	}
+
+	dataSrcUpdate := &dataSource.Update{
+		ProviderSessionID:  pointer.FromString(providerSession.ID),
+		ProviderExternalID: dataSrc.ProviderExternalID,
+		State:              pointer.FromString(dataSource.StateConnected),
+		DataSetIDs:         dataSrc.DataSetIDs,
+	}
+	if _, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
+		return errors.Wrap(err, "unable to update data source")
+	}
+
+	return nil
+}
+
 func (p *Provider) disconnectDataSourcesFromProviderSession(ctx context.Context, providerSession *auth.ProviderSession) error {
 	if providerSession == nil {
 		return errors.New("provider session is missing")

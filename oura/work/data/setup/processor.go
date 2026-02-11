@@ -2,11 +2,13 @@ package revoke
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
+	"github.com/tidepool-org/platform/customerio"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
@@ -39,6 +41,7 @@ type Dependencies struct {
 	DataSourceClient      dataSource.Client
 	WorkClient            work.Client
 	Client                ouraWork.Client
+	CustomerIOClient      *customerio.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -53,6 +56,9 @@ func (d Dependencies) Validate() error {
 	}
 	if d.Client == nil {
 		return errors.New("client is missing")
+	}
+	if d.CustomerIOClient == nil {
+		return errors.New("customer io client is missing")
 	}
 	return nil
 }
@@ -81,6 +87,7 @@ type Processor struct {
 	DataSourceClient dataSource.Client
 	WorkClient       work.Client
 	Client           ouraWork.Client
+	CustomerIOClient *customerio.Client
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -126,6 +133,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		DataSourceClient:               dependencies.DataSourceClient,
 		WorkClient:                     dependencies.WorkClient,
 		Client:                         dependencies.Client,
+		CustomerIOClient:               dependencies.CustomerIOClient,
 	}, nil
 }
 
@@ -133,6 +141,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 	return work.ProcessPipeline{
 		p.ProcessPipelineFunc(ctx, wrk, processingUpdater),
 		p.DataSourceMixin.FetchDataSourceFromMetadata,
+		p.sendDataSourceStateChangedEvent,
 		p.FetchProviderSessionFromDataSource,
 		p.OAuthMixin.FetchTokenSource,
 		p.updateDataSourceProviderExternalID,
@@ -140,6 +149,31 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.createDataHistoricWork,
 		p.Delete,
 	}.Process()
+}
+
+// sendDataSourceStateChangedEvent sends a customerio event right after the data source state has been updated to 'connected'.
+// This is a part of the setup work flow to handle temporary failures gracefully. The event is only sent for OURA connections
+// because non-OURA users are not currently in customer.io.
+func (p *Processor) sendDataSourceStateChangedEvent() *work.ProcessResult {
+	event := &customerio.Event{
+		Name: customerio.DataSourceStateChangedEventType,
+		Data: customerio.DataSourceStateChangedEvent{
+			ProviderName: oura.ProviderName,
+			State:        *p.DataSource.State,
+		},
+	}
+
+	lastModifiedTime := pointer.Default(p.DataSource.ModifiedTime, *p.DataSource.CreatedTime)
+	deduplicationID := fmt.Sprintf("%s_%s", *p.DataSource.ID, *p.DataSource.UserID)
+	if err := event.SetDeduplicationID(lastModifiedTime, deduplicationID); err != nil {
+		return p.Failing(errors.Wrap(err, "unable to set event deduplication id"))
+	}
+
+	if err := p.CustomerIOClient.SendEvent(p.Context(), *p.DataSource.UserID, event); err != nil {
+		return p.Failing(errors.Wrap(err, "unable to send data source state changed event"))
+	}
+
+	return nil
 }
 
 func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
@@ -166,7 +200,7 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 		return p.Failing(errors.Wrap(err, "unable to list data sources"))
 	}
 
-	// If at least one data source, then replace the current data source, otherwise just update currect with external id
+	// If at least one data source, then replace the current data source, otherwise just update current with external id
 	if count := len(dataSrcs); count > 0 {
 		if count > 1 {
 			p.Logger().WithField("count", count).Error("unexpected number of data sources found for provider external id")
@@ -185,7 +219,7 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 		return nil
 	}
 
-	// Updaste current with external id
+	// Update current with external id
 	providerSessionUpdate := auth.ProviderSessionUpdate{
 		OAuthToken: p.ProviderSession.OAuthToken,
 		ExternalID: p.DataSource.ProviderExternalID,
