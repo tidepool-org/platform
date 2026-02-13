@@ -2,7 +2,6 @@ package work
 
 import (
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
-	"github.com/tidepool-org/platform/customerio"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSet "github.com/tidepool-org/platform/data/set"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -23,7 +22,6 @@ type Dependencies struct {
 	DataSetClient         dataSet.Client
 	WorkClient            work.Client
 	Client                ouraWork.Client
-	CustomerIOClient      *customerio.Client
 }
 
 func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, error) {
@@ -62,7 +60,6 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		DataSourceClient:      dependencies.DataSourceClient,
 		WorkClient:            dependencies.WorkClient,
 		Client:                dependencies.Client,
-		CustomerIOClient:      dependencies.CustomerIOClient,
 	}); err != nil {
 		return nil, err
 	} else {

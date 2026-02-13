@@ -40,14 +40,11 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		processor *shopify.FulfillmentEventProcessor
 		logger    log.Logger
 
-		authClientCtrl *gomock.Controller
-		authClient     *authTest.MockClient
+		ctrl *gomock.Controller
 
-		dataSourceClientCtrl *gomock.Controller
-		dataSourceClient     *dataSourceTest.MockClient
-
-		shopifyCtrl *gomock.Controller
-		shopifyClnt *shopfiyTest.MockClient
+		authClient       *authTest.MockClient
+		dataSourceClient *dataSourceTest.MockClient
+		shopifyClnt      *shopfiyTest.MockClient
 
 		appAPIServer    *httptest.Server
 		appAPIResponses *ouraTest.StubResponses
@@ -59,6 +56,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		logger = logTest.NewLogger()
+		ctrl, ctx = gomock.WithContext(ctx, GinkgoT())
 
 		appAPIResponses = ouraTest.NewStubResponses()
 		appAPIServer = ouraTest.NewStubServer(appAPIResponses)
@@ -73,14 +71,9 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		shopifyCtrl = gomock.NewController(GinkgoT())
-		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
-
-		authClientCtrl = gomock.NewController(GinkgoT())
-		authClient = authTest.NewMockClient(authClientCtrl)
-
-		dataSourceClientCtrl = gomock.NewController(GinkgoT())
-		dataSourceClient = dataSourceTest.NewMockClient(dataSourceClientCtrl)
+		shopifyClnt = shopfiyTest.NewMockClient(ctrl)
+		authClient = authTest.NewMockClient(ctrl)
+		dataSourceClient = dataSourceTest.NewMockClient(ctrl)
 
 		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt, authClient, dataSourceClient)
 		Expect(err).ToNot(HaveOccurred())
@@ -92,8 +85,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 		appAPIServer.Close()
 		trackAPIServer.Close()
-		authClientCtrl.Finish()
-		shopifyCtrl.Finish()
+		ctrl.Finish()
 	})
 
 	Context("Process", func() {

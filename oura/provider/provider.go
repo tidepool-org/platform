@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -236,28 +237,6 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 	return nil
 }
 
-func (p *Provider) sendProviderConnectedEvent(ctx context.Context, providerSession *auth.ProviderSession, dataSrc *dataSource.Source) error {
-	providerSessionUpdate := &auth.ProviderSessionUpdate{
-		OAuthToken: providerSession.OAuthToken,
-		ExternalID: providerSession.ExternalID,
-	}
-	if _, err := p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
-		return errors.Wrap(err, "unable to update provider session")
-	}
-
-	dataSrcUpdate := &dataSource.Update{
-		ProviderSessionID:  pointer.FromString(providerSession.ID),
-		ProviderExternalID: dataSrc.ProviderExternalID,
-		State:              pointer.FromString(dataSource.StateConnected),
-		DataSetIDs:         dataSrc.DataSetIDs,
-	}
-	if _, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
-		return errors.Wrap(err, "unable to update data source")
-	}
-
-	return nil
-}
-
 func (p *Provider) disconnectDataSourcesFromProviderSession(ctx context.Context, providerSession *auth.ProviderSession) error {
 	if providerSession == nil {
 		return errors.New("provider session is missing")
@@ -317,6 +296,17 @@ func (p *Provider) createDataSetupWork(ctx context.Context, dataSrc *dataSource.
 	workCreate, err := ouraWorkDataSetup.NewWorkCreate(dataSrc)
 	if err != nil {
 		return errors.Wrap(err, "unable to create data setup work create")
+	}
+	if _, err = p.workClient.Create(ctx, workCreate); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (p *Provider) createDataSourceStateChangeEventWork(ctx context.Context, dataSrc *dataSource.Source) error {
+	workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(dataSrc)
+	if err != nil {
+		return errors.Wrap(err, "unable to create customer.io data source state changed event work create")
 	}
 	if _, err = p.workClient.Create(ctx, workCreate); err != nil {
 		return err

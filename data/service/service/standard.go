@@ -6,10 +6,6 @@ import (
 	"os"
 
 	"github.com/IBM/sarama"
-	"github.com/kelseyhightower/envconfig"
-
-	"github.com/tidepool-org/platform/customerio"
-
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform-plugin-abbott/abbott"
@@ -71,7 +67,6 @@ type Standard struct {
 	workClient                     *workService.Client
 	abbottClient                   *abbottClient.Client
 	ouraClient                     *ouraClient.Client
-	customerIOClient               *customerio.Client
 	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
@@ -136,9 +131,6 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeOuraClient(); err != nil {
-		return err
-	}
-	if err := s.initializeCustomerIOClient(); err != nil {
 		return err
 	}
 	if err := s.initializeWorkCoordinator(); err != nil {
@@ -631,21 +623,6 @@ func (s *Standard) initializeOuraClient() error {
 	return nil
 }
 
-func (s *Standard) initializeCustomerIOClient() error {
-	customerIOConfig := customerio.Config{}
-	if err := envconfig.Process("", &customerIOConfig); err != nil {
-		return errors.Wrap(err, "unable to load customerio config")
-	}
-
-	var err error
-	s.customerIOClient, err = customerio.NewClient(customerIOConfig, s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "unable to create customerio client")
-	}
-
-	return nil
-}
-
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
@@ -690,7 +667,6 @@ func (s *Standard) initializeWorkCoordinator() error {
 			DataSetClient:         s.dataClient,
 			WorkClient:            s.workClient,
 			Client:                s.ouraClient,
-			CustomerIOClient:      s.customerIOClient,
 		}
 		ouraProcessors, err := ouraWorkProcessors.NewProcessorFactories(ouraProcessorDependencies)
 		if err != nil {

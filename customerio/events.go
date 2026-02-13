@@ -5,6 +5,6 @@ const (
 )
 
 type DataSourceStateChangedEvent struct {
-	ProviderName string `json:"provider_name"`
-	State        string `json:"state"`
+	ProviderName string `json:"provider_name" bson:"provider_name"`
+	State        string `json:"state" bson:"state"`
 }

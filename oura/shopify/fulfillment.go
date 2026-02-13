@@ -170,7 +170,10 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
 	// A user must have a data source to be able to link their account
-	sources, err := f.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{ProviderName: pointer.FromAny([]string{oura.ProviderName})}, page.NewPaginationMinimum())
+	sources, err := f.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{
+		ProviderName: pointer.FromAny([]string{oura.ProviderName}),
+		ProviderType: pointer.FromAny([]string{auth.ProviderTypeOAuth}),
+	}, page.NewPaginationMinimum())
 	if err != nil {
 		return errors.Wrap(err, "unable to list data sources")
 	}
