@@ -12,8 +12,6 @@ import (
 	"github.com/tidepool-org/platform/oura/jotform"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/user"
-	workBase "github.com/tidepool-org/platform/work/base"
-
 	userClient "github.com/tidepool-org/platform/user/client"
 
 	"github.com/kelseyhightower/envconfig"
@@ -912,7 +910,7 @@ func (s *Service) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to ensure reconciler work item exists")
 	}
 
-	var factories []*workBase.ProcessorFactory
+	var factories []work.ProcessorFactory
 
 	s.Logger().Info("Creating jotform work processor factory")
 
@@ -928,12 +926,8 @@ func (s *Service) initializeWorkCoordinator() error {
 		factories = append(factories, factory)
 	}
 
-	for _, factory := range factories {
-		s.Logger().Infof("Registering %s processor factory", factory.Type())
-
-		if err = s.workCoordinator.RegisterProcessorFactory(factory); err != nil {
-			return errors.Wrapf(err, "unable to register %s work processor factory", factory.Type())
-		}
+	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
+		return errors.Wrapf(err, "unable to register work processor factores")
 	}
 
 	s.Logger().Info("Starting work coordinator")

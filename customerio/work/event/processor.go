@@ -149,8 +149,6 @@ func NewDataSourceStateChangedEventWorkCreate(dataSrc *dataSource.Source) (*work
 	return &work.Create{
 		Type:              Type,
 		DeduplicationID:   pointer.FromString(WorkDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
-		GroupID:           pointer.FromString(GroupIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
-		SerialID:          pointer.FromString(SerialIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
 			MetadataKeyUserID:    *dataSrc.UserID,
@@ -163,14 +161,6 @@ func NewDataSourceStateChangedEventWorkCreate(dataSrc *dataSource.Source) (*work
 			MetadataKeyEventDeduplicationID:   EventDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc),
 		},
 	}, nil
-}
-
-func GroupIDFromDataSource(eventType string, dataSrc dataSource.Source) string {
-	return fmt.Sprintf("%s:%s:%s", Type, eventType, *dataSrc.ID)
-}
-
-func SerialIDFromDataSource(eventType string, dataSrc dataSource.Source) string {
-	return fmt.Sprintf("%s:%s:%s", Type, eventType, *dataSrc.ID)
 }
 
 func WorkDeduplicationIDFromDataSource(eventType string, dataSrc dataSource.Source) string {

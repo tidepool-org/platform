@@ -8,7 +8,6 @@ import (
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
 	"github.com/tidepool-org/platform/customerio"
-	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
@@ -141,19 +140,8 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.updateDataSourceProviderExternalID,
 		p.updateProviderSessionExternalID,
 		p.createDataHistoricWork,
-		p.createDataSourceStateChangedEventWork,
 		p.Delete,
 	}.Process()
-}
-
-func (p *Processor) createDataSourceStateChangedEventWork() *work.ProcessResult {
-	if workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(p.DataSource); err != nil {
-		return p.Failed(errors.Wrap(err, "unable to create work create"))
-	} else if _, err = p.WorkClient.Create(p.Context(), workCreate); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to customer.io data source state changed event work"))
-	} else {
-		return nil
-	}
 }
 
 func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
