@@ -86,7 +86,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				}},
 			}
 
-			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, sizingKitDiscountCode)
+			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, sizingKitDiscountCode)
 			Expect(err).ToNot(HaveOccurred())
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")
@@ -151,7 +151,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				}},
 			}
 
-			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, ringDiscountCode)
+			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, ringDiscountCode)
 			Expect(err).ToNot(HaveOccurred())
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")

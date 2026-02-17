@@ -158,15 +158,16 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 		logger.Warn("submission has no answers")
 		return nil
 	}
-	identifiers, err := s.validateUser(ctx, submission.Content.ID, submission.Content.Answers)
+	customer, err := s.validateUser(ctx, submission.Content.ID, submission.Content.Answers)
 	if err != nil {
 		return errors.Wrap(err, "unable to validate user")
-	} else if identifiers == nil {
+	} else if customer == nil {
 		logger.Warn("invalid user")
 		return nil
 	}
 
-	if err := s.handleSurveyCompleted(ctx, *identifiers, submission); err != nil {
+
+	if err := s.handleSurveyCompleted(ctx, *customer, submission); err != nil {
 		return err
 	}
 
@@ -179,7 +180,7 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 
 // validateUser validates the user id by comparing the participant id from the submission with the participant id from customer.io
 // this is required because jotform webhooks are not signed or authenticated
-func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Identifiers, error) {
+func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Customer, error) {
 	logger := s.logger.WithField("submissionId", submissionID)
 
 	userID := answers.GetAnswerTextByName(UserIDField)
@@ -217,17 +218,17 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		return nil, nil
 	}
 
-	return &customer.Identifiers, nil
+	return customer, nil
 }
 
-func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, identifiers customerio.Identifiers, submission *SubmissionResponse) error {
+func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, customer customerio.Customer, submission *SubmissionResponse) error {
 	surveyCompletedData := oura.OuraEligibilitySurveyCompletedData{
 		OuraEligibilitySurveyID:       submission.Content.ID,
 		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == "true",
 	}
 
 	if surveyCompletedData.OuraEligibilitySurveyEligible {
-		if err := s.ensureConsentRecordExists(ctx, identifiers.ID, submission); err != nil {
+		if err := s.ensureConsentRecordExists(ctx, customer.Identifiers.ID, submission); err != nil {
 			s.logger.WithField("submission", submission.Content.ID).WithError(err).Warn("unable to ensure consent record exists")
 			return err
 		}
@@ -248,12 +249,13 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, identif
 		Data: surveyCompletedData,
 	}
 
-	err := surveyCompleted.SetDeduplicationID(submission.Content.CreatedAt.Time, surveyCompletedData.OuraEligibilitySurveyID)
+	// Use oura participant id as deduplication attribute to prevent multiple submissions
+	err := surveyCompleted.SetDeduplicationID(nil, customer.OuraParticipantID)
 	if err != nil {
 		return errors.Wrap(err, "unable to set event id")
 	}
 
-	err = s.customerIOClient.SendEvent(ctx, identifiers.ID, surveyCompleted)
+	err = s.customerIOClient.SendEvent(ctx, customer.Identifiers.ID, surveyCompleted)
 	if err != nil {
 		return errors.Wrap(err, "unable to send sizing kit delivered event")
 	}
@@ -324,7 +326,7 @@ func (s *SubmissionProcessor) saveProcessedSubmission(ctx context.Context, submi
 		CreatedTime:  time.Now(),
 	}
 
-	if err := s.store.SaveProcessedSubmission(ctx, processedSubmission); err != nil && !mongo.IsDup(err) {
+	if err := s.store.CreateProcessedSubmission(ctx, processedSubmission); err != nil && !mongo.IsDup(err) {
 		return err
 	}
 

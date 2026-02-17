@@ -138,7 +138,7 @@ func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, ide
 			OuraSizingKitDiscountCode: discountCode,
 		},
 	}
-	if err := sizingKitOrdered.SetDeduplicationID(event.CreatedAt, discountCode); err != nil {
+	if err := sizingKitOrdered.SetDeduplicationID(&event.CreatedAt, discountCode); err != nil {
 		return errors.Wrap(err, "unable to set event id")
 	}
 
@@ -153,7 +153,7 @@ func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifi
 		},
 	}
 
-	if err := ringOrdered.SetDeduplicationID(event.CreatedAt, discountCode); err != nil {
+	if err := ringOrdered.SetDeduplicationID(&event.CreatedAt, discountCode); err != nil {
 		return errors.Wrap(err, "unable to set event id")
 	}
 

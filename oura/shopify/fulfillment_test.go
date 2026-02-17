@@ -100,7 +100,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				OrderID:        rand.Int63n(999999999999),
 			}
 
-			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
 			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
@@ -173,7 +173,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				OrderID:        rand.Int63n(999999999999),
 			}
 
-			deduplicationID, err := customerio.CreateUlid(event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
 			Expect(err).ToNot(HaveOccurred())
 
 			dataSourceClient.EXPECT().

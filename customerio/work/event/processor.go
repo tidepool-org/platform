@@ -118,7 +118,7 @@ func (p *Processor) eventFromMetadata() (*customerio.Event, error) {
 	if err := parser.Error(); err != nil {
 		return nil, errors.Wrap(parser.Error(), "unable to parse metadata")
 	}
-	if err := event.SetDeduplicationID(deduplicationTime, deduplicationID); err != nil {
+	if err := event.SetDeduplicationID(&deduplicationTime, deduplicationID); err != nil {
 		return nil, errors.Wrap(err, "unable to set event deduplication id")
 	}
 	if err := structureValidator.New(p.Logger()).Validate(event); err != nil {

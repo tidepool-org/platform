@@ -161,7 +161,7 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 		},
 	}
 
-	if err = sizingKitDelivered.SetDeduplicationID(event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+	if err = sizingKitDelivered.SetDeduplicationID(&event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
 		return err
 	}
 
@@ -207,7 +207,7 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 		},
 	}
 
-	if err = ringDelivered.SetDeduplicationID(event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+	if err = ringDelivered.SetDeduplicationID(&event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
 		return err
 	}
 
