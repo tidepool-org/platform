@@ -1,6 +1,10 @@
 package shopify
 
-import "context"
+import (
+	"context"
+
+	"github.com/tidepool-org/platform/oura/shopify/generated"
+)
 
 type ClientConfig struct {
 	StoreID      string `envconfig:"TIDEPOOL_OURA_SHOPIFY_STORE_ID"`
@@ -11,7 +15,8 @@ type ClientConfig struct {
 //go:generate mockgen -source=client.go -destination=./test/client.go -package=test Client
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error
-	GetDeliveredProducts(ctx context.Context, orderID string) (*DeliveredProducts, error)
+	GetOrder(ctx context.Context, orderID string) (*generated.GetOrderOrderByIdentifierOrder, error)
+	GetProductsFromOrder(order *generated.GetOrderOrderByIdentifierOrder) *Products
 }
 
 type DiscountCodeInput struct {
@@ -20,7 +25,7 @@ type DiscountCodeInput struct {
 	ProductID string
 }
 
-type DeliveredProducts struct {
+type Products struct {
 	IDs          []string `json:"products"`
 	DiscountCode string   `json:"discount_code"`
 }

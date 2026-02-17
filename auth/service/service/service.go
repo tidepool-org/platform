@@ -48,6 +48,7 @@ import (
 	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
+	shopifyStore "github.com/tidepool-org/platform/oura/shopify/store"
 
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
@@ -350,12 +351,17 @@ func (s *Service) initializeSubmissionProcessor() error {
 }
 
 func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient())
+	orderEventStore, err := shopifyStore.NewStore(s.authStore.Store)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create shopify order event store")
+	}
+
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
 	}
 
-	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), s.customerIOClient)
+	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), s.customerIOClient, orderEventStore)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create orders create event processor")
 	}

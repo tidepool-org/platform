@@ -51,7 +51,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		processor, err = shopify.NewOrdersCreateEventProcessor(logger, customerIOClient)
+		processor, err = shopify.NewOrdersCreateEventProcessor(logger, customerIOClient, GetSuiteStore())
 		Expect(err).ToNot(HaveOccurred())
 	})
 

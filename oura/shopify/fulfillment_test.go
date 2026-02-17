@@ -6,13 +6,14 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"go.uber.org/mock/gomock"
+
+	"github.com/tidepool-org/platform/oura/shopify/generated"
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/oura"
@@ -75,7 +76,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		authClient = authTest.NewMockClient(ctrl)
 		dataSourceClient = dataSourceTest.NewMockClient(ctrl)
 
-		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt, authClient, dataSourceClient)
+		processor, err = shopify.NewFulfillmentEventProcessor(logger, customerIOClient, shopifyClnt, authClient, dataSourceClient, GetSuiteStore())
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -99,16 +100,25 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
+			orderID := fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)
+			order := &generated.GetOrderOrderByIdentifierOrder{
+				Id:        orderID,
+				CreatedAt: time.Now(),
+			}
 
-			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			deduplicationID, err := customerio.CreateUlid(&order.CreatedAt, order.Id)
 			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
-				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
-				Return(&shopify.DeliveredProducts{
+				GetOrder(gomock.Any(), orderID).
+				Return(order, nil)
+
+			shopifyClnt.EXPECT().
+				GetProductsFromOrder(gomock.Any()).
+				Return(&shopify.Products{
 					IDs:          []string{shopify.OuraSizingKitProductID},
 					DiscountCode: sizingKitDiscountCode,
-				}, nil)
+				})
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")
 			Expect(err).ToNot(HaveOccurred())
@@ -172,8 +182,13 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
+			orderID := fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)
+			order := &generated.GetOrderOrderByIdentifierOrder{
+				Id:        orderID,
+				CreatedAt: time.Now(),
+			}
 
-			deduplicationID, err := customerio.CreateUlid(&event.CreatedAt, strconv.FormatInt(event.OrderID, 10))
+			deduplicationID, err := customerio.CreateUlid(&order.CreatedAt, order.Id)
 			Expect(err).ToNot(HaveOccurred())
 
 			dataSourceClient.EXPECT().
@@ -192,11 +207,15 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 			})
 
 			shopifyClnt.EXPECT().
-				GetDeliveredProducts(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
-				Return(&shopify.DeliveredProducts{
+				GetOrder(gomock.Any(), fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)).
+				Return(order, nil)
+
+			shopifyClnt.EXPECT().
+				GetProductsFromOrder(gomock.Any()).
+				Return(&shopify.Products{
 					IDs:          []string{shopify.OuraRingProductID},
 					DiscountCode: discountCode,
-				}, nil)
+				})
 
 			customers, err := ouraTest.LoadFixture("./test/fixtures/customers.json")
 			Expect(err).ToNot(HaveOccurred())

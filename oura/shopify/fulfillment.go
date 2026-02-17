@@ -12,6 +12,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/shopify/generated"
+	"github.com/tidepool-org/platform/oura/shopify/store"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -50,18 +52,20 @@ type FulfillmentEventProcessor struct {
 	logger log.Logger
 
 	customerIOClient      *customerio.Client
+	dataSourceClient      dataSource.Client
 	restrictedTokenClient auth.RestrictedTokenAccessor
 	shopifyClient         Client
-	dataSourceClient      dataSource.Client
+	store                 store.Store
 }
 
-func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor, dataSourceClient dataSource.Client) (*FulfillmentEventProcessor, error) {
+func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor, dataSourceClient dataSource.Client, store store.Store) (*FulfillmentEventProcessor, error) {
 	return &FulfillmentEventProcessor{
 		logger:                logger,
 		customerIOClient:      customerIOClient,
+		dataSourceClient:      dataSourceClient,
 		restrictedTokenClient: restrictedTokenClient,
 		shopifyClient:         shopifyClient,
-		dataSourceClient:      dataSourceClient,
+		store:                 store,
 	}, nil
 }
 
@@ -73,10 +77,19 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 	}
 
 	orderId := fmt.Sprintf("gid://shopify/Order/%d", event.OrderID)
-	deliveredProducts, err := f.shopifyClient.GetDeliveredProducts(ctx, orderId)
+	if event, err := f.store.GetShopifyOrderEvent(ctx, event.AdminGraphQLAPIID, store.OrderEventTypeDelivered); err != nil {
+		return errors.Wrap(err, "unable to retrieve shopify order event")
+	} else if event != nil {
+		logger.Info("ignoring order create event because it was already processed")
+		return nil
+	}
+
+	order, err := f.shopifyClient.GetOrder(ctx, orderId)
 	if err != nil {
 		return err
 	}
+
+	deliveredProducts := f.shopifyClient.GetProductsFromOrder(order)
 	if deliveredProducts == nil || len(deliveredProducts.IDs) == 0 {
 		logger.Info("ignoring fulfillment event with no delivered products")
 		return nil
@@ -126,23 +139,34 @@ func (f *FulfillmentEventProcessor) Process(ctx context.Context, event Fulfillme
 
 	switch deliveredProductID {
 	case OuraSizingKitProductID:
-		if err := f.onSizingKitDelivered(ctx, customers.Identifiers[0], event, deliveredProducts.DiscountCode); err != nil {
+		if err := f.onSizingKitDelivered(ctx, customers.Identifiers[0], order, deliveredProducts); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit delivered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := f.onRingDelivered(ctx, customers.Identifiers[0], event, deliveredProducts.DiscountCode); err != nil {
+		if err := f.onRingDelivered(ctx, customers.Identifiers[0], order, deliveredProducts); err != nil {
 			logger.WithError(err).Warn("unable to send ring delivered event")
 			return err
 		}
 	default:
 		logger.Warn("ignoring fulfillment event for unknown product")
+		return nil
+	}
+
+	err = f.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
+		OrderID:    orderId,
+		UserID:     customers.Identifiers[0].ID,
+		Type:       store.OrderEventTypeDelivered,
+		CreateTime: time.Now(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify order event")
 	}
 
 	return nil
 }
 
-func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, sizingKitDiscountCode string) error {
+func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, identifiers customerio.Identifiers, order *generated.GetOrderOrderByIdentifierOrder, deliveredProducts *Products) error {
 	discountCode := RandomDiscountCode()
 	err := f.shopifyClient.CreateDiscountCode(ctx, DiscountCodeInput{
 		Title:     OuraRingDiscountCodeTitle,
@@ -157,18 +181,18 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 		Name: oura.OuraSizingKitDeliveredEventType,
 		Data: oura.OuraSizingKitDeliveredData{
 			OuraRingDiscountCode:      discountCode,
-			OuraSizingKitDiscountCode: sizingKitDiscountCode,
+			OuraSizingKitDiscountCode: deliveredProducts.DiscountCode,
 		},
 	}
 
-	if err = sizingKitDelivered.SetDeduplicationID(&event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+	if err = sizingKitDelivered.SetDeduplicationID(&order.CreatedAt, order.Id); err != nil {
 		return err
 	}
 
 	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitDelivered)
 }
 
-func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
+func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, order *generated.GetOrderOrderByIdentifierOrder, deliveredProducts *Products) error {
 	// A user must have a data source to be able to link their account
 	sources, err := f.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{
 		ProviderName: pointer.FromAny([]string{oura.ProviderName}),
@@ -201,13 +225,13 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 	ringDelivered := &customerio.Event{
 		Name: oura.OuraRingDeliveredEventType,
 		Data: oura.OuraRingDeliveredData{
-			OuraRingDiscountCode:                  ringDiscountCode,
+			OuraRingDiscountCode:                  deliveredProducts.DiscountCode,
 			OuraAccountLinkingToken:               token.ID,
 			OuraAccountLinkingTokenExpirationTime: token.ExpirationTime.Unix(),
 		},
 	}
 
-	if err = ringDelivered.SetDeduplicationID(&event.CreatedAt, fmt.Sprintf("%d", event.OrderID)); err != nil {
+	if err = ringDelivered.SetDeduplicationID(&order.CreatedAt, order.Id); err != nil {
 		return err
 	}
 

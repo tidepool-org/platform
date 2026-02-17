@@ -2,23 +2,52 @@ package store
 
 import (
 	"context"
+	"regexp"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
+
 	"github.com/tidepool-org/platform/errors"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 )
 
-const CollectionName = "shopify_order_events"
+const (
+	CollectionName = "shopify_order_events"
+
+	OrderEventTypeCreated   = "created"
+	OrderEventTypeDelivered = "delivered"
+)
+
+var (
+	orderIDRegExp = regexp.MustCompile(`^gid://shopify/Order/\d+$`)
+)
 
 type ShopifyOrderEvent struct {
 	OrderID    string    `bson:"orderId"`
 	UserID     string    `bson:"userId"`
 	Type       string    `bson:"type"`
 	CreateTime time.Time `bson:"createdTime"`
+}
+
+func (s *ShopifyOrderEvent) Validate(validator structure.Validator) {
+	validator.String("orderId", &s.OrderID).NotEmpty().Matches(orderIDRegExp)
+	validator.String("userId", &s.UserID).NotEmpty().Using(user.IDValidator)
+	validator.String("type", &s.Type).OneOf(OrderEventTypes()...)
+	validator.Time("createdTime", &s.CreateTime).NotZero()
+}
+
+func OrderEventTypes() []string {
+	return []string{
+		OrderEventTypeCreated,
+		OrderEventTypeDelivered,
+	}
 }
 
 type Store interface {
@@ -57,18 +86,8 @@ func (s *store) EnsureIndexes(ctx context.Context) error {
 }
 
 func (s *store) GetShopifyOrderEvent(ctx context.Context, orderID, typ string) (*ShopifyOrderEvent, error) {
-	if orderID == "" {
-		return nil, errors.New("submission ID is missing")
-	}
-	if typ == "" {
-		return nil, errors.New("submission ID is missing")
-	}
-
 	var event ShopifyOrderEvent
-	err := s.FindOne(ctx, bson.M{
-		"orderId": orderID,
-		"type":    typ,
-	}).Decode(&event)
+	err := s.FindOne(ctx, bson.M{"orderId": orderID, "type": typ}).Decode(&event)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}
@@ -80,18 +99,13 @@ func (s *store) GetShopifyOrderEvent(ctx context.Context, orderID, typ string) (
 }
 
 func (s *store) CreateShopifyOrderEvent(ctx context.Context, event ShopifyOrderEvent) error {
-	if event.OrderID == "" {
-		return errors.New("order id is missing")
-	}
-	if event.Type == "" {
-		return errors.New("type is missing")
+	validator := structureValidator.New(log.LoggerFromContext(ctx))
+	if err := validator.Validate(&event); err != nil {
+		return errors.Wrap(err, "event is not valid")
 	}
 
 	_, err := s.InsertOne(ctx, event)
 	if err != nil {
-		if storeStructuredMongo.IsDup(err) {
-			return errors.New("event already exists")
-		}
 		return errors.Wrap(err, "unable to create shopify order event")
 	}
 

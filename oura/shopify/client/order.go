@@ -17,6 +17,7 @@ const (
 var _ = `# @genqlient
 query GetOrder($identifier: OrderIdentifierInput!) {
   orderByIdentifier(identifier: $identifier) {
+	createdAt
     discountCode
     fulfillments(first: 10) {
       deliveredAt
@@ -36,18 +37,23 @@ query GetOrder($identifier: OrderIdentifierInput!) {
 }
 `
 
-func (c *defaultClient) GetDeliveredProducts(ctx context.Context, orderID string) (*shopify.DeliveredProducts, error) {
+func (c *defaultClient) GetOrder(ctx context.Context, orderID string) (*generated.GetOrderOrderByIdentifierOrder, error) {
 	resp, err := generated.GetOrder(ctx, c.gql, &generated.OrderIdentifierInput{
 		Id: pointer.FromAny(orderID),
 	})
 	if err != nil {
 		return nil, err
 	}
-	if resp.GetOrderByIdentifier() == nil {
-		return nil, nil
+	return resp.GetOrderByIdentifier(), nil
+}
+
+func (c *defaultClient) GetProductsFromOrder(order *generated.GetOrderOrderByIdentifierOrder) *shopify.Products {
+	if order == nil {
+		return nil
 	}
+
 	ids := make([]string, 0)
-	for _, fulfillment := range resp.GetOrderByIdentifier().Fulfillments {
+	for _, fulfillment := range order.Fulfillments {
 		if fulfillment == nil {
 			continue
 		}
@@ -69,11 +75,11 @@ func (c *defaultClient) GetDeliveredProducts(ctx context.Context, orderID string
 	}
 
 	var discountCode string
-	if resp.GetOrderByIdentifier().GetDiscountCode() != nil {
-		discountCode = *resp.GetOrderByIdentifier().GetDiscountCode()
+	if order.GetDiscountCode() != nil {
+		discountCode = *order.GetDiscountCode()
 	}
-	return &shopify.DeliveredProducts{
+	return &shopify.Products{
 		IDs:          ids,
 		DiscountCode: discountCode,
-	}, nil
+	}
 }

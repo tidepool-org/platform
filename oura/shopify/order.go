@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/shopify/store"
 )
 
 type OrdersCreateEvent struct {
@@ -35,17 +36,26 @@ type OrdersCreateEventProcessor struct {
 	logger log.Logger
 
 	customerIOClient *customerio.Client
+	store            store.Store
 }
 
-func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client) (*OrdersCreateEventProcessor, error) {
+func NewOrdersCreateEventProcessor(logger log.Logger, customerIOClient *customerio.Client, store store.Store) (*OrdersCreateEventProcessor, error) {
 	return &OrdersCreateEventProcessor{
 		logger:           logger,
 		customerIOClient: customerIOClient,
+		store:            store,
 	}, nil
 }
 
-func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCreateEvent) error {
-	logger := f.logger.WithField("orderId", event.ID)
+func (o *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCreateEvent) error {
+	logger := o.logger.WithField("orderId", event.ID)
+
+	if event, err := o.store.GetShopifyOrderEvent(ctx, event.AdminGraphQLAPIID, store.OrderEventTypeCreated); err != nil {
+		return errors.Wrap(err, "unable to retrieve shopify order event")
+	} else if event != nil {
+		logger.Info("ignoring order create event because it was already processed")
+		return nil
+	}
 
 	var products []string
 	for _, lineItem := range event.LineItems {
@@ -83,7 +93,7 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 	}
 
 	discountCode := discountCodes[0]
-	customers, err := f.customerIOClient.FindCustomers(ctx, map[string]any{
+	customers, err := o.customerIOClient.FindCustomers(ctx, map[string]any{
 		"filter": map[string]any{
 			"and": []any{
 				map[string]any{
@@ -115,23 +125,34 @@ func (f *OrdersCreateEventProcessor) Process(ctx context.Context, event OrdersCr
 
 	switch productID {
 	case OuraSizingKitProductID:
-		if err := f.onSizingKitOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
+		if err := o.onSizingKitOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit ordered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := f.onRingOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
+		if err := o.onRingOrdered(ctx, customers.Identifiers[0], event, discountCode); err != nil {
 			logger.WithError(err).Warn("unable to send ring ordered event")
 			return err
 		}
 	default:
 		logger.Warn("ignoring orders create event for unknown product")
+		return nil
+	}
+
+	err = o.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
+		OrderID:    event.AdminGraphQLAPIID,
+		UserID:     customers.Identifiers[0].ID,
+		Type:       store.OrderEventTypeCreated,
+		CreateTime: time.Now(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify order event")
 	}
 
 	return nil
 }
 
-func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
+func (o *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
 	sizingKitOrdered := &customerio.Event{
 		Name: oura.OuraSizingKitOrderedEventType,
 		Data: oura.OuraSizingKitOrderedData{
@@ -142,10 +163,10 @@ func (f *OrdersCreateEventProcessor) onSizingKitOrdered(ctx context.Context, ide
 		return errors.Wrap(err, "unable to set event id")
 	}
 
-	return f.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitOrdered)
+	return o.customerIOClient.SendEvent(ctx, identifiers.ID, sizingKitOrdered)
 }
 
-func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
+func (o *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifiers customerio.Identifiers, event OrdersCreateEvent, discountCode string) error {
 	ringOrdered := &customerio.Event{
 		Name: oura.OuraRingOrderedEventType,
 		Data: oura.OuraRingOrderedData{
@@ -157,5 +178,5 @@ func (f *OrdersCreateEventProcessor) onRingOrdered(ctx context.Context, identifi
 		return errors.Wrap(err, "unable to set event id")
 	}
 
-	return f.customerIOClient.SendEvent(ctx, identifiers.ID, ringOrdered)
+	return o.customerIOClient.SendEvent(ctx, identifiers.ID, ringOrdered)
 }

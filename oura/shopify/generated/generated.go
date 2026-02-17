@@ -896,6 +896,10 @@ var AllFulfillmentDisplayStatus = []FulfillmentDisplayStatus{
 //
 // Learn more about [building apps for orders and fulfillment](https://shopify.dev/docs/apps/build/orders-fulfillment).
 type GetOrderOrderByIdentifierOrder struct {
+	// The date and time in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601)
+	// when an order was created. This timestamp is set when the customer completes
+	// checkout and remains unchanged throughout an order's lifecycle.
+	CreatedAt time.Time `json:"createdAt"`
 	// The discount code used for an order. Returns `null` if no discount code was applied.
 	DiscountCode *string `json:"discountCode"`
 	// A list of shipments for the order. Fulfillments represent the physical shipment of products to customers.
@@ -903,6 +907,9 @@ type GetOrderOrderByIdentifierOrder struct {
 	// A globally-unique ID.
 	Id string `json:"id"`
 }
+
+// GetCreatedAt returns GetOrderOrderByIdentifierOrder.CreatedAt, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrder) GetCreatedAt() time.Time { return v.CreatedAt }
 
 // GetDiscountCode returns GetOrderOrderByIdentifierOrder.DiscountCode, and is useful for accessing the field via an interface.
 func (v *GetOrderOrderByIdentifierOrder) GetDiscountCode() *string { return v.DiscountCode }
@@ -1153,6 +1160,7 @@ func CreateDiscountCode(
 const GetOrder_Operation = `
 query GetOrder ($identifier: OrderIdentifierInput!) {
 	orderByIdentifier(identifier: $identifier) {
+		createdAt
 		discountCode
 		fulfillments(first: 10) {
 			deliveredAt

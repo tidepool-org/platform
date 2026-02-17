@@ -16,6 +16,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	shopify "github.com/tidepool-org/platform/oura/shopify"
+	generated "github.com/tidepool-org/platform/oura/shopify/generated"
 )
 
 // MockClient is a mock of Client interface.
@@ -56,17 +57,31 @@ func (mr *MockClientMockRecorder) CreateDiscountCode(ctx, discountCodeInput any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiscountCode", reflect.TypeOf((*MockClient)(nil).CreateDiscountCode), ctx, discountCodeInput)
 }
 
-// GetDeliveredProducts mocks base method.
-func (m *MockClient) GetDeliveredProducts(ctx context.Context, orderID string) (*shopify.DeliveredProducts, error) {
+// GetOrder mocks base method.
+func (m *MockClient) GetOrder(ctx context.Context, orderID string) (*generated.GetOrderOrderByIdentifierOrder, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeliveredProducts", ctx, orderID)
-	ret0, _ := ret[0].(*shopify.DeliveredProducts)
+	ret := m.ctrl.Call(m, "GetOrder", ctx, orderID)
+	ret0, _ := ret[0].(*generated.GetOrderOrderByIdentifierOrder)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDeliveredProducts indicates an expected call of GetDeliveredProducts.
-func (mr *MockClientMockRecorder) GetDeliveredProducts(ctx, orderID any) *gomock.Call {
+// GetOrder indicates an expected call of GetOrder.
+func (mr *MockClientMockRecorder) GetOrder(ctx, orderID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeliveredProducts", reflect.TypeOf((*MockClient)(nil).GetDeliveredProducts), ctx, orderID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrder", reflect.TypeOf((*MockClient)(nil).GetOrder), ctx, orderID)
+}
+
+// GetProductsFromOrder mocks base method.
+func (m *MockClient) GetProductsFromOrder(order *generated.GetOrderOrderByIdentifierOrder) *shopify.Products {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetProductsFromOrder", order)
+	ret0, _ := ret[0].(*shopify.Products)
+	return ret0
+}
+
+// GetProductsFromOrder indicates an expected call of GetProductsFromOrder.
+func (mr *MockClientMockRecorder) GetProductsFromOrder(order any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetProductsFromOrder", reflect.TypeOf((*MockClient)(nil).GetProductsFromOrder), order)
 }

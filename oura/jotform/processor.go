@@ -166,7 +166,6 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 		return nil
 	}
 
-
 	if err := s.handleSurveyCompleted(ctx, *customer, submission); err != nil {
 		return err
 	}
