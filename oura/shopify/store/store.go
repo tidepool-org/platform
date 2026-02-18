@@ -30,14 +30,14 @@ var (
 )
 
 type ShopifyOrderEvent struct {
-	OrderID    string    `bson:"orderId"`
+	OrderGID   string    `bson:"orderGID"`
 	UserID     string    `bson:"userId"`
 	Type       string    `bson:"type"`
 	CreateTime time.Time `bson:"createdTime"`
 }
 
 func (s *ShopifyOrderEvent) Validate(validator structure.Validator) {
-	validator.String("orderId", &s.OrderID).NotEmpty().Matches(orderIDRegExp)
+	validator.String("orderGID", &s.OrderGID).NotEmpty().Matches(orderIDRegExp)
 	validator.String("userId", &s.UserID).NotEmpty().Using(user.IDValidator)
 	validator.String("type", &s.Type).OneOf(OrderEventTypes()...)
 	validator.Time("createdTime", &s.CreateTime).NotZero()
@@ -51,7 +51,7 @@ func OrderEventTypes() []string {
 }
 
 type Store interface {
-	GetShopifyOrderEvent(ctx context.Context, orderID, typ string) (*ShopifyOrderEvent, error)
+	GetShopifyOrderEvent(ctx context.Context, orderGID, typ string) (*ShopifyOrderEvent, error)
 	CreateShopifyOrderEvent(ctx context.Context, event ShopifyOrderEvent) error
 }
 
@@ -78,16 +78,16 @@ func NewStore(mongoStore *storeStructuredMongo.Store) (Store, error) {
 func (s *store) EnsureIndexes(ctx context.Context) error {
 	return s.CreateAllIndexes(ctx, []mongo.IndexModel{
 		{
-			Keys: bson.D{{Key: "orderId", Value: 1}, {Key: "type", Value: 1}},
+			Keys: bson.D{{Key: "orderGID", Value: 1}, {Key: "type", Value: 1}},
 			Options: options.Index().
 				SetUnique(true),
 		},
 	})
 }
 
-func (s *store) GetShopifyOrderEvent(ctx context.Context, orderID, typ string) (*ShopifyOrderEvent, error) {
+func (s *store) GetShopifyOrderEvent(ctx context.Context, orderGID, typ string) (*ShopifyOrderEvent, error) {
 	var event ShopifyOrderEvent
-	err := s.FindOne(ctx, bson.M{"orderId": orderID, "type": typ}).Decode(&event)
+	err := s.FindOne(ctx, bson.M{"orderGID": orderGID, "type": typ}).Decode(&event)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	}

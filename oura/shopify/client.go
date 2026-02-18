@@ -2,8 +2,13 @@ package shopify
 
 import (
 	"context"
+	"strconv"
+	"time"
+)
 
-	"github.com/tidepool-org/platform/oura/shopify/generated"
+const (
+	ProductGIDPrefix = "gid://shopify/Product/"
+	OrderGIDPrefix   = "gid://shopify/Order/"
 )
 
 type ClientConfig struct {
@@ -15,8 +20,7 @@ type ClientConfig struct {
 //go:generate mockgen -source=client.go -destination=./test/client.go -package=test Client
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error
-	GetOrder(ctx context.Context, orderID string) (*generated.GetOrderOrderByIdentifierOrder, error)
-	GetProductsFromOrder(order *generated.GetOrderOrderByIdentifierOrder) *Products
+	GetOrderSummary(ctx context.Context, orderID string) (*OrderSummary, error)
 }
 
 type DiscountCodeInput struct {
@@ -25,7 +29,18 @@ type DiscountCodeInput struct {
 	ProductID string
 }
 
-type Products struct {
-	IDs          []string `json:"products"`
-	DiscountCode string   `json:"discount_code"`
+type OrderSummary struct {
+	GID                 string
+	CreatedTime         time.Time
+	OrderedProductIDs   []string
+	DeliveredProductIDs []string
+	DiscountCode        string
+}
+
+func GetOrderGID(id int64) string {
+	return OrderGIDPrefix + strconv.FormatInt(id, 10)
+}
+
+func GetProductGID(id int64) string {
+	return ProductGIDPrefix + strconv.FormatInt(id, 10)
 }

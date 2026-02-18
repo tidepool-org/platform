@@ -902,6 +902,8 @@ type GetOrderOrderByIdentifierOrder struct {
 	CreatedAt time.Time `json:"createdAt"`
 	// The discount code used for an order. Returns `null` if no discount code was applied.
 	DiscountCode *string `json:"discountCode"`
+	// A list of the order's line items. Line items represent the individual products and quantities that make up the order.
+	LineItems *GetOrderOrderByIdentifierOrderLineItemsLineItemConnection `json:"lineItems"`
 	// A list of shipments for the order. Fulfillments represent the physical shipment of products to customers.
 	Fulfillments []*GetOrderOrderByIdentifierOrderFulfillmentsFulfillment `json:"fulfillments"`
 	// A globally-unique ID.
@@ -913,6 +915,11 @@ func (v *GetOrderOrderByIdentifierOrder) GetCreatedAt() time.Time { return v.Cre
 
 // GetDiscountCode returns GetOrderOrderByIdentifierOrder.DiscountCode, and is useful for accessing the field via an interface.
 func (v *GetOrderOrderByIdentifierOrder) GetDiscountCode() *string { return v.DiscountCode }
+
+// GetLineItems returns GetOrderOrderByIdentifierOrder.LineItems, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrder) GetLineItems() *GetOrderOrderByIdentifierOrderLineItemsLineItemConnection {
+	return v.LineItems
+}
 
 // GetFulfillments returns GetOrderOrderByIdentifierOrder.Fulfillments, and is useful for accessing the field via an interface.
 func (v *GetOrderOrderByIdentifierOrder) GetFulfillments() []*GetOrderOrderByIdentifierOrderFulfillmentsFulfillment {
@@ -1043,6 +1050,81 @@ func (v *GetOrderOrderByIdentifierOrderFulfillmentsFulfillmentFulfillmentLineIte
 	return v.Id
 }
 
+// GetOrderOrderByIdentifierOrderLineItemsLineItemConnection includes the requested fields of the GraphQL type LineItemConnection.
+// The GraphQL type's documentation follows.
+//
+// An auto-generated type for paginating through multiple LineItems.
+type GetOrderOrderByIdentifierOrderLineItemsLineItemConnection struct {
+	// A list of nodes that are contained in LineItemEdge. You can fetch data about
+	// an individual node, or you can follow the edges to fetch data about a
+	// collection of related nodes. At each node, you specify the fields that you
+	// want to retrieve.
+	Nodes []*GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem `json:"nodes"`
+}
+
+// GetNodes returns GetOrderOrderByIdentifierOrderLineItemsLineItemConnection.Nodes, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrderLineItemsLineItemConnection) GetNodes() []*GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem {
+	return v.Nodes
+}
+
+// GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem includes the requested fields of the GraphQL type LineItem.
+// The GraphQL type's documentation follows.
+//
+// The `LineItem` object represents a single product or service that a customer purchased in an
+// [order](https://shopify.dev/docs/api/admin-graphql/latest/objects/Order).
+// Each line item is associated with a
+// [product variant](https://shopify.dev/docs/api/admin-graphql/latest/objects/ProductVariant)
+// and can have multiple [discount allocations](https://shopify.dev/docs/api/admin-graphql/latest/objects/DiscountAllocation).
+// Line items contain details about what was purchased, including the product variant, quantity, pricing,
+// and fulfillment status.
+//
+// Use the `LineItem` object to manage the following processes:
+//
+// - [Track the quantity of items](https://shopify.dev/docs/apps/build/orders-fulfillment/order-management-apps/build-fulfillment-solutions)
+// ordered, fulfilled, and unfulfilled.
+// - [Calculate prices](https://shopify.dev/docs/apps/build/orders-fulfillment/order-management-apps/edit-orders), including discounts and taxes.
+// - Manage fulfillment through [fulfillment services](https://shopify.dev/docs/apps/build/orders-fulfillment/fulfillment-service-apps).
+// - Manage [returns](https://shopify.dev/docs/apps/build/orders-fulfillment/returns-apps/build-return-management) and [exchanges](https://shopify.dev/docs/apps/build/orders-fulfillment/returns-apps/manage-exchanges).
+// - Handle [subscriptions](https://shopify.dev/docs/apps/build/purchase-options/subscriptions) and recurring orders.
+//
+// Line items can also include custom attributes and properties, allowing merchants to add specific details
+// about each item in an order. Learn more about
+// [managing orders and fulfillment](https://shopify.dev/docs/apps/build/orders-fulfillment).
+type GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem struct {
+	// The Product object associated with this line item's variant.
+	Product *GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct `json:"product"`
+}
+
+// GetProduct returns GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem.Product, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItem) GetProduct() *GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct {
+	return v.Product
+}
+
+// GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct includes the requested fields of the GraphQL type Product.
+// The GraphQL type's documentation follows.
+//
+// The `Product` object lets you manage products in a merchant’s store.
+//
+// Products are the goods and services that merchants offer to customers. They can
+// include various details such as title, description, price, images, and options
+// such as size or color.
+// You can use [product variants](https://shopify.dev/docs/api/admin-graphql/latest/objects/productvariant)
+// to create or update different versions of the same product.
+// You can also add or update product [media](https://shopify.dev/docs/api/admin-graphql/latest/interfaces/media).
+// Products can be organized by grouping them into a [collection](https://shopify.dev/docs/api/admin-graphql/latest/objects/collection).
+//
+// Learn more about working with [Shopify's product model](https://shopify.dev/docs/apps/build/graphql/migrate/new-product-model/product-model-components),
+// including limitations and considerations.
+type GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct struct {
+	// A globally-unique ID.
+	Id string `json:"id"`
+}
+
+// GetId returns GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct.Id, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrderLineItemsLineItemConnectionNodesLineItemProduct) GetId() string {
+	return v.Id
+}
+
 // GetOrderResponse is returned by GetOrder on success.
 type GetOrderResponse struct {
 	// Return an order by an identifier.
@@ -1162,6 +1244,13 @@ query GetOrder ($identifier: OrderIdentifierInput!) {
 	orderByIdentifier(identifier: $identifier) {
 		createdAt
 		discountCode
+		lineItems {
+			nodes {
+				product {
+					id
+				}
+			}
+		}
 		fulfillments(first: 10) {
 			deliveredAt
 			displayStatus

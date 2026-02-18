@@ -9,16 +9,19 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 )
 
-const (
-	productGIDPrefix = "gid://shopify/Product/"
-)
-
 //go:generate go run github.com/Khan/genqlient
 var _ = `# @genqlient
 query GetOrder($identifier: OrderIdentifierInput!) {
   orderByIdentifier(identifier: $identifier) {
 	createdAt
     discountCode
+    lineItems {
+      nodes { 
+        product {
+          id
+        }
+      }
+    }
     fulfillments(first: 10) {
       deliveredAt
       displayStatus
@@ -37,22 +40,31 @@ query GetOrder($identifier: OrderIdentifierInput!) {
 }
 `
 
-func (c *defaultClient) GetOrder(ctx context.Context, orderID string) (*generated.GetOrderOrderByIdentifierOrder, error) {
+func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*shopify.OrderSummary, error) {
 	resp, err := generated.GetOrder(ctx, c.gql, &generated.OrderIdentifierInput{
 		Id: pointer.FromAny(orderID),
 	})
-	if err != nil {
+	if err != nil || resp.GetOrderByIdentifier() == nil {
 		return nil, err
 	}
-	return resp.GetOrderByIdentifier(), nil
-}
 
-func (c *defaultClient) GetProductsFromOrder(order *generated.GetOrderOrderByIdentifierOrder) *shopify.Products {
-	if order == nil {
-		return nil
+	order := resp.GetOrderByIdentifier()
+	summary := shopify.OrderSummary{
+		CreatedTime:  order.CreatedAt,
+		DiscountCode: pointer.Default(order.GetDiscountCode(), ""),
 	}
 
-	ids := make([]string, 0)
+	for _, lineItem := range order.GetLineItems().GetNodes() {
+		if lineItem == nil {
+			continue
+		}
+		id := lineItem.GetProduct().GetId()
+		if strings.HasPrefix(id, shopify.ProductGIDPrefix) {
+			id = strings.TrimPrefix(id, shopify.ProductGIDPrefix)
+		}
+		summary.OrderedProductIDs = append(summary.OrderedProductIDs, id)
+	}
+
 	for _, fulfillment := range order.Fulfillments {
 		if fulfillment == nil {
 			continue
@@ -67,19 +79,12 @@ func (c *defaultClient) GetProductsFromOrder(order *generated.GetOrderOrderByIde
 				continue
 			}
 			id := lineItem.GetLineItem().GetProduct().GetId()
-			if strings.HasPrefix(id, productGIDPrefix) {
-				id = strings.TrimPrefix(id, productGIDPrefix)
+			if strings.HasPrefix(id, shopify.ProductGIDPrefix) {
+				id = strings.TrimPrefix(id, shopify.ProductGIDPrefix)
 			}
-			ids = append(ids, id)
+			summary.DeliveredProductIDs = append(summary.DeliveredProductIDs, id)
 		}
 	}
 
-	var discountCode string
-	if order.GetDiscountCode() != nil {
-		discountCode = *order.GetDiscountCode()
-	}
-	return &shopify.Products{
-		IDs:          ids,
-		DiscountCode: discountCode,
-	}
+	return &summary, nil
 }

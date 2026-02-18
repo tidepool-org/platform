@@ -356,17 +356,12 @@ func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
 		return nil, errors.Wrap(err, "unable to create shopify order event store")
 	}
 
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
+	orderProcessor, err := shopify.NewOrderProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
+		return nil, errors.Wrap(err, "unable to create order processor")
 	}
 
-	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), s.customerIOClient, orderEventStore)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create orders create event processor")
-	}
-
-	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventProcessor, ordersCreateEventProcessor)
+	shopifyRouter, err := shopifyAPI.NewRouter(orderProcessor)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create shopify router")
 	}
