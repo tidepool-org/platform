@@ -21,6 +21,7 @@ type ClientConfig struct {
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error
 	GetOrderSummary(ctx context.Context, orderID string) (*OrderSummary, error)
+	GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error)
 }
 
 type DiscountCodeInput struct {
@@ -32,15 +33,13 @@ type DiscountCodeInput struct {
 type OrderSummary struct {
 	GID                 string
 	CreatedTime         time.Time
+	UpdatedTime         time.Time
 	OrderedProductIDs   []string
+	IsDelivered         bool
 	DeliveredProductIDs []string
 	DiscountCode        string
 }
 
 func GetOrderGID(id int64) string {
 	return OrderGIDPrefix + strconv.FormatInt(id, 10)
-}
-
-func GetProductGID(id int64) string {
-	return ProductGIDPrefix + strconv.FormatInt(id, 10)
 }

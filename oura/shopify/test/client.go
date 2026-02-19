@@ -12,6 +12,7 @@ package test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 
@@ -54,6 +55,21 @@ func (m *MockClient) CreateDiscountCode(ctx context.Context, discountCodeInput s
 func (mr *MockClientMockRecorder) CreateDiscountCode(ctx, discountCodeInput any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiscountCode", reflect.TypeOf((*MockClient)(nil).CreateDiscountCode), ctx, discountCodeInput)
+}
+
+// GetGIDsOfUpdatedOrders mocks base method.
+func (m *MockClient) GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetGIDsOfUpdatedOrders", ctx, updatedSince, count)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetGIDsOfUpdatedOrders indicates an expected call of GetGIDsOfUpdatedOrders.
+func (mr *MockClientMockRecorder) GetGIDsOfUpdatedOrders(ctx, updatedSince, count any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGIDsOfUpdatedOrders", reflect.TypeOf((*MockClient)(nil).GetGIDsOfUpdatedOrders), ctx, updatedSince, count)
 }
 
 // GetOrderSummary mocks base method.

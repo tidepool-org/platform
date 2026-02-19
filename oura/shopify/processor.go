@@ -18,6 +18,7 @@ import (
 
 const (
 	ouraAccountLinkingTokenPath = "/v1/oauth/oura"
+	reconcileBatchSize          = 100
 )
 
 var (
@@ -87,6 +88,51 @@ func NewOrderProcessor(logger log.Logger, customerIOClient *customerio.Client, s
 	}, nil
 }
 
+func (p *OrderProcessor) ReconcileUpdatedOrders(ctx context.Context, updatedSince time.Time) (time.Time, error) {
+	gids, err := p.shopifyClient.GetGIDsOfUpdatedOrders(ctx, updatedSince, reconcileBatchSize)
+	if err != nil {
+		return updatedSince, errors.Wrap(err, "unable to get GIDs of updated orders")
+	}
+
+	latestUpdatedTime := updatedSince
+	for _, gid := range gids {
+		if order, reconcileErr := p.ReconcileOrder(ctx, gid); reconcileErr != nil {
+			err = errors.Wrapf(err, "unable to reconcile order %s", gid)
+			break
+		} else if order == nil {
+			err = errors.Wrapf(err, "order is missing %s", gid)
+			break
+		} else {
+			latestUpdatedTime = order.UpdatedTime
+		}
+	}
+
+	return latestUpdatedTime, err
+}
+
+func (p *OrderProcessor) ReconcileOrder(ctx context.Context, orderGID string) (*OrderSummary, error) {
+	logger := p.logger.WithField("orderGID", orderGID)
+	order, err := p.shopifyClient.GetOrderSummary(ctx, orderGID)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to retrieve order")
+	} else if order == nil {
+		logger.Warn("order not found")
+		return nil, nil
+	}
+
+	if err := p.processNewOrder(ctx, *order); err != nil {
+		return nil, errors.Wrap(err, "unable to reconcile new order")
+	}
+
+	if order.IsDelivered {
+		if err := p.processDeliveredOrder(ctx, *order); err != nil {
+			return nil, errors.Wrap(err, "unable to reconcile order delivery")
+		}
+	}
+
+	return order, nil
+}
+
 func (p *OrderProcessor) ProcessFulfillment(ctx context.Context, event FulfillmentEvent) error {
 	orderGID := GetOrderGID(event.OrderID)
 	logger := p.logger.WithField("orderGID", orderGID)
@@ -96,24 +142,24 @@ func (p *OrderProcessor) ProcessFulfillment(ctx context.Context, event Fulfillme
 		return nil
 	}
 
-	return p.processDeliveredOrder(ctx, orderGID)
-}
-
-func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, orderGID string) error {
-	logger := p.logger.WithField("orderGID", orderGID)
-
-	if event, err := p.store.GetShopifyOrderEvent(ctx, orderGID, store.OrderEventTypeDelivered); err != nil {
-		return errors.Wrap(err, "unable to retrieve shopify order event")
-	} else if event != nil {
-		logger.Info("ignoring order create event because it was already processed")
+	order, err := p.shopifyClient.GetOrderSummary(ctx, orderGID)
+	if err != nil {
+		return errors.Wrap(err, "unable to retrieve order")
+	} else if order == nil {
+		logger.Warn("order not found")
 		return nil
 	}
 
-	order, err := p.shopifyClient.GetOrderSummary(ctx, orderGID)
-	if err != nil {
-		return err
-	} else if order == nil {
-		logger.Warn("order not found")
+	return p.processDeliveredOrder(ctx, *order)
+}
+
+func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, order OrderSummary) error {
+	logger := p.logger.WithField("orderGID", order.GID)
+
+	if event, err := p.store.GetShopifyOrderEvent(ctx, order.GID, store.OrderEventTypeDelivered); err != nil {
+		return errors.Wrap(err, "unable to retrieve shopify order event")
+	} else if event != nil {
+		logger.Info("ignoring order create event because it was already processed")
 		return nil
 	}
 
@@ -166,12 +212,12 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, orderGID str
 
 	switch deliveredProductID {
 	case OuraSizingKitProductID:
-		if err := p.onSizingKitDelivered(ctx, customers.Identifiers[0], *order); err != nil {
+		if err := p.onSizingKitDelivered(ctx, customers.Identifiers[0], order); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit delivered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := p.onRingDelivered(ctx, customers.Identifiers[0], *order); err != nil {
+		if err := p.onRingDelivered(ctx, customers.Identifiers[0], order); err != nil {
 			logger.WithError(err).Warn("unable to send ring delivered event")
 			return err
 		}
@@ -181,7 +227,7 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, orderGID str
 	}
 
 	err = p.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
-		OrderGID:   orderGID,
+		OrderGID:   order.GID,
 		UserID:     customers.Identifiers[0].ID,
 		Type:       store.OrderEventTypeDelivered,
 		CreateTime: time.Now(),
@@ -194,24 +240,27 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, orderGID str
 }
 
 func (p *OrderProcessor) ProcessOrderCreate(ctx context.Context, event OrdersCreateEvent) error {
-	return p.processNewOrder(ctx, GetOrderGID(event.ID))
-}
-
-func (p *OrderProcessor) processNewOrder(ctx context.Context, orderGID string) error {
+	orderGID := GetOrderGID(event.ID)
 	logger := p.logger.WithField("orderGID", orderGID)
-
-	if event, err := p.store.GetShopifyOrderEvent(ctx, orderGID, store.OrderEventTypeCreated); err != nil {
-		return errors.Wrap(err, "unable to retrieve shopify order event")
-	} else if event != nil {
-		logger.Info("ignoring order create event because it was already processed")
-		return nil
-	}
 
 	order, err := p.shopifyClient.GetOrderSummary(ctx, orderGID)
 	if err != nil {
 		return errors.Wrap(err, "unable to retrieve order")
 	} else if order == nil {
 		logger.Warn("order not found")
+		return nil
+	}
+
+	return p.processNewOrder(ctx, *order)
+}
+
+func (p *OrderProcessor) processNewOrder(ctx context.Context, order OrderSummary) error {
+	logger := p.logger.WithField("orderGID", order.GID)
+
+	if event, err := p.store.GetShopifyOrderEvent(ctx, order.GID, store.OrderEventTypeCreated); err != nil {
+		return errors.Wrap(err, "unable to retrieve shopify order event")
+	} else if event != nil {
+		logger.Info("ignoring order create event because it was already processed")
 		return nil
 	}
 
@@ -264,12 +313,12 @@ func (p *OrderProcessor) processNewOrder(ctx context.Context, orderGID string) e
 
 	switch productID {
 	case OuraSizingKitProductID:
-		if err := p.onSizingKitOrdered(ctx, customers.Identifiers[0], *order); err != nil {
+		if err := p.onSizingKitOrdered(ctx, customers.Identifiers[0], order); err != nil {
 			logger.WithError(err).Warn("unable to send sizing kit ordered event")
 			return err
 		}
 	case OuraRingProductID:
-		if err := p.onRingOrdered(ctx, customers.Identifiers[0], *order); err != nil {
+		if err := p.onRingOrdered(ctx, customers.Identifiers[0], order); err != nil {
 			logger.WithError(err).Warn("unable to send ring ordered event")
 			return err
 		}
@@ -279,7 +328,7 @@ func (p *OrderProcessor) processNewOrder(ctx context.Context, orderGID string) e
 	}
 
 	err = p.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
-		OrderGID:   orderGID,
+		OrderGID:   order.GID,
 		UserID:     customers.Identifiers[0].ID,
 		Type:       store.OrderEventTypeCreated,
 		CreateTime: time.Now(),

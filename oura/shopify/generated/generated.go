@@ -862,6 +862,94 @@ var AllFulfillmentDisplayStatus = []FulfillmentDisplayStatus{
 	FulfillmentDisplayStatusSubmitted,
 }
 
+// GetGIDsOfUpdatedOrdersOrdersOrderConnection includes the requested fields of the GraphQL type OrderConnection.
+// The GraphQL type's documentation follows.
+//
+// An auto-generated type for paginating through multiple Orders.
+type GetGIDsOfUpdatedOrdersOrdersOrderConnection struct {
+	// The connection between the node and its parent. Each edge contains a minimum of the edge's cursor and the node.
+	Edges []*GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge `json:"edges"`
+}
+
+// GetEdges returns GetGIDsOfUpdatedOrdersOrdersOrderConnection.Edges, and is useful for accessing the field via an interface.
+func (v *GetGIDsOfUpdatedOrdersOrdersOrderConnection) GetEdges() []*GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge {
+	return v.Edges
+}
+
+// GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge includes the requested fields of the GraphQL type OrderEdge.
+// The GraphQL type's documentation follows.
+//
+// An auto-generated type which holds one Order and a cursor during pagination.
+type GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge struct {
+	// The item at the end of OrderEdge.
+	Node *GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder `json:"node"`
+}
+
+// GetNode returns GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge.Node, and is useful for accessing the field via an interface.
+func (v *GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdge) GetNode() *GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder {
+	return v.Node
+}
+
+// GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder includes the requested fields of the GraphQL type Order.
+// The GraphQL type's documentation follows.
+//
+// The `Order` object represents a customer's request to purchase one or more
+// products from a store. Use the `Order` object to handle the complete purchase
+// lifecycle from checkout to fulfillment.
+//
+// Use the `Order` object when you need to:
+//
+// - Display order details on customer account pages or admin dashboards.
+// - Create orders for phone sales, wholesale customers, or subscription services.
+// - Update order information like shipping addresses, notes, or fulfillment status.
+// - Process returns, exchanges, and partial refunds.
+// - Generate invoices, receipts, and shipping labels.
+//
+// The `Order` object serves as the central hub connecting customer information,
+// product details, payment processing, and fulfillment data within the GraphQL
+// Admin API schema.
+//
+// > Note:
+// > Only the last 60 days' worth of orders from a store are accessible from the
+// `Order` object by default. If you want to access older records,
+// > then you need to [request access to all
+// orders](https://shopify.dev/docs/api/usage/access-scopes#orders-permissions). If
+// your app is granted
+// > access, then you can add the `read_all_orders`, `read_orders`, and `write_orders` scopes.
+//
+// > Caution:
+// > Only use orders data if it's required for your app's functionality. Shopify
+// will restrict [access to scopes](https://shopify.dev/docs/api/usage/access-scopes#requesting-specific-permissions)
+// for apps that don't have a legitimate use for the associated data.
+//
+// Learn more about [building apps for orders and fulfillment](https://shopify.dev/docs/apps/build/orders-fulfillment).
+type GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder struct {
+	// A globally-unique ID.
+	Id string `json:"id"`
+}
+
+// GetId returns GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder.Id, and is useful for accessing the field via an interface.
+func (v *GetGIDsOfUpdatedOrdersOrdersOrderConnectionEdgesOrderEdgeNodeOrder) GetId() string {
+	return v.Id
+}
+
+// GetGIDsOfUpdatedOrdersResponse is returned by GetGIDsOfUpdatedOrders on success.
+type GetGIDsOfUpdatedOrdersResponse struct {
+	// Returns a list of
+	// [orders](https://shopify.dev/api/admin-graphql/latest/objects/Order) placed in
+	// the store, including data such as order status, customer, and line item details.
+	// Use the `orders` query to build reports, analyze sales performance, or
+	// automate fulfillment workflows. The `orders` query supports
+	// [pagination](https://shopify.dev/docs/api/usage/pagination-graphql),
+	// [sorting](https://shopify.dev/docs/api/admin-graphql/latest/queries/orders#arguments-sortKey), and [filtering](https://shopify.dev/docs/api/admin-graphql/latest/queries/orders#arguments-query).
+	Orders *GetGIDsOfUpdatedOrdersOrdersOrderConnection `json:"orders"`
+}
+
+// GetOrders returns GetGIDsOfUpdatedOrdersResponse.Orders, and is useful for accessing the field via an interface.
+func (v *GetGIDsOfUpdatedOrdersResponse) GetOrders() *GetGIDsOfUpdatedOrdersOrdersOrderConnection {
+	return v.Orders
+}
+
 // GetOrderOrderByIdentifierOrder includes the requested fields of the GraphQL type Order.
 // The GraphQL type's documentation follows.
 //
@@ -900,6 +988,8 @@ type GetOrderOrderByIdentifierOrder struct {
 	// when an order was created. This timestamp is set when the customer completes
 	// checkout and remains unchanged throughout an order's lifecycle.
 	CreatedAt time.Time `json:"createdAt"`
+	// The date and time in [ISO 8601 format](https://en.wikipedia.org/wiki/ISO_8601) when the order was last modified.
+	UpdatedAt time.Time `json:"updatedAt"`
 	// The discount code used for an order. Returns `null` if no discount code was applied.
 	DiscountCode *string `json:"discountCode"`
 	// A list of the order's line items. Line items represent the individual products and quantities that make up the order.
@@ -912,6 +1002,9 @@ type GetOrderOrderByIdentifierOrder struct {
 
 // GetCreatedAt returns GetOrderOrderByIdentifierOrder.CreatedAt, and is useful for accessing the field via an interface.
 func (v *GetOrderOrderByIdentifierOrder) GetCreatedAt() time.Time { return v.CreatedAt }
+
+// GetUpdatedAt returns GetOrderOrderByIdentifierOrder.UpdatedAt, and is useful for accessing the field via an interface.
+func (v *GetOrderOrderByIdentifierOrder) GetUpdatedAt() time.Time { return v.UpdatedAt }
 
 // GetDiscountCode returns GetOrderOrderByIdentifierOrder.DiscountCode, and is useful for accessing the field via an interface.
 func (v *GetOrderOrderByIdentifierOrder) GetDiscountCode() *string { return v.DiscountCode }
@@ -1179,6 +1272,18 @@ func (v *__CreateDiscountCodeInput) GetBasicCodeDiscount() *DiscountCodeBasicInp
 	return v.BasicCodeDiscount
 }
 
+// __GetGIDsOfUpdatedOrdersInput is used internally by genqlient
+type __GetGIDsOfUpdatedOrdersInput struct {
+	Query string `json:"query"`
+	Count int    `json:"count"`
+}
+
+// GetQuery returns __GetGIDsOfUpdatedOrdersInput.Query, and is useful for accessing the field via an interface.
+func (v *__GetGIDsOfUpdatedOrdersInput) GetQuery() string { return v.Query }
+
+// GetCount returns __GetGIDsOfUpdatedOrdersInput.Count, and is useful for accessing the field via an interface.
+func (v *__GetGIDsOfUpdatedOrdersInput) GetCount() int { return v.Count }
+
 // __GetOrderInput is used internally by genqlient
 type __GetOrderInput struct {
 	Identifier *OrderIdentifierInput `json:"identifier,omitempty"`
@@ -1238,11 +1343,52 @@ func CreateDiscountCode(
 	return data_, err_
 }
 
+// The query executed by GetGIDsOfUpdatedOrders.
+const GetGIDsOfUpdatedOrders_Operation = `
+query GetGIDsOfUpdatedOrders ($query: String!, $count: Int!) {
+	orders(query: $query, first: $count, sortKey: UPDATED_AT) {
+		edges {
+			node {
+				id
+			}
+		}
+	}
+}
+`
+
+func GetGIDsOfUpdatedOrders(
+	ctx_ context.Context,
+	client_ graphql.Client,
+	query string,
+	count int,
+) (data_ *GetGIDsOfUpdatedOrdersResponse, err_ error) {
+	req_ := &graphql.Request{
+		OpName: "GetGIDsOfUpdatedOrders",
+		Query:  GetGIDsOfUpdatedOrders_Operation,
+		Variables: &__GetGIDsOfUpdatedOrdersInput{
+			Query: query,
+			Count: count,
+		},
+	}
+
+	data_ = &GetGIDsOfUpdatedOrdersResponse{}
+	resp_ := &graphql.Response{Data: data_}
+
+	err_ = client_.MakeRequest(
+		ctx_,
+		req_,
+		resp_,
+	)
+
+	return data_, err_
+}
+
 // The query executed by GetOrder.
 const GetOrder_Operation = `
 query GetOrder ($identifier: OrderIdentifierInput!) {
 	orderByIdentifier(identifier: $identifier) {
 		createdAt
+		updatedAt
 		discountCode
 		lineItems {
 			nodes {

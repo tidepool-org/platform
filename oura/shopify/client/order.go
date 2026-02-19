@@ -2,7 +2,9 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/oura/shopify/generated"
@@ -14,6 +16,7 @@ var _ = `# @genqlient
 query GetOrder($identifier: OrderIdentifierInput!) {
   orderByIdentifier(identifier: $identifier) {
 	createdAt
+	updatedAt
     discountCode
     lineItems {
       nodes { 
@@ -52,6 +55,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 	summary := shopify.OrderSummary{
 		CreatedTime:  order.CreatedAt,
 		DiscountCode: pointer.Default(order.GetDiscountCode(), ""),
+		UpdatedTime:  order.UpdatedAt,
 	}
 
 	for _, lineItem := range order.GetLineItems().GetNodes() {
@@ -68,6 +72,9 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 	for _, fulfillment := range order.Fulfillments {
 		if fulfillment == nil {
 			continue
+		}
+		if fulfillment.DisplayStatus != nil && *fulfillment.DisplayStatus == generated.FulfillmentDisplayStatusDelivered {
+			summary.IsDelivered = true
 		}
 
 		lineItems := fulfillment.GetFulfillmentLineItems()
@@ -87,4 +94,36 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 	}
 
 	return &summary, nil
+}
+
+//go:generate go run github.com/Khan/genqlient
+var _ = `# @genqlient
+query GetGIDsOfUpdatedOrders($query: String!, $count: Int!) {
+  orders(query: $query, first: $count, sortKey: UPDATED_AT) {
+    edges {
+	  node {
+		id
+	  }
+	}
+  }
+}
+`
+
+func (c *defaultClient) GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error) {
+	query := fmt.Sprintf("updated_at:>='%s'", updatedSince.Format(time.RFC3339))
+	resp, err := generated.GetGIDsOfUpdatedOrders(ctx, c.gql, query, count)
+	if err != nil || resp.GetOrders() == nil {
+		return nil, err
+	}
+
+	gids := make([]string, 0, len(resp.GetOrders().GetEdges()))
+	for _, edge := range resp.GetOrders().GetEdges() {
+		if edge.GetNode() == nil {
+			continue
+		}
+
+		gids = append(gids, edge.GetNode().GetId())
+	}
+
+	return gids, nil
 }
