@@ -8,9 +8,11 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/customerio"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 )
 
@@ -50,14 +52,16 @@ type FulfillmentEventProcessor struct {
 	customerIOClient      *customerio.Client
 	restrictedTokenClient auth.RestrictedTokenAccessor
 	shopifyClient         Client
+	dataSourceClient      dataSource.Client
 }
 
-func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor) (*FulfillmentEventProcessor, error) {
+func NewFulfillmentEventProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor, dataSourceClient dataSource.Client) (*FulfillmentEventProcessor, error) {
 	return &FulfillmentEventProcessor{
 		logger:                logger,
 		customerIOClient:      customerIOClient,
 		restrictedTokenClient: restrictedTokenClient,
 		shopifyClient:         shopifyClient,
+		dataSourceClient:      dataSourceClient,
 	}, nil
 }
 
@@ -165,6 +169,26 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 }
 
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
+	// A user must have a data source to be able to link their account
+	sources, err := f.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{
+		ProviderName: pointer.FromAny([]string{oura.ProviderName}),
+		ProviderType: pointer.FromAny([]string{auth.ProviderTypeOAuth}),
+	}, page.NewPaginationMinimum())
+	if err != nil {
+		return errors.Wrap(err, "unable to list data sources")
+	}
+	if len(sources) == 0 {
+		f.logger.WithField("userId", identifiers.ID).Info("creating oura data source")
+		create := dataSource.NewCreate()
+		create.ProviderName = pointer.FromAny(oura.ProviderName)
+		create.ProviderType = pointer.FromAny(auth.ProviderTypeOAuth)
+
+		_, err := f.dataSourceClient.Create(ctx, identifiers.ID, create)
+		if err != nil {
+			return errors.Wrap(err, "unable to create oura data source")
+		}
+	}
+
 	create := auth.NewRestrictedTokenCreate()
 	create.Paths = pointer.FromAny([]string{ouraAccountLinkingTokenPath})
 	create.ExpirationTime = pointer.FromTime(time.Now().Add(time.Hour * 24 * 30))

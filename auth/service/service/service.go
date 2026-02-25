@@ -6,12 +6,12 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/customerio"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	"github.com/tidepool-org/platform/mailer"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/oura/jotform"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/user"
-
 	userClient "github.com/tidepool-org/platform/user/client"
 
 	"github.com/kelseyhightower/envconfig"
@@ -314,6 +314,7 @@ func (s *Service) initializeShopifyClient() error {
 
 	return nil
 }
+
 func (s *Service) initializeCustomerIOClient() error {
 	customerIOConfig := customerio.Config{}
 	if err := envconfig.Process("", &customerIOConfig); err != nil {
@@ -349,7 +350,7 @@ func (s *Service) initializeSubmissionProcessor() error {
 }
 
 func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient())
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient())
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
 	}
@@ -909,17 +910,24 @@ func (s *Service) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to ensure reconciler work item exists")
 	}
 
+	var factories []work.ProcessorFactory
+
 	s.Logger().Info("Creating jotform work processor factory")
 
-	factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.jotformSubmissionProcessor})
-	if err != nil {
+	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
 		return errors.Wrap(err, "unable to create jotform work processor factory")
+	} else {
+		factories = append(factories, factory)
 	}
 
-	s.Logger().Info("Registering jotform work processor factory")
+	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{CustomerIOClient: s.customerIOClient}); err != nil {
+		return errors.Wrap(err, "unable to create customerio work processor factory")
+	} else {
+		factories = append(factories, factory)
+	}
 
-	if err = s.workCoordinator.RegisterProcessorFactory(factory); err != nil {
-		return errors.Wrap(err, "unable to register jotform work processor factory")
+	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
+		return errors.Wrapf(err, "unable to register work processor factores")
 	}
 
 	s.Logger().Info("Starting work coordinator")

@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
+	"github.com/tidepool-org/platform/customerio"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
@@ -81,6 +82,7 @@ type Processor struct {
 	DataSourceClient dataSource.Client
 	WorkClient       work.Client
 	Client           ouraWork.Client
+	CustomerIOClient *customerio.Client
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -166,7 +168,7 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 		return p.Failing(errors.Wrap(err, "unable to list data sources"))
 	}
 
-	// If at least one data source, then replace the current data source, otherwise just update currect with external id
+	// If at least one data source, then replace the current data source, otherwise just update current with external id
 	if count := len(dataSrcs); count > 0 {
 		if count > 1 {
 			p.Logger().WithField("count", count).Error("unexpected number of data sources found for provider external id")
@@ -185,7 +187,7 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 		return nil
 	}
 
-	// Updaste current with external id
+	// Update current with external id
 	providerSessionUpdate := auth.ProviderSessionUpdate{
 		OAuthToken: p.ProviderSession.OAuthToken,
 		ExternalID: p.DataSource.ProviderExternalID,

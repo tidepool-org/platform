@@ -10,6 +10,7 @@ import (
 	"github.com/oklog/ulid/v2"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
 
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
@@ -28,13 +29,20 @@ func (e *Event) SetDeduplicationID(time time.Time, deduplicationID string) (err 
 	return
 }
 
-func (c *Client) SendEvent(ctx context.Context, cid string, event *Event) error {
+func (e *Event) Validate(validator structure.Validator) {
+	validator.String("name", &e.Name).NotEmpty()
+}
+
+func (c *Client) SendEvent(ctx context.Context, userID string, event *Event) error {
 	if event == nil {
 		return errors.New("event is missing")
 	}
+	if userID == "" {
+		return errors.New("user id is missing")
+	}
 
 	ctx = log.NewContextWithLogger(ctx, c.logger)
-	url := c.trackClient.ConstructURL("api", "v1", "customers", cid, "events")
+	url := c.trackClient.ConstructURL("api", "v1", "customers", userID, "events")
 
 	mutators := []request.RequestMutator{
 		c.trackAPIAuthMutator(),

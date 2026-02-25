@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -101,6 +102,9 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	}
 	if err = p.createDataSetupWork(ctx, dataSrc); err != nil {
 		return errors.Wrap(err, "unable to create data setup work")
+	}
+	if err = p.createDataSourceStateChangeEventWork(ctx, dataSrc); err != nil {
+		return errors.Wrap(err, "unable to create data source state change event work")
 	}
 	return nil
 }
@@ -296,10 +300,17 @@ func (p *Provider) createDataSetupWork(ctx context.Context, dataSrc *dataSource.
 	if err != nil {
 		return errors.Wrap(err, "unable to create data setup work create")
 	}
-	if _, err = p.workClient.Create(ctx, workCreate); err != nil {
-		return err
+	_, err = p.workClient.Create(ctx, workCreate)
+	return err
+}
+
+func (p *Provider) createDataSourceStateChangeEventWork(ctx context.Context, dataSrc *dataSource.Source) error {
+	workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(dataSrc)
+	if err != nil {
+		return errors.Wrap(err, "unable to create customer.io data source state changed event work create")
 	}
-	return nil
+	_, err = p.workClient.Create(ctx, workCreate)
+	return err
 }
 
 func (p *Provider) createUserRevokeWork(ctx context.Context, providerSession *auth.ProviderSession) error {
@@ -307,8 +318,6 @@ func (p *Provider) createUserRevokeWork(ctx context.Context, providerSession *au
 	if err != nil {
 		return errors.Wrap(err, "unable to create user revoke work create")
 	}
-	if _, err = p.workClient.Create(ctx, workCreate); err != nil {
-		return err
-	}
-	return nil
+	_, err = p.workClient.Create(ctx, workCreate)
+	return err
 }
