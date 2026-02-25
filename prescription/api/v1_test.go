@@ -277,8 +277,9 @@ var _ = Describe("V1", func() {
 							})
 
 							It("returns ok status code", func() {
+								prescriptionService.ListPrescriptionOutputs = []prescriptionTest.ListPrescriptionsOutput{{Prescriptions: prescrs, Err: nil}}
 								handlerFunc(res, req)
-								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 								Expect(res.WriteInputs).To(HaveLen(1))
 							})
 						})
