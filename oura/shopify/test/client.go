@@ -12,6 +12,7 @@ package test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 
@@ -56,17 +57,32 @@ func (mr *MockClientMockRecorder) CreateDiscountCode(ctx, discountCodeInput any)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDiscountCode", reflect.TypeOf((*MockClient)(nil).CreateDiscountCode), ctx, discountCodeInput)
 }
 
-// GetDeliveredProducts mocks base method.
-func (m *MockClient) GetDeliveredProducts(ctx context.Context, orderID string) (*shopify.DeliveredProducts, error) {
+// GetGIDsOfUpdatedOrders mocks base method.
+func (m *MockClient) GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeliveredProducts", ctx, orderID)
-	ret0, _ := ret[0].(*shopify.DeliveredProducts)
+	ret := m.ctrl.Call(m, "GetGIDsOfUpdatedOrders", ctx, updatedSince, count)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDeliveredProducts indicates an expected call of GetDeliveredProducts.
-func (mr *MockClientMockRecorder) GetDeliveredProducts(ctx, orderID any) *gomock.Call {
+// GetGIDsOfUpdatedOrders indicates an expected call of GetGIDsOfUpdatedOrders.
+func (mr *MockClientMockRecorder) GetGIDsOfUpdatedOrders(ctx, updatedSince, count any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeliveredProducts", reflect.TypeOf((*MockClient)(nil).GetDeliveredProducts), ctx, orderID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGIDsOfUpdatedOrders", reflect.TypeOf((*MockClient)(nil).GetGIDsOfUpdatedOrders), ctx, updatedSince, count)
+}
+
+// GetOrderSummary mocks base method.
+func (m *MockClient) GetOrderSummary(ctx context.Context, orderID string) (*shopify.OrderSummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrderSummary", ctx, orderID)
+	ret0, _ := ret[0].(*shopify.OrderSummary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrderSummary indicates an expected call of GetOrderSummary.
+func (mr *MockClientMockRecorder) GetOrderSummary(ctx, orderID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderSummary", reflect.TypeOf((*MockClient)(nil).GetOrderSummary), ctx, orderID)
 }

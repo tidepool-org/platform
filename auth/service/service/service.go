@@ -48,6 +48,8 @@ import (
 	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
+	shopifyStore "github.com/tidepool-org/platform/oura/shopify/store"
+	shopifyWork "github.com/tidepool-org/platform/oura/shopify/work"
 
 	"github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
@@ -88,6 +90,7 @@ type Service struct {
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	providerFactory                *providerFactory.Factory
 	shopifyClient                  shopify.Client
+	shopifyOrderProcessor          *shopify.OrderProcessor
 	jotformSubmissionProcessor     *jotform.SubmissionProcessor
 	taskClient                     task.Client
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
@@ -177,6 +180,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeShopifyClient(); err != nil {
+		return err
+	}
+	if err := s.initializeShopifyOrderProcessor(); err != nil {
 		return err
 	}
 	if err := s.initializeSubmissionProcessor(); err != nil {
@@ -349,23 +355,18 @@ func (s *Service) initializeSubmissionProcessor() error {
 	return nil
 }
 
-func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient())
+func (s *Service) initializeShopifyOrderProcessor() error {
+	orderEventStore, err := shopifyStore.NewStore(s.authStore.Store)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
+		return errors.Wrap(err, "unable to create shopify order event store")
 	}
 
-	ordersCreateEventProcessor, err := shopify.NewOrdersCreateEventProcessor(s.Logger(), s.customerIOClient)
+	s.shopifyOrderProcessor, err = shopify.NewOrderProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create orders create event processor")
+		return errors.Wrap(err, "unable to create order processor")
 	}
 
-	shopifyRouter, err := shopifyAPI.NewRouter(fulfillmentEventProcessor, ordersCreateEventProcessor)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create shopify router")
-	}
-
-	return shopifyRouter, nil
+	return nil
 }
 
 func (s *Service) initializeRouter() error {
@@ -399,7 +400,7 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating shopify router")
 
-	shopifyRouter, err := s.createShopifyRouter()
+	shopifyRouter, err := shopifyAPI.NewRouter(s.shopifyOrderProcessor)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify router")
 	}
@@ -907,7 +908,11 @@ func (s *Service) initializeWorkCoordinator() error {
 	ctx = log.NewContextWithLogger(ctx, s.Logger())
 	err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
 	if err != nil {
-		return errors.Wrap(err, "unable to ensure reconciler work item exists")
+		return errors.Wrap(err, "unable to ensure jotform reconciler work item exists")
+	}
+	err = shopifyWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure shopify reconciler work item exists")
 	}
 
 	var factories []work.ProcessorFactory
@@ -920,8 +925,18 @@ func (s *Service) initializeWorkCoordinator() error {
 		factories = append(factories, factory)
 	}
 
+	s.Logger().Info("Creating customer.io work processor factory")
+
 	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{CustomerIOClient: s.customerIOClient}); err != nil {
 		return errors.Wrap(err, "unable to create customerio work processor factory")
+	} else {
+		factories = append(factories, factory)
+	}
+
+	s.Logger().Info("Creating shopify work processor factory")
+
+	if factory, err := shopifyWork.NewProcessorFactory(shopifyWork.Dependencies{OrderProcessor: s.shopifyOrderProcessor}); err != nil {
+		return errors.Wrap(err, "unable to create shopify work processor factory")
 	} else {
 		factories = append(factories, factory)
 	}
