@@ -97,7 +97,8 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	if err != nil {
 		return errors.Wrap(err, "unable to prepare data source")
 	}
-	if err = p.connectDataSourceToProviderSession(ctx, providerSession, dataSrc); err != nil {
+	dataSrc, err = p.connectDataSourceToProviderSession(ctx, providerSession, dataSrc)
+	if err != nil {
 		return errors.Wrap(err, "unable to connect data source")
 	}
 	if err = p.createDataSetupWork(ctx, dataSrc); err != nil {
@@ -218,13 +219,13 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 	return dataSrc, nil
 }
 
-func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, providerSession *auth.ProviderSession, dataSrc *dataSource.Source) error {
+func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, providerSession *auth.ProviderSession, dataSrc *dataSource.Source) (*dataSource.Source, error) {
 	providerSessionUpdate := &auth.ProviderSessionUpdate{
 		OAuthToken: providerSession.OAuthToken,
 		ExternalID: providerSession.ExternalID,
 	}
 	if _, err := p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
-		return errors.Wrap(err, "unable to update provider session")
+		return nil, errors.Wrap(err, "unable to update provider session")
 	}
 
 	dataSrcUpdate := &dataSource.Update{
@@ -233,11 +234,12 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 		State:              pointer.FromString(dataSource.StateConnected),
 		DataSetIDs:         dataSrc.DataSetIDs,
 	}
-	if _, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
-		return errors.Wrap(err, "unable to update data source")
+	dataSrc, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to update data source")
 	}
 
-	return nil
+	return dataSrc, nil
 }
 
 func (p *Provider) disconnectDataSourcesFromProviderSession(ctx context.Context, providerSession *auth.ProviderSession) error {
