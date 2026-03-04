@@ -16,8 +16,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-const ProviderName = "dexcom"
-
 type Provider struct {
 	*oauthProvider.Provider
 	dataSourceClient dataSource.Client
@@ -38,7 +36,12 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.New("task client is missing")
 	}
 
-	prvdr, err := oauthProvider.New(ProviderName, configReporter.WithScopes(ProviderName), nil)
+	cfg, err := oauthProvider.NewConfigWithConfigReporter(configReporter.WithScopes(dexcom.ProviderName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create provider config")
+	}
+
+	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -153,8 +156,4 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 		}
 	}
 	return nil
-}
-
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return true
 }

@@ -643,7 +643,7 @@ func mockDexcomClientGetDataRange(mockTokenSource *MockTokenSource, response *de
 	}
 	return func(ctx context.Context, lastSyncTime *time.Time, tokenSource oauth.TokenSource) (*dexcom.DataRangesResponse, error) {
 		tokenSource.HTTPClient(ctx, mockTokenSource)
-		tokenSource.UpdateToken()
+		tokenSource.UpdateToken(ctx)
 		return response, err
 	}
 }
@@ -654,7 +654,7 @@ func mockDexcomClientGetData[T any](mockTokenSource *MockTokenSource, response *
 	}
 	return func(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*T, error) {
 		tokenSource.HTTPClient(ctx, mockTokenSource)
-		tokenSource.UpdateToken()
+		tokenSource.UpdateToken(ctx)
 		return response, err
 	}
 }

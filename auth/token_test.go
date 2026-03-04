@@ -1,10 +1,13 @@
 package auth_test
 
 import (
+	"slices"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"golang.org/x/oauth2"
 
@@ -13,6 +16,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	structureNormalizer "github.com/tidepool-org/platform/structure/normalizer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -27,6 +31,7 @@ var _ = Describe("OAuthToken", func() {
 			Expect(token.TokenType).To(BeEmpty())
 			Expect(token.RefreshToken).To(BeEmpty())
 			Expect(token.ExpirationTime).To(BeZero())
+			Expect(token.Scope).To(BeNil())
 			Expect(token.IDToken).To(BeNil())
 		})
 	})
@@ -46,7 +51,8 @@ var _ = Describe("OAuthToken", func() {
 			Expect(token.TokenType).To(Equal(rawToken.TokenType))
 			Expect(token.RefreshToken).To(Equal(rawToken.RefreshToken))
 			Expect(token.ExpirationTime).To(Equal(rawToken.Expiry))
-			Expect(token.IDToken).To(Equal(auth.GetIDToken(rawToken)))
+			Expect(auth.GetScope(rawToken)).To(Equal(token.Scope))
+			Expect(auth.GetIDToken(rawToken)).To(Equal(token.IDToken))
 		})
 	})
 
@@ -92,6 +98,13 @@ var _ = Describe("OAuthToken", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/expirationTime"),
 				),
+				Entry("scope invalid type",
+					func(object map[string]any, expectedDatum *auth.OAuthToken) {
+						object["scope"] = true
+						expectedDatum.Scope = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/scope"),
+				),
 				Entry("idToken invalid type",
 					func(object map[string]any, expectedDatum *auth.OAuthToken) {
 						object["idToken"] = true
@@ -105,17 +118,20 @@ var _ = Describe("OAuthToken", func() {
 						object["tokenType"] = true
 						object["refreshToken"] = true
 						object["expirationTime"] = true
+						object["scope"] = true
 						object["idToken"] = true
 						expectedDatum.AccessToken = ""
 						expectedDatum.TokenType = ""
 						expectedDatum.RefreshToken = ""
 						expectedDatum.ExpirationTime = time.Time{}
+						expectedDatum.Scope = nil
 						expectedDatum.IDToken = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/accessToken"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/tokenType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/refreshToken"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/expirationTime"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/scope"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/idToken"),
 				),
 			)
@@ -135,6 +151,16 @@ var _ = Describe("OAuthToken", func() {
 					func(datum *auth.OAuthToken) { datum.AccessToken = "" },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/accessToken"),
 				),
+				Entry("scope invalid",
+					func(datum *auth.OAuthToken) { datum.Scope = pointer.FromStringArray([]string{"alpha", "\"", "beta"}) },
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsScopeTokenNotValid("\""), "/scope/1"),
+				),
+				Entry("scope not unique",
+					func(datum *auth.OAuthToken) {
+						datum.Scope = pointer.FromStringArray([]string{"alpha", "beta", "alpha"})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/scope/2"),
+				),
 				Entry("idToken empty",
 					func(datum *auth.OAuthToken) { datum.IDToken = pointer.FromString("") },
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/idToken"),
@@ -142,20 +168,31 @@ var _ = Describe("OAuthToken", func() {
 				Entry("multiple errors",
 					func(datum *auth.OAuthToken) {
 						datum.AccessToken = ""
+						datum.Scope = pointer.FromStringArray([]string{"alpha", "\"", "beta"})
 						datum.IDToken = pointer.FromString("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/accessToken"),
+					errorsTest.WithPointerSource(auth.ErrorValueStringAsScopeTokenNotValid("\""), "/scope/1"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/idToken"),
 				),
 			)
+		})
+
+		Context("Normalize", func() {
+			It("successfully normalizes the datum", func() {
+				datum := authTest.RandomToken()
+				Expect(structureNormalizer.New(logTest.NewLogger()).Normalize(datum)).ToNot(HaveOccurred())
+				Expect(datum.Scope).ToNot(BeNil())
+				Expect(slices.IsSorted(*datum.Scope)).To(BeTrue())
+			})
 		})
 
 		Context("Refreshed", func() {
 			It("returns error if rawToken is nil", func() {
 				token := auth.NewOAuthToken()
 				refreshed, err := token.Refreshed(nil)
-				Expect(refreshed).To(BeNil())
 				Expect(err).To(MatchError("raw token is missing"))
+				Expect(refreshed).To(BeNil())
 			})
 
 			It("returns a refreshed token with updated values", func() {
@@ -167,7 +204,8 @@ var _ = Describe("OAuthToken", func() {
 				Expect(refreshed.TokenType).To(Equal(rawToken.TokenType))
 				Expect(refreshed.RefreshToken).To(Equal(rawToken.RefreshToken))
 				Expect(refreshed.ExpirationTime).To(Equal(rawToken.Expiry))
-				Expect(refreshed.IDToken).To(Equal(auth.GetIDToken(rawToken)))
+				Expect(auth.GetScope(rawToken)).To(Equal(refreshed.Scope))
+				Expect(auth.GetIDToken(rawToken)).To(Equal(refreshed.IDToken))
 			})
 		})
 
@@ -186,6 +224,7 @@ var _ = Describe("OAuthToken", func() {
 				Expect(rawToken.TokenType).To(Equal(token.TokenType))
 				Expect(rawToken.RefreshToken).To(Equal(token.RefreshToken))
 				Expect(rawToken.Expiry).To(Equal(token.ExpirationTime))
+				Expect(auth.GetScope(rawToken)).To(Equal(token.Scope))
 				Expect(auth.GetIDToken(rawToken)).To(Equal(token.IDToken))
 			})
 		})
@@ -210,6 +249,9 @@ var _ = Describe("OAuthToken", func() {
 				Entry("Expiry does not match", func(token *auth.OAuthToken, rawToken *oauth2.Token) {
 					rawToken.Expiry = test.RandomTime()
 				}),
+				Entry("Scope does not match", func(token *auth.OAuthToken, rawToken *oauth2.Token) {
+					*rawToken = *rawToken.WithExtra(map[string]any{auth.KeyScope: authTest.RandomScopeToken()})
+				}),
 				Entry("IDToken does not match", func(token *auth.OAuthToken, rawToken *oauth2.Token) {
 					*rawToken = *rawToken.WithExtra(map[string]any{auth.KeyIDToken: test.RandomString()})
 				}),
@@ -219,6 +261,26 @@ var _ = Describe("OAuthToken", func() {
 				token := authTest.RandomToken()
 				Expect(token.MatchesRawToken(token.RawToken())).To(BeTrue())
 			})
+		})
+	})
+
+	Context("GetScope", func() {
+		It("returns nil if scope is not present", func() {
+			rawToken := &oauth2.Token{}
+			Expect(auth.GetScope(rawToken)).To(BeNil())
+		})
+
+		It("returns scope if present and empty", func() {
+			rawToken := &oauth2.Token{}
+			rawToken = rawToken.WithExtra(map[string]any{auth.KeyScope: ""})
+			Expect(auth.GetScope(rawToken)).To(BeNil())
+		})
+
+		It("returns scope if present and not empty", func() {
+			scope := authTest.RandomScope()
+			rawToken := &oauth2.Token{}
+			rawToken = rawToken.WithExtra(map[string]any{auth.KeyScope: strings.Join(scope, " ")})
+			Expect(auth.GetScope(rawToken)).To(PointTo(Equal(scope)))
 		})
 	})
 
@@ -232,24 +294,7 @@ var _ = Describe("OAuthToken", func() {
 			idToken := test.RandomString()
 			rawToken := &oauth2.Token{}
 			rawToken = rawToken.WithExtra(map[string]any{auth.KeyIDToken: idToken})
-			result := auth.GetIDToken(rawToken)
-			Expect(result).ToNot(BeNil())
-			Expect(*result).To(Equal(idToken))
-		})
-	})
-
-	Context("SetIDToken", func() {
-		It("does not set id token if nil", func() {
-			rawToken := &oauth2.Token{}
-			result := auth.SetIDToken(rawToken, nil)
-			Expect(result.Extra(auth.KeyIDToken)).To(BeNil())
-		})
-
-		It("sets id token if not nil", func() {
-			idToken := test.RandomString()
-			rawToken := &oauth2.Token{}
-			result := auth.SetIDToken(rawToken, &idToken)
-			Expect(result.Extra(auth.KeyIDToken)).To(Equal(idToken))
+			Expect(auth.GetIDToken(rawToken)).To(PointTo(Equal(idToken)))
 		})
 	})
 })

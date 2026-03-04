@@ -14,6 +14,13 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
+const (
+	ProviderType = "oauth"
+
+	ActionAuthorize = "authorize"
+	ActionRevoke    = "revoke"
+)
+
 type TokenSourceSource interface {
 	TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error)
 }
@@ -22,22 +29,24 @@ type Provider interface {
 	provider.Provider
 	TokenSourceSource
 
+	AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error)
+	UserActionAcceptURL(ctx context.Context, userID string, action string) (*string, error)
+
 	ParseToken(token string, claims jwt.Claims) error
 
-	UseCookie() bool
+	CookieDisabled() bool
+
 	CalculateStateForRestrictedToken(restrictedToken string) string // state = crypto of provider name, restrictedToken, secret
 	GetAuthorizationCodeURLWithState(state string) string
 	ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error)
 	IsErrorCodeAccessDenied(errorCode string) bool
-
-	SupportsUserInitiatedAccountUnlinking() bool
 }
 
 type TokenSource interface {
 	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
-	UpdateToken() error
-	ExpireToken() error
+	UpdateToken(ctx context.Context) error
+	ExpireToken(ctx context.Context) error
 }
 
 func IsAccessTokenError(err error) bool {

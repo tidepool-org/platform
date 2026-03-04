@@ -36,7 +36,6 @@ var _ = Describe("Client", func() {
 	var address string
 	var userAgent string
 	var baseConfig *client.Config
-	var baseClient *client.Client
 	var tokenSourceSource *oauthTest.TokenSourceSource
 
 	BeforeEach(func() {
@@ -48,32 +47,19 @@ var _ = Describe("Client", func() {
 		tokenSourceSource = oauthTest.NewTokenSourceSource()
 	})
 
-	JustBeforeEach(func() {
-		var err error
-		baseClient, err = client.New(baseConfig)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(baseClient).ToNot(BeNil())
-	})
-
 	AfterEach(func() {
 		tokenSourceSource.AssertOutputsEmpty()
 	})
 
 	Context("New", func() {
-		It("returns an error when base client is missing", func() {
-			clnt, err := oauthClient.New(nil, tokenSourceSource)
-			Expect(err).To(MatchError("base client is missing"))
-			Expect(clnt).To(BeNil())
-		})
-
 		It("returns an error when token source source is missing", func() {
-			clnt, err := oauthClient.New(baseClient, nil)
+			clnt, err := oauthClient.New(baseConfig, nil)
 			Expect(err).To(MatchError("token source source is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			Expect(oauthClient.New(baseClient, tokenSourceSource)).ToNot(BeNil())
+			Expect(oauthClient.New(baseConfig, tokenSourceSource)).ToNot(BeNil())
 		})
 	})
 
@@ -82,7 +68,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			clnt, err = oauthClient.New(baseClient, tokenSourceSource)
+			clnt, err = oauthClient.New(baseConfig, tokenSourceSource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -208,7 +194,7 @@ var _ = Describe("Client", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			clnt, err = oauthClient.New(baseClient, tokenSourceSource)
+			clnt, err = oauthClient.New(baseConfig, tokenSourceSource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -227,12 +213,12 @@ var _ = Describe("Client", func() {
 				responseBody = &ResponseBody{}
 			})
 
-			It("returns error when http client source is missing", func() {
-				Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, nil)).To(MatchError("http client source is missing"))
+			It("returns error when token source is missing", func() {
+				Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, nil)).To(MatchError("token source is missing"))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			When("http client source is not missing", func() {
+			When("token source is not missing", func() {
 				var expectedHTTPClientInputs []oauthTest.HTTPClientInput
 
 				BeforeEach(func() {
@@ -243,14 +229,14 @@ var _ = Describe("Client", func() {
 					Expect(tokenSource.HTTPClientInputs).To(Equal(expectedHTTPClientInputs))
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					Expect(clnt.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, tokenSource)).To(Equal(responseErr))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {

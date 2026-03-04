@@ -24,11 +24,13 @@ type TokenSource struct {
 	HTTPClientOutputs      []HTTPClientOutput
 	HTTPClientOutput       *HTTPClientOutput
 	UpdateTokenInvocations int
-	UpdateTokenStub        func() error
+	UpdateTokenInputs      []context.Context
+	UpdateTokenStub        func(ctx context.Context) error
 	UpdateTokenOutputs     []error
 	UpdateTokenOutput      error
 	ExpireTokenInvocations int
-	ExpireTokenStub        func() error
+	ExpireTokenInputs      []context.Context
+	ExpireTokenStub        func(ctx context.Context) error
 	ExpireTokenOutputs     []error
 	ExpireTokenOutput      error
 }
@@ -54,10 +56,11 @@ func (t *TokenSource) HTTPClient(ctx context.Context, tokenSourceSource oauth.To
 	panic("HTTPClient has no output")
 }
 
-func (t *TokenSource) UpdateToken() error {
+func (t *TokenSource) UpdateToken(ctx context.Context) error {
 	t.UpdateTokenInvocations++
+	t.UpdateTokenInputs = append(t.UpdateTokenInputs, ctx)
 	if t.UpdateTokenStub != nil {
-		return t.UpdateTokenStub()
+		return t.UpdateTokenStub(ctx)
 	}
 	if len(t.UpdateTokenOutputs) > 0 {
 		output := t.UpdateTokenOutputs[0]
@@ -70,10 +73,11 @@ func (t *TokenSource) UpdateToken() error {
 	panic("UpdateToken has no output")
 }
 
-func (t *TokenSource) ExpireToken() error {
+func (t *TokenSource) ExpireToken(ctx context.Context) error {
 	t.ExpireTokenInvocations++
+	t.ExpireTokenInputs = append(t.ExpireTokenInputs, ctx)
 	if t.ExpireTokenStub != nil {
-		return t.ExpireTokenStub()
+		return t.ExpireTokenStub(ctx)
 	}
 	if len(t.ExpireTokenOutputs) > 0 {
 		output := t.ExpireTokenOutputs[0]

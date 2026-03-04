@@ -31,6 +31,6 @@ type ProcessorDependencies struct {
 	WorkClient              WorkClient
 }
 
-func NewProcessors(processorDependencies ProcessorDependencies) ([]work.Processor, error) {
+func NewProcessorFactories(processorDependencies ProcessorDependencies) ([]work.ProcessorFactory, error) {
 	return nil, nil
 }

@@ -107,14 +107,14 @@ var _ = Describe("Client", func() {
 				responseDataRangesResponse = dexcomTest.RandomDataRangesResponse()
 			})
 
-			It("returns error when http client source is missing", func() {
+			It("returns error when token source is missing", func() {
 				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, nil)
-				Expect(err).To(MatchError("unable to get data range; http client source is missing"))
+				Expect(err).To(MatchError("unable to get data range; token source is missing"))
 				Expect(dataRangeResponse).To(BeNil())
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			It("returns error when http client source returns an error", func() {
+			It("returns error when token source returns an error", func() {
 				responseErr := errorsTest.RandomError()
 				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
@@ -124,7 +124,7 @@ var _ = Describe("Client", func() {
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			It("returns error when http client source returns that indicates an oauth token failure", func() {
+			It("returns error when token source returns that indicates an oauth token failure", func() {
 				responseErr := errors.New(`oauth2: "invalid_grant"`)
 				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
@@ -134,7 +134,7 @@ var _ = Describe("Client", func() {
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
-			When("http client source returns successfully", func() {
+			When("token source returns successfully", func() {
 				var httpClient *http.Client
 
 				BeforeEach(func() {
@@ -366,14 +366,14 @@ var _ = Describe("Client", func() {
 					responseAlertsResponse = dexcomTest.RandomAlertsResponse()
 				})
 
-				It("returns error when http client source is missing", func() {
+				It("returns error when token source is missing", func() {
 					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, nil)
-					Expect(err).To(MatchError("unable to get alerts; http client source is missing"))
+					Expect(err).To(MatchError("unable to get alerts; token source is missing"))
 					Expect(alertsResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
@@ -383,7 +383,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns that indicates an oauth token failure", func() {
+				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
@@ -393,7 +393,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {
@@ -598,14 +598,14 @@ var _ = Describe("Client", func() {
 					responseCalibrationsResponse = dexcomTest.RandomCalibrationsResponse()
 				})
 
-				It("returns error when http client source is missing", func() {
+				It("returns error when token source is missing", func() {
 					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, nil)
-					Expect(err).To(MatchError("unable to get calibrations; http client source is missing"))
+					Expect(err).To(MatchError("unable to get calibrations; token source is missing"))
 					Expect(calibrationsResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
@@ -615,7 +615,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns that indicates an oauth token failure", func() {
+				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
@@ -625,7 +625,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {
@@ -831,14 +831,14 @@ var _ = Describe("Client", func() {
 					responseDevicesResponse = dexcomTest.RandomDevicesResponse()
 				})
 
-				It("returns error when http client source is missing", func() {
+				It("returns error when token source is missing", func() {
 					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, nil)
-					Expect(err).To(MatchError("unable to get devices; http client source is missing"))
+					Expect(err).To(MatchError("unable to get devices; token source is missing"))
 					Expect(devicesResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
@@ -848,7 +848,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns that indicates an oauth token failure", func() {
+				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
@@ -858,7 +858,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {
@@ -1064,14 +1064,14 @@ var _ = Describe("Client", func() {
 					responseEGVsResponse = dexcomTest.RandomEGVsResponse()
 				})
 
-				It("returns error when http client source is missing", func() {
+				It("returns error when token source is missing", func() {
 					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, nil)
-					Expect(err).To(MatchError("unable to get egvs; http client source is missing"))
+					Expect(err).To(MatchError("unable to get egvs; token source is missing"))
 					Expect(egvsResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
@@ -1081,7 +1081,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns that indicates an oauth token failure", func() {
+				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
@@ -1091,7 +1091,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {
@@ -1297,14 +1297,14 @@ var _ = Describe("Client", func() {
 					responseEventsResponse = dexcomTest.RandomEventsResponse()
 				})
 
-				It("returns error when http client source is missing", func() {
+				It("returns error when token source is missing", func() {
 					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, nil)
-					Expect(err).To(MatchError("unable to get events; http client source is missing"))
+					Expect(err).To(MatchError("unable to get events; token source is missing"))
 					Expect(eventsResponse).To(BeNil())
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns an error", func() {
+				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
@@ -1314,7 +1314,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				It("returns error when http client source returns that indicates an oauth token failure", func() {
+				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
 					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
 					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
@@ -1324,7 +1324,7 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
-				When("http client source returns successfully", func() {
+				When("token source returns successfully", func() {
 					var httpClient *http.Client
 
 					BeforeEach(func() {

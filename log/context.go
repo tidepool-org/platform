@@ -1,6 +1,9 @@
 package log
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 type contextKey string
 
@@ -43,4 +46,13 @@ func ContextAndLoggerWithFields(ctx context.Context, fields Fields) (context.Con
 		return NewContextWithLogger(ctx, logger), logger
 	}
 	return ctx, nil
+}
+
+func WarnIfDurationExceedsMaximum(ctx context.Context, durationMaximum time.Duration, operation string, fn func(ctx context.Context) error) error {
+	start := time.Now()
+	err := fn(ctx)
+	if duration := time.Since(start).Truncate(time.Microsecond); duration > durationMaximum {
+		LoggerFromContext(ctx).WithField("exceeds", Fields{"duration": duration.Seconds(), "durationMaximum": durationMaximum.Seconds(), "operation": operation}).Warn("Duration exceeds maximum")
+	}
+	return err
 }

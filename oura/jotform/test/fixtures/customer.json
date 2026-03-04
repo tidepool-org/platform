@@ -1,0 +1,36 @@
+{
+  "customer": {
+    "id": "01234567890",
+    "identifiers": {
+      "cio_id": "cio_0987654321",
+      "email": "james.jellyfish@tidepool.org",
+      "id": "1aacb960-430c-4081-8b3b-a32688807dc5"
+    },
+    "attributes": {
+      "Opted In": "Y",
+      "Recent Data": "Y",
+      "cio_id": "cio_0987654321",
+      "created_at": "1750853383",
+      "email": "james.jellyfish@tidepool.org",
+      "id": "1aacb960-430c-4081-8b3b-a32688807dc5",
+      "oura_participant_id": "06336454-cf65-11f0-b3af-fac742a1f967",
+      "oura_ring_discount_code": "4NSG9996R26C",
+      "oura_sizing_kit_discount_code": "K25Y7999BGM4"
+    },
+    "timestamps": {
+      "Opted In": 1750853452,
+      "Recent Data": 1750853452,
+      "cio_id": 1750853452,
+      "created_at": 1750853452,
+      "email": 0,
+      "id": 1750853452,
+      "oura_discount_code": 1764073477,
+      "oura_participant_id": 1764669325,
+      "oura_ring_discount_code": 1764669325,
+      "oura_sizing_kit_discount_code": 1764669325,
+      "ring_submitted_date": 1750854043
+    },
+    "unsubscribed": false,
+    "devices": []
+  }
+}
