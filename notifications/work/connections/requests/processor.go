@@ -162,6 +162,11 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 	wrk.EnsureMetadata()
 	var data Metadata
+	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
+		data.ClinicID = clinicID
+	} else {
+		return nil, errors.Newf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
+	}
 	if userID, ok := wrk.Metadata["userId"].(string); ok {
 		data.UserID = userID
 	} else {
@@ -192,6 +197,7 @@ func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
 
 func fromConnectAccountData(data Metadata) map[string]any {
 	return map[string]any{
+		"clinicId":          data.ClinicID,
 		"userId":            data.UserID,
 		"providerName":      data.ProviderName,
 		"patientName":       data.PatientName,

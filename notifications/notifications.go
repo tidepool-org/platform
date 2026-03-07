@@ -37,6 +37,7 @@ func NewFailingResult(err error, wrk *work.Work) work.ProcessResult {
 		FailingError:      errors.Serializable{Error: err},
 		FailingRetryCount: pointer.DefaultInt(wrk.FailingRetryCount, 0) + 1,
 		FailingRetryTime:  time.Now().Add(retryDuration(failingRetryCount)),
+		Metadata:          wrk.Metadata,
 	})
 }
 
