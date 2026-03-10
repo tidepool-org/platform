@@ -49,6 +49,15 @@ GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interv
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
+ifdef TEST
+	TEST_PACKAGE=$(shell [ -d "$(TEST)" ] && echo "$(TEST)" || dirname "$(TEST)")
+	TEST_PACKAGE_NAME=$(notdir $(TEST_PACKAGE))
+	TEST_DIRECTORY=$(realpath $(TEST_PACKAGE))
+	TEST_FILE=$(notdir $(TEST))
+endif
+
+TEST_REPEAT ?= 0
+
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build
 DOCKER_PUSH_CMD ?= docker push
@@ -265,10 +274,15 @@ test-ginkgo: ginkgo
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
-test-ginkgo-until-failure: ginkgo
-	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
+test-ginkgo-until-repeat: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+
+test-ginkgo-until-failure: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) --until-it-fails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && \
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
@@ -280,10 +294,15 @@ ci-test-ginkgo: ginkgo
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
-ci-test-ginkgo-until-failure: ginkgo
-	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
+ci-test-ginkgo-repeat: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+
+ci-test-ginkgo-until-failure: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && \
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
@@ -299,6 +318,17 @@ test-go:
 ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
+
+ginkgo-bootstrap: ginkgo
+	@echo "ginkgo bootstrap $(TEST_PACKAGE)"
+	@cd "$(TEST_DIRECTORY)" && \
+		[ -f "$(TEST_PACKAGE_NAME)_suite_test.go" ] || \
+		ginkgo bootstrap --template "$(ROOT_DIRECTORY)/.ginkgo/templates/bootstrap"
+
+ginkgo-generate: ginkgo-bootstrap
+	@echo "ginkgo generate $(TEST)"
+	@cd "$(TEST_DIRECTORY)" && \
+		ginkgo generate --template "$(ROOT_DIRECTORY)/.ginkgo/templates/generate" $(TEST_FILE)
 
 service-build:
 ifdef SERVICE

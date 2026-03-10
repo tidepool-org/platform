@@ -22,10 +22,12 @@ import (
 
 var _ = Describe("ProcessResult", func() {
 	var ctx context.Context
+	var mockController *gomock.Controller
 	var wrk *work.Work
 
 	BeforeEach(func() {
 		ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+		mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 		wrk = workTest.RandomWork()
 	})
 
@@ -45,9 +47,6 @@ var _ = Describe("ProcessResult", func() {
 			})
 
 			It("returns Pending ProcessResult when PendingBuilder is configured", func() {
-				mockController := gomock.NewController(GinkgoT())
-				DeferCleanup(mockController.Finish)
-
 				processingAvailableTime := test.RandomTimeAfterNow()
 
 				mockProcessResultPendingBuilder := workTest.NewMockProcessResultPendingBuilder(mockController)
@@ -80,9 +79,6 @@ var _ = Describe("ProcessResult", func() {
 			})
 
 			It("returns Failing ProcessResult when FailingBuilder is configured", func() {
-				mockController := gomock.NewController(GinkgoT())
-				DeferCleanup(mockController.Finish)
-
 				failingRetryCount := test.RandomIntFromRange(0, test.RandomIntMaximum())
 				failingRetryTime := test.RandomTimeAfterNow()
 

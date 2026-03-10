@@ -55,7 +55,7 @@ var _ = Describe("Client", func() {
 			serverSessionTokenProviderController.Finish()
 		})
 
-		It("returs nil if the context is nil", func() {
+		It("returns nil if the context is nil", func() {
 			Expect(auth.ServerSessionTokenProviderFromContext(nil)).To(BeNil())
 		})
 

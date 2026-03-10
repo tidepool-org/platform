@@ -111,6 +111,10 @@ func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
 	return &refreshed, nil
 }
 
+func (o *OAuthToken) IsExpired() bool {
+	return o.ExpirationTime.Before(time.Now())
+}
+
 func (o *OAuthToken) Expired() *OAuthToken {
 	return &OAuthToken{
 		AccessToken:    o.AccessToken,

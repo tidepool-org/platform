@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 	"regexp"
@@ -81,7 +82,9 @@ func (s *Serializer) assertContainsFields(containsFields []log.Fields, matcher f
 			return
 		}
 	}
-	panic(fmt.Sprintf("logger does not contain specified message and fields"))
+	actual, _ := json.MarshalIndent(s.SerializedFields, "", "  ")
+	expected, _ := json.MarshalIndent(joinedContainsFields, "", "  ")
+	panic(fmt.Sprintf("logger does not contain specified message and fields, expected:\n%s\nto contain:\n%s\n", string(actual), string(expected)))
 }
 
 func (s *Serializer) joinContainsFields(containsFields []log.Fields) log.Fields {
@@ -94,6 +97,8 @@ func (s *Serializer) joinContainsFields(containsFields []log.Fields) log.Fields 
 				} else if !reflect.DeepEqual(joinedValue, value) {
 					panic(fmt.Sprintf("duplicate log field found with key %q", key))
 				}
+			} else {
+				delete(joinedFields, key)
 			}
 		}
 	}

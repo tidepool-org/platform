@@ -118,7 +118,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	return request.DecodeObject(ctx, structure.NewPointerSource(), body, responseBody)
+	return request.DecodeStream(ctx, structure.NewPointerSource(), body, responseBody)
 }
 
 func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {

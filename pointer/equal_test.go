@@ -11,6 +11,17 @@ import (
 )
 
 var _ = Describe("Equal", func() {
+	DescribeTable("Equal returns expected",
+		func(a *int, b *int, expected bool) {
+			Expect(pointer.Equal(a, b)).To(Equal(expected))
+		},
+		Entry("a is missing; b is missing", nil, nil, true),
+		Entry("a is missing; b is present", nil, pointer.FromInt(456), false),
+		Entry("a is present; b is missing", pointer.FromInt(123), nil, false),
+		Entry("a is present; b is present", pointer.FromInt(123), pointer.FromInt(456), false),
+		Entry("a is present; b is present and match", pointer.FromInt(123), pointer.FromInt(123), true),
+	)
+
 	DescribeTable("EqualBool returns expected",
 		func(a *bool, b *bool, expected bool) {
 			Expect(pointer.EqualBool(a, b)).To(Equal(expected))
@@ -48,7 +59,7 @@ var _ = Describe("Equal", func() {
 		Entry("a is present; b is present and match", pointer.FromFloat64(1.23), pointer.FromFloat64(1.23), true),
 	)
 
-	DescribeTable("EqualString returns expected",
+	DescribeTable("EqualInt returns expected",
 		func(a *int, b *int, expected bool) {
 			Expect(pointer.EqualInt(a, b)).To(Equal(expected))
 		},

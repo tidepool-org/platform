@@ -234,9 +234,12 @@ func listLatestConsentRecordsPipeline(selector bson.M, sort bson.M, pagination p
 		},
 		{
 			"$group": bson.M{
-				"_id":        bson.M{"type": "$type"},
+				"_id":        "$type",
 				"mostRecent": bson.M{"$first": "$$ROOT"},
 			},
+		},
+		{
+			"$sort": bson.M{"_id": 1},
 		},
 		{
 			"$replaceRoot": bson.M{"newRoot": "$mostRecent"},

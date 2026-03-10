@@ -31,25 +31,25 @@ var _ = Describe("ProcessorFactory", func() {
 	})
 
 	Context("NewProcessorFactory", func() {
-		It("returns error when type is missing", func() {
+		It("returns an error when type is missing", func() {
 			processorFactory, err := workBase.NewProcessorFactory("", quantity, frequency, newProcessorFunc)
 			Expect(err).To(MatchError("type is missing"))
 			Expect(processorFactory).To(BeNil())
 		})
 
-		It("returns error when quantity is zero or less", func() {
+		It("returns an error when quantity is zero or less", func() {
 			processorFactory, err := workBase.NewProcessorFactory(typ, 0, frequency, newProcessorFunc)
 			Expect(err).To(MatchError("quantity is invalid"))
 			Expect(processorFactory).To(BeNil())
 		})
 
-		It("returns error when frequency is zero or less", func() {
+		It("returns an error when frequency is zero or less", func() {
 			processorFactory, err := workBase.NewProcessorFactory(typ, quantity, 0, newProcessorFunc)
 			Expect(err).To(MatchError("frequency is invalid"))
 			Expect(processorFactory).To(BeNil())
 		})
 
-		It("returns error when newProcessorFunc is nil", func() {
+		It("returns an error when newProcessorFunc is nil", func() {
 			processorFactory, err := workBase.NewProcessorFactory(typ, quantity, frequency, nil)
 			Expect(err).To(MatchError("new processor func is missing"))
 			Expect(processorFactory).To(BeNil())
@@ -106,7 +106,7 @@ var _ = Describe("ProcessorFactory", func() {
 				mockController.Finish()
 			})
 
-			It("returns error from newProcessorFunc", func() {
+			It("returns an error from newProcessorFunc", func() {
 				processor, err := processorFactory.New()
 				Expect(err).To(Equal(expectedErr))
 				Expect(processor).To(Equal(expectedProcessor))

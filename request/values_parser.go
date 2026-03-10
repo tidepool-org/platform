@@ -168,7 +168,7 @@ func (v *Values) StringArray(reference string) *[]string {
 		return nil
 	}
 
-	index, _ := v.parsed[reference]
+	index := v.parsed[reference]
 	if index >= len(values) {
 		return nil
 	}
@@ -304,7 +304,7 @@ func (v *Values) raw(reference string) (string, bool) {
 		return "", false
 	}
 
-	index, _ := v.parsed[reference]
+	index := v.parsed[reference]
 	if index >= len(values) {
 		return "", false
 	}

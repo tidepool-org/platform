@@ -69,8 +69,8 @@ func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionT
 	}, nil
 }
 
-func (c *Coordinator) RegisterProcessorFactories(processorFactoriess []work.ProcessorFactory) error {
-	for _, processorFactory := range processorFactoriess {
+func (c *Coordinator) RegisterProcessorFactories(processorFactories []work.ProcessorFactory) error {
+	for _, processorFactory := range processorFactories {
 		if err := c.RegisterProcessorFactory(processorFactory); err != nil {
 			return err
 		}

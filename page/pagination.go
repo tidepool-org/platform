@@ -84,29 +84,87 @@ func PaginateWithSize(size int, paginator Paginator) error {
 	}
 }
 
-type Collector[T any] func(pagination Pagination) ([]T, error)
+type Pager[T any, U ~[]T] func(pagination Pagination) (U, error)
 
-func Collect[T any](collector Collector[T]) ([]T, error) {
-	return CollectWithSize(PaginationSizeDefault, collector)
+func Collect[T any, U ~[]T](pager Pager[T, U]) (U, error) {
+	return CollectWithSize(PaginationSizeDefault, pager)
 }
 
-func CollectWithSize[T any](size int, collector Collector[T]) ([]T, error) {
+func CollectWithSize[T any, U ~[]T](size int, pager Pager[T, U]) (U, error) {
 	if size < PaginationSizeMinimum {
 		return nil, errors.New("size is less than minimum")
 	}
-	if collector == nil {
-		return nil, errors.New("collector is missing")
+	if pager == nil {
+		return nil, errors.New("pager is missing")
 	}
 
-	var collection []T
+	var result U
 	for page := 0; ; page++ {
-		collected, err := collector(Pagination{Page: page, Size: size})
+		paged, err := pager(Pagination{Page: page, Size: size})
 		if err != nil {
 			return nil, err
+		} else if paged == nil {
+			return result, nil
 		}
-		collection = append(collection, collected...)
-		if len(collected) < size {
-			return collection, nil
+		if result == nil {
+			result = U{}
+		}
+		result = append(result, paged...)
+		if len(paged) < size {
+			return result, nil
+		}
+	}
+}
+
+func First[T any, U ~[]T](pager Pager[T, U]) (value T, err error) {
+	if pager == nil {
+		return value, errors.New("pager is missing")
+	}
+
+	paged, err := pager(Pagination{Page: PaginationPageMinimum, Size: PaginationSizeMinimum})
+	if err != nil || len(paged) <= 0 {
+		return value, err
+	}
+	return paged[0], nil
+}
+
+type Processor[T any, U any] func(element T) (U, error)
+
+func Process[T any, U any, V ~[]T, W []U](pager Pager[T, V], processor Processor[T, U]) (W, error) {
+	return ProcessWithSize[T, U, V, W](PaginationSizeDefault, pager, processor)
+}
+
+func ProcessWithSize[T any, U any, V ~[]T, W []U](size int, pager Pager[T, V], processor Processor[T, U]) (W, error) {
+	if size < PaginationSizeMinimum {
+		return nil, errors.New("size is less than minimum")
+	}
+	if pager == nil {
+		return nil, errors.New("pager is missing")
+	}
+	if processor == nil {
+		return nil, errors.New("processor is missing")
+	}
+
+	var result W
+	for page := 0; ; page++ {
+		paged, err := pager(Pagination{Page: page, Size: size})
+		if err != nil {
+			return result, err
+		} else if paged == nil {
+			return result, nil
+		}
+		if result == nil {
+			result = W{}
+		}
+		for _, processing := range paged {
+			if processed, err := processor(processing); err != nil {
+				return result, err
+			} else {
+				result = append(result, processed)
+			}
+		}
+		if len(paged) < size {
+			return result, nil
 		}
 	}
 }
