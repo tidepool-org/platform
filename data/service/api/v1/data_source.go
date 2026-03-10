@@ -3,11 +3,14 @@ package v1
 import (
 	"net/http"
 
+	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
+	"github.com/tidepool-org/platform/structure"
 )
 
 func SourcesRoutes() []dataService.Route {
@@ -18,6 +21,8 @@ func SourcesRoutes() []dataService.Route {
 		dataService.Get("/v1/data_sources/:id", GetSource, serviceApi.RequireAuth),
 		dataService.Put("/v1/data_sources/:id", UpdateSource, serviceApi.RequireAuth),
 		dataService.Delete("/v1/data_sources/:id", DeleteSource, serviceApi.RequireAuth),
+
+		dataService.Get("/v1/provider_sessions/:providerSessionId/data_source", GetSourceFromProviderSession, serviceApi.RequireAuth),
 	}
 }
 
@@ -168,7 +173,7 @@ func GetSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if !details.IsService() && details.UserID() != *source.UserID {
+	if !details.IsService() && details.UserID() != source.UserID {
 		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
 		return
 	}
@@ -207,13 +212,13 @@ func UpdateSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	update := dataSource.NewUpdate()
+	update := &UpdateDEPRECATED{}
 	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update)
+	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update.Modernize())
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -266,4 +271,74 @@ func DeleteSource(dataServiceContext dataService.Context) {
 	}
 
 	responder.Empty(http.StatusOK)
+}
+
+// TODO: BEGIN: Update to new service paradigm
+// func (r *Router) GetSourceFromProviderSession(res rest.ResponseWriter, req *rest.Request) {
+
+func GetSourceFromProviderSession(dataServiceContext dataService.Context) {
+	res := dataServiceContext.Response()
+	req := dataServiceContext.Request()
+
+	details := request.GetAuthDetails(req.Context())
+	if details == nil {
+		request.MustNewResponder(res, req).Error(http.StatusUnauthorized, request.ErrorUnauthenticated())
+		return
+	} else if !details.IsService() {
+		request.MustNewResponder(res, req).Error(http.StatusForbidden, request.ErrorUnauthorized())
+		return
+	}
+	// TODO: END: Update to new service paradigm
+
+	responder := request.MustNewResponder(res, req)
+
+	providerSessionID := req.PathParam("providerSessionId")
+	if providerSessionID == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("providerSessionId"))
+		return
+	}
+
+	source, err := dataServiceContext.DataSourceClient().GetFromProviderSession(req.Context(), providerSessionID)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if source == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(providerSessionID))
+		return
+	}
+
+	responder.Data(http.StatusOK, source)
+}
+
+type UpdateDEPRECATED struct {
+	dataSource.Update `json:",inline" bson:",inline"`
+
+	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+}
+
+func (u *UpdateDEPRECATED) Parse(parser structure.ObjectParser) {
+	u.Update.Parse(parser)
+
+	u.DataSetIDs = parser.StringArray("dataSetIds")
+}
+
+func (u *UpdateDEPRECATED) Validate(validator structure.Validator) {
+	u.Update.Validate(validator)
+
+	if dataSetIDsValidator := validator.StringArray("dataSetIds", u.DataSetIDs); u.DataSetID != nil {
+		dataSetIDsValidator.NotExists()
+	} else {
+		dataSetIDsValidator.EachUsing(data.SetIDValidator).EachUnique()
+	}
+}
+
+func (u *UpdateDEPRECATED) Normalize(normalizer structure.Normalizer) {
+	u.Update.Normalize(normalizer)
+}
+
+func (u *UpdateDEPRECATED) Modernize() *dataSource.Update {
+	if u.DataSetID == nil && u.DataSetIDs != nil && len(*u.DataSetIDs) > 0 {
+		u.DataSetID = pointer.FromString((*u.DataSetIDs)[0])
+	}
+	return &u.Update
 }

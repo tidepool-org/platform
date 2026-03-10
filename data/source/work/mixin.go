@@ -60,7 +60,7 @@ func (m *Mixin) FetchDataSource(dataSrcID string) *work.ProcessResult {
 	}
 	m.DataSource = dataSrc
 
-	m.AddFieldToContext("dataSource", log.Fields{"id": m.DataSource.ID, "dataSetIds": m.DataSource.DataSetIDs, "userId": m.DataSource.UserID})
+	m.AddFieldToContext("dataSource", log.Fields{"id": m.DataSource.ID, "dataSetId": m.DataSource.DataSetID, "userId": m.DataSource.UserID})
 
 	return nil
 }
@@ -70,7 +70,7 @@ func (m *Mixin) UpdateDataSource(dataSrcUpdate dataSource.Update) *work.ProcessR
 		return m.Failed(errors.New("data source is missing"))
 	}
 
-	dataSrc, err := m.Client.Update(context.WithoutCancel(m.Context()), *m.DataSource.ID, nil, &dataSrcUpdate)
+	dataSrc, err := m.Client.Update(context.WithoutCancel(m.Context()), m.DataSource.ID, nil, &dataSrcUpdate)
 	if err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data source"))
 	} else if dataSrc == nil {

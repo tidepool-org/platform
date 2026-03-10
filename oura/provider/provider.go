@@ -111,11 +111,11 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 }
 
 func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
-	if err := p.disconnectDataSourcesFromProviderSession(ctx, providerSession); err != nil {
-		return errors.Wrap(err, "unable to disconnect data sources")
+	if err := p.disconnectDataSourceFromProviderSession(ctx, providerSession); err != nil {
+		return errors.Wrap(err, "unable to disconnect data source")
 	}
-	if err := p.createUserRevokeWork(ctx, providerSession); err != nil {
-		return errors.Wrap(err, "unable to create user revoke work")
+	if err := p.createUsersRevokeWork(ctx, providerSession); err != nil {
+		return errors.Wrap(err, "unable to create users revoke work")
 	}
 	return nil
 }
@@ -125,8 +125,8 @@ func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, 
 	switch action {
 	case oauth.ActionAuthorize:
 		dataSrcFilter := &dataSource.Filter{
-			ProviderType: pointer.FromStringArray([]string{p.Type()}),
-			ProviderName: pointer.FromStringArray([]string{p.Name()}),
+			ProviderType: pointer.FromString(p.Type()),
+			ProviderName: pointer.FromString(p.Name()),
 		}
 		dataSrcs, err := p.dataSourceClient.List(ctx, userID, dataSrcFilter, page.NewPaginationMinimum())
 		if err != nil {
@@ -164,10 +164,10 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 
 	// Get all data sources
 	dataSrcFilter := &dataSource.Filter{
-		ProviderType: pointer.FromStringArray([]string{p.Type()}),
-		ProviderName: pointer.FromStringArray([]string{p.Name()}),
+		ProviderType: pointer.FromString(p.Type()),
+		ProviderName: pointer.FromString(p.Name()),
 	}
-	dataSrcs, err := page.Collect(func(pagination page.Pagination) ([]*dataSource.Source, error) {
+	dataSrcs, err := page.Collect(func(pagination page.Pagination) (dataSource.SourceArray, error) {
 		return p.dataSourceClient.List(ctx, providerSession.UserID, dataSrcFilter, &pagination)
 	})
 	if err != nil {
@@ -187,8 +187,8 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 		dataSrc = dataSrcs[0]
 	} else {
 		dataSrcCreate := &dataSource.Create{
-			ProviderType: pointer.FromString(p.Type()),
-			ProviderName: pointer.FromString(p.Name()),
+			ProviderType: p.Type(),
+			ProviderName: p.Name(),
 		}
 		if dataSrc, err = p.dataSourceClient.Create(ctx, providerSession.UserID, dataSrcCreate); err != nil {
 			return nil, errors.Wrap(err, "unable to create data source")
@@ -205,13 +205,13 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 	}
 
 	// Unexpected state for data source, cleanup
-	if *dataSrc.State != dataSource.StateDisconnected {
+	if dataSrc.State != dataSource.StateDisconnected {
 		lgr.WithField("state", dataSrc.State).Warn("data source in unexpected state")
 
 		srcUpdate := &dataSource.Update{
 			State: pointer.FromString(dataSource.StateDisconnected),
 		}
-		if _, err = p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, srcUpdate); err != nil {
+		if _, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, srcUpdate); err != nil {
 			return nil, errors.Wrap(err, "unable to update data source")
 		}
 	}
@@ -232,9 +232,9 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 		ProviderSessionID:  pointer.FromString(providerSession.ID),
 		ProviderExternalID: dataSrc.ProviderExternalID,
 		State:              pointer.FromString(dataSource.StateConnected),
-		DataSetIDs:         dataSrc.DataSetIDs,
+		DataSetID:          dataSrc.DataSetID,
 	}
-	dataSrc, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate)
+	dataSrc, err := p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update data source")
 	}
@@ -242,55 +242,45 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 	return dataSrc, nil
 }
 
-func (p *Provider) disconnectDataSourcesFromProviderSession(ctx context.Context, providerSession *auth.ProviderSession) error {
+func (p *Provider) disconnectDataSourceFromProviderSession(ctx context.Context, providerSession *auth.ProviderSession) error {
 	if providerSession == nil {
 		return errors.New("provider session is missing")
 	}
 
-	ctx, lgr := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
+	ctx = log.ContextWithField(ctx, "providerSessionId", providerSession.ID)
 
-	dataSrcFilter := &dataSource.Filter{
-		ProviderType:      pointer.FromStringArray([]string{providerSession.Type}),
-		ProviderName:      pointer.FromStringArray([]string{providerSession.Name}),
-		ProviderSessionID: pointer.FromStringArray([]string{providerSession.ID}),
-	}
-	dataSrcs, err := page.Collect(func(pagination page.Pagination) ([]*dataSource.Source, error) {
-		return p.dataSourceClient.List(ctx, providerSession.UserID, dataSrcFilter, &pagination)
-	})
+	dataSrc, err := p.dataSourceClient.GetFromProviderSession(ctx, providerSession.ID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get data sources")
+		return errors.Wrap(err, "unable to get data source from provider session")
 	}
 
-	if count := len(dataSrcs); count > 1 {
-		lgr.WithField("count", count).Error("unexpected number of data sources found for provider session")
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
+
+	dataSrcUpdate := &dataSource.Update{
+		State: pointer.FromString(dataSource.StateDisconnected),
+	}
+	if _, err := p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate); err != nil {
+		return errors.Wrap(err, "unable to update data source")
 	}
 
-	return p.disconnectDataSources(ctx, dataSrcs)
-}
-
-func (p *Provider) disconnectDataSources(ctx context.Context, dataSrcs dataSource.SourceArray) error {
-	for _, dataSrc := range dataSrcs {
-		if err := p.disconnectDataSource(ctx, dataSrc); err != nil {
-			log.LoggerFromContext(ctx).WithField("dataSourceId", *dataSrc.ID).Error("unable to disconnect data source")
-		}
+	if err := p.deleteDataWorkForDataSource(ctx, dataSrc); err != nil {
+		return errors.Wrap(err, "unable to delete data work for data source")
 	}
+
+	lgr.Debug("disconnected data source from provider session")
 	return nil
 }
 
-func (p *Provider) disconnectDataSource(ctx context.Context, dataSrc *dataSource.Source) error {
+func (p *Provider) deleteDataWorkForDataSource(ctx context.Context, dataSrc *dataSource.Source) error {
 	if dataSrc == nil {
 		return errors.New("data source is missing")
 	}
 
-	ctx, lgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", *dataSrc.ID)
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
 
-	if _, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, &dataSource.Update{State: pointer.FromString(dataSource.StateDisconnected)}); err != nil {
-		return errors.Wrap(err, "unable to update data source")
-	}
-
-	count, err := p.workClient.DeleteAllByGroupID(ctx, ouraWorkData.GroupIDFromDataSourceID(*dataSrc.ID))
+	count, err := p.workClient.DeleteAllByGroupID(ctx, ouraWorkData.GroupIDFromDataSourceID(dataSrc.ID))
 	if err != nil {
-		return errors.Wrap(err, "unable to delete all work")
+		return errors.Wrap(err, "unable to delete all work by group id")
 	}
 
 	lgr.WithField("count", count).Debug("deleted work associated with data source")
@@ -298,28 +288,28 @@ func (p *Provider) disconnectDataSource(ctx context.Context, dataSrc *dataSource
 }
 
 func (p *Provider) createDataSetupWork(ctx context.Context, dataSrc *dataSource.Source) error {
-	workCreate, err := ouraWorkDataSetup.NewWorkCreate(dataSrc)
-	if err != nil {
+	if workCreate, err := ouraWorkDataSetup.NewWorkCreate(dataSrc); err != nil {
 		return errors.Wrap(err, "unable to create data setup work create")
+	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
+		return err
 	}
-	_, err = p.workClient.Create(ctx, workCreate)
-	return err
+	return nil
 }
 
 func (p *Provider) createDataSourceStateChangeEventWork(ctx context.Context, dataSrc *dataSource.Source) error {
-	workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(dataSrc)
-	if err != nil {
+	if workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(dataSrc); err != nil {
 		return errors.Wrap(err, "unable to create customer.io data source state changed event work create")
+	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
+		return err
 	}
-	_, err = p.workClient.Create(ctx, workCreate)
-	return err
+	return nil
 }
 
-func (p *Provider) createUserRevokeWork(ctx context.Context, providerSession *auth.ProviderSession) error {
-	workCreate, err := ouraWorkUsersRevoke.NewWorkCreate(providerSession)
-	if err != nil {
-		return errors.Wrap(err, "unable to create user revoke work create")
+func (p *Provider) createUsersRevokeWork(ctx context.Context, providerSession *auth.ProviderSession) error {
+	if workCreate, err := ouraWorkUsersRevoke.NewWorkCreate(providerSession); err != nil {
+		return errors.Wrap(err, "unable to create users revoke work create")
+	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
+		return err
 	}
-	_, err = p.workClient.Create(ctx, workCreate)
-	return err
+	return nil
 }

@@ -111,7 +111,7 @@ func NewWorkCreate(dataSrc *dataSource.Source, event *ouraWebhook.Event) (*work.
 	if event == nil {
 		return nil, errors.New("event is missing")
 	}
-	dataSrcID := *dataSrc.ID
+	dataSrcID := dataSrc.ID
 	serialID := pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(dataSrcID))
 	return &work.Create{
 		Type:              Type,

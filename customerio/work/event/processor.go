@@ -151,11 +151,11 @@ func NewDataSourceStateChangedEventWorkCreate(dataSrc *dataSource.Source) (*work
 		DeduplicationID:   pointer.FromString(WorkDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
-			MetadataKeyUserID:    *dataSrc.UserID,
+			MetadataKeyUserID:    dataSrc.UserID,
 			MetadataKeyEventType: customerio.DataSourceStateChangedEventType,
 			MetadataKeyEventData: customerio.DataSourceStateChangedEvent{
-				ProviderName: *dataSrc.ProviderName,
-				State:        *dataSrc.State,
+				ProviderName: dataSrc.ProviderName,
+				State:        dataSrc.State,
 			},
 			MetadataKeyEventDeduplicationTime: DeduplicationTimeFromDataSource(*dataSrc),
 			MetadataKeyEventDeduplicationID:   EventDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc),
@@ -164,13 +164,13 @@ func NewDataSourceStateChangedEventWorkCreate(dataSrc *dataSource.Source) (*work
 }
 
 func WorkDeduplicationIDFromDataSource(eventType string, dataSrc dataSource.Source) string {
-	return fmt.Sprintf("%s:%s:%s:%s", eventType, *dataSrc.UserID, *dataSrc.ID, DeduplicationTimeFromDataSource(dataSrc).Format(time.RFC3339))
+	return fmt.Sprintf("%s:%s:%s:%s", eventType, dataSrc.UserID, dataSrc.ID, DeduplicationTimeFromDataSource(dataSrc).Format(time.RFC3339))
 }
 
 func DeduplicationTimeFromDataSource(dataSrc dataSource.Source) time.Time {
-	return pointer.Default(dataSrc.ModifiedTime, *dataSrc.CreatedTime)
+	return pointer.Default(dataSrc.ModifiedTime, dataSrc.CreatedTime)
 }
 
 func EventDeduplicationIDFromDataSource(eventType string, dataSrc dataSource.Source) string {
-	return fmt.Sprintf("%s:%s:%s", eventType, *dataSrc.UserID, *dataSrc.ID)
+	return fmt.Sprintf("%s:%s:%s", eventType, dataSrc.UserID, dataSrc.ID)
 }

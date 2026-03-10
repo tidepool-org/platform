@@ -11,27 +11,21 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
+
 	"go.uber.org/mock/gomock"
-
-	dataSource "github.com/tidepool-org/platform/data/source"
-	"github.com/tidepool-org/platform/oura"
-
-	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
-
-	"github.com/tidepool-org/platform/customerio"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
-
-	"github.com/tidepool-org/platform/pointer"
-
-	"github.com/tidepool-org/platform/oura/shopify"
-
+	"github.com/tidepool-org/platform/customerio"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	shopfiyTest "github.com/tidepool-org/platform/oura/shopify/test"
+	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/shopify"
+	shopifyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 var _ = Describe("FulfillmentEventProcessor", func() {
@@ -44,7 +38,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 
 		authClient       *authTest.MockClient
 		dataSourceClient *dataSourceTest.MockClient
-		shopifyClnt      *shopfiyTest.MockClient
+		shopifyClnt      *shopifyTest.MockClient
 
 		appAPIServer    *httptest.Server
 		appAPIResponses *ouraTest.StubResponses
@@ -71,7 +65,7 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		shopifyClnt = shopfiyTest.NewMockClient(ctrl)
+		shopifyClnt = shopifyTest.NewMockClient(ctrl)
 		authClient = authTest.NewMockClient(ctrl)
 		dataSourceClient = dataSourceTest.NewMockClient(ctrl)
 
@@ -180,14 +174,14 @@ var _ = Describe("FulfillmentEventProcessor", func() {
 				List(gomock.Any(), id, gomock.Any(), gomock.Any()).
 				Return(dataSource.SourceArray{}, nil)
 			dataSourceClient.EXPECT().Create(gomock.Any(), id, gomock.Any()).DoAndReturn(func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
-				Expect(create.ProviderName).To(PointTo(Equal("oura")))
-				Expect(create.ProviderType).To(PointTo(Equal("oauth")))
+				Expect(create.ProviderName).To(Equal("oura"))
+				Expect(create.ProviderType).To(Equal("oauth"))
 
 				source := dataSourceTest.RandomSource()
-				source.UserID = pointer.FromAny(userID)
-				source.ProviderName = pointer.FromAny(oura.ProviderName)
-				source.ProviderType = pointer.FromAny(auth.ProviderTypeOAuth)
-				source.State = pointer.FromAny(dataSource.StateDisconnected)
+				source.UserID = userID
+				source.ProviderName = oura.ProviderName
+				source.ProviderType = auth.ProviderTypeOAuth
+				source.State = dataSource.StateDisconnected
 				return source, nil
 			})
 

@@ -171,8 +171,8 @@ func (f *FulfillmentEventProcessor) onSizingKitDelivered(ctx context.Context, id
 func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, event FulfillmentEvent, ringDiscountCode string) error {
 	// A user must have a data source to be able to link their account
 	sources, err := f.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{
-		ProviderName: pointer.FromAny([]string{oura.ProviderName}),
-		ProviderType: pointer.FromAny([]string{auth.ProviderTypeOAuth}),
+		ProviderName: pointer.FromAny(oura.ProviderName),
+		ProviderType: pointer.FromAny(auth.ProviderTypeOAuth),
 	}, page.NewPaginationMinimum())
 	if err != nil {
 		return errors.Wrap(err, "unable to list data sources")
@@ -180,8 +180,8 @@ func (f *FulfillmentEventProcessor) onRingDelivered(ctx context.Context, identif
 	if len(sources) == 0 {
 		f.logger.WithField("userId", identifiers.ID).Info("creating oura data source")
 		create := dataSource.NewCreate()
-		create.ProviderName = pointer.FromAny(oura.ProviderName)
-		create.ProviderType = pointer.FromAny(auth.ProviderTypeOAuth)
+		create.ProviderName = oura.ProviderName
+		create.ProviderType = auth.ProviderTypeOAuth
 
 		_, err := f.dataSourceClient.Create(ctx, identifiers.ID, create)
 		if err != nil {

@@ -123,7 +123,7 @@ func NewWorkCreate(dataSrc *dataSource.Source, timeRange dataWork.TimeRange) (*w
 		return nil, errors.New("data source is missing")
 	}
 
-	dataSrcID := *dataSrc.ID
+	dataSrcID := dataSrc.ID
 	return &work.Create{
 		Type:              Type,
 		GroupID:           pointer.FromString(ouraWorkData.GroupIDFromDataSourceID(dataSrcID)),

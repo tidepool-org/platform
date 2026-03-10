@@ -237,7 +237,7 @@ var _ = Describe("Mixin", func() {
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					testErr := errorsTest.RandomError()
 					mockClient.EXPECT().
-						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
+						Update(gomock.Any(), existingDataSource.ID, nil, dataSourceUpdate).
 						Return(nil, testErr).
 						Times(1)
 					processResult := mixin.UpdateDataSource(*dataSourceUpdate)
@@ -253,7 +253,7 @@ var _ = Describe("Mixin", func() {
 					mixin.DataSource = existingDataSource
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					mockClient.EXPECT().
-						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
+						Update(gomock.Any(), existingDataSource.ID, nil, dataSourceUpdate).
 						Return(nil, nil).
 						Times(1)
 					processResult := mixin.UpdateDataSource(*dataSourceUpdate)
@@ -270,7 +270,7 @@ var _ = Describe("Mixin", func() {
 					expectedDataSource := dataSourceTest.RandomSource()
 					dataSourceUpdate := dataSourceTest.RandomUpdate()
 					mockClient.EXPECT().
-						Update(gomock.Any(), *existingDataSource.ID, nil, dataSourceUpdate).
+						Update(gomock.Any(), existingDataSource.ID, nil, dataSourceUpdate).
 						Return(expectedDataSource, nil).
 						Times(1)
 					processResult := mixin.UpdateDataSource(*dataSourceUpdate)

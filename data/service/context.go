@@ -9,7 +9,7 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
 	"github.com/tidepool-org/platform/permission"
@@ -40,7 +40,7 @@ type Context interface {
 
 	ClinicsClient() clinics.Client
 	DataRawClient() dataRaw.Client
-	DataSourceClient() dataSourceService.Client
+	DataSourceClient() dataSource.Client
 	WorkClient() work.Client
 
 	AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer

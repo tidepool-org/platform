@@ -1,4 +1,4 @@
-package revoke
+package setup
 
 import (
 	"context"
@@ -157,9 +157,9 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 
 	// Get all data sources
 	dataSrcFilter := &dataSource.Filter{
-		ProviderType:       pointer.FromStringArray([]string{oauth.ProviderType}),
-		ProviderName:       pointer.FromStringArray([]string{oura.ProviderName}),
-		ProviderExternalID: pointer.FromStringArray([]string{*personalInfo.ID}),
+		ProviderType:       pointer.FromString(oauth.ProviderType),
+		ProviderName:       pointer.FromString(oura.ProviderName),
+		ProviderExternalID: pointer.FromString(*personalInfo.ID),
 	}
 	dataSrcs, err := page.Collect(func(pagination page.Pagination) ([]*dataSource.Source, error) {
 		return p.DataSourceClient.List(p.Context(), p.ProviderSession.UserID, dataSrcFilter, &pagination)
@@ -211,12 +211,12 @@ func NewWorkCreate(dataSrc *dataSource.Source) (*work.Create, error) {
 	}
 	return &work.Create{
 		Type:              Type,
-		GroupID:           pointer.FromString(ouraWorkData.GroupIDFromDataSourceID(*dataSrc.ID)),
-		DeduplicationID:   pointer.FromString(*dataSrc.ID),
-		SerialID:          pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(*dataSrc.ID)),
+		GroupID:           pointer.FromString(ouraWorkData.GroupIDFromDataSourceID(dataSrc.ID)),
+		DeduplicationID:   pointer.FromString(dataSrc.ID),
+		SerialID:          pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(dataSrc.ID)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
-			dataSourceWork.MetadataKeyID: *dataSrc.ID,
+			dataSourceWork.MetadataKeyID: dataSrc.ID,
 		},
 	}, nil
 }

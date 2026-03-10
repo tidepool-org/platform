@@ -15,7 +15,7 @@ import (
 	dataDeduplicator "github.com/tidepool-org/platform/data/deduplicator"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
@@ -44,7 +44,7 @@ type Standard struct {
 	dataClient                     dataClient.Client
 	clinicsClient                  clinics.Client
 	dataRawClient                  dataRaw.Client
-	dataSourceClient               dataSourceService.Client
+	dataSourceClient               dataSource.Client
 	workClient                     work.Client
 	alertsRepository               alerts.Repository
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
@@ -54,7 +54,7 @@ type Standard struct {
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer,
 	handler dataService.HandlerFunc) rest.HandlerFunc {
@@ -80,7 +80,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
@@ -243,7 +243,7 @@ func (s *Standard) DataRawClient() dataRaw.Client {
 	return s.dataRawClient
 }
 
-func (s *Standard) DataSourceClient() dataSourceService.Client {
+func (s *Standard) DataSourceClient() dataSource.Client {
 	return s.dataSourceClient
 }
 

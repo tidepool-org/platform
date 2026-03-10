@@ -11,7 +11,7 @@ import (
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataServiceContext "github.com/tidepool-org/platform/data/service/context"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
@@ -31,7 +31,7 @@ type Standard struct {
 	syncTaskStore                  syncTaskStore.Store
 	dataClient                     dataClient.Client
 	dataRawClient                  dataRaw.Client
-	dataSourceClient               dataSourceService.Client
+	dataSourceClient               dataSource.Client
 	workClient                     work.Client
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
@@ -40,7 +40,7 @@ type Standard struct {
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDuplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {

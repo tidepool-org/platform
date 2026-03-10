@@ -23,12 +23,12 @@ import (
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	v1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/data/service/api/v1/mocks"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreTest "github.com/tidepool-org/platform/data/store/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
-	logtest "github.com/tidepool-org/platform/log/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
 	metricTest "github.com/tidepool-org/platform/metric/test"
 	"github.com/tidepool-org/platform/permission"
@@ -126,7 +126,7 @@ func (c *mockDataServiceContext) Request() *rest.Request {
 		c.t.Fatalf("creating test request: %s", err)
 	}
 
-	testLogger := logtest.NewLogger()
+	testLogger := logTest.NewLogger()
 	r = r.WithContext(log.NewContextWithLogger(r.Context(), testLogger))
 	r = r.WithContext(request.NewContextWithAuthDetails(r.Context(), c.AuthDetails))
 
@@ -224,7 +224,7 @@ func (c *mockDataServiceContext) DataRawClient() dataRaw.Client {
 	panic("not implemented")
 }
 
-func (c *mockDataServiceContext) DataSourceClient() dataSourceService.Client {
+func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 	panic("not implemented")
 }
 

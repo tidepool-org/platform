@@ -103,6 +103,21 @@ func (mr *MockClientMockRecorder) Get(ctx, id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Get", reflect.TypeOf((*MockClient)(nil).Get), ctx, id)
 }
 
+// GetFromProviderSession mocks base method.
+func (m *MockClient) GetFromProviderSession(ctx context.Context, providerSessionID string) (*source.Source, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetFromProviderSession", ctx, providerSessionID)
+	ret0, _ := ret[0].(*source.Source)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetFromProviderSession indicates an expected call of GetFromProviderSession.
+func (mr *MockClientMockRecorder) GetFromProviderSession(ctx, providerSessionID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetFromProviderSession", reflect.TypeOf((*MockClient)(nil).GetFromProviderSession), ctx, providerSessionID)
+}
+
 // List mocks base method.
 func (m *MockClient) List(ctx context.Context, userID string, filter *source.Filter, pagination *page.Pagination) (source.SourceArray, error) {
 	m.ctrl.T.Helper()

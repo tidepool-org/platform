@@ -16,6 +16,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/data"
 	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
 	dexcomFetchTest "github.com/tidepool-org/platform/dexcom/fetch/test"
@@ -33,13 +34,13 @@ import (
 var _ = Describe("Runner", func() {
 	var authClient *dexcomFetchTest.MockAuthClient
 	var dataClient *dexcomFetchTest.MockDataClient
-	var dataSourceClient *dexcomFetchTest.MockDataSourceClient
+	var dataSourceClient *dataSourceTest.MockClient
 	var dexcomClient *dexcomFetchTest.MockDexcomClient
 
 	BeforeEach(func() {
 		authClient = dexcomFetchTest.NewMockAuthClient(gomock.NewController(GinkgoT()))
 		dataClient = dexcomFetchTest.NewMockDataClient(gomock.NewController(GinkgoT()))
-		dataSourceClient = dexcomFetchTest.NewMockDataSourceClient(gomock.NewController(GinkgoT()))
+		dataSourceClient = dataSourceTest.NewMockClient(gomock.NewController(GinkgoT()))
 		dexcomClient = dexcomFetchTest.NewMockDexcomClient(gomock.NewController(GinkgoT()))
 	})
 
@@ -275,9 +276,9 @@ var _ = Describe("Runner", func() {
 
 				BeforeEach(func() {
 					dataSrc = &dataSource.Source{
-						ID:                pointer.FromString("test-data-source-id"),
+						ID:                "test-data-source-id",
 						ProviderSessionID: pointer.FromString("test-provider-session-id"),
-						State:             pointer.FromString(dataSource.StateConnected),
+						State:             dataSource.StateConnected,
 					}
 					dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(dataSrc, nil).Times(1)
 				})
@@ -287,9 +288,9 @@ var _ = Describe("Runner", func() {
 
 					Expect(dataSrc.State).ToNot(BeNil())
 					if state == task.TaskStatePending {
-						Expect(*dataSrc.State).To(Equal(dataSource.StateConnected))
+						Expect(dataSrc.State).To(Equal(dataSource.StateConnected))
 					} else {
-						Expect(*dataSrc.State).To(Equal(dataSource.StateError))
+						Expect(dataSrc.State).To(Equal(dataSource.StateError))
 					}
 				}
 
@@ -616,13 +617,13 @@ func mockDataSourceClientUpdate(dataSrc *dataSource.Source) func(context.Context
 			localDataSrc.ProviderSessionID = update.ProviderSessionID
 		}
 		if update.State != nil {
-			localDataSrc.State = update.State
+			localDataSrc.State = *update.State
 		}
 		if update.Error != nil {
 			localDataSrc.Error = update.Error
 		}
-		if update.DataSetIDs != nil {
-			localDataSrc.DataSetIDs = update.DataSetIDs
+		if update.DataSetID != nil {
+			localDataSrc.DataSetID = update.DataSetID
 		}
 		if update.EarliestDataTime != nil {
 			localDataSrc.EarliestDataTime = update.EarliestDataTime

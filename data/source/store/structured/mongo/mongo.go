@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	"github.com/tidepool-org/platform/errors"
@@ -59,19 +60,31 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{{Key: "id", Value: 1}},
 			Options: options.Index().
-				SetUnique(true).
-				SetBackground(true),
+				SetUnique(true),
 		},
-		{
+		{ // DEPRECATED: May be removed after testing with above indexes and deleted from all environments
 			Keys: bson.D{{Key: "userId", Value: 1}},
-			Options: options.Index().
-				SetBackground(true),
 		},
-		{
+		{ // DEPRECATED: May be removed after testing with above indexes and deleted from all environments
 			Keys: bson.D{
 				{Key: "providerName", Value: 1},
 				{Key: "providerExternalId", Value: 1},
 			},
+		},
+		{
+			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "providerType", Value: 1}, {Key: "providerName", Value: 1}},
+			Options: options.Index().
+				SetPartialFilterExpression(bson.D{{Key: "state", Value: bson.M{"$in": bson.A{"connected", "error"}}}}).
+				SetUnique(true),
+		},
+		{
+			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "providerType", Value: 1}, {Key: "providerName", Value: 1}, {Key: "providerExternalId", Value: 1}},
+		},
+		{
+			Keys: bson.D{{Key: "providerSessionId", Value: 1}},
+			Options: options.Index().
+				SetPartialFilterExpression(bson.D{{Key: "providerSessionId", Value: bson.M{"$exists": true}}}).
+				SetUnique(true),
 		},
 	})
 }
@@ -80,7 +93,7 @@ func (c *DataSourcesRepository) List(ctx context.Context, userID string, filter 
 	now := time.Now()
 	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
 
-	result, err := c.list(ctx, &userID, filter, pagination)
+	result, err := c.list(ctx, userID, filter, pagination)
 	if err != nil {
 		return nil, err
 	}
@@ -105,28 +118,24 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "create": create})
 
 	doc := &dataSource.Source{
-		UserID:             pointer.FromString(userID),
+		UserID:             userID,
 		ProviderType:       create.ProviderType,
 		ProviderName:       create.ProviderName,
 		ProviderExternalID: create.ProviderExternalID,
-		State:              pointer.FromString(dataSource.StateDisconnected),
+		State:              dataSource.StateDisconnected,
 		Metadata:           create.Metadata,
-		CreatedTime:        pointer.FromTime(now),
-		Revision:           pointer.FromInt(0),
+		CreatedTime:        now,
+		Revision:           0,
 	}
 
-	var id string
 	var err error
-	for retry := 0; retry < 3; retry++ {
-		id = dataSource.NewID()
-		logger = logger.WithField("id", id)
-
-		doc.ID = pointer.FromString(id)
+	for range 3 {
+		doc.ID = dataSource.NewID()
 		if _, err = c.InsertOne(ctx, doc); storeStructuredMongo.IsDup(err) {
-			logger.WithError(err).Error("Duplicate data source id")
+			logger.WithError(err).WithField("id", doc.ID).Error("Duplicate data source id")
 		} else {
 			break
 		}
@@ -136,7 +145,9 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 		return nil, errors.Wrap(err, "unable to create data source")
 	}
 
-	result, err := c.get(ctx, logger, id, nil)
+	ctx, logger = log.ContextAndLoggerWithField(ctx, "id", doc.ID)
+
+	result, err := c.get(ctx, bson.M{"id": doc.ID}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -145,30 +156,30 @@ func (c *DataSourcesRepository) Create(ctx context.Context, userID string, creat
 	return result, nil
 }
 
-func (c *DataSourcesRepository) DestroyAll(ctx context.Context, userID string) (bool, error) {
+func (c *DataSourcesRepository) DeleteAll(ctx context.Context, userID string) error {
 	if ctx == nil {
-		return false, errors.New("context is missing")
+		return errors.New("context is missing")
 	}
 	if userID == "" {
-		return false, errors.New("user id is missing")
+		return errors.New("user id is missing")
 	} else if !user.IsValidID(userID) {
-		return false, errors.New("user id is invalid")
+		return errors.New("user id is invalid")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
 
 	query := bson.M{
 		"userId": userID,
 	}
 	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
-		logger.WithError(err).Error("Unable to destroy all data sources")
-		return false, errors.Wrap(err, "unable to destroy all data sources")
+		logger.WithError(err).Error("Unable to delete all data sources")
+		return errors.Wrap(err, "unable to delete all data sources")
 	}
 
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyAll")
-	return changeInfo.DeletedCount > 0, nil
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DeleteAll")
+	return nil
 }
 
 func (c *DataSourcesRepository) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -182,9 +193,9 @@ func (c *DataSourcesRepository) Get(ctx context.Context, id string) (*dataSource
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "id", id)
 
-	result, err := c.get(ctx, logger, id, nil)
+	result, err := c.get(ctx, bson.M{"id": id}, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -214,7 +225,7 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition, "update": update})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition, "update": update})
 
 	if !update.IsEmpty() {
 		query := bson.M{
@@ -248,11 +259,15 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 			set["providerExternalId"] = *update.ProviderExternalID
 		}
 		if update.Error != nil {
-			delete(unset, "error")
-			set["error"] = *update.Error
+			if update.Error.Error != nil {
+				delete(unset, "error")
+				set["error"] = *update.Error
+			} else {
+				unset["error"] = true
+			}
 		}
-		if update.DataSetIDs != nil {
-			set["dataSetIds"] = *update.DataSetIDs
+		if update.DataSetID != nil {
+			set["dataSetId"] = *update.DataSetID
 		}
 		if update.EarliestDataTime != nil {
 			set["earliestDataTime"] = *update.EarliestDataTime
@@ -279,7 +294,7 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 	var result *dataSource.Source
 	if update != nil {
 		var err error
-		if result, err = c.get(ctx, logger, id, condition); err != nil {
+		if result, err = c.get(ctx, bson.M{"id": id}, condition); err != nil {
 			return nil, err
 		}
 	}
@@ -288,7 +303,7 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 	return result, nil
 }
 
-func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, condition *request.Condition) (bool, error) {
+func (c *DataSourcesRepository) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
 	if ctx == nil {
 		return false, errors.New("context is missing")
 	}
@@ -304,7 +319,7 @@ func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, conditio
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition})
+	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{"id": id, "condition": condition})
 
 	query := bson.M{
 		"id": id,
@@ -318,33 +333,40 @@ func (c *DataSourcesRepository) Destroy(ctx context.Context, id string, conditio
 		return false, errors.Wrap(err, "unable to destroy data source")
 	}
 
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Destroy")
+	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")
 	return changeInfo.DeletedCount > 0, nil
 }
 
-func (c *DataSourcesRepository) ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	now := time.Now()
-	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"filter": filter, "pagination": pagination})
+func (c *DataSourcesRepository) GetFromProviderSession(ctx context.Context, providerSessionID string) (*dataSource.Source, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if providerSessionID == "" {
+		return nil, errors.New("provider session id is missing")
+	} else if !auth.IsValidProviderSessionID(providerSessionID) {
+		return nil, errors.New("provider session id is invalid")
+	}
 
-	result, err := c.list(ctx, nil, filter, pagination)
+	now := time.Now()
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSessionID)
+
+	result, err := c.get(ctx, bson.M{"providerSessionId": providerSessionID}, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	lgr.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("ListAll")
+	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetFromProviderSession")
 	return result, nil
 }
 
-func (c *DataSourcesRepository) list(ctx context.Context, userID *string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
+func (c *DataSourcesRepository) list(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userID != nil {
-		if *userID == "" {
-			return nil, errors.New("user id is missing")
-		} else if !user.IsValidID(*userID) {
-			return nil, errors.New("user id is invalid")
-		}
+	if userID == "" {
+		return nil, errors.New("user id is missing")
+	} else if !user.IsValidID(userID) {
+		return nil, errors.New("user id is invalid")
 	}
 	if filter == nil {
 		filter = dataSource.NewFilter()
@@ -357,36 +379,18 @@ func (c *DataSourcesRepository) list(ctx context.Context, userID *string, filter
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
 
-	result := dataSource.SourceArray{}
+	result := sourcesDEPRECATED{}
 	query := bson.M{}
 
-	if userID != nil {
-		query["userId"] = *userID
-	}
+	query["userId"] = userID
 	if filter.ProviderType != nil {
-		query["providerType"] = bson.M{
-			"$in": *filter.ProviderType,
-		}
+		query["providerType"] = *filter.ProviderType
 	}
 	if filter.ProviderName != nil {
-		query["providerName"] = bson.M{
-			"$in": *filter.ProviderName,
-		}
-	}
-	if filter.ProviderSessionID != nil {
-		query["providerSessionId"] = bson.M{
-			"$in": *filter.ProviderSessionID,
-		}
+		query["providerName"] = *filter.ProviderName
 	}
 	if filter.ProviderExternalID != nil {
-		query["providerExternalId"] = bson.M{
-			"$in": *filter.ProviderExternalID,
-		}
-	}
-	if filter.State != nil {
-		query["state"] = bson.M{
-			"$in": *filter.State,
-		}
+		query["providerExternalId"] = *filter.ProviderExternalID
 	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
@@ -401,14 +405,11 @@ func (c *DataSourcesRepository) list(ctx context.Context, userID *string, filter
 		return nil, errors.Wrap(err, "unable to decode data sources")
 	}
 
-	return result, nil
+	return result.Modernize(), nil
 }
 
-func (c *DataSourcesRepository) get(ctx context.Context, logger log.Logger, id string, condition *request.Condition) (*dataSource.Source, error) {
-	var result *dataSource.Source
-	query := bson.M{
-		"id": id,
-	}
+func (c *DataSourcesRepository) get(ctx context.Context, query bson.M, condition *request.Condition) (*dataSource.Source, error) {
+	var result *sourceDEPRECATED
 	if condition != nil && condition.Revision != nil {
 		query["revision"] = *condition.Revision
 	}
@@ -416,13 +417,32 @@ func (c *DataSourcesRepository) get(ctx context.Context, logger log.Logger, id s
 	if err == mongo.ErrNoDocuments {
 		return nil, nil
 	} else if err != nil {
-		logger.WithError(err).Error("Unable to get data source")
+		log.LoggerFromContext(ctx).WithError(err).Error("Unable to get data source")
 		return nil, errors.Wrap(err, "unable to decode data source")
 	}
 
-	if result.Revision == nil {
-		result.Revision = pointer.FromInt(0)
-	}
+	return result.Modernize(), nil
+}
 
-	return result, nil
+type sourceDEPRECATED struct {
+	dataSource.Source `json:",inline" bson:",inline"`
+
+	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+}
+
+func (s *sourceDEPRECATED) Modernize() *dataSource.Source {
+	if s.DataSetID == nil && s.DataSetIDs != nil && len(*s.DataSetIDs) > 0 {
+		s.DataSetID = pointer.FromString((*s.DataSetIDs)[0])
+	}
+	return &s.Source
+}
+
+type sourcesDEPRECATED []*sourceDEPRECATED
+
+func (s *sourcesDEPRECATED) Modernize() dataSource.SourceArray {
+	dataSrcs := make(dataSource.SourceArray, len(*s))
+	for index, source := range *s {
+		dataSrcs[index] = source.Modernize()
+	}
+	return dataSrcs
 }

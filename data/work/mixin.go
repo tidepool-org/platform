@@ -13,7 +13,6 @@ import (
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	"github.com/tidepool-org/platform/errors"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -100,14 +99,14 @@ func (d *DataSourceProviderSessionMixin) ReplaceDataSource(dataSrc *dataSource.S
 	ctx := d.Context()
 
 	// If replacement is not disconnected, then delete associated provider session, which will disconnect data source
-	if *dataSrc.State != dataSource.StateDisconnected {
+	if dataSrc.State != dataSource.StateDisconnected {
 		d.Logger().WithField("dataSourceId", dataSrc.ID).Warn("replacement data source not disconnected")
 		if dataSrc.ProviderSessionID != nil {
 			if err := d.providerSessionMixin.Client.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
 				return d.Failing(errors.Wrap(err, "unable to delete replacement data source provider session"))
 			}
 		} else {
-			dataSrc.State = pointer.FromString(dataSource.StateDisconnected)
+			dataSrc.State = dataSource.StateDisconnected
 		}
 	}
 
@@ -120,9 +119,9 @@ func (d *DataSourceProviderSessionMixin) ReplaceDataSource(dataSrc *dataSource.S
 
 		dataSrcUpdate := dataSource.Update{
 			ProviderSessionID: d.dataSourceMixin.DataSource.ProviderSessionID,
-			State:             d.dataSourceMixin.DataSource.State,
+			State:             &d.dataSourceMixin.DataSource.State,
 		}
-		if dataSrc, err = d.dataSourceMixin.Client.Update(ctx, *dataSrc.ID, nil, &dataSrcUpdate); err != nil {
+		if dataSrc, err = d.dataSourceMixin.Client.Update(ctx, dataSrc.ID, nil, &dataSrcUpdate); err != nil {
 			return d.Failing(errors.Wrap(err, "unable to update replacement data source"))
 		}
 	}
@@ -130,7 +129,7 @@ func (d *DataSourceProviderSessionMixin) ReplaceDataSource(dataSrc *dataSource.S
 	// Update metadata with new data source id, if necessary
 	if metadata := d.Metadata(); metadata != nil {
 		if _, ok := metadata[dataSourceWork.MetadataKeyID]; ok {
-			metadata[dataSourceWork.MetadataKeyID] = *dataSrc.ID
+			metadata[dataSourceWork.MetadataKeyID] = dataSrc.ID
 			if result := d.ProcessingUpdate(); result != nil {
 				return result
 			}
@@ -142,7 +141,7 @@ func (d *DataSourceProviderSessionMixin) ReplaceDataSource(dataSrc *dataSource.S
 
 	// Delete any existing data source (do not disconnect first, just delete, the replacement assumes the provider session)
 	if d.dataSourceMixin.DataSource != nil {
-		if _, err := d.dataSourceMixin.Client.Delete(ctx, *d.dataSourceMixin.DataSource.ID, nil); err != nil {
+		if _, err := d.dataSourceMixin.Client.Delete(ctx, d.dataSourceMixin.DataSource.ID, nil); err != nil {
 			d.Logger().WithField("dataSourceId", d.dataSourceMixin.DataSource.ID).Warn("unable to delete existing data source")
 		}
 	}
@@ -178,7 +177,7 @@ func (d *DataSourceDataSetMixin) DataSetIDFromDataSource() (*string, error) {
 	if d.dataSourceMixin.DataSource == nil {
 		return nil, errors.New("data source is missing")
 	}
-	return d.dataSourceMixin.DataSource.LastDataSetID(), nil
+	return d.dataSourceMixin.DataSource.DataSetID, nil
 }
 
 func (d *DataSourceDataSetMixin) FetchDataSetFromDataSource() *work.ProcessResult {

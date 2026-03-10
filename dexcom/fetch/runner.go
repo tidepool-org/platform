@@ -52,12 +52,6 @@ type DataClient interface {
 	CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error
 }
 
-//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test DataSourceClient
-type DataSourceClient interface {
-	Get(ctx context.Context, id string) (*dataSource.Source, error)
-	Update(ctx context.Context, id string, condition *request.Condition, create *dataSource.Update) (*dataSource.Source, error)
-}
-
 //go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test DexcomClient
 type DexcomClient interface {
 	GetAlerts(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.AlertsResponse, error)
@@ -71,11 +65,11 @@ type DexcomClient interface {
 type Runner struct {
 	authClient       AuthClient
 	dataClient       DataClient
-	dataSourceClient DataSourceClient
+	dataSourceClient dataSource.Client
 	dexcomClient     DexcomClient
 }
 
-func NewRunner(authClient AuthClient, dataClient DataClient, dataSourceClient DataSourceClient, dexcomClient DexcomClient) (*Runner, error) {
+func NewRunner(authClient AuthClient, dataClient DataClient, dataSourceClient dataSource.Client, dexcomClient DexcomClient) (*Runner, error) {
 	if authClient == nil {
 		return nil, errors.New("auth client is missing")
 	}
@@ -105,7 +99,7 @@ func (r *Runner) DataClient() DataClient {
 	return r.dataClient
 }
 
-func (r *Runner) DataSourceClient() DataSourceClient {
+func (r *Runner) DataSourceClient() dataSource.Client {
 	return r.dataSourceClient
 }
 
@@ -142,7 +136,7 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 type Provider interface {
 	AuthClient() AuthClient
 	DataClient() DataClient
-	DataSourceClient() DataSourceClient
+	DataSourceClient() dataSource.Client
 	DexcomClient() DexcomClient
 	GetRunnerDurationMaximum() time.Duration
 }
@@ -273,10 +267,7 @@ func (t *TaskRunner) getDataSource() error {
 }
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
-	if !t.dataSource.AddDataSetID(*dataSet.UploadID) {
-		return nil
-	}
-	return t.updateDataSource(&dataSource.Update{DataSetIDs: t.dataSource.DataSetIDs})
+	return t.updateDataSource(&dataSource.Update{DataSetID: dataSet.ID})
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {
@@ -314,7 +305,7 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 	}
 
 	// Without cancel to ensure data source is updated in the database
-	dataSource, err := t.DataSourceClient().Update(context.WithoutCancel(t.context), *t.dataSource.ID, nil, update)
+	dataSource, err := t.DataSourceClient().Update(context.WithoutCancel(t.context), t.dataSource.ID, nil, update)
 	if err != nil {
 		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update data source"), update))
 	} else if dataSource == nil {
@@ -707,16 +698,14 @@ func (t *TaskRunner) prepareDataSet() error {
 }
 
 func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
-	if t.dataSource.DataSetIDs != nil {
-		for index := len(*t.dataSource.DataSetIDs) - 1; index >= 0; index-- {
-			if dataSet, err := t.DataClient().GetDataSet(t.context, (*t.dataSource.DataSetIDs)[index]); err != nil {
-				return nil, t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to get data set"))
-			} else if dataSet != nil {
-				return dataSet, nil
-			}
-		}
+	if t.dataSource.DataSetID == nil {
+		return nil, nil
 	}
-	return nil, nil
+	dataSet, err := t.DataClient().GetDataSet(t.context, *t.dataSource.DataSetID)
+	if err != nil {
+		return nil, t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to get data set"))
+	}
+	return dataSet, nil
 }
 
 func (t *TaskRunner) createDataSet() (*data.DataSet, error) {

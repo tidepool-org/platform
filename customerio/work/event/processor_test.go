@@ -90,11 +90,11 @@ var _ = Describe("Processor", func() {
 			wrk := &work.Work{
 				ID: workTest.RandomID(),
 				Metadata: storeStructuredMongo.BSONToMap(bson.M{
-					"userId":    *dataSource.UserID,
+					"userId":    dataSource.UserID,
 					"eventType": "data_source_state_changed",
 					"eventData": bson.M{
-						"provider_name": *dataSource.ProviderName,
-						"state":         *dataSource.State,
+						"provider_name": dataSource.ProviderName,
+						"state":         dataSource.State,
 					},
 					"eventDeduplicationTime": deduplicationTime,
 					"eventDeduplicationId":   deduplicationID,
@@ -106,13 +106,13 @@ var _ = Describe("Processor", func() {
 
 			trackAPIResponses.AddResponse(
 				[]ouraTest.RequestMatcher{
-					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+*dataSource.UserID+"/events"),
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+dataSource.UserID+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "data_source_state_changed",
 						        "id": "` + id.String() + `",
 						        "data": {
-                                    "provider_name": "` + *dataSource.ProviderName + `",
-                                    "state": "` + *dataSource.State + `"
+                                    "provider_name": "` + dataSource.ProviderName + `",
+                                    "state": "` + dataSource.State + `"
                                 }
 					        }`),
 				},

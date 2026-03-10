@@ -42,8 +42,7 @@ func (c *Client) Create(ctx context.Context, userID string, create *dataSource.C
 }
 
 func (c *Client) DeleteAll(ctx context.Context, userID string) error {
-	_, err := c.DataSourceStructuredStore().NewDataSourcesRepository().DestroyAll(ctx, userID)
-	return err
+	return c.DataSourceStructuredStore().NewDataSourcesRepository().DeleteAll(ctx, userID)
 }
 
 func (c *Client) Get(ctx context.Context, id string) (*dataSource.Source, error) {
@@ -55,9 +54,9 @@ func (c *Client) Update(ctx context.Context, id string, condition *request.Condi
 }
 
 func (c *Client) Delete(ctx context.Context, id string, condition *request.Condition) (bool, error) {
-	return c.DataSourceStructuredStore().NewDataSourcesRepository().Destroy(ctx, id, condition)
+	return c.DataSourceStructuredStore().NewDataSourcesRepository().Delete(ctx, id, condition)
 }
 
-func (c *Client) ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
-	return c.DataSourceStructuredStore().NewDataSourcesRepository().ListAll(ctx, filter, pagination)
+func (c *Client) GetFromProviderSession(ctx context.Context, providerSessionID string) (*dataSource.Source, error) {
+	return c.DataSourceStructuredStore().NewDataSourcesRepository().GetFromProviderSession(ctx, providerSessionID)
 }
