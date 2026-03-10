@@ -51,10 +51,10 @@ func RandomDeviceHashMap() map[string]any {
 
 func RandomFilter() *dataSource.Filter {
 	datum := &dataSource.Filter{}
-	datum.ProviderType = pointer.FromStringArray(authTest.RandomProviderTypes())
-	datum.ProviderName = pointer.FromStringArray(authTest.RandomProviderNames())
-	datum.ProviderSessionID = pointer.FromStringArray(authTest.RandomProviderSessionIDs())
-	datum.ProviderExternalID = pointer.FromStringArray(authTest.RandomProviderExternalIDs())
+	datum.ProviderType = pointer.FromStringArray([]string{authTest.RandomProviderType()})
+	datum.ProviderName = pointer.FromStringArray([]string{authTest.RandomProviderName()})
+	datum.ProviderSessionID = pointer.FromStringArray([]string{authTest.RandomProviderSessionID()})
+	datum.ProviderExternalID = pointer.FromStringArray([]string{authTest.RandomProviderExternalID()})
 	datum.State = pointer.FromStringArray(RandomStates())
 	return datum
 }

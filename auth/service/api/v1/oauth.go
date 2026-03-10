@@ -17,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
-	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/request"
@@ -60,11 +59,14 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
+	} else if restrictedToken == nil {
+		r.htmlOnError(res, req, request.ErrorUnauthenticated(), usedError)
+		return
 	}
 
 	maxAge := time.Until(restrictedToken.ExpirationTime) / time.Second
 	if maxAge <= 0 {
-		r.htmlOnError(res, req, request.ErrorUnauthenticated())
+		r.htmlOnError(res, req, request.ErrorUnauthenticated(), expiredError)
 		return
 	}
 
@@ -121,21 +123,9 @@ func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *
 	providerSessionFilter.UserID = pointer.FromString(userID)
 	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
 	providerSessionFilter.Name = pointer.FromString(prvdr.Name())
-	providerSessions, err := r.AuthClient().ListProviderSessions(ctx, providerSessionFilter, page.NewPagination())
-	if err != nil {
+	if err := r.AuthClient().DeleteProviderSessions(ctx, providerSessionFilter); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
-	}
-
-	if len(providerSessions) > 1 {
-		r.Logger().WithFields(log.Fields{"userId": userID, "filter": providerSessionFilter, "providerSessions": providerSessions}).Warn("Deleting multiple provider sessions")
-	}
-
-	for _, providerSession := range providerSessions {
-		if err = r.AuthClient().DeleteProviderSession(ctx, providerSession.ID); err != nil {
-			responder.Error(http.StatusInternalServerError, err)
-			return
-		}
 	}
 
 	responder.Empty(http.StatusOK)
@@ -190,10 +180,6 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
 	}
 
-	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
-	}
-
 	if errorCode := query.Get("error"); prvdr.IsErrorCodeAccessDenied(errorCode) {
 		html := fmt.Sprintf(htmlOnRedirect, redirectURLDeclined.String())
 		r.htmlOnRedirect(res, req, html)
@@ -207,20 +193,9 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	filter.UserID = pointer.FromString(restrictedToken.UserID)
 	filter.Type = pointer.FromString(prvdr.Type())
 	filter.Name = pointer.FromString(prvdr.Name())
-	providerSessions, err := r.AuthClient().ListProviderSessions(ctx, filter, nil)
-	if err != nil {
+	if err := r.AuthClient().DeleteProviderSessions(ctx, filter); err != nil {
 		r.htmlOnError(res, req, err)
 		return
-	} else if len(providerSessions) > 0 {
-		// Delete existing provider sessions and tasks if matching name and type found for user.
-		// This operation will also reset the data source to a `disconnected` state, and remove any associated tasks
-		// A new provider session and task will be created below which will update the existing data source state to `connected`.
-		for _, session := range providerSessions {
-			if deleteSessionErr := r.AuthClient().DeleteProviderSession(ctx, session.ID); deleteSessionErr != nil {
-				r.htmlOnError(res, req, errors.Newf("could not remove existing provider session"), alreadyConnectedError)
-				return
-			}
-		}
 	}
 
 	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
@@ -230,13 +205,17 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	providerSessionCreate := auth.NewProviderSessionCreate()
+	providerSessionCreate.UserID = restrictedToken.UserID
 	providerSessionCreate.Type = prvdr.Type()
 	providerSessionCreate.Name = prvdr.Name()
 	providerSessionCreate.OAuthToken = oauthToken
-	_, err = r.AuthClient().CreateUserProviderSession(ctx, restrictedToken.UserID, providerSessionCreate)
-	if err != nil {
+	if _, err = r.AuthClient().CreateProviderSession(ctx, providerSessionCreate); err != nil {
 		r.htmlOnError(res, req, err)
 		return
+	}
+
+	if err = r.AuthClient().DeleteRestrictedToken(ctx, restrictedToken.ID); err != nil {
+		log.LoggerFromContext(ctx).WithError(err).Error("unable to delete restricted token after oauth redirect")
 	}
 
 	html := fmt.Sprintf(htmlOnRedirect, redirectURLAuthorized.String())
@@ -339,7 +318,7 @@ func (r *Router) htmlOnError(res rest.ResponseWriter, req *rest.Request, err err
 	log.LoggerFromContext(req.Context()).WithError(err).WithField("messages", messages).Error("Unexpected failure during OAuth workflow")
 	request.MustNewResponder(res, req).String(
 		request.StatusCodeForError(err),
-		strings.Replace(htmlOnError, "{{ MESSAGES }}", strings.Join(messages, " "), -1),
+		strings.ReplaceAll(htmlOnError, "{{ MESSAGES }}", strings.Join(messages, " ")),
 		request.NewHeaderMutator("Content-Type", "text/html"),
 	)
 }
@@ -425,5 +404,7 @@ const htmlOnError = `
 </body>
 </html>
 `
-const unexpectedError = `Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help.`
-const alreadyConnectedError = `This Tidepool account has already been connected to a Dexcom account. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out.`
+
+const unexpectedError = "Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help."
+const usedError = "This connection request has already been used and can only be used once. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."
+const expiredError = "This connection request has expired. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."

@@ -16,7 +16,7 @@ const (
 
 //go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
 type Client interface {
-	ProviderSessionAccessor
+	ProviderSessionClient
 	RestrictedTokenAccessor
 	ExternalAccessor
 	permission.Client

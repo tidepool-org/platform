@@ -72,12 +72,9 @@ func NewClient(cfg *Config, authorizeAs platform.AuthorizeAs, name string, lgr l
 	}, nil
 }
 
-func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
+func (c *Client) CreateProviderSession(ctx context.Context, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
-	}
-	if userID == "" {
-		return nil, errors.New("user id is missing")
 	}
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -85,7 +82,7 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
-	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
+	url := c.client.ConstructURL("v1", "provider_sessions")
 	providerSession := &auth.ProviderSession{}
 	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, create, providerSession); err != nil {
 		return nil, err
@@ -94,16 +91,18 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 	return providerSession, nil
 }
 
-func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) error {
+func (c *Client) DeleteProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if userID == "" {
-		return errors.New("user id is missing")
+	if filter == nil {
+		return errors.New("filter is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
+		return errors.Wrap(err, "filter is invalid")
 	}
 
-	url := c.client.ConstructURL("v1", "users", userID, "provider_sessions")
-	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+	url := c.client.ConstructURL("v1", "provider_sessions")
+	return c.client.RequestData(ctx, http.MethodDelete, url, []request.RequestMutator{filter}, nil, nil)
 }
 
 func (c *Client) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
@@ -111,7 +110,7 @@ func (c *Client) ListProviderSessions(ctx context.Context, filter *auth.Provider
 		return nil, errors.New("context is missing")
 	}
 	if filter == nil {
-		filter = auth.NewProviderSessionFilter()
+		return nil, errors.New("filter is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}

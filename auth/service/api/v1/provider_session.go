@@ -16,9 +16,13 @@ import (
 
 func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 	return []*rest.Route{
-		rest.Post("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.CreateUserProviderSession)),
-		rest.Delete("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.DeleteUserProviderSessions)),
+		rest.Post("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.CreateUserProviderSession)),    // DEPRECATED: Use CreateProviderSession
+		rest.Delete("/v1/users/:userId/provider_sessions", serviceApi.RequireServer(r.DeleteUserProviderSessions)), // DEPRECATED: Use DeleteProviderSessions
+
 		rest.Get("/v1/provider_sessions", serviceApi.RequireServer(r.ListProviderSessions)),
+		rest.Delete("/v1/provider_sessions", serviceApi.RequireServer(r.DeleteProviderSessions)),
+
+		rest.Post("/v1/provider_sessions", serviceApi.RequireServer(r.CreateProviderSession)),
 		rest.Get("/v1/provider_sessions/:id", serviceApi.RequireServer(r.GetProviderSession)),
 		rest.Put("/v1/provider_sessions/:id", serviceApi.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", serviceApi.RequireServer(r.DeleteProviderSession)),
@@ -28,6 +32,7 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 	}
 }
 
+// DEPRECATED: Use CreateProviderSession
 func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
@@ -42,8 +47,9 @@ func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Re
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
+	create.UserID = userID
 
-	providerSession, err := r.AuthClient().CreateUserProviderSession(req.Context(), userID, create)
+	providerSession, err := r.AuthClient().CreateProviderSession(req.Context(), create)
 	if err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
@@ -52,6 +58,7 @@ func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Re
 	responder.Data(http.StatusCreated, providerSession)
 }
 
+// DEPRECATED: Use DeleteProviderSessions
 func (r *Router) DeleteUserProviderSessions(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
@@ -61,7 +68,8 @@ func (r *Router) DeleteUserProviderSessions(res rest.ResponseWriter, req *rest.R
 		return
 	}
 
-	if err := r.AuthClient().DeleteUserProviderSessions(req.Context(), userID); err != nil {
+	filter := &auth.ProviderSessionFilter{UserID: &userID}
+	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -86,6 +94,41 @@ func (r *Router) ListProviderSessions(res rest.ResponseWriter, req *rest.Request
 	}
 
 	responder.Data(http.StatusOK, providerSessions)
+}
+
+func (r *Router) DeleteProviderSessions(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	filter := auth.NewProviderSessionFilter()
+	if err := request.DecodeRequestQuery(req.Request, filter); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Empty(http.StatusNoContent)
+}
+
+func (r *Router) CreateProviderSession(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	create := auth.NewProviderSessionCreate()
+	if err := request.DecodeRequestBody(req.Request, create); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	providerSession, err := r.AuthClient().CreateProviderSession(req.Context(), create)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	}
+
+	responder.Data(http.StatusCreated, providerSession)
 }
 
 func (r *Router) GetProviderSession(res rest.ResponseWriter, req *rest.Request) {
@@ -154,6 +197,7 @@ func (r *Router) DeleteProviderSession(res rest.ResponseWriter, req *rest.Reques
 	responder.Empty(http.StatusOK)
 }
 
+// TODO: Temporary endpoint for deleting provider sessions given a twiist tidepool link id
 func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
@@ -170,12 +214,12 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 		return
 	}
 
-	filter := auth.ProviderSessionFilter{
+	filter := &auth.ProviderSessionFilter{
 		Type:       pointer.FromString(oauth.ProviderType),
 		Name:       pointer.FromString(twiist.ProviderName),
 		ExternalID: pointer.FromString(tidepoolLinkID),
 	}
-	if err := r.AuthServiceClient().DeleteAllProviderSessions(req.Context(), filter); err != nil {
+	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}

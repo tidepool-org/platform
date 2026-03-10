@@ -78,7 +78,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider type valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						valid := authTest.RandomProviderTypes()
+						valid := []string{authTest.RandomProviderType()}
 						object["providerType"] = valid
 						expectedDatum.ProviderType = pointer.FromStringArray(valid)
 					},
@@ -92,7 +92,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider name valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						valid := authTest.RandomProviderNames()
+						valid := []string{authTest.RandomProviderName()}
 						object["providerName"] = valid
 						expectedDatum.ProviderName = pointer.FromStringArray(valid)
 					},
@@ -106,7 +106,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider session id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						valid := authTest.RandomProviderSessionIDs()
+						valid := []string{authTest.RandomProviderSessionID()}
 						object["providerSessionId"] = valid
 						expectedDatum.ProviderSessionID = pointer.FromStringArray(valid)
 					},
@@ -120,7 +120,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider external id valid",
 					func(object map[string]interface{}, expectedDatum *dataSource.Filter) {
-						valid := authTest.RandomProviderExternalIDs()
+						valid := []string{authTest.RandomProviderExternalID()}
 						object["providerExternalId"] = valid
 						expectedDatum.ProviderExternalID = pointer.FromStringArray(valid)
 					},
@@ -201,7 +201,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider type valid",
 					func(datum *dataSource.Filter) {
-						datum.ProviderType = pointer.FromStringArray(authTest.RandomProviderTypes())
+						datum.ProviderType = pointer.FromStringArray([]string{authTest.RandomProviderType()})
 					},
 				),
 				Entry("provider name missing",
@@ -239,7 +239,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider name valid",
 					func(datum *dataSource.Filter) {
-						datum.ProviderName = pointer.FromStringArray(authTest.RandomProviderNames())
+						datum.ProviderName = pointer.FromStringArray([]string{authTest.RandomProviderName()})
 					},
 				),
 				Entry("provider session id missing",
@@ -310,7 +310,7 @@ var _ = Describe("Source", func() {
 				),
 				Entry("provider external id valid",
 					func(datum *dataSource.Filter) {
-						datum.ProviderExternalID = pointer.FromStringArray(authTest.RandomProviderExternalIDs())
+						datum.ProviderExternalID = pointer.FromStringArray([]string{authTest.RandomProviderExternalID()})
 					},
 				),
 				Entry("state missing",

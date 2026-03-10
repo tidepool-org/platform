@@ -5,15 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/customerio"
-	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
-	"github.com/tidepool-org/platform/mailer"
-	"github.com/tidepool-org/platform/oura"
-	"github.com/tidepool-org/platform/oura/jotform"
-	"github.com/tidepool-org/platform/oura/shopify"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
-
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -37,21 +28,26 @@ import (
 	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
 	consentLoader "github.com/tidepool-org/platform/consent/loader"
 	consentService "github.com/tidepool-org/platform/consent/service"
+	"github.com/tidepool-org/platform/customerio"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/mailer"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/jotform"
 	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
 	jotformStore "github.com/tidepool-org/platform/oura/jotform/store"
 	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
+	ouraProvider "github.com/tidepool-org/platform/oura/provider"
+	"github.com/tidepool-org/platform/oura/shopify"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
-
-	"github.com/tidepool-org/platform/log"
-	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
-	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -61,6 +57,8 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 	"github.com/tidepool-org/platform/twiist"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/user"
+	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/work"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
@@ -217,7 +215,7 @@ func (s *Service) AuthStore() authStore.Store {
 	return s.authStore
 }
 
-func (s *Service) AuthServiceClient() authService.Client {
+func (s *Service) AuthClient() auth.Client {
 	return s.authClient
 }
 
@@ -350,7 +348,7 @@ func (s *Service) initializeSubmissionProcessor() error {
 }
 
 func (s *Service) createShopifyRouter() (*shopifyAPI.Router, error) {
-	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient())
+	fulfillmentEventProcessor, err := shopify.NewFulfillmentEventProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthClient(), s.DataSourceClient())
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create fulfillment event processor")
 	}
@@ -927,7 +925,7 @@ func (s *Service) initializeWorkCoordinator() error {
 	}
 
 	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
-		return errors.Wrapf(err, "unable to register work processor factores")
+		return errors.Wrapf(err, "unable to register work processor factories")
 	}
 
 	s.Logger().Info("Starting work coordinator")

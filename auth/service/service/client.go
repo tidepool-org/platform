@@ -10,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/platform"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/provider"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -54,7 +53,7 @@ func NewClient(cfg *authClient.ExternalConfig, authorizeAs platform.AuthorizeAs,
 	}, nil
 }
 
-func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
+func (c *Client) CreateProviderSession(ctx context.Context, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	prvdr, err := c.providerFactory.Get(create.Type, create.Name)
 	if err != nil {
 		return nil, err
@@ -62,17 +61,17 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 
 	repository := c.authStore.NewProviderSessionRepository()
 
-	providerSession, err := repository.CreateUserProviderSession(ctx, userID, create)
+	providerSession, err := repository.CreateProviderSession(ctx, create)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx = log.ContextWithFields(ctx, log.Fields{
-		"providerSessionId":         providerSession.ID,
-		"providerSessionType":       providerSession.Type,
-		"providerSessionName":       providerSession.Name,
-		"providerSessionExternalId": providerSession.ExternalID,
-		"userId":                    providerSession.UserID,
+	ctx = log.ContextWithField(ctx, "providerSession", log.Fields{
+		"id":         providerSession.ID,
+		"userId":     providerSession.UserID,
+		"type":       providerSession.Type,
+		"name":       providerSession.Name,
+		"externalId": providerSession.ExternalID,
 	})
 
 	// From this point forward, the context should not be cancelable
@@ -80,76 +79,41 @@ func (c *Client) CreateUserProviderSession(ctx context.Context, userID string, c
 
 	if err = prvdr.OnCreate(ctx, providerSession); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
-		c.deleteProviderSession(ctx, repository, providerSession)
+		if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
+			log.LoggerFromContext(ctx).WithError(err).Warn("Unable to delete provider session")
+		}
 		return nil, err
 	}
 
 	return providerSession, nil
 }
 
-func (c *Client) DeleteUserProviderSessions(ctx context.Context, userID string) error {
-	ctx, logger := log.ContextAndLoggerWithField(ctx, "userId", userID)
-
-	repository := c.authStore.NewProviderSessionRepository()
-
-	// TODO: Add pagination if/when we ever get over one page of provider sessions
-	filter := &auth.ProviderSessionFilter{
-		UserID: pointer.FromString(userID),
-	}
-	if providerSessions, err := repository.ListProviderSessions(ctx, filter, nil); err != nil {
-		logger.WithError(err).Warn("Unable to list user provider sessions")
-	} else {
-		for _, providerSession := range providerSessions {
-			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
-
-			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
-				logger.WithError(err).Warn("Unable to delete provider session")
-			}
-		}
-	}
-
-	return nil
-}
-
-func (c *Client) DeleteAllProviderSessions(ctx context.Context, filter auth.ProviderSessionFilter) error {
+func (c *Client) DeleteProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&filter); err != nil {
+	if filter == nil {
+		return errors.New("filter is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return errors.Wrap(err, "filter is invalid")
-	} else if filter.Type == nil {
-		return errors.New("filter type is missing")
-	} else if filter.Name == nil {
-		return errors.New("filter name is missing")
-	} else if filter.ExternalID == nil {
-		return errors.New("filter external id is missing")
 	}
 
-	ctx, logger := log.ContextAndLoggerWithField(ctx, "filter", filter)
+	ctx = log.ContextWithField(ctx, "filter", filter)
 
 	repository := c.authStore.NewProviderSessionRepository()
-	if err := page.Paginate(func(pagination page.Pagination) (bool, error) {
-		providerSessions, err := repository.ListAllProviderSessions(ctx, filter, pagination)
-		if err != nil {
-			logger.WithError(err).Warn("Unable to list all provider sessions")
-			return false, errors.Wrap(err, "unable to list all provider sessions")
-		}
-		for _, providerSession := range providerSessions {
+	_, err := page.Process(
+		func(pagination page.Pagination) (auth.ProviderSessions, error) {
+			return repository.ListProviderSessions(ctx, filter, &pagination)
+		},
+		func(providerSession *auth.ProviderSession) (*auth.ProviderSession, error) {
 			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
-
 			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
-				logger.WithError(err).Warn("Unable to delete all provider session")
+				logger.WithError(err).Warn("Unable to delete provider session")
 			}
-		}
-		return len(providerSessions) < pagination.Size, nil
-	}); err != nil {
-		return err
-	}
-
-	// We are intentionally not calling the repository to make sure we don't run into
-	// a race condition and delete documents from the repository without invoking the 'OnDelete'
-	// callback of each provider for documents added after the loop above has completed.
-	return nil
+			return providerSession, nil
+		},
+	)
+	return err
 }
 
 func (c *Client) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
@@ -182,12 +146,12 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 }
 
 func (c *Client) deleteProviderSession(ctx context.Context, repository authStore.ProviderSessionRepository, providerSession *auth.ProviderSession) error {
-	ctx, logger := log.ContextAndLoggerWithFields(ctx, log.Fields{
-		"providerSessionId":         providerSession.ID,
-		"providerSessionType":       providerSession.Type,
-		"providerSessionName":       providerSession.Name,
-		"providerSessionExternalId": providerSession.ExternalID,
-		"userId":                    providerSession.UserID,
+	ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSession", log.Fields{
+		"id":         providerSession.ID,
+		"userId":     providerSession.UserID,
+		"type":       providerSession.Type,
+		"name":       providerSession.Name,
+		"externalId": providerSession.ExternalID,
 	})
 
 	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)

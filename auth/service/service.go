@@ -22,7 +22,6 @@ type Service interface {
 
 	ProviderFactory() provider.Factory
 
-	AuthServiceClient() Client
 	TaskClient() task.Client
 	ConfirmationClient() confirmationClient.ClientWithResponsesInterface
 	DeviceCheck() apple.DeviceCheck
