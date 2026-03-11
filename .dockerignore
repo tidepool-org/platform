@@ -5,6 +5,7 @@
 *.env
 .envrc
 env*.sh
+!env.test.sh
 private/plugin/abbott/*.env
 private/plugin/abbott/env*.sh
 !version.env
@@ -18,22 +19,6 @@ __debug_bin*
 *.test
 coverprofile.out
 ginkgo.report
-test
-*_test.go
-*/test
-*/*_test.go
-*/*/test
-*/*/*_test.go
-*/*/*/test
-*/*/*/*_test.go
-*/*/*/*/test
-*/*/*/*/*_test.go
-*/*/*/*/*/test
-*/*/*/*/*/*_test.go
-*/*/*/*/*/*/test
-*/*/*/*/*/*/*_test.go
-*/*/*/*/*/*/*/test
-*/*/*/*/*/*/*/*_test.go
 
 # Project
 vendor
@@ -46,7 +31,6 @@ _tmp
 .gvm_local
 .idea
 .vscode
-.govetignore
 *.code-workspace
 private/plugin/abbott/.govetignore
 
