@@ -68,13 +68,13 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
 
 # platform-ci
 FROM platform-init-${PLUGIN_VISIBILITY} AS platform-ci
+ENV CGO_ENABLED=1
 COPY . .
 RUN --mount=type=cache,target=/root/.cache/go-build \
     make ci-init generate ci-build
 
 # platform-ci-test
 FROM platform-ci AS platform-ci-test
-ENV CGO_ENABLED=1
 RUN --mount=type=cache,target=/root/.cache/go-build \
     make ci-test-go
 

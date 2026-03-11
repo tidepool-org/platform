@@ -313,7 +313,6 @@ test-go:
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
-ci-test-go: GOTEST_FLAGS += -shuffle=on
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
 
