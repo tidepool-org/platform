@@ -112,9 +112,7 @@ var _ = Describe("Client", func() {
 			It("calls store.Update with mapped condition and returns result", func() {
 				id := test.RandomString()
 				condition := &request.Condition{Revision: pointer.FromInt(test.RandomInt())}
-				update := &dataRaw.Update{
-					ProcessedTime: test.RandomTime(),
-				}
+				update := dataRawTest.RandomUpdate()
 				mappedCondition := storeStructured.MapCondition(condition)
 				expected := &dataRaw.Raw{ID: test.RandomString()}
 				mockStore.EXPECT().Update(ctx, id, mappedCondition, update).Return(expected, nil)

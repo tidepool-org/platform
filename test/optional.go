@@ -58,6 +58,14 @@ func RandomOptionalPointerWithOptions[T any](generator func(options ...Option) *
 	return ConditionalPointer(optionsAdapter(generator, options...), !Options(options).AllowOptional() || RandomBool())
 }
 
+func Constant[T any](value T) func() T {
+	return func() T { return value }
+}
+
+func ConstantPointer[T any](value T) func() *T {
+	return func() *T { return pointer.From(value) }
+}
+
 func optionsAdapter[T any](generator func(options ...Option) T, options ...Option) func() T {
 	return func() T { return generator(options...) }
 }

@@ -93,11 +93,20 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 			"$lt":  createdTime.AddDate(0, 0, 1),
 		}
 	}
-	if filter.DataSetIDs != nil {
-		query["dataSetId"] = bson.M{"$in": *filter.DataSetIDs}
+	if filter.DataSetID != nil {
+		query["dataSetId"] = *filter.DataSetID
 	}
 	if filter.Processed != nil {
 		query["processedTime"] = bson.M{"$exists": *filter.Processed}
+	}
+	if filter.Archivable != nil {
+		query["archivableTime"] = bson.M{"$exists": true, "$lt": now}
+		if !*filter.Archivable {
+			query["archivableTime"] = bson.M{"$not": query["archivableTime"]}
+		}
+	}
+	if filter.Archived != nil {
+		query["archivedTime"] = bson.M{"$exists": *filter.Archived}
 	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
@@ -169,15 +178,16 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	}
 
 	document := &Document{
-		UserID:      userID,
-		DataSetID:   dataSetID,
-		Metadata:    create.Metadata,
-		DigestMD5:   digestMD5,
-		MediaType:   pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
-		Size:        size,
-		Data:        bsonPrimitive.Binary{Data: data},
-		CreatedTime: now,
-		Revision:    1,
+		UserID:         userID,
+		DataSetID:      dataSetID,
+		Metadata:       create.Metadata,
+		DigestMD5:      digestMD5,
+		MediaType:      pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
+		Size:           size,
+		Data:           bsonPrimitive.Binary{Data: data},
+		ArchivableTime: create.ArchivableTime,
+		CreatedTime:    now,
+		Revision:       1,
 	}
 
 	ctx, lgr = log.ContextAndLoggerWithField(ctx, "document", document)
@@ -300,9 +310,21 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 		query["revision"] = *condition.Revision
 	}
 
-	set := bson.M{}
-	set["processedTime"] = update.ProcessedTime
-	set["modifiedTime"] = now
+	set := bson.M{
+		"modifiedTime": now,
+	}
+	if update.ProcessedTime != nil {
+		set["processedTime"] = *update.ProcessedTime
+	}
+	if update.ArchivableTime != nil {
+		set["archivableTime"] = *update.ArchivableTime
+	}
+	if update.ArchivedTime != nil {
+		set["archivedTime"] = *update.ArchivedTime
+	}
+	if update.Metadata != nil {
+		set["metadata"] = *update.Metadata
+	}
 
 	// From this point forward, the context should not be cancelable
 	ctx = context.WithoutCancel(ctx)
@@ -499,31 +521,37 @@ func (s *Store) findMany(ctx context.Context, query bson.M, opts ...*mongoOption
 }
 
 type Document struct {
-	ID           bsonPrimitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // Database only
-	UserID       string                 `json:"userId,omitempty" bson:"userId,omitempty"`
-	DataSetID    string                 `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
-	Metadata     map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"` // Database only
-	DigestMD5    string                 `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
-	MediaType    string                 `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
-	Size         int                    `json:"size,omitempty" bson:"size,omitempty"`
-	Data         bsonPrimitive.Binary   `json:"-" bson:"data,omitempty"`
-	CreatedTime  time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	ModifiedTime *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	Revision     int                    `json:"revision,omitempty" bson:"revision,omitempty"`
+	ID             bsonPrimitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // Database only
+	UserID         string                 `json:"userId,omitempty" bson:"userId,omitempty"`
+	DataSetID      string                 `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	Metadata       map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	DigestMD5      string                 `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
+	MediaType      string                 `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
+	Size           int                    `json:"size,omitempty" bson:"size,omitempty"`
+	Data           bsonPrimitive.Binary   `json:"-" bson:"data,omitempty"`
+	ProcessedTime  *time.Time             `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
+	ArchivableTime *time.Time             `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
+	ArchivedTime   *time.Time             `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	CreatedTime    time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	ModifiedTime   *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	Revision       int                    `json:"revision,omitempty" bson:"revision,omitempty"`
 }
 
 func (d *Document) AsRaw() *dataRaw.Raw {
 	return &dataRaw.Raw{
-		ID:           idFromObjectIDAndDate(d.ID, d.CreatedTime),
-		UserID:       d.UserID,
-		DataSetID:    d.DataSetID,
-		Metadata:     d.Metadata,
-		DigestMD5:    d.DigestMD5,
-		MediaType:    d.MediaType,
-		Size:         d.Size,
-		CreatedTime:  d.CreatedTime,
-		ModifiedTime: d.ModifiedTime,
-		Revision:     d.Revision,
+		ID:             idFromObjectIDAndDate(d.ID, d.CreatedTime),
+		UserID:         d.UserID,
+		DataSetID:      d.DataSetID,
+		Metadata:       d.Metadata,
+		DigestMD5:      d.DigestMD5,
+		MediaType:      d.MediaType,
+		Size:           d.Size,
+		ProcessedTime:  d.ProcessedTime,
+		ArchivableTime: d.ArchivableTime,
+		ArchivedTime:   d.ArchivedTime,
+		CreatedTime:    d.CreatedTime,
+		ModifiedTime:   d.ModifiedTime,
+		Revision:       d.Revision,
 	}
 }
 
