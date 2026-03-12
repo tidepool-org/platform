@@ -859,18 +859,28 @@ func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.Tok
 	return t.tokenSource.HTTPClient(ctx, tokenSourceSource)
 }
 
-func (t *TaskRunner) UpdateToken(ctx context.Context) error {
-	if err := t.tokenSource.UpdateToken(ctx); err != nil {
-		return err
+func (t *TaskRunner) UpdateToken(ctx context.Context) (bool, error) {
+	if updated, err := t.tokenSource.UpdateToken(ctx); err != nil {
+		return false, err
+	} else if !updated {
+		return false, nil
+	} else if err = t.updateProviderSession(); err != nil {
+		return false, err
+	} else {
+		return true, nil
 	}
-	return t.updateProviderSession()
 }
 
-func (t *TaskRunner) ExpireToken(ctx context.Context) error {
-	if err := t.tokenSource.ExpireToken(ctx); err != nil {
-		return err
+func (t *TaskRunner) ExpireToken(ctx context.Context) (bool, error) {
+	if expired, err := t.tokenSource.ExpireToken(ctx); err != nil {
+		return false, err
+	} else if !expired {
+		return false, nil
+	} else if err = t.updateProviderSession(); err != nil {
+		return false, err
+	} else {
+		return true, nil
 	}
-	return t.updateProviderSession()
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {

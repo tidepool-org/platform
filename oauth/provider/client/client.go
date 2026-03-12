@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
@@ -14,6 +15,10 @@ type Provider struct {
 }
 
 func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
+	return NewWithErrorParser(name, config, jwks, nil)
+}
+
+func NewWithErrorParser(name string, config *Config, jwks jwk.Set, errorResponseParser client.ErrorResponseParser) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -25,7 +30,7 @@ func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
 	if err != nil {
 		return nil, err
 	}
-	client, err := oauthClient.New(config.Client, provider)
+	client, err := oauthClient.NewWithErrorParser(config.Client, provider, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}

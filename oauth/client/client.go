@@ -16,7 +16,11 @@ type Client struct {
 }
 
 func New(config *client.Config, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
-	baseClient, err := client.New(config)
+	return NewWithErrorParser(config, tokenSourceSource, nil)
+}
+
+func NewWithErrorParser(config *client.Config, tokenSourceSource oauth.TokenSourceSource, errorResponseParser client.ErrorResponseParser) (*Client, error) {
+	baseClient, err := client.NewWithErrorParser(config, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +66,7 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 	// expired, send request again, and it will attempt to use the refresh token to
 	// generate a new access token
 	if oauth.IsAccessTokenError(err) {
-		if tokenErr := tokenSource.ExpireToken(ctx); tokenErr != nil {
+		if _, tokenErr := tokenSource.ExpireToken(ctx); tokenErr != nil {
 			log.LoggerFromContext(ctx).WithError(tokenErr).Error("unable to expire token")
 		}
 		err = c.sendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, inspectors, tokenSource)
@@ -84,7 +88,7 @@ func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string
 
 	err = c.baseClient.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)
 
-	if tokenErr := tokenSource.UpdateToken(ctx); tokenErr != nil {
+	if _, tokenErr := tokenSource.UpdateToken(ctx); tokenErr != nil {
 		log.LoggerFromContext(ctx).WithError(tokenErr).Error("unable to update token")
 	}
 

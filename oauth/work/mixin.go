@@ -56,21 +56,39 @@ func (m *Mixin) FetchTokenSource() *work.ProcessResult {
 }
 
 func (m *Mixin) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
-	return m.tokenSource.HTTPClient(ctx, tokenSourceSource)
+	if m.tokenSource == nil {
+		return nil, errors.New("token source is missing")
+	} else {
+		return m.tokenSource.HTTPClient(ctx, tokenSourceSource)
+	}
 }
 
-func (m *Mixin) UpdateToken(ctx context.Context) error {
-	if err := m.tokenSource.UpdateToken(ctx); err != nil {
-		return err
+func (m *Mixin) UpdateToken(ctx context.Context) (bool, error) {
+	if m.tokenSource == nil {
+		return false, errors.New("token source is missing")
+	} else if updated, err := m.tokenSource.UpdateToken(ctx); err != nil {
+		return false, err
+	} else if !updated {
+		return false, nil
+	} else if err = m.updateProviderSessionFromTokenSource(); err != nil {
+		return false, err
+	} else {
+		return true, nil
 	}
-	return m.updateProviderSessionFromTokenSource()
 }
 
-func (m *Mixin) ExpireToken(ctx context.Context) error {
-	if err := m.tokenSource.ExpireToken(ctx); err != nil {
-		return err
+func (m *Mixin) ExpireToken(ctx context.Context) (bool, error) {
+	if m.tokenSource == nil {
+		return false, errors.New("token source is missing")
+	} else if expired, err := m.tokenSource.ExpireToken(ctx); err != nil {
+		return false, err
+	} else if !expired {
+		return false, nil
+	} else if err = m.updateProviderSessionFromTokenSource(); err != nil {
+		return false, err
+	} else {
+		return true, nil
 	}
-	return m.updateProviderSessionFromTokenSource()
 }
 
 func (m *Mixin) updateProviderSessionFromTokenSource() error {

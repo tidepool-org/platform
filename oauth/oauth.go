@@ -21,6 +21,7 @@ const (
 	ActionRevoke    = "revoke"
 )
 
+//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test TokenSourceSource
 type TokenSourceSource interface {
 	TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error)
 }
@@ -42,11 +43,12 @@ type Provider interface {
 	IsErrorCodeAccessDenied(errorCode string) bool
 }
 
+//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test TokenSource
 type TokenSource interface {
 	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 
-	UpdateToken(ctx context.Context) error
-	ExpireToken(ctx context.Context) error
+	UpdateToken(ctx context.Context) (bool, error)
+	ExpireToken(ctx context.Context) (bool, error)
 }
 
 func IsAccessTokenError(err error) bool {

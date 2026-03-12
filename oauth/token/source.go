@@ -58,9 +58,9 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 	return s.httpClient, nil
 }
 
-func (s *Source) UpdateToken(ctx context.Context) error {
+func (s *Source) UpdateToken(ctx context.Context) (bool, error) {
 	if s.tokenSource == nil {
-		return nil
+		return false, nil
 	}
 
 	tknSrcTkn, err := s.tokenSource.Token()
@@ -68,25 +68,29 @@ func (s *Source) UpdateToken(ctx context.Context) error {
 		if oauth.IsRefreshTokenError(err) {
 			err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 		}
-		return errors.Wrap(err, "unable to get token")
+		return false, errors.Wrap(err, "unable to get token")
 	}
 
 	if s.token.MatchesRawToken(tknSrcTkn) {
-		return nil
+		return false, nil
 	}
 
 	tkn, err := s.token.Refreshed(tknSrcTkn)
 	if err != nil || tkn == nil {
-		return errors.Wrap(err, "unable to refresh token")
+		return false, errors.Wrap(err, "unable to refresh token")
 	}
 	s.token = tkn
 
-	return nil
+	return true, nil
 }
 
-func (s *Source) ExpireToken(ctx context.Context) error {
+func (s *Source) ExpireToken(ctx context.Context) (bool, error) {
 	s.httpClient = nil
 	s.tokenSource = nil
-	s.token = s.token.Expired()
-	return nil
+	if s.token.IsExpired() {
+		return false, nil
+	} else {
+		s.token = s.token.Expired()
+		return true, nil
+	}
 }
