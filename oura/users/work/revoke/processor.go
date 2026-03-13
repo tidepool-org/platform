@@ -8,8 +8,7 @@ import (
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
 	"github.com/tidepool-org/platform/errors"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
-	ouraWork "github.com/tidepool-org/platform/oura/work"
-	ouraWorkUsers "github.com/tidepool-org/platform/oura/work/users"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -28,7 +27,7 @@ const (
 
 type Dependencies struct {
 	workBase.Dependencies
-	Client ouraWork.Client
+	Client oura.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -52,7 +51,7 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 type Processor struct {
 	*workBase.Processor
 	*oauthWork.OAuthTokenMixin
-	Client ouraWork.Client
+	Client oura.Client
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -106,9 +105,7 @@ func NewWorkCreate(providerSession *auth.ProviderSession) (*work.Create, error) 
 	}
 	return &work.Create{
 		Type:              Type,
-		GroupID:           pointer.FromString(ouraWorkUsers.GroupIDFromProviderSessionID(providerSession.ID)),
 		DeduplicationID:   pointer.FromString(providerSession.ID),
-		SerialID:          pointer.FromString(ouraWorkUsers.SerialIDFromProviderSessionID(providerSession.ID)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
 			providerSessionWork.MetadataKeyID: providerSession.ID,

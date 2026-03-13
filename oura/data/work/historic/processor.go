@@ -8,8 +8,8 @@ import (
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
 	"github.com/tidepool-org/platform/errors"
-	ouraWork "github.com/tidepool-org/platform/oura/work"
-	ouraWorkData "github.com/tidepool-org/platform/oura/work/data"
+	"github.com/tidepool-org/platform/oura"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -29,7 +29,7 @@ const (
 type Dependencies struct {
 	workBase.Dependencies
 	DataDependencies dataWork.Dependencies
-	Client           ouraWork.Client
+	Client           oura.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -58,7 +58,7 @@ type DataMixin = dataWork.Mixin
 type Processor struct {
 	*workBase.Processor
 	*DataMixin
-	Client    ouraWork.Client
+	Client    oura.Client
 	timeRange *dataWork.TimeRange
 }
 
@@ -128,9 +128,9 @@ func NewWorkCreate(dataSrc *dataSource.Source, timeRange dataWork.TimeRange) (*w
 	dataSrcID := dataSrc.ID
 	return &work.Create{
 		Type:              Type,
-		GroupID:           pointer.FromString(ouraWorkData.GroupIDFromDataSourceID(dataSrcID)),
+		GroupID:           pointer.FromString(ouraDataWork.GroupIDFromDataSourceID(dataSrcID)),
 		DeduplicationID:   pointer.FromString(dataSrcID),
-		SerialID:          pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(dataSrcID)),
+		SerialID:          pointer.FromString(ouraDataWork.SerialIDFromDataSourceID(dataSrcID)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
 			dataSourceWork.MetadataKeyID:  dataSrcID,

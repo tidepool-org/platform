@@ -8,9 +8,9 @@ import (
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/oura"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
-	ouraWork "github.com/tidepool-org/platform/oura/work"
-	ouraWorkData "github.com/tidepool-org/platform/oura/work/data"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -32,7 +32,7 @@ const (
 type Dependencies struct {
 	workBase.Dependencies
 	DataDependencies dataWork.Dependencies
-	Client           ouraWork.Client
+	Client           oura.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -59,7 +59,7 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 type Processor struct {
 	*workBase.Processor
 	*dataWork.Mixin
-	Client ouraWork.Client
+	Client oura.Client
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -113,7 +113,7 @@ func NewWorkCreate(dataSrc *dataSource.Source, event *ouraWebhook.Event) (*work.
 		return nil, errors.New("event is missing")
 	}
 	dataSrcID := dataSrc.ID
-	serialID := pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(dataSrcID))
+	serialID := pointer.FromString(ouraDataWork.SerialIDFromDataSourceID(dataSrcID))
 	return &work.Create{
 		Type:              Type,
 		GroupID:           serialID,

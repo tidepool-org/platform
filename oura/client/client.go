@@ -8,15 +8,13 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	dataWork "github.com/tidepool-org/platform/data/work"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
 	"github.com/tidepool-org/platform/oura"
-	ouraData "github.com/tidepool-org/platform/oura/data"
-	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/times"
 )
 
 type Provider interface {
@@ -48,9 +46,9 @@ func NewWithClient(client *oauthClient.Client, provider Provider) (*Client, erro
 	}, nil
 }
 
-func (c *Client) GetPersonalInfo(ctx context.Context, tokenSource oauth.TokenSource) (*ouraData.PersonalInfo, error) {
+func (c *Client) GetPersonalInfo(ctx context.Context, tokenSource oauth.TokenSource) (*oura.PersonalInfo, error) {
 	url := c.client.ConstructURL("v2", "usercollection", "personal_info")
-	responseBody := &ouraData.PersonalInfo{}
+	responseBody := &oura.PersonalInfo{}
 
 	if err := c.sendOuraRequest(ctx, http.MethodGet, url, nil, responseBody, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get user personal info")
@@ -63,15 +61,15 @@ func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, t
 	return nil, nil
 }
 
-func (c *Client) GetData(ctx context.Context, dataType string, timeRange dataWork.TimeRange, tokenSource oauth.TokenSource) (oura.Data, error) {
+func (c *Client) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (oura.Data, error) {
 	return nil, nil
 }
 
-func (c *Client) ListSubscriptions(ctx context.Context) ([]*ouraWebhook.Subscription, error) {
+func (c *Client) ListSubscriptions(ctx context.Context) (oura.Subscriptions, error) {
 	return nil, nil
 }
 
-func (c *Client) CreateSubscription(ctx context.Context, create *ouraWebhook.CreateSubscription) (*ouraWebhook.Subscription, error) {
+func (c *Client) CreateSubscription(ctx context.Context, create *oura.CreateSubscription) (*oura.Subscription, error) {
 	if create == nil {
 		return nil, errors.New("create is missing")
 	}
@@ -79,7 +77,7 @@ func (c *Client) CreateSubscription(ctx context.Context, create *ouraWebhook.Cre
 	return nil, nil
 }
 
-func (c *Client) RenewSubscription(ctx context.Context, id string) (*ouraWebhook.Subscription, error) {
+func (c *Client) RenewSubscription(ctx context.Context, id string) (*oura.Subscription, error) {
 	return nil, nil
 }
 

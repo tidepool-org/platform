@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
-	ouraWork "github.com/tidepool-org/platform/oura/work"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -25,7 +25,7 @@ const (
 
 type Dependencies struct {
 	workBase.Dependencies
-	Client ouraWork.Client
+	Client oura.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -48,7 +48,7 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 
 type Processor struct {
 	*workBase.Processor
-	Client ouraWork.Client
+	Client oura.Client
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {

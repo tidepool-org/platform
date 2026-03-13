@@ -15,9 +15,8 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
-	ouraWork "github.com/tidepool-org/platform/oura/work"
-	ouraWorkData "github.com/tidepool-org/platform/oura/work/data"
-	ouraWorkDataHistoric "github.com/tidepool-org/platform/oura/work/data/historic"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
+	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
@@ -39,7 +38,7 @@ type Dependencies struct {
 	workBase.Dependencies
 	ProviderSessionClient providerSession.Client
 	DataSourceClient      dataSource.Client
-	Client                ouraWork.Client
+	Client                oura.Client
 }
 
 func (d Dependencies) Validate() error {
@@ -80,7 +79,7 @@ type Processor struct {
 	*DataSourceMixin
 	*DataSourceProviderSessionMixin
 	DataSourceClient dataSource.Client
-	Client           ouraWork.Client
+	Client           oura.Client
 	CustomerIOClient *customerio.Client
 }
 
@@ -192,7 +191,7 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 }
 
 func (p *Processor) createDataHistoricWork() *work.ProcessResult {
-	if workCreate, err := ouraWorkDataHistoric.NewWorkCreate(p.DataSource, dataWork.TimeRange{From: p.DataSource.LatestDataTime}); err != nil {
+	if workCreate, err := ouraDataWorkHistoric.NewWorkCreate(p.DataSource, dataWork.TimeRange{From: p.DataSource.LatestDataTime}); err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
 	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
@@ -207,9 +206,9 @@ func NewWorkCreate(dataSrc *dataSource.Source) (*work.Create, error) {
 	}
 	return &work.Create{
 		Type:              Type,
-		GroupID:           pointer.FromString(ouraWorkData.GroupIDFromDataSourceID(dataSrc.ID)),
+		GroupID:           pointer.FromString(ouraDataWork.GroupIDFromDataSourceID(dataSrc.ID)),
 		DeduplicationID:   pointer.FromString(dataSrc.ID),
-		SerialID:          pointer.FromString(ouraWorkData.SerialIDFromDataSourceID(dataSrc.ID)),
+		SerialID:          pointer.FromString(ouraDataWork.SerialIDFromDataSourceID(dataSrc.ID)),
 		ProcessingTimeout: ProcessingTimeout,
 		Metadata: map[string]any{
 			dataSourceWork.MetadataKeyID: dataSrc.ID,
