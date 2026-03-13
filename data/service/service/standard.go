@@ -45,6 +45,7 @@ import (
 	summaryClient "github.com/tidepool-org/platform/summary/client"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
@@ -632,10 +633,15 @@ func (s *Standard) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
+	dependencies := workBase.Dependencies{
+		WorkClient: s.workClient,
+	}
+
 	if s.abbottClient != nil {
 		s.Logger().Debug("Creating abbott processor factories")
 
 		abbottProcessorDependencies := abbottWork.ProcessorDependencies{
+			Dependencies:            dependencies,
 			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 			DataSetClient:           s.dataClient,
 			DataSourceClient:        s.dataSourceClient,
@@ -643,16 +649,15 @@ func (s *Standard) initializeWorkCoordinator() error {
 			ProviderSessionClient:   s.AuthClient(),
 			DataRawClient:           s.dataRawClient,
 			AbbottClient:            s.abbottClient,
-			WorkClient:              s.workClient,
 		}
-		abbottProcessors, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
+		abbottProcessorFactories, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
 		if err != nil {
 			return errors.Wrap(err, "unable to create abbott processor factories")
 		}
 
 		s.Logger().Debug("Registering abbott processor factories")
 
-		if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessors); err != nil {
+		if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessorFactories); err != nil {
 			return errors.Wrap(err, "unable to register abbott processor factories")
 		}
 	}
@@ -660,22 +665,22 @@ func (s *Standard) initializeWorkCoordinator() error {
 	if s.ouraClient != nil {
 		s.Logger().Debug("Creating oura processor factories")
 
-		ouraProcessorDependencies := ouraWorkProcessors.Dependencies{
+		ouraDependencies := ouraWorkProcessors.Dependencies{
+			Dependencies:          dependencies,
 			ProviderSessionClient: s.AuthClient(),
 			DataSourceClient:      s.dataSourceClient,
 			DataRawClient:         s.dataRawClient,
 			DataSetClient:         s.dataClient,
-			WorkClient:            s.workClient,
 			Client:                s.ouraClient,
 		}
-		ouraProcessors, err := ouraWorkProcessors.NewProcessorFactories(ouraProcessorDependencies)
+		ouraProcessorFactories, err := ouraWorkProcessors.NewProcessorFactories(ouraDependencies)
 		if err != nil {
 			return errors.Wrap(err, "unable to create oura processor factories")
 		}
 
 		s.Logger().Debug("Registering oura processor factories")
 
-		if err = s.workCoordinator.RegisterProcessorFactories(ouraProcessors); err != nil {
+		if err = s.workCoordinator.RegisterProcessorFactories(ouraProcessorFactories); err != nil {
 			return errors.Wrap(err, "unable to register oura processor factories")
 		}
 	}

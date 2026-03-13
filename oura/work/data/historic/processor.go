@@ -27,11 +27,15 @@ const (
 )
 
 type Dependencies struct {
+	workBase.Dependencies
 	DataDependencies dataWork.Dependencies
 	Client           ouraWork.Client
 }
 
 func (d Dependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return errors.Wrap(err, "dependencies is invalid")
+	}
 	if err := d.DataDependencies.Validate(); err != nil {
 		return err
 	}
@@ -70,7 +74,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor(processResultBuilder)
+	processor, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -87,12 +91,10 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
-	return work.ProcessPipeline{
-		p.ProcessPipelineFunc(ctx, wrk, processingUpdater),
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.prepareTimeRange,
-		// TODO: Implement
-		p.Delete,
-	}.Process()
+		func() *work.ProcessResult { return nil }, // TODO: Implement
+	).Process(p.Delete)
 }
 
 func (p *Processor) prepareTimeRange() *work.ProcessResult {

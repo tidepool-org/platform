@@ -35,10 +35,14 @@ const (
 )
 
 type Dependencies struct {
+	workBase.Dependencies
 	CustomerIOClient *customerio.Client
 }
 
 func (d Dependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return errors.Wrap(err, "dependencies is invalid")
+	}
 	if d.CustomerIOClient == nil {
 		return errors.New("customer io client is missing")
 	}
@@ -70,7 +74,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor(processResultBuilder)
+	processor, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -82,11 +86,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
-	return work.ProcessPipeline{
-		p.ProcessPipelineFunc(ctx, wrk, processingUpdater),
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.sendEvent,
-		p.Delete,
-	}.Process()
+	).Process(p.Delete)
 }
 
 func (p *Processor) sendEvent() *work.ProcessResult {

@@ -13,14 +13,15 @@ import (
 	ouraWorkSubscribe "github.com/tidepool-org/platform/oura/work/subscribe"
 	ouraWorkUsersRevoke "github.com/tidepool-org/platform/oura/work/users/revoke"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 type Dependencies struct {
+	workBase.Dependencies
 	ProviderSessionClient providerSession.Client
 	DataSourceClient      dataSource.Client
 	DataRawClient         dataRaw.Client
 	DataSetClient         dataSet.Client
-	WorkClient            work.Client
 	Client                ouraWork.Client
 }
 
@@ -28,6 +29,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	var processorFactories []work.ProcessorFactory
 
 	if processorFactory, err := ouraWorkDataEvent.NewProcessorFactory(ouraWorkDataEvent.Dependencies{
+		Dependencies: dependencies.Dependencies,
 		DataDependencies: dataWork.Dependencies{
 			ProviderSessionClient: dependencies.ProviderSessionClient,
 			DataSourceClient:      dependencies.DataSourceClient,
@@ -42,6 +44,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	if processorFactory, err := ouraWorkDataHistoric.NewProcessorFactory(ouraWorkDataHistoric.Dependencies{
+		Dependencies: dependencies.Dependencies,
 		DataDependencies: dataWork.Dependencies{
 			ProviderSessionClient: dependencies.ProviderSessionClient,
 			DataSourceClient:      dependencies.DataSourceClient,
@@ -56,9 +59,9 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	if processorFactory, err := ouraWorkDataSetup.NewProcessorFactory(ouraWorkDataSetup.Dependencies{
+		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
-		WorkClient:            dependencies.WorkClient,
 		Client:                dependencies.Client,
 	}); err != nil {
 		return nil, err
@@ -67,7 +70,8 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	if processorFactory, err := ouraWorkSubscribe.NewProcessorFactory(ouraWorkSubscribe.Dependencies{
-		Client: dependencies.Client,
+		Dependencies: dependencies.Dependencies,
+		Client:       dependencies.Client,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -75,7 +79,8 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	if processorFactory, err := ouraWorkUsersRevoke.NewProcessorFactory(ouraWorkUsersRevoke.Dependencies{
-		Client: dependencies.Client,
+		Dependencies: dependencies.Dependencies,
+		Client:       dependencies.Client,
 	}); err != nil {
 		return nil, err
 	} else {

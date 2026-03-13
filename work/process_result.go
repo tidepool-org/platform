@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -165,11 +166,19 @@ type ProcessPipelineFunc func() *ProcessResult
 
 type ProcessPipeline []ProcessPipelineFunc
 
-func (p ProcessPipeline) Process() *ProcessResult {
+func (p ProcessPipeline) Process(completion ProcessPipelineFunc) *ProcessResult {
+	if completion == nil {
+		return ProcessResultFailedFromError(errors.New("completion is missing"))
+	}
 	for _, fn := range p {
 		if result := fn(); result != nil {
 			return result
 		}
 	}
-	return nil
+	return completion()
+}
+
+// Only for errors outside of work context
+func ProcessResultFailedFromError(err error) *ProcessResult {
+	return NewProcessResultFailed(FailedUpdate{FailedError: errors.Serializable{Error: err}})
 }

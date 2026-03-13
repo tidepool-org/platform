@@ -34,6 +34,7 @@ var _ = Describe("Mixin", func() {
 		var ctx context.Context
 		var mockController *gomock.Controller
 		var mockClient *dataRawTest.MockClient
+		var mockWorkClient *workTest.MockClient
 		var processor *workBase.Processor
 
 		BeforeEach(func() {
@@ -41,6 +42,10 @@ var _ = Describe("Mixin", func() {
 			ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockClient = dataRawTest.NewMockClient(mockController)
+			mockWorkClient = workTest.NewMockClient(mockController)
+			dependencies := workBase.Dependencies{
+				WorkClient: mockWorkClient,
+			}
 			processResultBuilder := &workBase.ProcessResultBuilder{
 				ProcessResultPendingBuilder: &workBase.ConstantProcessResultPendingBuilder{
 					Duration: time.Minute,
@@ -49,7 +54,7 @@ var _ = Describe("Mixin", func() {
 					Duration: time.Second,
 				},
 			}
-			processor, err = workBase.NewProcessor(processResultBuilder)
+			processor, err = workBase.NewProcessor(dependencies, processResultBuilder)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(processor).ToNot(BeNil())
 		})
@@ -86,7 +91,7 @@ var _ = Describe("Mixin", func() {
 				Expect(mixin).ToNot(BeNil())
 				ctx = log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 				wrk = workTest.RandomWork()
-				Expect(mixin.Process(ctx, wrk, mockProcessingUpdater)).To(BeNil())
+				Expect(processor.ProcessPipeline(ctx, wrk, mockProcessingUpdater).Process(func() *work.ProcessResult { return nil })).To(BeNil())
 			})
 
 			Context("DataRawIDFromMetadata", func() {

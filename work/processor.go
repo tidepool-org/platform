@@ -3,6 +3,8 @@ package work
 import (
 	"context"
 	"time"
+
+	"github.com/tidepool-org/platform/log"
 )
 
 // Allows a processor to update the work in the database while processing that work. Returns the resulting
@@ -43,4 +45,25 @@ type ProcessorFactory interface {
 
 	// Create a new processor to handle a work.
 	New() (Processor, error)
+}
+
+// General provider functionality necessary for a processor.
+//
+//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Provider
+type Provider interface {
+
+	// The context of the processor.
+	Context() context.Context
+
+	// Add field to the context of the processor.
+	AddFieldToContext(key string, value any)
+
+	// Add fields to the context of the processor.
+	AddFieldsToContext(fields log.Fields)
+
+	// Generate a ProcessResult for failing state with the specified error.
+	Failing(err error) *ProcessResult
+
+	// Generate a ProcessResult for failed state with the specified error.
+	Failed(err error) *ProcessResult
 }

@@ -28,10 +28,14 @@ const (
 )
 
 type Dependencies struct {
+	workBase.Dependencies
 	SubmissionProcessor *jotform.SubmissionProcessor
 }
 
 func (d Dependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return errors.Wrap(err, "dependencies is invalid")
+	}
 	if d.SubmissionProcessor == nil {
 		return errors.New("submission processor is missing")
 	}
@@ -57,7 +61,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	base, err := workBase.NewProcessor(processResultBuilder)
+	base, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -88,12 +92,10 @@ type Processor struct {
 	Dependencies
 }
 
-func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) *work.ProcessResult {
-	return work.ProcessPipeline{
-		p.ProcessPipelineFunc(ctx, wrk, updater),
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.reconcile,
-		p.Pending,
-	}.Process()
+	).Process(p.Pending)
 }
 
 func (p *Processor) reconcile() *work.ProcessResult {

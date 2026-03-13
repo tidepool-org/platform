@@ -20,6 +20,7 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
@@ -30,6 +31,7 @@ const (
 var _ = Describe("Processor", func() {
 	var (
 		ctrl                  *gomock.Controller
+		mockWorkClient        *workTest.MockClient
 		mockProcessingUpdater *workTest.MockProcessingUpdater
 
 		logger log.Logger
@@ -45,6 +47,7 @@ var _ = Describe("Processor", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
+		mockWorkClient = workTest.NewMockClient(ctrl)
 		mockProcessingUpdater = workTest.NewMockProcessingUpdater(ctrl)
 
 		logger = logTest.NewLogger()
@@ -62,7 +65,13 @@ var _ = Describe("Processor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		processor, err = event.NewProcessor(event.Dependencies{CustomerIOClient: customerIOClient})
+		dependencies := event.Dependencies{
+			Dependencies: workBase.Dependencies{
+				WorkClient: mockWorkClient,
+			},
+			CustomerIOClient: customerIOClient,
+		}
+		processor, err = event.NewProcessor(dependencies)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(processor).ToNot(BeNil())
 	})

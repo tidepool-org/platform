@@ -20,11 +20,17 @@ import (
 
 var _ = Describe("Processor", func() {
 	var mockController *gomock.Controller
+	var mockWorkClient *workTest.MockClient
 	var mockProcessResultBuilder *workTest.MockProcessResultBuilder
+	var dependencies workBase.Dependencies
 
 	BeforeEach(func() {
 		mockController = gomock.NewController(GinkgoT())
+		mockWorkClient = workTest.NewMockClient(mockController)
 		mockProcessResultBuilder = workTest.NewMockProcessResultBuilder(mockController)
+		dependencies = workBase.Dependencies{
+			WorkClient: mockWorkClient,
+		}
 	})
 
 	AfterEach(func() {
@@ -32,14 +38,21 @@ var _ = Describe("Processor", func() {
 	})
 
 	Context("NewProcessor", func() {
+		It("returns error when dependencies is invalid", func() {
+			dependencies.WorkClient = nil
+			processor, err := workBase.NewProcessor(dependencies, mockProcessResultBuilder)
+			Expect(err).To(MatchError("dependencies is invalid; work client is missing"))
+			Expect(processor).To(BeNil())
+		})
+
 		It("returns error when process result builder is missing", func() {
-			processor, err := workBase.NewProcessor(nil)
+			processor, err := workBase.NewProcessor(dependencies, nil)
 			Expect(err).To(MatchError("process result builder is missing"))
 			Expect(processor).To(BeNil())
 		})
 
 		It("returns Processor when process result builder is valid", func() {
-			processor, err := workBase.NewProcessor(mockProcessResultBuilder)
+			processor, err := workBase.NewProcessor(dependencies, mockProcessResultBuilder)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(processor).ToNot(BeNil())
 		})
@@ -59,14 +72,14 @@ var _ = Describe("Processor", func() {
 
 		JustBeforeEach(func() {
 			var err error
-			processor, err = workBase.NewProcessor(mockProcessResultBuilder)
+			processor, err = workBase.NewProcessor(dependencies, mockProcessResultBuilder)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(processor).ToNot(BeNil())
 		})
 
 		Context("Process", func() {
 			It("returns failed ProcessResult when context is missing", func() {
-				result := processor.Process(nil, wrk, mockProcessingUpdater)
+				result := processor.ProcessPipeline(nil, wrk, mockProcessingUpdater).Process(func() *work.ProcessResult { return nil })
 				Expect(result).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
 					"FailedError": errorsTest.MatchSerialized(MatchError("context is missing")),
 					"Metadata":    BeNil(),
@@ -74,7 +87,7 @@ var _ = Describe("Processor", func() {
 			})
 
 			It("returns failed ProcessResult when work is missing", func() {
-				result := processor.Process(ctx, nil, mockProcessingUpdater)
+				result := processor.ProcessPipeline(ctx, nil, mockProcessingUpdater).Process(func() *work.ProcessResult { return nil })
 				Expect(result).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
 					"FailedError": errorsTest.MatchSerialized(MatchError("work is missing")),
 					"Metadata":    BeNil(),
@@ -82,7 +95,7 @@ var _ = Describe("Processor", func() {
 			})
 
 			It("returns failed ProcessResult when processing updater is missing", func() {
-				result := processor.Process(ctx, wrk, nil)
+				result := processor.ProcessPipeline(ctx, wrk, nil).Process(func() *work.ProcessResult { return nil })
 				Expect(result).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
 					"FailedError": errorsTest.MatchSerialized(MatchError("processing updater is missing")),
 					"Metadata":    BeNil(),
@@ -90,7 +103,7 @@ var _ = Describe("Processor", func() {
 			})
 
 			It("returns nil and sets context, work, and processing updater when all parameters are valid", func() {
-				result := processor.Process(ctx, wrk, mockProcessingUpdater)
+				result := processor.ProcessPipeline(ctx, wrk, mockProcessingUpdater).Process(func() *work.ProcessResult { return nil })
 				Expect(result).To(BeNil())
 				Expect(processor.Context()).ToNot(BeNil())
 				Expect(processor.Work()).To(Equal(wrk))
@@ -98,18 +111,18 @@ var _ = Describe("Processor", func() {
 
 		})
 
-		Context("ProcessPipelineFunc", func() {
+		Context("ProcessPipeline", func() {
 			It("returns a function that calls Process", func() {
-				fn := processor.ProcessPipelineFunc(ctx, wrk, mockProcessingUpdater)
-				Expect(fn).ToNot(BeNil())
-				Expect(fn()).To(BeNil())
+				processPipeline := processor.ProcessPipeline(ctx, wrk, mockProcessingUpdater)
+				Expect(processPipeline).ToNot(BeNil())
+				Expect(processPipeline.Process(func() *work.ProcessResult { return nil })).To(BeNil())
 				Expect(processor.Work()).To(Equal(wrk))
 			})
 		})
 
 		Context("after Process is called with valid parameters", func() {
 			JustBeforeEach(func() {
-				result := processor.Process(ctx, wrk, mockProcessingUpdater)
+				result := processor.ProcessPipeline(ctx, wrk, mockProcessingUpdater).Process(func() *work.ProcessResult { return nil })
 				Expect(result).To(BeNil())
 			})
 

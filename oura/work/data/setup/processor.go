@@ -36,21 +36,21 @@ const (
 )
 
 type Dependencies struct {
+	workBase.Dependencies
 	ProviderSessionClient providerSession.Client
 	DataSourceClient      dataSource.Client
-	WorkClient            work.Client
 	Client                ouraWork.Client
 }
 
 func (d Dependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return errors.Wrap(err, "dependencies is invalid")
+	}
 	if d.ProviderSessionClient == nil {
 		return errors.New("provider session client is missing")
 	}
 	if d.DataSourceClient == nil {
 		return errors.New("data source client is missing")
-	}
-	if d.WorkClient == nil {
-		return errors.New("work client is missing")
 	}
 	if d.Client == nil {
 		return errors.New("client is missing")
@@ -80,7 +80,6 @@ type Processor struct {
 	*DataSourceMixin
 	*DataSourceProviderSessionMixin
 	DataSourceClient dataSource.Client
-	WorkClient       work.Client
 	Client           ouraWork.Client
 	CustomerIOClient *customerio.Client
 }
@@ -97,7 +96,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor(processResultBuilder)
+	processor, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -126,22 +125,19 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		DataSourceMixin:                dataSourceMixin,
 		DataSourceProviderSessionMixin: dataSourceProviderSessionMixin,
 		DataSourceClient:               dependencies.DataSourceClient,
-		WorkClient:                     dependencies.WorkClient,
 		Client:                         dependencies.Client,
 	}, nil
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
-	return work.ProcessPipeline{
-		p.ProcessPipelineFunc(ctx, wrk, processingUpdater),
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.DataSourceMixin.FetchDataSourceFromMetadata,
 		p.FetchProviderSessionFromDataSource,
 		p.OAuthMixin.FetchTokenSource,
 		p.updateDataSourceProviderExternalID,
 		p.updateProviderSessionExternalID,
 		p.createDataHistoricWork,
-		p.Delete,
-	}.Process()
+	).Process(p.Delete)
 }
 
 func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
@@ -198,7 +194,7 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 func (p *Processor) createDataHistoricWork() *work.ProcessResult {
 	if workCreate, err := ouraWorkDataHistoric.NewWorkCreate(p.DataSource, dataWork.TimeRange{From: p.DataSource.LatestDataTime}); err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
-	} else if _, err = p.WorkClient.Create(p.Context(), workCreate); err != nil {
+	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
 	} else {
 		return nil

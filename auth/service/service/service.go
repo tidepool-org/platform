@@ -60,6 +60,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
@@ -910,19 +911,27 @@ func (s *Service) initializeWorkCoordinator() error {
 
 	var factories []work.ProcessorFactory
 
+	dependencies := workBase.Dependencies{
+		WorkClient: s.workClient,
+	}
+
 	s.Logger().Info("Creating jotform work processor factory")
 
-	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
+	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{Dependencies: dependencies, SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
 		return errors.Wrap(err, "unable to create jotform work processor factory")
 	} else {
 		factories = append(factories, factory)
 	}
 
-	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{CustomerIOClient: s.customerIOClient}); err != nil {
+	s.Logger().Info("Creating customerio work processor factory")
+
+	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{Dependencies: dependencies, CustomerIOClient: s.customerIOClient}); err != nil {
 		return errors.Wrap(err, "unable to create customerio work processor factory")
 	} else {
 		factories = append(factories, factory)
 	}
+
+	s.Logger().Info("Registering work processor factories")
 
 	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
 		return errors.Wrapf(err, "unable to register work processor factories")
