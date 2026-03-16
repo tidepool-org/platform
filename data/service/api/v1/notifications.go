@@ -32,7 +32,7 @@ func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := claims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := claims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -52,7 +52,7 @@ func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := connrequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := connrequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -72,7 +72,7 @@ func SendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := connissues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := connissues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}

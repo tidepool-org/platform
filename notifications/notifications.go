@@ -11,6 +11,7 @@ import (
 	dataSourceStore "github.com/tidepool-org/platform/data/source/store/structured"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
@@ -26,9 +27,14 @@ type Dependencies struct {
 	Clinics      clinics.Client
 	Confirmation confirmationClient.ClientWithResponsesInterface
 	DataSources  dataSourceStore.DataSourcesRepository
+	Recorder     history.Recorder
 	Mailer       mailer.Mailer
 	Users        user.Client
 	Worker       work.Client
+}
+
+type Notifier struct {
+	dependencies Dependencies
 }
 
 func NewFailingResult(err error, wrk *work.Work) work.ProcessResult {

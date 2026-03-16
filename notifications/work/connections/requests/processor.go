@@ -9,14 +9,16 @@ import (
 
 	"github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
 
 const (
-	processorType            = "org.tidepool.processors.connections.requests"
+	Type                     = "org.tidepool.user.notification.connection.request"
 	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
@@ -24,7 +26,7 @@ const (
 
 // NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
 func NewGroupID(userID, providerName string) string {
-	return fmt.Sprintf("%s:%s:%s", processorType, userID, providerName)
+	return fmt.Sprintf("%s:%s:%s", Type, userID, providerName)
 }
 
 type Metadata struct {
@@ -42,13 +44,14 @@ type processor struct {
 	dependencies notifications.Dependencies
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
 	whenToSend := metadata.WhenToSend
 	if whenToSend.IsZero() {
 		whenToSend = time.Now().Add(time.Hour * 24 * 7)
 	}
 	create := newWorkCreate(whenToSend, metadata)
-	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
+	groupID := pointer.DefaultString(create.GroupID, "")
+	if groupID != "" {
 		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
 			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
 		}
@@ -56,12 +59,21 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 	if _, err := client.Create(ctx, create); err != nil {
 		return err
 	}
+	entry := history.Entry{
+		ProcessorType: Type,
+		EventType:     history.NotificationQueued,
+		GroupID:       groupID,
+		UserID:        metadata.UserID,
+	}
+	if err := recorder.Create(ctx, entry); err != nil {
+		return err
+	}
 	return nil
 }
 
 func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 	return &work.Create{
-		Type:                    processorType,
+		Type:                    Type,
 		SerialID:                pointer.FromString(metadata.UserID),
 		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID, metadata.ProviderName)),
 		ProcessingTimeout:       processingTimeoutSeconds,
@@ -98,7 +110,7 @@ func NewProcessor(dependencies notifications.Dependencies) *processor {
 }
 
 func (p *processor) Type() string {
-	return processorType
+	return Type
 }
 
 func (p *processor) Quantity() int {
@@ -131,6 +143,19 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 	if len(connectedDataSources) > 0 {
 		// User now has a connected dataSource so no email to send.
+		entry := history.Entry{
+			ProcessorType: Type,
+			Email:         pointer.DefaultString(user.Username, ""),
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			EventType:     history.NotificationConditionsExpired,
+			UserID:        data.UserID,
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification conditions expired event.")
+			}
+		}
+
 		return *work.NewProcessResultDelete()
 	}
 
@@ -153,9 +178,48 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Template:  data.EmailTemplate,
 		Variables: emailVars,
 	}
+	entry := history.Entry{
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(user.Username, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationAttempted,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email attempted event.")
+		}
+	}
+
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
+		entry = history.Entry{
+			ProcessorType: Type,
+			Email:         pointer.DefaultString(user.Username, ""),
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			EventType:     history.NotificationEmailError,
+			UserID:        data.UserID,
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email send error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(err, wrk)
 	}
+	entry = history.Entry{
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(user.Username, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationEmailSent,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
+		}
+	}
+
 	return *work.NewProcessResultDelete()
 }
 

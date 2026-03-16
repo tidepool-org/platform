@@ -7,16 +7,20 @@ import (
 
 	"github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/structure"
 )
 
 const (
-	processorType            = "org.tidepool.processors.connections.issues"
+	Type                     = "org.tidepool.user.notification.connection.issue"
 	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
@@ -24,7 +28,7 @@ const (
 
 // NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
 func NewGroupID(dataSourceID string) string {
-	return fmt.Sprintf("%s:%s", processorType, dataSourceID)
+	return fmt.Sprintf("%s:%s", Type, dataSourceID)
 }
 
 type processor struct {
@@ -60,9 +64,20 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("userId", &d.UserID).NotEmpty()
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
 	create := newWorkCreate(metadata)
 	if _, err := client.Create(ctx, create); err != nil {
+		return err
+	}
+	groupID := pointer.DefaultString(create.GroupID, "")
+	entry := history.Entry{
+		ProcessorType: Type,
+		EventType:     history.NotificationQueued,
+		GroupID:       groupID,
+		DataSourceID:  metadata.DataSourceID,
+		UserID:        metadata.UserID,
+	}
+	if err := recorder.Create(ctx, entry); err != nil {
 		return err
 	}
 	return nil
@@ -70,7 +85,7 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 
 func newWorkCreate(metadata Metadata) *work.Create {
 	return &work.Create{
-		Type:              processorType,
+		Type:              Type,
 		SerialID:          pointer.FromString(metadata.UserID),
 		GroupID:           pointer.FromString(NewGroupID(metadata.DataSourceID)),
 		ProcessingTimeout: processingTimeoutSeconds,
@@ -85,7 +100,7 @@ func NewProcessor(dependencies notifications.Dependencies) *processor {
 }
 
 func (p *processor) Type() string {
-	return processorType
+	return Type
 }
 
 func (p *processor) Quantity() int {
@@ -107,6 +122,19 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
+		entry := history.Entry{
+			ProcessorType: Type,
+			EventType:     history.NotificationGeneralError,
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			DataSourceID:  data.DataSourceID,
+			UserID:        data.UserID,
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 
@@ -120,7 +148,36 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Template:  data.EmailTemplate,
 		Variables: emailVars,
 	}
+	entry := history.Entry{
+		ProcessorType: Type,
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		DataSourceID:  data.DataSourceID,
+		EventType:     history.NotificationAttempted,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email attempted event.")
+		}
+	}
+
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
+		entry := history.Entry{
+			ProcessorType: Type,
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			DataSourceID:  data.DataSourceID,
+			EventType:     history.NotificationEmailError,
+			UserID:        data.UserID,
+			Metadata: bson.M{
+				"error": err,
+			},
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification send email error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(err, wrk)
 	}
 	return *work.NewProcessResultDelete()

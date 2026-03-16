@@ -54,6 +54,7 @@ import (
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 
 	notifications "github.com/tidepool-org/platform/notifications"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/notifications/work/claims"
 	connissues "github.com/tidepool-org/platform/notifications/work/connections/issues"
 	connreqs "github.com/tidepool-org/platform/notifications/work/connections/requests"
@@ -76,6 +77,7 @@ type Standard struct {
 	mailerClient                   mailer.Mailer
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
+	historyRecorder                notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
 	userClient                     user.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
@@ -703,11 +705,13 @@ func (s *Standard) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to register abbott processors")
 	}
 
+	s.historyRecorder = notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
 	notificationsDependencies := notifications.Dependencies{
 		Auth:         s.AuthClient(),
 		Clinics:      s.clinicsClient,
 		Confirmation: s.confirmationClient,
 		DataSources:  s.dataSourceStructuredStore.NewDataSourcesRepository(),
+		Recorder:     s.historyRecorder,
 		Mailer:       s.mailerClient,
 		Users:        s.userClient,
 		Worker:       s.workClient,
@@ -764,7 +768,7 @@ func (s *Standard) initializeAPI() error {
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient, s.historyRecorder,
 		s.abbottClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
