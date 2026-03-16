@@ -1223,6 +1223,12 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								Expect(status).To(BeNil())
 							})
 
+							It("correctly does not find the LastUpload and LastData for user without data", func() {
+								status, err := repository.GetLastUpdatedForUser(ctx, "non-user", []string{selfmonitored.Type, continuous.Type}, time.Time{})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(status).To(BeNil())
+							})
+
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{bolus.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
