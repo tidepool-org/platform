@@ -58,8 +58,8 @@ var _ = Describe("Client", func() {
 			mockDataSourcesRepository = dataSourceStoreStructuredTest.NewMockDataSourcesRepository(mockController)
 			mockStore = dataSourceStoreStructuredTest.NewMockStore(mockController)
 
-			mockStore.EXPECT().NewDataSourcesRepository().Return(mockDataSourcesRepository).Times(1)
-			mockProvider.EXPECT().DataSourceStructuredStore().Return(mockStore).Times(1)
+			mockStore.EXPECT().NewDataSourcesRepository().Return(mockDataSourcesRepository)
+			mockProvider.EXPECT().DataSourceStructuredStore().Return(mockStore)
 
 			var err error
 			client, err = dataSourceServiceClient.New(mockProvider)
@@ -85,7 +85,7 @@ var _ = Describe("Client", func() {
 
 				It("returns an error when the data source structured repository list returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().List(ctx, userID, filter, pagination).Return(nil, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().List(ctx, userID, filter, pagination).Return(nil, responseErr)
 					result, err := client.List(ctx, userID, filter, pagination)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -93,7 +93,7 @@ var _ = Describe("Client", func() {
 
 				It("returns successfully when the data source structured repository list returns successfully", func() {
 					responseResult := dataSourceTest.RandomSourceArray(1, 3, test.AllowOptional())
-					mockDataSourcesRepository.EXPECT().List(ctx, userID, filter, pagination).Return(responseResult, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().List(ctx, userID, filter, pagination).Return(responseResult, nil)
 					result, err := client.List(ctx, userID, filter, pagination)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(Equal(responseResult))
@@ -109,7 +109,7 @@ var _ = Describe("Client", func() {
 
 				It("returns an error when the data source structured repository create returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().Create(ctx, userID, create).Return(nil, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().Create(ctx, userID, create).Return(nil, responseErr)
 					result, err := client.Create(ctx, userID, create)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -117,7 +117,7 @@ var _ = Describe("Client", func() {
 
 				It("returns successfully when the data source structured repository create returns successfully", func() {
 					responseResult := dataSourceTest.RandomSource(test.AllowOptional())
-					mockDataSourcesRepository.EXPECT().Create(ctx, userID, create).Return(responseResult, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().Create(ctx, userID, create).Return(responseResult, nil)
 					result, err := client.Create(ctx, userID, create)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(Equal(responseResult))
@@ -127,12 +127,12 @@ var _ = Describe("Client", func() {
 			Context("DeleteAll", func() {
 				It("returns an error when the data source structured repository delete all returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().DeleteAll(ctx, userID).Return(responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().DeleteAll(ctx, userID).Return(responseErr)
 					errorsTest.ExpectEqual(client.DeleteAll(ctx, userID), responseErr)
 				})
 
 				It("returns successfully when the data source structured repository delete all returns successfully", func() {
-					mockDataSourcesRepository.EXPECT().DeleteAll(ctx, userID).Return(nil).Times(1)
+					mockDataSourcesRepository.EXPECT().DeleteAll(ctx, userID).Return(nil)
 					Expect(client.DeleteAll(ctx, userID)).To(Succeed())
 				})
 			})
@@ -148,7 +148,7 @@ var _ = Describe("Client", func() {
 			Context("Get", func() {
 				It("returns an error when the data source structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().Get(ctx, id).Return(nil, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().Get(ctx, id).Return(nil, responseErr)
 					result, err := client.Get(ctx, id)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -156,7 +156,7 @@ var _ = Describe("Client", func() {
 
 				It("returns successfully when the user client ensure authorized user returns successfully", func() {
 					responseResult := dataSourceTest.RandomSource(test.AllowOptional())
-					mockDataSourcesRepository.EXPECT().Get(ctx, id).Return(responseResult, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().Get(ctx, id).Return(responseResult, nil)
 					result, err := client.Get(ctx, id)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(Equal(responseResult))
@@ -174,7 +174,7 @@ var _ = Describe("Client", func() {
 
 				It("returns an error when the data source structured repository update returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().Update(ctx, id, condition, update).Return(nil, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().Update(ctx, id, condition, update).Return(nil, responseErr)
 					result, err := client.Update(ctx, id, condition, update)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -182,7 +182,7 @@ var _ = Describe("Client", func() {
 
 				It("returns successfully when the data source structured repository update returns successfully", func() {
 					responseResult := dataSourceTest.RandomSource(test.AllowOptional())
-					mockDataSourcesRepository.EXPECT().Update(ctx, id, condition, update).Return(responseResult, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().Update(ctx, id, condition, update).Return(responseResult, nil)
 					result, err := client.Update(ctx, id, condition, update)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(Equal(responseResult))
@@ -198,21 +198,21 @@ var _ = Describe("Client", func() {
 
 				It("returns an error when the data source structured repository delete returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(false, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(false, responseErr)
 					deleted, err := client.Delete(ctx, id, condition)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns successfully when the data source structured repository delete returns successfully without deleted", func() {
-					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(false, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(false, nil)
 					deleted, err := client.Delete(ctx, id, condition)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeFalse())
 				})
 
 				It("returns successfully when the data source structured repository delete returns successfully with deleted", func() {
-					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(true, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().Delete(ctx, id, condition).Return(true, nil)
 					deleted, err := client.Delete(ctx, id, condition)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(deleted).To(BeTrue())
@@ -230,7 +230,7 @@ var _ = Describe("Client", func() {
 			Context("GetFromProviderSession", func() {
 				It("returns an error when the data source structured repository get returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					mockDataSourcesRepository.EXPECT().GetFromProviderSession(ctx, providerSessionID).Return(nil, responseErr).Times(1)
+					mockDataSourcesRepository.EXPECT().GetFromProviderSession(ctx, providerSessionID).Return(nil, responseErr)
 					result, err := client.GetFromProviderSession(ctx, providerSessionID)
 					errorsTest.ExpectEqual(err, responseErr)
 					Expect(result).To(BeNil())
@@ -238,7 +238,7 @@ var _ = Describe("Client", func() {
 
 				It("returns successfully when the user client ensure authorized user returns successfully", func() {
 					responseResult := dataSourceTest.RandomSource(test.AllowOptional())
-					mockDataSourcesRepository.EXPECT().GetFromProviderSession(ctx, providerSessionID).Return(responseResult, nil).Times(1)
+					mockDataSourcesRepository.EXPECT().GetFromProviderSession(ctx, providerSessionID).Return(responseResult, nil)
 					result, err := client.GetFromProviderSession(ctx, providerSessionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(result).To(Equal(responseResult))

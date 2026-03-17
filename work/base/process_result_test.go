@@ -20,7 +20,7 @@ import (
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
-var _ = Describe("ProcessResult", func() {
+var _ = Describe("process_result", func() {
 	var ctx context.Context
 	var mockController *gomock.Controller
 	var wrk *work.Work

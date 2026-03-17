@@ -671,7 +671,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 			DataSourceClient:      s.dataSourceClient,
 			DataRawClient:         s.dataRawClient,
 			DataSetClient:         s.dataClient,
-			Client:                s.ouraClient,
+			OuraClient:            s.ouraClient,
 		}
 		ouraProcessorFactories, err := ouraWorkProcessors.NewProcessorFactories(ouraDependencies)
 		if err != nil {
@@ -682,6 +682,12 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 		if err = s.workCoordinator.RegisterProcessorFactories(ouraProcessorFactories); err != nil {
 			return errors.Wrap(err, "unable to register oura processor factories")
+		}
+
+		s.Logger().Debug("Ensuring oura work")
+
+		if err := ouraWorkProcessors.EnsureWork(ouraDependencies); err != nil {
+			return errors.Wrap(err, "unable to ensure oura work")
 		}
 	}
 

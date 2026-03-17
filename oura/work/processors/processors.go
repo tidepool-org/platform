@@ -5,8 +5,7 @@ import (
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSet "github.com/tidepool-org/platform/data/set"
 	dataSource "github.com/tidepool-org/platform/data/source"
-	dataWork "github.com/tidepool-org/platform/data/work"
-	errors "github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
@@ -22,7 +21,7 @@ type (
 	DataSourceClient      = dataSource.Client
 	DataRawClient         = dataRaw.Client
 	DataSetClient         = dataSet.Client
-	Client                = oura.Client
+	OuraClient            = oura.Client
 )
 
 type Dependencies struct {
@@ -31,7 +30,7 @@ type Dependencies struct {
 	DataSourceClient
 	DataRawClient
 	DataSetClient
-	Client
+	OuraClient
 }
 
 func (d Dependencies) Validate() error {
@@ -50,8 +49,8 @@ func (d Dependencies) Validate() error {
 	if d.DataSetClient == nil {
 		return errors.New("data set client is missing")
 	}
-	if d.Client == nil {
-		return errors.New("client is missing")
+	if d.OuraClient == nil {
+		return errors.New("oura client is missing")
 	}
 	return nil
 }
@@ -64,14 +63,10 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	var processorFactories []work.ProcessorFactory
 
 	if processorFactory, err := ouraDataWorkEvent.NewProcessorFactory(ouraDataWorkEvent.Dependencies{
-		Dependencies: dependencies.Dependencies,
-		DataDependencies: dataWork.Dependencies{
-			ProviderSessionClient: dependencies.ProviderSessionClient,
-			DataSourceClient:      dependencies.DataSourceClient,
-			DataRawClient:         dependencies.DataRawClient,
-			DataSetClient:         dependencies.DataSetClient,
-		},
-		Client: dependencies.Client,
+		Dependencies:          dependencies.Dependencies,
+		ProviderSessionClient: dependencies.ProviderSessionClient,
+		DataSourceClient:      dependencies.DataSourceClient,
+		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -79,14 +74,10 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	if processorFactory, err := ouraDataWorkHistoric.NewProcessorFactory(ouraDataWorkHistoric.Dependencies{
-		Dependencies: dependencies.Dependencies,
-		DataDependencies: dataWork.Dependencies{
-			ProviderSessionClient: dependencies.ProviderSessionClient,
-			DataSourceClient:      dependencies.DataSourceClient,
-			DataRawClient:         dependencies.DataRawClient,
-			DataSetClient:         dependencies.DataSetClient,
-		},
-		Client: dependencies.Client,
+		Dependencies:          dependencies.Dependencies,
+		ProviderSessionClient: dependencies.ProviderSessionClient,
+		DataSourceClient:      dependencies.DataSourceClient,
+		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -97,7 +88,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
-		Client:                dependencies.Client,
+		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -106,7 +97,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 
 	if processorFactory, err := ouraWebhookWorkSubscribe.NewProcessorFactory(ouraWebhookWorkSubscribe.Dependencies{
 		Dependencies: dependencies.Dependencies,
-		Client:       dependencies.Client,
+		OuraClient:   dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -115,7 +106,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 
 	if processorFactory, err := ouraUsersWorkRevoke.NewProcessorFactory(ouraUsersWorkRevoke.Dependencies{
 		Dependencies: dependencies.Dependencies,
-		Client:       dependencies.Client,
+		OuraClient:   dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
 	} else {
@@ -123,4 +114,12 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	}
 
 	return processorFactories, nil
+}
+
+func EnsureWork(dependencies Dependencies) error {
+	if err := dependencies.Validate(); err != nil {
+		return errors.Wrap(err, "dependencies is invalid")
+	}
+
+	return nil
 }

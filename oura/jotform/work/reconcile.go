@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura/jotform"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -24,8 +25,19 @@ const (
 
 	MetadataKeyLastProcessedSubmissionID = "lastProcessedSubmissionId"
 	initialSubmissionID                  = "0"
-	reconcilerWorkID                     = "reconciler"
 )
+
+type Metadata struct {
+	LastProcessedSubmissionID *string `json:"lastProcessedSubmissionId,omitempty" bson:"lastProcessedSubmissionId,omitempty"`
+}
+
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.LastProcessedSubmissionID = parser.String(MetadataKeyLastProcessedSubmissionID)
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.String(MetadataKeyLastProcessedSubmissionID, m.LastProcessedSubmissionID).Exists().NotEmpty()
+}
 
 type Dependencies struct {
 	workBase.Dependencies
@@ -34,7 +46,7 @@ type Dependencies struct {
 
 func (d Dependencies) Validate() error {
 	if err := d.Dependencies.Validate(); err != nil {
-		return errors.Wrap(err, "dependencies is invalid")
+		return err
 	}
 	if d.SubmissionProcessor == nil {
 		return errors.New("submission processor is missing")
@@ -44,13 +56,17 @@ func (d Dependencies) Validate() error {
 
 func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory, error) {
 	if err := dependencies.Validate(); err != nil {
-		return nil, errors.Wrap(err, "dependencies are invalid")
+		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 	processorFactory := func() (work.Processor, error) { return NewProcessor(dependencies) }
 	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
+	}
+
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultPendingBuilder: &workBase.ConstantProcessResultPendingBuilder{
 			Duration: PendingRetryDuration,
@@ -61,7 +77,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	base, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
+	base, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -88,7 +104,7 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 }
 
 type Processor struct {
-	*workBase.Processor
+	*workBase.Processor[Metadata]
 	Dependencies
 }
 
@@ -99,15 +115,12 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 }
 
 func (p *Processor) reconcile() *work.ProcessResult {
-	lastProcessedSubmissionID, err := p.lastProcessedSubmissionIDFromMetadata()
-	if err != nil {
-		return p.Failed(err)
-	} else if lastProcessedSubmissionID == nil {
+	if p.Metadata().LastProcessedSubmissionID == nil {
 		return p.Failed(errors.New("last processed submission id is missing"))
 	}
 
-	result, err := p.SubmissionProcessor.Reconcile(p.Context(), *lastProcessedSubmissionID)
-	p.Work().Metadata[MetadataKeyLastProcessedSubmissionID] = result.LastProcessedID
+	result, err := p.SubmissionProcessor.Reconcile(p.Context(), *p.Metadata().LastProcessedSubmissionID)
+	p.Metadata().LastProcessedSubmissionID = pointer.FromString(result.LastProcessedID)
 	p.AddFieldsToContext(log.Fields{
 		"processed": result.TotalProcessed,
 	})
@@ -115,13 +128,6 @@ func (p *Processor) reconcile() *work.ProcessResult {
 	if err != nil {
 		return p.Failing(err)
 	}
-
-	p.Logger().Info("reconciled submissions")
+	log.LoggerFromContext(p.Context()).Info("reconciled submissions")
 	return nil
-}
-
-func (p *Processor) lastProcessedSubmissionIDFromMetadata() (*string, error) {
-	parser := p.MetadataParser()
-	lastProcessedSubmissionID := parser.String(MetadataKeyLastProcessedSubmissionID)
-	return lastProcessedSubmissionID, parser.Error()
 }

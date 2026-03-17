@@ -52,7 +52,7 @@ func CloneDataSetClient(datum *data.DataSetClient) *data.DataSetClient {
 	return clone
 }
 
-func RandomDataSetUpdate() *data.DataSetUpdate {
+func RandomDataSetUpdate(options ...test.Option) *data.DataSetUpdate {
 	datum := data.NewDataSetUpdate()
 	datum.Active = pointer.FromBool(false)
 	datum.DeviceID = pointer.FromString(NewDeviceID())
@@ -66,7 +66,7 @@ func RandomDataSetUpdate() *data.DataSetUpdate {
 	return datum
 }
 
-func RandomDataSet() *data.DataSet {
+func RandomDataSet(options ...test.Option) *data.DataSet {
 	createdTime := test.RandomTimeBefore(time.Now().Add(-30 * 24 * time.Hour))
 	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-24*time.Hour))
 	deletedTime := test.RandomTimeFromRange(modifiedTime, time.Now())

@@ -4,62 +4,60 @@ import (
 	"context"
 	"time"
 
-	dataSource "github.com/tidepool-org/platform/data/source"
+	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
-	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/times"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const (
-	Type      = "org.tidepool.oura.work.data.historic"
-	Quantity  = 4
-	Frequency = 5 * time.Second
-
-	FailingRetryDuration       = 1 * time.Minute
+	FailingRetryDuration       = time.Minute
 	FailingRetryDurationJitter = 5 * time.Second
-
-	ProcessingTimeout = 15 * 60 // Seconds
 )
 
-type Dependencies struct {
-	workBase.Dependencies
-	DataDependencies dataWork.Dependencies
-	Client           oura.Client
+type (
+	ProviderSessionMetadata = providerSessionWork.Metadata
+	TimeRangeMetadata       = times.TimeRangeMetadata
+)
+
+type Metadata struct {
+	ProviderSessionMetadata `json:",inline"`
+	TimeRangeMetadata       `json:",inline"`
 }
 
-func (d Dependencies) Validate() error {
-	if err := d.Dependencies.Validate(); err != nil {
-		return errors.Wrap(err, "dependencies is invalid")
-	}
-	if err := d.DataDependencies.Validate(); err != nil {
-		return err
-	}
-	if d.Client == nil {
-		return errors.New("client is missing")
-	}
-	return nil
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.ProviderSessionMetadata.Parse(parser)
+	m.TimeRangeMetadata.Parse(parser)
 }
 
-func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory, error) {
-	if err := dependencies.Validate(); err != nil {
-		return nil, errors.Wrap(err, "dependencies is invalid")
-	}
-	processorFactory := func() (work.Processor, error) { return NewProcessor(dependencies) }
-	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
+func (m *Metadata) Validate(validator structure.Validator) {
+	m.ProviderSessionMetadata.Validate(validator)
+	m.TimeRangeMetadata.Validate(validator)
 }
 
-type DataMixin = dataWork.Mixin
+type (
+	ProviderSessionMixin           = providerSessionWork.MixinFromWork
+	DataSourceMixin                = dataSourceWork.Mixin
+	ProviderSessionDataSourceMixin = dataWork.ProviderSessionDataSourceMixin
+	OAuthMixin                     = oauthWork.Mixin
+)
 
 type Processor struct {
-	*workBase.Processor
-	*DataMixin
-	Client    oura.Client
-	timeRange *dataWork.TimeRange
+	*workBase.Processor[Metadata]
+	ProviderSessionMixin
+	DataSourceMixin
+	ProviderSessionDataSourceMixin
+	OAuthMixin
+	OuraClient
+	timeRange times.TimeRange
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -74,67 +72,58 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor(dependencies.Dependencies, processResultBuilder)
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
-
-	dataMixin, err := dataWork.NewMixin(processor, dependencies.DataDependencies)
+	providerSessionMixin, err := providerSessionWork.NewMixinFromWork(processor, dependencies.ProviderSessionClient, &processor.Metadata().ProviderSessionMetadata)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create data mixin")
+		return nil, errors.Wrap(err, "unable to create provider session mixin")
+	}
+	dataSourceMixin, err := dataSourceWork.NewMixin(processor, dependencies.DataSourceClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create data source mixin")
+	}
+	providerSessionDataSourceMixin, err := dataWork.NewProviderSessionDataSourceMixin(processor, providerSessionMixin, dataSourceMixin)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create provider session data source mixin")
+	}
+	oauthMixin, err := oauthWork.NewMixin(processor, providerSessionMixin)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create oauth mixin")
 	}
 
 	return &Processor{
-		Processor: processor,
-		DataMixin: dataMixin,
+		Processor:                      processor,
+		ProviderSessionMixin:           providerSessionMixin,
+		DataSourceMixin:                dataSourceMixin,
+		ProviderSessionDataSourceMixin: providerSessionDataSourceMixin,
+		OAuthMixin:                     oauthMixin,
+		OuraClient:                     dependencies.OuraClient,
 	}, nil
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.FetchProviderSessionFromWorkMetadata,
+		p.FetchDataSourceFromProviderSession,
+		p.FetchTokenSource,
 		p.prepareTimeRange,
-		func() *work.ProcessResult { return nil }, // TODO: Implement
+		// TODO: BACK-4035
 	).Process(p.Delete)
 }
 
 func (p *Processor) prepareTimeRange() *work.ProcessResult {
-	timeRange, err := p.TimeRangeFromMetadata()
-	if err != nil {
-		return p.Failed(errors.Wrap(err, "unable to parse time range from metadata"))
-	} else if timeRange == nil {
-		timeRange = &dataWork.TimeRange{}
-	}
-
-	p.AddFieldToContext("timeRangeInitial", *timeRange)
-
 	to := time.Now()
-	if timeRange.To == nil || timeRange.To.After(to) {
-		timeRange.To = pointer.FromTime(to)
-	}
+	from := to.AddDate(-oura.TimeRangeMaximumYears, 0, 0)
 
-	*timeRange = timeRange.Truncate(time.Millisecond)
-
-	p.AddFieldToContext("timeRangeFinal", *timeRange)
+	timeRange := pointer.Default(p.Metadata().TimeRange, times.TimeRange{})
+	timeRange.From = pointer.DefaultPointer(timeRange.From, pointer.FromTime(from))
+	timeRange.To = pointer.DefaultPointer(timeRange.To, pointer.FromTime(to))
+	timeRange = timeRange.Clamped(from, to).Truncated(oura.TimeRangeTruncatedDuration)
 
 	p.timeRange = timeRange
+
+	log.LoggerFromContext(p.Context()).WithField("timeRange", log.Fields{"initial": p.Metadata().TimeRange, "final": p.timeRange}).Debug("prepared time range")
 	return nil
-}
-
-func NewWorkCreate(dataSrc *dataSource.Source, timeRange dataWork.TimeRange) (*work.Create, error) {
-	if dataSrc == nil {
-		return nil, errors.New("data source is missing")
-	}
-
-	dataSrcID := dataSrc.ID
-	return &work.Create{
-		Type:              Type,
-		GroupID:           pointer.FromString(ouraDataWork.GroupIDFromDataSourceID(dataSrcID)),
-		DeduplicationID:   pointer.FromString(dataSrcID),
-		SerialID:          pointer.FromString(ouraDataWork.SerialIDFromDataSourceID(dataSrcID)),
-		ProcessingTimeout: ProcessingTimeout,
-		Metadata: map[string]any{
-			dataSourceWork.MetadataKeyID:  dataSrcID,
-			dataWork.MetadataKeyTimeRange: timeRange.Truncate(time.Millisecond),
-		},
-	}, nil
 }

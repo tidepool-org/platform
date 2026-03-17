@@ -15,7 +15,7 @@ import (
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
-var _ = Describe("ProcessorFactory", func() {
+var _ = Describe("processor_factory", func() {
 	var typ string
 	var quantity int
 	var frequency time.Duration
@@ -100,10 +100,6 @@ var _ = Describe("ProcessorFactory", func() {
 				expectedProcessor = workTest.NewMockProcessor(mockController)
 				expectedErr = errorsTest.RandomError()
 				newProcessorFunc = func() (work.Processor, error) { return expectedProcessor, expectedErr }
-			})
-
-			AfterEach(func() {
-				mockController.Finish()
 			})
 
 			It("returns an error from newProcessorFunc", func() {

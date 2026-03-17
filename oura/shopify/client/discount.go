@@ -2,11 +2,11 @@ package client
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/oura/shopify/generated"
 	"github.com/tidepool-org/platform/pointer"

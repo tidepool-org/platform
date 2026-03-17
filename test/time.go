@@ -94,7 +94,7 @@ func PinnedTime(value time.Time) time.Time {
 	} else if value.After(RandomTimeMaximum()) {
 		return RandomTimeMaximum()
 	} else {
-		return value.Truncate(time.Millisecond)
+		return normalizeLocation(value.Truncate(time.Millisecond))
 	}
 }
 
@@ -105,4 +105,11 @@ func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {
 	return gomegaGstruct.PointTo(gomega.BeTemporally("==", *datum))
 }
 
-var now = time.Now().Truncate(time.Millisecond).UTC()
+func normalizeLocation(value time.Time) time.Time {
+	if value.Location() == time.Local && time.Local.String() == "UTC" {
+		value = value.In(time.UTC)
+	}
+	return value
+}
+
+var now = normalizeLocation(time.Now().Truncate(time.Millisecond).UTC())

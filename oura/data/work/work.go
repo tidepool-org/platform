@@ -1,15 +1,9 @@
 package work
 
-import (
-	"fmt"
-)
+import "fmt"
 
-const Domain = "org.tidepool.oura.work.data"
+const Domain = "org.tidepool.oura.data"
 
-func GroupIDFromDataSourceID(dataSrcID string) string {
-	return fmt.Sprintf("%s:%s", Domain, dataSrcID)
-}
-
-func SerialIDFromDataSourceID(dataSrcID string) string {
-	return fmt.Sprintf("%s:%s", Domain, dataSrcID)
+func SerialIDFromProviderSessionID(providerSessionID string) string {
+	return fmt.Sprintf("%s:%s", Domain, providerSessionID)
 }

@@ -33,6 +33,13 @@ const (
 	EventTypeDelete = "delete"
 
 	ProviderName = "oura"
+	PartnerName  = ProviderName
+
+	PartnerPathPrefix = "/v1/partners/" + PartnerName
+
+	TimeRangeFormat            = time.RFC3339
+	TimeRangeTruncatedDuration = time.Second
+	TimeRangeMaximumYears      = 10
 )
 
 func DataTypes() []string {
@@ -64,6 +71,7 @@ func EventTypes() []string {
 	}
 }
 
+//go:generate mockgen -source=oura.go -destination=test/oura_mocks.go -package=test Client
 type Client interface {
 	ListSubscriptions(ctx context.Context) (Subscriptions, error)
 	CreateSubscription(ctx context.Context, create *CreateSubscription) (*Subscription, error)

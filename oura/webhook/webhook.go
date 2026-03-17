@@ -1,11 +1,15 @@
 package webhook
 
 import (
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
+
+const WebhookPathEvent = "/event"
 
 // All, but heartrate
 func DataTypes() []string {
@@ -40,14 +44,10 @@ func ParseEvent(parser structure.ObjectParser) *Event {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewEvent()
-	parser.Parse(datum)
+	datum := &Event{}
+	datum.Parse(parser)
 	return datum
 
-}
-
-func NewEvent() *Event {
-	return &Event{}
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
@@ -64,4 +64,36 @@ func (e *Event) Validate(validator structure.Validator) {
 	validator.String("user_id", e.UserID).Exists().NotEmpty()
 	validator.String("object_id", e.ObjectID).Exists().NotEmpty()
 	validator.String("data_type", e.DataType).Exists().OneOf(DataTypes()...)
+}
+
+func (e *Event) String() string {
+	var parts []string
+	if e.EventTime != nil {
+		parts = append(parts, e.EventTime.Format(time.RFC3339Nano))
+	} else {
+		parts = append(parts, "")
+	}
+	parts = append(parts,
+		pointer.DefaultString(e.EventType, ""),
+		pointer.DefaultString(e.UserID, ""),
+		pointer.DefaultString(e.ObjectID, ""),
+		pointer.DefaultString(e.DataType, ""),
+	)
+	return strings.Join(parts, ":")
+}
+
+const MetadataKeyEvent = "event"
+
+type EventMetadata struct {
+	Event *Event `json:"event,omitempty"`
+}
+
+func (e *EventMetadata) Parse(parser structure.ObjectParser) {
+	e.Event = ParseEvent(parser.WithReferenceObjectParser(MetadataKeyEvent))
+}
+
+func (e *EventMetadata) Validate(validator structure.Validator) {
+	if e.Event != nil {
+		e.Event.Validate(validator.WithReference(MetadataKeyEvent))
+	}
 }

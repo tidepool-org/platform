@@ -5,8 +5,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/structure"
-	structureParser "github.com/tidepool-org/platform/structure/parser"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/work"
 )
 
@@ -21,28 +20,36 @@ func (d Dependencies) Validate() error {
 	return nil
 }
 
-type Processor struct {
+type ProcessorWithoutMetadata = Processor[map[string]any]
+
+func NewProcessorWithoutMetadata(dependencies Dependencies, processResultBuilder work.ProcessResultBuilder) (*ProcessorWithoutMetadata, error) {
+	return NewProcessor[map[string]any](dependencies, processResultBuilder)
+}
+
+type Processor[W any] struct {
 	processResultBuilder work.ProcessResultBuilder
 	workClient           work.Client
 	context              context.Context
 	work                 *work.Work
 	processingUpdater    work.ProcessingUpdater
+	metadata             *W
 }
 
-func NewProcessor(dependencies Dependencies, processResultBuilder work.ProcessResultBuilder) (*Processor, error) {
+func NewProcessor[W any](dependencies Dependencies, processResultBuilder work.ProcessResultBuilder) (*Processor[W], error) {
 	if err := dependencies.Validate(); err != nil {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 	if processResultBuilder == nil {
 		return nil, errors.New("process result builder is missing")
 	}
-	return &Processor{
+	return &Processor[W]{
 		processResultBuilder: processResultBuilder,
 		workClient:           dependencies.WorkClient,
+		metadata:             new(W),
 	}, nil
 }
 
-func (p *Processor) process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+func (p *Processor[W]) process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	if ctx == nil {
 		return work.ProcessResultFailedFromError(errors.New("context is missing"))
 	}
@@ -59,51 +66,35 @@ func (p *Processor) process(ctx context.Context, wrk *work.Work, processingUpdat
 
 	p.AddFieldToContext("work", p.work)
 
-	return nil
+	return p.decodeMetadata()
 }
 
-func (p *Processor) ProcessPipeline(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) work.ProcessPipeline {
+func (p *Processor[W]) ProcessPipeline(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) work.ProcessPipeline {
 	return work.ProcessPipeline{func() *work.ProcessResult { return p.process(ctx, wrk, processingUpdater) }}
 }
 
-func (p *Processor) WorkClient() work.Client {
+func (p *Processor[W]) WorkClient() work.Client {
 	return p.workClient
 }
 
-func (p *Processor) Context() context.Context {
+func (p *Processor[W]) Context() context.Context {
 	return p.context
 }
 
-func (p *Processor) AddFieldToContext(key string, value any) {
+func (p *Processor[W]) AddFieldToContext(key string, value any) {
 	p.context = log.ContextWithField(p.context, key, value)
 }
 
-func (p *Processor) AddFieldsToContext(fields log.Fields) {
+func (p *Processor[W]) AddFieldsToContext(fields log.Fields) {
 	p.context = log.ContextWithFields(p.context, fields)
 }
 
-func (p *Processor) Logger() log.Logger {
-	return log.LoggerFromContext(p.Context())
-}
-
-func (p *Processor) Work() *work.Work {
-	return p.work
-}
-
-func (p *Processor) Metadata() map[string]any {
-	return p.Work().Metadata
-}
-
-func (p *Processor) MetadataParser() structure.ObjectParser {
-	var parsableMetadata *map[string]any
-	if metadata := p.Metadata(); metadata != nil {
-		parsableMetadata = &metadata
-	}
-	return structureParser.NewObject(p.Logger(), parsableMetadata)
-}
-
-func (p *Processor) ProcessingUpdate() *work.ProcessResult {
+func (p *Processor[W]) ProcessingUpdate() *work.ProcessResult {
 	log.LoggerFromContext(p.context).Debug("update work")
+
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 
 	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.context), work.ProcessingUpdate{Metadata: p.work.Metadata})
 	if err != nil {
@@ -115,25 +106,62 @@ func (p *Processor) ProcessingUpdate() *work.ProcessResult {
 
 	p.AddFieldToContext("work", p.work)
 
-	return nil
+	return p.decodeMetadata()
 }
 
-func (p *Processor) Pending() *work.ProcessResult {
+func (p *Processor[W]) Metadata() *W {
+	return p.metadata
+}
+
+func (p *Processor[W]) Pending() *work.ProcessResult {
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 	return p.processResultBuilder.Pending(p.context, p.work)
 }
 
-func (p *Processor) Failing(err error) *work.ProcessResult {
+func (p *Processor[W]) Failing(err error) *work.ProcessResult {
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 	return p.processResultBuilder.Failing(p.context, p.work, err)
 }
 
-func (p *Processor) Failed(err error) *work.ProcessResult {
+func (p *Processor[W]) Failed(err error) *work.ProcessResult {
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 	return p.processResultBuilder.Failed(p.context, p.work, err)
 }
 
-func (p *Processor) Success() *work.ProcessResult {
+func (p *Processor[W]) Success() *work.ProcessResult {
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 	return p.processResultBuilder.Success(p.context, p.work)
 }
 
-func (p *Processor) Delete() *work.ProcessResult {
+func (p *Processor[W]) Delete() *work.ProcessResult {
+	if result := p.encodeMetadata(); result != nil {
+		return result
+	}
 	return p.processResultBuilder.Delete(p.context, p.work)
+}
+
+func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
+	if workMetadata, err := metadata.Decode[W](p.context, p.work.Metadata); err != nil {
+		return p.Failed(err)
+	} else if workMetadata != nil {
+		*p.metadata = *workMetadata
+	}
+	return nil
+}
+
+func (p *Processor[W]) encodeMetadata() *work.ProcessResult {
+	if workMetadata, err := metadata.Encode(p.metadata); err != nil {
+		return p.processResultBuilder.Failed(p.context, p.work, err)
+	} else if workMetadata != nil {
+		p.work.Metadata = workMetadata
+	}
+	return nil
 }
