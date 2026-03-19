@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG GOLANG_VERSION=1.24.5-alpine
 ARG MONGO_VERSION=6.0.23
 ARG PLUGIN_VISIBILITY=public
@@ -13,7 +14,7 @@ WORKDIR /home/tidepool
 
 # platform-base-golang
 FROM golang:${GOLANG_VERSION} AS platform-base-golang
-RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make gcc musl-dev
 
 # platform-base-delve
 FROM platform-base-golang AS platform-base-delve
@@ -44,13 +45,15 @@ COPY plugin/visibility/ ./plugin/visibility/
 # platform-init-public
 FROM platform-init AS platform-init-public
 COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
-RUN make init plugins-visibility
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make init plugins-visibility
 
 # platform-init-private
 FROM platform-init AS platform-init-private
 COPY private/plugin/abbott/go.* ./private/plugin/abbott/
 COPY private/plugin/abbott/abbott/plugin/ ./private/plugin/abbott/abbott/plugin/
-RUN make init plugins-visibility
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make init plugins-visibility
 
 ### Build
 
@@ -58,7 +61,22 @@ RUN make init plugins-visibility
 FROM platform-init-${PLUGIN_VISIBILITY} AS platform-build
 ARG SERVICE DELVE_PORT
 COPY . .
-RUN BUILD=services/${SERVICE} make build
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    BUILD=services/${SERVICE} make build
+
+### CI
+
+# platform-ci
+FROM platform-init-${PLUGIN_VISIBILITY} AS platform-ci
+ENV CGO_ENABLED=1
+COPY . .
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make ci-init generate ci-build
+
+# platform-ci-test
+FROM platform-ci AS platform-ci-test
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    make ci-test-go
 
 ### Delve
 

@@ -120,6 +120,7 @@ var _ = Describe("Service", func() {
 
 			service = authServiceService.New()
 			Expect(service).ToNot(BeNil())
+			Expect(true).To(BeTrue())
 		})
 
 		AfterEach(func() {

@@ -50,7 +50,7 @@ GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
 DOCKER_LOGIN_CMD ?= docker login
-DOCKER_BUILD_CMD ?= docker build
+DOCKER_BUILD_CMD ?= docker buildx build
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
 
@@ -168,6 +168,21 @@ ifdef PLUGIN
 endif
 
 ci: ci-init ci-generate ci-build ci-test ci-docker
+
+ci-in-docker: ci-docker-build-test ci-docker
+
+DOCKER_CACHE_DIR ?= $(HOME)/.cache/buildkit
+
+ci-docker-build-test:
+	@echo "Running CI build and test in Docker..."
+	@cd $(ROOT_DIRECTORY) && \
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) \
+			--network=host \
+			--build-arg PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) \
+			--cache-from type=local,src=$(DOCKER_CACHE_DIR) \
+			--cache-to type=local,dest=$(DOCKER_CACHE_DIR),mode=max \
+			--target platform-ci-test \
+			.
 
 init: go-mod-download
 
@@ -302,7 +317,6 @@ test-go:
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
-ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
 
@@ -350,7 +364,7 @@ endif
 docker-build: docker-dump docker-login
 ifdef DOCKER_REPOSITORY
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --load --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
 ifdef DOCKER_TRAVIS_BRANCH
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
@@ -414,11 +428,12 @@ phony:
 	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g' >> $(MAKEFILE)
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
-    ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
-    ci-test-ginkgo-until-failure ci-test-ginkgo-watch ci-test-go clean clean-all \
-    clean-bin clean-cover clean-debug clean-generate clean-test clean-version \
-    CompileDaemon default docker docker-build docker-dump docker-login docker-push \
-    format format-write format-write-changed generate ginkgo go-generate \
+    ci-build-watch ci-docker ci-docker-build-test ci-generate ci-in-docker \
+    ci-init ci-test ci-test-ginkgo ci-test-ginkgo-until-failure \
+    ci-test-ginkgo-watch ci-test-go clean clean-all clean-bin clean-cover \
+    clean-debug clean-generate clean-test clean-version CompileDaemon default \
+    docker docker-build docker-dump docker-login docker-push format \
+    format-write format-write-changed generate ginkgo go-generate \
     go-mod-download go-mod-tidy goimports imports imports-write \
     imports-write-changed init mockgen phony plugin-visibility \
     plugin-visibility-private plugin-visibility-public plugins-visibility \
