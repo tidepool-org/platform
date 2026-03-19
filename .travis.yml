@@ -32,6 +32,7 @@ before_install:
   - until nc -z localhost 27017; do echo Waiting for MongoDB; sleep 1; done
   - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
   - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
+  - sudo apt-get install -y git-restore-mtime
 
 addons:
   apt:
@@ -41,4 +42,6 @@ addons:
 
 script:
   - export TIMING_CMD='time -p'
+  - git config alias.whatchanged 'log --raw --no-merges'
+  - git restore-mtime
   - make plugins-visibility-${PLUGINS_VISIBILITY} && make ci-in-docker
