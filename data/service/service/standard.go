@@ -686,7 +686,8 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 		s.Logger().Debug("Ensuring oura work")
 
-		if err := ouraWorkProcessors.EnsureWork(ouraDependencies); err != nil {
+		ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+		if err := ouraWorkProcessors.EnsureWork(ctx, ouraDependencies.WorkClient); err != nil {
 			return errors.Wrap(err, "unable to ensure oura work")
 		}
 	}
@@ -733,7 +734,7 @@ func (s *Standard) initializeAPI() error {
 	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient,
 		s.abbottClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")

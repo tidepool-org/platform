@@ -15,12 +15,12 @@ func RandomVerificationToken() string {
 	return test.RandomString()
 }
 
-func RandomEventType() string {
-	return test.RandomStringFromArray(oura.EventTypes())
-}
-
 func RandomDataType() string {
 	return test.RandomStringFromArray(oura.DataTypes())
+}
+
+func RandomEventType() string {
+	return test.RandomStringFromArray(oura.EventTypes())
 }
 
 func RandomID() string {
@@ -35,8 +35,8 @@ func RandomCreateSubscription(options ...test.Option) *oura.CreateSubscription {
 	return &oura.CreateSubscription{
 		CallbackURL:       pointer.FromString(RandomCallbackURL()),
 		VerificationToken: pointer.FromString(RandomVerificationToken()),
-		EventType:         pointer.FromString(RandomEventType()),
 		DataType:          pointer.FromString(RandomDataType()),
+		EventType:         pointer.FromString(RandomEventType()),
 	}
 }
 
@@ -47,8 +47,8 @@ func CloneCreateSubscription(datum *oura.CreateSubscription) *oura.CreateSubscri
 	return &oura.CreateSubscription{
 		CallbackURL:       pointer.CloneString(datum.CallbackURL),
 		VerificationToken: pointer.CloneString(datum.VerificationToken),
-		EventType:         pointer.CloneString(datum.EventType),
 		DataType:          pointer.CloneString(datum.DataType),
+		EventType:         pointer.CloneString(datum.EventType),
 	}
 }
 
@@ -63,11 +63,52 @@ func NewObjectFromCreateSubscription(datum *oura.CreateSubscription, format test
 	if datum.VerificationToken != nil {
 		object["verification_token"] = test.NewObjectFromString(*datum.VerificationToken, format)
 	}
+	if datum.DataType != nil {
+		object["data_type"] = test.NewObjectFromString(*datum.DataType, format)
+	}
 	if datum.EventType != nil {
 		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
 	}
+	return object
+}
+
+func RandomUpdateSubscription(options ...test.Option) *oura.UpdateSubscription {
+	return &oura.UpdateSubscription{
+		CallbackURL:       pointer.FromString(RandomCallbackURL()),
+		VerificationToken: pointer.FromString(RandomVerificationToken()),
+		DataType:          pointer.FromString(RandomDataType()),
+		EventType:         pointer.FromString(RandomEventType()),
+	}
+}
+
+func CloneUpdateSubscription(datum *oura.UpdateSubscription) *oura.UpdateSubscription {
+	if datum == nil {
+		return nil
+	}
+	return &oura.UpdateSubscription{
+		CallbackURL:       pointer.CloneString(datum.CallbackURL),
+		VerificationToken: pointer.CloneString(datum.VerificationToken),
+		DataType:          pointer.CloneString(datum.DataType),
+		EventType:         pointer.CloneString(datum.EventType),
+	}
+}
+
+func NewObjectFromUpdateSubscription(datum *oura.UpdateSubscription, format test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.CallbackURL != nil {
+		object["callback_url"] = test.NewObjectFromString(*datum.CallbackURL, format)
+	}
+	if datum.VerificationToken != nil {
+		object["verification_token"] = test.NewObjectFromString(*datum.VerificationToken, format)
+	}
 	if datum.DataType != nil {
 		object["data_type"] = test.NewObjectFromString(*datum.DataType, format)
+	}
+	if datum.EventType != nil {
+		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
 	}
 	return object
 }
@@ -76,9 +117,9 @@ func RandomSubscription(options ...test.Option) *oura.Subscription {
 	return &oura.Subscription{
 		ID:             pointer.FromString(RandomID()),
 		CallbackURL:    pointer.FromString(RandomCallbackURL()),
-		EventType:      pointer.FromString(RandomEventType()),
 		DataType:       pointer.FromString(RandomDataType()),
-		ExpirationTime: pointer.FromTime(test.RandomTimeAfterNow()),
+		EventType:      pointer.FromString(RandomEventType()),
+		ExpirationTime: pointer.FromTime(test.RandomTimeAfterNow().UTC()),
 	}
 }
 
@@ -89,8 +130,8 @@ func CloneSubscription(datum *oura.Subscription) *oura.Subscription {
 	return &oura.Subscription{
 		ID:             pointer.CloneString(datum.ID),
 		CallbackURL:    pointer.CloneString(datum.CallbackURL),
-		EventType:      pointer.CloneString(datum.EventType),
 		DataType:       pointer.CloneString(datum.DataType),
+		EventType:      pointer.CloneString(datum.EventType),
 		ExpirationTime: pointer.CloneTime(datum.ExpirationTime),
 	}
 }
@@ -106,11 +147,11 @@ func NewObjectFromSubscription(datum *oura.Subscription, format test.ObjectForma
 	if datum.CallbackURL != nil {
 		object["callback_url"] = test.NewObjectFromString(*datum.CallbackURL, format)
 	}
-	if datum.EventType != nil {
-		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
-	}
 	if datum.DataType != nil {
 		object["data_type"] = test.NewObjectFromString(*datum.DataType, format)
+	}
+	if datum.EventType != nil {
+		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
 	}
 	if datum.ExpirationTime != nil {
 		object["expiration_time"] = test.NewObjectFromTime(*datum.ExpirationTime, format)

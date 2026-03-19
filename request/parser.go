@@ -320,7 +320,7 @@ func ParseMediaTypeHeader(header http.Header, key string) (*string, error) {
 func ParseTimeHeader(header http.Header, key string, layout string) (*time.Time, error) {
 	if stringValue, err := ParseSingletonHeader(header, key); err != nil || stringValue == nil {
 		return nil, err
-	} else if value, valueErr := time.Parse(layout, *stringValue); valueErr == nil {
+	} else if value, valueErr := time.ParseInLocation(layout, *stringValue, time.UTC); valueErr == nil {
 		return &value, nil
 	}
 	return nil, ErrorHeaderInvalid(key)

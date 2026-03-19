@@ -12,6 +12,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/summary"
@@ -41,6 +42,7 @@ type Context interface {
 	ClinicsClient() clinics.Client
 	DataRawClient() dataRaw.Client
 	DataSourceClient() dataSource.Client
+	OuraClient() oura.Client
 	WorkClient() work.Client
 
 	AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer

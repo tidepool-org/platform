@@ -219,7 +219,7 @@ func (a *Array) Time(reference int, layout string) *time.Time {
 			}
 
 			var err error
-			timeValue, err = time.Parse(layout, stringValue)
+			timeValue, err = time.ParseInLocation(layout, stringValue, time.UTC)
 			if err != nil {
 				a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 				return nil

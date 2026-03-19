@@ -175,6 +175,13 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 		return result
 	}
 
+	// Delete any existing data source (do not disconnect first, just delete, the replacement already assumed the provider session)
+	if originalDataSource != nil {
+		if _, err := d.DataSourceClient().Delete(ctx, originalDataSource.ID, nil); err != nil {
+			log.LoggerFromContext(ctx).WithError(err).WithField("dataSourceId", originalDataSource.ID).Warn("unable to delete existing data source")
+		}
+	}
+
 	// Update the replacement data source
 	if replacementDataSourceUpdate != nil {
 		if result := d.UpdateDataSource(replacementDataSourceUpdate); result != nil {
@@ -186,13 +193,6 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 	if dataSourceMixinFromWork, ok := d.dataSourceMixin.(dataSourceWork.MixinFromWork); ok && dataSourceMixinFromWork.HasWorkMetadata() {
 		if result := dataSourceMixinFromWork.UpdateWorkMetadataFromDataSource(); result != nil {
 			return result
-		}
-	}
-
-	// Delete any existing data source (do not disconnect first, just delete, the replacement already assumed the provider session)
-	if originalDataSource != nil {
-		if _, err := d.DataSourceClient().Delete(ctx, originalDataSource.ID, nil); err != nil {
-			log.LoggerFromContext(ctx).WithError(err).WithField("dataSourceId", originalDataSource.ID).Warn("unable to delete existing data source")
 		}
 	}
 

@@ -898,17 +898,6 @@ func (s *Service) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Info("Ensuring reconciler work item exists")
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	ctx = log.NewContextWithLogger(ctx, s.Logger())
-	err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure reconciler work item exists")
-	}
-
 	var factories []work.ProcessorFactory
 
 	dependencies := workBase.Dependencies{
@@ -935,6 +924,17 @@ func (s *Service) initializeWorkCoordinator() error {
 
 	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
 		return errors.Wrapf(err, "unable to register work processor factories")
+	}
+
+	s.Logger().Info("Ensuring reconciler work item exists")
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	ctx = log.NewContextWithLogger(ctx, s.Logger())
+	err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
+	if err != nil {
+		return errors.Wrap(err, "unable to ensure reconciler work item exists")
 	}
 
 	s.Logger().Info("Starting work coordinator")

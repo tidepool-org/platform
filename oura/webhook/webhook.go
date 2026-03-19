@@ -9,7 +9,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-const WebhookPathEvent = "/event"
+const EventPath = "/event"
 
 // All, but heartrate
 func DataTypes() []string {
@@ -33,11 +33,11 @@ func DataTypes() []string {
 }
 
 type Event struct {
-	EventTime *time.Time `json:"event_time,omitempty"`
-	EventType *string    `json:"event_type,omitempty"`
-	UserID    *string    `json:"user_id,omitempty"`
-	ObjectID  *string    `json:"object_id,omitempty"`
-	DataType  *string    `json:"data_type,omitempty"`
+	EventTime *time.Time `json:"event_time,omitempty" bson:"event_time,omitempty"`
+	EventType *string    `json:"event_type,omitempty" bson:"event_type,omitempty"`
+	UserID    *string    `json:"user_id,omitempty" bson:"user_id,omitempty"`
+	ObjectID  *string    `json:"object_id,omitempty" bson:"object_id,omitempty"`
+	DataType  *string    `json:"data_type,omitempty" bson:"data_type,omitempty"`
 }
 
 func ParseEvent(parser structure.ObjectParser) *Event {
@@ -85,7 +85,7 @@ func (e *Event) String() string {
 const MetadataKeyEvent = "event"
 
 type EventMetadata struct {
-	Event *Event `json:"event,omitempty"`
+	Event *Event `json:"event,omitempty" bson:"event,omitempty"`
 }
 
 func (e *EventMetadata) Parse(parser structure.ObjectParser) {

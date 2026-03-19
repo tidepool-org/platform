@@ -189,7 +189,7 @@ func (v *Values) Time(reference string, layout string) *time.Time {
 		return nil
 	}
 
-	timeValue, err := time.Parse(layout, rawValue)
+	timeValue, err := time.ParseInLocation(layout, rawValue, time.UTC)
 	if err != nil {
 		v.base.WithReference(reference).ReportError(structureParser.ErrorValueTimeNotParsable(rawValue, layout))
 		return nil

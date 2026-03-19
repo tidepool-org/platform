@@ -49,6 +49,7 @@ var _ = Describe("processor", func() {
 				datum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraDataWorkEventTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraDataWorkEventTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *ouraDataWorkEvent.Metadata) {},

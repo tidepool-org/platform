@@ -1,11 +1,14 @@
 package processors
 
 import (
+	"context"
+
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSet "github.com/tidepool-org/platform/data/set"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
@@ -116,10 +119,20 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 	return processorFactories, nil
 }
 
-func EnsureWork(dependencies Dependencies) error {
-	if err := dependencies.Validate(); err != nil {
-		return errors.Wrap(err, "dependencies is invalid")
+func EnsureWork(ctx context.Context, workClient work.Client) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if workClient == nil {
+		return errors.New("work client is missing")
 	}
 
+	if workCreate, err := ouraWebhookWorkSubscribe.NewWorkCreate(); err != nil {
+		return errors.Wrap(err, "unable to create webhook subscribe work create")
+	} else if _, err = workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create webhook subscribe work")
+	}
+
+	log.LoggerFromContext(ctx).Debug("created webhook subscribe work")
 	return nil
 }

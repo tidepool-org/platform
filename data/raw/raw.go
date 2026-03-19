@@ -22,11 +22,11 @@ const (
 )
 
 type Filter struct {
-	CreatedDate *string `json:"createdDate,omitempty"`
-	DataSetID   *string `json:"dataSetId,omitempty"`
-	Processed   *bool   `json:"processed,omitempty"`
-	Archivable  *bool   `json:"archivable,omitempty"`
-	Archived    *bool   `json:"archived,omitempty"`
+	CreatedDate *string `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
+	DataSetID   *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	Processed   *bool   `json:"processed,omitempty" bson:"processed,omitempty"`
+	Archivable  *bool   `json:"archivable,omitempty" bson:"archivable,omitempty"`
+	Archived    *bool   `json:"archived,omitempty" bson:"archived,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -54,10 +54,10 @@ func (f *Filter) CreatedTime() *time.Time {
 }
 
 type Create struct {
-	Metadata       map[string]any `json:"metadata,omitempty"`
-	DigestMD5      *string        `json:"digestMD5,omitempty"`
-	MediaType      *string        `json:"mediaType,omitempty"`
-	ArchivableTime *time.Time     `json:"archivableTime,omitempty"`
+	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	DigestMD5      *string        `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
+	MediaType      *string        `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
+	ArchivableTime *time.Time     `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 }
 
 func (c *Create) Parse(parser structure.ObjectParser) {
@@ -77,9 +77,9 @@ func (c *Create) Validate(validator structure.Validator) {
 }
 
 type Content struct {
-	DigestMD5  string        `json:"digestMD5"`
-	MediaType  string        `json:"mediaType"`
-	ReadCloser io.ReadCloser `json:"-"`
+	DigestMD5  string        `json:"digestMD5" bson:"digestMD5"`
+	MediaType  string        `json:"mediaType" bson:"mediaType"`
+	ReadCloser io.ReadCloser `json:"-" bson:"-"`
 }
 
 func (c *Content) Validate(validator structure.Validator) {
@@ -91,10 +91,10 @@ func (c *Content) Validate(validator structure.Validator) {
 }
 
 type Update struct {
-	ProcessedTime  *time.Time      `json:"processedTime,omitempty"`
-	ArchivableTime *time.Time      `json:"archivableTime,omitempty"`
-	ArchivedTime   *time.Time      `json:"archivedTime,omitempty"`
-	Metadata       *map[string]any `json:"metadata,omitempty"`
+	ProcessedTime  *time.Time      `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
+	ArchivableTime *time.Time      `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
+	ArchivedTime   *time.Time      `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	Metadata       *map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func (u *Update) Parse(parser structure.ObjectParser) {
@@ -116,19 +116,19 @@ func (u *Update) Validate(validator structure.Validator) {
 }
 
 type Raw struct {
-	ID             string         `json:"id"`
-	UserID         string         `json:"userId"`
-	DataSetID      string         `json:"dataSetId"`
-	Metadata       map[string]any `json:"metadata,omitempty"`
-	DigestMD5      string         `json:"digestMD5"`
-	MediaType      string         `json:"mediaType"`
-	Size           int            `json:"size"`
-	ProcessedTime  *time.Time     `json:"processedTime,omitempty"`
-	ArchivableTime *time.Time     `json:"archivableTime,omitempty"`
-	ArchivedTime   *time.Time     `json:"archivedTime,omitempty"`
-	CreatedTime    time.Time      `json:"createdTime"`
-	ModifiedTime   *time.Time     `json:"modifiedTime,omitempty"`
-	Revision       int            `json:"revision"`
+	ID             string         `json:"id" bson:"id"`
+	UserID         string         `json:"userId" bson:"userId"`
+	DataSetID      string         `json:"dataSetId" bson:"dataSetId"`
+	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	DigestMD5      string         `json:"digestMD5" bson:"digestMD5"`
+	MediaType      string         `json:"mediaType" bson:"mediaType"`
+	Size           int            `json:"size" bson:"size"`
+	ProcessedTime  *time.Time     `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
+	ArchivableTime *time.Time     `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
+	ArchivedTime   *time.Time     `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	CreatedTime    time.Time      `json:"createdTime" bson:"createdTime"`
+	ModifiedTime   *time.Time     `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	Revision       int            `json:"revision" bson:"revision"`
 }
 
 func (r *Raw) Parse(parser structure.ObjectParser) {

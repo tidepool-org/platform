@@ -2,7 +2,6 @@ package provider
 
 import (
 	"context"
-	"net/url"
 	"slices"
 
 	"github.com/tidepool-org/platform/auth"
@@ -52,7 +51,7 @@ type Provider struct {
 	dataSourceClient      dataSource.Client
 	workClient            work.Client
 	acceptURL             *string
-	partnerURL            *url.URL
+	partnerURL            string
 	partnerSecret         string
 	client                *ouraClient.Client
 }
@@ -65,14 +64,9 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	oauthProviderClient, err := oauthProviderClient.New(oura.ProviderName, dependencies.Config.Config, nil)
+	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, nil, ouraClient.NewErrorResponseParser())
 	if err != nil {
 		return nil, err
-	}
-
-	partnerURL, err := url.Parse(dependencies.Config.PartnerURL)
-	if err != nil {
-		return nil, errors.Wrap(err, "partner url is invalid")
 	}
 
 	provider := &Provider{
@@ -81,7 +75,7 @@ func New(dependencies Dependencies) (*Provider, error) {
 		dataSourceClient:      dependencies.DataSourceClient,
 		workClient:            dependencies.WorkClient,
 		acceptURL:             dependencies.Config.Provider.AcceptURL,
-		partnerURL:            partnerURL,
+		partnerURL:            dependencies.Config.PartnerURL,
 		partnerSecret:         dependencies.Config.PartnerSecret,
 	}
 
@@ -150,7 +144,7 @@ func (p *Provider) UserActionAcceptURL(ctx context.Context, userID string, actio
 	}
 }
 
-func (p *Provider) PartnerURL() *url.URL {
+func (p *Provider) PartnerURL() string {
 	return p.partnerURL
 }
 

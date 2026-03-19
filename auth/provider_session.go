@@ -36,10 +36,10 @@ type ProviderSessionClient interface {
 }
 
 type ProviderSessionFilter struct {
-	UserID     *string `json:"userId,omitempty"`
-	Type       *string `json:"type,omitempty"`
-	Name       *string `json:"name,omitempty"`
-	ExternalID *string `json:"externalId,omitempty"`
+	UserID     *string `json:"userId,omitempty" bson:"userId,omitempty"`
+	Type       *string `json:"type,omitempty" bson:"type,omitempty"`
+	Name       *string `json:"name,omitempty" bson:"name,omitempty"`
+	ExternalID *string `json:"externalId,omitempty" bson:"externalId,omitempty"`
 }
 
 func NewProviderSessionFilter() *ProviderSessionFilter {

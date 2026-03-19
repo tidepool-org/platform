@@ -319,15 +319,15 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 	ctx = context.WithoutCancel(ctx)
 
 	result, err := s.InsertOne(ctx, document)
-	lgr = lgr.WithError(err)
 	if err != nil {
 
 		// Return nil without error to indicate duplicate based upon type and deduplication id (see unique index above), but ok
 		if mongo.IsDuplicateKeyError(err) {
+			lgr.Debug("work with same type and deduplication id already exists")
 			return nil, nil
 		}
 
-		lgr.Error("unable to create work")
+		lgr.WithError(err).Error("unable to create work")
 		return nil, errors.Wrap(err, "unable to create work")
 	}
 

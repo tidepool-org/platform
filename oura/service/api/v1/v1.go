@@ -7,7 +7,7 @@ import (
 )
 
 func Routes() []dataService.Route {
-	webhookPath := oura.PartnerPathPrefix + ouraWebhook.WebhookPathEvent
+	webhookPath := oura.PartnerPathPrefix + ouraWebhook.EventPath
 	return []dataService.Route{
 		dataService.Get(webhookPath, Subscription),
 		dataService.Post(webhookPath, Event),

@@ -48,9 +48,9 @@ type Client interface {
 }
 
 type Filter struct {
-	ProviderType       *string `json:"providerType,omitempty"`
-	ProviderName       *string `json:"providerName,omitempty"`
-	ProviderExternalID *string `json:"providerExternalId,omitempty"`
+	ProviderType       *string `json:"providerType,omitempty" bson:"providerType,omitempty"`
+	ProviderName       *string `json:"providerName,omitempty" bson:"providerName,omitempty"`
+	ProviderExternalID *string `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
 }
 
 func NewFilter() *Filter {
@@ -84,10 +84,10 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 }
 
 type Create struct {
-	ProviderType       string         `json:"providerType"`
-	ProviderName       string         `json:"providerName"`
-	ProviderExternalID *string        `json:"providerExternalId,omitempty"`
-	Metadata           map[string]any `json:"metadata,omitempty"`
+	ProviderType       string         `json:"providerType" bson:"providerType"`
+	ProviderName       string         `json:"providerName" bson:"providerName"`
+	ProviderExternalID *string        `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
+	Metadata           map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func NewCreate() *Create {
@@ -115,15 +115,15 @@ func (c *Create) Validate(validator structure.Validator) {
 }
 
 type Update struct {
-	ProviderSessionID  *string              `json:"providerSessionId,omitempty"`
-	ProviderExternalID *string              `json:"providerExternalId,omitempty"`
-	State              *string              `json:"state,omitempty"`
-	Metadata           *map[string]any      `json:"metadata,omitempty"`
-	Error              *errors.Serializable `json:"error,omitempty"`
-	DataSetID          *string              `json:"dataSetId,omitempty"`
-	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty"`
-	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty"`
-	LastImportTime     *time.Time           `json:"lastImportTime,omitempty"`
+	ProviderSessionID  *string              `json:"providerSessionId,omitempty" bson:"providerSessionId,omitempty"`
+	ProviderExternalID *string              `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
+	State              *string              `json:"state,omitempty" bson:"state,omitempty"`
+	Metadata           *map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	Error              *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
+	DataSetID          *string              `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
+	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
+	LastImportTime     *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
 }
 
 func NewUpdate() *Update {

@@ -266,7 +266,17 @@ var _ = Describe("mixin", func() {
 					Expect(mixin.ReplaceDataSource(replacementDataSource)).To(workTest.MatchFailedProcessResultError(MatchError("replacement data source is missing")))
 				})
 
-				assertWithWorkMetadata := func(inner func()) {
+				assertWorkMetadata := func() {
+					Context("without work metadata", func() {
+						BeforeEach(func() {
+							mockDataSourceMixin.EXPECT().HasWorkMetadata().Return(false)
+						})
+
+						It("returns successfully", func() {
+							Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
+						})
+					})
+
 					Context("with work metadata", func() {
 						BeforeEach(func() {
 							mockDataSourceMixin.EXPECT().HasWorkMetadata().Return(true)
@@ -283,8 +293,56 @@ var _ = Describe("mixin", func() {
 								mockDataSourceMixin.EXPECT().UpdateWorkMetadataFromDataSource().Return(nil)
 							})
 
+							It("returns successfully", func() {
+								Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
+							})
+						})
+					})
+				}
+
+				assertDataSourceUpdate := func() {
+					Context("with data source update", func() {
+						It("returns result if unable to update replacement data source", func() {
+							expectedResult := workTest.RandomFailedProcessResult()
+							mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(expectedResult)
+							Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
+						})
+
+						Context("replacement data source updated successfully", func() {
+							BeforeEach(func() {
+								mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(nil)
+							})
+
+							assertWorkMetadata()
+						})
+					})
+				}
+
+				assertDataSourceSet := func(inner func()) {
+					Context("with replacement data source", func() {
+						It("returns result if unable to set replacement data source", func() {
+							expectedResult := workTest.RandomFailedProcessResult()
+							mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(expectedResult)
+							Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
+						})
+
+						Context("replacement data source set successfully", func() {
+							BeforeEach(func() {
+								mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(nil)
+							})
+
 							inner()
 						})
+					})
+				}
+
+				assertWithoutOriginalDataSource := func(inner func()) {
+					Context("without original data source", func() {
+						BeforeEach(func() {
+							mockDataSourceMixin.EXPECT().DataSource().Return(nil)
+						})
+
+						assertDataSourceSet(inner)
 					})
 				}
 
@@ -301,46 +359,28 @@ var _ = Describe("mixin", func() {
 							}
 						})
 
-						It("returns result if unable to set replacement data source", func() {
-							expectedResult := workTest.RandomFailedProcessResult()
-							mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(expectedResult)
-							Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-						})
+						assertDataSourceSet(func() {
+							Context("original data source delete returns error", func() {
+								var testErr error
 
-						Context("replacement data source set successfully", func() {
-							BeforeEach(func() {
-								mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(nil)
-							})
-
-							It("returns result if unable to update replacement data source", func() {
-								expectedResult := workTest.RandomFailedProcessResult()
-								mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(expectedResult)
-								Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-							})
-
-							Context("replacement data source updated successfully", func() {
 								BeforeEach(func() {
-									mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(nil)
+									testErr = errorsTest.RandomError()
+									mockDataSourceClient.EXPECT().Delete(gomock.Any(), originalDataSource.ID, nil).Return(false, testErr)
 								})
 
-								assertWithWorkMetadata(func() {
-									It("logs warning if original data source cannot be deleted", func() {
-										testErr := errorsTest.RandomError()
-										mockDataSourceClient.EXPECT().Delete(gomock.Any(), originalDataSource.ID, nil).Return(false, testErr)
-										Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
-										mockLogger.AssertWarn("unable to delete existing data source", log.Fields{"dataSourceId": originalDataSource.ID, "error": errors.NewSerializable(testErr)})
-									})
-
-									Context("original data source deleted successfully", func() {
-										BeforeEach(func() {
-											mockDataSourceClient.EXPECT().Delete(gomock.Any(), originalDataSource.ID, nil).Return(true, nil)
-										})
-
-										It("returns successfully", func() {
-											Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
-										})
-									})
+								AfterEach(func() {
+									mockLogger.AssertWarn("unable to delete existing data source", log.Fields{"dataSourceId": originalDataSource.ID, "error": errors.NewSerializable(testErr)})
 								})
+
+								assertDataSourceUpdate()
+							})
+
+							Context("original data source deleted successfully", func() {
+								BeforeEach(func() {
+									mockDataSourceClient.EXPECT().Delete(gomock.Any(), originalDataSource.ID, nil).Return(true, nil)
+								})
+
+								assertDataSourceUpdate()
 							})
 						})
 					})
@@ -381,30 +421,7 @@ var _ = Describe("mixin", func() {
 									mockDataSourceClient.EXPECT().Get(gomock.Any(), replacementDataSource.ID).Return(replacementDataSource, nil)
 								})
 
-								Context("without original data source", func() {
-									BeforeEach(func() {
-										mockDataSourceMixin.EXPECT().DataSource().Return(nil)
-									})
-
-									It("returns result if unable to set replacement data source", func() {
-										expectedResult := workTest.RandomFailedProcessResult()
-										mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(expectedResult)
-										Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-									})
-
-									Context("replacement data source set successfully", func() {
-										BeforeEach(func() {
-											mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(nil)
-										})
-
-										assertWithWorkMetadata(func() {
-											It("returns successfully", func() {
-												Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
-											})
-										})
-									})
-								})
-
+								assertWithoutOriginalDataSource(assertWorkMetadata)
 								assertWithOriginalDataSource()
 							})
 						})
@@ -422,42 +439,7 @@ var _ = Describe("mixin", func() {
 							mockLogger.AssertWarn("replacement data source not disconnected and without provider session id", log.Fields{"replacementDataSourceId": replacementDataSource.ID})
 						})
 
-						Context("without original data source", func() {
-							BeforeEach(func() {
-								mockDataSourceMixin.EXPECT().DataSource().Return(nil)
-							})
-
-							It("returns result if unable to set replacement data source", func() {
-								expectedResult := workTest.RandomFailedProcessResult()
-								mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(expectedResult)
-								Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-							})
-
-							Context("replacement data source set successfully", func() {
-								BeforeEach(func() {
-									mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(nil)
-								})
-
-								It("returns result if unable to update replacement data source", func() {
-									expectedResult := workTest.RandomFailedProcessResult()
-									mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(expectedResult)
-									Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-								})
-
-								Context("replacement data source updated successfully", func() {
-									BeforeEach(func() {
-										mockDataSourceMixin.EXPECT().UpdateDataSource(replacementDataSourceUpdate).Return(nil)
-									})
-
-									assertWithWorkMetadata(func() {
-										It("returns successfully", func() {
-											Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
-										})
-									})
-								})
-							})
-						})
-
+						assertWithoutOriginalDataSource(assertDataSourceUpdate)
 						assertWithOriginalDataSource()
 					})
 				})
@@ -468,30 +450,7 @@ var _ = Describe("mixin", func() {
 						replacementDataSource.ProviderSessionID = nil
 					})
 
-					Context("without original data source", func() {
-						BeforeEach(func() {
-							mockDataSourceMixin.EXPECT().DataSource().Return(nil)
-						})
-
-						It("returns result if unable to set replacement data source", func() {
-							expectedResult := workTest.RandomFailedProcessResult()
-							mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(expectedResult)
-							Expect(mixin.ReplaceDataSource(replacementDataSource)).To(Equal(expectedResult))
-						})
-
-						Context("replacement data source set successfully", func() {
-							BeforeEach(func() {
-								mockDataSourceMixin.EXPECT().SetDataSource(replacementDataSource).Return(nil)
-							})
-
-							assertWithWorkMetadata(func() {
-								It("returns successfully", func() {
-									Expect(mixin.ReplaceDataSource(replacementDataSource)).To(BeNil())
-								})
-							})
-						})
-					})
-
+					assertWithoutOriginalDataSource(assertWorkMetadata)
 					assertWithOriginalDataSource()
 				})
 			})

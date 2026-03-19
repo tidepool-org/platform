@@ -56,6 +56,21 @@ var _ = Describe("Source", func() {
 	})
 
 	Context("Filter", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *dataSource.Filter)) {
+				datum := dataSourceTest.RandomFilter(test.AllowOptional())
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromFilter(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *dataSource.Filter) {},
+			),
+			Entry("empty",
+				func(datum *dataSource.Filter) { *datum = dataSource.Filter{} },
+			),
+		)
+
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataSource.Filter), expectedErrors ...error) {
@@ -276,6 +291,7 @@ var _ = Describe("Source", func() {
 				datum := dataSourceTest.RandomCreate(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Create) {},
@@ -484,6 +500,7 @@ var _ = Describe("Source", func() {
 				datum := dataSourceTest.RandomUpdate(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataSource.Update) {},

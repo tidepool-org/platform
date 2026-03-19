@@ -31,6 +31,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
 	metricTest "github.com/tidepool-org/platform/metric/test"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -229,6 +230,10 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 }
 
 func (c *mockDataServiceContext) WorkClient() work.Client {
+	panic("not implemented")
+}
+
+func (c *mockDataServiceContext) OuraClient() oura.Client {
 	panic("not implemented")
 }
 

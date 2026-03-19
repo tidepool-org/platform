@@ -21,6 +21,86 @@ import (
 	times "github.com/tidepool-org/platform/times"
 )
 
+// MockBaseClient is a mock of BaseClient interface.
+type MockBaseClient struct {
+	ctrl     *gomock.Controller
+	recorder *MockBaseClientMockRecorder
+	isgomock struct{}
+}
+
+// MockBaseClientMockRecorder is the mock recorder for MockBaseClient.
+type MockBaseClientMockRecorder struct {
+	mock *MockBaseClient
+}
+
+// NewMockBaseClient creates a new mock instance.
+func NewMockBaseClient(ctrl *gomock.Controller) *MockBaseClient {
+	mock := &MockBaseClient{ctrl: ctrl}
+	mock.recorder = &MockBaseClientMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockBaseClient) EXPECT() *MockBaseClientMockRecorder {
+	return m.recorder
+}
+
+// ClientID mocks base method.
+func (m *MockBaseClient) ClientID() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientID")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ClientID indicates an expected call of ClientID.
+func (mr *MockBaseClientMockRecorder) ClientID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientID", reflect.TypeOf((*MockBaseClient)(nil).ClientID))
+}
+
+// ClientSecret mocks base method.
+func (m *MockBaseClient) ClientSecret() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientSecret")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ClientSecret indicates an expected call of ClientSecret.
+func (mr *MockBaseClientMockRecorder) ClientSecret() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientSecret", reflect.TypeOf((*MockBaseClient)(nil).ClientSecret))
+}
+
+// PartnerSecret mocks base method.
+func (m *MockBaseClient) PartnerSecret() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartnerSecret")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// PartnerSecret indicates an expected call of PartnerSecret.
+func (mr *MockBaseClientMockRecorder) PartnerSecret() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerSecret", reflect.TypeOf((*MockBaseClient)(nil).PartnerSecret))
+}
+
+// PartnerURL mocks base method.
+func (m *MockBaseClient) PartnerURL() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartnerURL")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// PartnerURL indicates an expected call of PartnerURL.
+func (mr *MockBaseClientMockRecorder) PartnerURL() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerURL", reflect.TypeOf((*MockBaseClient)(nil).PartnerURL))
+}
+
 // MockClient is a mock of Client interface.
 type MockClient struct {
 	ctrl     *gomock.Controller
@@ -43,6 +123,34 @@ func NewMockClient(ctrl *gomock.Controller) *MockClient {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
+}
+
+// ClientID mocks base method.
+func (m *MockClient) ClientID() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientID")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ClientID indicates an expected call of ClientID.
+func (mr *MockClientMockRecorder) ClientID() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientID", reflect.TypeOf((*MockClient)(nil).ClientID))
+}
+
+// ClientSecret mocks base method.
+func (m *MockClient) ClientSecret() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClientSecret")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ClientSecret indicates an expected call of ClientSecret.
+func (mr *MockClientMockRecorder) ClientSecret() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClientSecret", reflect.TypeOf((*MockClient)(nil).ClientSecret))
 }
 
 // CreateSubscription mocks base method.
@@ -75,10 +183,10 @@ func (mr *MockClientMockRecorder) DeleteSubscription(ctx, id any) *gomock.Call {
 }
 
 // GetData mocks base method.
-func (m *MockClient) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (oura.Data, error) {
+func (m *MockClient) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (*oura.Data, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetData", ctx, dataType, timeRange, tokenSource)
-	ret0, _ := ret[0].(oura.Data)
+	ret0, _ := ret[0].(*oura.Data)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -134,6 +242,34 @@ func (mr *MockClientMockRecorder) ListSubscriptions(ctx any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListSubscriptions", reflect.TypeOf((*MockClient)(nil).ListSubscriptions), ctx)
 }
 
+// PartnerSecret mocks base method.
+func (m *MockClient) PartnerSecret() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartnerSecret")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// PartnerSecret indicates an expected call of PartnerSecret.
+func (mr *MockClientMockRecorder) PartnerSecret() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerSecret", reflect.TypeOf((*MockClient)(nil).PartnerSecret))
+}
+
+// PartnerURL mocks base method.
+func (m *MockClient) PartnerURL() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PartnerURL")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// PartnerURL indicates an expected call of PartnerURL.
+func (mr *MockClientMockRecorder) PartnerURL() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PartnerURL", reflect.TypeOf((*MockClient)(nil).PartnerURL))
+}
+
 // RenewSubscription mocks base method.
 func (m *MockClient) RenewSubscription(ctx context.Context, id string) (*oura.Subscription, error) {
 	m.ctrl.T.Helper()
@@ -161,4 +297,19 @@ func (m *MockClient) RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAut
 func (mr *MockClientMockRecorder) RevokeOAuthToken(ctx, oauthToken any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RevokeOAuthToken", reflect.TypeOf((*MockClient)(nil).RevokeOAuthToken), ctx, oauthToken)
+}
+
+// UpdateSubscription mocks base method.
+func (m *MockClient) UpdateSubscription(ctx context.Context, id string, update *oura.UpdateSubscription) (*oura.Subscription, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSubscription", ctx, id, update)
+	ret0, _ := ret[0].(*oura.Subscription)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateSubscription indicates an expected call of UpdateSubscription.
+func (mr *MockClientMockRecorder) UpdateSubscription(ctx, id, update any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscription", reflect.TypeOf((*MockClient)(nil).UpdateSubscription), ctx, id, update)
 }

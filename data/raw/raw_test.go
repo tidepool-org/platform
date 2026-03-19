@@ -45,6 +45,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomFilter(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Filter) {},
@@ -177,6 +178,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomCreate(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromCreate(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Create) {},
@@ -301,6 +303,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomContent(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromContent(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromContent(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Content) {},
@@ -364,6 +367,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomUpdate(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromUpdate(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Update) {},
@@ -483,6 +487,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomRaw(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromRaw(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromRaw(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Raw) {},

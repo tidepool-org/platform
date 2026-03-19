@@ -18,8 +18,8 @@ import (
 )
 
 var _ = Describe("Webhook", func() {
-	It("WebhookPathEvent is expected", func() {
-		Expect(ouraWebhook.WebhookPathEvent).To(Equal("/event"))
+	It("EventPath is expected", func() {
+		Expect(ouraWebhook.EventPath).To(Equal("/event"))
 	})
 
 	Context("DataTypes", func() {
@@ -64,6 +64,7 @@ var _ = Describe("Webhook", func() {
 				datum := ouraWebhookTest.RandomEvent(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraWebhookTest.NewObjectFromEvent(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraWebhookTest.NewObjectFromEvent(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *ouraWebhook.Event) {},
@@ -234,7 +235,7 @@ var _ = Describe("Webhook", func() {
 		})
 
 		Context("with event", func() {
-			var eventTime, _ = time.Parse(time.RFC3339Nano, "2026-01-15T20:15:42.123Z")
+			var eventTime, _ = time.ParseInLocation(time.RFC3339Nano, "2026-01-15T20:15:42.123Z", time.UTC)
 
 			DescribeTable("String returns expected string",
 				func(eventTime *time.Time, eventType *string, userID *string, objectID *string, dataType *string, expectedString string) {
@@ -268,6 +269,7 @@ var _ = Describe("Webhook", func() {
 				datum := ouraWebhookTest.RandomEventMetadata(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraWebhookTest.NewObjectFromEventMetadata(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraWebhookTest.NewObjectFromEventMetadata(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *ouraWebhook.EventMetadata) {},

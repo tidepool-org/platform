@@ -301,6 +301,7 @@ var _ = Describe("processor", func() {
 
 									It("returns failing process result if unable to update replacement data source", func() {
 										testErr := errorsTest.RandomError()
+										mockDataSourceClient.EXPECT().Delete(gomock.Any(), dataSrcID, nil).Return(true, nil)
 										mockDataSourceClient.EXPECT().Update(gomock.Any(), existingDataSrc.ID, nil, expectedDataSrcUpdate).Return(nil, testErr)
 										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 									})
@@ -310,8 +311,8 @@ var _ = Describe("processor", func() {
 											updatedDataSrc := dataSourceTest.CloneSource(existingDataSrc)
 											updatedDataSrc.ProviderSessionID = pointer.FromString(providerSessionID)
 											updatedDataSrc.State = dataSource.StateConnected
-											mockDataSourceClient.EXPECT().Update(gomock.Any(), existingDataSrc.ID, nil, expectedDataSrcUpdate).Return(updatedDataSrc, nil)
 											mockDataSourceClient.EXPECT().Delete(gomock.Any(), dataSrcID, nil).Return(true, nil)
+											mockDataSourceClient.EXPECT().Update(gomock.Any(), existingDataSrc.ID, nil, expectedDataSrcUpdate).Return(updatedDataSrc, nil)
 										})
 
 										assertProviderSessionUpdateAndWorkCreate()

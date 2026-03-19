@@ -26,8 +26,8 @@ type (
 )
 
 type Metadata struct {
-	ProviderSessionMetadata `json:",inline"`
-	EventMetadata           `json:",inline"`
+	ProviderSessionMetadata `json:",inline" bson:",inline"`
+	EventMetadata           `json:",inline" bson:",inline"`
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
