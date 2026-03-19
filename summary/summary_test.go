@@ -36,7 +36,7 @@ func GetBuckets[B BucketDataPt[A], A BucketData](ctx context.Context, userId str
 }
 
 var _ = Describe("End to end summary calculations", func() {
-	var err error
+	var err error 
 	var logger log.Logger
 	var ctx context.Context
 	var registry *summary.SummarizerRegistry

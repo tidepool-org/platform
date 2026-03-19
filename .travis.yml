@@ -20,7 +20,7 @@ env:
 
 cache:
   directories:
-    - $HOME/.cache/go-build
+    - $HOME/.cache/buildkit
 
 before_install:
   # Remove broken RabbitMQ repos
@@ -33,6 +33,7 @@ before_install:
   - /usr/bin/mongosh --eval 'rs.initiate(); while (rs.status().startupStatus || (rs.status().hasOwnProperty("myState") && rs.status().myState != 1)) { printjson( rs.status() ); sleep(1000); }; printjson( rs.status() );'
   - echo -e "machine github.com\n  login $GITHUB_TOKEN" > ~/.netrc
   - sudo apt-get install -y git-restore-mtime
+  - mkdir -p $HOME/.cache/buildkit
 
 addons:
   apt:

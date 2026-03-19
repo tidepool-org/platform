@@ -171,12 +171,16 @@ ci: ci-init ci-generate ci-build ci-test ci-docker
 
 ci-in-docker: ci-docker-build-test ci-docker
 
+DOCKER_CACHE_DIR ?= $(HOME)/.cache/buildkit
+
 ci-docker-build-test:
 	@echo "Running CI build and test in Docker..."
 	@cd $(ROOT_DIRECTORY) && \
 		$(TIMING_CMD) $(DOCKER_BUILD_CMD) \
 			--network=host \
 			--build-arg PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) \
+			--cache-from type=local,src=$(DOCKER_CACHE_DIR) \
+			--cache-to type=local,dest=$(DOCKER_CACHE_DIR),mode=max \
 			--target platform-ci-test \
 			.
 
