@@ -79,6 +79,8 @@ var _ = Describe("SubmissionProcessor", func() {
 		jotformConfig := jotform.Config{
 			BaseURL: jotformServer.URL,
 			FormID:  formID,
+			Enabled: true,
+			TeamID:  "test-team",
 		}
 
 		appAPIResponses = ouraTest.NewStubResponses()

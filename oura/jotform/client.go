@@ -114,7 +114,7 @@ func (c *defaultClient) GetSubmission(ctx context.Context, submissionID string) 
 	return &response, nil
 }
 
-func (c *defaultClient) authMutators() []request.RequestMutator{
+func (c *defaultClient) authMutators() []request.RequestMutator {
 	mutators := []request.RequestMutator{
 		request.NewHeaderMutator("APIKEY", c.config.APIKey),
 	}

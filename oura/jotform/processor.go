@@ -47,9 +47,11 @@ type SubmissionProcessor struct {
 }
 
 type Config struct {
+	Enabled bool   `envconfig:"TIDEPOOL_OURA_JOTFORM_ENABLED"`
 	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL" default:"https://api.jotform.com"`
 	APIKey  string `envconfig:"TIDEPOOL_OURA_JOTFORM_API_KEY"`
 	FormID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_FORM_ID"`
+	TeamID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_TEAM_ID"`
 }
 
 func NewSubmissionProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client, userClient user.Client, shopifyClient shopify.Client, submissionStore store.Store) (*SubmissionProcessor, error) {
@@ -73,6 +75,10 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 }
 
 func (s *SubmissionProcessor) Reconcile(ctx context.Context, lastSubmissionID string) (ReconcileResult, error) {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform reconcile was called, but jotform integration is not enabled")
+		return ReconcileResult{}, nil
+	}
 	return s.reconcile(ctx, s.config.FormID, lastSubmissionID)
 }
 
@@ -124,6 +130,11 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 }
 
 func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionID string) error {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform process submission was called, but jotform integration is not enabled")
+		return nil
+	}
+
 	submission, err := s.jotformClient.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get submission")
