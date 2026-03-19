@@ -85,12 +85,8 @@ func (c *defaultClient) ListFormSubmissions(ctx context.Context, formID string, 
 
 	url = c.client.AppendURLQuery(url, query)
 
-	mutators := []request.RequestMutator{
-		request.NewHeaderMutator("APIKEY", c.config.APIKey),
-	}
-
 	var response FormSubmissionsResponse
-	if err := c.client.RequestDataWithHTTPClient(ctx, http.MethodGet, url, mutators, nil, &response, nil, c.httpClient); err != nil {
+	if err := c.client.RequestDataWithHTTPClient(ctx, http.MethodGet, url, c.authMutators(), nil, &response, nil, c.httpClient); err != nil {
 		return nil, err
 	}
 
@@ -105,12 +101,8 @@ func (c *defaultClient) ListFormSubmissions(ctx context.Context, formID string, 
 func (c *defaultClient) GetSubmission(ctx context.Context, submissionID string) (*SubmissionResponse, error) {
 	url := c.client.ConstructURL("v1", "submission", submissionID)
 
-	mutators := []request.RequestMutator{
-		request.NewHeaderMutator("APIKEY", c.config.APIKey),
-	}
-
 	var response SubmissionResponse
-	if err := c.client.RequestDataWithHTTPClient(ctx, http.MethodGet, url, mutators, nil, &response, nil, c.httpClient); err != nil {
+	if err := c.client.RequestDataWithHTTPClient(ctx, http.MethodGet, url, c.authMutators(), nil, &response, nil, c.httpClient); err != nil {
 		return nil, err
 	}
 
@@ -120,4 +112,14 @@ func (c *defaultClient) GetSubmission(ctx context.Context, submissionID string) 
 	}
 
 	return &response, nil
+}
+
+func (c *defaultClient) authMutators() []request.RequestMutator{
+	mutators := []request.RequestMutator{
+		request.NewHeaderMutator("APIKEY", c.config.APIKey),
+	}
+	if c.config.TeamID != "" {
+		mutators = append(mutators, request.NewHeaderMutator("jf-team-id", c.config.TeamID))
+	}
+	return mutators
 }
