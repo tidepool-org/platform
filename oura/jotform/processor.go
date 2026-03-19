@@ -77,7 +77,9 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 func (s *SubmissionProcessor) Reconcile(ctx context.Context, lastSubmissionID string) (ReconcileResult, error) {
 	if !s.config.Enabled {
 		s.logger.Debug("jotform reconcile was called, but jotform integration is not enabled")
-		return ReconcileResult{}, nil
+		return ReconcileResult{
+			LastProcessedID: lastSubmissionID,
+		}, nil
 	}
 	return s.reconcile(ctx, s.config.FormID, lastSubmissionID)
 }
