@@ -1390,7 +1390,7 @@ query GetOrder ($identifier: OrderIdentifierInput!) {
 		createdAt
 		updatedAt
 		discountCode
-		lineItems {
+		lineItems(first: 10) {
 			nodes {
 				product {
 					id

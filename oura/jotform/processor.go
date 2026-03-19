@@ -200,12 +200,14 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		logger.Info("submission has no user id")
 		return nil, nil
 	}
+	logger = logger.WithField("userId", userID)
 
 	participantID := answers.GetAnswerTextByName(ParticipantIDField)
 	if participantID == "" {
 		logger.Info("submission has no participant id")
 		return nil, nil
 	}
+	logger = logger.WithField("submissionParticipantId", participantID)
 
 	customer, err := s.customerIOClient.GetCustomer(ctx, userID, customerio.IDTypeUserID)
 	if err != nil {
@@ -213,11 +215,13 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 	}
 
 	if customer == nil {
-		logger.Warnf("customer not found for user with id %s", userID)
+		logger.Warnf("no matching customer found for user id")
 		return nil, nil
 	}
 	if customer.OuraParticipantID != participantID {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.
+			WithField("customerParticipantId", customer.OuraParticipantID).
+			Warnf("submission participant id does not match customer participant id")
 		return nil, nil
 	}
 
@@ -226,7 +230,7 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		return nil, errors.Wrap(err, "unable to get user")
 	}
 	if usr == nil {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.Warnf("user not found")
 		return nil, nil
 	}
 
