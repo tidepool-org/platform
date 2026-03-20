@@ -179,10 +179,7 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeCustomerIOClient(); err != nil {
 		return err
 	}
-	if err := s.initializeShopifyClient(); err != nil {
-		return err
-	}
-	if err := s.initializeShopifyOrderProcessor(); err != nil {
+	if err := s.initializeShopify(); err != nil {
 		return err
 	}
 	if err := s.initializeSubmissionProcessor(); err != nil {
@@ -306,21 +303,6 @@ func (s *Service) initializeUserClient() error {
 	return nil
 }
 
-func (s *Service) initializeShopifyClient() error {
-	shopifyConfig := shopify.ClientConfig{}
-	if err := envconfig.Process("", &shopifyConfig); err != nil {
-		return errors.Wrap(err, "unable to load shopify config")
-	}
-
-	var err error
-	s.shopifyClient, err = shopifyClient.New(context.Background(), shopifyConfig)
-	if err != nil {
-		return errors.Wrap(err, "unable to create shopify client")
-	}
-
-	return nil
-}
-
 func (s *Service) initializeCustomerIOClient() error {
 	customerIOConfig := customerio.Config{}
 	if err := envconfig.Process("", &customerIOConfig); err != nil {
@@ -355,15 +337,26 @@ func (s *Service) initializeSubmissionProcessor() error {
 	return nil
 }
 
-func (s *Service) initializeShopifyOrderProcessor() error {
+func (s *Service) initializeShopify() error {
+	shopifyConfig := shopify.Config{}
+	if err := envconfig.Process("", &shopifyConfig); err != nil {
+		return errors.Wrap(err, "unable to load shopify config")
+	}
+
+	var err error
+	s.shopifyClient, err = shopifyClient.New(context.Background(), shopifyConfig)
+	if err != nil {
+		return errors.Wrap(err, "unable to create shopify client")
+	}
+
 	orderEventStore, err := shopifyStore.NewStore(s.authStore.Store)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify order event store")
 	}
 
-	s.shopifyOrderProcessor, err = shopify.NewOrderProcessor(s.Logger(), s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
+	s.shopifyOrderProcessor, err = shopify.NewOrderProcessor(s.Logger(), shopifyConfig, s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
 	if err != nil {
-		return errors.Wrap(err, "unable to create order processor")
+		return errors.Wrap(err, "unable to create shopify order processor")
 	}
 
 	return nil

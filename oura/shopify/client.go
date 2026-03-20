@@ -11,7 +11,8 @@ const (
 	OrderGIDPrefix   = "gid://shopify/Order/"
 )
 
-type ClientConfig struct {
+type Config struct {
+	Enabled      bool   `envconfig:"TIDEPOOL_OURA_SHOPIFY_ENABLED"`
 	StoreID      string `envconfig:"TIDEPOOL_OURA_SHOPIFY_STORE_ID"`
 	ClientID     string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_ID"`
 	ClientSecret string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_SECRET"`

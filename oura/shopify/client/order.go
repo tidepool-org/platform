@@ -62,10 +62,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 		if lineItem == nil {
 			continue
 		}
-		id := lineItem.GetProduct().GetId()
-		if strings.HasPrefix(id, shopify.ProductGIDPrefix) {
-			id = strings.TrimPrefix(id, shopify.ProductGIDPrefix)
-		}
+		id := strings.TrimPrefix(lineItem.GetProduct().GetId(), shopify.ProductGIDPrefix)
 		summary.OrderedProductIDs = append(summary.OrderedProductIDs, id)
 	}
 
@@ -85,10 +82,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 			if lineItem == nil || lineItem.GetLineItem() == nil {
 				continue
 			}
-			id := lineItem.GetLineItem().GetProduct().GetId()
-			if strings.HasPrefix(id, shopify.ProductGIDPrefix) {
-				id = strings.TrimPrefix(id, shopify.ProductGIDPrefix)
-			}
+			id := strings.TrimPrefix(lineItem.GetLineItem().GetProduct().GetId(), shopify.ProductGIDPrefix)
 			summary.DeliveredProductIDs = append(summary.DeliveredProductIDs, id)
 		}
 	}

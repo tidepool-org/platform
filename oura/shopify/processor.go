@@ -70,6 +70,7 @@ type LineItem struct {
 type OrderProcessor struct {
 	logger log.Logger
 
+	config                Config
 	customerIOClient      *customerio.Client
 	dataSourceClient      dataSource.Client
 	restrictedTokenClient auth.RestrictedTokenAccessor
@@ -77,9 +78,10 @@ type OrderProcessor struct {
 	store                 store.Store
 }
 
-func NewOrderProcessor(logger log.Logger, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor, dataSourceClient dataSource.Client, store store.Store) (*OrderProcessor, error) {
+func NewOrderProcessor(logger log.Logger, config Config, customerIOClient *customerio.Client, shopifyClient Client, restrictedTokenClient auth.RestrictedTokenAccessor, dataSourceClient dataSource.Client, store store.Store) (*OrderProcessor, error) {
 	return &OrderProcessor{
 		logger:                logger,
+		config:                config,
 		customerIOClient:      customerIOClient,
 		dataSourceClient:      dataSourceClient,
 		restrictedTokenClient: restrictedTokenClient,
@@ -89,6 +91,11 @@ func NewOrderProcessor(logger log.Logger, customerIOClient *customerio.Client, s
 }
 
 func (p *OrderProcessor) ReconcileUpdatedOrders(ctx context.Context, updatedSince time.Time) (time.Time, error) {
+	if !p.config.Enabled {
+		p.logger.Debug("shopify reconcile updated orders was called, but shopify integration is not enabled")
+		return updatedSince, nil
+	}
+
 	gids, err := p.shopifyClient.GetGIDsOfUpdatedOrders(ctx, updatedSince, reconcileBatchSize)
 	if err != nil {
 		return updatedSince, errors.Wrap(err, "unable to get GIDs of updated orders")
@@ -97,20 +104,23 @@ func (p *OrderProcessor) ReconcileUpdatedOrders(ctx context.Context, updatedSinc
 	latestUpdatedTime := updatedSince
 	for _, gid := range gids {
 		if order, reconcileErr := p.ReconcileOrder(ctx, gid); reconcileErr != nil {
-			err = errors.Wrapf(err, "unable to reconcile order %s", gid)
-			break
+			return latestUpdatedTime, errors.Wrapf(err, "unable to reconcile order %s", gid)
 		} else if order == nil {
-			err = errors.Wrapf(err, "order is missing %s", gid)
-			break
+			return latestUpdatedTime, errors.Wrapf(err, "order is missing %s", gid)
 		} else {
 			latestUpdatedTime = order.UpdatedTime
 		}
 	}
 
-	return latestUpdatedTime, err
+	return latestUpdatedTime, nil
 }
 
 func (p *OrderProcessor) ReconcileOrder(ctx context.Context, orderGID string) (*OrderSummary, error) {
+	if !p.config.Enabled {
+		p.logger.Debug("shopify reconcile order was called, but shopify integration is not enabled")
+		return nil, nil
+	}
+
 	logger := p.logger.WithField("orderGID", orderGID)
 	order, err := p.shopifyClient.GetOrderSummary(ctx, orderGID)
 	if err != nil {
@@ -134,11 +144,16 @@ func (p *OrderProcessor) ReconcileOrder(ctx context.Context, orderGID string) (*
 }
 
 func (p *OrderProcessor) ProcessFulfillment(ctx context.Context, event FulfillmentEvent) error {
+	if !p.config.Enabled {
+		p.logger.Debug("shopify process fulfillment was called, but shopify integration is not enabled")
+		return nil
+	}
+
 	orderGID := GetOrderGID(event.OrderID)
 	logger := p.logger.WithField("orderGID", orderGID)
 
 	if event.ShipmentStatus == nil || !strings.EqualFold(*event.ShipmentStatus, "delivered") {
-		logger.Warn("ignoring non-delivery fulfillment event")
+		logger.Info("ignoring non-delivery fulfillment event")
 		return nil
 	}
 
@@ -227,10 +242,10 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, order OrderS
 	}
 
 	err = p.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
-		OrderGID:   order.GID,
-		UserID:     customers.Identifiers[0].ID,
-		Type:       store.OrderEventTypeDelivered,
-		CreateTime: time.Now(),
+		OrderGID:    order.GID,
+		UserID:      customers.Identifiers[0].ID,
+		Type:        store.OrderEventTypeDelivered,
+		CreatedTime: time.Now(),
 	})
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify order event")
@@ -240,6 +255,11 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, order OrderS
 }
 
 func (p *OrderProcessor) ProcessOrderCreate(ctx context.Context, event OrdersCreateEvent) error {
+	if !p.config.Enabled {
+		p.logger.Debug("shopify process order create was called, but shopify integration is not enabled")
+		return nil
+	}
+
 	orderGID := GetOrderGID(event.ID)
 	logger := p.logger.WithField("orderGID", orderGID)
 
@@ -328,10 +348,10 @@ func (p *OrderProcessor) processNewOrder(ctx context.Context, order OrderSummary
 	}
 
 	err = p.store.CreateShopifyOrderEvent(ctx, store.ShopifyOrderEvent{
-		OrderGID:   order.GID,
-		UserID:     customers.Identifiers[0].ID,
-		Type:       store.OrderEventTypeCreated,
-		CreateTime: time.Now(),
+		OrderGID:    order.GID,
+		UserID:      customers.Identifiers[0].ID,
+		Type:        store.OrderEventTypeCreated,
+		CreatedTime: time.Now(),
 	})
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify order event")

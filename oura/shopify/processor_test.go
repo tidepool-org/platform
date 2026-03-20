@@ -75,7 +75,11 @@ var _ = Describe("OrderProcessor", func() {
 		authClient = authTest.NewMockClient(ctrl)
 		dataSourceClient = dataSourceTest.NewMockClient(ctrl)
 
-		processor, err = shopify.NewOrderProcessor(logger, customerIOClient, shopifyClnt, authClient, dataSourceClient, GetSuiteStore())
+		config := shopify.Config{
+			Enabled: true,
+		}
+
+		processor, err = shopify.NewOrderProcessor(logger, config, customerIOClient, shopifyClnt, authClient, dataSourceClient, GetSuiteStore())
 		Expect(err).ToNot(HaveOccurred())
 	})
 

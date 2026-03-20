@@ -30,17 +30,17 @@ var (
 )
 
 type ShopifyOrderEvent struct {
-	OrderGID   string    `bson:"orderGID"`
-	UserID     string    `bson:"userId"`
-	Type       string    `bson:"type"`
-	CreateTime time.Time `bson:"createdTime"`
+	OrderGID    string    `bson:"orderGID"`
+	UserID      string    `bson:"userId"`
+	Type        string    `bson:"type"`
+	CreatedTime time.Time `bson:"createdTime"`
 }
 
 func (s *ShopifyOrderEvent) Validate(validator structure.Validator) {
 	validator.String("orderGID", &s.OrderGID).NotEmpty().Matches(orderIDRegExp)
 	validator.String("userId", &s.UserID).NotEmpty().Using(user.IDValidator)
 	validator.String("type", &s.Type).OneOf(OrderEventTypes()...)
-	validator.Time("createdTime", &s.CreateTime).NotZero()
+	validator.Time("createdTime", &s.CreatedTime).NotZero()
 }
 
 func OrderEventTypes() []string {
