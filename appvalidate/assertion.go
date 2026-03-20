@@ -6,8 +6,8 @@ import (
 
 	"github.com/tidepool-org/platform/structure"
 
-	appAssert "github.com/bas-d/appattest/assertion"
-	appUtils "github.com/bas-d/appattest/utils"
+	appAssert "github.com/tidepool-org/appattest/assertion"
+	appUtils "github.com/tidepool-org/appattest/utils"
 )
 
 // AssertionVerify is the expected request body used by clients to complete
