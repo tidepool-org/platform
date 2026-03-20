@@ -92,6 +92,12 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 	if decodeValidateBodyFailed(ctx, responder, req.Request, attestVerify) {
 		return
 	}
+	debugFields := log.Fields{
+		"attestation": attestVerify,
+		"auth":        details,
+	}
+	// Debug context, QA only
+	log.LoggerFromContext(ctx).WithFields(debugFields).Debug("appattest attestation input")
 
 	err := r.AppValidator().VerifyAttestation(ctx, attestVerify)
 	if err != nil {
@@ -135,7 +141,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 		"PartnerData": string(assertVerify.ClientData.PartnerData),
 	}
 	maps.Copy(debugFields, logFields)
-	log.LoggerFromContext(ctx).WithFields(debugFields).Debug("appvalidate input")
+	log.LoggerFromContext(ctx).WithFields(debugFields).Debug("appattest assertion input")
 
 	if err := r.AppValidator().VerifyAssertion(ctx, assertVerify); err != nil {
 		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to verify assertion")
