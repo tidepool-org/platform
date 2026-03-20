@@ -53,6 +53,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 
 	order := resp.GetOrderByIdentifier()
 	summary := shopify.OrderSummary{
+		GID:          orderID,
 		CreatedTime:  order.CreatedAt,
 		DiscountCode: pointer.Default(order.GetDiscountCode(), ""),
 		UpdatedTime:  order.UpdatedAt,
