@@ -152,8 +152,12 @@ func (p *OrderProcessor) ProcessFulfillment(ctx context.Context, event Fulfillme
 	orderGID := GetOrderGID(event.OrderID)
 	logger := p.logger.WithField("orderGID", orderGID)
 
+	if event.Status != "success" {
+		logger.Infof("ignoring fulfillment event with status %s", event.Status)
+		return nil
+	}
 	if event.ShipmentStatus == nil || !strings.EqualFold(*event.ShipmentStatus, "delivered") {
-		logger.Info("ignoring non-delivery fulfillment event")
+		logger.Infof("ignoring fulfillment event with shipment status '%s'", pointer.Default(event.ShipmentStatus, ""))
 		return nil
 	}
 
@@ -174,7 +178,7 @@ func (p *OrderProcessor) processDeliveredOrder(ctx context.Context, order OrderS
 	if event, err := p.store.GetShopifyOrderEvent(ctx, order.GID, store.OrderEventTypeDelivered); err != nil {
 		return errors.Wrap(err, "unable to retrieve shopify order event")
 	} else if event != nil {
-		logger.Info("ignoring order create event because it was already processed")
+		logger.Info("ignoring order delivered event because it was already processed")
 		return nil
 	}
 

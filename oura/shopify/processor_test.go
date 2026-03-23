@@ -100,6 +100,7 @@ var _ = Describe("OrderProcessor", func() {
 			event := shopify.FulfillmentEvent{
 				ID:             9876543,
 				CreatedAt:      time.Now(),
+				Status:         "success",
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
@@ -112,7 +113,7 @@ var _ = Describe("OrderProcessor", func() {
 				DiscountCode:        sizingKitDiscountCode,
 			}
 
-			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, orderSummary.GID)
+			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_sizing_kit_delivered"+orderSummary.GID)
 			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
@@ -178,6 +179,7 @@ var _ = Describe("OrderProcessor", func() {
 			event := shopify.FulfillmentEvent{
 				ID:             9876543,
 				CreatedAt:      time.Now(),
+				Status:         "success",
 				ShipmentStatus: pointer.FromAny("delivered"),
 				OrderID:        rand.Int63n(999999999999),
 			}
@@ -190,7 +192,7 @@ var _ = Describe("OrderProcessor", func() {
 				DiscountCode:        discountCode,
 			}
 
-			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, orderID)
+			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_ring_delivered"+orderID)
 			Expect(err).ToNot(HaveOccurred())
 
 			dataSourceClient.EXPECT().
