@@ -1,14 +1,11 @@
 module github.com/tidepool-org/platform
 
-go 1.24.1
-
-toolchain go1.24.5
+go 1.24.13
 
 require (
 	github.com/IBM/sarama v1.45.1
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.55.6
-	github.com/bas-d/appattest v0.1.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/githubnemo/CompileDaemon v1.4.0
@@ -25,11 +22,13 @@ require (
 	github.com/prometheus/client_golang v1.20.5
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/solworktech/md2pdf/v2 v2.2.18
+	github.com/tidepool-org/appattest v0.0.0-20260323191359-0e09e52e01c0
 	github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55
 	github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677
 	github.com/tidepool-org/platform-plugin-abbott v0.0.0
+	github.com/ugorji/go/codec v1.2.12
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.3
 	go.uber.org/fx v1.23.0
@@ -108,7 +107,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect

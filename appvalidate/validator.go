@@ -11,8 +11,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"golang.org/x/exp/slices"
 
-	attest "github.com/bas-d/appattest/attestation"
-	"github.com/bas-d/appattest/utils"
+	attest "github.com/tidepool-org/appattest/attestation"
+	"github.com/tidepool-org/appattest/utils"
 	"github.com/ugorji/go/codec"
 
 	"github.com/tidepool-org/platform/errors"
@@ -174,11 +174,14 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 			"error":        vErr,
 		}
 		if res, err := parseAuthAttestationResponse(attestation); err == nil {
-			logFields["responseRPHash"] = hex.EncodeToString(res.AuthData.RPIDHash)
+			responseAppIdHex := hex.EncodeToString(res.AuthData.RPIDHash)
+			logFields["responseRPHash"] = responseAppIdHex
 			logFields["responseAuthEnvironment"] = string(res.AuthData.AttData.AAGUID)
-			logFields["responseKeyIdBase64"] = string(base64.StdEncoding.EncodeToString(res.AuthData.AttData.CredentialID))
+			logFields["responseKeyIdBase64"] = base64.StdEncoding.EncodeToString(res.AuthData.AttData.CredentialID)
+			logFields["matchedKeyId"] = base64.StdEncoding.EncodeToString(res.AuthData.AttData.CredentialID) == av.KeyID
+			logFields["matchedAppId"] = appIdHex == responseAppIdHex
 		}
-		logger.WithFields(logFields).Debug("appAttestation")
+		logger.WithFields(logFields).Debug("AppAttestation")
 
 		// Stop at first working Apple App Id
 		if vErr == nil {
