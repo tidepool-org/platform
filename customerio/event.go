@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha1"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -25,7 +26,7 @@ type Event struct {
 // SetDeduplicationID generates ULID that's used for deduplication and using the provided time and the first 10 bytes of the sha1 hashed event name + deduplication ID
 // Returns an error if time is before epoch or deduplicationID is empty
 func (e *Event) SetDeduplicationID(time *time.Time, deduplicationID string) (err error) {
-	e.ID, err = CreateUlid(time, e.Name+deduplicationID)
+	e.ID, err = CreateUlid(time, fmt.Sprintf("%s:%s", e.Name, deduplicationID))
 	return
 }
 

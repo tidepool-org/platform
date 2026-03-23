@@ -153,11 +153,11 @@ func (p *OrderProcessor) ProcessFulfillment(ctx context.Context, event Fulfillme
 	logger := p.logger.WithField("orderGID", orderGID)
 
 	if event.Status != "success" {
-		logger.Infof("ignoring fulfillment event with status %s", event.Status)
+		logger.WithField("status", event.Status).Info("ignoring fulfillment event")
 		return nil
 	}
 	if event.ShipmentStatus == nil || !strings.EqualFold(*event.ShipmentStatus, "delivered") {
-		logger.Infof("ignoring fulfillment event with shipment status '%s'", pointer.Default(event.ShipmentStatus, ""))
+		logger.WithField("shipmentStatus", event.ShipmentStatus).Info("ignoring fulfillment event")
 		return nil
 	}
 

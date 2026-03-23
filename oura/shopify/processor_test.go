@@ -113,7 +113,7 @@ var _ = Describe("OrderProcessor", func() {
 				DiscountCode:        sizingKitDiscountCode,
 			}
 
-			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_sizing_kit_delivered"+orderSummary.GID)
+			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_sizing_kit_delivered"+":"+orderSummary.GID)
 			Expect(err).ToNot(HaveOccurred())
 
 			shopifyClnt.EXPECT().
@@ -192,7 +192,7 @@ var _ = Describe("OrderProcessor", func() {
 				DiscountCode:        discountCode,
 			}
 
-			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_ring_delivered"+orderID)
+			deduplicationID, err := customerio.CreateUlid(&orderSummary.CreatedTime, "oura_ring_delivered"+":"+orderID)
 			Expect(err).ToNot(HaveOccurred())
 
 			dataSourceClient.EXPECT().
