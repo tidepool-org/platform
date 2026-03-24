@@ -1,8 +1,18 @@
 package shopify
 
-import "context"
+import (
+	"context"
+	"strconv"
+	"time"
+)
 
-type ClientConfig struct {
+const (
+	ProductGIDPrefix = "gid://shopify/Product/"
+	OrderGIDPrefix   = "gid://shopify/Order/"
+)
+
+type Config struct {
+	Enabled      bool   `envconfig:"TIDEPOOL_OURA_SHOPIFY_ENABLED"`
 	StoreID      string `envconfig:"TIDEPOOL_OURA_SHOPIFY_STORE_ID"`
 	ClientID     string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_ID"`
 	ClientSecret string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_SECRET"`
@@ -11,7 +21,8 @@ type ClientConfig struct {
 //go:generate mockgen -source=client.go -destination=./test/client.go -package=test Client
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error
-	GetDeliveredProducts(ctx context.Context, orderID string) (*DeliveredProducts, error)
+	GetOrderSummary(ctx context.Context, orderID string) (*OrderSummary, error)
+	GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error)
 }
 
 type DiscountCodeInput struct {
@@ -20,7 +31,16 @@ type DiscountCodeInput struct {
 	ProductID string
 }
 
-type DeliveredProducts struct {
-	IDs          []string `json:"products"`
-	DiscountCode string   `json:"discount_code"`
+type OrderSummary struct {
+	GID                 string
+	CreatedTime         time.Time
+	UpdatedTime         time.Time
+	OrderedProductIDs   []string
+	IsDelivered         bool
+	DeliveredProductIDs []string
+	DiscountCode        string
+}
+
+func GetOrderGID(id int64) string {
+	return OrderGIDPrefix + strconv.FormatInt(id, 10)
 }

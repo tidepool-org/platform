@@ -23,7 +23,7 @@ type ProcessedSubmission struct {
 
 type Store interface {
 	GetProcessedSubmission(ctx context.Context, formID, submissionID string) (*ProcessedSubmission, error)
-	SaveProcessedSubmission(ctx context.Context, submission *ProcessedSubmission) error
+	CreateProcessedSubmission(ctx context.Context, submission *ProcessedSubmission) error
 }
 
 type store struct {
@@ -80,7 +80,7 @@ func (s *store) GetProcessedSubmission(ctx context.Context, formID, submissionID
 	return &submission, nil
 }
 
-func (s *store) SaveProcessedSubmission(ctx context.Context, submission *ProcessedSubmission) error {
+func (s *store) CreateProcessedSubmission(ctx context.Context, submission *ProcessedSubmission) error {
 	if submission == nil {
 		return errors.New("submission is missing")
 	}
