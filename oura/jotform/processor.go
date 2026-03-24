@@ -47,9 +47,11 @@ type SubmissionProcessor struct {
 }
 
 type Config struct {
+	Enabled bool   `envconfig:"TIDEPOOL_OURA_JOTFORM_ENABLED"`
 	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL" default:"https://api.jotform.com"`
 	APIKey  string `envconfig:"TIDEPOOL_OURA_JOTFORM_API_KEY"`
 	FormID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_FORM_ID"`
+	TeamID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_TEAM_ID"`
 }
 
 func NewSubmissionProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client, userClient user.Client, shopifyClient shopify.Client, submissionStore store.Store) (*SubmissionProcessor, error) {
@@ -73,6 +75,12 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 }
 
 func (s *SubmissionProcessor) Reconcile(ctx context.Context, lastSubmissionID string) (ReconcileResult, error) {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform reconcile was called, but jotform integration is not enabled")
+		return ReconcileResult{
+			LastProcessedID: lastSubmissionID,
+		}, nil
+	}
 	return s.reconcile(ctx, s.config.FormID, lastSubmissionID)
 }
 
@@ -124,6 +132,11 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 }
 
 func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionID string) error {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform process submission was called, but jotform integration is not enabled")
+		return nil
+	}
+
 	submission, err := s.jotformClient.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get submission")
@@ -187,12 +200,14 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		logger.Info("submission has no user id")
 		return nil, nil
 	}
+	logger = logger.WithField("userId", userID)
 
 	participantID := answers.GetAnswerTextByName(ParticipantIDField)
 	if participantID == "" {
 		logger.Info("submission has no participant id")
 		return nil, nil
 	}
+	logger = logger.WithField("submissionParticipantId", participantID)
 
 	customer, err := s.customerIOClient.GetCustomer(ctx, userID, customerio.IDTypeUserID)
 	if err != nil {
@@ -200,11 +215,13 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 	}
 
 	if customer == nil {
-		logger.Warnf("customer not found for user with id %s", userID)
+		logger.Warnf("no matching customer found for user id")
 		return nil, nil
 	}
 	if customer.OuraParticipantID != participantID {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.
+			WithField("customerParticipantId", customer.OuraParticipantID).
+			Warnf("submission participant id does not match customer participant id")
 		return nil, nil
 	}
 
@@ -213,7 +230,7 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		return nil, errors.Wrap(err, "unable to get user")
 	}
 	if usr == nil {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.Warnf("user not found")
 		return nil, nil
 	}
 

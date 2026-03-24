@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 	"time"
 
@@ -18,7 +20,7 @@ query GetOrder($identifier: OrderIdentifierInput!) {
 	createdAt
 	updatedAt
     discountCode
-    lineItems {
+    lineItems(first: 10) {
       nodes { 
         product {
           id
@@ -53,6 +55,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 
 	order := resp.GetOrderByIdentifier()
 	summary := shopify.OrderSummary{
+		GID:          orderID,
 		CreatedTime:  order.CreatedAt,
 		DiscountCode: pointer.Default(order.GetDiscountCode(), ""),
 		UpdatedTime:  order.UpdatedAt,
@@ -66,6 +69,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 		summary.OrderedProductIDs = append(summary.OrderedProductIDs, id)
 	}
 
+	deliveredProducts := map[string]struct{}{}
 	for _, fulfillment := range order.Fulfillments {
 		if fulfillment == nil {
 			continue
@@ -83,10 +87,10 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 				continue
 			}
 			id := strings.TrimPrefix(lineItem.GetLineItem().GetProduct().GetId(), shopify.ProductGIDPrefix)
-			summary.DeliveredProductIDs = append(summary.DeliveredProductIDs, id)
+			deliveredProducts[id] = struct{}{}
 		}
 	}
-
+	summary.DeliveredProductIDs = slices.Collect(maps.Keys(deliveredProducts))
 	return &summary, nil
 }
 
