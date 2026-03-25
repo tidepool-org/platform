@@ -124,7 +124,7 @@ func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *
 	providerSessionFilter.Type = pointer.FromString(prvdr.Type())
 	providerSessionFilter.Name = pointer.FromString(prvdr.Name())
 	if err := r.AuthClient().DeleteProviderSessions(ctx, providerSessionFilter); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

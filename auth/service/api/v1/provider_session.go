@@ -51,7 +51,7 @@ func (r *Router) CreateUserProviderSession(res rest.ResponseWriter, req *rest.Re
 
 	providerSession, err := r.AuthClient().CreateProviderSession(req.Context(), create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (r *Router) DeleteUserProviderSessions(res rest.ResponseWriter, req *rest.R
 
 	filter := &auth.ProviderSessionFilter{UserID: &userID}
 	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -89,7 +89,7 @@ func (r *Router) ListProviderSessions(res rest.ResponseWriter, req *rest.Request
 
 	providerSessions, err := r.AuthClient().ListProviderSessions(req.Context(), filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (r *Router) DeleteProviderSessions(res rest.ResponseWriter, req *rest.Reque
 	}
 
 	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (r *Router) CreateProviderSession(res rest.ResponseWriter, req *rest.Reques
 
 	providerSession, err := r.AuthClient().CreateProviderSession(req.Context(), create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -142,7 +142,7 @@ func (r *Router) GetProviderSession(res rest.ResponseWriter, req *rest.Request) 
 
 	providerSession, err := r.AuthClient().GetProviderSession(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if providerSession == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -169,7 +169,7 @@ func (r *Router) UpdateProviderSession(res rest.ResponseWriter, req *rest.Reques
 
 	providerSession, err := r.AuthClient().UpdateProviderSession(req.Context(), id, update)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if providerSession == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -190,7 +190,7 @@ func (r *Router) DeleteProviderSession(res rest.ResponseWriter, req *rest.Reques
 
 	err := r.AuthClient().DeleteProviderSession(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -220,7 +220,7 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 		ExternalID: pointer.FromString(tidepoolLinkID),
 	}
 	if err := r.AuthClient().DeleteProviderSessions(req.Context(), filter); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

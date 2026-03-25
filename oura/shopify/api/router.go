@@ -39,7 +39,7 @@ func (r *Router) HandleFulfillmentEvent(res rest.ResponseWriter, req *rest.Reque
 	}
 
 	if err := r.fulfillmentEventProcessor.Process(ctx, event); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (r *Router) HandleOrdersCreateEvent(res rest.ResponseWriter, req *rest.Requ
 	}
 
 	if err := r.ordersCreateEventProcessor.Process(ctx, event); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

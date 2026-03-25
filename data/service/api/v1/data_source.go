@@ -61,7 +61,7 @@ func ListSources(dataServiceContext dataService.Context) {
 
 	sources, err := dataServiceContext.DataSourceClient().List(req.Context(), userID, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -101,7 +101,7 @@ func CreateSource(dataServiceContext dataService.Context) {
 
 	source, err := dataServiceContext.DataSourceClient().Create(req.Context(), userID, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -135,7 +135,7 @@ func DeleteAllSources(dataServiceContext dataService.Context) {
 
 	err := dataServiceContext.DataSourceClient().DeleteAll(req.Context(), userID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -166,7 +166,7 @@ func GetSource(dataServiceContext dataService.Context) {
 
 	source, err := dataServiceContext.DataSourceClient().Get(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if source == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -220,7 +220,7 @@ func UpdateSource(dataServiceContext dataService.Context) {
 
 	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update.Modernize())
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if source == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
@@ -263,7 +263,7 @@ func DeleteSource(dataServiceContext dataService.Context) {
 
 	deleted, err := dataServiceContext.DataSourceClient().Delete(req.Context(), id, condition)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if !deleted {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithIDAndOptionalRevision(id, condition.Revision))
@@ -300,7 +300,7 @@ func GetSourceFromProviderSession(dataServiceContext dataService.Context) {
 
 	source, err := dataServiceContext.DataSourceClient().GetFromProviderSession(req.Context(), providerSessionID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if source == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(providerSessionID))
