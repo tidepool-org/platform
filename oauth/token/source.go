@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -85,12 +86,12 @@ func (s *Source) UpdateToken(ctx context.Context) (bool, error) {
 }
 
 func (s *Source) ExpireToken(ctx context.Context) (bool, error) {
+	if s.token.IsExpiredAt(time.Now()) {
+		return false, nil
+	}
+
 	s.httpClient = nil
 	s.tokenSource = nil
-	if s.token.IsExpired() {
-		return false, nil
-	} else {
-		s.token = s.token.Expired()
-		return true, nil
-	}
+	s.token = s.token.Expired()
+	return true, nil
 }

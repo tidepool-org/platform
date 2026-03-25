@@ -139,7 +139,9 @@ func NewObjectFromWork(datum *work.Work, objectFormat test.ObjectFormat) map[str
 	object["processingAvailableTime"] = test.NewObjectFromTime(datum.ProcessingAvailableTime, objectFormat)
 	object["processingPriority"] = test.NewObjectFromInt(datum.ProcessingPriority, objectFormat)
 	object["processingTimeout"] = test.NewObjectFromInt(datum.ProcessingTimeout, objectFormat)
-	object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
+	if len(datum.Metadata) > 0 {
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
+	}
 	object["pendingTime"] = test.NewObjectFromTime(datum.PendingTime, objectFormat)
 	if datum.ProcessingTime != nil {
 		object["processingTime"] = test.NewObjectFromTime(*datum.ProcessingTime, objectFormat)

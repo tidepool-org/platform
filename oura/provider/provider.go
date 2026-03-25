@@ -64,7 +64,7 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, nil, ouraClient.NewErrorResponseParser())
+	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, nil, &ouraClient.ErrorResponseParser{})
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +197,10 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 		lgr.Warn("data source associated with existing provider session")
 
 		if err := p.providerSessionClient.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
-			lgr.WithError(err).Error("unable to delete existing provider session")
+			return nil, errors.Wrap(err, "unable to delete existing provider session")
+		}
+		if dataSrc, err = p.dataSourceClient.Get(ctx, dataSrc.ID); err != nil {
+			return nil, errors.Wrap(err, "unable to get data source")
 		}
 	}
 
@@ -208,7 +211,7 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 		srcUpdate := &dataSource.Update{
 			State: pointer.FromString(dataSource.StateDisconnected),
 		}
-		if _, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, srcUpdate); err != nil {
+		if dataSrc, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, srcUpdate); err != nil {
 			return nil, errors.Wrap(err, "unable to update data source")
 		}
 	}
@@ -217,21 +220,20 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 }
 
 func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, providerSession *auth.ProviderSession, dataSrc *dataSource.Source) (*dataSource.Source, error) {
+	var err error
+
 	providerSessionUpdate := &auth.ProviderSessionUpdate{
 		OAuthToken: providerSession.OAuthToken,
-		ExternalID: providerSession.ExternalID,
 	}
-	if _, err := p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
+	if providerSession, err = p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
 		return nil, errors.Wrap(err, "unable to update provider session")
 	}
 
 	dataSrcUpdate := &dataSource.Update{
-		ProviderSessionID:  pointer.FromString(providerSession.ID),
-		ProviderExternalID: dataSrc.ProviderExternalID,
-		State:              pointer.FromString(dataSource.StateConnected),
-		DataSetID:          dataSrc.DataSetID,
+		ProviderSessionID: pointer.FromString(providerSession.ID),
+		State:             pointer.FromString(dataSource.StateConnected),
 	}
-	dataSrc, err := p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate)
+	dataSrc, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update data source")
 	}
@@ -269,14 +271,12 @@ func (p *Provider) deleteWorkForProviderSession(ctx context.Context, providerSes
 		return errors.New("provider session is missing")
 	}
 
-	ctx, lgr := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
-
 	count, err := p.workClient.DeleteAllByGroupID(ctx, ouraWork.GroupIDFromProviderSessionID(providerSession.ID))
 	if err != nil {
 		return errors.Wrap(err, "unable to delete all work by group id")
 	}
 
-	lgr.WithField("count", count).Debug("deleted work for provider session")
+	log.LoggerFromContext(ctx).WithField("count", count).Debug("deleted work for provider session")
 	return nil
 }
 

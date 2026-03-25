@@ -78,11 +78,15 @@ func (p *Processor) synchronizeSubscriptions() *work.ProcessResult {
 						EventType:         existingSubscription.EventType,
 					}
 					if _, err := p.UpdateSubscription(p.Context(), *existingSubscription.ID, updateSubscription); err != nil {
-						return p.Failing(errors.WithMeta(errors.Wrapf(err, "unable to update existing subscription"), existingSubscription))
+						return p.Failing(errors.Wrapf(err, "unable to update existing subscription with id %q, data type %q, and event type %q", *existingSubscription.ID, dataType, eventType))
 					}
-				} else if existingSubscription.ExpirationTime != nil && time.Until(*existingSubscription.ExpirationTime) < ExpirationTimeDurationMinimum {
-					if _, err := p.RenewSubscription(p.Context(), *existingSubscription.ID); err != nil {
-						return p.Failing(errors.WithMeta(errors.Wrapf(err, "unable to renew existing subscription"), existingSubscription))
+				} else if existingSubscription.ExpirationTime != nil {
+					if expirationTime, err := time.Parse(oura.SubscriptionExpirationTimeFormat, *existingSubscription.ExpirationTime); err != nil {
+						return p.Failing(errors.Wrapf(err, "unable to parse expiration time of existing subscription with id %q, data type %q, and event type %q", *existingSubscription.ID, dataType, eventType))
+					} else if time.Until(expirationTime) < ExpirationTimeDurationMinimum {
+						if _, err := p.RenewSubscription(p.Context(), *existingSubscription.ID); err != nil {
+							return p.Failing(errors.Wrapf(err, "unable to renew existing subscription with id %q, data type %q, and event type %q", *existingSubscription.ID, dataType, eventType))
+						}
 					}
 				}
 			} else {
@@ -93,7 +97,7 @@ func (p *Processor) synchronizeSubscriptions() *work.ProcessResult {
 					EventType:         pointer.FromString(eventType),
 				}
 				if _, err := p.CreateSubscription(p.Context(), createSubscription); err != nil {
-					return p.Failing(errors.WithMeta(errors.Wrapf(err, "unable to create new subscription"), createSubscription))
+					return p.Failing(errors.Wrapf(err, "unable to create new subscription with data type %q and event type %q", dataType, eventType))
 				}
 			}
 		}

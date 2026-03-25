@@ -123,7 +123,7 @@ var _ = Describe("processors", func() {
 			Expect(ouraWorkProcessors.EnsureWork(context.Context(nil), mockWorkClient)).To(MatchError("context is missing"))
 		})
 
-		It("returns an error if context is missing", func() {
+		It("returns an error if work client is missing", func() {
 			Expect(ouraWorkProcessors.EnsureWork(ctx, nil)).To(MatchError("work client is missing"))
 		})
 

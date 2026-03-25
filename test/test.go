@@ -1,6 +1,7 @@
 package test
 
 import (
+	"fmt"
 	"os"
 	"regexp"
 	"runtime"
@@ -8,6 +9,8 @@ import (
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
+	gomegaTypes "github.com/onsi/gomega/types"
+	"go.uber.org/mock/gomock"
 )
 
 func init() {
@@ -42,3 +45,23 @@ func getCallerPackage() string {
 
 var callerPackageRegexp = regexp.MustCompile("^(.+?)(?:_test)[^/]+$")
 var initPackageRegexp = regexp.MustCompile("^(.+)/[^/]+$")
+
+func MockMatch(matcher gomegaTypes.GomegaMatcher) gomock.Matcher {
+	return &MockMatcher{matcher: matcher}
+}
+
+type MockMatcher struct {
+	matcher gomegaTypes.GomegaMatcher
+}
+
+func (m *MockMatcher) Matches(x any) bool {
+	if match, err := m.matcher.Match(x); err != nil {
+		return false
+	} else {
+		return match
+	}
+}
+
+func (m *MockMatcher) String() string {
+	return fmt.Sprintf("%#v", m.matcher)
+}

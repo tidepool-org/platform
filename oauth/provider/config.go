@@ -12,7 +12,7 @@ import (
 
 type Config struct {
 	ClientID          string   `json:"client_id,omitempty"`
-	ClientSecret      string   `json:"client_secret,omitempty"`
+	ClientSecret      string   `json:"-"`
 	AcceptURL         *string  `json:"accept_url,omitempty"`
 	AuthorizeURL      string   `json:"authorize_url,omitempty"`
 	RedirectURL       string   `json:"redirect_url,omitempty"`
@@ -47,7 +47,7 @@ func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
 	}
 	c.AuthorizeURL = configReporter.GetWithDefault("authorize_url", c.AuthorizeURL)
 	c.RedirectURL = configReporter.GetWithDefault("redirect_url", c.RedirectURL)
-	c.TokenURL = configReporter.GetWithDefault("token_url", c.ClientID)
+	c.TokenURL = configReporter.GetWithDefault("token_url", c.TokenURL)
 	if revokeURL, err := configReporter.Get("revoke_url"); err == nil && revokeURL != "" {
 		c.RevokeURL = &revokeURL
 	}

@@ -17,8 +17,14 @@ import (
 	"github.com/tidepool-org/platform/times"
 )
 
+//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+
+const (
+	HeaderClientID     = "x-client-id"
+	HeaderClientSecret = "x-client-secret"
+)
+
 type Provider interface {
-	oauth.TokenSourceSource
 	oura.BaseClient
 }
 
@@ -104,7 +110,7 @@ func (c *Client) RenewSubscription(ctx context.Context, id string) (*oura.Subscr
 		if request.StatusCodeForError(err) == http.StatusForbidden {
 			return nil, request.ErrorResourceNotFound() // Map unusual 403 used to indicate 404
 		}
-		return nil, errors.Wrap(err, "unable to update subscription")
+		return nil, errors.Wrap(err, "unable to renew subscription")
 	}
 
 	return subscription, nil
@@ -143,10 +149,12 @@ func (c *Client) GetPersonalInfo(ctx context.Context, tokenSource oauth.TokenSou
 }
 
 func (c *Client) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (*oura.Data, error) {
+	// TODO: https://tidepool.atlassian.net/browse/BACK-4035
 	return nil, nil
 }
 
 func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, tokenSource oauth.TokenSource) (*oura.Datum, error) {
+	// TODO: https://tidepool.atlassian.net/browse/BACK-4034
 	return nil, nil
 }
 
@@ -172,8 +180,8 @@ func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string
 
 func (c *Client) sendClientRequest(ctx context.Context, method string, url string, requestBody any, responseBody any) error {
 	mutators := []request.RequestMutator{
-		request.NewHeaderMutator("x-client-id", c.ClientID()),
-		request.NewHeaderMutator("x-client-secret", c.ClientSecret()),
+		request.NewHeaderMutator(HeaderClientID, c.ClientID()),
+		request.NewHeaderMutator(HeaderClientSecret, c.ClientSecret()),
 	}
 	return c.sendBaseRequest(ctx, method, url, mutators, requestBody, responseBody, nil)
 }
@@ -218,5 +226,5 @@ var (
 // 	401: invalid or expired OAuth token; response body empty
 // 	403: missing permissions or user's Oura subscription expired; response body empty
 // 	404: resource id not found (only on single document request); response body empty
-// 	422: request body validation error; response body is custom error (see ouraClient.ErrorParser)
+// 	422: request body validation error; response body is custom error (see ErrorResponseParser in oura/client/error_parser.go)
 // 	429: more than 5000 requests in a 5 minute period; response body empty

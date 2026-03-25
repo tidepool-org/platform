@@ -3,14 +3,13 @@ package v1
 import (
 	"net/http"
 
-	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/request"
 )
 
-func Event(dataServiceContext dataService.Context) {
-	res := dataServiceContext.Response()
-	req := dataServiceContext.Request()
+func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 
-	responder.String(http.StatusOK, "OK")
+	responder.Empty(http.StatusOK)
 }

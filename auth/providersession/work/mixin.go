@@ -7,6 +7,7 @@ import (
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
@@ -151,7 +152,7 @@ func (m *mixin) UpdateWorkMetadataFromProviderSession() *work.ProcessResult {
 	} else if m.workMetadata == nil {
 		return m.Failed(errors.New("work metadata is missing"))
 	}
-	m.workMetadata.ProviderSessionID = &m.providerSession.ID
+	m.workMetadata.ProviderSessionID = pointer.From(m.providerSession.ID)
 	return nil
 }
 

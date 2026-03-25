@@ -177,7 +177,7 @@ func (p ProcessPipeline) Process(completion ProcessPipelineFunc) *ProcessResult 
 	return completion()
 }
 
-// Only for errors outside of work context
+// ProcessResultFailedFromError is only for errors outside of work context
 func ProcessResultFailedFromError(err error) *ProcessResult {
 	return NewProcessResultFailed(FailedUpdate{FailedError: errors.Serializable{Error: err}})
 }

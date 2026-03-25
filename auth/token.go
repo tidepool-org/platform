@@ -17,10 +17,10 @@ const (
 )
 
 type OAuthToken struct {
-	AccessToken    string    `json:"accessToken" bson:"accessToken"`
+	AccessToken    string    `json:"accessToken,omitempty" bson:"accessToken,omitempty"`
 	TokenType      string    `json:"tokenType,omitempty" bson:"tokenType,omitempty"`
 	RefreshToken   string    `json:"refreshToken,omitempty" bson:"refreshToken,omitempty"`
-	ExpirationTime time.Time `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
+	ExpirationTime time.Time `json:"expirationTime,omitzero" bson:"expirationTime,omitzero"`
 	Scope          *[]string `json:"scope,omitempty" bson:"scope,omitempty"`
 	IDToken        *string   `json:"idToken,omitempty" bson:"idToken,omitempty"`
 }
@@ -30,7 +30,7 @@ func ParseOAuthToken(parser structure.ObjectParser) *OAuthToken {
 		return nil
 	}
 	datum := NewOAuthToken()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -111,8 +111,8 @@ func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
 	return &refreshed, nil
 }
 
-func (o *OAuthToken) IsExpired() bool {
-	return o.ExpirationTime.Before(time.Now())
+func (o *OAuthToken) IsExpiredAt(tm time.Time) bool {
+	return !o.ExpirationTime.After(tm)
 }
 
 func (o *OAuthToken) Expired() *OAuthToken {

@@ -8,12 +8,12 @@ import (
 
 func RandomToken() *auth.OAuthToken {
 	datum := auth.NewOAuthToken()
-	datum.AccessToken = test.RandomString()
-	datum.TokenType = test.RandomString()
-	datum.RefreshToken = test.RandomString()
+	datum.AccessToken = test.RandomStringFromCharset(test.CharsetAlphaNumeric)
+	datum.TokenType = test.RandomStringFromCharset(test.CharsetAlphaNumeric)
+	datum.RefreshToken = test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 	datum.ExpirationTime = test.RandomTime()
 	datum.Scope = pointer.FromStringArray(RandomScope())
-	datum.IDToken = pointer.FromString(test.RandomString())
+	datum.IDToken = pointer.FromString(test.RandomStringFromCharset(test.CharsetAlphaNumeric))
 	return datum
 }
 
@@ -41,7 +41,7 @@ func NewObjectFromToken(datum *auth.OAuthToken, objectFormat test.ObjectFormat) 
 	object["refreshToken"] = test.NewObjectFromString(datum.RefreshToken, objectFormat)
 	object["expirationTime"] = test.NewObjectFromTime(datum.ExpirationTime, objectFormat)
 	if datum.Scope != nil {
-		object["scope"] = test.NewObjectFromStringArray(*datum.Scope, objectFormat)
+		object["scope"] = test.NewArrayFromStringArray(*datum.Scope, objectFormat)
 	}
 	if datum.IDToken != nil {
 		object["idToken"] = test.NewObjectFromString(*datum.IDToken, objectFormat)

@@ -209,17 +209,28 @@ var _ = Describe("OAuthToken", func() {
 			})
 		})
 
-		Context("IsExpired", func() {
-			It("returns false if the expiration time is in the future", func() {
-				token := authTest.RandomToken()
-				token.ExpirationTime = time.Now().Add(time.Second)
-				Expect(token.IsExpired()).To(BeFalse())
+		Context("IsExpiredAt", func() {
+			var tm time.Time
+			var token *auth.OAuthToken
+
+			BeforeEach(func() {
+				tm = test.RandomTime()
+				token = authTest.RandomToken()
 			})
 
-			It("returns true if the expiration time is in the past", func() {
-				token := authTest.RandomToken()
-				token.ExpirationTime = time.Now().Add(-time.Second)
-				Expect(token.IsExpired()).To(BeTrue())
+			It("returns false if the expiration time is after time", func() {
+				token.ExpirationTime = tm.Add(time.Nanosecond)
+				Expect(token.IsExpiredAt(tm)).To(BeFalse())
+			})
+
+			It("returns true if the expiration time is time", func() {
+				token.ExpirationTime = tm
+				Expect(token.IsExpiredAt(tm)).To(BeTrue())
+			})
+
+			It("returns true if the expiration time is before time", func() {
+				token.ExpirationTime = tm.Add(-time.Nanosecond)
+				Expect(token.IsExpiredAt(tm)).To(BeTrue())
 			})
 		})
 

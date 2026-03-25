@@ -7,6 +7,7 @@ import (
 	dataSet "github.com/tidepool-org/platform/data/set"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
@@ -155,7 +156,7 @@ func (m *mixin) UpdateWorkMetadataFromDataSet() *work.ProcessResult {
 	} else if m.workMetadata == nil {
 		return m.Failed(errors.New("work metadata is missing"))
 	}
-	m.workMetadata.DataSetID = m.dataSet.ID
+	m.workMetadata.DataSetID = pointer.Clone(m.dataSet.ID)
 	return nil
 }
 

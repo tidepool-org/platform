@@ -45,7 +45,7 @@ var _ = Describe("Raw", func() {
 				datum := dataRawTest.RandomFilter(test.AllowOptional())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *dataRaw.Filter) {},
@@ -754,20 +754,31 @@ var _ = Describe("Raw", func() {
 				})
 			})
 
-			Context("IsArchivable", func() {
+			Context("IsArchivableAt", func() {
+				var tm time.Time
+
+				BeforeEach(func() {
+					tm = test.RandomTime()
+				})
+
 				It("returns false if archivableTime is nil", func() {
 					datum.ArchivableTime = nil
-					Expect(datum.IsArchivable()).To(BeFalse())
+					Expect(datum.IsArchivableAt(tm)).To(BeFalse())
 				})
 
-				It("returns false if archivableTime is after now", func() {
-					datum.ArchivableTime = pointer.FromTime(time.Now().Add(time.Minute))
-					Expect(datum.IsArchivable()).To(BeFalse())
+				It("returns false if archivableTime is after time", func() {
+					datum.ArchivableTime = pointer.FromTime(tm.Add(time.Nanosecond))
+					Expect(datum.IsArchivableAt(tm)).To(BeFalse())
 				})
 
-				It("returns true if archivableTime is before now", func() {
-					datum.ArchivableTime = pointer.FromTime(time.Now().Add(-time.Minute))
-					Expect(datum.IsArchivable()).To(BeTrue())
+				It("returns true if archivableTime is time", func() {
+					datum.ArchivableTime = pointer.FromTime(tm)
+					Expect(datum.IsArchivableAt(tm)).To(BeTrue())
+				})
+
+				It("returns true if archivableTime is before time", func() {
+					datum.ArchivableTime = pointer.FromTime(tm.Add(-time.Nanosecond))
+					Expect(datum.IsArchivableAt(tm)).To(BeTrue())
 				})
 			})
 

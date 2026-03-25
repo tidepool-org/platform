@@ -74,7 +74,7 @@ func (c *DataSourcesRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "providerType", Value: 1}, {Key: "providerName", Value: 1}},
 			Options: options.Index().
-				SetPartialFilterExpression(bson.D{{Key: "state", Value: bson.M{"$in": bson.A{"connected", "error"}}}}).
+				SetPartialFilterExpression(bson.D{{Key: "state", Value: bson.M{"$in": bson.A{dataSource.StateConnected, dataSource.StateError}}}}).
 				SetUnique(true),
 		},
 		{
@@ -329,8 +329,8 @@ func (c *DataSourcesRepository) Delete(ctx context.Context, id string, condition
 	}
 	changeInfo, err := c.DeleteMany(ctx, query)
 	if err != nil {
-		logger.WithError(err).Error("Unable to destroy data source")
-		return false, errors.Wrap(err, "unable to destroy data source")
+		logger.WithError(err).Error("Unable to delete data source")
+		return false, errors.Wrap(err, "unable to delete data source")
 	}
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("Delete")

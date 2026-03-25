@@ -54,6 +54,15 @@ func NewClient(cfg *authClient.ExternalConfig, authorizeAs platform.AuthorizeAs,
 }
 
 func (c *Client) CreateProviderSession(ctx context.Context, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if create == nil {
+		return nil, errors.New("create is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
+		return nil, errors.Wrap(err, "create is invalid")
+	}
+
 	prvdr, err := c.providerFactory.Get(create.Type, create.Name)
 	if err != nil {
 		return nil, err

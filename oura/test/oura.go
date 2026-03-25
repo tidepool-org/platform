@@ -5,13 +5,18 @@ import (
 	oura "github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
+	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
 func RandomCallbackURL() string {
-	return test.RandomString()
+	return testHttp.NewURL().String()
 }
 
 func RandomVerificationToken() string {
+	return test.RandomString()
+}
+
+func RandomChallenge() string {
 	return test.RandomString()
 }
 
@@ -24,11 +29,11 @@ func RandomEventType() string {
 }
 
 func RandomID() string {
-	return test.RandomString()
+	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
 func RandomUserID() string {
-	return test.RandomString()
+	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
 func RandomCreateSubscription(options ...test.Option) *oura.CreateSubscription {
@@ -119,7 +124,7 @@ func RandomSubscription(options ...test.Option) *oura.Subscription {
 		CallbackURL:    pointer.FromString(RandomCallbackURL()),
 		DataType:       pointer.FromString(RandomDataType()),
 		EventType:      pointer.FromString(RandomEventType()),
-		ExpirationTime: pointer.FromTime(test.RandomTimeAfterNow().UTC()),
+		ExpirationTime: pointer.FromString(test.RandomTimeAfterNow().UTC().Format(oura.SubscriptionExpirationTimeFormat)),
 	}
 }
 
@@ -132,7 +137,7 @@ func CloneSubscription(datum *oura.Subscription) *oura.Subscription {
 		CallbackURL:    pointer.CloneString(datum.CallbackURL),
 		DataType:       pointer.CloneString(datum.DataType),
 		EventType:      pointer.CloneString(datum.EventType),
-		ExpirationTime: pointer.CloneTime(datum.ExpirationTime),
+		ExpirationTime: pointer.CloneString(datum.ExpirationTime),
 	}
 }
 
@@ -154,7 +159,7 @@ func NewObjectFromSubscription(datum *oura.Subscription, format test.ObjectForma
 		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
 	}
 	if datum.ExpirationTime != nil {
-		object["expiration_time"] = test.NewObjectFromTime(*datum.ExpirationTime, format)
+		object["expiration_time"] = test.NewObjectFromString(*datum.ExpirationTime, format)
 	}
 	return object
 }

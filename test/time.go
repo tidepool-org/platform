@@ -84,6 +84,8 @@ func NewObjectFromTime(value time.Time, objectFormat ObjectFormat) interface{} {
 	switch objectFormat {
 	case ObjectFormatJSON:
 		return value.Format(time.RFC3339Nano)
+	case ObjectFormatConfig:
+		return value.Format(time.RFC3339Nano)
 	}
 	return value
 }

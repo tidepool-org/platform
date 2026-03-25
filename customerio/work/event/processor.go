@@ -117,11 +117,18 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 }
 
 func (p *Processor) sendEvent() *work.ProcessResult {
-	event, err := p.eventFromMetadata()
+	metadata := p.Metadata()
+	if metadata == nil {
+		return p.Failed(errors.New("metadata is missing"))
+	} else if err := structureValidator.New(log.LoggerFromContext(p.Context())).Validate(metadata); err != nil {
+		return p.Failed(errors.Wrap(err, "metadata is invalid"))
+	}
+
+	event, err := p.eventFromMetadata(metadata)
 	if err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create event from metadata"))
 	}
-	userID, err := p.userIDFromMetadata()
+	userID, err := p.userIDFromMetadata(metadata)
 	if err != nil {
 		return p.Failed(errors.Wrap(err, "unable to get user id from metadata"))
 	}
@@ -133,8 +140,7 @@ func (p *Processor) sendEvent() *work.ProcessResult {
 	return nil
 }
 
-func (p *Processor) eventFromMetadata() (*customerio.Event, error) {
-	metadata := p.Metadata()
+func (p *Processor) eventFromMetadata(metadata *Metadata) (*customerio.Event, error) {
 	event := &customerio.Event{
 		Name: *metadata.EventType,
 		Data: metadata.EventData,
@@ -152,8 +158,8 @@ func (p *Processor) eventFromMetadata() (*customerio.Event, error) {
 	return event, nil
 }
 
-func (p *Processor) userIDFromMetadata() (string, error) {
-	userID := *p.Metadata().UserID
+func (p *Processor) userIDFromMetadata(metadata *Metadata) (string, error) {
+	userID := *metadata.UserID
 	if userID == "" {
 		return "", errors.New("userID is missing")
 	}

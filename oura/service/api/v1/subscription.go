@@ -3,43 +3,41 @@ package v1
 import (
 	"net/http"
 
-	dataService "github.com/tidepool-org/platform/data/service"
+	"github.com/ant0ine/go-json-rest/rest"
+
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 )
 
 const (
-	RequestQueryParameterVerificationToken = "verification_token"
-	RequestQueryParameterChallenge         = "challenge"
+	QueryVerificationToken = "verification_token"
+	QueryChallenge         = "challenge"
 )
 
-func Subscription(dataServiceContext dataService.Context) {
-	res := dataServiceContext.Response()
-	req := dataServiceContext.Request()
+func (r *Router) Subscription(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	query := req.URL.Query()
 	ctx := req.Context()
 	lgr := log.LoggerFromContext(ctx)
-	responder := request.MustNewResponder(res, req)
 
-	// Get required query parameters
-	query := req.URL.Query()
-	verificationToken := query.Get(RequestQueryParameterVerificationToken)
-	lgr = lgr.WithField("verificationToken", verificationToken)
+	verificationToken := query.Get(QueryVerificationToken)
 	if verificationToken == "" {
 		lgr.Error("verification token is missing")
 		responder.String(http.StatusForbidden, "verification token is missing")
 		return
 	}
-	challenge := query.Get(RequestQueryParameterChallenge)
-	lgr = lgr.WithField("challenge", challenge)
+
+	challenge := query.Get(QueryChallenge)
 	if challenge == "" {
 		lgr.Error("challenge is missing")
 		responder.String(http.StatusForbidden, "challenge is missing")
 		return
 	}
+	lgr = lgr.WithField("challenge", challenge)
 
 	// Ensure verification token matches partner secret
-	if verificationToken != dataServiceContext.OuraClient().PartnerSecret() {
-		lgr.Error("verification token is invalid")
+	if verificationToken != r.OuraClient.PartnerSecret() {
+		lgr.WithField("verificationToken", verificationToken).Error("verification token is invalid")
 		responder.String(http.StatusForbidden, "verification token is invalid")
 		return
 	}

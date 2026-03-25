@@ -27,7 +27,12 @@ func ParseDeviceHashes(parser structure.ObjectParser) *DeviceHashes {
 
 func (d *DeviceHashes) Parse(parser structure.ObjectParser) {
 	for _, reference := range parser.References() {
-		(*d)[reference] = *parser.String(reference)
+		if ptr := parser.String(reference); ptr != nil {
+			if *d == nil {
+				*d = map[string]string{}
+			}
+			(*d)[reference] = *ptr
+		}
 	}
 }
 

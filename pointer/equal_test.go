@@ -11,9 +11,9 @@ import (
 )
 
 var _ = Describe("Equal", func() {
-	DescribeTable("Equal returns expected",
+	DescribeTable("EqualValue returns expected",
 		func(a *int, b *int, expected bool) {
-			Expect(pointer.Equal(a, b)).To(Equal(expected))
+			Expect(pointer.EqualValue(a, b)).To(Equal(expected))
 		},
 		Entry("a is missing; b is missing", nil, nil, true),
 		Entry("a is missing; b is present", nil, pointer.FromInt(456), false),

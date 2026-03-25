@@ -10,6 +10,7 @@ import (
 	dataWorkTest "github.com/tidepool-org/platform/data/work/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -60,27 +61,13 @@ var _ = Describe("device_hashes", func() {
 			),
 		)
 
-		Context("ParseDeviceHashes", func() {
-			It("returns nil when the object is missing", func() {
-				Expect(dataWork.ParseDeviceHashes(structureParser.NewObject(logTest.NewLogger(), nil))).To(BeNil())
-			})
-
-			It("returns new datum when the object is valid", func() {
-				datum := dataWorkTest.RandomDeviceHashes()
-				object := dataWorkTest.NewObjectFromDeviceHashes(datum, test.ObjectFormatJSON)
-				parser := structureParser.NewObject(logTest.NewLogger(), &object)
-				Expect(dataWork.ParseDeviceHashes(parser)).To(Equal(datum))
-				Expect(parser.Error()).ToNot(HaveOccurred())
-			})
-		})
-
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataWork.DeviceHashes), expectedErrors ...error) {
 					expectedDatum := dataWorkTest.RandomDeviceHashes()
 					object := dataWorkTest.NewObjectFromDeviceHashes(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
-					datum := &dataWork.DeviceHashes{}
+					datum := pointer.From[dataWork.DeviceHashes](nil)
 					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(datum), expectedErrors...)
 					Expect(datum).To(Equal(expectedDatum))
 				},
@@ -99,6 +86,9 @@ var _ = Describe("device_hashes", func() {
 				},
 				Entry("succeeds",
 					func(datum *dataWork.DeviceHashes) {},
+				),
+				Entry("nil",
+					func(datum *dataWork.DeviceHashes) { *datum = nil },
 				),
 				Entry("empty",
 					func(datum *dataWork.DeviceHashes) { *datum = dataWork.DeviceHashes{} },

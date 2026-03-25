@@ -2,7 +2,7 @@ package pointer
 
 import "time"
 
-func Equal[T comparable](a *T, b *T) bool {
+func EqualValue[T comparable](a *T, b *T) bool {
 	if (a == nil) != (b == nil) {
 		return false
 	} else if a == nil && b == nil {

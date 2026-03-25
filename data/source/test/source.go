@@ -110,7 +110,7 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
 	}
-	if datum.Metadata != nil {
+	if len(datum.Metadata) > 0 {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	return object
@@ -280,7 +280,7 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
 	}
 	object["state"] = test.NewObjectFromString(datum.State, objectFormat)
-	if datum.Metadata != nil {
+	if len(datum.Metadata) > 0 {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	if datum.Error != nil {

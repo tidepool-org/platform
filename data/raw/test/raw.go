@@ -210,8 +210,8 @@ func RandomRaw(options ...test.Option) *dataRaw.Raw {
 		MediaType:      netTest.RandomMediaType(),
 		Size:           test.RandomIntFromRange(0, 1024),
 		ProcessedTime:  test.RandomOptional(test.Constant(processedTime), options...),
-		ArchivableTime: test.Conditional(test.Constant(processedTime), archived || test.RandomBool()),
-		ArchivedTime:   test.Conditional(test.Constant(processedTime), archived),
+		ArchivableTime: test.Conditional(test.Constant(archivableTime), archived || test.RandomBool()),
+		ArchivedTime:   test.Conditional(test.Constant(archivedTime), archived),
 		CreatedTime:    createdTime,
 		ModifiedTime:   test.RandomOptional(test.Constant(modifiedTime), options...),
 		Revision:       storeStructuredTest.RandomRevision(),
@@ -247,7 +247,7 @@ func NewObjectFromRaw(datum *dataRaw.Raw, objectFormat test.ObjectFormat) map[st
 	object["id"] = test.NewObjectFromString(datum.ID, objectFormat)
 	object["userId"] = test.NewObjectFromString(datum.UserID, objectFormat)
 	object["dataSetId"] = test.NewObjectFromString(datum.DataSetID, objectFormat)
-	if datum.Metadata != nil {
+	if len(datum.Metadata) > 0 {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	object["digestMD5"] = test.NewObjectFromString(datum.DigestMD5, objectFormat)

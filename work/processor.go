@@ -9,7 +9,7 @@ import (
 
 //go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test -typed
 
-// Allows a processor to update the work in the database while processing that work. Returns the resulting
+// ProcessingUpdater allows a processor to update the work in the database while processing that work. Returns the resulting
 // updated work or an error.
 type ProcessingUpdater interface {
 
@@ -18,7 +18,7 @@ type ProcessingUpdater interface {
 	ProcessingUpdate(ctx context.Context, processingUpdate ProcessingUpdate) (*Work, error)
 }
 
-// Required interface for a processor of work.
+// Processor is the required interface for a processor of work.
 type Processor interface {
 
 	// Process the specified work within the specified context providing intermediate updates
@@ -27,7 +27,7 @@ type Processor interface {
 	Process(ctx context.Context, wrk *Work, processingUpdater ProcessingUpdater) *ProcessResult
 }
 
-// Required interface for a processor factory.
+// ProcessorFactory is the required interface for a processor factory.
 type ProcessorFactory interface {
 
 	// The type of work supported by the processor this factory creates. Must be in the form of a reverse DNS.
@@ -43,7 +43,7 @@ type ProcessorFactory interface {
 	New() (Processor, error)
 }
 
-// General provider functionality necessary for a processor.
+// Provider provides general functionality necessary for a processor.
 type Provider interface {
 
 	// The context of the processor.

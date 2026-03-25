@@ -156,11 +156,11 @@ func ParseSubscription(parser structure.ObjectParser) *Subscription {
 }
 
 type Subscription struct {
-	ID             *string    `json:"id,omitempty" bson:"id,omitempty"`
-	CallbackURL    *string    `json:"callback_url,omitempty" bson:"callback_url,omitempty"`
-	DataType       *string    `json:"data_type,omitempty" bson:"data_type,omitempty"`
-	EventType      *string    `json:"event_type,omitempty" bson:"event_type,omitempty"`
-	ExpirationTime *time.Time `json:"expiration_time,omitempty" bson:"expiration_time,omitempty"`
+	ID             *string `json:"id,omitempty" bson:"id,omitempty"`
+	CallbackURL    *string `json:"callback_url,omitempty" bson:"callback_url,omitempty"`
+	DataType       *string `json:"data_type,omitempty" bson:"data_type,omitempty"`
+	EventType      *string `json:"event_type,omitempty" bson:"event_type,omitempty"`
+	ExpirationTime *string `json:"expiration_time,omitempty" bson:"expiration_time,omitempty"`
 }
 
 func (s *Subscription) Parse(parser structure.ObjectParser) {
@@ -168,7 +168,7 @@ func (s *Subscription) Parse(parser structure.ObjectParser) {
 	s.CallbackURL = parser.String("callback_url")
 	s.DataType = parser.String("data_type")
 	s.EventType = parser.String("event_type")
-	s.ExpirationTime = parser.Time("expiration_time", SubscriptionExpirationTimeFormat)
+	s.ExpirationTime = parser.String("expiration_time")
 }
 
 func (s *Subscription) Validate(validator structure.Validator) {
@@ -176,7 +176,7 @@ func (s *Subscription) Validate(validator structure.Validator) {
 	validator.String("callback_url", s.CallbackURL).Exists().NotEmpty()
 	validator.String("data_type", s.DataType).Exists().Using(DataTypeValidator)
 	validator.String("event_type", s.EventType).Exists().Using(EventTypeValidator)
-	validator.Time("expiration_time", s.ExpirationTime).Exists().NotZero()
+	validator.String("expiration_time", s.ExpirationTime).Exists().AsTime(SubscriptionExpirationTimeFormat).NotZero()
 }
 
 type Subscriptions []*Subscription

@@ -150,7 +150,7 @@ func (p *Processor[W]) Delete() *work.ProcessResult {
 
 func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
 	if workMetadata, err := metadata.Decode[W](p.context, p.work.Metadata); err != nil {
-		return p.Failed(err)
+		return p.processResultBuilder.Failed(p.context, p.work, err) // Do not encode metadata if decoding fails (otherwise we potentially corrupt metadata)
 	} else if workMetadata != nil {
 		*p.metadata = *workMetadata
 	}

@@ -10,8 +10,8 @@ import (
 
 type Config struct {
 	*oauthProviderClient.Config
-	PartnerURL    string `json:"partner_url,omitempty" bson:"partner_url,omitempty"`
-	PartnerSecret string `json:"partner_secret,omitempty" bson:"partner_secret,omitempty"`
+	PartnerURL    string `json:"partner_url,omitempty"`
+	PartnerSecret string `json:"-"`
 }
 
 func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error) {

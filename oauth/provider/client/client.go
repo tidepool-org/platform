@@ -26,17 +26,17 @@ func NewWithErrorParser(name string, config *Config, jwks jwk.Set, errorResponse
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	provider, err := oauthProvider.New(name, config.Provider, jwks)
+	prvdr, err := oauthProvider.New(name, config.Provider, jwks)
 	if err != nil {
 		return nil, err
 	}
-	client, err := oauthClient.NewWithErrorParser(config.Client, provider, errorResponseParser)
+	clnt, err := oauthClient.NewWithErrorParser(config.Client, prvdr, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Provider{
-		Provider: provider,
-		Client:   client,
+		Provider: prvdr,
+		Client:   clnt,
 	}, nil
 }

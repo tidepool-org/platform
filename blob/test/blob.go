@@ -39,10 +39,10 @@ func NewObjectFromFilter(datum *blob.Filter, objectFormat test.ObjectFormat) map
 	}
 	object := map[string]interface{}{}
 	if datum.MediaType != nil {
-		object["mediaType"] = test.NewObjectFromStringArray(*datum.MediaType, objectFormat)
+		object["mediaType"] = test.NewArrayFromStringArray(*datum.MediaType, objectFormat)
 	}
 	if datum.Status != nil {
-		object["status"] = test.NewObjectFromStringArray(*datum.Status, objectFormat)
+		object["status"] = test.NewArrayFromStringArray(*datum.Status, objectFormat)
 	}
 	return object
 }

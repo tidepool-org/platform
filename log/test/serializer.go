@@ -82,9 +82,7 @@ func (s *Serializer) assertContainsFields(containsFields []log.Fields, matcher f
 			return
 		}
 	}
-	actual, _ := json.MarshalIndent(s.SerializedFields, "", "  ")
-	expected, _ := json.MarshalIndent(joinedContainsFields, "", "  ")
-	panic(fmt.Sprintf("logger does not contain specified message and fields, expected:\n%s\nto contain:\n%s\n", string(actual), string(expected)))
+	panic(fmt.Sprintf("logger does not contain specified message and fields, expected:\n%s\nto contain:\n%s\n", marshalFields(s.SerializedFields), marshalFields(joinedContainsFields)))
 }
 
 func (s *Serializer) joinContainsFields(containsFields []log.Fields) log.Fields {
@@ -112,4 +110,11 @@ func (s *Serializer) serializedFieldsContainsFields(serializedFields log.Fields,
 		}
 	}
 	return true
+}
+
+func marshalFields(fields any) string {
+	if bites, err := json.MarshalIndent(fields, "", "  "); err == nil {
+		return string(bites)
+	}
+	return fmt.Sprintf("%+v", fields)
 }

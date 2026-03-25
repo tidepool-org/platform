@@ -207,7 +207,7 @@ var _ = Describe("mixin", func() {
 								mockProviderSessionMixin.EXPECT().UpdateProviderSession(&auth.ProviderSessionUpdate{OAuthToken: updatedOAuthToken, ExternalID: providerSession.ExternalID}).Return(failingProcessResult)
 								updated, err := mixin.UpdateToken(ctx)
 								errorsTest.ExpectEqual(err, failingProcessResult.Error())
-								Expect(updated).To(BeFalse())
+								Expect(updated).To(BeTrue())
 							})
 
 							It("returns successfully", func() {
@@ -239,7 +239,7 @@ var _ = Describe("mixin", func() {
 								mockProviderSessionMixin.EXPECT().UpdateProviderSession(MatchProviderSessionIgnoringExpirationTime(providerSession)).Return(failingProcessResult)
 								expired, err := mixin.ExpireToken(ctx)
 								errorsTest.ExpectEqual(err, failingProcessResult.Error())
-								Expect(expired).To(BeFalse())
+								Expect(expired).To(BeTrue())
 							})
 
 							It("returns successfully", func() {

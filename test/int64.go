@@ -3,6 +3,7 @@ package test
 import (
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 func MustInt64(value int64, err error) int64 {
@@ -48,6 +49,8 @@ func NewObjectFromInt64(value int64, objectFormat ObjectFormat) interface{} {
 	switch objectFormat {
 	case ObjectFormatJSON:
 		return float64(value)
+	case ObjectFormatConfig:
+		return strconv.FormatInt(value, 10)
 	}
 	return value
 }

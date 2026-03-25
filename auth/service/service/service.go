@@ -923,7 +923,7 @@ func (s *Service) initializeWorkCoordinator() error {
 	s.Logger().Info("Registering work processor factories")
 
 	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
-		return errors.Wrapf(err, "unable to register work processor factories")
+		return errors.Wrap(err, "unable to register work processor factories")
 	}
 
 	s.Logger().Info("Ensuring reconciler work item exists")

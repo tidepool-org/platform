@@ -320,15 +320,19 @@ ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
 
 ginkgo-bootstrap: ginkgo
+ifdef TEST
 	@echo "ginkgo bootstrap $(TEST_PACKAGE)"
 	@cd "$(TEST_DIRECTORY)" && \
 		[ -f "$(TEST_PACKAGE_NAME)_suite_test.go" ] || \
 		ginkgo bootstrap --template "$(ROOT_DIRECTORY)/.ginkgo/templates/bootstrap"
+endif
 
 ginkgo-generate: ginkgo-bootstrap
+ifdef TEST
 	@echo "ginkgo generate $(TEST)"
 	@cd "$(TEST_DIRECTORY)" && \
 		ginkgo generate --template "$(ROOT_DIRECTORY)/.ginkgo/templates/generate" $(TEST_FILE)
+endif
 
 service-build:
 ifdef SERVICE

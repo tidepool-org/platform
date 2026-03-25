@@ -70,11 +70,11 @@ func (m *mixin) UpdateToken(ctx context.Context) (bool, error) {
 	if m.tokenSource == nil {
 		return false, errors.New("token source is missing")
 	} else if updated, err := m.tokenSource.UpdateToken(ctx); err != nil {
-		return false, err
+		return updated, err
 	} else if !updated {
 		return false, nil
 	} else if err = m.updateProviderSessionFromTokenSource(); err != nil {
-		return false, err
+		return true, err
 	} else {
 		return true, nil
 	}
@@ -84,11 +84,11 @@ func (m *mixin) ExpireToken(ctx context.Context) (bool, error) {
 	if m.tokenSource == nil {
 		return false, errors.New("token source is missing")
 	} else if expired, err := m.tokenSource.ExpireToken(ctx); err != nil {
-		return false, err
+		return expired, err
 	} else if !expired {
 		return false, nil
 	} else if err = m.updateProviderSessionFromTokenSource(); err != nil {
-		return false, err
+		return true, err
 	} else {
 		return true, nil
 	}

@@ -2,6 +2,7 @@ package subscribe_test
 
 import (
 	"context"
+	"fmt"
 	"math/rand/v2"
 	"slices"
 	"time"
@@ -117,7 +118,7 @@ var _ = Describe("processor", func() {
 								CallbackURL:    pointer.FromString(partnerURL + ouraWebhook.EventPath),
 								DataType:       pointer.FromString(dataType),
 								EventType:      pointer.FromString(eventType),
-								ExpirationTime: pointer.FromTime(test.RandomTimeAfter(expirationTime.Add(time.Minute))),
+								ExpirationTime: pointer.FromString(test.RandomTimeAfter(expirationTime.Add(time.Minute)).Format(oura.SubscriptionExpirationTimeFormat)),
 							}
 						}
 
@@ -176,9 +177,16 @@ var _ = Describe("processor", func() {
 								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 							})
 
+							It("fails if unable to parse subscription expiration time", func() {
+								subscription := _subscription(oura.DataTypeDailyActivity, oura.EventTypeCreate)
+								subscription.ExpirationTime = pointer.FromString("invalid")
+								mockOuraClient.EXPECT().ListSubscriptions(gomock.Any()).Return(oura.Subscriptions{subscription}, nil)
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf(`unable to parse expiration time of existing subscription with id "%s", data type "daily_activity", and event type "create"; parsing time "invalid" as "2006-01-02T15:04:05.999999999": cannot parse "invalid" as "2006"`, *subscription.ID))))
+							})
+
 							It("fails if unable to renew subscription", func() {
 								subscription := _subscription(oura.DataTypeDailyActivity, oura.EventTypeCreate)
-								subscription.ExpirationTime = pointer.FromTime(test.RandomTimeFromRange(now, expirationTime))
+								subscription.ExpirationTime = pointer.FromString(test.RandomTimeFromRange(now, expirationTime).Format(oura.SubscriptionExpirationTimeFormat))
 								mockOuraClient.EXPECT().ListSubscriptions(gomock.Any()).Return(oura.Subscriptions{subscription}, nil)
 								testErr := errorsTest.RandomError()
 								mockOuraClient.EXPECT().RenewSubscription(gomock.Any(), *subscription.ID).Return(nil, testErr)
@@ -219,10 +227,10 @@ var _ = Describe("processor", func() {
 											subscription.CallbackURL = pointer.FromString(test.RandomString())
 											updateSubscriptions = append(updateSubscriptions, subscription)
 										case 2:
-											subscription.ExpirationTime = pointer.FromTime(test.RandomTimeBefore(now))
+											subscription.ExpirationTime = pointer.FromString(test.RandomTimeBefore(now).Format(oura.SubscriptionExpirationTimeFormat))
 											renewSubscriptions = append(renewSubscriptions, subscription)
 										case 3:
-											subscription.ExpirationTime = pointer.FromTime(test.RandomTimeFromRange(now, expirationTime))
+											subscription.ExpirationTime = pointer.FromString(test.RandomTimeFromRange(now, expirationTime).Format(oura.SubscriptionExpirationTimeFormat))
 											renewSubscriptions = append(renewSubscriptions, subscription)
 										default:
 											// Existing, but valid (does not require update or renew)

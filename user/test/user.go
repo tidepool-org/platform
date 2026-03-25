@@ -62,7 +62,7 @@ func NewObjectFromUser(datum *user.User, objectFormat test.ObjectFormat) map[str
 		object["termsAccepted"] = test.NewObjectFromString(*datum.TermsAccepted, objectFormat)
 	}
 	if datum.Roles != nil {
-		object["roles"] = test.NewObjectFromStringArray(*datum.Roles, objectFormat)
+		object["roles"] = test.NewArrayFromStringArray(*datum.Roles, objectFormat)
 	}
 	return object
 }

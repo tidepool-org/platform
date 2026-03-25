@@ -185,8 +185,8 @@ func (r *Raw) IsProcessed() bool {
 	return r.ProcessedTime != nil
 }
 
-func (r *Raw) IsArchivable() bool {
-	return r.ArchivableTime != nil && r.ArchivableTime.Before(time.Now())
+func (r *Raw) IsArchivableAt(tm time.Time) bool {
+	return r.ArchivableTime != nil && !r.ArchivableTime.After(tm)
 }
 
 func (r *Raw) IsArchived() bool {

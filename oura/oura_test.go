@@ -478,9 +478,6 @@ var _ = Describe("oura", func() {
 			It("parses the datum", func() {
 				datum := ouraTest.RandomSubscription(test.AllowOptional())
 				object := ouraTest.NewObjectFromSubscription(datum, test.ObjectFormatJSON)
-				if datum.ExpirationTime != nil {
-					object["expiration_time"] = datum.ExpirationTime.Format(oura.SubscriptionExpirationTimeFormat)
-				}
 				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(oura.ParseSubscription(parser)).To(Equal(datum))
 				Expect(parser.Error()).ToNot(HaveOccurred())
@@ -514,9 +511,6 @@ var _ = Describe("oura", func() {
 				func(mutator func(object map[string]any, expectedDatum *oura.Subscription), expectedErrors ...error) {
 					expectedDatum := ouraTest.RandomSubscription(test.AllowOptional())
 					object := ouraTest.NewObjectFromSubscription(expectedDatum, test.ObjectFormatJSON)
-					if expectedDatum.ExpirationTime != nil {
-						object["expiration_time"] = expectedDatum.ExpirationTime.Format(oura.SubscriptionExpirationTimeFormat)
-					}
 					mutator(object, expectedDatum)
 					result := &oura.Subscription{}
 					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
@@ -548,7 +542,7 @@ var _ = Describe("oura", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/callback_url"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/data_type"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/event_type"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/expiration_time"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/expiration_time"),
 				),
 			)
 		})
@@ -639,13 +633,13 @@ var _ = Describe("oura", func() {
 				),
 				Entry("expiration_time zero",
 					func(datum *oura.Subscription) {
-						datum.ExpirationTime = pointer.FromTime(time.Time{})
+						datum.ExpirationTime = pointer.FromString(time.Time{}.Format(oura.SubscriptionExpirationTimeFormat))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/expiration_time"),
 				),
 				Entry("expiration_time valid",
 					func(datum *oura.Subscription) {
-						datum.ExpirationTime = pointer.FromTime(test.RandomTime())
+						datum.ExpirationTime = pointer.FromString(test.RandomTime().Format(oura.SubscriptionExpirationTimeFormat))
 					},
 				),
 				Entry("multiple errors",
@@ -710,11 +704,6 @@ var _ = Describe("oura", func() {
 			It("successfully parses a non-empty array", func() {
 				expectedDatum := ouraTest.RandomSubscriptions()
 				array := ouraTest.NewArrayFromSubscriptions(&expectedDatum, test.ObjectFormatJSON)
-				for index, datum := range expectedDatum {
-					if datum.ExpirationTime != nil {
-						array[index].(map[string]any)["expiration_time"] = datum.ExpirationTime.Format(oura.SubscriptionExpirationTimeFormat)
-					}
-				}
 				parser := structureParser.NewArray(logTest.NewLogger(), &array)
 				datum := oura.Subscriptions{}
 				datum.Parse(parser)

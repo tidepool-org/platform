@@ -100,9 +100,13 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 		query["processedTime"] = bson.M{"$exists": *filter.Processed}
 	}
 	if filter.Archivable != nil {
-		query["archivableTime"] = bson.M{"$exists": true, "$lt": now}
-		if !*filter.Archivable {
-			query["archivableTime"] = bson.M{"$not": query["archivableTime"]}
+		if *filter.Archivable {
+			query["archivableTime"] = bson.M{"$exists": true, "$lt": now}
+		} else {
+			query["$or"] = bson.A{
+				bson.M{"archivableTime": bson.M{"$exists": false}},
+				bson.M{"archivableTime": bson.M{"$gte": now}},
+			}
 		}
 	}
 	if filter.Archived != nil {

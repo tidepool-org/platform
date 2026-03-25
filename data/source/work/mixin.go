@@ -7,6 +7,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
@@ -225,7 +226,7 @@ func (m *mixin[M]) UpdateWorkMetadataFromDataSource() *work.ProcessResult {
 	} else if m.workMetadata == nil {
 		return m.Failed(errors.New("work metadata is missing"))
 	}
-	m.workMetadata.DataSourceID = &m.dataSource.ID
+	m.workMetadata.DataSourceID = pointer.From(m.dataSource.ID)
 	return nil
 }
 

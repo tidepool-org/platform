@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Provider *oauthProvider.Config `json:"provider"`
-	Client   *client.Config        `json:"client"`
+	Provider *oauthProvider.Config `json:",inline"`
+	Client   *client.Config        `json:"client,omitempty"`
 }
 
 func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error) {
