@@ -30,7 +30,7 @@ const (
 
 var _ = Describe("Processor", func() {
 	var (
-		ctrl                  *gomock.Controller
+		mockController        *gomock.Controller
 		mockWorkClient        *workTest.MockClient
 		mockProcessingUpdater *workTest.MockProcessingUpdater
 
@@ -46,9 +46,9 @@ var _ = Describe("Processor", func() {
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		mockWorkClient = workTest.NewMockClient(ctrl)
-		mockProcessingUpdater = workTest.NewMockProcessingUpdater(ctrl)
+		mockController = gomock.NewController(GinkgoT())
+		mockWorkClient = workTest.NewMockClient(mockController)
+		mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
 
 		logger = logTest.NewLogger()
 
@@ -82,7 +82,6 @@ var _ = Describe("Processor", func() {
 
 		appAPIServer.Close()
 		trackAPIServer.Close()
-		ctrl.Finish()
 	})
 
 	Context("", func() {

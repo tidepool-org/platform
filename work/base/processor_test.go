@@ -27,8 +27,9 @@ var _ = Describe("processor", func() {
 		})
 
 		It("returns successfully", func() {
+			mockController := gomock.NewController(GinkgoT())
 			dependencies := workBase.Dependencies{
-				WorkClient: workTest.NewMockClient(gomock.NewController(GinkgoT())),
+				WorkClient: workTest.NewMockClient(mockController),
 			}
 			Expect(dependencies.Validate()).To(Succeed())
 		})
@@ -42,7 +43,8 @@ var _ = Describe("processor", func() {
 		var mockProcessResultBuilder *workTest.MockProcessResultBuilder
 
 		BeforeEach(func() {
-			mockController, ctx = gomock.WithContext(log.NewContextWithLogger(context.Background(), logTest.NewLogger()), GinkgoT())
+			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockWorkClient = workTest.NewMockClient(mockController)
 			mockDependencies = workBase.Dependencies{
 				WorkClient: mockWorkClient,

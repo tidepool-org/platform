@@ -41,11 +41,9 @@ import (
 var _ = Describe("ConsentService", func() {
 	var logger log.Logger
 
-	var bddpCtrl *gomock.Controller
+	var mockController *gomock.Controller
 	var bddp *test.MockBigDataDonationProjectSharer
-	var mailerCtrl *gomock.Controller
 	var mailer *mailerTest.MockMailer
-	var userClientCtrl *gomock.Controller
 	var userClient *userTest.MockClient
 
 	var store *authStoreMongo.Store
@@ -56,17 +54,12 @@ var _ = Describe("ConsentService", func() {
 	}
 
 	BeforeEach(func() {
-		t := GinkgoT()
 		logger = logTest.NewLogger()
 
-		bddpCtrl = gomock.NewController(t)
-		bddp = test.NewMockBigDataDonationProjectSharer(bddpCtrl)
-
-		mailerCtrl = gomock.NewController(t)
-		mailer = mailerTest.NewMockMailer(mailerCtrl)
-
-		userClientCtrl = gomock.NewController(t)
-		userClient = userTest.NewMockClient(userClientCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		bddp = test.NewMockBigDataDonationProjectSharer(mockController)
+		mailer = mailerTest.NewMockMailer(mockController)
+		userClient = userTest.NewMockClient(mockController)
 
 		store = GetSuiteStore()
 
@@ -81,11 +74,6 @@ var _ = Describe("ConsentService", func() {
 		Expect(consentService.EnsureConsent(ctx(), test.ConsentV2)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.AnotherConsentV1)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.MockBDDPConsentV1)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		bddpCtrl.Finish()
-		mailerCtrl.Finish()
 	})
 
 	Describe("ListConsents", func() {

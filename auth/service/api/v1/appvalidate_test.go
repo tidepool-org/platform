@@ -34,7 +34,7 @@ import (
 var _ = Describe("App Validation", func() {
 	defer GinkgoRecover()
 
-	var ctrl *gomock.Controller
+	var mockController *gomock.Controller
 	var service *authServiceTest.Service
 	var repo *appvalidateTest.MockRepository
 	var generator *appvalidateTest.MockChallengeGenerator
@@ -97,11 +97,11 @@ var _ = Describe("App Validation", func() {
 		initialValidations[i] = validation
 	}
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
+		mockController = gomock.NewController(GinkgoT())
 		service = authServiceTest.NewService()
-		repo = newRepository(ctrl, initialValidations)
-		generator = appvalidateTest.NewMockChallengeGenerator(ctrl)
-		authClient = authTest.NewMockClient(ctrl)
+		repo = newRepository(mockController, initialValidations)
+		generator = appvalidateTest.NewMockChallengeGenerator(mockController)
+		authClient = authTest.NewMockClient(mockController)
 
 		service.LoggerImpl = logTest.NewLogger()
 		generator.EXPECT().
@@ -384,7 +384,7 @@ func unmashalBody(r io.ReadCloser, result interface{}) error {
 	return json.NewDecoder(r).Decode(result)
 }
 
-func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.AppValidation) *appvalidateTest.MockRepository {
+func newRepository(mockController *gomock.Controller, initialValidations []appvalidate.AppValidation) *appvalidateTest.MockRepository {
 	// In memory map for persistence across calls.
 	// [appvalidate.Filter] => *appvalidate.AppValidation
 	mapping := &sync.Map{}
@@ -395,7 +395,7 @@ func newRepository(ctrl *gomock.Controller, initialValidations []appvalidate.App
 		mapping.Store(appvalidate.Filter{UserID: copy.UserID, KeyID: copy.KeyID}, &copy)
 	}
 
-	repo := appvalidateTest.NewMockRepository(ctrl)
+	repo := appvalidateTest.NewMockRepository(mockController)
 	repo.EXPECT().
 		Upsert(gomock.Any(), gomock.Any()).
 		DoAndReturn(func(ctx context.Context, v *appvalidate.AppValidation) error {

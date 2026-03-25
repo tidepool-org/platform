@@ -32,16 +32,18 @@ import (
 )
 
 var _ = Describe("Runner", func() {
+	var mockController *gomock.Controller
 	var authClient *dexcomFetchTest.MockAuthClient
 	var dataClient *dexcomFetchTest.MockDataClient
 	var dataSourceClient *dataSourceTest.MockClient
 	var dexcomClient *dexcomFetchTest.MockDexcomClient
 
 	BeforeEach(func() {
-		authClient = dexcomFetchTest.NewMockAuthClient(gomock.NewController(GinkgoT()))
-		dataClient = dexcomFetchTest.NewMockDataClient(gomock.NewController(GinkgoT()))
-		dataSourceClient = dataSourceTest.NewMockClient(gomock.NewController(GinkgoT()))
-		dexcomClient = dexcomFetchTest.NewMockDexcomClient(gomock.NewController(GinkgoT()))
+		mockController = gomock.NewController(GinkgoT())
+		authClient = dexcomFetchTest.NewMockAuthClient(mockController)
+		dataClient = dexcomFetchTest.NewMockDataClient(mockController)
+		dataSourceClient = dataSourceTest.NewMockClient(mockController)
+		dexcomClient = dexcomFetchTest.NewMockDexcomClient(mockController)
 	})
 
 	Context("NewRunner", func() {
@@ -142,7 +144,7 @@ var _ = Describe("Runner", func() {
 		var tsk *task.Task
 
 		BeforeEach(func() {
-			provider = dexcomFetchTest.NewMockProvider(gomock.NewController(GinkgoT()))
+			provider = dexcomFetchTest.NewMockProvider(mockController)
 			provider.EXPECT().AuthClient().Return(authClient).AnyTimes()
 			provider.EXPECT().DataClient().Return(dataClient).AnyTimes()
 			provider.EXPECT().DataSourceClient().Return(dataSourceClient).AnyTimes()

@@ -41,14 +41,10 @@ var _ = Describe("SubmissionProcessor", func() {
 		processor *jotform.SubmissionProcessor
 		logger    log.Logger
 
-		consentCtrl    *gomock.Controller
+		mockController *gomock.Controller
 		consentService *consentTest.MockService
-
-		shopifyCtrl *gomock.Controller
-		shopifyClnt *shopfiyTest.MockClient
-
-		userCtrl   *gomock.Controller
-		userClient *userTest.MockClient
+		shopifyClnt    *shopfiyTest.MockClient
+		userClient     *userTest.MockClient
 
 		appAPIServer    *httptest.Server
 		appAPIResponses *ouraTest.StubResponses
@@ -66,11 +62,9 @@ var _ = Describe("SubmissionProcessor", func() {
 		logger = logTest.NewLogger()
 		ctx = log.NewContextWithLogger(context.Background(), logger)
 
-		consentCtrl = gomock.NewController(GinkgoT())
-		consentService = consentTest.NewMockService(consentCtrl)
-
-		userCtrl = gomock.NewController(GinkgoT())
-		userClient = userTest.NewMockClient(userCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		consentService = consentTest.NewMockService(mockController)
+		userClient = userTest.NewMockClient(mockController)
 
 		jotformResponses = ouraTest.NewStubResponses()
 		jotformServer = ouraTest.NewStubServer(jotformResponses)
@@ -92,8 +86,7 @@ var _ = Describe("SubmissionProcessor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		shopifyCtrl = gomock.NewController(GinkgoT())
-		shopifyClnt = shopfiyTest.NewMockClient(shopifyCtrl)
+		shopifyClnt = shopfiyTest.NewMockClient(mockController)
 
 		processor, err = jotform.NewSubmissionProcessor(jotformConfig, logger, consentService, customerIOClient, userClient, shopifyClnt, GetSuiteStore())
 		Expect(err).ToNot(HaveOccurred())
@@ -106,9 +99,6 @@ var _ = Describe("SubmissionProcessor", func() {
 		jotformServer.Close()
 		appAPIServer.Close()
 		trackAPIServer.Close()
-		consentCtrl.Finish()
-		userCtrl.Finish()
-		shopifyCtrl.Finish()
 	})
 
 	Context("ProcessSubmission", func() {

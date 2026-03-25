@@ -198,6 +198,7 @@ var _ = Describe("mixin", func() {
 	})
 
 	Context("DataSourceReplacerMixin", func() {
+		var ctx context.Context
 		var mockLogger *logTest.Logger
 		var mockController *gomock.Controller
 		var mockWorkProvider *workTest.Provider
@@ -206,9 +207,9 @@ var _ = Describe("mixin", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 
 		BeforeEach(func() {
-			var ctx context.Context
 			mockLogger = logTest.NewLogger()
-			mockController, ctx = gomock.WithContext(log.NewContextWithLogger(context.Background(), mockLogger), GinkgoT())
+			ctx = log.NewContextWithLogger(context.Background(), mockLogger)
+			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockWorkProvider = workTest.NewProvider(ctx)
 			mockDataSourceMixin = dataSourceWorkTest.NewMockMixinFromWork(mockController)
 			mockProviderSessionClient = providerSessionTest.NewMockClient(mockController)

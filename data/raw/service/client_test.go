@@ -23,17 +23,13 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		controller *gomock.Controller
-		mockStore  *dataRawServiceTest.MockStore
+		mockController *gomock.Controller
+		mockStore      *dataRawServiceTest.MockStore
 	)
 
 	BeforeEach(func() {
-		controller = gomock.NewController(GinkgoT())
-		mockStore = dataRawServiceTest.NewMockStore(controller)
-	})
-
-	AfterEach(func() {
-		controller.Finish()
+		mockController = gomock.NewController(GinkgoT())
+		mockStore = dataRawServiceTest.NewMockStore(mockController)
 	})
 
 	Context("NewClient", func() {

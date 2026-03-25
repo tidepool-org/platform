@@ -20,18 +20,14 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("NewContextWithServerSessionTokenProvider", func() {
-		var serverSessionTokenProviderController *gomock.Controller
+		var mockController *gomock.Controller
 		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var ctx context.Context
 
 		BeforeEach(func() {
-			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+			mockController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 			ctx = context.Background()
-		})
-
-		AfterEach(func() {
-			serverSessionTokenProviderController.Finish()
 		})
 
 		It("persists the server session token provider", func() {
@@ -41,18 +37,14 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("ServerSessionTokenProviderFromContext", func() {
-		var serverSessionTokenProviderController *gomock.Controller
+		var mockController *gomock.Controller
 		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var ctx context.Context
 
 		BeforeEach(func() {
-			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+			mockController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 			ctx = context.Background()
-		})
-
-		AfterEach(func() {
-			serverSessionTokenProviderController.Finish()
 		})
 
 		It("returns nil if the context is nil", func() {

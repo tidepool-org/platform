@@ -78,7 +78,7 @@ var _ = Describe("External", func() {
 	})
 
 	Context("with server and new client", func() {
-		var serverSessionTokenProviderController *gomock.Controller
+		var mockController *gomock.Controller
 		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var server *Server
 		var requestHandlers []http.HandlerFunc
@@ -89,8 +89,8 @@ var _ = Describe("External", func() {
 		var ctx context.Context
 
 		BeforeEach(func() {
-			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+			mockController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 			server = NewServer()
 			requestHandlers = nil
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
@@ -116,7 +116,6 @@ var _ = Describe("External", func() {
 			if server != nil {
 				server.Close()
 			}
-			serverSessionTokenProviderController.Finish()
 		})
 
 		Context("EnsureAuthorized", func() {
