@@ -153,15 +153,15 @@ var _ = Describe("Provider", func() {
 
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"DataSetID":          PointTo(Equal(dataSetID)),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),
 					})))
-				}).
-				Return(dataSrc, nil)
+					return dataSrc, nil
+				})
 
 			Expect(prvdr.OnCreate(ctx, session)).To(Succeed())
 		})
@@ -189,12 +189,12 @@ var _ = Describe("Provider", func() {
 				Return(nil)
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"State": PointTo(Equal("disconnected")),
 					})))
-				}).
-				Return(dataSrc, nil)
+					return dataSrc, nil
+				})
 
 			providerSessionClient.EXPECT().
 				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
@@ -208,15 +208,15 @@ var _ = Describe("Provider", func() {
 
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"DataSetID":          PointTo(Equal(dataSetID)),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),
 					})))
-				}).
-				Return(dataSrc, nil)
+					return dataSrc, nil
+				})
 
 			Expect(prvdr.OnCreate(ctx, session)).To(Succeed())
 		})
@@ -257,12 +257,12 @@ var _ = Describe("Provider", func() {
 
 			dataSourceClient.EXPECT().
 				Update(gomock.Any(), gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"State": PointTo(Equal("disconnected")),
 					})))
-				}).
-				Return(nil, nil)
+					return nil, nil
+				})
 
 			Expect(prvdr.OnDelete(ctx, session)).To(Succeed())
 		})

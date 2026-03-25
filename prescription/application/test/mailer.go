@@ -7,6 +7,8 @@ import (
 	"github.com/tidepool-org/go-common/events"
 )
 
+//go:generate mockgen -source=mailer.go -destination=mailer_mocks.go -package=test -typed
+
 type NoopMailer struct{}
 
 var _ clients.MailerClient = &NoopMailer{}
@@ -19,7 +21,6 @@ func NewNoopMailer() clients.MailerClient {
 	return &NoopMailer{}
 }
 
-//go:generate mockgen -source=mailer.go -destination=mailer_mocks.go -package=test MailerClient
 type MailerClient interface {
 	clients.MailerClient
 }

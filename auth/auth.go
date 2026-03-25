@@ -7,6 +7,8 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
+//go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test -typed
+
 const (
 	TidepoolServiceSecretHeaderKey      = "X-Tidepool-Service-Secret"
 	TidepoolAuthorizationHeaderKey      = "Authorization"
@@ -14,7 +16,6 @@ const (
 	TidepoolRestrictedTokenParameterKey = "restricted_token"
 )
 
-//go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
 type Client interface {
 	ProviderSessionClient
 	RestrictedTokenAccessor

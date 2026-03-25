@@ -18,7 +18,8 @@ import (
 	"github.com/tidepool-org/platform/summary/types"
 )
 
-//go:generate mockgen -source=summary.go -destination=test/summary_mocks.go -package=test Client
+//go:generate mockgen -source=summary.go -destination=test/summary_mocks.go -package=test -typed
+
 type Client interface {
 	CheckDataUpdatesSummary(datumArray data.Data, updatesSummary map[string]struct{})
 	MaybeUpdateSummary(ctx context.Context, userID string, reason string, updatesSummary map[string]struct{})

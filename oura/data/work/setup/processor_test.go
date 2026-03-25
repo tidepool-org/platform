@@ -166,20 +166,20 @@ var _ = Describe("processor", func() {
 										testErr := errorsTest.RandomError()
 										mockWorkClient.EXPECT().
 											Create(gomock.Any(), gomock.Any()).
-											Do(func(ctx context.Context, create *work.Create) {
+											DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
 												Expect(create).To(Equal(dataHistoricWorkCreate))
-											}).
-											Return(nil, testErr)
+												return nil, testErr
+											})
 										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 									})
 
 									It("returns delete process result when successful", func() {
 										mockWorkClient.EXPECT().
 											Create(gomock.Any(), gomock.Any()).
-											Do(func(ctx context.Context, create *work.Create) {
+											DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
 												Expect(create).To(Equal(dataHistoricWorkCreate))
-											}).
-											Return(dataHistoricWork, nil)
+												return dataHistoricWork, nil
+											})
 										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
 									})
 								})

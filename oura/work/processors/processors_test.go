@@ -143,20 +143,20 @@ var _ = Describe("processors", func() {
 				testErr := errorsTest.RandomError()
 				mockWorkClient.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, create *work.Create) {
+					DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
 						Expect(create).To(Equal(webhookSubscribeWorkCreate))
-					}).
-					Return(nil, testErr)
+						return nil, testErr
+					})
 				Expect(ouraWorkProcessors.EnsureWork(ctx, mockWorkClient)).To(MatchError("unable to create webhook subscribe work; " + testErr.Error()))
 			})
 
 			It("returns successfully", func() {
 				mockWorkClient.EXPECT().
 					Create(gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, create *work.Create) {
+					DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
 						Expect(create).To(Equal(webhookSubscribeWorkCreate))
-					}).
-					Return(webhookSubscribeWork, nil)
+						return webhookSubscribeWork, nil
+					})
 				Expect(ouraWorkProcessors.EnsureWork(ctx, mockWorkClient)).To(Succeed())
 			})
 		})

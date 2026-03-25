@@ -6,13 +6,13 @@ import (
 	"github.com/tidepool-org/platform/data"
 )
 
-//go:generate mockgen -source=deduplicator.go -destination=test/deduplicator_mocks.go -package=test Factory
+//go:generate mockgen -source=deduplicator.go -destination=test/deduplicator_mocks.go -package=test -typed
+
 type Factory interface {
 	New(ctx context.Context, dataSet *data.DataSet) (Deduplicator, error)
 	Get(ctx context.Context, dataSet *data.DataSet) (Deduplicator, error)
 }
 
-//go:generate mockgen -source=deduplicator.go -destination=test/deduplicator_mocks.go -package=test Deduplicator
 type Deduplicator interface {
 	Open(ctx context.Context, dataSet *data.DataSet) (*data.DataSet, error)
 	AddData(ctx context.Context, dataSet *data.DataSet, dataSetData data.Data) error

@@ -11,6 +11,8 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
+//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
+
 const MetadataKeyProviderSessionID = "providerSessionId"
 
 type Metadata struct {
@@ -25,7 +27,6 @@ func (m *Metadata) Validate(validator structure.Validator) {
 	validator.String(MetadataKeyProviderSessionID, m.ProviderSessionID).Using(auth.ProviderSessionIDValidator)
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test Mixin
 type Mixin interface {
 	ProviderSessionClient() providerSession.Client
 
@@ -39,7 +40,6 @@ type Mixin interface {
 	AddProviderSessionToContext()
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test MixinFromWork
 type MixinFromWork interface {
 	Mixin
 

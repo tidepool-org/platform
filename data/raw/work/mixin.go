@@ -11,6 +11,8 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
+//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
+
 const MetadataKeyDataRawID = "dataRawId"
 
 type Metadata struct {
@@ -25,7 +27,6 @@ func (m *Metadata) Validate(validator structure.Validator) {
 	validator.String(MetadataKeyDataRawID, m.DataRawID).Using(dataRaw.DataRawIDValidator)
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test Mixin
 type Mixin interface {
 	DataRawClient() dataRaw.Client
 
@@ -61,19 +62,16 @@ type WithParsedMetadata[M any] interface {
 	UpdateDataRawMetadata() *work.ProcessResult
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test MixinFromWork
 type MixinFromWork interface {
 	Mixin
 	FromWork
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test MixinWithParsedMetadata
 type MixinWithParsedMetadata[M any] interface {
 	Mixin
 	WithParsedMetadata[M]
 }
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test MixinFromWorkWithParsedMetadata
 type MixinFromWorkWithParsedMetadata[M any] interface {
 	Mixin
 	FromWork

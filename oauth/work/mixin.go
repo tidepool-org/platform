@@ -12,7 +12,8 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test Mixin
+//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
+
 type Mixin interface {
 	oauth.TokenSource
 

@@ -140,34 +140,33 @@ var _ = Describe("SubmissionProcessor", func() {
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+				DoAndReturn(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
 					Expect(filter.Version).To(PointTo(Equal(1)))
 					Expect(filter.Latest).To(PointTo(Equal(true)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 0,
-				}, nil)
-
+					return &storeStructuredMongo.ListResult[consent.Record]{
+						Count: 0,
+					}, nil
+				})
 			consentService.EXPECT().CreateConsentRecord(gomock.Any(), userID, gomock.Any()).
-				Do(func(ctx context.Context, userID string, create *consent.RecordCreate) {
+				DoAndReturn(func(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
 					Expect(create).ToNot(BeNil())
 					Expect(create.Type).To(Equal("big_data_donation_project"))
 					Expect(create.Version).To(Equal(1))
 					Expect(create.OwnerName).To(Equal("James Jellyfish"))
 					Expect(create.AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
 					Expect(create.GrantorType).To(Equal(consent.GrantorTypeOwner))
-				}).
-				Return(&consent.Record{
-					ID:          "1234567890",
-					UserID:      userID,
-					Status:      consent.RecordStatusActive,
-					AgeGroup:    consent.AgeGroupEighteenOrOver,
-					OwnerName:   "James Jellyfish",
-					GrantorType: "owner",
-					Type:        "big_data_donation_project",
-					Version:     1,
-				}, nil)
+					return &consent.Record{
+						ID:          "1234567890",
+						UserID:      userID,
+						Status:      consent.RecordStatusActive,
+						AgeGroup:    consent.AgeGroupEighteenOrOver,
+						OwnerName:   "James Jellyfish",
+						GrantorType: "owner",
+						Type:        "big_data_donation_project",
+						Version:     1,
+					}, nil
+				})
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
@@ -210,24 +209,24 @@ var _ = Describe("SubmissionProcessor", func() {
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+				DoAndReturn(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
 					Expect(filter.Version).To(PointTo(Equal(1)))
 					Expect(filter.Latest).To(PointTo(Equal(true)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 1,
-					Data: []consent.Record{{
-						ID:          "1234567890",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "big_data_donation_project",
-						Version:     1,
-					}},
-				}, nil)
+					return &storeStructuredMongo.ListResult[consent.Record]{
+						Count: 1,
+						Data: []consent.Record{{
+							ID:          "1234567890",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   "James Jellyfish",
+							GrantorType: "owner",
+							Type:        "big_data_donation_project",
+							Version:     1,
+						}},
+					}, nil
+				})
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
@@ -364,34 +363,34 @@ var _ = Describe("SubmissionProcessor", func() {
 				userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 				consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+					DoAndReturn(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 						Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
 						Expect(filter.Version).To(PointTo(Equal(1)))
 						Expect(filter.Latest).To(PointTo(Equal(true)))
-					}).
-					Return(&storeStructuredMongo.ListResult[consent.Record]{
-						Count: 0,
-					}, nil)
+						return &storeStructuredMongo.ListResult[consent.Record]{
+							Count: 0,
+						}, nil
+					})
 
 				consentService.EXPECT().CreateConsentRecord(gomock.Any(), userID, gomock.Any()).
-					Do(func(ctx context.Context, userID string, create *consent.RecordCreate) {
+					DoAndReturn(func(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
 						Expect(create).ToNot(BeNil())
 						Expect(create.Type).To(Equal("big_data_donation_project"))
 						Expect(create.Version).To(Equal(1))
 						Expect(create.OwnerName).To(Equal(name))
 						Expect(create.AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
 						Expect(create.GrantorType).To(Equal(consent.GrantorTypeOwner))
-					}).
-					Return(&consent.Record{
-						ID:          "1234567890",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   name,
-						GrantorType: "owner",
-						Type:        "big_data_donation_project",
-						Version:     1,
-					}, nil)
+						return &consent.Record{
+							ID:          "1234567890",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   name,
+							GrantorType: "owner",
+							Type:        "big_data_donation_project",
+							Version:     1,
+						}, nil
+					})
 
 				shopifyClnt.EXPECT().
 					CreateDiscountCode(gomock.Any(), gomock.Any()).

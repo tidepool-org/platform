@@ -13,6 +13,8 @@ import (
 	"github.com/tidepool-org/platform/times"
 )
 
+//go:generate mockgen -source=oura.go -destination=test/oura_mocks.go -package=test -typed
+
 const (
 	DataTypeDailyActivity          = "daily_activity"
 	DataTypeDailyCardiovascularAge = "daily_cardiovascular_age"
@@ -85,7 +87,6 @@ type BaseClient interface {
 	PartnerSecret() string
 }
 
-//go:generate mockgen -source=oura.go -destination=test/oura_mocks.go -package=test Client
 type Client interface {
 	BaseClient
 

@@ -11,7 +11,8 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test Provider
+//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+
 type Provider interface {
 	AuthClient() auth.Client
 	DataSourceStructuredStore() dataSourceStoreStructured.Store

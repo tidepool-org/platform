@@ -14,6 +14,8 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
+//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test -typed
+
 const (
 	ProviderType = "oauth"
 
@@ -21,7 +23,6 @@ const (
 	ActionRevoke    = "revoke"
 )
 
-//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test TokenSourceSource
 type TokenSourceSource interface {
 	TokenSource(ctx context.Context, token *auth.OAuthToken) (oauth2.TokenSource, error)
 }
@@ -43,7 +44,6 @@ type Provider interface {
 	IsErrorCodeAccessDenied(errorCode string) bool
 }
 
-//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test TokenSource
 type TokenSource interface {
 	HTTPClient(ctx context.Context, tokenSourceSource TokenSourceSource) (*http.Client, error)
 

@@ -7,10 +7,10 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
+//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test -typed
+
 // Allows a processor to update the work in the database while processing that work. Returns the resulting
 // updated work or an error.
-//
-//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test ProcessingUpdater
 type ProcessingUpdater interface {
 
 	// Update the work in the database while processing. Returns the resulting
@@ -19,8 +19,6 @@ type ProcessingUpdater interface {
 }
 
 // Required interface for a processor of work.
-//
-//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Processor
 type Processor interface {
 
 	// Process the specified work within the specified context providing intermediate updates
@@ -30,8 +28,6 @@ type Processor interface {
 }
 
 // Required interface for a processor factory.
-//
-//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test ProcessorFactory
 type ProcessorFactory interface {
 
 	// The type of work supported by the processor this factory creates. Must be in the form of a reverse DNS.
@@ -48,8 +44,6 @@ type ProcessorFactory interface {
 }
 
 // General provider functionality necessary for a processor.
-//
-//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test Provider
 type Provider interface {
 
 	// The context of the processor.
