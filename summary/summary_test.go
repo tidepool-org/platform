@@ -498,6 +498,38 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(len(buckets)).To(Equal(350))
 	})
 
+	It("bgm summary calc with data within a single hour produces valid summary", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+
+		// Create 3 BGM records all within the same hour, minutes apart
+		glucoseValue := InTargetBloodGlucose
+		writeModels := make([]mongo.WriteModel, 3)
+		for i := 0; i < 3; i++ {
+			recordTime := datumTime.Add(-time.Duration(i+1) * 10 * time.Minute)
+			datum := NewGlucoseWithValue("smbg", recordTime, glucoseValue)
+			datum.UserID = &userId
+			writeModels[i] = mongo.NewInsertOneModel().SetDocument(datum)
+		}
+		_, err := dataCollection.BulkWrite(ctx, writeModels, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
+		Expect(len(buckets)).To(Equal(1))
+
+		Expect(bgmSummary.Periods).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods).ToNot(BeEmpty())
+		Expect(bgmSummary.Periods.GlucosePeriods["1d"]).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods["1d"].Total.Records).To(Equal(3))
+		Expect(bgmSummary.Dates.LastUpdatedDate.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.FirstData.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.LastData.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.OutdatedSince).To(BeNil())
+	})
+
 	It("cgm summary calc with the same data range twice, with new modifiedTime", func() {
 		opts := options.BulkWrite().SetOrdered(false)
 		hourAgo := time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
