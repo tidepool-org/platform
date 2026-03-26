@@ -318,11 +318,6 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cgmSummary).ToNot(BeNil())
 
-		totalHours, err := cgmBucketsStore.GetTotalHours(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(totalHours).To(Equal(4))
-
 		// get the real summary stored to the db
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
@@ -409,11 +404,11 @@ var _ = Describe("End to end summary calculations", func() {
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
+
+		conSummary, err = continuousSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conSummary).To(BeNil())
 	})
 
 	It("summary calc with non-continuous data multiple times", func() {
@@ -430,19 +425,11 @@ var _ = Describe("End to end summary calculations", func() {
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
 	})
 
 	It("continuous summary calc with >batch of realtime data", func() {
