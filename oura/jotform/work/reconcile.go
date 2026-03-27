@@ -91,7 +91,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
 	create := &work.Create{
 		Type:              Type,
-		DeduplicationID:   pointer.FromString(Type),
+		DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
 		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 		Metadata: map[string]any{
 			MetadataKeyLastProcessedSubmissionID: initialSubmissionID,

@@ -45,8 +45,7 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 func NewWorkCreate() (*work.Create, error) {
 	return &work.Create{
 		Type:              Type,
-		GroupID:           pointer.FromString(Type),
-		DeduplicationID:   pointer.FromString(Type),
+		DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
 		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 	}, nil
 }

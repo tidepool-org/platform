@@ -56,7 +56,7 @@ ifdef TEST
 	TEST_FILE=$(notdir $(TEST))
 endif
 
-TEST_REPEAT ?= 0
+TEST_REPEAT ?= 1
 
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build

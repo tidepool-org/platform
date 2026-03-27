@@ -425,7 +425,7 @@ func (c *DataSourcesRepository) get(ctx context.Context, query bson.M, condition
 }
 
 type sourceDEPRECATED struct {
-	dataSource.Source `json:",inline" bson:",inline"`
+	dataSource.Source `bson:",inline"`
 
 	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 }

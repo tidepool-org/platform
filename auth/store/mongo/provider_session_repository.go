@@ -58,7 +58,7 @@ func (p *ProviderSessionRepository) CreateProviderSession(ctx context.Context, c
 		Name:        create.Name,
 		OAuthToken:  create.OAuthToken,
 		ExternalID:  create.ExternalID,
-		CreatedTime: time.Now(),
+		CreatedTime: now,
 	}
 	_, err := p.InsertOne(ctx, providerSession)
 	logger.WithFields(log.Fields{"id": providerSession.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateProviderSession")

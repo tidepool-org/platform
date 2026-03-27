@@ -123,7 +123,7 @@ var _ = Describe("Provider", func() {
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 			dataSetClient.EXPECT().
 				CreateUserDataSet(ctx, gomock.Eq(session.UserID), gomock.Any()).
-				Do(func(_ context.Context, _ string, create *data.DataSetCreate) {
+				DoAndReturn(func(_ context.Context, _ string, create *data.DataSetCreate) (*data.DataSet, error) {
 					Expect(create).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"Client": PointTo(MatchFields(IgnoreExtras, Fields{
 							"Name":    PointTo(Equal("com.sequelmedtech.tidepool-service")),
@@ -138,18 +138,18 @@ var _ = Describe("Provider", func() {
 						"Time":                PointTo(BeTemporally("<=", time.Now())),
 						"TimeProcessing":      PointTo(Equal("none")),
 					})))
-				}).
-				Return(&dataSet, nil)
+					return &dataSet, nil
+				})
 
 			providerSessionClient.EXPECT().
 				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
-				Do(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) {
+				DoAndReturn(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"OAuthToken": PointTo(Equal(*session.OAuthToken)),
 						"ExternalID": PointTo(Equal(providerSessionExternalID)),
 					})))
-				}).
-				Return(session, nil)
+					return session, nil
+				})
 
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
@@ -198,13 +198,13 @@ var _ = Describe("Provider", func() {
 
 			providerSessionClient.EXPECT().
 				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
-				Do(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) {
+				DoAndReturn(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"OAuthToken": PointTo(Equal(*session.OAuthToken)),
 						"ExternalID": PointTo(Equal(providerSessionExternalID)),
 					})))
-				}).
-				Return(session, nil)
+					return session, nil
+				})
 
 			dataSourceClient.EXPECT().
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).

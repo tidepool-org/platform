@@ -28,6 +28,8 @@ const (
 	StateFailing    = "failing"
 	StateFailed     = "failed"
 	StateSuccess    = "success"
+
+	DeduplicationIDSingleton = "singleton"
 )
 
 func States() []string {
@@ -157,7 +159,7 @@ type Create struct {
 	GroupID                 *string        `json:"groupId,omitempty"`
 	DeduplicationID         *string        `json:"deduplicationId,omitempty"`
 	SerialID                *string        `json:"serialId,omitempty"`
-	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitzero"`
 	ProcessingPriority      int            `json:"processingPriority,omitempty"`
 	ProcessingTimeout       int            `json:"processingTimeout,omitempty"` // seconds
 	Metadata                map[string]any `json:"metadata,omitempty"`
@@ -168,7 +170,7 @@ func ParseCreate(parser structure.ObjectParser) *Create {
 		return nil
 	}
 	datum := &Create{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -203,7 +205,7 @@ func (c *Create) Validate(validator structure.Validator) {
 }
 
 type PendingUpdate struct {
-	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty" bson:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitzero" bson:"processingAvailableTime,omitempty"`
 	ProcessingPriority      int            `json:"processingPriority,omitempty" bson:"processingPriority,omitempty"`
 	ProcessingTimeout       int            `json:"processingTimeout,omitempty" bson:"processingTimeout,omitempty"`
 	Metadata                map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
@@ -214,7 +216,7 @@ func ParsePendingUpdate(parser structure.ObjectParser) *PendingUpdate {
 		return nil
 	}
 	datum := &PendingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -247,7 +249,7 @@ func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
 		return nil
 	}
 	datum := &ProcessingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -262,9 +264,9 @@ func (p *ProcessingUpdate) Validate(validator structure.Validator) {
 }
 
 type FailingUpdate struct {
-	FailingError      errors.Serializable `json:"failingError,omitempty" bson:"failingError,omitempty"`
+	FailingError      errors.Serializable `json:"failingError,omitzero" bson:"failingError,omitempty"`
 	FailingRetryCount int                 `json:"failingRetryCount,omitempty" bson:"failingRetryCount,omitempty"`
-	FailingRetryTime  time.Time           `json:"failingRetryTime,omitempty" bson:"failingRetryTime,omitempty"`
+	FailingRetryTime  time.Time           `json:"failingRetryTime,omitzero" bson:"failingRetryTime,omitempty"`
 	Metadata          map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
@@ -273,7 +275,7 @@ func ParseFailingUpdate(parser structure.ObjectParser) *FailingUpdate {
 		return nil
 	}
 	datum := &FailingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -300,7 +302,7 @@ func (f *FailingUpdate) Validate(validator structure.Validator) {
 }
 
 type FailedUpdate struct {
-	FailedError errors.Serializable `json:"failedError,omitempty" bson:"failedError,omitempty"`
+	FailedError errors.Serializable `json:"failedError,omitzero" bson:"failedError,omitempty"`
 	Metadata    map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
@@ -309,7 +311,7 @@ func ParseFailedUpdate(parser structure.ObjectParser) *FailedUpdate {
 		return nil
 	}
 	datum := &FailedUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -337,7 +339,7 @@ func ParseSuccessUpdate(parser structure.ObjectParser) *SuccessUpdate {
 		return nil
 	}
 	datum := &SuccessUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -426,11 +428,11 @@ type Work struct {
 	GroupID                 *string              `json:"groupId,omitempty"`
 	DeduplicationID         *string              `json:"deduplicationId,omitempty"` // scoped to Type
 	SerialID                *string              `json:"serialId,omitempty"`
-	ProcessingAvailableTime time.Time            `json:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time            `json:"processingAvailableTime,omitzero"`
 	ProcessingPriority      int                  `json:"processingPriority,omitempty"`
 	ProcessingTimeout       int                  `json:"processingTimeout,omitempty"`
 	Metadata                map[string]any       `json:"metadata,omitempty"`
-	PendingTime             time.Time            `json:"pendingTime,omitempty"`
+	PendingTime             time.Time            `json:"pendingTime,omitzero"`
 	ProcessingTime          *time.Time           `json:"processingTime,omitempty"`
 	ProcessingTimeoutTime   *time.Time           `json:"processingTimeoutTime,omitempty"`
 	ProcessingDuration      *float64             `json:"processingDuration,omitempty"` // seconds
@@ -442,7 +444,7 @@ type Work struct {
 	FailedError             *errors.Serializable `json:"failedError,omitempty"`
 	SuccessTime             *time.Time           `json:"successTime,omitempty"`
 	State                   string               `json:"state,omitempty"`
-	CreatedTime             time.Time            `json:"createdTime,omitempty"`
+	CreatedTime             time.Time            `json:"createdTime,omitzero"`
 	ModifiedTime            *time.Time           `json:"modifiedTime,omitempty"`
 	Revision                int                  `json:"revision,omitempty"`
 }

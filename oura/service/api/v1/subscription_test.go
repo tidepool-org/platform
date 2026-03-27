@@ -98,7 +98,7 @@ var _ = Describe("subscription", func() {
 			router.Subscription(res, req)
 			Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
 			Expect(res.ResponseRecorder).To(HaveHTTPBody("verification token is invalid"))
-			logger.AssertError("verification token is invalid", log.Fields{"verificationToken": verificationToken, "challenge": challenge})
+			logger.AssertError("verification token is invalid", log.Fields{"challenge": challenge})
 		})
 
 		It("returns http.StatusOK with the challenge when the verification token is valid", func() {

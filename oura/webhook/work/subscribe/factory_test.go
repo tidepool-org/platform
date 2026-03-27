@@ -128,8 +128,7 @@ var _ = Describe("factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraWebhookWorkSubscribe.Type,
-				GroupID:           pointer.FromString(ouraWebhookWorkSubscribe.Type),
-				DeduplicationID:   pointer.FromString(ouraWebhookWorkSubscribe.Type),
+				DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
 				ProcessingTimeout: 300,
 			}))
 		})

@@ -750,7 +750,7 @@ func (s *Service) initializeProviders() error {
 	} else if prvdrErr = cfg.Validate(); prvdrErr != nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create oura provider")
 	} else {
-		cfg.Client.UserAgent = s.UserAgent()
+		cfg.ClientConfig.UserAgent = s.UserAgent()
 		dependencies := ouraProvider.Dependencies{
 			Config:                *cfg,
 			ProviderSessionClient: s.authClient,

@@ -7,9 +7,14 @@ import (
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 )
 
+type (
+	ProviderConfig = oauthProvider.Config
+	ClientConfig   = client.Config
+)
+
 type Config struct {
-	Provider *oauthProvider.Config `json:",inline"`
-	Client   *client.Config        `json:"client,omitempty"`
+	*ProviderConfig
+	ClientConfig *ClientConfig `json:"client,omitempty"`
 }
 
 func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error) {
@@ -22,19 +27,19 @@ func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error
 
 func NewConfig() *Config {
 	return &Config{
-		Provider: oauthProvider.NewConfig(),
-		Client:   client.NewConfig(),
+		ProviderConfig: oauthProvider.NewConfig(),
+		ClientConfig:   client.NewConfig(),
 	}
 }
 
 func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
-	if c.Provider != nil {
-		if err := c.Provider.LoadFromConfigReporter(configReporter); err != nil {
+	if c.ProviderConfig != nil {
+		if err := c.ProviderConfig.LoadFromConfigReporter(configReporter); err != nil {
 			return err
 		}
 	}
-	if c.Client != nil {
-		if err := c.Client.LoadFromConfigReporter(configReporter.WithScopes("client")); err != nil {
+	if c.ClientConfig != nil {
+		if err := c.ClientConfig.LoadFromConfigReporter(configReporter.WithScopes("client")); err != nil {
 			return err
 		}
 	}
@@ -42,15 +47,15 @@ func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
 }
 
 func (c *Config) Validate() error {
-	if c.Provider == nil {
-		return errors.New("provider is missing")
-	} else if err := c.Provider.Validate(); err != nil {
-		return errors.Wrap(err, "provider is invalid")
+	if c.ProviderConfig == nil {
+		return errors.New("provider config is missing")
+	} else if err := c.ProviderConfig.Validate(); err != nil {
+		return errors.Wrap(err, "provider config is invalid")
 	}
-	if c.Client == nil {
-		return errors.New("client is missing")
-	} else if err := c.Client.Validate(); err != nil {
-		return errors.Wrap(err, "client is invalid")
+	if c.ClientConfig == nil {
+		return errors.New("client config is missing")
+	} else if err := c.ClientConfig.Validate(); err != nil {
+		return errors.Wrap(err, "client config is invalid")
 	}
 	return nil
 }

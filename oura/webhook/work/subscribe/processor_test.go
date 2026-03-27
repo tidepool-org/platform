@@ -181,7 +181,7 @@ var _ = Describe("processor", func() {
 								subscription := _subscription(oura.DataTypeDailyActivity, oura.EventTypeCreate)
 								subscription.ExpirationTime = pointer.FromString("invalid")
 								mockOuraClient.EXPECT().ListSubscriptions(gomock.Any()).Return(oura.Subscriptions{subscription}, nil)
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf(`unable to parse expiration time of existing subscription with id "%s", data type "daily_activity", and event type "create"; parsing time "invalid" as "2006-01-02T15:04:05.999999999": cannot parse "invalid" as "2006"`, *subscription.ID))))
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf(`unable to parse expiration time of existing subscription with id %q, data type "daily_activity", and event type "create"; parsing time "invalid" as "2006-01-02T15:04:05.999999999": cannot parse "invalid" as "2006"`, *subscription.ID))))
 							})
 
 							It("fails if unable to renew subscription", func() {

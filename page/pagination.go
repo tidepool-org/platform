@@ -116,18 +116,6 @@ func CollectWithSize[T any, U ~[]T](size int, pager Pager[T, U]) (U, error) {
 	}
 }
 
-func First[T any, U ~[]T](pager Pager[T, U]) (value T, err error) {
-	if pager == nil {
-		return value, errors.New("pager is missing")
-	}
-
-	paged, err := pager(Pagination{Page: PaginationPageMinimum, Size: PaginationSizeMinimum})
-	if err != nil || len(paged) <= 0 {
-		return value, err
-	}
-	return paged[0], nil
-}
-
 type Processor[T any, U any] func(element T) (U, error)
 
 func Process[T any, U any, V ~[]T, W []U](pager Pager[T, V], processor Processor[T, U]) (W, error) {

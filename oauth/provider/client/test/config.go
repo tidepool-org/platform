@@ -9,8 +9,8 @@ import (
 
 func RandomConfig(options ...test.Option) *oauthProviderClient.Config {
 	return &oauthProviderClient.Config{
-		Provider: oauthProviderTest.RandomConfig(options...),
-		Client:   clientTest.RandomConfig(options...),
+		ProviderConfig: oauthProviderTest.RandomConfig(options...),
+		ClientConfig:   clientTest.RandomConfig(options...),
 	}
 }
 
@@ -19,8 +19,8 @@ func CloneConfig(config *oauthProviderClient.Config) *oauthProviderClient.Config
 		return nil
 	}
 	clone := &oauthProviderClient.Config{
-		Provider: oauthProviderTest.CloneConfig(config.Provider),
-		Client:   clientTest.CloneConfig(config.Client),
+		ProviderConfig: oauthProviderTest.CloneConfig(config.ProviderConfig),
+		ClientConfig:   clientTest.CloneConfig(config.ClientConfig),
 	}
 	return clone
 }
@@ -30,11 +30,11 @@ func NewObjectFromConfig(config *oauthProviderClient.Config, objectFormat test.O
 		return nil
 	}
 	object := map[string]any{}
-	if config.Provider != nil {
-		object = oauthProviderTest.NewObjectFromConfig(config.Provider, objectFormat)
+	if config.ProviderConfig != nil {
+		object = oauthProviderTest.NewObjectFromConfig(config.ProviderConfig, objectFormat)
 	}
-	if config.Client != nil {
-		object["client"] = clientTest.NewObjectFromConfig(config.Client, objectFormat)
+	if config.ClientConfig != nil {
+		object["client"] = clientTest.NewObjectFromConfig(config.ClientConfig, objectFormat)
 	}
 	return object
 }

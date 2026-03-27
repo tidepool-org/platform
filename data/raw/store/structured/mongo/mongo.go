@@ -536,7 +536,7 @@ type Document struct {
 	ProcessedTime  *time.Time             `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
 	ArchivableTime *time.Time             `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 	ArchivedTime   *time.Time             `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
-	CreatedTime    time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
+	CreatedTime    time.Time              `json:"createdTime,omitzero" bson:"createdTime,omitempty"`
 	ModifiedTime   *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	Revision       int                    `json:"revision,omitempty" bson:"revision,omitempty"`
 }

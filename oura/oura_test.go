@@ -765,7 +765,7 @@ var _ = Describe("oura", func() {
 						}
 					},
 				),
-				Entry("multiple out of range range (upper)",
+				Entry("multiple out of range (upper)",
 					func(datum *oura.Subscriptions) {
 						*datum = oura.Subscriptions{}
 						for count := oura.SubscriptionArrayLengthMaximum + 1; count > 0; count-- {

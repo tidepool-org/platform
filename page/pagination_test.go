@@ -387,35 +387,6 @@ var _ = Describe("Pagination", func() {
 			})
 		})
 
-		Context("First", func() {
-			It("returns error if pager is missing", func() {
-				result, err := page.First[string, []string](nil)
-				Expect(err).To(MatchError("pager is missing"))
-				Expect(result).To(BeZero())
-			})
-
-			It("returns error if pager returns error", func() {
-				err := errorsTest.RandomError()
-				pager := func(p page.Pagination) ([]string, error) { return nil, err }
-				result, err := page.First(pager)
-				Expect(err).To(Equal(err))
-				Expect(result).To(BeZero())
-			})
-
-			It("calls pager with minimum size for first page only", func() {
-				expected := test.RandomString()
-				pager := func(p page.Pagination) ([]string, error) {
-					Expect(p.Size).To(Equal(page.PaginationSizeMinimum))
-					Expect(p.Page).To(Equal(0))
-					return []string{expected}, nil
-				}
-
-				result, err := page.First(pager)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result).To(Equal(expected))
-			})
-		})
-
 		Context("Process", func() {
 			It("returns error if pager is missing", func() {
 				processor := func(element int) (string, error) { return strconv.Itoa(element), nil }
