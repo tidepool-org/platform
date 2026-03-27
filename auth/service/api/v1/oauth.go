@@ -193,7 +193,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	filter.UserID = pointer.FromString(restrictedToken.UserID)
 	filter.Type = pointer.FromString(prvdr.Type())
 	filter.Name = pointer.FromString(prvdr.Name())
-	if err := r.AuthClient().DeleteProviderSessions(ctx, filter); err != nil {
+	if err = r.AuthClient().DeleteProviderSessions(ctx, filter); err != nil {
 		r.htmlOnError(res, req, err)
 		return
 	}

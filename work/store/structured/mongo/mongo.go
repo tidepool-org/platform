@@ -529,7 +529,7 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	}
 	if condition == nil {
 		condition = storeStructured.NewCondition()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 

@@ -37,7 +37,7 @@ func (r *Router) Subscription(res rest.ResponseWriter, req *rest.Request) {
 
 	// Ensure verification token matches partner secret
 	if verificationToken != r.OuraClient.PartnerSecret() {
-		lgr.WithField("verificationToken", verificationToken).Error("verification token is invalid")
+		lgr.Error("verification token is invalid")
 		responder.String(http.StatusForbidden, "verification token is invalid")
 		return
 	}

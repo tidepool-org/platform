@@ -26,5 +26,9 @@ func CloneScope(scope []string) []string {
 }
 
 func NewObjectFromScope(scope []string, objectFormat test.ObjectFormat) any {
-	return auth.JoinScope(scope)
+	switch objectFormat {
+	case test.ObjectFormatConfig:
+		return test.NewObjectFromString(auth.JoinScope(scope), objectFormat)
+	}
+	return test.NewArrayFromStringArray(scope, objectFormat)
 }

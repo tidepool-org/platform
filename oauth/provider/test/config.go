@@ -74,7 +74,9 @@ func NewObjectFromConfig(config *oauthProvider.Config, objectFormat test.ObjectF
 	}
 	object := map[string]any{}
 	object["client_id"] = test.NewObjectFromString(config.ClientID, objectFormat)
-	object["client_secret"] = test.NewObjectFromString(config.ClientSecret, objectFormat)
+	if objectFormat == test.ObjectFormatConfig {
+		object["client_secret"] = test.NewObjectFromString(config.ClientSecret, objectFormat)
+	}
 	if config.AcceptURL != nil {
 		object["accept_url"] = test.NewObjectFromString(*config.AcceptURL, objectFormat)
 	}

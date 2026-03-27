@@ -44,6 +44,8 @@ func NewObjectFromConfig(config *ouraProvider.Config, objectFormat test.ObjectFo
 		object = oauthProviderClientTest.NewObjectFromConfig(config.Config, objectFormat)
 	}
 	object["partner_url"] = test.NewObjectFromString(config.PartnerURL, objectFormat)
-	object["partner_secret"] = test.NewObjectFromString(config.PartnerSecret, objectFormat)
+	if objectFormat == test.ObjectFormatConfig {
+		object["partner_secret"] = test.NewObjectFromString(config.PartnerSecret, objectFormat)
+	}
 	return object
 }

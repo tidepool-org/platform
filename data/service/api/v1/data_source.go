@@ -311,7 +311,7 @@ func GetSourceFromProviderSession(dataServiceContext dataService.Context) {
 }
 
 type UpdateDEPRECATED struct {
-	dataSource.Update `json:",inline" bson:",inline"`
+	dataSource.Update `bson:",inline"`
 
 	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 }

@@ -44,10 +44,10 @@ func (c *Config) Validate() error {
 		return errors.New("config is missing")
 	} else if err := c.Config.Validate(); err != nil {
 		return errors.Wrap(err, "config is invalid")
-	} else if c.Provider.AcceptURL == nil {
-		return errors.Wrap(errors.Wrap(errors.New("accept url is missing"), "provider is invalid"), "config is invalid")
-	} else if c.Provider.RevokeURL == nil {
-		return errors.Wrap(errors.Wrap(errors.New("revoke url is missing"), "provider is invalid"), "config is invalid")
+	} else if c.AcceptURL == nil {
+		return errors.Wrap(errors.Wrap(errors.New("accept url is missing"), "provider config is invalid"), "config is invalid")
+	} else if c.RevokeURL == nil {
+		return errors.Wrap(errors.Wrap(errors.New("revoke url is missing"), "provider config is invalid"), "config is invalid")
 	}
 	if c.PartnerURL == "" {
 		return errors.New("partner url is missing")

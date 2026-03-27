@@ -74,7 +74,7 @@ func New(dependencies Dependencies) (*Provider, error) {
 		providerSessionClient: dependencies.ProviderSessionClient,
 		dataSourceClient:      dependencies.DataSourceClient,
 		workClient:            dependencies.WorkClient,
-		acceptURL:             dependencies.Config.Provider.AcceptURL,
+		acceptURL:             dependencies.Config.ProviderConfig.AcceptURL,
 		partnerURL:            dependencies.Config.PartnerURL,
 		partnerSecret:         dependencies.Config.PartnerSecret,
 	}
@@ -196,7 +196,7 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 	if dataSrc.ProviderSessionID != nil {
 		lgr.Warn("data source associated with existing provider session")
 
-		if err := p.providerSessionClient.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
+		if err = p.providerSessionClient.DeleteProviderSession(ctx, *dataSrc.ProviderSessionID); err != nil {
 			return nil, errors.Wrap(err, "unable to delete existing provider session")
 		}
 		if dataSrc, err = p.dataSourceClient.Get(ctx, dataSrc.ID); err != nil {
@@ -224,6 +224,7 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 
 	providerSessionUpdate := &auth.ProviderSessionUpdate{
 		OAuthToken: providerSession.OAuthToken,
+		ExternalID: providerSession.ExternalID,
 	}
 	if providerSession, err = p.providerSessionClient.UpdateProviderSession(ctx, providerSession.ID, providerSessionUpdate); err != nil {
 		return nil, errors.Wrap(err, "unable to update provider session")

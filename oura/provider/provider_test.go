@@ -226,7 +226,7 @@ var _ = Describe("provider", func() {
 
 			Context("UserActionAcceptURL", func() {
 				It("returns the user action accept URL on authorize", func() {
-					Expect(prvdr.UserActionAcceptURL(ctx, userTest.RandomUserID(), oauth.ActionAuthorize)).To(Equal(dependencies.Config.Provider.AcceptURL))
+					Expect(prvdr.UserActionAcceptURL(ctx, userTest.RandomUserID(), oauth.ActionAuthorize)).To(Equal(dependencies.Config.AcceptURL))
 				})
 
 				It("returns the user action accept URL on revoke", func() {

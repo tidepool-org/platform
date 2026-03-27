@@ -47,7 +47,6 @@ func ParseEvent(parser structure.ObjectParser) *Event {
 	datum := &Event{}
 	datum.Parse(parser)
 	return datum
-
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {

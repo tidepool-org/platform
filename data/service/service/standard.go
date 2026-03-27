@@ -607,7 +607,7 @@ func (s *Standard) initializeOuraClient() error {
 	} else if err = cfg.Validate(); err != nil {
 		s.Logger().WithError(err).Warn("Unable to create oura provider")
 	} else {
-		cfg.Client.UserAgent = s.UserAgent()
+		cfg.ClientConfig.UserAgent = s.UserAgent()
 		dependencies := ouraProvider.Dependencies{
 			Config:                *cfg,
 			ProviderSessionClient: s.AuthClient(),

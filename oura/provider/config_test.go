@@ -16,8 +16,8 @@ var _ = Describe("config", func() {
 
 	BeforeEach(func() {
 		expectedConfig = ouraProviderTest.RandomConfig()
-		expectedConfig.Provider.AuthStyleInParams = true
-		expectedConfig.Provider.CookieDisabled = true
+		expectedConfig.AuthStyleInParams = true
+		expectedConfig.CookieDisabled = true
 		configReporter = configTest.NewReporter()
 		configReporter.Config = ouraProviderTest.NewObjectFromConfig(expectedConfig, test.ObjectFormatConfig)
 	})
@@ -78,18 +78,18 @@ var _ = Describe("config", func() {
 				})
 
 				It("returns an error if the config is invalid", func() {
-					cfg.Provider.ClientID = ""
-					Expect(cfg.Validate()).To(MatchError("config is invalid; provider is invalid; client id is empty"))
+					cfg.ClientID = ""
+					Expect(cfg.Validate()).To(MatchError("config is invalid; provider config is invalid; client id is empty"))
 				})
 
 				It("returns an error if the provider accept url is missing", func() {
-					cfg.Provider.AcceptURL = nil
-					Expect(cfg.Validate()).To(MatchError("config is invalid; provider is invalid; accept url is missing"))
+					cfg.AcceptURL = nil
+					Expect(cfg.Validate()).To(MatchError("config is invalid; provider config is invalid; accept url is missing"))
 				})
 
 				It("returns an error if the provider revoke url is missing", func() {
-					cfg.Provider.RevokeURL = nil
-					Expect(cfg.Validate()).To(MatchError("config is invalid; provider is invalid; revoke url is missing"))
+					cfg.RevokeURL = nil
+					Expect(cfg.Validate()).To(MatchError("config is invalid; provider config is invalid; revoke url is missing"))
 				})
 
 				It("returns an error if the partner url is missing", func() {
