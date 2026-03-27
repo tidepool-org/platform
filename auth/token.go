@@ -20,7 +20,7 @@ type OAuthToken struct {
 	AccessToken    string    `json:"accessToken,omitempty" bson:"accessToken,omitempty"`
 	TokenType      string    `json:"tokenType,omitempty" bson:"tokenType,omitempty"`
 	RefreshToken   string    `json:"refreshToken,omitempty" bson:"refreshToken,omitempty"`
-	ExpirationTime time.Time `json:"expirationTime,omitzero" bson:"expirationTime,omitzero"`
+	ExpirationTime time.Time `json:"expirationTime,omitzero" bson:"expirationTime,omitempty"`
 	Scope          *[]string `json:"scope,omitempty" bson:"scope,omitempty"`
 	IDToken        *string   `json:"idToken,omitempty" bson:"idToken,omitempty"`
 }

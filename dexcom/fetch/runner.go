@@ -858,26 +858,18 @@ func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.Tok
 }
 
 func (t *TaskRunner) UpdateToken(ctx context.Context) (bool, error) {
-	if updated, err := t.tokenSource.UpdateToken(ctx); err != nil {
-		return false, err
-	} else if !updated {
-		return false, nil
-	} else if err = t.updateProviderSession(); err != nil {
-		return false, err
+	if updated, err := t.tokenSource.UpdateToken(ctx); err != nil || !updated {
+		return updated, err
 	} else {
-		return true, nil
+		return true, t.updateProviderSession()
 	}
 }
 
 func (t *TaskRunner) ExpireToken(ctx context.Context) (bool, error) {
-	if expired, err := t.tokenSource.ExpireToken(ctx); err != nil {
-		return false, err
-	} else if !expired {
-		return false, nil
-	} else if err = t.updateProviderSession(); err != nil {
-		return false, err
+	if expired, err := t.tokenSource.ExpireToken(ctx); err != nil || !expired {
+		return expired, err
 	} else {
-		return true, nil
+		return true, t.updateProviderSession()
 	}
 }
 

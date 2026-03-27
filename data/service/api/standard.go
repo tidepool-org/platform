@@ -72,12 +72,6 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
-	if ouraClient == nil {
-		return nil, errors.New("oura client is missing")
-	}
-	if abbottServiceRequestAuthorizer == nil {
-		return nil, errors.New("abbott service request authorizer is missing")
-	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}

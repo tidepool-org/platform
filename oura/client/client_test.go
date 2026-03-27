@@ -501,7 +501,7 @@ var _ = Describe("client", func() {
 						Expect(clnt.RevokeOAuthToken(ctx, oauthToken)).To(MatchError(ContainSubstring("unable to revoke oauth token; unexpected response status code 500 from POST")))
 					})
 
-					It("returns error if server returns non-http.StatusOK status code", func() {
+					It("returns successfully if server returns http.StatusOK status code", func() {
 						server.AppendHandlers(
 							ghttp.CombineHandlers(
 								ghttp.VerifyRequest("POST", "/oauth/revoke"),

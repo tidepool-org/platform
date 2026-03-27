@@ -1,6 +1,8 @@
 package test
 
 import (
+	"math/rand/v2"
+
 	netTest "github.com/tidepool-org/platform/net/test"
 	oura "github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
@@ -164,10 +166,20 @@ func NewObjectFromSubscription(datum *oura.Subscription, format test.ObjectForma
 	return object
 }
 
+// RandomSubscriptions should ensure unique combinations of data types and event types
 func RandomSubscriptions(options ...test.Option) oura.Subscriptions {
-	subscriptions := make(oura.Subscriptions, test.RandomIntFromRange(1, 3))
+	dataTypes := oura.DataTypes()
+	eventTypes := oura.EventTypes()
+	dataTypesCount := len(dataTypes)
+	eventTypesCount := len(eventTypes)
+	subscriptionsCount := dataTypesCount * eventTypesCount
+	offsets := rand.Perm(subscriptionsCount)
+	subscriptions := make(oura.Subscriptions, test.RandomIntFromRange(1, subscriptionsCount))
 	for index := range subscriptions {
-		subscriptions[index] = RandomSubscription(options...)
+		subscription := RandomSubscription(options...)
+		subscription.DataType = pointer.FromString(dataTypes[offsets[index]%dataTypesCount])
+		subscription.EventType = pointer.FromString(eventTypes[offsets[index]/dataTypesCount])
+		subscriptions[index] = subscription
 	}
 	return subscriptions
 }

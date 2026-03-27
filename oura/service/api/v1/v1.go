@@ -8,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oura"
 	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/work"
 )
 
@@ -64,18 +65,27 @@ func Routes() []dataService.Route {
 }
 
 func Subscription(context dataService.Context) {
-	NewRouterFromContext(context).Subscription(context.Response(), context.Request())
+	if router := NewRouterFromContext(context); router != nil {
+		router.Subscription(context.Response(), context.Request())
+	}
 }
 
 func Event(context dataService.Context) {
-	NewRouterFromContext(context).Event(context.Response(), context.Request())
+	if router := NewRouterFromContext(context); router != nil {
+		router.Event(context.Response(), context.Request())
+	}
 }
 
 func NewRouterFromContext(context dataService.Context) *Router {
-	router, _ := NewRouter(Dependencies{
+	dependencies := Dependencies{
 		AuthClient: context.AuthClient(),
 		OuraClient: context.OuraClient(),
 		WorkClient: context.WorkClient(),
-	})
-	return router
+	}
+	if router, err := NewRouter(dependencies); err != nil {
+		request.MustNewResponder(context.Response(), context.Request()).InternalServerError(err)
+		return nil
+	} else {
+		return router
+	}
 }
