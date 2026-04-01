@@ -6,12 +6,12 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
-	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
-	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 func (r *Router) ProviderSessionsRoutes() []*rest.Route {
@@ -171,8 +171,8 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 	}
 
 	filter := auth.ProviderSessionFilter{
-		Type:       pointer.FromString(oauthProvider.ProviderType),
-		Name:       pointer.FromString(twiistProvider.ProviderName),
+		Type:       pointer.FromString(oauth.ProviderType),
+		Name:       pointer.FromString(twiist.ProviderName),
 		ExternalID: pointer.FromString(tidepoolLinkID),
 	}
 	if err := r.AuthServiceClient().DeleteAllProviderSessions(req.Context(), filter); err != nil {

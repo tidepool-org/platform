@@ -634,7 +634,7 @@ type Document struct {
 	ProcessingAvailableTime time.Time              `json:"processingAvailableTime" bson:"processingAvailableTime"`
 	ProcessingPriority      int                    `json:"processingPriority" bson:"processingPriority"`
 	ProcessingTimeout       int                    `json:"processingTimeout" bson:"processingTimeout"`
-	Metadata                map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"` // Database only
+	Metadata                bsonPrimitive.M        `json:"metadata,omitempty" bson:"metadata,omitempty"` // Database only
 	PendingTime             time.Time              `json:"pendingTime" bson:"pendingTime"`
 	ProcessingTime          *time.Time             `json:"processingTime,omitempty" bson:"processingTime,omitempty"`
 	ProcessingTimeoutTime   *time.Time             `json:"processingTimeoutTime,omitempty" bson:"processingTimeoutTime,omitempty"`
@@ -663,7 +663,7 @@ func (d *Document) AsWork() *work.Work {
 		ProcessingAvailableTime: d.ProcessingAvailableTime,
 		ProcessingPriority:      d.ProcessingPriority,
 		ProcessingTimeout:       d.ProcessingTimeout,
-		Metadata:                d.Metadata,
+		Metadata:                storeStructuredMongo.BSONToMap(d.Metadata),
 		PendingTime:             d.PendingTime,
 		ProcessingTime:          d.ProcessingTime,
 		ProcessingTimeoutTime:   d.ProcessingTimeoutTime,

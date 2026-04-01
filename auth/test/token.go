@@ -12,6 +12,7 @@ func RandomToken() *auth.OAuthToken {
 	datum.TokenType = test.RandomString()
 	datum.RefreshToken = test.RandomString()
 	datum.ExpirationTime = test.RandomTime()
+	datum.Scope = pointer.FromStringArray(RandomScope())
 	datum.IDToken = pointer.FromString(test.RandomString())
 	return datum
 }
@@ -25,6 +26,7 @@ func CloneToken(datum *auth.OAuthToken) *auth.OAuthToken {
 	clone.TokenType = datum.TokenType
 	clone.RefreshToken = datum.RefreshToken
 	clone.ExpirationTime = datum.ExpirationTime
+	clone.Scope = pointer.CloneStringArray(datum.Scope)
 	clone.IDToken = pointer.CloneString(datum.IDToken)
 	return clone
 }
@@ -38,6 +40,9 @@ func NewObjectFromToken(datum *auth.OAuthToken, objectFormat test.ObjectFormat) 
 	object["tokenType"] = test.NewObjectFromString(datum.TokenType, objectFormat)
 	object["refreshToken"] = test.NewObjectFromString(datum.RefreshToken, objectFormat)
 	object["expirationTime"] = test.NewObjectFromTime(datum.ExpirationTime, objectFormat)
+	if datum.Scope != nil {
+		object["scope"] = test.NewObjectFromStringArray(*datum.Scope, objectFormat)
+	}
 	if datum.IDToken != nil {
 		object["idToken"] = test.NewObjectFromString(*datum.IDToken, objectFormat)
 	}

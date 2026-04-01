@@ -6,9 +6,9 @@ import (
 	"os"
 
 	"github.com/IBM/sarama"
-
 	eventsCommon "github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
@@ -31,6 +31,10 @@ import (
 	logInternal "github.com/tidepool-org/platform/log"
 	metricClient "github.com/tidepool-org/platform/metric/client"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oura"
+	ouraClient "github.com/tidepool-org/platform/oura/client"
+	ouraProvider "github.com/tidepool-org/platform/oura/provider"
+	ouraWorkProcessors "github.com/tidepool-org/platform/oura/work/processors"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
@@ -62,6 +66,7 @@ type Standard struct {
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
 	abbottClient                   *abbottClient.Client
+	ouraClient                     *ouraClient.Client
 	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
@@ -125,6 +130,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeAbbottClient(); err != nil {
 		return err
 	}
+	if err := s.initializeOuraClient(); err != nil {
+		return err
+	}
 	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
@@ -160,6 +168,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator.Stop()
 		s.workCoordinator = nil
 	}
+	s.ouraClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
 	s.summaryClient = nil
@@ -548,7 +557,7 @@ func (s *Standard) initializeAbbottClient() error {
 	s.Logger().Debug("Loading abbott provider")
 
 	// Abbott
-	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbottProvider.ProviderName))
+	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbott.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create abbott jwks")
 	}
@@ -566,8 +575,7 @@ func (s *Standard) initializeAbbottClient() error {
 
 		cfg := abbottClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		reporter := s.ConfigReporter().WithScopes("abbott", "client")
-		if err = cfg.LoadFromConfigReporter(reporter); err != nil {
+		if err = cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("abbott", "client")); err != nil {
 			return errors.Wrap(err, "unable to load abbott client config")
 		}
 
@@ -586,6 +594,35 @@ func (s *Standard) initializeAbbottClient() error {
 
 	return nil
 }
+
+func (s *Standard) initializeOuraClient() error {
+	s.Logger().Debug("Loading oura provider")
+
+	configReporter := s.ConfigReporter().WithScopes("provider")
+
+	// Oura
+	if cfg, err := ouraProvider.NewConfigWithConfigReporter(configReporter.WithScopes(oura.ProviderName)); err != nil {
+		return errors.Wrap(err, "unable to create oura provider config")
+	} else if err = cfg.Validate(); err != nil {
+		s.Logger().WithError(err).Warn("Unable to create oura provider")
+	} else {
+		cfg.Client.UserAgent = s.UserAgent()
+		dependencies := ouraProvider.Dependencies{
+			Config:                *cfg,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			WorkClient:            s.workClient,
+		}
+		if prvdr, err := ouraProvider.New(dependencies); err != nil {
+			return errors.Wrap(err, "unable to create oura provider")
+		} else {
+			s.ouraClient = prvdr.Client()
+		}
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
@@ -595,27 +632,52 @@ func (s *Standard) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Debug("Creating abbott processors")
+	if s.abbottClient != nil {
+		s.Logger().Debug("Creating abbott processor factories")
 
-	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
-		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
-		DataSetClient:           s.dataClient,
-		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		SummaryClient:           s.summaryClient,
-		ProviderSessionClient:   s.AuthClient(),
-		DataRawClient:           s.dataRawClient,
-		AbbottClient:            s.abbottClient,
-		WorkClient:              s.workClient,
+		abbottProcessorDependencies := abbottWork.ProcessorDependencies{
+			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+			DataSetClient:           s.dataClient,
+			DataSourceClient:        s.dataSourceClient,
+			SummaryClient:           s.summaryClient,
+			ProviderSessionClient:   s.AuthClient(),
+			DataRawClient:           s.dataRawClient,
+			AbbottClient:            s.abbottClient,
+			WorkClient:              s.workClient,
+		}
+		abbottProcessors, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
+		if err != nil {
+			return errors.Wrap(err, "unable to create abbott processor factories")
+		}
+
+		s.Logger().Debug("Registering abbott processor factories")
+
+		if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessors); err != nil {
+			return errors.Wrap(err, "unable to register abbott processor factories")
+		}
 	}
-	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
-	if err != nil {
-		return errors.Wrap(err, "unable to create abbott processors")
-	}
 
-	s.Logger().Debug("Registering abbott processors")
+	if s.ouraClient != nil {
+		s.Logger().Debug("Creating oura processor factories")
 
-	if err = s.workCoordinator.RegisterProcessors(abbottProcessors); err != nil {
-		return errors.Wrap(err, "unable to register abbott processors")
+		ouraProcessorDependencies := ouraWorkProcessors.Dependencies{
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			DataSetClient:         s.dataClient,
+			WorkClient:            s.workClient,
+			Client:                s.ouraClient,
+		}
+		ouraProcessors, err := ouraWorkProcessors.NewProcessorFactories(ouraProcessorDependencies)
+		if err != nil {
+			return errors.Wrap(err, "unable to create oura processor factories")
+		}
+
+		s.Logger().Debug("Registering oura processor factories")
+
+		if err = s.workCoordinator.RegisterProcessorFactories(ouraProcessors); err != nil {
+			return errors.Wrap(err, "unable to register oura processor factories")
+		}
 	}
 
 	s.Logger().Debug("Starting work coordinator")

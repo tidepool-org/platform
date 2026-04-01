@@ -1,6 +1,7 @@
 package v1
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -22,6 +23,11 @@ import (
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/user"
+)
+
+const (
+	ParameterAccept    = "accept"
+	ParameterReturnURL = "return_url"
 )
 
 func (r *Router) OAuthRoutes() []*rest.Route {
@@ -62,11 +68,21 @@ func (r *Router) OAuthProviderAuthorizeGet(res rest.ResponseWriter, req *rest.Re
 		return
 	}
 
-	if prvdr.UseCookie() {
-		responder.SetCookie(r.providerCookie(prvdr, details.Token(), int(maxAge)))
+	if details.IsUser() {
+		if acceptURL, err := r.allowAndAcceptUserInitiatedAction(ctx, req.Request, prvdr, details.UserID(), oauth.ActionAuthorize); err != nil {
+			r.htmlOnError(res, req, err)
+			return
+		} else if acceptURL != nil {
+			responder.Redirect(http.StatusTemporaryRedirect, acceptURL.String())
+			return
+		}
 	}
 
-	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(details.Token())))
+	if !prvdr.CookieDisabled() {
+		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, int(maxAge)))
+	}
+
+	responder.Redirect(http.StatusTemporaryRedirect, prvdr.GetAuthorizationCodeURLWithState(prvdr.CalculateStateForRestrictedToken(restrictedToken.ID)))
 }
 
 func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
@@ -77,6 +93,7 @@ func (r *Router) OAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest
 func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
+	details := request.GetAuthDetails(ctx)
 
 	userID, err := request.DecodeRequestPathParameter(req, "userId", user.IsValidID)
 	if err != nil {
@@ -88,9 +105,16 @@ func (r *Router) UserOAuthProviderAuthorizeDelete(res rest.ResponseWriter, req *
 	if err != nil {
 		responder.Error(request.StatusCodeForError(err), err)
 		return
-	} else if !prvdr.SupportsUserInitiatedAccountUnlinking() {
-		responder.Error(http.StatusForbidden, errors.New("user initiated account unlinking not supported"))
-		return
+	}
+
+	if details.IsUser() {
+		if acceptURL, err := r.allowAndAcceptUserInitiatedAction(ctx, req.Request, prvdr, details.UserID(), oauth.ActionRevoke); err != nil {
+			responder.Error(request.StatusCodeForError(err), err)
+			return
+		} else if acceptURL != nil {
+			responder.Redirect(http.StatusTemporaryRedirect, acceptURL.String())
+			return
+		}
 	}
 
 	providerSessionFilter := auth.NewProviderSessionFilter()
@@ -162,7 +186,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		redirectURLDeclined.RawQuery = signupParams.Encode()
 	}
 
-	if prvdr.UseCookie() {
+	if !prvdr.CookieDisabled() {
 		responder.SetCookie(r.providerCookie(prvdr, restrictedToken.ID, -1))
 	}
 
@@ -237,10 +261,47 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 	return oauthProvider, nil
 }
 
+func (r *Router) allowAndAcceptUserInitiatedAction(ctx context.Context, req *http.Request, prvdr oauth.Provider, userID string, action string) (*url.URL, error) {
+	if allow, err := prvdr.AllowUserInitiatedAction(ctx, userID, action); err != nil {
+		return nil, err
+	} else if !allow {
+		return nil, request.ErrorUnauthorized()
+	}
+
+	if req.URL.Query().Get(ParameterAccept) == action {
+		return nil, nil
+	}
+
+	acceptURLString, err := prvdr.UserActionAcceptURL(ctx, userID, action)
+	if err != nil {
+		return nil, err
+	} else if acceptURLString == nil {
+		return nil, nil
+	}
+
+	acceptURL, err := url.Parse(*acceptURLString)
+	if err != nil {
+		return nil, errors.New("unable to parse accept url")
+	}
+
+	returnURL := &url.URL{}
+	*returnURL = *req.URL
+
+	query := returnURL.Query()
+	query.Set(ParameterAccept, action)
+	returnURL.RawQuery = query.Encode()
+
+	query = acceptURL.Query()
+	query.Set(ParameterReturnURL, returnURL.String())
+	acceptURL.RawQuery = query.Encode()
+
+	return acceptURL, nil
+}
+
 func (r *Router) oauthProviderRestrictedToken(req *http.Request, prvdr oauth.Provider) (*auth.RestrictedToken, error) {
 	state := req.URL.Query().Get("state")
 	errorCode := req.URL.Query().Get("error")
-	if prvdr.UseCookie() {
+	if !prvdr.CookieDisabled() {
 		cookieName := r.providerCookieName(prvdr)
 		for _, cookie := range req.Cookies() {
 			if cookie.Name == cookieName {

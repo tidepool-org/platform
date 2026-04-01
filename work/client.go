@@ -9,7 +9,6 @@ import (
 
 //go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test Client
 type Client interface {
-	Poll(ctx context.Context, poll *Poll) ([]*Work, error)
 	List(ctx context.Context, filter *Filter, pagination *page.Pagination) ([]*Work, error)
 	Create(ctx context.Context, create *Create) (*Work, error)
 	Get(ctx context.Context, id string, condition *request.Condition) (*Work, error)

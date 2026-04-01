@@ -7,11 +7,11 @@ import (
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/log"
-	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
-	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/twiist"
 )
 
 func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context)) func(ctx dataService.Context) {
@@ -40,8 +40,8 @@ func NewTwiistDataCreateHandler(datasetDataCreate func(ctx dataService.Context))
 
 		// Find matching provider session
 		providerSessionFilter := &auth.ProviderSessionFilter{
-			Type:       pointer.FromString(oauthProvider.ProviderType),
-			Name:       pointer.FromString(twiistProvider.ProviderName),
+			Type:       pointer.FromString(oauth.ProviderType),
+			Name:       pointer.FromString(twiist.ProviderName),
 			ExternalID: pointer.FromString(tidepoolLinkID),
 		}
 		providerSessions, err := dataServiceContext.AuthClient().ListProviderSessions(ctx, providerSessionFilter, nil)
