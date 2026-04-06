@@ -45,7 +45,6 @@ type Coordinator struct {
 	managerContext             context.Context
 	managerCancelFunc          context.CancelFunc
 	managerWaitGroup           sync.WaitGroup
-	timer                      *time.Timer
 }
 
 func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionTokenProvider, workClient WorkClient) (*Coordinator, error) {
@@ -156,9 +155,6 @@ func (c *Coordinator) startManager() {
 	go func() {
 		defer c.managerWaitGroup.Done()
 
-		c.startTimer()
-		defer c.stopTimer()
-
 		for {
 			select {
 			case <-c.managerContext.Done(): // Drain and complete any interrupted tasks
@@ -167,13 +163,10 @@ func (c *Coordinator) startManager() {
 				}
 				return
 			case completion := <-c.workersCompletionChannel:
-				c.stopTimer()
 				c.completeWork(completion)
 				c.requestAndDispatchWork()
-				c.startTimer()
-			case <-c.timer.C:
+			case <-c.tick():
 				c.requestAndDispatchWork()
-				c.startTimer()
 			}
 		}
 	}()
@@ -331,23 +324,10 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	}
 }
 
-func (c *Coordinator) startTimer() {
+func (c *Coordinator) tick() <-chan time.Time {
 	jitter := int64(float64(c.frequency) * CoordinatorDelayJitter)
 	frequencyWithJitter := c.frequency + time.Duration(rand.Int63n(jitter*2+1)-jitter)
-	if c.timer == nil {
-		c.timer = time.NewTimer(frequencyWithJitter)
-	} else {
-		c.timer.Reset(frequencyWithJitter)
-	}
-}
-
-func (c *Coordinator) stopTimer() {
-	if c.timer != nil {
-		if !c.timer.Stop() {
-			<-c.timer.C
-		}
-		c.timer = nil
-	}
+	return time.After(frequencyWithJitter)
 }
 
 type coordinatorProcessingIdentifier struct {
