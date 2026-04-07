@@ -22,6 +22,7 @@ const (
 	TypeRipple                 = "ripple"
 
 	MinimumBDDPVersionForRipple = 2
+	RippleVersionForJotform     = 1
 
 	ContentTypeMarkdown ContentType = "markdown"
 )

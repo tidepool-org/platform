@@ -300,7 +300,7 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 	rippleFilter.Latest = pointer.FromAny(true)
 	rippleFilter.Status = pointer.FromAny(consent.RecordStatusActive)
 	rippleFilter.Type = pointer.FromAny(consent.TypeRipple)
-	rippleFilter.Version = pointer.FromAny(1)
+	rippleFilter.Version = pointer.FromAny(consent.RippleVersionForJotform)
 
 	rippleRecords, err := s.consentService.ListConsentRecords(ctx, userID, rippleFilter, page.NewPaginationMinimum())
 	if err != nil {
@@ -345,7 +345,7 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 	rippleCreate.GrantorType = consent.GrantorTypeOwner
 	rippleCreate.OwnerName = survey.Name
 	rippleCreate.Type = consent.TypeRipple
-	rippleCreate.Version = 1
+	rippleCreate.Version = consent.RippleVersionForJotform
 	creates = append(creates, rippleCreate)
 
 	_, err = s.consentService.CreateConsentRecords(ctx, userID, creates)

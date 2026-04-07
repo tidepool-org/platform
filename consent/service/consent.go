@@ -112,7 +112,7 @@ func (c *ConsentService) CreateConsentRecords(ctx context.Context, userID string
 
 				if existing.Version == createWithConsent.create.Version {
 					return nil, errors.Newf("consent record for the same type and version already exists: %s v%d", create.Type, create.Version)
-				} else if existing.Version > create.Version {
+				} else if existing.Version > createWithConsent.create.Version {
 					return nil, errors.Newf("consent record for a greater version already exists: %s", create.Type)
 				}
 
