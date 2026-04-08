@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/go-common/events"
-
-	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/work"
-
 	"go.mongodb.org/mongo-driver/bson"
 
+	"github.com/tidepool-org/go-common/events"
+
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notifications"
 	"github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/work"
 )
 
 const (

@@ -155,7 +155,6 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification conditions expired event.")
 			}
 		}
-
 		return *work.NewProcessResultDelete()
 	}
 

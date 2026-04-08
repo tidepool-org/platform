@@ -229,23 +229,17 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		// this filters out users which may have appeared to have relevant data, but was filtered during calculation
-		totalHours, err := gs.buckets.GetTotalHours(sessionCtx, userId)
+		oldest, err := gs.buckets.GetOldestRecordTime(sessionCtx, userId)
 		if err != nil {
 			return nil, err
 		}
 
-		if totalHours == 0 {
-			logger.Warnf("User %s has a summary, but no valid data within range, creating placeholder summary", userId)
-			userSummary.Dates.Reset()
-			userSummary.Periods = nil
-		} else {
-			oldest, err := gs.buckets.GetOldestRecordTime(sessionCtx, userId)
-			if err != nil {
-				return nil, err
-			}
-			userSummary.Dates.Update(status, oldest)
+		if oldest.IsZero() {
+			logger.Warnf("User %s has a summary, but no valid data within range, deleting summary", userId)
+			return nil, gs.summaries.DeleteSummary(sessionCtx, userId)
 		}
 
+		userSummary.Dates.Update(status, oldest)
 		return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
 	})
 	if err != nil {

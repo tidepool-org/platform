@@ -318,11 +318,6 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cgmSummary).ToNot(BeNil())
 
-		totalHours, err := cgmBucketsStore.GetTotalHours(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-
-		Expect(totalHours).To(Equal(4))
-
 		// get the real summary stored to the db
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
@@ -409,11 +404,11 @@ var _ = Describe("End to end summary calculations", func() {
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
+
+		conSummary, err = continuousSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(conSummary).To(BeNil())
 	})
 
 	It("summary calc with non-continuous data multiple times", func() {
@@ -430,19 +425,11 @@ var _ = Describe("End to end summary calculations", func() {
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
 
 		conSummary, err = continuousSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(conSummary).ToNot(BeNil())
-		Expect(conSummary.Dates.LastUpdatedDate.IsZero()).To(BeTrue())
-		Expect(conSummary.Dates.OutdatedSince).To(BeNil())
-		Expect(conSummary.Dates.LastData).To(BeZero())
-		Expect(conSummary.Periods).To(BeNil())
+		Expect(conSummary).To(BeNil())
 	})
 
 	It("continuous summary calc with >batch of realtime data", func() {
@@ -496,6 +483,38 @@ var _ = Describe("End to end summary calculations", func() {
 		buckets := GetBuckets(ctx, userId, cgmBucketsStore)
 
 		Expect(len(buckets)).To(Equal(350))
+	})
+
+	It("bgm summary calc with data within a single hour produces valid summary", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+
+		// Create 3 BGM records all within the same hour, minutes apart
+		glucoseValue := InTargetBloodGlucose
+		writeModels := make([]mongo.WriteModel, 3)
+		for i := 0; i < 3; i++ {
+			recordTime := datumTime.Add(-time.Duration(i+1) * 10 * time.Minute)
+			datum := NewGlucoseWithValue("smbg", recordTime, glucoseValue)
+			datum.UserID = &userId
+			writeModels[i] = mongo.NewInsertOneModel().SetDocument(datum)
+		}
+		_, err := dataCollection.BulkWrite(ctx, writeModels, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
+		Expect(len(buckets)).To(Equal(1))
+
+		Expect(bgmSummary.Periods).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods).ToNot(BeEmpty())
+		Expect(bgmSummary.Periods.GlucosePeriods["1d"]).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods["1d"].Total.Records).To(Equal(3))
+		Expect(bgmSummary.Dates.LastUpdatedDate.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.FirstData.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.LastData.IsZero()).To(BeFalse())
+		Expect(bgmSummary.Dates.OutdatedSince).To(BeNil())
 	})
 
 	It("cgm summary calc with the same data range twice, with new modifiedTime", func() {
