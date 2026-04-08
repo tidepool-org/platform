@@ -41,6 +41,7 @@ const (
 
 type RecordAccessor interface {
 	GetConsentRecord(context.Context, string, string) (*Record, error)
+	GetActiveConsentRecord(context.Context, string, string) (*Record, error)
 	CreateConsentRecord(context.Context, string, *RecordCreate) (*Record, error)
 	CreateConsentRecords(context.Context, string, []*RecordCreate) ([]*Record, error)
 	ListConsentRecords(context.Context, string, *RecordFilter, *page.Pagination) (*storeStructuredMongo.ListResult[Record], error)

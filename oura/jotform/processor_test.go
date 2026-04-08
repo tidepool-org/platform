@@ -141,26 +141,13 @@ var _ = Describe("SubmissionProcessor", func() {
 			usr := &user.User{UserID: &userID}
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
-			// First call checks for RIPPLE
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("ripple")))
-					Expect(filter.Latest).To(PointTo(Equal(true)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 0,
-				}, nil)
+			// First call: no RIPPLE
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(nil, nil)
 
 			// Second call checks for the latest active BDDP
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-					Expect(filter.Latest).To(PointTo(Equal(true)))
-					Expect(filter.Status).To(PointTo(Equal(consent.RecordStatusActive)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 0,
-				}, nil)
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+				Return(nil, nil)
 
 			consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {
@@ -253,23 +240,16 @@ var _ = Describe("SubmissionProcessor", func() {
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 			// RIPPLE already exists - no further consent calls expected
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("ripple")))
-					Expect(filter.Latest).To(PointTo(Equal(true)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 1,
-					Data: []consent.Record{{
-						ID:          "1234567891",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "ripple",
-						Version:     1,
-					}},
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(&consent.Record{
+					ID:          "1234567891",
+					UserID:      userID,
+					Status:      consent.RecordStatusActive,
+					AgeGroup:    consent.AgeGroupEighteenOrOver,
+					OwnerName:   "James Jellyfish",
+					GrantorType: "owner",
+					Type:        "ripple",
+					Version:     1,
 				}, nil)
 
 			shopifyClnt.EXPECT().
@@ -312,31 +292,20 @@ var _ = Describe("SubmissionProcessor", func() {
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 			// First call: no RIPPLE
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("ripple")))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{Count: 0}, nil)
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(nil, nil)
 
 			// Second call checks for the latest active BDDP
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-					Expect(filter.Latest).To(PointTo(Equal(true)))
-					Expect(filter.Status).To(PointTo(Equal(consent.RecordStatusActive)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 1,
-					Data: []consent.Record{{
-						ID:          "1234567890",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "big_data_donation_project",
-						Version:     2,
-					}},
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+				Return(&consent.Record{
+					ID:          "1234567890",
+					UserID:      userID,
+					Status:      consent.RecordStatusActive,
+					AgeGroup:    consent.AgeGroupEighteenOrOver,
+					OwnerName:   "James Jellyfish",
+					GrantorType: "owner",
+					Type:        "big_data_donation_project",
+					Version:     2,
 				}, nil)
 
 			// Should create only RIPPLE
@@ -495,26 +464,13 @@ var _ = Describe("SubmissionProcessor", func() {
 				usr := &user.User{UserID: &userID}
 				userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
-				// First call: check for RIPPLE
-				consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-						Expect(filter.Type).To(PointTo(Equal("ripple")))
-						Expect(filter.Latest).To(PointTo(Equal(true)))
-					}).
-					Return(&storeStructuredMongo.ListResult[consent.Record]{
-						Count: 0,
-					}, nil)
+				// First call: no RIPPLE
+				consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+					Return(nil, nil)
 
 				// Second call checks for the latest active BDDP
-				consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-						Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-						Expect(filter.Latest).To(PointTo(Equal(true)))
-						Expect(filter.Status).To(PointTo(Equal(consent.RecordStatusActive)))
-					}).
-					Return(&storeStructuredMongo.ListResult[consent.Record]{
-						Count: 0,
-					}, nil)
+				consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+					Return(nil, nil)
 
 				consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
 					Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {

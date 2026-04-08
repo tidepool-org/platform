@@ -86,16 +86,9 @@ func (c *ConsentService) CreateConsentRecords(ctx context.Context, userID string
 			consent: consents.Data[0],
 		}
 
-		records, err := c.consentRecordRepository.ListConsentRecords(ctx, userID, &consent.RecordFilter{
-			Latest: pointer.FromAny(true),
-			Status: pointer.FromAny(consent.RecordStatusActive),
-			Type:   pointer.FromAny(create.Type),
-		}, pagination)
+		createWithConsent.record, err = c.GetActiveConsentRecord(ctx, userID, create.Type)
 		if err != nil {
-			return nil, err
-		}
-		if len(records.Data) > 0 {
-			createWithConsent.record = pointer.FromAny(records.Data[0])
+			return nil, errors.Wrap(err, "unable to get active consent record")
 		}
 		toCreate = append(toCreate, createWithConsent)
 	}
@@ -110,9 +103,9 @@ func (c *ConsentService) CreateConsentRecords(ctx context.Context, userID string
 			if createWithConsent.record != nil {
 				existing := createWithConsent.record
 
-				if existing.Version == createWithConsent.create.Version {
+				if existing.Version == create.Version {
 					return nil, errors.Newf("consent record for the same type and version already exists: %s v%d", create.Type, create.Version)
-				} else if existing.Version > createWithConsent.create.Version {
+				} else if existing.Version > create.Version {
 					return nil, errors.Newf("consent record for a greater version already exists: %s", create.Type)
 				}
 
@@ -164,6 +157,10 @@ func (c *ConsentService) CreateConsentRecords(ctx context.Context, userID string
 	return records, nil
 }
 
+func (c *ConsentService) GetActiveConsentRecord(ctx context.Context, userID string, typ string) (*consent.Record, error) {
+	return c.consentRecordRepository.GetActiveConsentRecord(ctx, userID, typ)
+}
+
 func (c *ConsentService) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*structuredMongo.ListResult[consent.Record], error) {
 	return c.consentRecordRepository.ListConsentRecords(ctx, userID, filter, pagination)
 }
@@ -191,24 +188,22 @@ func (c *ConsentService) RevokeConsentRecord(ctx context.Context, userID string,
 	// Get all dependent consent records that are active
 	dependentTypes := consent.DependentConsentTypes(record.Type, record.Version)
 	for _, dependentType := range dependentTypes {
-		records, err := c.consentRecordRepository.ListConsentRecords(ctx, userID, &consent.RecordFilter{
-			Latest: pointer.FromAny(true),
-			Status: pointer.FromAny(consent.RecordStatusActive),
-			Type:   pointer.FromAny(dependentType),
-		}, page.NewPaginationMinimum())
+		dependent, err := c.GetActiveConsentRecord(ctx, userID, dependentType)
 		if err != nil {
-			return errors.Wrapf(err, "unable to list dependent consent records for type %s", dependentType)
+			return errors.Wrapf(err, "unable to get active consent record for dependent type %s", dependentType)
 		}
-		if len(records.Data) > 0 {
-			dependentRevoke := consent.NewRecordRevoke()
-			dependentRevoke.ID = records.Data[0].ID
-			dependentRevoke.RevocationTime = revoke.RevocationTime // Use the same revocation time as the original revoke
+		if dependent == nil {
+			continue
+		}
 
-			toRevoke = append(toRevoke, recordRevokeConsent{
-				record: records.Data[0],
-				revoke: dependentRevoke,
-			})
-		}
+		dependentRevoke := consent.NewRecordRevoke()
+		dependentRevoke.ID = dependent.ID
+		dependentRevoke.RevocationTime = revoke.RevocationTime // Use the same revocation time as the original revoke
+
+		toRevoke = append(toRevoke, recordRevokeConsent{
+			record: *dependent,
+			revoke: dependentRevoke,
+		})
 	}
 
 	unshareBDDP := false

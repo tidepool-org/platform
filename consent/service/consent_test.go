@@ -282,6 +282,48 @@ var _ = Describe("ConsentService", func() {
 		})
 	})
 
+	Describe("GetActiveConsentRecord", func() {
+		var userID string
+
+		BeforeEach(func() {
+			usr := userTest.RandomUser()
+			userID = *usr.UserID
+
+			creates := []*consent.RecordCreate{
+				test.RandomRecordCreateForConsent(test.ConsentV1),
+				test.RandomRecordCreateForConsent(test.ConsentV2),
+				test.RandomRecordCreateForConsent(test.AnotherConsentV1),
+			}
+			for i, create := range creates {
+				SetConsentGrantedMailerExpectations(mailer, userClient, usr, create)
+
+				create.CreatedTime = create.CreatedTime.Add(-time.Duration(len(creates)-i) * time.Second)
+				created, err := consentService.CreateConsentRecord(ctx(), userID, create)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).ToNot(BeNil())
+			}
+		})
+
+		It("should return latest consent record for each type", func() {
+			type expectedVersion struct {
+				typ     string
+				version int
+			}
+			expectations := []expectedVersion{
+				{test.ConsentV2.Type, test.ConsentV2.Version},
+				{test.AnotherConsentV1.Type, test.AnotherConsentV1.Version},
+			}
+
+			for _, expectation := range expectations {
+				record, err := consentService.GetActiveConsentRecord(ctx(), userID, expectation.typ)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(record).ToNot(BeNil())
+				Expect(record.Type).To(Equal(expectation.typ))
+				Expect(record.Version).To(Equal(expectation.version))
+			}
+		})
+	})
+
 	Describe("ListConsentRecords", func() {
 		var userID string
 

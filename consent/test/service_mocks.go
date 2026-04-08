@@ -88,6 +88,21 @@ func (mr *MockServiceMockRecorder) EnsureConsent(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureConsent", reflect.TypeOf((*MockService)(nil).EnsureConsent), arg0, arg1)
 }
 
+// GetActiveConsentRecord mocks base method.
+func (m *MockService) GetActiveConsentRecord(arg0 context.Context, arg1, arg2 string) (*consent.Record, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveConsentRecord", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*consent.Record)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveConsentRecord indicates an expected call of GetActiveConsentRecord.
+func (mr *MockServiceMockRecorder) GetActiveConsentRecord(arg0, arg1, arg2 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveConsentRecord", reflect.TypeOf((*MockService)(nil).GetActiveConsentRecord), arg0, arg1, arg2)
+}
+
 // GetConsentRecord mocks base method.
 func (m *MockService) GetConsentRecord(arg0 context.Context, arg1, arg2 string) (*consent.Record, error) {
 	m.ctrl.T.Helper()

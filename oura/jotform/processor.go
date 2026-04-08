@@ -296,33 +296,21 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 
 	creates := make([]*consent.RecordCreate, 0)
 
-	rippleFilter := consent.NewRecordFilter()
-	rippleFilter.Latest = pointer.FromAny(true)
-	rippleFilter.Status = pointer.FromAny(consent.RecordStatusActive)
-	rippleFilter.Type = pointer.FromAny(consent.TypeRipple)
-	rippleFilter.Version = pointer.FromAny(consent.RippleVersionForJotform)
-
-	rippleRecords, err := s.consentService.ListConsentRecords(ctx, userID, rippleFilter, page.NewPaginationMinimum())
+	rippleRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeRipple)
 	if err != nil {
-		return errors.Wrap(err, "unable to list ripple consent records")
+		return errors.Wrap(err, "unable to get active ripple consent record")
 	}
-	if rippleRecords.Count > 0 {
-		// If RIPPLE v1 already exists, BDDP v2 must also exist - nothing to do
+	if rippleRecord != nil && rippleRecord.Version <= consent.RippleVersionForJotform {
+		// If RIPPLE already exists, BDDP must also exist - nothing to do
 		logger.WithField("userId", userID).Info("ripple consent record already exists")
 		return nil
 	}
 
-	bddpFilter := consent.NewRecordFilter()
-	bddpFilter.Latest = pointer.FromAny(true)
-	bddpFilter.Status = pointer.FromAny(consent.RecordStatusActive)
-	bddpFilter.Type = pointer.FromAny(consent.TypeBigDataDonationProject)
-
-	bddpRecords, err := s.consentService.ListConsentRecords(ctx, userID, bddpFilter, page.NewPaginationMinimum())
+	bddpRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeBigDataDonationProject)
 	if err != nil {
-		return errors.Wrap(err, "unable to list bddp consent records")
+		return errors.Wrap(err, "unable to get active bddp consent record")
 	}
-
-	if bddpRecords.Count == 0 || (bddpRecords.Data[0]).Version < consent.MinimumBDDPVersionForRipple {
+	if bddpRecord == nil || bddpRecord.Version < consent.MinimumBDDPVersionForRipple {
 		latestBDDP, err := s.consentService.ListConsents(ctx, &consent.Filter{
 			Type:   pointer.FromAny(consent.TypeBigDataDonationProject),
 			Latest: pointer.FromAny(true),
