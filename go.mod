@@ -26,7 +26,7 @@ require (
 	github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55
-	github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677
+	github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093
 	github.com/tidepool-org/platform-plugin-abbott v0.0.0
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.3

@@ -224,6 +224,8 @@ github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55 h1:xgYwN
 github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55/go.mod h1:v93bMGDHiHcltQY5s7LYTTEe3u9CiGWqBFKah6C0650=
 github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677 h1:P3C1YTvLHu7NFHOeh6NDPo5ieVXcF9a+SY4FTToR8B4=
 github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677/go.mod h1:gon+x+jAh8DZZ2hD23fBWqrYwOizVSwIBbxEsuXCbZ4=
+github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093 h1:yuyVTZbXoO+uSIKNDjDjVc65x/q+lQXU1oUovnsT1RE=
+github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093/go.mod h1:gon+x+jAh8DZZ2hD23fBWqrYwOizVSwIBbxEsuXCbZ4=
 github.com/ugorji/go v1.2.4/go.mod h1:EuaSCk8iZMdIspsu6HXH7X2UGKw1ezO4wCfGszGmmo4=
 github.com/ugorji/go/codec v1.2.4/go.mod h1:bWBu1+kIRWcF8uMklKaJrR6fTWQOwAlrIzX22pHwryA=
 github.com/ugorji/go/codec v1.2.12 h1:9LC83zGrHhuUA9l16C9AHXAqEV/2wBQ4nkvumAE65EE=
