@@ -300,7 +300,7 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 	if err != nil {
 		return errors.Wrap(err, "unable to get active ripple consent record")
 	}
-	if rippleRecord != nil && rippleRecord.Version <= consent.RippleVersionForJotform {
+	if rippleRecord != nil && rippleRecord.Version >= consent.RippleVersionForJotform {
 		// If RIPPLE already exists, BDDP must also exist - nothing to do
 		logger.WithField("userId", userID).Info("ripple consent record already exists")
 		return nil
