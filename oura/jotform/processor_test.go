@@ -114,7 +114,7 @@ var _ = Describe("SubmissionProcessor", func() {
 	})
 
 	Context("ProcessSubmission", func() {
-		It("should successfully process an eligible submission and create consent record", func() {
+		It("should successfully process an eligible submission and create consent records", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
@@ -141,33 +141,114 @@ var _ = Describe("SubmissionProcessor", func() {
 			usr := &user.User{UserID: &userID}
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+			// First call: no RIPPLE
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(nil, nil)
+
+			// Second call checks for the latest active BDDP
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+				Return(nil, nil)
+
+			consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {
 					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-					Expect(filter.Version).To(PointTo(Equal(1)))
 					Expect(filter.Latest).To(PointTo(Equal(true)))
 				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 0,
+				Return(&storeStructuredMongo.ListResult[consent.Consent]{
+					Count: 1,
+					Data: []consent.Consent{{
+						Type:    "big_data_donation_project",
+						Version: 2,
+					}},
 				}, nil)
 
-			consentService.EXPECT().CreateConsentRecord(gomock.Any(), userID, gomock.Any()).
-				Do(func(ctx context.Context, userID string, create *consent.RecordCreate) {
-					Expect(create).ToNot(BeNil())
-					Expect(create.Type).To(Equal("big_data_donation_project"))
-					Expect(create.Version).To(Equal(1))
-					Expect(create.OwnerName).To(Equal("James Jellyfish"))
-					Expect(create.AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
-					Expect(create.GrantorType).To(Equal(consent.GrantorTypeOwner))
+			consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
+				Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+					Expect(creates).To(HaveLen(2))
+					Expect(creates[0].Type).To(Equal("big_data_donation_project"))
+					Expect(creates[0].Version).To(Equal(2))
+					Expect(creates[0].OwnerName).To(Equal("James Jellyfish"))
+					Expect(creates[0].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
+					Expect(creates[0].GrantorType).To(Equal(consent.GrantorTypeOwner))
+					Expect(creates[1].Type).To(Equal("ripple"))
+					Expect(creates[1].Version).To(Equal(1))
+					Expect(creates[1].OwnerName).To(Equal("James Jellyfish"))
+					Expect(creates[1].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
+					Expect(creates[1].GrantorType).To(Equal(consent.GrantorTypeOwner))
 				}).
+				Return([]*consent.Record{
+					{
+						ID:          "1234567890",
+						UserID:      userID,
+						Status:      consent.RecordStatusActive,
+						AgeGroup:    consent.AgeGroupEighteenOrOver,
+						OwnerName:   "James Jellyfish",
+						GrantorType: "owner",
+						Type:        "big_data_donation_project",
+						Version:     2,
+					},
+					{
+						ID:          "1234567891",
+						UserID:      userID,
+						Status:      consent.RecordStatusActive,
+						AgeGroup:    consent.AgeGroupEighteenOrOver,
+						OwnerName:   "James Jellyfish",
+						GrantorType: "owner",
+						Type:        "ripple",
+						Version:     1,
+					},
+				}, nil)
+
+			shopifyClnt.EXPECT().
+				CreateDiscountCode(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
+					Expect(len(input.Code)).To(BeNumerically(">=", 12))
+					Expect(input.ProductID).To(Equal("9122899853526"))
+					return nil
+				})
+
+			err = processor.ProcessSubmission(ctx, submissionID)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should not create consent records if RIPPLE already exists", func() {
+			submissionID := "6410095903544943563"
+			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
+
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			jotformResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/submission/"+submissionID)},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
+			)
+
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			appAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/customers/"+userID+"/attributes")},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
+			)
+			trackAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events")},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
+			)
+
+			usr := &user.User{UserID: &userID}
+			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
+
+			// RIPPLE already exists - no further consent calls expected
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
 				Return(&consent.Record{
-					ID:          "1234567890",
+					ID:          "1234567891",
 					UserID:      userID,
 					Status:      consent.RecordStatusActive,
 					AgeGroup:    consent.AgeGroupEighteenOrOver,
 					OwnerName:   "James Jellyfish",
 					GrantorType: "owner",
-					Type:        "big_data_donation_project",
+					Type:        "ripple",
 					Version:     1,
 				}, nil)
 
@@ -176,7 +257,6 @@ var _ = Describe("SubmissionProcessor", func() {
 				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
-					//Expect(input.ProductID).To(Equal("9122899853526"))
 					return nil
 				})
 
@@ -184,7 +264,7 @@ var _ = Describe("SubmissionProcessor", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("should successfully process an eligible submission and not attempt to create consent record if one already exists", func() {
+		It("should create only RIPPLE when BDDP v2 already exists", func() {
 			submissionID := "6410095903544943563"
 			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
 
@@ -211,24 +291,44 @@ var _ = Describe("SubmissionProcessor", func() {
 			usr := &user.User{UserID: &userID}
 			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
-			consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
-					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-					Expect(filter.Version).To(PointTo(Equal(1)))
-					Expect(filter.Latest).To(PointTo(Equal(true)))
+			// First call: no RIPPLE
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(nil, nil)
+
+			// Second call checks for the latest active BDDP
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+				Return(&consent.Record{
+					ID:          "1234567890",
+					UserID:      userID,
+					Status:      consent.RecordStatusActive,
+					AgeGroup:    consent.AgeGroupEighteenOrOver,
+					OwnerName:   "James Jellyfish",
+					GrantorType: "owner",
+					Type:        "big_data_donation_project",
+					Version:     2,
+				}, nil)
+
+			// Should create only RIPPLE
+			consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
+				Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+					Expect(creates).To(HaveLen(1))
+					Expect(creates[0].Type).To(Equal("ripple"))
+					Expect(creates[0].Version).To(Equal(1))
+					Expect(creates[0].OwnerName).To(Equal("James Jellyfish"))
+					Expect(creates[0].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
+					Expect(creates[0].GrantorType).To(Equal(consent.GrantorTypeOwner))
 				}).
-				Return(&storeStructuredMongo.ListResult[consent.Record]{
-					Count: 1,
-					Data: []consent.Record{{
-						ID:          "1234567890",
+				Return([]*consent.Record{
+					{
+						ID:          "1234567891",
 						UserID:      userID,
 						Status:      consent.RecordStatusActive,
 						AgeGroup:    consent.AgeGroupEighteenOrOver,
 						OwnerName:   "James Jellyfish",
 						GrantorType: "owner",
-						Type:        "big_data_donation_project",
+						Type:        "ripple",
 						Version:     1,
-					}},
+					},
 				}, nil)
 
 			shopifyClnt.EXPECT().
@@ -236,7 +336,6 @@ var _ = Describe("SubmissionProcessor", func() {
 				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
-					//Expect(input.ProductID).To(Equal("9122899853526"))
 					return nil
 				})
 
@@ -365,34 +464,60 @@ var _ = Describe("SubmissionProcessor", func() {
 				usr := &user.User{UserID: &userID}
 				userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
-				consentService.EXPECT().ListConsentRecords(gomock.Any(), userID, gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) {
+				// First call: no RIPPLE
+				consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+					Return(nil, nil)
+
+				// Second call checks for the latest active BDDP
+				consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+					Return(nil, nil)
+
+				consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {
 						Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
-						Expect(filter.Version).To(PointTo(Equal(1)))
 						Expect(filter.Latest).To(PointTo(Equal(true)))
 					}).
-					Return(&storeStructuredMongo.ListResult[consent.Record]{
-						Count: 0,
+					Return(&storeStructuredMongo.ListResult[consent.Consent]{
+						Count: 1,
+						Data: []consent.Consent{{
+							Type:    "big_data_donation_project",
+							Version: 2,
+						}},
 					}, nil)
 
-				consentService.EXPECT().CreateConsentRecord(gomock.Any(), userID, gomock.Any()).
-					Do(func(ctx context.Context, userID string, create *consent.RecordCreate) {
-						Expect(create).ToNot(BeNil())
-						Expect(create.Type).To(Equal("big_data_donation_project"))
-						Expect(create.Version).To(Equal(1))
-						Expect(create.OwnerName).To(Equal(name))
-						Expect(create.AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
-						Expect(create.GrantorType).To(Equal(consent.GrantorTypeOwner))
+				consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
+					Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+						Expect(creates).To(HaveLen(2))
+						Expect(creates[0].Type).To(Equal("big_data_donation_project"))
+						Expect(creates[0].Version).To(Equal(2))
+						Expect(creates[0].OwnerName).To(Equal(name))
+						Expect(creates[0].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
+						Expect(creates[0].GrantorType).To(Equal(consent.GrantorTypeOwner))
+						Expect(creates[1].Type).To(Equal("ripple"))
+						Expect(creates[1].Version).To(Equal(1))
+						Expect(creates[1].OwnerName).To(Equal(name))
 					}).
-					Return(&consent.Record{
-						ID:          "1234567890",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   name,
-						GrantorType: "owner",
-						Type:        "big_data_donation_project",
-						Version:     1,
+					Return([]*consent.Record{
+						{
+							ID:          "1234567890",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   name,
+							GrantorType: "owner",
+							Type:        "big_data_donation_project",
+							Version:     2,
+						},
+						{
+							ID:          "1234567891",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   name,
+							GrantorType: "owner",
+							Type:        "ripple",
+							Version:     1,
+						},
 					}, nil)
 
 				shopifyClnt.EXPECT().

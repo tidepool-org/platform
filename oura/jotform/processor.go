@@ -294,34 +294,51 @@ func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, use
 		return nil
 	}
 
-	filter := consent.NewRecordFilter()
-	filter.Latest = pointer.FromAny(true)
-	filter.Status = pointer.FromAny(consent.RecordStatusActive)
-	filter.Type = pointer.FromAny(consent.TypeBigDataDonationProject)
-	filter.Version = pointer.FromAny(1)
+	creates := make([]*consent.RecordCreate, 0)
 
-	pagination := page.NewPaginationMinimum()
-
-	records, err := s.consentService.ListConsentRecords(ctx, userID, filter, pagination)
+	rippleRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeRipple)
 	if err != nil {
-		return errors.Wrap(err, "unable to list consent records")
+		return errors.Wrap(err, "unable to get active ripple consent record")
 	}
-
-	if records.Count > 0 {
-		logger.WithField("userId", userID).Info("consent record already exists")
+	if rippleRecord != nil && rippleRecord.Version >= consent.RippleVersionForJotform {
+		// If RIPPLE already exists, BDDP must also exist - nothing to do
+		logger.WithField("userId", userID).Info("ripple consent record already exists")
 		return nil
 	}
 
-	create := consent.NewRecordCreate()
-	create.AgeGroup = consent.AgeGroupEighteenOrOver
-	create.GrantorType = consent.GrantorTypeOwner
-	create.OwnerName = survey.Name
-	create.Type = consent.TypeBigDataDonationProject
-	create.Version = 1
-
-	_, err = s.consentService.CreateConsentRecord(ctx, userID, create)
+	bddpRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeBigDataDonationProject)
 	if err != nil {
-		return errors.Wrap(err, "unable to create consent record")
+		return errors.Wrap(err, "unable to get active bddp consent record")
+	}
+	if bddpRecord == nil || bddpRecord.Version < consent.MinimumBDDPVersionForRipple {
+		latestBDDP, err := s.consentService.ListConsents(ctx, &consent.Filter{
+			Type:   pointer.FromAny(consent.TypeBigDataDonationProject),
+			Latest: pointer.FromAny(true),
+		}, page.NewPaginationMinimum())
+		if err != nil || latestBDDP.Count == 0 {
+			return errors.Wrap(err, "unable to find latest BDDP version")
+		}
+
+		bddpCreate := consent.NewRecordCreate()
+		bddpCreate.AgeGroup = consent.AgeGroupEighteenOrOver
+		bddpCreate.GrantorType = consent.GrantorTypeOwner
+		bddpCreate.OwnerName = survey.Name
+		bddpCreate.Type = consent.TypeBigDataDonationProject
+		bddpCreate.Version = latestBDDP.Data[0].Version
+		creates = append(creates, bddpCreate)
+	}
+
+	rippleCreate := consent.NewRecordCreate()
+	rippleCreate.AgeGroup = consent.AgeGroupEighteenOrOver
+	rippleCreate.GrantorType = consent.GrantorTypeOwner
+	rippleCreate.OwnerName = survey.Name
+	rippleCreate.Type = consent.TypeRipple
+	rippleCreate.Version = consent.RippleVersionForJotform
+	creates = append(creates, rippleCreate)
+
+	_, err = s.consentService.CreateConsentRecords(ctx, userID, creates)
+	if err != nil {
+		return errors.Wrap(err, "unable to create consent records")
 	}
 
 	return nil
