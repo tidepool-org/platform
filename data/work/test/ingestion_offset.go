@@ -21,7 +21,7 @@ func CloneIngestionOffsetMetadata(datum *dataWork.IngestionOffsetMetadata) *data
 		return nil
 	}
 	return &dataWork.IngestionOffsetMetadata{
-		IngestionOffset: pointer.CloneInt(datum.IngestionOffset),
+		IngestionOffset: pointer.Clone(datum.IngestionOffset),
 	}
 }
 

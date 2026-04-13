@@ -6,7 +6,6 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
-	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -91,15 +90,12 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	if err != nil {
 		return errors.Wrap(err, "unable to prepare data source")
 	}
-	dataSrc, err = p.connectDataSourceToProviderSession(ctx, providerSession, dataSrc)
+	_, err = p.connectDataSourceToProviderSession(ctx, providerSession, dataSrc)
 	if err != nil {
 		return errors.Wrap(err, "unable to connect data source")
 	}
 	if err = p.createDataSetupWork(ctx, providerSession); err != nil {
 		return errors.Wrap(err, "unable to create data setup work")
-	}
-	if err = p.createDataSourceStateChangeEventWork(ctx, dataSrc); err != nil {
-		return errors.Wrap(err, "unable to create data source state change event work")
 	}
 	return nil
 }
@@ -122,8 +118,8 @@ func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, 
 	switch action {
 	case oauth.ActionAuthorize:
 		dataSrcFilter := &dataSource.Filter{
-			ProviderType: pointer.FromString(p.Type()),
-			ProviderName: pointer.FromString(p.Name()),
+			ProviderType: pointer.From(p.Type()),
+			ProviderName: pointer.From(p.Name()),
 		}
 		dataSrcs, err := p.dataSourceClient.List(ctx, userID, dataSrcFilter, page.NewPaginationMinimum())
 		if err != nil {
@@ -161,8 +157,8 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 
 	// Get all data sources
 	dataSrcFilter := &dataSource.Filter{
-		ProviderType: pointer.FromString(p.Type()),
-		ProviderName: pointer.FromString(p.Name()),
+		ProviderType: pointer.From(p.Type()),
+		ProviderName: pointer.From(p.Name()),
 	}
 	dataSrcs, err := page.Collect(func(pagination page.Pagination) (dataSource.SourceArray, error) {
 		return p.dataSourceClient.List(ctx, providerSession.UserID, dataSrcFilter, &pagination)
@@ -204,12 +200,12 @@ func (p *Provider) prepareDataSourceForProviderSession(ctx context.Context, prov
 		}
 	}
 
-	// Unexpected state for data source, cleanup
+	// Unexpected state for data source, clean up
 	if dataSrc.State != dataSource.StateDisconnected {
 		lgr.WithField("state", dataSrc.State).Warn("data source in unexpected state")
 
 		srcUpdate := &dataSource.Update{
-			State: pointer.FromString(dataSource.StateDisconnected),
+			State: pointer.From(dataSource.StateDisconnected),
 		}
 		if dataSrc, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, srcUpdate); err != nil {
 			return nil, errors.Wrap(err, "unable to update data source")
@@ -231,8 +227,8 @@ func (p *Provider) connectDataSourceToProviderSession(ctx context.Context, provi
 	}
 
 	dataSrcUpdate := &dataSource.Update{
-		ProviderSessionID: pointer.FromString(providerSession.ID),
-		State:             pointer.FromString(dataSource.StateConnected),
+		ProviderSessionID: pointer.From(providerSession.ID),
+		State:             pointer.From(dataSource.StateConnected),
 	}
 	dataSrc, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate)
 	if err != nil {
@@ -257,7 +253,7 @@ func (p *Provider) disconnectDataSourceFromProviderSession(ctx context.Context, 
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
 
 	dataSrcUpdate := &dataSource.Update{
-		State: pointer.FromString(dataSource.StateDisconnected),
+		State: pointer.From(dataSource.StateDisconnected),
 	}
 	if _, err := p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate); err != nil {
 		return errors.Wrap(err, "unable to update data source")
@@ -287,15 +283,8 @@ func (p *Provider) createDataSetupWork(ctx context.Context, providerSession *aut
 	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
 		return err
 	}
-	return nil
-}
 
-func (p *Provider) createDataSourceStateChangeEventWork(ctx context.Context, dataSrc *dataSource.Source) error {
-	if workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(dataSrc); err != nil {
-		return errors.Wrap(err, "unable to create customer.io data source state changed event work create")
-	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
-		return err
-	}
+	log.LoggerFromContext(ctx).Debug("created data setup work create")
 	return nil
 }
 
@@ -305,5 +294,7 @@ func (p *Provider) createUsersRevokeWork(ctx context.Context, providerSession *a
 	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
 		return err
 	}
+
+	log.LoggerFromContext(ctx).Debug("created users revoke work")
 	return nil
 }

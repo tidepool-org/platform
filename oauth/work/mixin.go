@@ -47,15 +47,14 @@ func (m *mixin) TokenSource() oauth.TokenSource {
 }
 
 func (m *mixin) FetchTokenSource() *work.ProcessResult {
-	if !m.HasProviderSession() {
+	if prvdrSession := m.ProviderSession(); prvdrSession == nil {
 		return m.Failed(errors.New("provider session is missing"))
-	}
-	tokenSource, err := oauthToken.NewSourceWithToken(m.ProviderSession().OAuthToken)
-	if err != nil {
+	} else if tokenSource, err := oauthToken.NewSourceWithToken(prvdrSession.OAuthToken); err != nil {
 		return m.Failed(errors.Wrap(err, "unable to create token source"))
+	} else {
+		m.tokenSource = tokenSource
+		return nil
 	}
-	m.tokenSource = tokenSource
-	return nil
 }
 
 func (m *mixin) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {

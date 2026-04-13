@@ -18,7 +18,7 @@ func CloneMetadata(datum *dataRawWork.Metadata) *dataRawWork.Metadata {
 		return nil
 	}
 	return &dataRawWork.Metadata{
-		DataRawID: pointer.CloneString(datum.DataRawID),
+		DataRawID: pointer.Clone(datum.DataRawID),
 	}
 }
 

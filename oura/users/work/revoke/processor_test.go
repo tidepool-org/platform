@@ -88,12 +88,12 @@ var _ = Describe("processor", func() {
 				Context("Process", func() {
 					It("returns failing process result if unable to revoke oauth token", func() {
 						testErr := errorsTest.RandomError()
-						mockOuraClient.EXPECT().RevokeOAuthToken(gomock.Any(), oauthToken).Return(testErr)
+						mockOuraClient.EXPECT().RevokeOAuthToken(gomock.Not(gomock.Nil()), oauthToken).Return(testErr)
 						Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to revoke oauth token").Error())))
 					})
 
 					It("returns successful process result if able to revoke oauth token", func() {
-						mockOuraClient.EXPECT().RevokeOAuthToken(gomock.Any(), oauthToken).Return(nil)
+						mockOuraClient.EXPECT().RevokeOAuthToken(gomock.Not(gomock.Nil()), oauthToken).Return(nil)
 						Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
 					})
 				})

@@ -78,21 +78,19 @@ var _ = Describe("mixin", func() {
 
 			Context("FetchTokenSource", func() {
 				It("returns failed process result when provider session mixin does not have a provider session", func() {
-					mockProviderSessionMixin.EXPECT().HasProviderSession().Return(false)
+					mockProviderSessionMixin.EXPECT().ProviderSession().Return(nil)
 					Expect(mixin.FetchTokenSource()).To(workTest.MatchFailedProcessResultError(MatchError("provider session is missing")))
 				})
 
 				It("returns failed process result when provider session mixin fails to create a new source with the token", func() {
 					providerSession := authTest.RandomProviderSession(test.AllowOptional())
 					providerSession.OAuthToken = nil
-					mockProviderSessionMixin.EXPECT().HasProviderSession().Return(true)
 					mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
 					Expect(mixin.FetchTokenSource()).To(workTest.MatchFailedProcessResultError(MatchError("unable to create token source; token is missing")))
 				})
 
 				It("sets the token source and returns nil on success", func() {
 					providerSession := authTest.RandomProviderSession(test.AllowOptional())
-					mockProviderSessionMixin.EXPECT().HasProviderSession().Return(true)
 					mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
 					Expect(mixin.FetchTokenSource()).To(BeNil())
 				})
@@ -131,7 +129,6 @@ var _ = Describe("mixin", func() {
 
 				BeforeEach(func() {
 					providerSession = authTest.RandomProviderSession(test.AllowOptional())
-					mockProviderSessionMixin.EXPECT().HasProviderSession().Return(true)
 					mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
 					Expect(mixin.FetchTokenSource()).To(BeNil())
 					tokenSourceSource = oauthTest.NewMockTokenSourceSource(mockController)

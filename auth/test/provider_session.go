@@ -76,6 +76,36 @@ func NewObjectFromProviderSession(datum *auth.ProviderSession, objectFormat test
 	return object
 }
 
+func RandomProviderSessions(options ...test.Option) auth.ProviderSessions {
+	datum := make(auth.ProviderSessions, test.RandomIntFromRange(1, 3))
+	for index := range datum {
+		datum[index] = RandomProviderSession(options...)
+	}
+	return datum
+}
+
+func CloneProviderSessions(datum auth.ProviderSessions) auth.ProviderSessions {
+	if datum == nil {
+		return nil
+	}
+	clone := make(auth.ProviderSessions, len(datum))
+	for index, datum := range datum {
+		clone[index] = CloneProviderSession(datum)
+	}
+	return clone
+}
+
+func NewArrayFromProviderSessions(datum []auth.ProviderSession, objectFormat test.ObjectFormat) []any {
+	if datum == nil {
+		return nil
+	}
+	object := make([]any, len(datum))
+	for index, datum := range datum {
+		object[index] = NewObjectFromProviderSession(&datum, objectFormat)
+	}
+	return object
+}
+
 func RandomProviderSessionUpdate(options ...test.Option) *auth.ProviderSessionUpdate {
 	datum := &auth.ProviderSessionUpdate{}
 	datum.OAuthToken = RandomToken()

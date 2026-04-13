@@ -20,11 +20,13 @@ import (
 	"github.com/tidepool-org/platform/oura"
 	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	ouraProviderTest "github.com/tidepool-org/platform/oura/provider/test"
+	ouraUsersWorkRevoke "github.com/tidepool-org/platform/oura/users/work/revoke"
 	ouraWork "github.com/tidepool-org/platform/oura/work"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	userTest "github.com/tidepool-org/platform/user/test"
+	"github.com/tidepool-org/platform/work"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
@@ -105,7 +107,7 @@ var _ = Describe("provider", func() {
 				var providerSession *auth.ProviderSession
 
 				BeforeEach(func() {
-					providerSession = authTest.RandomProviderSession()
+					providerSession = authTest.RandomProviderSession(test.AllowOptional())
 				})
 
 				It("returns an error if provider session is nil", func() {
@@ -114,7 +116,7 @@ var _ = Describe("provider", func() {
 
 				It("returns an error if GetFromProviderSession fails", func() {
 					testErr := errorsTest.RandomError()
-					mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Any(), providerSession.ID).Return(nil, testErr)
+					mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Not(gomock.Nil()), providerSession.ID).Return(nil, testErr)
 					Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to disconnect data source; unable to get data source from provider session; " + testErr.Error()))
 				})
 
@@ -123,15 +125,15 @@ var _ = Describe("provider", func() {
 					var expectedDataSrcUpdate *dataSource.Update
 
 					BeforeEach(func() {
-						dataSrc = dataSourceTest.RandomSource()
-						dataSrc.ProviderSessionID = pointer.FromString(providerSession.ID)
-						expectedDataSrcUpdate = &dataSource.Update{State: pointer.FromString(dataSource.StateDisconnected)}
-						mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Any(), providerSession.ID).Return(dataSrc, nil)
+						dataSrc = dataSourceTest.RandomSource(test.AllowOptional())
+						dataSrc.ProviderSessionID = pointer.From(providerSession.ID)
+						expectedDataSrcUpdate = &dataSource.Update{State: pointer.From(dataSource.StateDisconnected)}
+						mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Not(gomock.Nil()), providerSession.ID).Return(dataSrc, nil)
 					})
 
 					It("returns an error if data source Update fails", func() {
 						testErr := errorsTest.RandomError()
-						mockDataSourceClient.EXPECT().Update(gomock.Any(), dataSrc.ID, gomock.Nil(), expectedDataSrcUpdate).Return(nil, testErr)
+						mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSrc.ID, gomock.Nil(), expectedDataSrcUpdate).Return(nil, testErr)
 						Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to disconnect data source; unable to update data source; " + testErr.Error()))
 					})
 
@@ -140,7 +142,7 @@ var _ = Describe("provider", func() {
 
 						BeforeEach(func() {
 							expectedGroupID = ouraWork.GroupIDFromProviderSessionID(providerSession.ID)
-							mockDataSourceClient.EXPECT().Update(gomock.Any(), dataSrc.ID, gomock.Nil(), expectedDataSrcUpdate).Return(dataSrc, nil)
+							mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSrc.ID, gomock.Nil(), expectedDataSrcUpdate).Return(dataSrc, nil)
 						})
 
 						AfterEach(func() {
@@ -149,16 +151,18 @@ var _ = Describe("provider", func() {
 
 						It("returns an error if DeleteAllByGroupID fails", func() {
 							testErr := errorsTest.RandomError()
-							mockWorkClient.EXPECT().DeleteAllByGroupID(gomock.Any(), expectedGroupID).Return(0, testErr)
+							mockWorkClient.EXPECT().DeleteAllByGroupID(gomock.Not(gomock.Nil()), expectedGroupID).Return(0, testErr)
 							Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to delete work for provider session; unable to delete all work by group id; " + testErr.Error()))
 						})
 
 						Context("with deleted work", func() {
 							var expectedCount int
+							var expectedWorkCreate *work.Create
 
 							BeforeEach(func() {
 								expectedCount = test.RandomIntFromRange(0, 3)
-								mockWorkClient.EXPECT().DeleteAllByGroupID(gomock.Any(), expectedGroupID).Return(expectedCount, nil)
+								expectedWorkCreate = test.Must(ouraUsersWorkRevoke.NewWorkCreate(providerSession.ID, providerSession.OAuthToken))
+								mockWorkClient.EXPECT().DeleteAllByGroupID(gomock.Not(gomock.Nil()), expectedGroupID).Return(expectedCount, nil)
 							})
 
 							AfterEach(func() {
@@ -167,12 +171,12 @@ var _ = Describe("provider", func() {
 
 							It("returns an error if Create revoke work fails", func() {
 								testErr := errorsTest.RandomError()
-								mockWorkClient.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, testErr)
+								mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedWorkCreate).Return(nil, testErr)
 								Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to create users revoke work; " + testErr.Error()))
 							})
 
 							It("succeeds", func() {
-								mockWorkClient.EXPECT().Create(gomock.Any(), gomock.Any()).Return(workTest.RandomWork(), nil)
+								mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedWorkCreate).Return(workTest.NewWorkFromCreateWithState(expectedWorkCreate, work.StatePending), nil)
 								Expect(prvdr.OnDelete(ctx, providerSession)).To(Succeed())
 							})
 						})
@@ -187,32 +191,32 @@ var _ = Describe("provider", func() {
 				BeforeEach(func() {
 					userID = userTest.RandomUserID()
 					expectedFilter = &dataSource.Filter{
-						ProviderType: pointer.FromString(oauth.ProviderType),
-						ProviderName: pointer.FromString(oura.ProviderName),
+						ProviderType: pointer.From(oauth.ProviderType),
+						ProviderName: pointer.From(oura.ProviderName),
 					}
 				})
 
 				Context("with authorize action", func() {
 					It("returns an error if data source list fails", func() {
 						testErr := errorsTest.RandomError()
-						mockDataSourceClient.EXPECT().List(gomock.Any(), userID, expectedFilter, page.NewPaginationMinimum()).Return(nil, testErr)
+						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(nil, testErr)
 						allowed, err := prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)
 						Expect(err).To(MatchError("unable to get data sources; " + testErr.Error()))
 						Expect(allowed).To(BeFalse())
 					})
 
 					It("returns false if user has nil data sources", func() {
-						mockDataSourceClient.EXPECT().List(gomock.Any(), userID, expectedFilter, page.NewPaginationMinimum()).Return(nil, nil)
+						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(nil, nil)
 						Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)).To(BeFalse())
 					})
 
 					It("returns false if user has empty data sources", func() {
-						mockDataSourceClient.EXPECT().List(gomock.Any(), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSource.SourceArray{}, nil)
+						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSource.SourceArray{}, nil)
 						Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)).To(BeFalse())
 					})
 
 					It("returns true if user has existing data sources", func() {
-						mockDataSourceClient.EXPECT().List(gomock.Any(), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSourceTest.RandomSourceArray(1, 3, test.AllowOptional()), nil)
+						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSourceTest.RandomSourceArray(1, 3, test.AllowOptional()), nil)
 						Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)).To(BeTrue())
 					})
 				})

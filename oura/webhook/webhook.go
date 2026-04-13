@@ -1,6 +1,7 @@
 package webhook
 
 import (
+	"slices"
 	"strings"
 	"time"
 
@@ -11,25 +12,11 @@ import (
 
 const EventPath = "/event"
 
-// All, but heartrate
+// All except for heartrate (not available via webhook)
 func DataTypes() []string {
-	return []string{
-		oura.DataTypeDailyActivity,
-		oura.DataTypeDailyCardiovascularAge,
-		oura.DataTypeDailyReadiness,
-		oura.DataTypeDailyResilience,
-		oura.DataTypeDailySleep,
-		oura.DataTypeDailySpO2,
-		oura.DataTypeDailyStress,
-		oura.DataTypeEnhancedTag,
-		oura.DataTypeRestModePeriod,
-		oura.DataTypeRingConfiguration,
-		oura.DataTypeSession,
-		oura.DataTypeSleep,
-		oura.DataTypeSleepTime,
-		oura.DataTypeVO2Max,
-		oura.DataTypeWorkout,
-	}
+	return slices.DeleteFunc(oura.DataTypes(), func(dataType string) bool {
+		return dataType == oura.DataTypeHeartRate
+	})
 }
 
 type Event struct {
@@ -73,10 +60,10 @@ func (e *Event) String() string {
 		parts = append(parts, "")
 	}
 	parts = append(parts,
-		pointer.DefaultString(e.EventType, ""),
-		pointer.DefaultString(e.UserID, ""),
-		pointer.DefaultString(e.ObjectID, ""),
-		pointer.DefaultString(e.DataType, ""),
+		pointer.Default(e.EventType, ""),
+		pointer.Default(e.UserID, ""),
+		pointer.Default(e.ObjectID, ""),
+		pointer.Default(e.DataType, ""),
 	)
 	return strings.Join(parts, ":")
 }

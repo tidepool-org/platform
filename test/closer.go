@@ -35,27 +35,43 @@ func (c *Closer) AssertOutputsEmpty() {
 	}
 }
 
-func ErrorCloser(reader io.Reader, err error) io.ReadCloser {
-	readerWithErrorCloser := ReaderWithErrorCloser{Reader: reader, err: err}
+func ErrorReader(err error) io.Reader {
+	return ReaderWithError{err: err}
+}
+
+type ReaderWithError struct {
+	err error
+}
+
+func (r ReaderWithError) Read(bites []byte) (int, error) {
+	return 0, r.err
+}
+
+func ErrorReadCloser(reader io.Reader, err error) io.ReadCloser {
+	readerWithErrorCloser := ReadCloserWithError{Reader: reader, err: err}
 	if _, ok := reader.(io.WriterTo); ok {
-		return WriterToReaderWithErrorCloser{ReaderWithErrorCloser: readerWithErrorCloser}
+		return WriterToReadCloserWithError{ReadCloserWithError: readerWithErrorCloser}
 	}
 	return readerWithErrorCloser
 }
 
-type ReaderWithErrorCloser struct {
+type ReadCloserWithError struct {
 	io.Reader
 	err error
 }
 
-func (r ReaderWithErrorCloser) Close() error {
+func (r ReadCloserWithError) Close() error {
 	return r.err
 }
 
-type WriterToReaderWithErrorCloser struct {
-	ReaderWithErrorCloser
+type WriterToReadCloserWithError struct {
+	ReadCloserWithError
 }
 
-func (w WriterToReaderWithErrorCloser) WriteTo(writer io.Writer) (n int64, err error) {
-	return w.Reader.(io.WriterTo).WriteTo(writer)
+func (w WriterToReadCloserWithError) WriteTo(writer io.Writer) (int64, error) {
+	if writerTo, ok := w.Reader.(io.WriterTo); !ok {
+		panic("Reader does not implement io.WriterTo")
+	} else {
+		return writerTo.WriteTo(writer)
+	}
 }

@@ -3,10 +3,12 @@ package oura
 import (
 	"context"
 	"slices"
+	"sort"
 	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -16,22 +18,26 @@ import (
 //go:generate mockgen -source=oura.go -destination=test/oura_mocks.go -package=test -typed
 
 const (
-	DataTypeDailyActivity          = "daily_activity"
-	DataTypeDailyCardiovascularAge = "daily_cardiovascular_age"
-	DataTypeDailyReadiness         = "daily_readiness"
-	DataTypeDailyResilience        = "daily_resilience"
-	DataTypeDailySleep             = "daily_sleep"
-	DataTypeDailySpO2              = "daily_spo2"
-	DataTypeDailyStress            = "daily_stress"
-	DataTypeEnhancedTag            = "enhanced_tag"
-	DataTypeHeartRate              = "heartrate" // Missing underscore per Oura documentation
-	DataTypeRestModePeriod         = "rest_mode_period"
-	DataTypeRingConfiguration      = "ring_configuration"
-	DataTypeSession                = "session"
-	DataTypeSleep                  = "sleep"
-	DataTypeSleepTime              = "sleep_time"
-	DataTypeVO2Max                 = "vo2_max"
-	DataTypeWorkout                = "workout"
+	DataSetClientName    = "org.tidepool.oura.api"
+	DataSetClientVersion = "1.0.0"
+
+	DataTypeDailyActivity     = "daily_activity"     // scope: extapi:daily
+	DataTypeDailyCyclePhases  = "daily_cycle_phases" // scope: extapi:reproductive_cycle
+	DataTypeDailyReadiness    = "daily_readiness"    // scope: extapi:daily
+	DataTypeDailyResilience   = "daily_resilience"   // scope: extapi:stress
+	DataTypeDailySleep        = "daily_sleep"        // scope: extapi:daily
+	DataTypeDailySpO2         = "daily_spo2"         // scope: extapi:spo2
+	DataTypeDailyStress       = "daily_stress"       // scope: extapi:daily
+	DataTypeEnhancedTag       = "enhanced_tag"       // scope: extapi:tag
+	DataTypeHeartRate         = "heartrate"          // scope: extapi:heartrate, missing underscore per Oura documentation
+	DataTypeRestModePeriod    = "rest_mode_period"   // scope: extapi:daily
+	DataTypeRingConfiguration = "ring_configuration" // scope: extapi:ring_configuration
+	DataTypeSession           = "session"            // scope: extapi:session
+	DataTypeSleep             = "sleep"              // scope: extapi:daily
+	DataTypeSleepTime         = "sleep_time"         // scope: extapi:daily
+	DataTypeWorkout           = "workout"            // scope: extapi:workout
+
+	DeviceManufacturer = "Oura"
 
 	EventTypeCreate = "create"
 	EventTypeUpdate = "update"
@@ -42,18 +48,34 @@ const (
 
 	PartnerPathPrefix = "/v1/partners/" + PartnerName
 
+	ScopeDaily             = "extapi:daily"
+	ScopeEmail             = "extapi:email"
+	ScopeHeartRate         = "extapi:heartrate"
+	ScopePersonal          = "extapi:personal"
+	ScopeReproductiveCycle = "extapi:reproductive_cycle"
+	ScopeRingConfiguration = "extapi:ring_configuration"
+	ScopeSession           = "extapi:session"
+	ScopeSpo2              = "extapi:spo2"
+	ScopeStress            = "extapi:stress"
+	ScopeTag               = "extapi:tag"
+	ScopeWorkout           = "extapi:workout"
+
 	SubscriptionArrayLengthMaximum   = 100
 	SubscriptionExpirationTimeFormat = "2006-01-02T15:04:05.999999999" // Assume location UTC
 
-	TimeRangeFormat            = time.RFC3339
-	TimeRangeTruncatedDuration = time.Second
-	TimeRangeMaximumYears      = 10
+	TimeRangeFormat       = time.RFC3339
+	TimeRangeMaximumYears = 10
+)
+
+var (
+	DeviceManufacturers = []string{DeviceManufacturer}
+	DeviceTags          = []string{data.DeviceTagActivityMonitor}
 )
 
 func DataTypes() []string {
 	return []string{
 		DataTypeDailyActivity,
-		DataTypeDailyCardiovascularAge,
+		DataTypeDailyCyclePhases,
 		DataTypeDailyReadiness,
 		DataTypeDailyResilience,
 		DataTypeDailySleep,
@@ -66,7 +88,6 @@ func DataTypes() []string {
 		DataTypeSession,
 		DataTypeSleep,
 		DataTypeSleepTime,
-		DataTypeVO2Max,
 		DataTypeWorkout,
 	}
 }
@@ -76,6 +97,56 @@ func EventTypes() []string {
 		EventTypeCreate,
 		EventTypeUpdate,
 		EventTypeDelete,
+	}
+}
+
+func Scopes() []string {
+	return []string{
+		ScopeDaily,
+		ScopeEmail,
+		ScopeHeartRate,
+		ScopePersonal,
+		ScopeReproductiveCycle,
+		ScopeRingConfiguration,
+		ScopeSession,
+		ScopeSpo2,
+		ScopeStress,
+		ScopeTag,
+		ScopeWorkout,
+	}
+}
+
+func DataTypesForScopes(scopes []string) []string {
+	var dataTypes []string
+	for _, scope := range scopes {
+		dataTypes = append(dataTypes, DataTypesForScope(scope)...)
+	}
+	sort.Strings(dataTypes)
+	return dataTypes
+}
+
+func DataTypesForScope(scope string) []string {
+	switch scope {
+	case ScopeDaily:
+		return []string{DataTypeDailyActivity, DataTypeDailyReadiness, DataTypeDailySleep, DataTypeDailyStress, DataTypeRestModePeriod, DataTypeSleep, DataTypeSleepTime}
+	case ScopeHeartRate:
+		return []string{DataTypeHeartRate}
+	case ScopeReproductiveCycle:
+		return []string{DataTypeDailyCyclePhases}
+	case ScopeRingConfiguration:
+		return []string{DataTypeRingConfiguration}
+	case ScopeSession:
+		return []string{DataTypeSession}
+	case ScopeSpo2:
+		return []string{DataTypeDailySpO2}
+	case ScopeStress:
+		return []string{DataTypeDailyResilience}
+	case ScopeTag:
+		return []string{DataTypeEnhancedTag}
+	case ScopeWorkout:
+		return []string{DataTypeWorkout}
+	default:
+		return nil
 	}
 }
 
@@ -98,8 +169,8 @@ type Client interface {
 
 	GetPersonalInfo(ctx context.Context, tokenSource oauth.TokenSource) (*PersonalInfo, error)
 
-	GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (*Data, error)
-	GetDatum(ctx context.Context, dataType string, dataID string, tokenSource oauth.TokenSource) (*Datum, error)
+	GetData(ctx context.Context, dataType string, timeRange *times.TimeRange, pagination *Pagination, tokenSource oauth.TokenSource) (*DataResponse, error)
+	GetDatum(ctx context.Context, dataType string, dataID string, tokenSource oauth.TokenSource) (Datum, error)
 
 	RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAuthToken) error
 }
@@ -233,11 +304,39 @@ func (p *PersonalInfo) Validate(validator structure.Validator) {
 	validator.String("id", p.ID).Exists().NotEmpty()
 }
 
-type Data []*Datum
-
-type Datum struct {
-	ID string `json:"id,omitempty"`
+type Pagination struct {
+	NextToken *string `json:"next_token,omitempty" bson:"next_token,omitempty"`
 }
+
+func (p *Pagination) Parse(parser structure.ObjectParser) {
+	p.NextToken = parser.String("next_token")
+}
+
+func (p *Pagination) Validate(validator structure.Validator) {
+	validator.String("next_token", p.NextToken).NotEmpty()
+}
+
+func (p *Pagination) HasNext() bool {
+	return p.NextToken != nil
+}
+
+type DataResponse struct {
+	Data       []any `json:"data,omitempty" bson:"data,omitempty"`
+	Pagination `json:",inline" bson:",inline"`
+}
+
+func (d *DataResponse) Parse(parser structure.ObjectParser) {
+	if ptr := parser.Array("data"); ptr != nil {
+		d.Data = *ptr
+	}
+	d.Pagination.Parse(parser)
+}
+
+func (d *DataResponse) Validate(validator structure.Validator) {
+	d.Pagination.Validate(validator)
+}
+
+type Datum = map[string]any
 
 func IsValidDataID(value string) bool {
 	return ValidateDataID(value) == nil

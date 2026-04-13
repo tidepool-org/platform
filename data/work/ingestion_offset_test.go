@@ -40,7 +40,7 @@ var _ = Describe("ingestion_offset", func() {
 				),
 				Entry("all",
 					func(datum *dataWork.IngestionOffsetMetadata) {
-						datum.IngestionOffset = pointer.FromInt(dataWorkTest.RandomIngestionOffset())
+						datum.IngestionOffset = pointer.From(dataWorkTest.RandomIngestionOffset())
 					},
 				),
 			)
@@ -91,18 +91,18 @@ var _ = Describe("ingestion_offset", func() {
 					),
 					Entry("ingestion offset invalid",
 						func(datum *dataWork.IngestionOffsetMetadata) {
-							datum.IngestionOffset = pointer.FromInt(-1)
+							datum.IngestionOffset = pointer.From(-1)
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/ingestionOffset"),
 					),
 					Entry("ingestion offset valid",
 						func(datum *dataWork.IngestionOffsetMetadata) {
-							datum.IngestionOffset = pointer.FromInt(dataWorkTest.RandomIngestionOffset())
+							datum.IngestionOffset = pointer.From(dataWorkTest.RandomIngestionOffset())
 						},
 					),
 					Entry("multiple errors",
 						func(datum *dataWork.IngestionOffsetMetadata) {
-							datum.IngestionOffset = pointer.FromInt(-1)
+							datum.IngestionOffset = pointer.From(-1)
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/ingestionOffset"),
 					),

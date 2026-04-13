@@ -18,7 +18,7 @@ func CloneMetadata(datum *dataSetWork.Metadata) *dataSetWork.Metadata {
 		return nil
 	}
 	return &dataSetWork.Metadata{
-		DataSetID: pointer.CloneString(datum.DataSetID),
+		DataSetID: pointer.Clone(datum.DataSetID),
 	}
 }
 

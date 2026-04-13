@@ -12,6 +12,7 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	timeZone "github.com/tidepool-org/platform/time/zone"
 	"github.com/tidepool-org/platform/times"
 	timesTest "github.com/tidepool-org/platform/times/test"
 )
@@ -139,6 +140,39 @@ var _ = Describe("time_range", func() {
 				)
 			})
 
+			Context("InLocation", func() {
+				var timeRange times.TimeRange
+
+				BeforeEach(func() {
+					fromLocation, err := time.LoadLocation(test.RandomStringFromArray(timeZone.Names()))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(fromLocation).ToNot(BeNil())
+
+					toLocation, err := time.LoadLocation(test.RandomStringFromArray(timeZone.Names()))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(toLocation).ToNot(BeNil())
+
+					timeRange = *timesTest.RandomTimeRange()
+					timeRange.From = pointer.FromTime(timeRange.From.In(fromLocation))
+					timeRange.To = pointer.FromTime(timeRange.To.In(toLocation))
+				})
+
+				It("returns the time range unchanged when the location is nil", func() {
+					Expect(timeRange.InLocation(nil)).To(Equal(timeRange))
+				})
+
+				It("returns a time range in the specified location", func() {
+					targetLocation, err := time.LoadLocation(test.RandomStringFromArray(timeZone.Names()))
+					Expect(err).ToNot(HaveOccurred())
+					Expect(targetLocation).ToNot(BeNil())
+					expectedTimeRange := times.TimeRange{
+						From: pointer.FromTime(timeRange.From.In(targetLocation)),
+						To:   pointer.FromTime(timeRange.To.In(targetLocation)),
+					}
+					Expect(timeRange.InLocation(targetLocation)).To(Equal(expectedTimeRange))
+				})
+			})
+
 			Context("Clamped", func() {
 				var first = test.RandomTime()
 				var second = test.RandomTimeAfter(first)
@@ -176,6 +210,17 @@ var _ = Describe("time_range", func() {
 					Entry("to", times.TimeRange{To: pointer.From(to)}, time.Minute, times.TimeRange{To: pointer.From(to.Truncate(time.Minute))}),
 					Entry("multiple", times.TimeRange{From: pointer.From(from), To: pointer.From(to)}, time.Hour, times.TimeRange{From: pointer.From(from.Truncate(time.Hour)), To: pointer.From(to.Truncate(time.Hour))}),
 				)
+			})
+
+			Context("Date", func() {
+				It("returns a time range truncated to the date", func() {
+					timeRange := timesTest.RandomTimeRange()
+					expectedTimeRange := times.TimeRange{
+						From: pointer.From(time.Date(timeRange.From.Year(), timeRange.From.Month(), timeRange.From.Day(), 0, 0, 0, 0, timeRange.From.Location())),
+						To:   pointer.From(time.Date(timeRange.To.Year(), timeRange.To.Month(), timeRange.To.Day(), 0, 0, 0, 0, timeRange.To.Location())),
+					}
+					Expect(timeRange.Date()).To(Equal(expectedTimeRange))
+				})
 			})
 
 			Context("String", func() {

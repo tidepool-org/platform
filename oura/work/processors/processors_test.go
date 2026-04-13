@@ -18,6 +18,7 @@ import (
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	ouraWebhookWorkSubscribe "github.com/tidepool-org/platform/oura/webhook/work/subscribe"
 	ouraWorkProcessors "github.com/tidepool-org/platform/oura/work/processors"
+	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workTest "github.com/tidepool-org/platform/work/test"
@@ -128,35 +129,20 @@ var _ = Describe("processors", func() {
 		})
 
 		Context("with webhook subscribe work create", func() {
-			var webhookSubscribeWorkCreate *work.Create
-			var webhookSubscribeWork *work.Work
+			var expectedWorkCreate *work.Create
 
 			BeforeEach(func() {
-				var err error
-				webhookSubscribeWorkCreate, err = ouraWebhookWorkSubscribe.NewWorkCreate()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(webhookSubscribeWorkCreate).ToNot(BeNil())
-				webhookSubscribeWork = workTest.NewWorkFromCreateWithState(webhookSubscribeWorkCreate, work.StatePending)
+				expectedWorkCreate = test.Must(ouraWebhookWorkSubscribe.NewWorkCreate())
 			})
 
 			It("returns error if the work client returns an error", func() {
 				testErr := errorsTest.RandomError()
-				mockWorkClient.EXPECT().
-					Create(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
-						Expect(create).To(Equal(webhookSubscribeWorkCreate))
-						return nil, testErr
-					})
+				mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedWorkCreate).Return(nil, testErr)
 				Expect(ouraWorkProcessors.EnsureWork(ctx, mockWorkClient)).To(MatchError("unable to create webhook subscribe work; " + testErr.Error()))
 			})
 
 			It("returns successfully", func() {
-				mockWorkClient.EXPECT().
-					Create(gomock.Any(), gomock.Any()).
-					DoAndReturn(func(ctx context.Context, create *work.Create) (*work.Work, error) {
-						Expect(create).To(Equal(webhookSubscribeWorkCreate))
-						return webhookSubscribeWork, nil
-					})
+				mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedWorkCreate).Return(workTest.NewWorkFromCreateWithState(expectedWorkCreate, work.StatePending), nil)
 				Expect(ouraWorkProcessors.EnsureWork(ctx, mockWorkClient)).To(Succeed())
 			})
 		})

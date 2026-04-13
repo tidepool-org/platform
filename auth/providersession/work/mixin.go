@@ -116,9 +116,6 @@ func (m *mixin) FetchProviderSession(providerSessionID string) *work.ProcessResu
 }
 
 func (m *mixin) UpdateProviderSession(providerSessionUpdate *auth.ProviderSessionUpdate) *work.ProcessResult {
-	if providerSessionUpdate == nil {
-		return m.Failed(errors.New("provider session update is missing"))
-	}
 	if m.providerSession == nil {
 		return m.Failed(errors.New("provider session is missing"))
 	}

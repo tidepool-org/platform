@@ -32,6 +32,20 @@ func (t *TimeRange) Validate(validator structure.Validator) {
 	validator.Time("to", t.To).NotZero().After(pointer.Default(t.From, time.Time{}))
 }
 
+func (t TimeRange) InLocation(location *time.Location) TimeRange {
+	if location == nil {
+		return t
+	}
+	inLocation := TimeRange{}
+	if t.From != nil {
+		inLocation.From = pointer.From(t.From.In(location))
+	}
+	if t.To != nil {
+		inLocation.To = pointer.From(t.To.In(location))
+	}
+	return inLocation
+}
+
 func (t TimeRange) Clamped(minimum time.Time, maximum time.Time) TimeRange {
 	clamped := TimeRange{}
 	if t.From != nil {
@@ -52,6 +66,17 @@ func (t TimeRange) Truncated(duration time.Duration) TimeRange {
 		truncated.To = pointer.From(t.To.Truncate(duration))
 	}
 	return truncated
+}
+
+func (t TimeRange) Date() TimeRange {
+	date := TimeRange{}
+	if t.From != nil {
+		date.From = pointer.From(time.Date(t.From.Year(), t.From.Month(), t.From.Day(), 0, 0, 0, 0, t.From.Location()))
+	}
+	if t.To != nil {
+		date.To = pointer.From(time.Date(t.To.Year(), t.To.Month(), t.To.Day(), 0, 0, 0, 0, t.To.Location()))
+	}
+	return date
 }
 
 func (t TimeRange) String(layout string) string {

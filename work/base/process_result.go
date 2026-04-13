@@ -19,7 +19,7 @@ func (p *ProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work) *wor
 	if p.ProcessResultPendingBuilder == nil {
 		return p.Failed(ctx, wrk, errors.New("pending process result builder is not configured"))
 	}
-	processingAvailableTime := p.ProcessResultPendingBuilder.ProcessingAvailableTime(ctx, wrk, time.Now())
+	processingAvailableTime := p.ProcessingAvailableTime(ctx, wrk, time.Now())
 	return work.NewProcessResultPending(work.PendingUpdate{
 		ProcessingAvailableTime: processingAvailableTime,
 		ProcessingPriority:      wrk.ProcessingPriority,
@@ -32,8 +32,8 @@ func (p *ProcessResultBuilder) Failing(ctx context.Context, wrk *work.Work, err 
 	if p.ProcessResultFailingBuilder == nil {
 		return p.Failed(ctx, wrk, errors.New("failing process result builder is not configured"))
 	}
-	failingRetryCount := p.ProcessResultFailingBuilder.FailingRetryCount(ctx, wrk, err)
-	failingRetryTime := p.ProcessResultFailingBuilder.FailingRetryTime(ctx, wrk, err, failingRetryCount, time.Now())
+	failingRetryCount := p.FailingRetryCount(ctx, wrk, err)
+	failingRetryTime := p.FailingRetryTime(ctx, wrk, err, failingRetryCount, time.Now())
 	log.LoggerFromContext(ctx).WithFields(log.Fields{"failingRetryCount": failingRetryCount, "failingRetryTime": failingRetryTime}).WithError(err).Error("processor failing")
 	return work.NewProcessResultFailing(work.FailingUpdate{
 		FailingError:      errors.Serializable{Error: err},

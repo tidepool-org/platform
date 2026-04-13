@@ -36,6 +36,7 @@ type Mixin interface {
 	SetDataSet(dataSet *data.DataSet) *work.ProcessResult
 
 	FetchDataSet(dataSetID string) *work.ProcessResult
+	CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult
 	UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult
 
 	AddDataSetToContext()
@@ -115,10 +116,24 @@ func (m *mixin) FetchDataSet(dataSetID string) *work.ProcessResult {
 	}
 }
 
-func (m *mixin) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult {
-	if dataSetUpdate == nil {
-		return m.Failed(errors.New("data set update is missing"))
+func (m *mixin) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	if m.dataSet != nil {
+		return m.Failed(errors.New("data set already exists"))
 	}
+
+	if dataSt, err := m.dataSetClient.CreateUserDataSet(context.WithoutCancel(m.Context()), userID, dataSetCreate); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to create data set"))
+	} else if dataSt == nil {
+		return m.Failed(errors.New("data set is missing"))
+	} else if result := m.SetDataSet(dataSt); result != nil {
+		return result
+	}
+
+	log.LoggerFromContext(m.Context()).Debug("created data set")
+	return nil
+}
+
+func (m *mixin) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult {
 	if m.dataSet == nil {
 		return m.Failed(errors.New("data set is missing"))
 	} else if m.dataSet.ID == nil {

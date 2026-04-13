@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/tidepool-org/platform/data"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/oura"
@@ -18,12 +19,20 @@ import (
 )
 
 var _ = Describe("oura", func() {
+	It("DataSetClientName is expected", func() {
+		Expect(oura.DataSetClientName).To(Equal("org.tidepool.oura.api"))
+	})
+
+	It("DataSetClientVersion is expected", func() {
+		Expect(oura.DataSetClientVersion).To(Equal("1.0.0"))
+	})
+
 	It("DataTypeDailyActivity is expected", func() {
 		Expect(oura.DataTypeDailyActivity).To(Equal("daily_activity"))
 	})
 
-	It("DataTypeDailyCardiovascularAge is expected", func() {
-		Expect(oura.DataTypeDailyCardiovascularAge).To(Equal("daily_cardiovascular_age"))
+	It("DataTypeDailyCyclePhases is expected", func() {
+		Expect(oura.DataTypeDailyCyclePhases).To(Equal("daily_cycle_phases"))
 	})
 
 	It("DataTypeDailyReadiness is expected", func() {
@@ -74,12 +83,12 @@ var _ = Describe("oura", func() {
 		Expect(oura.DataTypeSleepTime).To(Equal("sleep_time"))
 	})
 
-	It("DataTypeVO2Max is expected", func() {
-		Expect(oura.DataTypeVO2Max).To(Equal("vo2_max"))
-	})
-
 	It("DataTypeWorkout is expected", func() {
 		Expect(oura.DataTypeWorkout).To(Equal("workout"))
+	})
+
+	It("DeviceManufacturer is expected", func() {
+		Expect(oura.DeviceManufacturer).To(Equal("Oura"))
 	})
 
 	It("EventTypeCreate is expected", func() {
@@ -106,6 +115,50 @@ var _ = Describe("oura", func() {
 		Expect(oura.PartnerPathPrefix).To(Equal("/v1/partners/oura"))
 	})
 
+	It("ScopeDaily is expected", func() {
+		Expect(oura.ScopeDaily).To(Equal("extapi:daily"))
+	})
+
+	It("ScopeEmail is expected", func() {
+		Expect(oura.ScopeEmail).To(Equal("extapi:email"))
+	})
+
+	It("ScopeHeartRate is expected", func() {
+		Expect(oura.ScopeHeartRate).To(Equal("extapi:heartrate"))
+	})
+
+	It("ScopePersonal is expected", func() {
+		Expect(oura.ScopePersonal).To(Equal("extapi:personal"))
+	})
+
+	It("ScopeReproductiveCycle is expected", func() {
+		Expect(oura.ScopeReproductiveCycle).To(Equal("extapi:reproductive_cycle"))
+	})
+
+	It("ScopeRingConfiguration is expected", func() {
+		Expect(oura.ScopeRingConfiguration).To(Equal("extapi:ring_configuration"))
+	})
+
+	It("ScopeSession is expected", func() {
+		Expect(oura.ScopeSession).To(Equal("extapi:session"))
+	})
+
+	It("ScopeSpo2 is expected", func() {
+		Expect(oura.ScopeSpo2).To(Equal("extapi:spo2"))
+	})
+
+	It("ScopeStress is expected", func() {
+		Expect(oura.ScopeStress).To(Equal("extapi:stress"))
+	})
+
+	It("ScopeTag is expected", func() {
+		Expect(oura.ScopeTag).To(Equal("extapi:tag"))
+	})
+
+	It("ScopeWorkout is expected", func() {
+		Expect(oura.ScopeWorkout).To(Equal("extapi:workout"))
+	})
+
 	It("SubscriptionArrayLengthMaximum is expected", func() {
 		Expect(oura.SubscriptionArrayLengthMaximum).To(Equal(100))
 	})
@@ -118,19 +171,23 @@ var _ = Describe("oura", func() {
 		Expect(oura.TimeRangeFormat).To(Equal(time.RFC3339))
 	})
 
-	It("TimeRangeTruncatedDuration is expected", func() {
-		Expect(oura.TimeRangeTruncatedDuration).To(Equal(time.Second))
-	})
-
 	It("TimeRangeMaximumYears is expected", func() {
 		Expect(oura.TimeRangeMaximumYears).To(Equal(10))
+	})
+
+	It("DeviceManufacturers is expected", func() {
+		Expect(oura.DeviceManufacturers).To(Equal([]string{oura.DeviceManufacturer}))
+	})
+
+	It("DeviceTags is expected", func() {
+		Expect(oura.DeviceTags).To(Equal([]string{data.DeviceTagActivityMonitor}))
 	})
 
 	Context("DataTypes", func() {
 		It("returns expected data types", func() {
 			Expect(oura.DataTypes()).To(Equal([]string{
 				oura.DataTypeDailyActivity,
-				oura.DataTypeDailyCardiovascularAge,
+				oura.DataTypeDailyCyclePhases,
 				oura.DataTypeDailyReadiness,
 				oura.DataTypeDailyResilience,
 				oura.DataTypeDailySleep,
@@ -143,7 +200,6 @@ var _ = Describe("oura", func() {
 				oura.DataTypeSession,
 				oura.DataTypeSleep,
 				oura.DataTypeSleepTime,
-				oura.DataTypeVO2Max,
 				oura.DataTypeWorkout,
 			}))
 		})
@@ -157,6 +213,49 @@ var _ = Describe("oura", func() {
 				oura.EventTypeDelete,
 			}))
 		})
+	})
+
+	Context("Scopes", func() {
+		It("returns expected data types", func() {
+			Expect(oura.Scopes()).To(Equal([]string{
+				oura.ScopeDaily,
+				oura.ScopeEmail,
+				oura.ScopeHeartRate,
+				oura.ScopePersonal,
+				oura.ScopeReproductiveCycle,
+				oura.ScopeRingConfiguration,
+				oura.ScopeSession,
+				oura.ScopeSpo2,
+				oura.ScopeStress,
+				oura.ScopeTag,
+				oura.ScopeWorkout,
+			}))
+		})
+	})
+
+	Context("DataTypesForScopes", func() {
+		It("merges data types from multiple scopes alphabetically", func() {
+			Expect(oura.DataTypesForScopes(oura.Scopes())).To(Equal(oura.DataTypes()))
+		})
+	})
+
+	Context("DataTypesForScope", func() {
+		DescribeTable("returns the expected data types for the scope",
+			func(scope string, expectedDataTypes []string) {
+				Expect(oura.DataTypesForScope(scope)).To(Equal(expectedDataTypes))
+			},
+			Entry("empty", "", nil),
+			Entry("invalid", "invalid", nil),
+			Entry("ScopeDaily", oura.ScopeDaily, []string{oura.DataTypeDailyActivity, oura.DataTypeDailyReadiness, oura.DataTypeDailySleep, oura.DataTypeDailyStress, oura.DataTypeRestModePeriod, oura.DataTypeSleep, oura.DataTypeSleepTime}),
+			Entry("ScopeHeartRate", oura.ScopeHeartRate, []string{oura.DataTypeHeartRate}),
+			Entry("ScopeReproductiveCycle", oura.ScopeReproductiveCycle, []string{oura.DataTypeDailyCyclePhases}),
+			Entry("ScopeRingConfiguration", oura.ScopeRingConfiguration, []string{oura.DataTypeRingConfiguration}),
+			Entry("ScopeSession", oura.ScopeSession, []string{oura.DataTypeSession}),
+			Entry("ScopeSpo2", oura.ScopeSpo2, []string{oura.DataTypeDailySpO2}),
+			Entry("ScopeStress", oura.ScopeStress, []string{oura.DataTypeDailyResilience}),
+			Entry("ScopeTag", oura.ScopeTag, []string{oura.DataTypeEnhancedTag}),
+			Entry("ScopeWorkout", oura.ScopeWorkout, []string{oura.DataTypeWorkout}),
+		)
 	})
 
 	Context("CreateSubscription", func() {
@@ -230,7 +329,7 @@ var _ = Describe("oura", func() {
 				Entry("succeeds",
 					func(datum *oura.CreateSubscription) {},
 				),
-				Entry("callback_url",
+				Entry("callback_url missing",
 					func(datum *oura.CreateSubscription) {
 						datum.CallbackURL = nil
 					},
@@ -238,16 +337,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("callback_url empty",
 					func(datum *oura.CreateSubscription) {
-						datum.CallbackURL = pointer.FromString("")
+						datum.CallbackURL = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/callback_url"),
 				),
 				Entry("callback_url valid",
 					func(datum *oura.CreateSubscription) {
-						datum.CallbackURL = pointer.FromString(ouraTest.RandomCallbackURL())
+						datum.CallbackURL = pointer.From(ouraTest.RandomCallbackURL())
 					},
 				),
-				Entry("verification_token",
+				Entry("verification_token missing",
 					func(datum *oura.CreateSubscription) {
 						datum.VerificationToken = nil
 					},
@@ -255,16 +354,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("verification_token empty",
 					func(datum *oura.CreateSubscription) {
-						datum.VerificationToken = pointer.FromString("")
+						datum.VerificationToken = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/verification_token"),
 				),
 				Entry("verification_token valid",
 					func(datum *oura.CreateSubscription) {
-						datum.VerificationToken = pointer.FromString(ouraTest.RandomVerificationToken())
+						datum.VerificationToken = pointer.From(ouraTest.RandomVerificationToken())
 					},
 				),
-				Entry("data_type",
+				Entry("data_type missing",
 					func(datum *oura.CreateSubscription) {
 						datum.DataType = nil
 					},
@@ -272,16 +371,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("data_type invalid",
 					func(datum *oura.CreateSubscription) {
-						datum.DataType = pointer.FromString("invalid")
+						datum.DataType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.DataTypes()), "/data_type"),
 				),
 				Entry("data_type valid",
 					func(datum *oura.CreateSubscription) {
-						datum.DataType = pointer.FromString(ouraTest.RandomDataType())
+						datum.DataType = pointer.From(ouraTest.RandomDataType())
 					},
 				),
-				Entry("event_type",
+				Entry("event_type missing",
 					func(datum *oura.CreateSubscription) {
 						datum.EventType = nil
 					},
@@ -289,13 +388,13 @@ var _ = Describe("oura", func() {
 				),
 				Entry("event_type invalid",
 					func(datum *oura.CreateSubscription) {
-						datum.EventType = pointer.FromString("invalid")
+						datum.EventType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.EventTypes()), "/event_type"),
 				),
 				Entry("event_type valid",
 					func(datum *oura.CreateSubscription) {
-						datum.EventType = pointer.FromString(ouraTest.RandomEventType())
+						datum.EventType = pointer.From(ouraTest.RandomEventType())
 					},
 				),
 				Entry("multiple errors",
@@ -385,7 +484,7 @@ var _ = Describe("oura", func() {
 				Entry("succeeds",
 					func(datum *oura.UpdateSubscription) {},
 				),
-				Entry("callback_url",
+				Entry("callback_url missing",
 					func(datum *oura.UpdateSubscription) {
 						datum.CallbackURL = nil
 					},
@@ -393,16 +492,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("callback_url empty",
 					func(datum *oura.UpdateSubscription) {
-						datum.CallbackURL = pointer.FromString("")
+						datum.CallbackURL = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/callback_url"),
 				),
 				Entry("callback_url valid",
 					func(datum *oura.UpdateSubscription) {
-						datum.CallbackURL = pointer.FromString(ouraTest.RandomCallbackURL())
+						datum.CallbackURL = pointer.From(ouraTest.RandomCallbackURL())
 					},
 				),
-				Entry("verification_token",
+				Entry("verification_token missing",
 					func(datum *oura.UpdateSubscription) {
 						datum.VerificationToken = nil
 					},
@@ -410,16 +509,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("verification_token empty",
 					func(datum *oura.UpdateSubscription) {
-						datum.VerificationToken = pointer.FromString("")
+						datum.VerificationToken = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/verification_token"),
 				),
 				Entry("verification_token valid",
 					func(datum *oura.UpdateSubscription) {
-						datum.VerificationToken = pointer.FromString(ouraTest.RandomVerificationToken())
+						datum.VerificationToken = pointer.From(ouraTest.RandomVerificationToken())
 					},
 				),
-				Entry("data_type",
+				Entry("data_type missing",
 					func(datum *oura.UpdateSubscription) {
 						datum.DataType = nil
 					},
@@ -427,16 +526,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("data_type invalid",
 					func(datum *oura.UpdateSubscription) {
-						datum.DataType = pointer.FromString("invalid")
+						datum.DataType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.DataTypes()), "/data_type"),
 				),
 				Entry("data_type valid",
 					func(datum *oura.UpdateSubscription) {
-						datum.DataType = pointer.FromString(ouraTest.RandomDataType())
+						datum.DataType = pointer.From(ouraTest.RandomDataType())
 					},
 				),
-				Entry("event_type",
+				Entry("event_type missing",
 					func(datum *oura.UpdateSubscription) {
 						datum.EventType = nil
 					},
@@ -444,13 +543,13 @@ var _ = Describe("oura", func() {
 				),
 				Entry("event_type invalid",
 					func(datum *oura.UpdateSubscription) {
-						datum.EventType = pointer.FromString("invalid")
+						datum.EventType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.EventTypes()), "/event_type"),
 				),
 				Entry("event_type valid",
 					func(datum *oura.UpdateSubscription) {
-						datum.EventType = pointer.FromString(ouraTest.RandomEventType())
+						datum.EventType = pointer.From(ouraTest.RandomEventType())
 					},
 				),
 				Entry("multiple errors",
@@ -557,7 +656,7 @@ var _ = Describe("oura", func() {
 				Entry("succeeds",
 					func(datum *oura.Subscription) {},
 				),
-				Entry("id",
+				Entry("id missing",
 					func(datum *oura.Subscription) {
 						datum.ID = nil
 					},
@@ -565,16 +664,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("id empty",
 					func(datum *oura.Subscription) {
-						datum.ID = pointer.FromString("")
+						datum.ID = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 				),
 				Entry("id valid",
 					func(datum *oura.Subscription) {
-						datum.ID = pointer.FromString(ouraTest.RandomID())
+						datum.ID = pointer.From(ouraTest.RandomID())
 					},
 				),
-				Entry("callback_url",
+				Entry("callback_url missing",
 					func(datum *oura.Subscription) {
 						datum.CallbackURL = nil
 					},
@@ -582,16 +681,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("callback_url empty",
 					func(datum *oura.Subscription) {
-						datum.CallbackURL = pointer.FromString("")
+						datum.CallbackURL = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/callback_url"),
 				),
 				Entry("callback_url valid",
 					func(datum *oura.Subscription) {
-						datum.CallbackURL = pointer.FromString(ouraTest.RandomCallbackURL())
+						datum.CallbackURL = pointer.From(ouraTest.RandomCallbackURL())
 					},
 				),
-				Entry("data_type",
+				Entry("data_type missing",
 					func(datum *oura.Subscription) {
 						datum.DataType = nil
 					},
@@ -599,16 +698,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("data_type invalid",
 					func(datum *oura.Subscription) {
-						datum.DataType = pointer.FromString("invalid")
+						datum.DataType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.DataTypes()), "/data_type"),
 				),
 				Entry("data_type valid",
 					func(datum *oura.Subscription) {
-						datum.DataType = pointer.FromString(ouraTest.RandomDataType())
+						datum.DataType = pointer.From(ouraTest.RandomDataType())
 					},
 				),
-				Entry("event_type",
+				Entry("event_type missing",
 					func(datum *oura.Subscription) {
 						datum.EventType = nil
 					},
@@ -616,16 +715,16 @@ var _ = Describe("oura", func() {
 				),
 				Entry("event_type invalid",
 					func(datum *oura.Subscription) {
-						datum.EventType = pointer.FromString("invalid")
+						datum.EventType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.EventTypes()), "/event_type"),
 				),
 				Entry("event_type valid",
 					func(datum *oura.Subscription) {
-						datum.EventType = pointer.FromString(ouraTest.RandomEventType())
+						datum.EventType = pointer.From(ouraTest.RandomEventType())
 					},
 				),
-				Entry("expiration_time",
+				Entry("expiration_time missing",
 					func(datum *oura.Subscription) {
 						datum.ExpirationTime = nil
 					},
@@ -633,13 +732,13 @@ var _ = Describe("oura", func() {
 				),
 				Entry("expiration_time zero",
 					func(datum *oura.Subscription) {
-						datum.ExpirationTime = pointer.FromString(time.Time{}.Format(oura.SubscriptionExpirationTimeFormat))
+						datum.ExpirationTime = pointer.From(time.Time{}.Format(oura.SubscriptionExpirationTimeFormat))
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/expiration_time"),
 				),
 				Entry("expiration_time valid",
 					func(datum *oura.Subscription) {
-						datum.ExpirationTime = pointer.FromString(test.RandomTime().Format(oura.SubscriptionExpirationTimeFormat))
+						datum.ExpirationTime = pointer.From(test.RandomTime().Format(oura.SubscriptionExpirationTimeFormat))
 					},
 				),
 				Entry("multiple errors",
@@ -882,7 +981,7 @@ var _ = Describe("oura", func() {
 				Entry("succeeds",
 					func(datum *oura.PersonalInfo) {},
 				),
-				Entry("id",
+				Entry("id missing",
 					func(datum *oura.PersonalInfo) {
 						datum.ID = nil
 					},
@@ -890,14 +989,214 @@ var _ = Describe("oura", func() {
 				),
 				Entry("id empty",
 					func(datum *oura.PersonalInfo) {
-						datum.ID = pointer.FromString("")
+						datum.ID = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id"),
 				),
 				Entry("id valid",
 					func(datum *oura.PersonalInfo) {
-						datum.ID = pointer.FromString(ouraTest.RandomID())
+						datum.ID = pointer.From(ouraTest.RandomID())
 					},
+				),
+			)
+		})
+	})
+
+	Context("Pagination", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *oura.Pagination)) {
+				datum := ouraTest.RandomPagination(test.AllowOptional())
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromPagination(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromPagination(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *oura.Pagination) {},
+			),
+			Entry("empty",
+				func(datum *oura.Pagination) {
+					*datum = oura.Pagination{}
+				},
+			),
+			Entry("all",
+				func(datum *oura.Pagination) {
+					*datum = *ouraTest.RandomPagination()
+				},
+			),
+		)
+
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]any, expectedDatum *oura.Pagination), expectedErrors ...error) {
+					expectedDatum := ouraTest.RandomPagination(test.AllowOptional())
+					object := ouraTest.NewObjectFromPagination(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					result := &oura.Pagination{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
+					Expect(result).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]any, expectedDatum *oura.Pagination) {},
+				),
+				Entry("empty",
+					func(object map[string]any, expectedDatum *oura.Pagination) {
+						clear(object)
+						*expectedDatum = oura.Pagination{}
+					},
+				),
+				Entry("multiple errors",
+					func(object map[string]any, expectedDatum *oura.Pagination) {
+						object["next_token"] = true
+						expectedDatum.NextToken = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/next_token"),
+				),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *oura.Pagination), expectedErrors ...error) {
+					datum := ouraTest.RandomPagination(test.AllowOptional())
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *oura.Pagination) {},
+				),
+				Entry("next_token missing",
+					func(datum *oura.Pagination) {
+						datum.NextToken = nil
+					},
+				),
+				Entry("next_token empty",
+					func(datum *oura.Pagination) {
+						datum.NextToken = pointer.From("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/next_token"),
+				),
+				Entry("next_token valid",
+					func(datum *oura.Pagination) {
+						datum.NextToken = pointer.From(ouraTest.RandomNextToken())
+					},
+				),
+			)
+		})
+
+		Context("HasNext", func() {
+			It("returns false if the next token is nil", func() {
+				datum := &oura.Pagination{}
+				Expect(datum.HasNext()).To(BeFalse())
+			})
+
+			It("returns true if the next token is not nil", func() {
+				datum := &oura.Pagination{NextToken: pointer.From(ouraTest.RandomNextToken())}
+				Expect(datum.HasNext()).To(BeTrue())
+			})
+		})
+	})
+
+	Context("DataResponse", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *oura.DataResponse)) {
+				datum := ouraTest.RandomDataResponse(test.AllowOptional())
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromDataResponse(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromDataResponse(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *oura.DataResponse) {},
+			),
+			Entry("empty",
+				func(datum *oura.DataResponse) {
+					*datum = oura.DataResponse{}
+				},
+			),
+			Entry("all",
+				func(datum *oura.DataResponse) {
+					*datum = *ouraTest.RandomDataResponse()
+				},
+			),
+		)
+
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]any, expectedDatum *oura.DataResponse), expectedErrors ...error) {
+					expectedDatum := ouraTest.RandomDataResponse(test.AllowOptional())
+					object := ouraTest.NewObjectFromDataResponse(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					result := &oura.DataResponse{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
+					Expect(result).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]any, expectedDatum *oura.DataResponse) {},
+				),
+				Entry("empty",
+					func(object map[string]any, expectedDatum *oura.DataResponse) {
+						clear(object)
+						*expectedDatum = oura.DataResponse{}
+					},
+				),
+				Entry("multiple errors",
+					func(object map[string]any, expectedDatum *oura.DataResponse) {
+						object["data"] = true
+						object["next_token"] = true
+						expectedDatum.Data = nil
+						expectedDatum.NextToken = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/data"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/next_token"),
+				),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *oura.DataResponse), expectedErrors ...error) {
+					datum := ouraTest.RandomDataResponse(test.AllowOptional())
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *oura.DataResponse) {},
+				),
+				Entry("data missing",
+					func(datum *oura.DataResponse) {
+						datum.Data = nil
+					},
+				),
+				Entry("data empty",
+					func(datum *oura.DataResponse) {
+						datum.Data = []any{}
+					},
+				),
+				Entry("data valid",
+					func(datum *oura.DataResponse) {
+						datum.Data = []any{ouraTest.RandomDatum()}
+					},
+				),
+				Entry("next_token missing",
+					func(datum *oura.DataResponse) {
+						datum.NextToken = nil
+					},
+				),
+				Entry("next_token empty",
+					func(datum *oura.DataResponse) {
+						datum.NextToken = pointer.From("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/next_token"),
+				),
+				Entry("next_token valid",
+					func(datum *oura.DataResponse) {
+						datum.NextToken = pointer.From(ouraTest.RandomNextToken())
+					},
+				),
+				Entry("multiple errors",
+					func(datum *oura.DataResponse) {
+						datum.NextToken = pointer.From("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/next_token"),
 				),
 			)
 		})
@@ -929,7 +1228,7 @@ var _ = Describe("oura", func() {
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("is invalid", "invalid", structureValidator.ErrorValueStringNotOneOf("invalid", oura.DataTypes())),
 			Entry("is DataTypeDailyActivity", oura.DataTypeDailyActivity),
-			Entry("is DataTypeDailyCardiovascularAge", oura.DataTypeDailyCardiovascularAge),
+			Entry("is DataTypeDailyCyclePhases", oura.DataTypeDailyCyclePhases),
 			Entry("is DataTypeDailyReadiness", oura.DataTypeDailyReadiness),
 			Entry("is DataTypeDailyResilience", oura.DataTypeDailyResilience),
 			Entry("is DataTypeDailySleep", oura.DataTypeDailySleep),
@@ -942,7 +1241,6 @@ var _ = Describe("oura", func() {
 			Entry("is DataTypeSession", oura.DataTypeSession),
 			Entry("is DataTypeSleep", oura.DataTypeSleep),
 			Entry("is DataTypeSleepTime", oura.DataTypeSleepTime),
-			Entry("is DataTypeVO2Max", oura.DataTypeVO2Max),
 			Entry("is DataTypeWorkout", oura.DataTypeWorkout),
 		)
 	})

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
@@ -27,6 +28,7 @@ const (
 type (
 	ProviderSessionClient = providerSession.Client
 	DataSourceClient      = dataSource.Client
+	DataRawClient         = dataRaw.Client
 	OuraClient            = oura.Client
 )
 
@@ -34,6 +36,7 @@ type Dependencies struct {
 	workBase.Dependencies
 	ProviderSessionClient
 	DataSourceClient
+	DataRawClient
 	OuraClient
 }
 
@@ -46,6 +49,9 @@ func (d Dependencies) Validate() error {
 	}
 	if d.DataSourceClient == nil {
 		return errors.New("data source client is missing")
+	}
+	if d.DataRawClient == nil {
+		return errors.New("data raw client is missing")
 	}
 	if d.OuraClient == nil {
 		return errors.New("oura client is missing")
@@ -66,23 +72,22 @@ func NewWorkCreate(providerSessionID string, timeRange times.TimeRange) (*work.C
 		return nil, errors.New("provider session id is missing")
 	}
 
-	timeRange = timeRange.Truncated(oura.TimeRangeTruncatedDuration)
-
-	workMetadata := &Metadata{}
-	workMetadata.ProviderSessionID = &providerSessionID
-	workMetadata.TimeRange = &timeRange
-
-	encodedWorkMetadata, err := metadata.Encode(workMetadata)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode work metadata")
-	}
-
-	return &work.Create{
-		Type:              Type,
-		GroupID:           pointer.FromString(ouraWork.GroupIDFromProviderSessionID(providerSessionID)),
-		DeduplicationID:   pointer.FromString(fmt.Sprintf("%s:%s", providerSessionID, timeRange.String(oura.TimeRangeFormat))),
-		SerialID:          pointer.FromString(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)),
-		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
-		Metadata:          encodedWorkMetadata,
-	}, nil
+	timeRange = timeRange.InLocation(time.UTC).Date()
+	return metadata.WithMetadata(
+		&work.Create{
+			Type:              Type,
+			GroupID:           pointer.From(ouraWork.GroupIDFromProviderSessionID(providerSessionID)),
+			DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRange.String(oura.TimeRangeFormat))),
+			SerialID:          pointer.From(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)),
+			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
+		},
+		&Metadata{
+			ProviderSessionMetadata: ProviderSessionMetadata{
+				ProviderSessionID: pointer.From(providerSessionID),
+			},
+			TimeRangeMetadata: TimeRangeMetadata{
+				TimeRange: pointer.From(timeRange),
+			},
+		},
+	)
 }

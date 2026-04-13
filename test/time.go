@@ -33,11 +33,11 @@ func MustTime(value time.Time, err error) time.Time {
 }
 
 func RandomTimeBeforeNow() time.Time {
-	return RandomTimeBefore(time.Now())
+	return RandomTimeBefore(now)
 }
 
 func RandomTimeAfterNow() time.Time {
-	return RandomTimeAfter(time.Now())
+	return RandomTimeAfter(now)
 }
 
 func RandomTimeBefore(value time.Time) time.Time {
@@ -82,6 +82,8 @@ func RandomTimeMinimum() time.Time {
 
 func NewObjectFromTime(value time.Time, objectFormat ObjectFormat) interface{} {
 	switch objectFormat {
+	case ObjectFormatBSON:
+		return value
 	case ObjectFormatJSON:
 		return value.Format(time.RFC3339Nano)
 	case ObjectFormatConfig:

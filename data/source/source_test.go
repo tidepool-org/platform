@@ -8,6 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
@@ -1061,7 +1062,25 @@ var _ = Describe("Source", func() {
 					func(datum *dataSource.Update) {},
 					func(datum *dataSource.Update, expectedDatum *dataSource.Update) {},
 				),
+				Entry("normalizes error",
+					func(datum *dataSource.Update) { datum.Error = errorsTest.RandomSerializable() },
+					func(datum *dataSource.Update, expectedDatum *dataSource.Update) {},
+				),
 			)
+		})
+
+		Context("SetMetadata", func() {
+			var datum *dataSource.Update
+
+			BeforeEach(func() {
+				datum = &dataSource.Update{}
+			})
+
+			It("sets metadata", func() {
+				metadata := metadataTest.RandomMetadataMap()
+				datum.SetMetadata(metadata)
+				Expect(datum.Metadata).To(PointTo(Equal(metadata)))
+			})
 		})
 
 		Context("IsEmpty", func() {
@@ -2024,6 +2043,23 @@ var _ = Describe("Source", func() {
 					original.Error.Error = errors.Sanitize(unauthenticatedError)
 					Expect(sanitized).To(Equal(original))
 				})
+			})
+		})
+
+		Context("EnsureMetadata", func() {
+			It("ensures the metadata is not nil", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source.Metadata = nil
+				source.EnsureMetadata()
+				Expect(source.Metadata).ToNot(BeNil())
+			})
+
+			It("does not replace any existing metadata", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptional())
+				metadata := metadataTest.RandomMetadataMap()
+				source.Metadata = metadata
+				source.EnsureMetadata()
+				Expect(source.Metadata).To(Equal(metadata))
 			})
 		})
 

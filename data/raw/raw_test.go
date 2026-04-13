@@ -13,6 +13,7 @@ import (
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
@@ -28,7 +29,7 @@ var _ = Describe("Raw", func() {
 	})
 
 	It("DataSizeMaximum is expected", func() {
-		Expect(dataRaw.DataSizeMaximum).To(Equal(8388608))
+		Expect(dataRaw.SizeMaximum).To(Equal(209715200))
 	})
 
 	It("MetadataSizeMaximum is expected", func() {
@@ -294,6 +295,15 @@ var _ = Describe("Raw", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/archivableTime"),
 				),
 			)
+		})
+
+		Context("SetMetadata", func() {
+			It("sets metadata", func() {
+				datum := dataRawTest.RandomCreate(test.AllowOptional())
+				metadata := metadataTest.RandomMetadataMap()
+				datum.SetMetadata(metadata)
+				Expect(datum.Metadata).To(Equal(metadata))
+			})
 		})
 	})
 
@@ -791,6 +801,14 @@ var _ = Describe("Raw", func() {
 				It("returns true if archivableTime is not nil", func() {
 					datum.ArchivedTime = pointer.FromTime(test.RandomTime())
 					Expect(datum.IsArchived()).To(BeTrue())
+				})
+			})
+
+			Context("SetMetadata", func() {
+				It("sets metadata", func() {
+					metadata := metadataTest.RandomMetadataMap()
+					datum.SetMetadata(metadata)
+					Expect(datum.Metadata).To(Equal(metadata))
 				})
 			})
 		})

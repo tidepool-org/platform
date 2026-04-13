@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/ghttp"
 
-	"github.com/onsi/gomega/ghttp"
 	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/auth"
@@ -24,8 +26,11 @@ import (
 	ouraClient "github.com/tidepool-org/platform/oura/client"
 	ouraClientTest "github.com/tidepool-org/platform/oura/client/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/times"
+	timesTest "github.com/tidepool-org/platform/times/test"
 )
 
 var _ = Describe("client", func() {
@@ -44,7 +49,7 @@ var _ = Describe("client", func() {
 			mockController        *gomock.Controller
 			mockTokenSourceSource *oauthTest.MockTokenSourceSource
 			mockProvider          *ouraClientTest.MockProvider
-			server                *ghttp.Server
+			server                *Server
 			baseClient            *oauthClient.Client
 		)
 
@@ -55,7 +60,7 @@ var _ = Describe("client", func() {
 			mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 			mockTokenSourceSource = oauthTest.NewMockTokenSourceSource(mockController)
 			mockProvider = ouraClientTest.NewMockProvider(mockController)
-			server = ghttp.NewServer()
+			server = NewServer()
 			baseClient, err = oauthClient.NewWithErrorParser(&client.Config{Address: server.URL()}, mockTokenSourceSource, &ouraClient.ErrorResponseParser{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(baseClient).ToNot(BeNil())
@@ -114,11 +119,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/v2/webhook/subscription"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("GET", "/v2/webhook/subscription"),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -132,11 +137,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/v2/webhook/subscription"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedSubscriptions),
+							CombineHandlers(
+								VerifyRequest("GET", "/v2/webhook/subscription"),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedSubscriptions),
 							),
 						)
 
@@ -170,12 +175,12 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("POST", "/v2/webhook/subscription"),
-								ghttp.VerifyContentType("application/json; charset=utf-8"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyJSONRepresenting(createSubscription),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("POST", "/v2/webhook/subscription"),
+								VerifyContentType("application/json; charset=utf-8"),
+								VerifyHeader(clientHeaders),
+								VerifyJSONRepresenting(createSubscription),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -189,12 +194,12 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("POST", "/v2/webhook/subscription"),
-								ghttp.VerifyContentType("application/json; charset=utf-8"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyJSONRepresenting(createSubscription),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
+							CombineHandlers(
+								VerifyRequest("POST", "/v2/webhook/subscription"),
+								VerifyContentType("application/json; charset=utf-8"),
+								VerifyHeader(clientHeaders),
+								VerifyJSONRepresenting(createSubscription),
+								RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
 							),
 						)
 
@@ -238,12 +243,12 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyContentType("application/json; charset=utf-8"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyJSONRepresenting(updateSubscription),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyContentType("application/json; charset=utf-8"),
+								VerifyHeader(clientHeaders),
+								VerifyJSONRepresenting(updateSubscription),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -256,12 +261,12 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyContentType("application/json; charset=utf-8"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyJSONRepresenting(updateSubscription),
-								ghttp.RespondWith(http.StatusForbidden, nil),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyContentType("application/json; charset=utf-8"),
+								VerifyHeader(clientHeaders),
+								VerifyJSONRepresenting(updateSubscription),
+								RespondWith(http.StatusForbidden, nil),
 							),
 						)
 
@@ -275,12 +280,12 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyContentType("application/json; charset=utf-8"),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyJSONRepresenting(updateSubscription),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyContentType("application/json; charset=utf-8"),
+								VerifyHeader(clientHeaders),
+								VerifyJSONRepresenting(updateSubscription),
+								RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
 							),
 						)
 
@@ -307,11 +312,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -324,11 +329,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusForbidden, nil),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWith(http.StatusForbidden, nil),
 							),
 						)
 
@@ -342,11 +347,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
+							CombineHandlers(
+								VerifyRequest("PUT", fmt.Sprintf("/v2/webhook/subscription/renew/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
 							),
 						)
 
@@ -371,11 +376,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -386,11 +391,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusForbidden, nil),
+							CombineHandlers(
+								VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWith(http.StatusForbidden, nil),
 							),
 						)
 
@@ -402,11 +407,11 @@ var _ = Describe("client", func() {
 						mockProvider.EXPECT().ClientID().Return(clientID)
 						mockProvider.EXPECT().ClientSecret().Return(clientSecret)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
-								ghttp.VerifyHeader(clientHeaders),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
+							CombineHandlers(
+								VerifyRequest("DELETE", fmt.Sprintf("/v2/webhook/subscription/%s", id)),
+								VerifyHeader(clientHeaders),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedSubscription),
 							),
 						)
 
@@ -430,15 +435,14 @@ var _ = Describe("client", func() {
 					})
 
 					It("returns error if server returns non-http.StatusOK status code", func() {
-						expectedPersonalInfo := ouraTest.RandomPersonalInfo()
-						mockTokenSource.EXPECT().HTTPClient(gomock.Any(), gomock.Any()).Return(http.DefaultClient, nil)
-						mockTokenSource.EXPECT().UpdateToken(gomock.Any()).Return(false, nil)
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/v2/usercollection/personal_info"),
-								ghttp.VerifyHeader(http.Header{}),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWithJSONEncoded(http.StatusInternalServerError, expectedPersonalInfo),
+							CombineHandlers(
+								VerifyRequest("GET", "/v2/usercollection/personal_info"),
+								VerifyHeader(http.Header{}),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -449,14 +453,13 @@ var _ = Describe("client", func() {
 
 					It("returns successfully if server returns http.StatusOK status code", func() {
 						expectedPersonalInfo := ouraTest.RandomPersonalInfo()
-						mockTokenSource.EXPECT().HTTPClient(gomock.Any(), gomock.Any()).Return(http.DefaultClient, nil)
-						mockTokenSource.EXPECT().UpdateToken(gomock.Any()).Return(false, nil)
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("GET", "/v2/usercollection/personal_info"),
-								// ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("Bearer %s", mockTokenSource.Token().AccessToken)),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWithJSONEncoded(http.StatusOK, expectedPersonalInfo),
+							CombineHandlers(
+								VerifyRequest("GET", "/v2/usercollection/personal_info"),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedPersonalInfo),
 							),
 						)
 
@@ -467,11 +470,156 @@ var _ = Describe("client", func() {
 				})
 
 				Context("GetData", func() {
-					// TODO: https://tidepool.atlassian.net/browse/BACK-4035
+					var dataType string
+					var timeRange *times.TimeRange
+					var pagination *oura.Pagination
+					var expectedQuery url.Values
+
+					BeforeEach(func() {
+						dataType = ouraTest.RandomDataType()
+						timeRange = timesTest.RandomTimeRange()
+						pagination = ouraTest.RandomPagination()
+						expectedQuery = url.Values{
+							"start_date": []string{timeRange.From.Format(time.DateOnly)},
+							"end_date":   []string{timeRange.To.Format(time.DateOnly)},
+							"next_token": []string{*pagination.NextToken},
+						}
+					})
+
+					It("returns error if data type is invalid", func() {
+						datum, err := clnt.GetData(ctx, "", timeRange, pagination, mockTokenSource)
+						Expect(err).To(MatchError("data type is invalid"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if time range is missing", func() {
+						datum, err := clnt.GetData(ctx, dataType, nil, pagination, mockTokenSource)
+						Expect(err).To(MatchError("time range is missing"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if time range is invalid", func() {
+						timeRange.From = pointer.From(time.Time{})
+						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+						Expect(err).To(MatchError("time range is invalid; value is empty"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if pagination is missing", func() {
+						datum, err := clnt.GetData(ctx, dataType, timeRange, nil, mockTokenSource)
+						Expect(err).To(MatchError("pagination is missing"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if pagination is invalid", func() {
+						pagination.NextToken = pointer.From("")
+						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+						Expect(err).To(MatchError("pagination is invalid; value is empty"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if token source is missing", func() {
+						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, nil)
+						Expect(err).To(MatchError("token source is missing"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if server returns non-http.StatusOK status code", func() {
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", dataType), expectedQuery.Encode()),
+								VerifyHeader(http.Header{}),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
+							),
+						)
+
+						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+						Expect(err).To(MatchError(ContainSubstring("unable to get data; unexpected response status code 500 from GET")))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns successfully if server returns http.StatusOK status code", func() {
+						expectedData := ouraTest.RandomDataResponse()
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", dataType), expectedQuery.Encode()),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedData),
+							),
+						)
+
+						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(datum).To(Equal(expectedData))
+					})
+
 				})
 
 				Context("GetDatum", func() {
-					// TODO: https://tidepool.atlassian.net/browse/BACK-4034
+					var dataType string
+					var dataID string
+
+					BeforeEach(func() {
+						dataType = ouraTest.RandomDataType()
+						dataID = ouraTest.RandomID()
+					})
+
+					It("returns error if data type is invalid", func() {
+						datum, err := clnt.GetDatum(ctx, "", dataID, mockTokenSource)
+						Expect(err).To(MatchError("data type is invalid"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if data id is invalid", func() {
+						datum, err := clnt.GetDatum(ctx, dataType, "", mockTokenSource)
+						Expect(err).To(MatchError("data id is invalid"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if token source is missing", func() {
+						datum, err := clnt.GetDatum(ctx, dataType, dataID, nil)
+						Expect(err).To(MatchError("token source is missing"))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns error if server returns non-http.StatusOK status code", func() {
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", dataType, dataID)),
+								VerifyHeader(http.Header{}),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
+							),
+						)
+
+						datum, err := clnt.GetDatum(ctx, dataType, dataID, mockTokenSource)
+						Expect(err).To(MatchError(ContainSubstring("unable to get datum; unexpected response status code 500 from GET")))
+						Expect(datum).To(BeNil())
+					})
+
+					It("returns successfully if server returns http.StatusOK status code", func() {
+						expectedDatum := ouraTest.RandomDatum()
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", dataType, dataID)),
+								VerifyBody(nil),
+								RespondWithJSONEncoded(http.StatusOK, expectedDatum),
+							),
+						)
+
+						datum, err := clnt.GetDatum(ctx, dataType, dataID, mockTokenSource)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(datum).To(Equal(expectedDatum))
+					})
 				})
 			})
 
@@ -490,11 +638,11 @@ var _ = Describe("client", func() {
 
 					It("returns error if server returns non-http.StatusOK status code", func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("POST", "/oauth/revoke"),
-								ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken)),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusInternalServerError, nil),
+							CombineHandlers(
+								VerifyRequest("POST", "/oauth/revoke"),
+								VerifyHeaderKV("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken)),
+								VerifyBody(nil),
+								RespondWith(http.StatusInternalServerError, nil),
 							),
 						)
 
@@ -503,11 +651,11 @@ var _ = Describe("client", func() {
 
 					It("returns successfully if server returns http.StatusOK status code", func() {
 						server.AppendHandlers(
-							ghttp.CombineHandlers(
-								ghttp.VerifyRequest("POST", "/oauth/revoke"),
-								ghttp.VerifyHeaderKV("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken)),
-								ghttp.VerifyBody(nil),
-								ghttp.RespondWith(http.StatusOK, nil),
+							CombineHandlers(
+								VerifyRequest("POST", "/oauth/revoke"),
+								VerifyHeaderKV("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken)),
+								VerifyBody(nil),
+								RespondWith(http.StatusOK, nil),
 							),
 						)
 

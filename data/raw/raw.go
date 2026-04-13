@@ -16,7 +16,8 @@ import (
 
 const (
 	FilterCreatedDateFormat = time.DateOnly
-	DataSizeMaximum         = 8 * 1024 * 1024 // Until create directly to S3 is supported
+	SizeMaximum             = 200 * 1024 * 1024
+	SizeStoredMaximum       = 10 * 1024 * 1024
 	MetadataSizeMaximum     = 4 * 1024
 	MediaTypeDefault        = "application/octet-stream"
 )
@@ -56,6 +57,7 @@ func (f *Filter) CreatedTime() *time.Time {
 type Create struct {
 	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	DigestMD5      *string        `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
+	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"`
 	MediaType      *string        `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
 	ArchivableTime *time.Time     `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 }
@@ -65,6 +67,7 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 		c.Metadata = *ptr
 	}
 	c.DigestMD5 = parser.String("digestMD5")
+	c.DigestSHA256 = parser.String("digestSHA256")
 	c.MediaType = parser.String("mediaType")
 	c.ArchivableTime = parser.Time("archivableTime", time.RFC3339Nano)
 }
@@ -72,18 +75,25 @@ func (c *Create) Parse(parser structure.ObjectParser) {
 func (c *Create) Validate(validator structure.Validator) {
 	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 	validator.String("digestMD5", c.DigestMD5).Using(net.DigestMD5Validator)
+	validator.String("digestSHA256", c.DigestSHA256).Using(net.DigestSHA256Validator)
 	validator.String("mediaType", c.MediaType).Using(net.MediaTypeValidator)
 	validator.Time("archivableTime", c.ArchivableTime).NotZero()
 }
 
+func (c *Create) SetMetadata(metadata map[string]any) {
+	c.Metadata = metadata
+}
+
 type Content struct {
-	DigestMD5  string        `json:"digestMD5" bson:"digestMD5"`
-	MediaType  string        `json:"mediaType" bson:"mediaType"`
-	ReadCloser io.ReadCloser `json:"-" bson:"-"`
+	DigestMD5    string        `json:"digestMD5" bson:"digestMD5"`
+	DigestSHA256 *string       `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
+	MediaType    string        `json:"mediaType" bson:"mediaType"`
+	ReadCloser   io.ReadCloser `json:"-" bson:"-"`
 }
 
 func (c *Content) Validate(validator structure.Validator) {
 	validator.String("digestMD5", &c.DigestMD5).Using(net.DigestMD5Validator)
+	validator.String("digestSHA256", c.DigestSHA256).Using(net.DigestSHA256Validator)
 	validator.String("mediaType", &c.MediaType).Using(net.MediaTypeValidator)
 	if c.ReadCloser == nil {
 		validator.WithReference("readCloser").ReportError(structureValidator.ErrorValueNotExists())
@@ -121,6 +131,7 @@ type Raw struct {
 	DataSetID      string         `json:"dataSetId" bson:"dataSetId"`
 	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	DigestMD5      string         `json:"digestMD5" bson:"digestMD5"`
+	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
 	MediaType      string         `json:"mediaType" bson:"mediaType"`
 	Size           int            `json:"size" bson:"size"`
 	ProcessedTime  *time.Time     `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
@@ -147,6 +158,7 @@ func (r *Raw) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("digestMD5"); ptr != nil {
 		r.DigestMD5 = *ptr
 	}
+	r.DigestSHA256 = parser.String("digestSHA256")
 	if ptr := parser.String("mediaType"); ptr != nil {
 		r.MediaType = *ptr
 	}
@@ -171,6 +183,7 @@ func (r *Raw) Validate(validator structure.Validator) {
 	validator.String("dataSetId", &r.DataSetID).Using(data.SetIDValidator)
 	validator.Object("metadata", &r.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 	validator.String("digestMD5", &r.DigestMD5).Using(net.DigestMD5Validator)
+	validator.String("digestSHA256", r.DigestSHA256).Using(net.DigestSHA256Validator)
 	validator.String("mediaType", &r.MediaType).Using(net.MediaTypeValidator)
 	validator.Int("size", &r.Size).GreaterThanOrEqualTo(0)
 	validator.Time("processedTime", r.ProcessedTime).After(r.CreatedTime).BeforeNow(time.Second)
@@ -191,6 +204,10 @@ func (r *Raw) IsArchivableAt(tm time.Time) bool {
 
 func (r *Raw) IsArchived() bool {
 	return r.ArchivedTime != nil
+}
+
+func (r *Raw) SetMetadata(metadata map[string]any) {
+	r.Metadata = metadata
 }
 
 func IsValidDataRawID(value string) bool {

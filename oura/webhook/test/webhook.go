@@ -9,16 +9,16 @@ import (
 )
 
 func RandomObjectID() string {
-	return test.RandomString()
+	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
 func RandomEvent(options ...test.Option) *ouraWebhook.Event {
 	return &ouraWebhook.Event{
-		EventTime: pointer.FromTime(test.RandomTime()),
-		EventType: pointer.FromString(test.RandomStringFromArray(oura.EventTypes())),
-		UserID:    pointer.FromString(ouraTest.RandomUserID()),
-		ObjectID:  pointer.FromString(RandomObjectID()),
-		DataType:  pointer.FromString(test.RandomStringFromArray(ouraWebhook.DataTypes())),
+		EventTime: pointer.From(test.RandomTime()),
+		EventType: pointer.From(test.RandomStringFromArray(oura.EventTypes())),
+		UserID:    pointer.From(ouraTest.RandomUserID()),
+		ObjectID:  pointer.From(RandomObjectID()),
+		DataType:  pointer.From(test.RandomStringFromArray(ouraWebhook.DataTypes())),
 	}
 }
 
@@ -27,11 +27,11 @@ func CloneEvent(datum *ouraWebhook.Event) *ouraWebhook.Event {
 		return nil
 	}
 	return &ouraWebhook.Event{
-		EventTime: pointer.CloneTime(datum.EventTime),
-		EventType: pointer.CloneString(datum.EventType),
-		UserID:    pointer.CloneString(datum.UserID),
-		ObjectID:  pointer.CloneString(datum.ObjectID),
-		DataType:  pointer.CloneString(datum.DataType),
+		EventTime: pointer.Clone(datum.EventTime),
+		EventType: pointer.Clone(datum.EventType),
+		UserID:    pointer.Clone(datum.UserID),
+		ObjectID:  pointer.Clone(datum.ObjectID),
+		DataType:  pointer.Clone(datum.DataType),
 	}
 }
 

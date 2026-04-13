@@ -15,8 +15,10 @@ const (
 	FailingRetryDurationJitter = 5 * time.Second
 )
 
+type Metadata = oauthWork.TokenMetadata
+
 type Processor struct {
-	*workBase.Processor[oauthWork.TokenMetadata]
+	*workBase.Processor[Metadata]
 	OuraClient
 }
 
@@ -32,7 +34,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor[oauthWork.TokenMetadata](dependencies.Dependencies, processResultBuilder)
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}

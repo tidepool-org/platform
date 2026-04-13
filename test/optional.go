@@ -42,20 +42,24 @@ func ConditionalPointer[T any](generator func() *T, condition bool) *T {
 	}
 }
 
+func IsConditionallyTrue(options ...Option) bool {
+	return !Options(options).AllowOptional() || RandomBool()
+}
+
 func RandomOptional[T any](generator func() T, options ...Option) *T {
-	return Conditional(generator, !Options(options).AllowOptional() || RandomBool())
+	return Conditional(generator, IsConditionallyTrue(options...))
 }
 
 func RandomOptionalWithOptions[T any](generator func(options ...Option) T, options ...Option) *T {
-	return Conditional(optionsAdapter(generator, options...), !Options(options).AllowOptional() || RandomBool())
+	return Conditional(optionsAdapter(generator, options...), IsConditionallyTrue(options...))
 }
 
 func RandomOptionalPointer[T any](generator func() *T, options ...Option) *T {
-	return ConditionalPointer(generator, !Options(options).AllowOptional() || RandomBool())
+	return ConditionalPointer(generator, IsConditionallyTrue(options...))
 }
 
 func RandomOptionalPointerWithOptions[T any](generator func(options ...Option) *T, options ...Option) *T {
-	return ConditionalPointer(optionsAdapter(generator, options...), !Options(options).AllowOptional() || RandomBool())
+	return ConditionalPointer(optionsAdapter(generator, options...), IsConditionallyTrue(options...))
 }
 
 func Constant[T any](value T) func() T {

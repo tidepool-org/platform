@@ -50,7 +50,7 @@ var _ = Describe("mixin", func() {
 				),
 				Entry("all",
 					func(datum *dataSourceWork.Metadata) {
-						datum.DataSourceID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+						datum.DataSourceID = pointer.From(dataSourceTest.RandomDataSourceID())
 					},
 				),
 			)
@@ -101,24 +101,24 @@ var _ = Describe("mixin", func() {
 					),
 					Entry("data source id empty",
 						func(datum *dataSourceWork.Metadata) {
-							datum.DataSourceID = pointer.FromString("")
+							datum.DataSourceID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSourceId"),
 					),
 					Entry("data source id invalid",
 						func(datum *dataSourceWork.Metadata) {
-							datum.DataSourceID = pointer.FromString("invalid")
+							datum.DataSourceID = pointer.From("invalid")
 						},
 						errorsTest.WithPointerSource(dataSource.ErrorValueStringAsIDNotValid("invalid"), "/dataSourceId"),
 					),
 					Entry("data source id valid",
 						func(datum *dataSourceWork.Metadata) {
-							datum.DataSourceID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+							datum.DataSourceID = pointer.From(dataSourceTest.RandomDataSourceID())
 						},
 					),
 					Entry("multiple errors",
 						func(datum *dataSourceWork.Metadata) {
-							datum.DataSourceID = pointer.FromString("")
+							datum.DataSourceID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSourceId"),
 					),
@@ -423,10 +423,6 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("UpdateDataSource", func() {
-				It("returns failed process result when data source update is nil", func() {
-					Expect(mixin.UpdateDataSource(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data source update is missing")))
-				})
-
 				It("returns failed process result when data source is missing", func() {
 					Expect(mixin.UpdateDataSource(&dataSource.Update{})).To(workTest.MatchFailedProcessResultError(MatchError("data source is missing")))
 				})
@@ -440,7 +436,7 @@ var _ = Describe("mixin", func() {
 						testString := test.RandomString()
 						dataSrc = randomDataSourceWithMockMetadata()
 						Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
-						mixin.DataSourceMetadata().Mock = pointer.FromString(testString)
+						mixin.DataSourceMetadata().Mock = pointer.From(testString)
 						dataSrcUpdate = dataSourceTest.RandomUpdate(test.AllowOptional())
 						dataSrcUpdate.Metadata = nil
 						expectedDataSrcUpdate = dataSourceTest.CloneUpdate(dataSrcUpdate)
@@ -481,7 +477,7 @@ var _ = Describe("mixin", func() {
 					testString := test.RandomString()
 					dataSrc := randomDataSourceWithMockMetadata()
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
-					mixin.DataSourceMetadata().Mock = pointer.FromString(testString)
+					mixin.DataSourceMetadata().Mock = pointer.From(testString)
 					expectedDataSrcUpdate := &dataSource.Update{}
 					expectedDataSrcUpdate.Metadata = &map[string]any{"mock": testString}
 					updatedDataSrc := randomDataSourceWithMockMetadata()
@@ -520,20 +516,20 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failing process result when the client returns an error", func() {
-					workMetadata.DataSourceID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+					workMetadata.DataSourceID = pointer.From(dataSourceTest.RandomDataSourceID())
 					testErr := errorsTest.RandomError()
 					mockDataSourceClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataSourceID).Return(nil, testErr)
 					Expect(mixin.FetchDataSourceFromWorkMetadata()).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to get data source").Error())))
 				})
 
 				It("returns failed process result when the data source is nil", func() {
-					workMetadata.DataSourceID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+					workMetadata.DataSourceID = pointer.From(dataSourceTest.RandomDataSourceID())
 					mockDataSourceClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataSourceID).Return(nil, nil)
 					Expect(mixin.FetchDataSourceFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("data source is missing")))
 				})
 
 				It("sets the data source and returns nil on success", func() {
-					workMetadata.DataSourceID = pointer.FromString(dataSourceTest.RandomDataSourceID())
+					workMetadata.DataSourceID = pointer.From(dataSourceTest.RandomDataSourceID())
 					dataSrc := randomDataSourceWithMockMetadata()
 					mockDataSourceClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataSourceID).Return(dataSrc, nil)
 					Expect(mixin.FetchDataSourceFromWorkMetadata()).To(BeNil())

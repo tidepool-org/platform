@@ -408,12 +408,40 @@ var _ = Describe("Metadata", func() {
 			Expect(encodedMetadata).To(Equal(expectedMetadata))
 		})
 	})
+
+	Context("WithMetadata", func() {
+		var expectedSetter *mockSetter
+
+		BeforeEach(func() {
+			expectedSetter = &mockSetter{}
+		})
+
+		It("returns an error if the object cannot be encoded", func() {
+			setter, err := metadata.WithMetadata(expectedSetter, &object{Zulu: func() {}})
+			Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
+			Expect(setter).To(Equal(expectedSetter))
+			Expect(setter.Metadata).To(BeNil())
+		})
+
+		It("returns successfully with encoded metadata", func() {
+			encodableObject := randomObject()
+
+			expectedMetadata, err := metadata.Encode(encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(expectedMetadata).ToNot(BeNil())
+
+			setter, err := metadata.WithMetadata(expectedSetter, encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(setter).To(Equal(expectedSetter))
+			Expect(setter.Metadata).To(Equal(expectedMetadata))
+		})
+	})
 })
 
 type object struct {
 	Alpha *string `json:"alpha,omitempty" bson:"alpha,omitempty"`
 	Bravo *bravo  `json:"bravo,omitempty" bson:"bravo,omitempty"`
-	Zulu  any     `json:"any,omitempty" bson:"any,omitempty"` // Used to test encoding errors
+	Zulu  any     `json:"zulu,omitempty" bson:"zulu,omitempty"` // Used to test encoding errors
 }
 
 func (o *object) Parse(parser structure.ObjectParser) {
@@ -468,4 +496,12 @@ func bravoToMetadata(bravo *bravo) map[string]any {
 		metadata["charlie"] = *bravo.Charlie
 	}
 	return metadata
+}
+
+type mockSetter struct {
+	Metadata map[string]any
+}
+
+func (m *mockSetter) SetMetadata(metadata map[string]any) {
+	m.Metadata = metadata
 }

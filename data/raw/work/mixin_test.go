@@ -12,6 +12,7 @@ import (
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	dataRawWork "github.com/tidepool-org/platform/data/raw/work"
 	dataRawWorkTest "github.com/tidepool-org/platform/data/raw/work/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -20,6 +21,7 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	userTest "github.com/tidepool-org/platform/user/test"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
@@ -49,7 +51,7 @@ var _ = Describe("mixin", func() {
 				),
 				Entry("all",
 					func(datum *dataRawWork.Metadata) {
-						datum.DataRawID = pointer.FromString(dataRawTest.RandomDataRawID())
+						datum.DataRawID = pointer.From(dataRawTest.RandomDataRawID())
 					},
 				),
 			)
@@ -100,24 +102,24 @@ var _ = Describe("mixin", func() {
 					),
 					Entry("data raw id empty",
 						func(datum *dataRawWork.Metadata) {
-							datum.DataRawID = pointer.FromString("")
+							datum.DataRawID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataRawId"),
 					),
 					Entry("data raw id invalid",
 						func(datum *dataRawWork.Metadata) {
-							datum.DataRawID = pointer.FromString("invalid")
+							datum.DataRawID = pointer.From("invalid")
 						},
 						errorsTest.WithPointerSource(dataRaw.ErrorValueStringAsDataRawIDNotValid("invalid"), "/dataRawId"),
 					),
 					Entry("data raw id valid",
 						func(datum *dataRawWork.Metadata) {
-							datum.DataRawID = pointer.FromString(dataRawTest.RandomDataRawID())
+							datum.DataRawID = pointer.From(dataRawTest.RandomDataRawID())
 						},
 					),
 					Entry("multiple errors",
 						func(datum *dataRawWork.Metadata) {
-							datum.DataRawID = pointer.FromString("")
+							datum.DataRawID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataRawId"),
 					),
@@ -395,11 +397,53 @@ var _ = Describe("mixin", func() {
 				})
 			})
 
-			Context("UpdateDataRaw", func() {
-				It("returns failed process result when data raw update is nil", func() {
-					Expect(mixin.UpdateDataRaw(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data raw update is missing")))
+			Context("CreateDataRaw", func() {
+				var userID string
+				var dataSetID string
+				var dataRawCreate *dataRaw.Create
+				var reader *test.Reader
+
+				BeforeEach(func() {
+					userID = userTest.RandomUserID()
+					dataSetID = dataTest.RandomDataSetID()
+					dataRawCreate = dataRawTest.RandomCreate(test.AllowOptional())
+					reader = test.NewReader()
 				})
 
+				It("returns failed process result when data raw already exists", func() {
+					Expect(mixin.SetDataRaw(randomDataRawWithMockMetadata())).To(BeNil())
+					Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailedProcessResultError(MatchError("data raw already exists")))
+				})
+
+				Context("with an existing data raw", func() {
+					It("returns failing process result when the client returns an error", func() {
+						testErr := errorsTest.RandomError()
+						mockDataRawClient.EXPECT().Create(gomock.Not(gomock.Nil()), userID, dataSetID, dataRawCreate, reader).Return(nil, testErr)
+						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to create data raw").Error())))
+					})
+
+					It("returns failed process result when the client returns a nil data raw", func() {
+						mockDataRawClient.EXPECT().Create(gomock.Not(gomock.Nil()), userID, dataSetID, dataRawCreate, reader).Return(nil, nil)
+						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
+					})
+
+					It("returns failed process result when the client returns a data raw with undecodable metadata", func() {
+						createdDataRaw := randomDataRawWithMockMetadata()
+						createdDataRaw.Metadata["invalid"] = true
+						mockDataRawClient.EXPECT().Create(gomock.Not(gomock.Nil()), userID, dataSetID, dataRawCreate, reader).Return(createdDataRaw, nil)
+						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailingProcessResultError(MatchError(ContainSubstring("unable to decode data raw metadata"))))
+					})
+
+					It("updates the data raw and returns nil on success", func() {
+						createdDataRaw := randomDataRawWithMockMetadata()
+						mockDataRawClient.EXPECT().Create(gomock.Not(gomock.Nil()), userID, dataSetID, dataRawCreate, reader).Return(createdDataRaw, nil)
+						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(BeNil())
+						Expect(mixin.DataRaw()).To(Equal(createdDataRaw))
+					})
+				})
+			})
+
+			Context("UpdateDataRaw", func() {
 				It("returns failed process result when data raw is missing", func() {
 					Expect(mixin.UpdateDataRaw(&dataRaw.Update{})).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
 				})
@@ -413,7 +457,7 @@ var _ = Describe("mixin", func() {
 						testString := test.RandomString()
 						dataRw = randomDataRawWithMockMetadata()
 						Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
-						mixin.DataRawMetadata().Mock = pointer.FromString(testString)
+						mixin.DataRawMetadata().Mock = pointer.From(testString)
 						dataRwUpdate = dataRawTest.RandomUpdate(test.AllowOptional())
 						dataRwUpdate.Metadata = nil
 						expectedDataRwUpdate = dataRawTest.CloneUpdate(dataRwUpdate)
@@ -454,7 +498,7 @@ var _ = Describe("mixin", func() {
 					testString := test.RandomString()
 					dataRw := randomDataRawWithMockMetadata()
 					Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
-					mixin.DataRawMetadata().Mock = pointer.FromString(testString)
+					mixin.DataRawMetadata().Mock = pointer.From(testString)
 					expectedDataRwUpdate := &dataRaw.Update{}
 					expectedDataRwUpdate.Metadata = &map[string]any{"mock": testString}
 					updatedDataRw := randomDataRawWithMockMetadata()
@@ -605,7 +649,7 @@ var _ = Describe("mixin", func() {
 
 					It("logs a warning when the data raw content read closer returns an error", func() {
 						testErr := errorsTest.RandomError()
-						dataRwContent.ReadCloser = test.ErrorCloser(dataRwContent.ReadCloser, testErr)
+						dataRwContent.ReadCloser = test.ErrorReadCloser(dataRwContent.ReadCloser, testErr)
 						Expect(mixin.CloseDataRawContent()).To(BeNil())
 						mockLogger.AssertWarn("unable to close data raw content", log.Fields{"error": errors.NewSerializable(testErr)})
 					})
@@ -621,7 +665,7 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
 					Expect(mixin.HasWorkMetadata()).To(BeFalse())
 				})
 
@@ -635,7 +679,7 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
 					Expect(mixin.FetchDataRawFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
@@ -645,20 +689,20 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failing process result when the client returns an error", func() {
-					workMetadata.DataRawID = pointer.FromString(dataRawTest.RandomDataRawID())
+					workMetadata.DataRawID = pointer.From(dataRawTest.RandomDataRawID())
 					testErr := errorsTest.RandomError()
 					mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataRawID, nil).Return(nil, testErr)
 					Expect(mixin.FetchDataRawFromWorkMetadata()).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to get data raw").Error())))
 				})
 
 				It("returns failed process result when the data raw is nil", func() {
-					workMetadata.DataRawID = pointer.FromString(dataRawTest.RandomDataRawID())
+					workMetadata.DataRawID = pointer.From(dataRawTest.RandomDataRawID())
 					mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataRawID, nil).Return(nil, nil)
 					Expect(mixin.FetchDataRawFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
 				})
 
 				It("sets the data raw and returns nil on success", func() {
-					workMetadata.DataRawID = pointer.FromString(dataRawTest.RandomDataRawID())
+					workMetadata.DataRawID = pointer.From(dataRawTest.RandomDataRawID())
 					dataRw := randomDataRawWithMockMetadata()
 					mockDataRawClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.DataRawID, nil).Return(dataRw, nil)
 					Expect(mixin.FetchDataRawFromWorkMetadata()).To(BeNil())
@@ -675,7 +719,7 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
 					dataRw := randomDataRawWithMockMetadata()
 					Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataRaw()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))

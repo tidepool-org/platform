@@ -107,4 +107,21 @@ var _ = Describe("v1", func() {
 			})
 		})
 	})
+
+	Context("Routes", func() {
+		It("returns the expected routes", func() {
+			Expect(ouraServiceApiV1.Routes()).To(ConsistOf(
+				MatchFields(IgnoreExtras, Fields{
+					"Method":  Equal("GET"),
+					"Path":    Equal(oura.PartnerPathPrefix + ouraWebhook.EventPath),
+					"Handler": Not(BeNil()),
+				}),
+				MatchFields(IgnoreExtras, Fields{
+					"Method":  Equal("POST"),
+					"Path":    Equal(oura.PartnerPathPrefix + ouraWebhook.EventPath),
+					"Handler": Not(BeNil()),
+				}),
+			))
+		})
+	})
 })

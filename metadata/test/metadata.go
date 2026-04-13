@@ -16,12 +16,27 @@ func RandomMetadataMap() map[string]any {
 	return datum
 }
 
+func RandomOptionalMetadataMap(options ...test.Option) map[string]any {
+	if test.IsConditionallyTrue(options...) {
+		return RandomMetadataMap()
+	} else {
+		return nil
+	}
+}
+
 func CloneMetadataMap(datum map[string]any) map[string]any {
 	return maps.Clone(datum)
 }
 
 func NewObjectFromMetadataMap(datum map[string]any, objectFormat test.ObjectFormat) map[string]any {
 	return maps.Clone(datum)
+}
+
+func PointerFromMetadataMap(datum map[string]any) *map[string]any {
+	if datum == nil {
+		return nil
+	}
+	return &datum
 }
 
 func RandomMetadataMapPointer() *map[string]any {

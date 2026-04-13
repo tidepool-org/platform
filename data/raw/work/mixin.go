@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"io"
 
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	"github.com/tidepool-org/platform/errors"
@@ -36,6 +37,7 @@ type Mixin interface {
 	SetDataRaw(dataRaw *dataRaw.Raw) *work.ProcessResult
 
 	FetchDataRaw(dataRawID string) *work.ProcessResult
+	CreateDataRaw(userID string, dataSetID string, dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult
 	UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessResult
 
 	HasDataRawContent() bool
@@ -177,18 +179,34 @@ func (m *mixin[M]) FetchDataRaw(dataRawID string) *work.ProcessResult {
 	}
 }
 
-func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessResult {
-	if dataRawUpdate == nil {
-		return m.Failed(errors.New("data raw update is missing"))
+func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult {
+	if m.dataRaw != nil {
+		return m.Failed(errors.New("data raw already exists"))
 	}
+
+	if dataRw, err := m.dataRawClient.Create(context.WithoutCancel(m.Context()), userID, dataSetID, dataRawCreate, reader); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to create data raw"))
+	} else if dataRw == nil {
+		return m.Failed(errors.New("data raw is missing"))
+	} else if result := m.SetDataRaw(dataRw); result != nil {
+		return result
+	}
+
+	log.LoggerFromContext(m.Context()).Debug("created data raw")
+	return nil
+}
+
+func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessResult {
 	if m.dataRaw == nil {
 		return m.Failed(errors.New("data raw is missing"))
 	}
 
-	if dataRwMetadata, err := metadata.Encode(m.dataRawMetadata); err != nil {
-		return m.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
-	} else if dataRwMetadata != nil || m.dataRaw.Metadata != nil {
-		dataRawUpdate.Metadata = &dataRwMetadata
+	if dataRawUpdate != nil {
+		if dataRwMetadata, err := metadata.Encode(m.dataRawMetadata); err != nil {
+			return m.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		} else if dataRwMetadata != nil || m.dataRaw.Metadata != nil {
+			dataRawUpdate.Metadata = &dataRwMetadata
+		}
 	}
 
 	if dataRw, err := m.dataRawClient.Update(context.WithoutCancel(m.Context()), m.dataRaw.ID, nil, dataRawUpdate); err != nil {

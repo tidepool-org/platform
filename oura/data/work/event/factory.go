@@ -5,6 +5,8 @@ import (
 	"time"
 
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
+	"github.com/tidepool-org/platform/crypto"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
@@ -27,6 +29,7 @@ const (
 type (
 	ProviderSessionClient = providerSession.Client
 	DataSourceClient      = dataSource.Client
+	DataRawClient         = dataRaw.Client
 	OuraClient            = oura.Client
 )
 
@@ -34,6 +37,7 @@ type Dependencies struct {
 	workBase.Dependencies
 	ProviderSessionClient
 	DataSourceClient
+	DataRawClient
 	OuraClient
 }
 
@@ -46,6 +50,9 @@ func (d Dependencies) Validate() error {
 	}
 	if d.DataSourceClient == nil {
 		return errors.New("data source client is missing")
+	}
+	if d.DataRawClient == nil {
+		return errors.New("data raw client is missing")
 	}
 	if d.OuraClient == nil {
 		return errors.New("oura client is missing")
@@ -69,21 +76,21 @@ func NewWorkCreate(providerSessionID string, event *ouraWebhook.Event) (*work.Cr
 		return nil, errors.New("event is missing")
 	}
 
-	workMetadata := &Metadata{}
-	workMetadata.ProviderSessionID = &providerSessionID
-	workMetadata.Event = event
-
-	encodedWorkMetadata, err := metadata.Encode(workMetadata)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode work metadata")
-	}
-
-	return &work.Create{
-		Type:              Type,
-		GroupID:           pointer.FromString(ouraWork.GroupIDFromProviderSessionID(providerSessionID)),
-		DeduplicationID:   pointer.FromString(fmt.Sprintf("%s:%s", providerSessionID, event.String())),
-		SerialID:          pointer.FromString(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)),
-		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
-		Metadata:          encodedWorkMetadata,
-	}, nil
+	return metadata.WithMetadata(
+		&work.Create{
+			Type:              Type,
+			GroupID:           pointer.From(ouraWork.GroupIDFromProviderSessionID(providerSessionID)),
+			DeduplicationID:   pointer.From(crypto.HexEncodedSHA256Hash(fmt.Sprintf("%s:%s", providerSessionID, event.String()))),
+			SerialID:          pointer.From(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)),
+			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
+		},
+		&Metadata{
+			ProviderSessionMetadata: ProviderSessionMetadata{
+				ProviderSessionID: pointer.From(providerSessionID),
+			},
+			EventMetadata: EventMetadata{
+				Event: event,
+			},
+		},
+	)
 }

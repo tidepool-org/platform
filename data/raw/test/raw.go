@@ -76,6 +76,7 @@ func RandomCreate(options ...test.Option) *dataRaw.Create {
 	return &dataRaw.Create{
 		Metadata:       metadataTest.RandomMetadataMap(),
 		DigestMD5:      test.RandomOptional(netTest.RandomDigestMD5, options...),
+		DigestSHA256:   test.RandomOptional(netTest.RandomDigestSHA256, options...),
 		MediaType:      test.RandomOptional(netTest.RandomMediaType, options...),
 		ArchivableTime: test.RandomOptional(test.RandomTimeBeforeNow, options...),
 	}
@@ -88,6 +89,7 @@ func CloneCreate(datum *dataRaw.Create) *dataRaw.Create {
 	return &dataRaw.Create{
 		Metadata:       metadataTest.CloneMetadataMap(datum.Metadata),
 		DigestMD5:      pointer.CloneString(datum.DigestMD5),
+		DigestSHA256:   pointer.CloneString(datum.DigestSHA256),
 		MediaType:      pointer.CloneString(datum.MediaType),
 		ArchivableTime: pointer.CloneTime(datum.ArchivableTime),
 	}
@@ -104,6 +106,9 @@ func NewObjectFromCreate(datum *dataRaw.Create, objectFormat test.ObjectFormat) 
 	if datum.DigestMD5 != nil {
 		object["digestMD5"] = test.NewObjectFromString(*datum.DigestMD5, objectFormat)
 	}
+	if datum.DigestSHA256 != nil {
+		object["digestSHA256"] = test.NewObjectFromString(*datum.DigestSHA256, objectFormat)
+	}
 	if datum.MediaType != nil {
 		object["mediaType"] = test.NewObjectFromString(*datum.MediaType, objectFormat)
 	}
@@ -115,9 +120,10 @@ func NewObjectFromCreate(datum *dataRaw.Create, objectFormat test.ObjectFormat) 
 
 func RandomContent(options ...test.Option) *dataRaw.Content {
 	return &dataRaw.Content{
-		DigestMD5:  netTest.RandomDigestMD5(),
-		MediaType:  netTest.RandomMediaType(),
-		ReadCloser: test.RandomReadCloser(),
+		DigestMD5:    netTest.RandomDigestMD5(),
+		DigestSHA256: test.RandomOptional(netTest.RandomDigestSHA256, options...),
+		MediaType:    netTest.RandomMediaType(),
+		ReadCloser:   test.RandomReadCloser(),
 	}
 }
 
@@ -126,9 +132,10 @@ func CloneContent(datum *dataRaw.Content) *dataRaw.Content {
 		return nil
 	}
 	return &dataRaw.Content{
-		DigestMD5:  datum.DigestMD5,
-		MediaType:  datum.MediaType,
-		ReadCloser: datum.ReadCloser,
+		DigestMD5:    datum.DigestMD5,
+		DigestSHA256: pointer.Clone(datum.DigestSHA256),
+		MediaType:    datum.MediaType,
+		ReadCloser:   datum.ReadCloser,
 	}
 }
 
@@ -138,12 +145,15 @@ func NewObjectFromContent(datum *dataRaw.Content, objectFormat test.ObjectFormat
 	}
 	object := map[string]any{}
 	object["digestMD5"] = test.NewObjectFromString(datum.DigestMD5, objectFormat)
+	if datum.DigestSHA256 != nil {
+		object["digestSHA256"] = test.NewObjectFromString(*datum.DigestSHA256, objectFormat)
+	}
 	object["mediaType"] = test.NewObjectFromString(datum.MediaType, objectFormat)
 	return object
 }
 
 func RandomUpdate(options ...test.Option) *dataRaw.Update {
-	archived := !test.Options(options).AllowOptional() || test.RandomBool()
+	archived := test.IsConditionallyTrue(options...)
 	archivedTime := test.RandomTimeBeforeNow()
 	archivableTime := test.RandomTimeBefore(archivedTime)
 	processedTime := test.RandomTimeBefore(archivableTime)
@@ -194,7 +204,7 @@ func NewObjectFromUpdate(datum *dataRaw.Update, objectFormat test.ObjectFormat) 
 }
 
 func RandomRaw(options ...test.Option) *dataRaw.Raw {
-	archived := !test.Options(options).AllowOptional() || test.RandomBool()
+	archived := test.IsConditionallyTrue(options...)
 	modifiedTime := test.RandomTimeBeforeNow()
 	archivedTime := test.RandomTimeBefore(modifiedTime)
 	archivableTime := test.RandomTimeBefore(archivedTime)
@@ -207,6 +217,7 @@ func RandomRaw(options ...test.Option) *dataRaw.Raw {
 		DataSetID:      dataTest.RandomDataSetID(),
 		Metadata:       metadataTest.RandomMetadataMap(),
 		DigestMD5:      netTest.RandomDigestMD5(),
+		DigestSHA256:   test.RandomOptional(netTest.RandomDigestSHA256, options...),
 		MediaType:      netTest.RandomMediaType(),
 		Size:           test.RandomIntFromRange(0, 1024),
 		ProcessedTime:  test.RandomOptional(test.Constant(processedTime), options...),
@@ -228,6 +239,7 @@ func CloneRaw(datum *dataRaw.Raw) *dataRaw.Raw {
 		DataSetID:      datum.DataSetID,
 		Metadata:       metadataTest.CloneMetadataMap(datum.Metadata),
 		DigestMD5:      datum.DigestMD5,
+		DigestSHA256:   pointer.Clone(datum.DigestSHA256),
 		MediaType:      datum.MediaType,
 		Size:           datum.Size,
 		ProcessedTime:  pointer.CloneTime(datum.ProcessedTime),
@@ -251,6 +263,9 @@ func NewObjectFromRaw(datum *dataRaw.Raw, objectFormat test.ObjectFormat) map[st
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	object["digestMD5"] = test.NewObjectFromString(datum.DigestMD5, objectFormat)
+	if datum.DigestSHA256 != nil {
+		object["digestSHA256"] = test.NewObjectFromString(*datum.DigestSHA256, objectFormat)
+	}
 	object["mediaType"] = test.NewObjectFromString(datum.MediaType, objectFormat)
 	object["size"] = test.NewObjectFromInt(datum.Size, objectFormat)
 	if datum.ProcessedTime != nil {

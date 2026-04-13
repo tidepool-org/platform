@@ -30,7 +30,7 @@ var _ = Describe("factory", func() {
 	})
 
 	It("ProcessingTimeout is expected", func() {
-		Expect(ouraWebhookWorkSubscribe.ProcessingTimeout).To(Equal(5 * time.Minute))
+		Expect(ouraWebhookWorkSubscribe.ProcessingTimeout).To(Equal(15 * time.Minute))
 	})
 
 	Context("with dependencies", func() {
@@ -128,8 +128,8 @@ var _ = Describe("factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraWebhookWorkSubscribe.Type,
-				DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
-				ProcessingTimeout: 300,
+				DeduplicationID:   pointer.From(work.DeduplicationIDSingleton),
+				ProcessingTimeout: int(ouraWebhookWorkSubscribe.ProcessingTimeout.Seconds()),
 			}))
 		})
 	})

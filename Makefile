@@ -172,7 +172,7 @@ ifdef PLUGIN
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
 		go work edit -go=`sed -n 's/^go //p' go.mod` && \
-		go work edit -toolchain=`sed -n 's/^toolchain //p' go.mod` && \
+		go work edit -toolchain=`grep -q '^toolchain' go.mod && sed -n 's/^toolchain //p' go.mod || sed -n 's/^go /go/p' go.mod` && \
 		$(MAKE) plugin-visibility
 endif
 
@@ -274,7 +274,7 @@ test-ginkgo: ginkgo
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
-test-ginkgo-until-repeat: ginkgo
+test-ginkgo-repeat: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
@@ -443,14 +443,14 @@ phony:
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
     ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
-    ci-test-ginkgo-until-failure ci-test-ginkgo-watch ci-test-go clean clean-all \
-    clean-bin clean-cover clean-debug clean-generate clean-test clean-version \
-    CompileDaemon default docker docker-build docker-dump docker-login docker-push \
-    format format-write format-write-changed generate ginkgo go-generate \
-    go-mod-download go-mod-tidy goimports imports imports-write \
-    imports-write-changed init mockgen phony plugin-visibility \
-    plugin-visibility-private plugin-visibility-public plugins-visibility \
-    plugins-visibility-private plugins-visibility-public pre-commit service-build \
-    service-debug service-restart service-restart-all service-start test \
-    test-ginkgo test-ginkgo-until-failure test-ginkgo-watch test-go tmp \
-    version-write vet vet-ignore
+    ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
+    ci-test-go clean clean-all clean-bin clean-cover clean-debug clean-generate \
+    clean-test clean-version CompileDaemon default docker docker-build docker-dump \
+    docker-login docker-push format format-write format-write-changed generate \
+    ginkgo ginkgo-bootstrap ginkgo-generate go-generate go-mod-download go-mod-tidy \
+    goimports imports imports-write imports-write-changed init mockgen phony \
+    plugin-visibility plugin-visibility-private plugin-visibility-public \
+    plugins-visibility plugins-visibility-private plugins-visibility-public \
+    pre-commit service-build service-debug service-restart service-restart-all \
+    service-start test test-ginkgo test-ginkgo-repeat test-ginkgo-until-failure \
+    test-ginkgo-watch test-go tmp version-write vet vet-ignore

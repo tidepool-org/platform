@@ -12,6 +12,7 @@ import (
 	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/oura"
@@ -48,6 +49,7 @@ var _ = Describe("factory", func() {
 		var mockWorkClient *workTest.MockClient
 		var mockProviderSessionClient *providerSessionTest.MockClient
 		var mockDataSourceClient *dataSourceTest.MockClient
+		var mockDataRawClient *dataRawTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
 		var dependencies ouraDataWorkHistoric.Dependencies
 
@@ -56,6 +58,7 @@ var _ = Describe("factory", func() {
 			mockWorkClient = workTest.NewMockClient(mockController)
 			mockProviderSessionClient = providerSessionTest.NewMockClient(mockController)
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
+			mockDataRawClient = dataRawTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
 			dependencies = ouraDataWorkHistoric.Dependencies{
 				Dependencies: workBase.Dependencies{
@@ -63,6 +66,7 @@ var _ = Describe("factory", func() {
 				},
 				ProviderSessionClient: mockProviderSessionClient,
 				DataSourceClient:      mockDataSourceClient,
+				DataRawClient:         mockDataRawClient,
 				OuraClient:            mockOuraClient,
 			}
 		})
@@ -82,6 +86,11 @@ var _ = Describe("factory", func() {
 				It("returns an error if data source client is missing", func() {
 					dependencies.DataSourceClient = nil
 					Expect(dependencies.Validate()).To(MatchError("data source client is missing"))
+				})
+
+				It("returns an error if data raw client is missing", func() {
+					dependencies.DataRawClient = nil
+					Expect(dependencies.Validate()).To(MatchError("data raw client is missing"))
 				})
 
 				It("returns an error if oura client is missing", func() {
@@ -156,7 +165,7 @@ var _ = Describe("factory", func() {
 		BeforeEach(func() {
 			var err error
 			timeRange = *timesTest.RandomTimeRange(test.AllowOptional())
-			timeRangeTruncated = timeRange.Truncated(oura.TimeRangeTruncatedDuration)
+			timeRangeTruncated = timeRange.InLocation(time.UTC).Date()
 			encodedTimeRangeTruncated, err = metadata.Encode(&timeRangeTruncated)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(encodedTimeRangeTruncated).ToNot(BeNil())
@@ -174,9 +183,9 @@ var _ = Describe("factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraDataWorkHistoric.Type,
-				GroupID:           pointer.FromString(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
-				DeduplicationID:   pointer.FromString(fmt.Sprintf("%s:%s", providerSessionID, timeRangeTruncated.String(oura.TimeRangeFormat))),
-				SerialID:          pointer.FromString(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
+				GroupID:           pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
+				DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRangeTruncated.String(oura.TimeRangeFormat))),
+				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
 				ProcessingTimeout: 900,
 				Metadata: map[string]any{
 					providerSessionWork.MetadataKeyProviderSessionID: providerSessionID,

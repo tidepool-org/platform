@@ -141,21 +141,72 @@ func (c *Client) GetPersonalInfo(ctx context.Context, tokenSource oauth.TokenSou
 	// Possible response status codes (see below for details): 200 (PersonalInfo), 400, 401, 403, 429
 	url := c.client.ConstructURL("v2", "usercollection", "personal_info")
 	personalInfo := &oura.PersonalInfo{}
-	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, nil, personalInfo, tokenSource); err != nil {
+	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, nil, nil, personalInfo, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get personal info")
 	}
 
 	return personalInfo, nil
 }
 
-func (c *Client) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (*oura.Data, error) {
-	// TODO: https://tidepool.atlassian.net/browse/BACK-4035
-	return nil, nil
+func (c *Client) GetData(ctx context.Context, dataType string, timeRange *times.TimeRange, pagination *oura.Pagination, tokenSource oauth.TokenSource) (*oura.DataResponse, error) {
+	if !oura.IsValidDataType(dataType) {
+		return nil, errors.New("data type is invalid")
+	}
+	if timeRange == nil {
+		return nil, errors.New("time range is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(timeRange); err != nil {
+		return nil, errors.Wrap(err, "time range is invalid")
+	}
+	if pagination == nil {
+		return nil, errors.New("pagination is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
+		return nil, errors.Wrap(err, "pagination is invalid")
+	}
+	if tokenSource == nil {
+		return nil, errors.New("token source is missing")
+	}
+
+	parameters := map[string]string{}
+	if timeRange.From != nil {
+		parameters["start_date"] = timeRange.From.Format(time.DateOnly)
+	}
+	if timeRange.To != nil {
+		parameters["end_date"] = timeRange.To.Format(time.DateOnly)
+	}
+	if pagination.NextToken != nil {
+		parameters["next_token"] = *pagination.NextToken
+	}
+	mutators := []request.RequestMutator{request.NewParametersMutator(parameters)}
+
+	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
+	url := c.client.ConstructURL("v2", "usercollection", dataTypeToPath(dataType))
+	dataResponse := &oura.DataResponse{}
+	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, mutators, nil, dataResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get data")
+	}
+
+	return dataResponse, nil
 }
 
-func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, tokenSource oauth.TokenSource) (*oura.Datum, error) {
-	// TODO: https://tidepool.atlassian.net/browse/BACK-4034
-	return nil, nil
+func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, tokenSource oauth.TokenSource) (oura.Datum, error) {
+	if !oura.IsValidDataType(dataType) {
+		return nil, errors.New("data type is invalid")
+	}
+	if !oura.IsValidDataID(dataID) {
+		return nil, errors.New("data id is invalid")
+	}
+	if tokenSource == nil {
+		return nil, errors.New("token source is missing")
+	}
+
+	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
+	url := c.client.ConstructURL("v2", "usercollection", dataTypeToPath(dataType), dataID)
+	dataResponse := oura.Datum{}
+	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, nil, nil, &dataResponse, tokenSource); err != nil {
+		return nil, errors.Wrap(err, "unable to get datum")
+	}
+
+	return dataResponse, nil
 }
 
 func (c *Client) RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAuthToken) error {
@@ -172,9 +223,9 @@ func (c *Client) RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAuthTok
 	return nil
 }
 
-func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, requestBody any, responseBody any, tokenSource oauth.TokenSource) error {
+func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, tokenSource oauth.TokenSource) error {
 	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
-		return c.client.SendOAuthRequest(ctx, method, url, nil, requestBody, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
+		return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
 	})
 }
 
@@ -190,6 +241,16 @@ func (c *Client) sendBaseRequest(ctx context.Context, method string, url string,
 	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
 		return c.client.Client().RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, append(inspectors, prometheusCodePathResponseInspector), http.DefaultClient)
 	})
+}
+
+func dataTypeToPath(dataType string) string {
+	switch dataType {
+	// FUTURE:
+	// case oura.DataTypeVO2Max:
+	// 	return "vO2_max" // Capitalization inconsistency
+	default:
+		return dataType
+	}
 }
 
 const requestDurationMaximum = 30 * time.Second
@@ -209,7 +270,7 @@ var (
 		"/v2/usercollection/session/{document_id}",
 		"/v2/usercollection/sleep/{document_id}",
 		"/v2/usercollection/sleep_time/{document_id}",
-		"/v2/usercollection/vo2_max/{document_id}",
+		"/v2/usercollection/vO2_max/{document_id}", // Capitalization inconsistency
 		"/v2/usercollection/workout/{document_id}",
 		"/v2/webhook/subscription/{id}",
 		"/v2/webhook/subscription/renew/{id}",

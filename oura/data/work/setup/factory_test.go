@@ -12,6 +12,7 @@ import (
 	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
 	authTest "github.com/tidepool-org/platform/auth/test"
+	dataSetTest "github.com/tidepool-org/platform/data/set/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	ouraDataWorkSetup "github.com/tidepool-org/platform/oura/data/work/setup"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
@@ -43,6 +44,7 @@ var _ = Describe("factory", func() {
 		var mockWorkClient *workTest.MockClient
 		var mockProviderSessionClient *providerSessionTest.MockClient
 		var mockDataSourceClient *dataSourceTest.MockClient
+		var mockDataSetClient *dataSetTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
 		var dependencies ouraDataWorkSetup.Dependencies
 
@@ -51,6 +53,7 @@ var _ = Describe("factory", func() {
 			mockWorkClient = workTest.NewMockClient(mockController)
 			mockProviderSessionClient = providerSessionTest.NewMockClient(mockController)
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
+			mockDataSetClient = dataSetTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
 			dependencies = ouraDataWorkSetup.Dependencies{
 				Dependencies: workBase.Dependencies{
@@ -58,6 +61,7 @@ var _ = Describe("factory", func() {
 				},
 				ProviderSessionClient: mockProviderSessionClient,
 				DataSourceClient:      mockDataSourceClient,
+				DataSetClient:         mockDataSetClient,
 				OuraClient:            mockOuraClient,
 			}
 		})
@@ -77,6 +81,11 @@ var _ = Describe("factory", func() {
 				It("returns an error if data source client is missing", func() {
 					dependencies.DataSourceClient = nil
 					Expect(dependencies.Validate()).To(MatchError("data source client is missing"))
+				})
+
+				It("returns an error if data set client is missing", func() {
+					dependencies.DataSetClient = nil
+					Expect(dependencies.Validate()).To(MatchError("data set client is missing"))
 				})
 
 				It("returns an error if oura client is missing", func() {
@@ -156,9 +165,9 @@ var _ = Describe("factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraDataWorkSetup.Type,
-				GroupID:           pointer.FromString(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
-				DeduplicationID:   pointer.FromString(providerSessionID),
-				SerialID:          pointer.FromString(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
+				GroupID:           pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
+				DeduplicationID:   pointer.From(providerSessionID),
+				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
 				ProcessingTimeout: 180,
 				Metadata: map[string]any{
 					providerSessionWork.MetadataKeyProviderSessionID: providerSessionID,

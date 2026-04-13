@@ -26,7 +26,7 @@ var _ = Describe("Webhook", func() {
 		It("returns expected data types", func() {
 			Expect(ouraWebhook.DataTypes()).To(Equal([]string{
 				oura.DataTypeDailyActivity,
-				oura.DataTypeDailyCardiovascularAge,
+				oura.DataTypeDailyCyclePhases,
 				oura.DataTypeDailyReadiness,
 				oura.DataTypeDailyResilience,
 				oura.DataTypeDailySleep,
@@ -38,7 +38,6 @@ var _ = Describe("Webhook", func() {
 				oura.DataTypeSession,
 				oura.DataTypeSleep,
 				oura.DataTypeSleepTime,
-				oura.DataTypeVO2Max,
 				oura.DataTypeWorkout,
 			}))
 		})
@@ -140,13 +139,13 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("event_time zero",
 					func(datum *ouraWebhook.Event) {
-						datum.EventTime = pointer.FromTime(time.Time{})
+						datum.EventTime = pointer.From(time.Time{})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/event_time"),
 				),
 				Entry("event_time valid",
 					func(datum *ouraWebhook.Event) {
-						datum.EventTime = pointer.FromTime(test.RandomTime())
+						datum.EventTime = pointer.From(test.RandomTime())
 					},
 				),
 				Entry("event_type",
@@ -157,13 +156,13 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("event_type invalid",
 					func(datum *ouraWebhook.Event) {
-						datum.EventType = pointer.FromString("invalid")
+						datum.EventType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", oura.EventTypes()), "/event_type"),
 				),
 				Entry("event_type valid",
 					func(datum *ouraWebhook.Event) {
-						datum.EventType = pointer.FromString(test.RandomStringFromArray(oura.EventTypes()))
+						datum.EventType = pointer.From(test.RandomStringFromArray(oura.EventTypes()))
 					},
 				),
 				Entry("user_id",
@@ -174,13 +173,13 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("user_id empty",
 					func(datum *ouraWebhook.Event) {
-						datum.UserID = pointer.FromString("")
+						datum.UserID = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/user_id"),
 				),
 				Entry("user_id valid",
 					func(datum *ouraWebhook.Event) {
-						datum.UserID = pointer.FromString(test.RandomString())
+						datum.UserID = pointer.From(test.RandomString())
 					},
 				),
 				Entry("object_id",
@@ -191,13 +190,13 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("object_id zero",
 					func(datum *ouraWebhook.Event) {
-						datum.ObjectID = pointer.FromString("")
+						datum.ObjectID = pointer.From("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/object_id"),
 				),
 				Entry("object_id valid",
 					func(datum *ouraWebhook.Event) {
-						datum.ObjectID = pointer.FromString(test.RandomString())
+						datum.ObjectID = pointer.From(test.RandomString())
 					},
 				),
 				Entry("data_type",
@@ -208,13 +207,13 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("data_type invalid",
 					func(datum *ouraWebhook.Event) {
-						datum.DataType = pointer.FromString("invalid")
+						datum.DataType = pointer.From("invalid")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", ouraWebhook.DataTypes()), "/data_type"),
 				),
 				Entry("data_type valid",
 					func(datum *ouraWebhook.Event) {
-						datum.DataType = pointer.FromString(test.RandomStringFromArray(ouraWebhook.DataTypes()))
+						datum.DataType = pointer.From(test.RandomStringFromArray(ouraWebhook.DataTypes()))
 					},
 				),
 				Entry("multiple errors",
@@ -248,12 +247,12 @@ var _ = Describe("Webhook", func() {
 					}
 					Expect(datum.String()).To(Equal(expectedString))
 				},
-				Entry("all", pointer.FromTime(eventTime), pointer.FromString("alpha"), pointer.FromString("beta"), pointer.FromString("charlie"), pointer.FromString("delta"), "2026-01-15T20:15:42.123Z:alpha:beta:charlie:delta"),
-				Entry("event_time missing", nil, pointer.FromString("alpha"), pointer.FromString("beta"), pointer.FromString("charlie"), pointer.FromString("delta"), ":alpha:beta:charlie:delta"),
-				Entry("event_type missing", pointer.FromTime(eventTime), nil, pointer.FromString("beta"), pointer.FromString("charlie"), pointer.FromString("delta"), "2026-01-15T20:15:42.123Z::beta:charlie:delta"),
-				Entry("user_id missing", pointer.FromTime(eventTime), pointer.FromString("alpha"), nil, pointer.FromString("charlie"), pointer.FromString("delta"), "2026-01-15T20:15:42.123Z:alpha::charlie:delta"),
-				Entry("object_id missing", pointer.FromTime(eventTime), pointer.FromString("alpha"), pointer.FromString("beta"), nil, pointer.FromString("delta"), "2026-01-15T20:15:42.123Z:alpha:beta::delta"),
-				Entry("data_type missing", pointer.FromTime(eventTime), pointer.FromString("alpha"), pointer.FromString("beta"), pointer.FromString("charlie"), nil, "2026-01-15T20:15:42.123Z:alpha:beta:charlie:"),
+				Entry("all", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "2026-01-15T20:15:42.123Z:alpha:beta:charlie:delta"),
+				Entry("event_time missing", nil, pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), ":alpha:beta:charlie:delta"),
+				Entry("event_type missing", pointer.From(eventTime), nil, pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "2026-01-15T20:15:42.123Z::beta:charlie:delta"),
+				Entry("user_id missing", pointer.From(eventTime), pointer.From("alpha"), nil, pointer.From("charlie"), pointer.From("delta"), "2026-01-15T20:15:42.123Z:alpha::charlie:delta"),
+				Entry("object_id missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), nil, pointer.From("delta"), "2026-01-15T20:15:42.123Z:alpha:beta::delta"),
+				Entry("data_type missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), nil, "2026-01-15T20:15:42.123Z:alpha:beta:charlie:"),
 				Entry("all missing", nil, nil, nil, nil, nil, "::::"),
 			)
 		})

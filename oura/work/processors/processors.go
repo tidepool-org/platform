@@ -69,6 +69,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
+		DataRawClient:         dependencies.DataRawClient,
 		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
@@ -80,6 +81,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
+		DataRawClient:         dependencies.DataRawClient,
 		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err
@@ -91,6 +93,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
+		DataSetClient:         dependencies.DataSetClient,
 		OuraClient:            dependencies.OuraClient,
 	}); err != nil {
 		return nil, err

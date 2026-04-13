@@ -6,7 +6,6 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metadata"
-	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
@@ -53,18 +52,14 @@ func NewWorkCreate(providerSessionID string, oauthToken *auth.OAuthToken) (*work
 		return nil, errors.New("oauth token is missing")
 	}
 
-	workMetadata := &oauthWork.TokenMetadata{}
-	workMetadata.OAuthToken = oauthToken
-
-	encodedWorkMetadata, err := metadata.Encode(workMetadata)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode work metadata")
-	}
-
-	return &work.Create{
-		Type:              Type,
-		DeduplicationID:   pointer.FromString(providerSessionID),
-		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
-		Metadata:          encodedWorkMetadata,
-	}, nil
+	return metadata.WithMetadata(
+		&work.Create{
+			Type:              Type,
+			DeduplicationID:   pointer.From(providerSessionID),
+			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
+		},
+		&Metadata{
+			OAuthToken: oauthToken,
+		},
+	)
 }

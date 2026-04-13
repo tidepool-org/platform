@@ -2,7 +2,9 @@ package test
 
 import (
 	"math/rand/v2"
+	"slices"
 
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	oura "github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/pointer"
@@ -38,12 +40,20 @@ func RandomUserID() string {
 	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
+func RandomNextToken() string {
+	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
+}
+
+func RandomScope() []string {
+	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, 3, oura.Scopes())
+}
+
 func RandomCreateSubscription(options ...test.Option) *oura.CreateSubscription {
 	return &oura.CreateSubscription{
-		CallbackURL:       pointer.FromString(RandomCallbackURL()),
-		VerificationToken: pointer.FromString(RandomVerificationToken()),
-		DataType:          pointer.FromString(RandomDataType()),
-		EventType:         pointer.FromString(RandomEventType()),
+		CallbackURL:       pointer.From(RandomCallbackURL()),
+		VerificationToken: pointer.From(RandomVerificationToken()),
+		DataType:          pointer.From(RandomDataType()),
+		EventType:         pointer.From(RandomEventType()),
 	}
 }
 
@@ -52,10 +62,10 @@ func CloneCreateSubscription(datum *oura.CreateSubscription) *oura.CreateSubscri
 		return nil
 	}
 	return &oura.CreateSubscription{
-		CallbackURL:       pointer.CloneString(datum.CallbackURL),
-		VerificationToken: pointer.CloneString(datum.VerificationToken),
-		DataType:          pointer.CloneString(datum.DataType),
-		EventType:         pointer.CloneString(datum.EventType),
+		CallbackURL:       pointer.Clone(datum.CallbackURL),
+		VerificationToken: pointer.Clone(datum.VerificationToken),
+		DataType:          pointer.Clone(datum.DataType),
+		EventType:         pointer.Clone(datum.EventType),
 	}
 }
 
@@ -81,10 +91,10 @@ func NewObjectFromCreateSubscription(datum *oura.CreateSubscription, format test
 
 func RandomUpdateSubscription(options ...test.Option) *oura.UpdateSubscription {
 	return &oura.UpdateSubscription{
-		CallbackURL:       pointer.FromString(RandomCallbackURL()),
-		VerificationToken: pointer.FromString(RandomVerificationToken()),
-		DataType:          pointer.FromString(RandomDataType()),
-		EventType:         pointer.FromString(RandomEventType()),
+		CallbackURL:       pointer.From(RandomCallbackURL()),
+		VerificationToken: pointer.From(RandomVerificationToken()),
+		DataType:          pointer.From(RandomDataType()),
+		EventType:         pointer.From(RandomEventType()),
 	}
 }
 
@@ -93,10 +103,10 @@ func CloneUpdateSubscription(datum *oura.UpdateSubscription) *oura.UpdateSubscri
 		return nil
 	}
 	return &oura.UpdateSubscription{
-		CallbackURL:       pointer.CloneString(datum.CallbackURL),
-		VerificationToken: pointer.CloneString(datum.VerificationToken),
-		DataType:          pointer.CloneString(datum.DataType),
-		EventType:         pointer.CloneString(datum.EventType),
+		CallbackURL:       pointer.Clone(datum.CallbackURL),
+		VerificationToken: pointer.Clone(datum.VerificationToken),
+		DataType:          pointer.Clone(datum.DataType),
+		EventType:         pointer.Clone(datum.EventType),
 	}
 }
 
@@ -122,11 +132,11 @@ func NewObjectFromUpdateSubscription(datum *oura.UpdateSubscription, format test
 
 func RandomSubscription(options ...test.Option) *oura.Subscription {
 	return &oura.Subscription{
-		ID:             pointer.FromString(RandomID()),
-		CallbackURL:    pointer.FromString(RandomCallbackURL()),
-		DataType:       pointer.FromString(RandomDataType()),
-		EventType:      pointer.FromString(RandomEventType()),
-		ExpirationTime: pointer.FromString(test.RandomTimeAfterNow().UTC().Format(oura.SubscriptionExpirationTimeFormat)),
+		ID:             pointer.From(RandomID()),
+		CallbackURL:    pointer.From(RandomCallbackURL()),
+		DataType:       pointer.From(RandomDataType()),
+		EventType:      pointer.From(RandomEventType()),
+		ExpirationTime: pointer.From(test.RandomTimeAfterNow().UTC().Format(oura.SubscriptionExpirationTimeFormat)),
 	}
 }
 
@@ -135,11 +145,11 @@ func CloneSubscription(datum *oura.Subscription) *oura.Subscription {
 		return nil
 	}
 	return &oura.Subscription{
-		ID:             pointer.CloneString(datum.ID),
-		CallbackURL:    pointer.CloneString(datum.CallbackURL),
-		DataType:       pointer.CloneString(datum.DataType),
-		EventType:      pointer.CloneString(datum.EventType),
-		ExpirationTime: pointer.CloneString(datum.ExpirationTime),
+		ID:             pointer.Clone(datum.ID),
+		CallbackURL:    pointer.Clone(datum.CallbackURL),
+		DataType:       pointer.Clone(datum.DataType),
+		EventType:      pointer.Clone(datum.EventType),
+		ExpirationTime: pointer.Clone(datum.ExpirationTime),
 	}
 }
 
@@ -177,8 +187,8 @@ func RandomSubscriptions(options ...test.Option) oura.Subscriptions {
 	subscriptions := make(oura.Subscriptions, test.RandomIntFromRange(1, subscriptionsCount))
 	for index := range subscriptions {
 		subscription := RandomSubscription(options...)
-		subscription.DataType = pointer.FromString(dataTypes[offsets[index]%dataTypesCount])
-		subscription.EventType = pointer.FromString(eventTypes[offsets[index]/dataTypesCount])
+		subscription.DataType = pointer.From(dataTypes[offsets[index]%dataTypesCount])
+		subscription.EventType = pointer.From(eventTypes[offsets[index]/dataTypesCount])
 		subscriptions[index] = subscription
 	}
 	return subscriptions
@@ -208,7 +218,7 @@ func NewArrayFromSubscriptions(datum *oura.Subscriptions, format test.ObjectForm
 
 func RandomPersonalInfo(options ...test.Option) *oura.PersonalInfo {
 	return &oura.PersonalInfo{
-		ID:            pointer.FromString(RandomUserID()),
+		ID:            pointer.From(RandomUserID()),
 		Age:           test.RandomOptional(test.RandomInt, options...),
 		Weight:        test.RandomOptional(test.RandomFloat64, options...),
 		Height:        test.RandomOptional(test.RandomFloat64, options...),
@@ -222,12 +232,12 @@ func ClonePersonalInfo(datum *oura.PersonalInfo) *oura.PersonalInfo {
 		return nil
 	}
 	return &oura.PersonalInfo{
-		ID:            pointer.CloneString(datum.ID),
-		Age:           pointer.CloneInt(datum.Age),
-		Weight:        pointer.CloneFloat64(datum.Weight),
-		Height:        pointer.CloneFloat64(datum.Height),
-		BiologicalSex: pointer.CloneString(datum.BiologicalSex),
-		Email:         pointer.CloneString(datum.Email),
+		ID:            pointer.Clone(datum.ID),
+		Age:           pointer.Clone(datum.Age),
+		Weight:        pointer.Clone(datum.Weight),
+		Height:        pointer.Clone(datum.Height),
+		BiologicalSex: pointer.Clone(datum.BiologicalSex),
+		Email:         pointer.Clone(datum.Email),
 	}
 }
 
@@ -255,4 +265,82 @@ func NewObjectFromPersonalInfo(datum *oura.PersonalInfo, format test.ObjectForma
 		object["email"] = test.NewObjectFromString(*datum.Email, format)
 	}
 	return object
+}
+
+func RandomPagination(options ...test.Option) *oura.Pagination {
+	return &oura.Pagination{
+		NextToken: test.RandomOptional(RandomNextToken, options...),
+	}
+}
+
+func ClonePagination(datum *oura.Pagination) *oura.Pagination {
+	if datum == nil {
+		return nil
+	}
+	return &oura.Pagination{
+		NextToken: pointer.Clone(datum.NextToken),
+	}
+}
+
+func NewObjectFromPagination(datum *oura.Pagination, format test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.NextToken != nil {
+		object["next_token"] = test.NewObjectFromString(*datum.NextToken, format)
+	}
+	return object
+}
+
+func RandomDataResponse(options ...test.Option) *oura.DataResponse {
+	data := make([]any, test.RandomIntFromRange(1, 3))
+	for index := range data {
+		data[index] = RandomDatum(options...)
+	}
+	return &oura.DataResponse{
+		Data:       data,
+		Pagination: *RandomPagination(options...),
+	}
+}
+
+func CloneDataResponse(datum *oura.DataResponse) *oura.DataResponse {
+	if datum == nil {
+		return nil
+	}
+	return &oura.DataResponse{
+		Data:       slices.Clone(datum.Data),
+		Pagination: *ClonePagination(&datum.Pagination),
+	}
+}
+
+func NewObjectFromDataResponse(datum *oura.DataResponse, format test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := NewObjectFromPagination(&datum.Pagination, format)
+	if datum.Data != nil {
+		object["data"] = slices.Clone(datum.Data)
+	}
+	return object
+}
+
+func RandomDatum(options ...test.Option) oura.Datum {
+	return metadataTest.RandomMetadataMap()
+}
+
+func CloneDatum(datum oura.Datum) oura.Datum {
+	return metadataTest.CloneMetadataMap(datum)
+}
+
+func NewObjectFromDatum(datum oura.Datum, format test.ObjectFormat) map[string]any {
+	return metadataTest.NewObjectFromMetadataMap(datum, format)
+}
+
+func RandomData(options ...test.Option) []any {
+	datum := make([]any, test.RandomIntFromRange(1, 3))
+	for index := range datum {
+		datum[index] = RandomDatum(options...)
+	}
+	return datum
 }

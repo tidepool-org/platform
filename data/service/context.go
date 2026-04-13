@@ -21,6 +21,8 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
+//go:generate mockgen -source=context.go -destination=test/context_mocks.go -package=test -typed
+
 type Context interface {
 	service.Context
 

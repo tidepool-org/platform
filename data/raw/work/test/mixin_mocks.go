@@ -10,6 +10,7 @@
 package test
 
 import (
+	io "io"
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
@@ -112,6 +113,44 @@ func (c *MockMixinCloseDataRawContentCall) Do(f func() *work.ProcessResult) *Moc
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinCloseDataRawContentCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinCloseDataRawContentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataRaw mocks base method.
+func (m *MockMixin) CreateDataRaw(userID, dataSetID string, dataRawCreate *raw.Create, reader io.Reader) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataRaw", userID, dataSetID, dataRawCreate, reader)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataRaw indicates an expected call of CreateDataRaw.
+func (mr *MockMixinMockRecorder) CreateDataRaw(userID, dataSetID, dataRawCreate, reader any) *MockMixinCreateDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRaw", reflect.TypeOf((*MockMixin)(nil).CreateDataRaw), userID, dataSetID, dataRawCreate, reader)
+	return &MockMixinCreateDataRawCall{Call: call}
+}
+
+// MockMixinCreateDataRawCall wrap *gomock.Call
+type MockMixinCreateDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinCreateDataRawCall) Return(arg0 *work.ProcessResult) *MockMixinCreateDataRawCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinCreateDataRawCall) Do(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinCreateDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinCreateDataRawCall) DoAndReturn(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinCreateDataRawCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -908,6 +947,44 @@ func (c *MockMixinFromWorkCloseDataRawContentCall) DoAndReturn(f func() *work.Pr
 	return c
 }
 
+// CreateDataRaw mocks base method.
+func (m *MockMixinFromWork) CreateDataRaw(userID, dataSetID string, dataRawCreate *raw.Create, reader io.Reader) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataRaw", userID, dataSetID, dataRawCreate, reader)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataRaw indicates an expected call of CreateDataRaw.
+func (mr *MockMixinFromWorkMockRecorder) CreateDataRaw(userID, dataSetID, dataRawCreate, reader any) *MockMixinFromWorkCreateDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRaw", reflect.TypeOf((*MockMixinFromWork)(nil).CreateDataRaw), userID, dataSetID, dataRawCreate, reader)
+	return &MockMixinFromWorkCreateDataRawCall{Call: call}
+}
+
+// MockMixinFromWorkCreateDataRawCall wrap *gomock.Call
+type MockMixinFromWorkCreateDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkCreateDataRawCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkCreateDataRawCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkCreateDataRawCall) Do(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinFromWorkCreateDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkCreateDataRawCall) DoAndReturn(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinFromWorkCreateDataRawCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataRaw mocks base method.
 func (m *MockMixinFromWork) DataRaw() *raw.Raw {
 	m.ctrl.T.Helper()
@@ -1496,6 +1573,44 @@ func (c *MockMixinWithParsedMetadataCloseDataRawContentCall[M]) Do(f func() *wor
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinWithParsedMetadataCloseDataRawContentCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataCloseDataRawContentCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataRaw mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) CreateDataRaw(userID, dataSetID string, dataRawCreate *raw.Create, reader io.Reader) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataRaw", userID, dataSetID, dataRawCreate, reader)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataRaw indicates an expected call of CreateDataRaw.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) CreateDataRaw(userID, dataSetID, dataRawCreate, reader any) *MockMixinWithParsedMetadataCreateDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRaw", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).CreateDataRaw), userID, dataSetID, dataRawCreate, reader)
+	return &MockMixinWithParsedMetadataCreateDataRawCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataCreateDataRawCall wrap *gomock.Call
+type MockMixinWithParsedMetadataCreateDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataCreateDataRawCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataRawCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataCreateDataRawCall[M]) Do(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataCreateDataRawCall[M]) DoAndReturn(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinWithParsedMetadataCreateDataRawCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2126,6 +2241,44 @@ func (c *MockMixinFromWorkWithParsedMetadataCloseDataRawContentCall[M]) Do(f fun
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkWithParsedMetadataCloseDataRawContentCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCloseDataRawContentCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataRaw mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) CreateDataRaw(userID, dataSetID string, dataRawCreate *raw.Create, reader io.Reader) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataRaw", userID, dataSetID, dataRawCreate, reader)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataRaw indicates an expected call of CreateDataRaw.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) CreateDataRaw(userID, dataSetID, dataRawCreate, reader any) *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataRaw", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).CreateDataRaw), userID, dataSetID, dataRawCreate, reader)
+	return &MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataCreateDataRawCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M]) Do(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M]) DoAndReturn(f func(string, string, *raw.Create, io.Reader) *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataCreateDataRawCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -18,7 +18,7 @@ func CloneMetadata(datum *providerSessionWork.Metadata) *providerSessionWork.Met
 		return nil
 	}
 	return &providerSessionWork.Metadata{
-		ProviderSessionID: pointer.CloneString(datum.ProviderSessionID),
+		ProviderSessionID: pointer.Clone(datum.ProviderSessionID),
 	}
 }
 

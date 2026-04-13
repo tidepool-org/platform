@@ -50,7 +50,7 @@ var _ = Describe("mixin", func() {
 				),
 				Entry("all",
 					func(datum *providerSessionWork.Metadata) {
-						datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+						datum.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					},
 				),
 			)
@@ -101,24 +101,24 @@ var _ = Describe("mixin", func() {
 					),
 					Entry("provider session id empty",
 						func(datum *providerSessionWork.Metadata) {
-							datum.ProviderSessionID = pointer.FromString("")
+							datum.ProviderSessionID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					),
 					Entry("provider session id invalid",
 						func(datum *providerSessionWork.Metadata) {
-							datum.ProviderSessionID = pointer.FromString("invalid")
+							datum.ProviderSessionID = pointer.From("invalid")
 						},
 						errorsTest.WithPointerSource(auth.ErrorValueStringAsProviderSessionIDNotValid("invalid"), "/providerSessionId"),
 					),
 					Entry("provider session id valid",
 						func(datum *providerSessionWork.Metadata) {
-							datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+							datum.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 						},
 					),
 					Entry("multiple errors",
 						func(datum *providerSessionWork.Metadata) {
-							datum.ProviderSessionID = pointer.FromString("")
+							datum.ProviderSessionID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
 					),
@@ -288,10 +288,6 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("UpdateProviderSession", func() {
-				It("returns failed process result when provider session update is nil", func() {
-					Expect(mixin.UpdateProviderSession(nil)).To(workTest.MatchFailedProcessResultError(MatchError("provider session update is missing")))
-				})
-
 				It("returns failed process result when provider session is missing", func() {
 					Expect(mixin.UpdateProviderSession(&auth.ProviderSessionUpdate{})).To(workTest.MatchFailedProcessResultError(MatchError("provider session is missing")))
 				})
@@ -355,20 +351,20 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failing process result when the client returns an error", func() {
-					workMetadata.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+					workMetadata.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					testErr := errorsTest.RandomError()
 					mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), *workMetadata.ProviderSessionID).Return(nil, testErr)
 					Expect(mixin.FetchProviderSessionFromWorkMetadata()).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to get provider session").Error())))
 				})
 
 				It("returns failed process result when the provider session is nil", func() {
-					workMetadata.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+					workMetadata.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), *workMetadata.ProviderSessionID).Return(nil, nil)
 					Expect(mixin.FetchProviderSessionFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("provider session is missing")))
 				})
 
 				It("sets the provider session and returns nil on success", func() {
-					workMetadata.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+					workMetadata.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					providerSession := authTest.RandomProviderSession(test.AllowOptional())
 					mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), *workMetadata.ProviderSessionID).Return(providerSession, nil)
 					Expect(mixin.FetchProviderSessionFromWorkMetadata()).To(BeNil())

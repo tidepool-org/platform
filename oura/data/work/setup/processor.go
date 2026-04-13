@@ -6,6 +6,10 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
+	"github.com/tidepool-org/platform/data"
+	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataSetWork "github.com/tidepool-org/platform/data/set/work"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
 	dataWork "github.com/tidepool-org/platform/data/work"
@@ -27,21 +31,27 @@ const (
 	FailingRetryDurationJitter = 5 * time.Second
 )
 
+type Metadata = providerSessionWork.Metadata
+
 type (
 	ProviderSessionMixin           = providerSessionWork.MixinFromWork
 	DataSourceMixin                = dataSourceWork.Mixin
 	DataSourceReplacerMixin        = dataWork.DataSourceReplacerMixin
 	ProviderSessionDataSourceMixin = dataWork.ProviderSessionDataSourceMixin
+	DataSetMixin                   = dataSetWork.Mixin
+	DataSourceDataSetMixin         = dataWork.DataSourceDataSetMixin
 	OAuthMixin                     = oauthWork.Mixin
 )
 
 type Processor struct {
-	*workBase.Processor[providerSessionWork.Metadata]
+	*workBase.Processor[Metadata]
 	ProviderSessionMixin
 	DataSourceMixin
 	DataSourceReplacerMixin
 	ProviderSessionDataSourceMixin
 	OAuthMixin
+	DataSetMixin
+	DataSourceDataSetMixin
 	OuraClient
 }
 
@@ -57,7 +67,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	processor, err := workBase.NewProcessor[providerSessionWork.Metadata](dependencies.Dependencies, processResultBuilder)
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -81,6 +91,14 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create oauth mixin")
 	}
+	dataSetMixin, err := dataSetWork.NewMixin(processor, dependencies.DataSetClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create data set mixin")
+	}
+	dataSourceDataSetMixin, err := dataWork.NewDataSourceDataSetMixin(processor, dataSourceMixin, dataSetMixin)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create data source data set mixin")
+	}
 
 	return &Processor{
 		Processor:                      processor,
@@ -89,6 +107,8 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		DataSourceReplacerMixin:        dataSourceReplacerMixin,
 		ProviderSessionDataSourceMixin: providerSessionDataSourceMixin,
 		OAuthMixin:                     oauthMixin,
+		DataSetMixin:                   dataSetMixin,
+		DataSourceDataSetMixin:         dataSourceDataSetMixin,
 		OuraClient:                     dependencies.OuraClient,
 	}, nil
 }
@@ -100,6 +120,8 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.FetchTokenSource,
 		p.updateDataSourceProviderExternalID,
 		p.updateProviderSessionExternalID,
+		p.ensureDataSetForDataSource,
+		p.createDataSourceStateChangeEventWork,
 		p.createDataHistoricWork,
 	).Process(p.Delete)
 }
@@ -117,9 +139,9 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 
 	// Get all data sources
 	dataSourceFilter := &dataSource.Filter{
-		ProviderType:       pointer.FromString(oauth.ProviderType),
-		ProviderName:       pointer.FromString(oura.ProviderName),
-		ProviderExternalID: pointer.FromString(*personalInfo.ID),
+		ProviderType:       pointer.From(oauth.ProviderType),
+		ProviderName:       pointer.From(oura.ProviderName),
+		ProviderExternalID: pointer.From(*personalInfo.ID),
 	}
 	dataSources, err := page.Collect(func(pagination page.Pagination) (dataSource.SourceArray, error) {
 		return p.DataSourceClient().List(p.Context(), p.ProviderSession().UserID, dataSourceFilter, &pagination)
@@ -152,6 +174,25 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 	return p.UpdateProviderSession(providerSessionUpdate)
 }
 
+func (p *Processor) ensureDataSetForDataSource() *work.ProcessResult {
+	if p.DataSource().DataSetID == nil {
+		return p.CreateDataSetForDataSource(NewDataSetCreate())
+	} else {
+		return p.FetchDataSetFromDataSource()
+	}
+}
+
+func (p *Processor) createDataSourceStateChangeEventWork() *work.ProcessResult {
+	if workCreate, err := customerioWork.NewDataSourceStateChangedEventWorkCreate(p.DataSource()); err != nil {
+		return p.Failed(errors.Wrap(err, "unable to create data source state changed event work create"))
+	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
+		return p.Failing(errors.Wrap(err, "unable to create data source state changed event work"))
+	}
+
+	log.LoggerFromContext(p.Context()).Debug("created data source state changed event work")
+	return nil
+}
+
 func (p *Processor) createDataHistoricWork() *work.ProcessResult {
 	if workCreate, err := ouraDataWorkHistoric.NewWorkCreate(p.ProviderSession().ID, times.TimeRange{From: p.DataSource().LatestDataTime}); err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
@@ -161,4 +202,21 @@ func (p *Processor) createDataHistoricWork() *work.ProcessResult {
 
 	log.LoggerFromContext(p.Context()).Debug("created data historic work")
 	return nil
+}
+
+func NewDataSetCreate() *data.DataSetCreate {
+	return &data.DataSetCreate{
+		Client: &data.DataSetClient{
+			Name:    pointer.From(oura.DataSetClientName),
+			Version: pointer.From(oura.DataSetClientVersion),
+		},
+		DataSetType: pointer.From(data.DataSetTypeContinuous),
+		Deduplicator: &data.DeduplicatorDescriptor{
+			Name:    pointer.From(dataDeduplicatorDeduplicator.DataSetDeleteOriginName),
+			Version: pointer.From(dataDeduplicatorDeduplicator.DataSetDeleteOriginVersion),
+		},
+		DeviceManufacturers: pointer.From(oura.DeviceManufacturers),
+		DeviceTags:          pointer.From(oura.DeviceTags),
+		TimeProcessing:      pointer.From(data.TimeProcessingNone),
+	}
 }

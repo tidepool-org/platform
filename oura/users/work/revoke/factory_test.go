@@ -152,7 +152,7 @@ var _ = Describe("factory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraUsersWorkRevoke.Type,
-				DeduplicationID:   pointer.FromString(providerSessionID),
+				DeduplicationID:   pointer.From(providerSessionID),
 				ProcessingTimeout: 180,
 				Metadata: map[string]any{
 					oauthWork.MetadataKeyOAuthToken: authTest.NewObjectFromToken(oauthToken, test.ObjectFormatJSON),

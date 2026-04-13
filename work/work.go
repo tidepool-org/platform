@@ -204,6 +204,10 @@ func (c *Create) Validate(validator structure.Validator) {
 	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
+func (c *Create) SetMetadata(metadata map[string]any) {
+	c.Metadata = metadata
+}
+
 type PendingUpdate struct {
 	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitzero" bson:"processingAvailableTime,omitempty"`
 	ProcessingPriority      int            `json:"processingPriority,omitempty" bson:"processingPriority,omitempty"`

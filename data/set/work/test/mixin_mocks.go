@@ -79,6 +79,44 @@ func (c *MockMixinAddDataSetToContextCall) DoAndReturn(f func()) *MockMixinAddDa
 	return c
 }
 
+// CreateDataSet mocks base method.
+func (m *MockMixin) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataSet", userID, dataSetCreate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataSet indicates an expected call of CreateDataSet.
+func (mr *MockMixinMockRecorder) CreateDataSet(userID, dataSetCreate any) *MockMixinCreateDataSetCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataSet", reflect.TypeOf((*MockMixin)(nil).CreateDataSet), userID, dataSetCreate)
+	return &MockMixinCreateDataSetCall{Call: call}
+}
+
+// MockMixinCreateDataSetCall wrap *gomock.Call
+type MockMixinCreateDataSetCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinCreateDataSetCall) Return(arg0 *work.ProcessResult) *MockMixinCreateDataSetCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinCreateDataSetCall) Do(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinCreateDataSetCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinCreateDataSetCall) DoAndReturn(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinCreateDataSetCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataSet mocks base method.
 func (m *MockMixin) DataSet() *data.DataSet {
 	m.ctrl.T.Helper()
@@ -363,6 +401,44 @@ func (c *MockMixinFromWorkAddDataSetToContextCall) Do(f func()) *MockMixinFromWo
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkAddDataSetToContextCall) DoAndReturn(f func()) *MockMixinFromWorkAddDataSetToContextCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// CreateDataSet mocks base method.
+func (m *MockMixinFromWork) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateDataSet", userID, dataSetCreate)
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// CreateDataSet indicates an expected call of CreateDataSet.
+func (mr *MockMixinFromWorkMockRecorder) CreateDataSet(userID, dataSetCreate any) *MockMixinFromWorkCreateDataSetCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateDataSet", reflect.TypeOf((*MockMixinFromWork)(nil).CreateDataSet), userID, dataSetCreate)
+	return &MockMixinFromWorkCreateDataSetCall{Call: call}
+}
+
+// MockMixinFromWorkCreateDataSetCall wrap *gomock.Call
+type MockMixinFromWorkCreateDataSetCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkCreateDataSetCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkCreateDataSetCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkCreateDataSetCall) Do(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinFromWorkCreateDataSetCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkCreateDataSetCall) DoAndReturn(f func(string, *data.DataSetCreate) *work.ProcessResult) *MockMixinFromWorkCreateDataSetCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

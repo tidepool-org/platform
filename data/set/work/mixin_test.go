@@ -21,6 +21,7 @@ import (
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	userTest "github.com/tidepool-org/platform/user/test"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
@@ -50,7 +51,7 @@ var _ = Describe("mixin", func() {
 				),
 				Entry("all",
 					func(datum *dataSetWork.Metadata) {
-						datum.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+						datum.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					},
 				),
 			)
@@ -101,24 +102,24 @@ var _ = Describe("mixin", func() {
 					),
 					Entry("data set id empty",
 						func(datum *dataSetWork.Metadata) {
-							datum.DataSetID = pointer.FromString("")
+							datum.DataSetID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
 					),
 					Entry("data set id invalid",
 						func(datum *dataSetWork.Metadata) {
-							datum.DataSetID = pointer.FromString("invalid")
+							datum.DataSetID = pointer.From("invalid")
 						},
 						errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetId"),
 					),
 					Entry("data set id valid",
 						func(datum *dataSetWork.Metadata) {
-							datum.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+							datum.DataSetID = pointer.From(dataTest.RandomDataSetID())
 						},
 					),
 					Entry("multiple errors",
 						func(datum *dataSetWork.Metadata) {
-							datum.DataSetID = pointer.FromString("")
+							datum.DataSetID = pointer.From("")
 						},
 						errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
 					),
@@ -287,11 +288,42 @@ var _ = Describe("mixin", func() {
 				})
 			})
 
-			Context("UpdateDataSet", func() {
-				It("returns failed process result when data set update is nil", func() {
-					Expect(mixin.UpdateDataSet(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data set update is missing")))
+			Context("CreateDataSet", func() {
+				var userID string
+				var dataSetCreate *data.DataSetCreate
+
+				BeforeEach(func() {
+					userID = userTest.RandomUserID()
+					dataSetCreate = dataTest.RandomDataSetCreate(test.AllowOptional())
 				})
 
+				It("returns failed process result when data set is missing", func() {
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(workTest.MatchFailedProcessResultError(MatchError("data set already exists")))
+				})
+
+				Context("with an existing data set", func() {
+					It("returns failing process result when the client returns an error", func() {
+						testErr := errorsTest.RandomError()
+						mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, dataSetCreate).Return(nil, testErr)
+						Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to create data set").Error())))
+					})
+
+					It("returns failed process result when the client returns a nil data set", func() {
+						mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, dataSetCreate).Return(nil, nil)
+						Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
+					})
+
+					It("updates the data set and returns nil on success", func() {
+						createdDataSet := dataTest.RandomDataSet(test.AllowOptional())
+						mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, dataSetCreate).Return(createdDataSet, nil)
+						Expect(mixin.CreateDataSet(userID, dataSetCreate)).To(BeNil())
+						Expect(mixin.DataSet()).To(Equal(createdDataSet))
+					})
+				})
+			})
+
+			Context("UpdateDataSet", func() {
 				It("returns failed process result when data set is missing", func() {
 					Expect(mixin.UpdateDataSet(&data.DataSetUpdate{})).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
 				})
@@ -323,10 +355,10 @@ var _ = Describe("mixin", func() {
 					})
 
 					It("updates the data set and returns nil on success", func() {
-						updatedDataSrc := dataTest.RandomDataSet(test.AllowOptional())
-						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, dataStUpdate).Return(updatedDataSrc, nil)
+						updatedDataSet := dataTest.RandomDataSet(test.AllowOptional())
+						mockDataSetClient.EXPECT().UpdateDataSet(gomock.Not(gomock.Nil()), *dataSt.ID, dataStUpdate).Return(updatedDataSet, nil)
 						Expect(mixin.UpdateDataSet(dataStUpdate)).To(BeNil())
-						Expect(mixin.DataSet()).To(Equal(updatedDataSrc))
+						Expect(mixin.DataSet()).To(Equal(updatedDataSet))
 					})
 				})
 			})
@@ -360,20 +392,20 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failing process result when the client returns an error", func() {
-					workMetadata.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+					workMetadata.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					testErr := errorsTest.RandomError()
 					mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), *workMetadata.DataSetID).Return(nil, testErr)
 					Expect(mixin.FetchDataSetFromWorkMetadata()).To(workTest.MatchFailingProcessResultError(MatchError(errors.Wrap(testErr, "unable to get data set").Error())))
 				})
 
 				It("returns failed process result when the data set is nil", func() {
-					workMetadata.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+					workMetadata.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), *workMetadata.DataSetID).Return(nil, nil)
 					Expect(mixin.FetchDataSetFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
 				})
 
 				It("sets the data set and returns nil on success", func() {
-					workMetadata.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+					workMetadata.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					dataSt := dataTest.RandomDataSet(test.AllowOptional())
 					mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), *workMetadata.DataSetID).Return(dataSt, nil)
 					Expect(mixin.FetchDataSetFromWorkMetadata()).To(BeNil())

@@ -173,6 +173,10 @@ func (u *Update) Normalize(normalizer structure.Normalizer) {
 	}
 }
 
+func (u *Update) SetMetadata(metadata map[string]any) {
+	u.Metadata = &metadata
+}
+
 func (u *Update) IsEmpty() bool {
 	return u.ProviderSessionID == nil && u.ProviderExternalID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetID == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }

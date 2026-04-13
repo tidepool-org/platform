@@ -206,10 +206,13 @@ func NewWorkFromCreateWithState(create *work.Create, state string) *work.Work {
 	}
 	switch state {
 	case work.StatePending:
+		datum.ProcessingAvailableTime = now
 	case work.StateProcessing:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
 		datum.ProcessingTime = pointer.FromTime(now)
 		datum.ProcessingTimeoutTime = pointer.FromTime(now.Add(time.Duration(datum.ProcessingTimeout) * time.Second))
 	case work.StateFailing:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
 		datum.ProcessingTime = pointer.FromTime(now)
 		datum.ProcessingDuration = pointer.FromFloat64(0.0)
 		datum.FailingTime = pointer.FromTime(now)
@@ -217,11 +220,13 @@ func NewWorkFromCreateWithState(create *work.Create, state string) *work.Work {
 		datum.FailingRetryCount = pointer.FromInt(1)
 		datum.FailingRetryTime = pointer.FromTime(now.Add(10 * time.Minute))
 	case work.StateFailed:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
 		datum.ProcessingTime = pointer.FromTime(now)
 		datum.ProcessingDuration = pointer.FromFloat64(0.0)
 		datum.FailedTime = pointer.FromTime(now)
 		datum.FailedError = errorsTest.RandomSerializable()
 	case work.StateSuccess:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
 		datum.ProcessingTime = pointer.FromTime(now)
 		datum.ProcessingDuration = pointer.FromFloat64(0.0)
 		datum.SuccessTime = pointer.FromTime(now)

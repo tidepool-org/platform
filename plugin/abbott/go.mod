@@ -1,8 +1,6 @@
 module github.com/tidepool-org/platform-plugin-abbott
 
-go 1.24.1
-
-toolchain go1.24.5
+go 1.25.7
 
 require (
 	github.com/lestrrat-go/jwx/v2 v2.1.4
@@ -23,7 +21,7 @@ require (
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/kelseyhightower/envconfig v1.4.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
+	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect

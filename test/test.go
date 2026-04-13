@@ -65,3 +65,8 @@ func (m *MockMatcher) Matches(x any) bool {
 func (m *MockMatcher) String() string {
 	return fmt.Sprintf("%#v", m.matcher)
 }
+
+func Must[T any](value T, err error) T {
+	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	return value
+}

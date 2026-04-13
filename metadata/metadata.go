@@ -141,3 +141,16 @@ func Encode[T any](object *T) (map[string]any, error) {
 
 	return metadata, nil
 }
+
+type MetadataSetter interface {
+	SetMetadata(metadata map[string]any)
+}
+
+func WithMetadata[S MetadataSetter, M any](setter S, meta *M) (S, error) {
+	if encoded, err := Encode(meta); err != nil {
+		return setter, err
+	} else {
+		setter.SetMetadata(encoded)
+		return setter, nil
+	}
+}

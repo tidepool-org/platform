@@ -14,7 +14,7 @@ const (
 	Type              = "org.tidepool.oura.webhook.subscribe"
 	Quantity          = 1
 	Frequency         = time.Minute
-	ProcessingTimeout = 5 * time.Minute
+	ProcessingTimeout = 15 * time.Minute
 )
 
 type OuraClient = oura.Client
@@ -45,7 +45,7 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 func NewWorkCreate() (*work.Create, error) {
 	return &work.Create{
 		Type:              Type,
-		DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
+		DeduplicationID:   pointer.From(work.DeduplicationIDSingleton),
 		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 	}, nil
 }

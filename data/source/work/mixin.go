@@ -180,17 +180,16 @@ func (m *mixin[M]) FetchDataSourceFromProviderSessionID(providerSessionID string
 }
 
 func (m *mixin[M]) UpdateDataSource(dataSourceUpdate *dataSource.Update) *work.ProcessResult {
-	if dataSourceUpdate == nil {
-		return m.Failed(errors.New("data source update is missing"))
-	}
 	if m.dataSource == nil {
 		return m.Failed(errors.New("data source is missing"))
 	}
 
-	if dataSrcMetadata, err := metadata.Encode(m.dataSourceMetadata); err != nil {
-		return m.Failing(errors.Wrap(err, "unable to encode data source metadata"))
-	} else if dataSrcMetadata != nil || m.dataSource.Metadata != nil {
-		dataSourceUpdate.Metadata = &dataSrcMetadata
+	if dataSourceUpdate != nil {
+		if dataSrcMetadata, err := metadata.Encode(m.dataSourceMetadata); err != nil {
+			return m.Failing(errors.Wrap(err, "unable to encode data source metadata"))
+		} else if dataSrcMetadata != nil || m.dataSource.Metadata != nil {
+			dataSourceUpdate.Metadata = &dataSrcMetadata
+		}
 	}
 
 	if dataSrc, err := m.dataSourceClient.Update(context.WithoutCancel(m.Context()), m.dataSource.ID, nil, dataSourceUpdate); err != nil {

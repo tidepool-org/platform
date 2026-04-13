@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 
@@ -43,6 +44,39 @@ func ErrorValueStringAsBase64EncodedMD5HashNotValid(value string) error {
 func HexEncodedMD5Hash(sourceString string) string {
 	md5Sum := md5.Sum([]byte(sourceString))
 	return hex.EncodeToString(md5Sum[:])
+}
+
+func Base64EncodedSHA256Hash(bites []byte) string {
+	sha256Sum := sha256.Sum256(bites)
+	return base64.StdEncoding.EncodeToString(sha256Sum[:])
+}
+
+func IsValidBase64EncodedSHA256Hash(value string) bool {
+	return ValidateBase64EncodedSHA256Hash(value) == nil
+}
+
+func Base64EncodedSHA256HashValidator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateBase64EncodedSHA256Hash(value))
+}
+
+func ValidateBase64EncodedSHA256Hash(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if bites, err := base64.StdEncoding.DecodeString(value); err != nil {
+		return ErrorValueStringAsBase64EncodedSHA256HashNotValid(value)
+	} else if len(bites) != 32 {
+		return ErrorValueStringAsBase64EncodedSHA256HashNotValid(value)
+	}
+	return nil
+}
+
+func ErrorValueStringAsBase64EncodedSHA256HashNotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as Base64 encoded SHA256 hash", value)
+}
+
+func HexEncodedSHA256Hash(sourceString string) string {
+	sha256Sum := sha256.Sum256([]byte(sourceString))
+	return hex.EncodeToString(sha256Sum[:])
 }
 
 func EncryptWithAES256UsingPassphrase(bites []byte, passphrase []byte) (_ []byte, err error) {

@@ -375,18 +375,18 @@ func (c *MockClientDeleteSubscriptionCall) DoAndReturn(f func(context.Context, s
 }
 
 // GetData mocks base method.
-func (m *MockClient) GetData(ctx context.Context, dataType string, timeRange times.TimeRange, tokenSource oauth.TokenSource) (*oura.Data, error) {
+func (m *MockClient) GetData(ctx context.Context, dataType string, timeRange *times.TimeRange, pagination *oura.Pagination, tokenSource oauth.TokenSource) (*oura.DataResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetData", ctx, dataType, timeRange, tokenSource)
-	ret0, _ := ret[0].(*oura.Data)
+	ret := m.ctrl.Call(m, "GetData", ctx, dataType, timeRange, pagination, tokenSource)
+	ret0, _ := ret[0].(*oura.DataResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetData indicates an expected call of GetData.
-func (mr *MockClientMockRecorder) GetData(ctx, dataType, timeRange, tokenSource any) *MockClientGetDataCall {
+func (mr *MockClientMockRecorder) GetData(ctx, dataType, timeRange, pagination, tokenSource any) *MockClientGetDataCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockClient)(nil).GetData), ctx, dataType, timeRange, tokenSource)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetData", reflect.TypeOf((*MockClient)(nil).GetData), ctx, dataType, timeRange, pagination, tokenSource)
 	return &MockClientGetDataCall{Call: call}
 }
 
@@ -396,28 +396,28 @@ type MockClientGetDataCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockClientGetDataCall) Return(arg0 *oura.Data, arg1 error) *MockClientGetDataCall {
+func (c *MockClientGetDataCall) Return(arg0 *oura.DataResponse, arg1 error) *MockClientGetDataCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientGetDataCall) Do(f func(context.Context, string, times.TimeRange, oauth.TokenSource) (*oura.Data, error)) *MockClientGetDataCall {
+func (c *MockClientGetDataCall) Do(f func(context.Context, string, *times.TimeRange, *oura.Pagination, oauth.TokenSource) (*oura.DataResponse, error)) *MockClientGetDataCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientGetDataCall) DoAndReturn(f func(context.Context, string, times.TimeRange, oauth.TokenSource) (*oura.Data, error)) *MockClientGetDataCall {
+func (c *MockClientGetDataCall) DoAndReturn(f func(context.Context, string, *times.TimeRange, *oura.Pagination, oauth.TokenSource) (*oura.DataResponse, error)) *MockClientGetDataCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetDatum mocks base method.
-func (m *MockClient) GetDatum(ctx context.Context, dataType, dataID string, tokenSource oauth.TokenSource) (*oura.Datum, error) {
+func (m *MockClient) GetDatum(ctx context.Context, dataType, dataID string, tokenSource oauth.TokenSource) (oura.Datum, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDatum", ctx, dataType, dataID, tokenSource)
-	ret0, _ := ret[0].(*oura.Datum)
+	ret0, _ := ret[0].(oura.Datum)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -435,19 +435,19 @@ type MockClientGetDatumCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockClientGetDatumCall) Return(arg0 *oura.Datum, arg1 error) *MockClientGetDatumCall {
+func (c *MockClientGetDatumCall) Return(arg0 oura.Datum, arg1 error) *MockClientGetDatumCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientGetDatumCall) Do(f func(context.Context, string, string, oauth.TokenSource) (*oura.Datum, error)) *MockClientGetDatumCall {
+func (c *MockClientGetDatumCall) Do(f func(context.Context, string, string, oauth.TokenSource) (oura.Datum, error)) *MockClientGetDatumCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientGetDatumCall) DoAndReturn(f func(context.Context, string, string, oauth.TokenSource) (*oura.Datum, error)) *MockClientGetDatumCall {
+func (c *MockClientGetDatumCall) DoAndReturn(f func(context.Context, string, string, oauth.TokenSource) (oura.Datum, error)) *MockClientGetDatumCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

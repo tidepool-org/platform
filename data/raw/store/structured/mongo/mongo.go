@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/md5"
+	"crypto/sha256"
 	"encoding/base64"
 	"io"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	mongoOptions "go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/compress"
 	"github.com/tidepool-org/platform/data"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	"github.com/tidepool-org/platform/errors"
@@ -29,6 +31,9 @@ import (
 const (
 	IDSeparator  = ":"
 	IDDateFormat = time.DateOnly
+
+	CompressionOriginalSizeMinimum = 100 // To prevent unnecessary compression
+	CompressionFactorMinimum       = 0.1
 )
 
 type Store struct {
@@ -157,28 +162,66 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	now := time.Now()
 	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("Create") }()
 
-	hasher := md5.New()
-	data, err := io.ReadAll(io.TeeReader(io.LimitReader(reader, dataRaw.DataSizeMaximum+1), hasher))
+	hasherMD5 := md5.New() //nolint:gosec // MD5 acceptable for data integrity checksums, not used for security
+	hasherSHA256 := sha256.New()
+
+	// Setup readers
+	originalLimitReader := io.LimitReader(reader, dataRaw.SizeMaximum+1)                                       // Limit original size to prevent abuse
+	originalSizeReader := compress.SizeReader(originalLimitReader)                                             // Capture original size
+	originalHeadReader := compress.HeadReader(originalSizeReader, dataRaw.SizeStoredMaximum)                   // Capture original head to use if compression not warranted
+	hasherMD5Reader := io.TeeReader(originalHeadReader, hasherMD5)                                             // Calculate MD5 digest of original data
+	hasherSHA256Reader := io.TeeReader(hasherMD5Reader, hasherSHA256)                                          // Calculate SHA256 digest of original data
+	compressedLimitReader := compress.LimitCompressReadCloser(hasherSHA256Reader, dataRaw.SizeStoredMaximum+1) // Limit compressed size to prevent abuse
+
+	// Read all compressed data
+	compressedData, err := io.ReadAll(compressedLimitReader)
 	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to read data")
-		return nil, errors.Wrap(err, "unable to read data")
+		lgr.Error("unable to read compressed data")
+		return nil, errors.Wrap(err, "unable to read compressed data")
 	}
 
 	// TODO: BACK-3629 - Respond with HTTP 400 Bad Request when raw data request body exceeds maximum size
 
-	size := len(data)
-	if size > dataRaw.DataSizeMaximum {
+	// Ensure original size is valid
+	originalSize := originalSizeReader.Size()
+	if originalSize > dataRaw.SizeMaximum {
 		lgr.Error("data size exceeds maximum allowed size")
 		return nil, errors.New("data size exceeds maximum allowed size")
 	}
 
+	// Ensure compressed size is valid
+	compressedSize := len(compressedData)
+	if compressedSize > dataRaw.SizeStoredMaximum {
+		lgr.Error("compressed data size exceeds maximum allowed size")
+		return nil, errors.New("compressed data size exceeds maximum allowed size")
+	}
+
 	// TODO: BACK-3630 - Respond with HTTP 400 Bad Request when raw data request-specified MD5 digest does not match calculated
 
-	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
+	// Ensure MD5 digest is valid
+	digestMD5 := base64.StdEncoding.EncodeToString(hasherMD5.Sum(nil))
 	if create.DigestMD5 != nil && *create.DigestMD5 != digestMD5 {
 		lgr.Error("calculated MD5 digest does not match expected")
 		return nil, errors.New("calculated MD5 digest does not match expected")
+	}
+
+	// Ensure SHA256 digest is valid
+	digestSHA256 := base64.StdEncoding.EncodeToString(hasherSHA256.Sum(nil))
+	if create.DigestSHA256 != nil && *create.DigestSHA256 != digestSHA256 {
+		lgr.Error("calculated SHA256 digest does not match expected")
+		return nil, errors.New("calculated SHA256 digest does not match expected")
+	}
+
+	// Use compressed data if compression is significant or original data cannot be stored directly
+	compressed := originalSize > dataRaw.SizeStoredMaximum ||
+		(originalSize >= CompressionOriginalSizeMinimum && compressionFactor(originalSize, int64(compressedSize)) >= CompressionFactorMinimum)
+
+	var data bsonPrimitive.Binary
+	if compressed {
+		data = bsonPrimitive.Binary{Data: compressedData}
+	} else {
+		data = bsonPrimitive.Binary{Data: originalHeadReader.Bytes()}
 	}
 
 	document := &Document{
@@ -186,9 +229,11 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		DataSetID:      dataSetID,
 		Metadata:       create.Metadata,
 		DigestMD5:      digestMD5,
+		DigestSHA256:   pointer.From(digestSHA256),
 		MediaType:      pointer.DefaultString(create.MediaType, dataRaw.MediaTypeDefault),
-		Size:           size,
-		Data:           bsonPrimitive.Binary{Data: data},
+		Size:           int(originalSize),
+		Compressed:     compressed,
+		Data:           data,
 		ArchivableTime: create.ArchivableTime,
 		CreatedTime:    now,
 		Revision:       1,
@@ -368,7 +413,7 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	}
 	if condition == nil {
 		condition = storeStructured.NewCondition()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
@@ -530,8 +575,10 @@ type Document struct {
 	DataSetID      string                 `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
 	Metadata       map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	DigestMD5      string                 `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
+	DigestSHA256   *string                `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
 	MediaType      string                 `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
 	Size           int                    `json:"size,omitempty" bson:"size,omitempty"`
+	Compressed     bool                   `json:"compressed,omitempty" bson:"compressed,omitempty"`
 	Data           bsonPrimitive.Binary   `json:"-" bson:"data,omitempty"`
 	ProcessedTime  *time.Time             `json:"processedTime,omitempty" bson:"processedTime,omitempty"`
 	ArchivableTime *time.Time             `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
@@ -548,6 +595,7 @@ func (d *Document) AsRaw() *dataRaw.Raw {
 		DataSetID:      d.DataSetID,
 		Metadata:       d.Metadata,
 		DigestMD5:      d.DigestMD5,
+		DigestSHA256:   d.DigestSHA256,
 		MediaType:      d.MediaType,
 		Size:           d.Size,
 		ProcessedTime:  d.ProcessedTime,
@@ -560,10 +608,15 @@ func (d *Document) AsRaw() *dataRaw.Raw {
 }
 
 func (d *Document) AsContent() *dataRaw.Content {
+	readCloser := io.NopCloser(bytes.NewReader(d.Data.Data))
+	if d.Compressed {
+		readCloser = compress.DecompressReadCloser(readCloser)
+	}
 	return &dataRaw.Content{
-		DigestMD5:  d.DigestMD5,
-		MediaType:  d.MediaType,
-		ReadCloser: io.NopCloser(bytes.NewReader(d.Data.Data)),
+		DigestMD5:    d.DigestMD5,
+		DigestSHA256: d.DigestSHA256,
+		MediaType:    d.MediaType,
+		ReadCloser:   readCloser,
 	}
 }
 
@@ -608,4 +661,11 @@ func objectIDAndDateFromID(id string) (bsonPrimitive.ObjectID, time.Time, error)
 
 func idFromObjectIDAndDate(objectID bsonPrimitive.ObjectID, date time.Time) string {
 	return strings.Join([]string{objectID.Hex(), date.Format(IDDateFormat)}, IDSeparator)
+}
+
+func compressionFactor(originalSize int64, compressedSize int64) float64 {
+	if originalSize == 0 {
+		return 1.0
+	}
+	return 1.0 - float64(compressedSize)/float64(originalSize)
 }

@@ -2,9 +2,13 @@ package work
 
 import (
 	"context"
+	"io"
 
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
+	"github.com/tidepool-org/platform/data"
+	dataRaw "github.com/tidepool-org/platform/data/raw"
+	dataRawWork "github.com/tidepool-org/platform/data/raw/work"
 	dataSetWork "github.com/tidepool-org/platform/data/set/work"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceWork "github.com/tidepool-org/platform/data/source/work"
@@ -48,17 +52,17 @@ type providerSessionDataSourceMixin struct {
 }
 
 func (p *providerSessionDataSourceMixin) FetchDataSourceFromProviderSession() *work.ProcessResult {
-	if !p.HasProviderSession() {
+	if prvdrSession := p.ProviderSession(); prvdrSession == nil {
 		return p.Failed(errors.New("provider session is missing"))
 	} else {
-		return p.FetchDataSourceFromProviderSessionID(p.ProviderSession().ID)
+		return p.FetchDataSourceFromProviderSessionID(prvdrSession.ID)
 	}
 }
 
 func (p *providerSessionDataSourceMixin) FetchProviderSessionFromDataSource() *work.ProcessResult {
-	if !p.HasDataSource() {
+	if dataSrc := p.DataSource(); dataSrc == nil {
 		return p.Failed(errors.New("data source is missing"))
-	} else if providerSessionID := p.DataSource().ProviderSessionID; providerSessionID == nil {
+	} else if providerSessionID := dataSrc.ProviderSessionID; providerSessionID == nil {
 		return p.Failed(errors.New("data source provider session id is missing"))
 	} else {
 		return p.FetchProviderSession(*providerSessionID)
@@ -67,6 +71,7 @@ func (p *providerSessionDataSourceMixin) FetchProviderSessionFromDataSource() *w
 
 type DataSourceDataSetMixin interface {
 	FetchDataSetFromDataSource() *work.ProcessResult
+	CreateDataSetForDataSource(dataSetCreate *data.DataSetCreate) *work.ProcessResult
 }
 
 func NewDataSourceDataSetMixin(provider work.Provider, dataSourceMixin dataSourceWork.Mixin, dataSetMixin dataSetWork.Mixin) (DataSourceDataSetMixin, error) {
@@ -95,12 +100,65 @@ type dataSourceDataSetMixin struct {
 }
 
 func (d *dataSourceDataSetMixin) FetchDataSetFromDataSource() *work.ProcessResult {
-	if !d.HasDataSource() {
+	if dataSrc := d.DataSource(); dataSrc == nil {
 		return d.Failed(errors.New("data source is missing"))
-	} else if dataSetID := d.DataSource().DataSetID; dataSetID == nil {
+	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
 		return d.Failed(errors.New("data source data set id is missing"))
 	} else {
 		return d.FetchDataSet(*dataSetID)
+	}
+}
+
+func (d *dataSourceDataSetMixin) CreateDataSetForDataSource(dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	if dataSrc := d.DataSource(); dataSrc == nil {
+		return d.Failed(errors.New("data source is missing"))
+	} else if dataSetID := dataSrc.DataSetID; dataSetID != nil {
+		return d.Failed(errors.New("data source data set id already exists"))
+	} else if result := d.CreateDataSet(dataSrc.UserID, dataSetCreate); result != nil {
+		return result
+	} else {
+		return d.UpdateDataSource(&dataSource.Update{DataSetID: d.DataSet().ID})
+	}
+}
+
+type DataSourceDataRawMixin interface {
+	CreateDataRawForDataSource(dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult
+}
+
+func NewDataSourceDataRawMixin(provider work.Provider, dataSourceMixin dataSourceWork.Mixin, dataRawMixin dataRawWork.Mixin) (DataSourceDataRawMixin, error) {
+	if provider == nil {
+		return nil, errors.New("provider is missing")
+	}
+	if dataSourceMixin == nil {
+		return nil, errors.New("data source mixin is missing")
+	}
+	if dataRawMixin == nil {
+		return nil, errors.New("data raw mixin is missing")
+	}
+	return &dataSourceDataRawMixin{
+		Provider:        provider,
+		dataSourceMixin: dataSourceMixin,
+		dataRawMixin:    dataRawMixin,
+	}, nil
+}
+
+type dataRawMixin = dataRawWork.Mixin
+
+type dataSourceDataRawMixin struct {
+	work.Provider
+	dataSourceMixin
+	dataRawMixin
+}
+
+func (d *dataSourceDataRawMixin) CreateDataRawForDataSource(dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult {
+	if dataSrc := d.DataSource(); dataSrc == nil {
+		return d.Failed(errors.New("data source is missing"))
+	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
+		return d.Failed(errors.New("data source data set id is missing"))
+	} else if result := d.CreateDataRaw(dataSrc.UserID, *dataSrc.DataSetID, dataRawCreate, reader); result != nil {
+		return result
+	} else {
+		return d.UpdateDataSource(&dataSource.Update{LastImportTime: pointer.From(d.DataRaw().CreatedTime)})
 	}
 }
 
@@ -153,7 +211,7 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 		} else {
 			log.LoggerFromContext(ctx).WithField("replacementDataSourceId", replacementDataSource.ID).Warn("replacement data source not disconnected and without provider session id")
 			replacementDataSourceUpdate = &dataSource.Update{
-				State: pointer.FromString(dataSource.StateDisconnected),
+				State: pointer.From(dataSource.StateDisconnected),
 			}
 		}
 	}
@@ -166,7 +224,7 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 	if originalDataSource != nil {
 		replacementDataSourceUpdate = &dataSource.Update{
 			ProviderSessionID: originalDataSource.ProviderSessionID,
-			State:             pointer.FromString(originalDataSource.State),
+			State:             pointer.From(originalDataSource.State),
 		}
 	}
 
