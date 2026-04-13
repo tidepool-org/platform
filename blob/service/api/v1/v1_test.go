@@ -520,6 +520,20 @@ var _ = Describe("V1", func() {
 									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
 								})
 
+								It("responds with not found error when the client returns a blob but the blob has no content", func() {
+									// This has happened when blob creation succeeded but the request context canceled before the contents finished uploading to S3 so there is a "stray" blob w/o content
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Error: request.ErrorResourceNotFoundWithID(*deviceLogsBlob.ID)}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(*deviceLogsBlob.ID), res.WriteInputs[0])
+								})
+
 								It("responds successfully with headers", func() {
 									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
 									content := blob.NewDeviceLogsContent()
@@ -606,6 +620,19 @@ var _ = Describe("V1", func() {
 									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(id), res.WriteInputs[0])
 								})
 
+								It("responds with not found error when the client returns a blob but the blob has no content", func() {
+									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
+									deviceLogsBlob.UserID = pointer.FromString(userID)
+									client.GetDeviceLogsBlobOutputs = []blobTest.GetDeviceLogsBlobOutput{{Blob: deviceLogsBlob}}
+									client.GetDeviceLogsContentOutputs = []blobTest.GetDeviceLogsContentOutput{{Error: request.ErrorResourceNotFoundWithID(*deviceLogsBlob.ID)}}
+									res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+									handlerFunc(res, req)
+									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusNotFound}))
+									Expect(res.HeaderOutput).To(Equal(&http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}))
+									Expect(res.WriteInputs).To(HaveLen(1))
+									errorsTest.ExpectErrorJSON(request.ErrorResourceNotFoundWithID(*deviceLogsBlob.ID), res.WriteInputs[0])
+								})
 								It("responds successfully with headers for user's own logs content", func() {
 									deviceLogsBlob := blobTest.RandomDeviceLogsBlob()
 									deviceLogsBlob.UserID = pointer.FromString(userID)
