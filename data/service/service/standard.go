@@ -705,7 +705,13 @@ func (s *Standard) initializeWorkCoordinator() error {
 		return errors.Wrap(err, "unable to register abbott processors")
 	}
 
-	s.historyRecorder = notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
+	s.Logger().Debug("Creating email notifications history store")
+	historyRecorder := notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
+	if err := historyRecorder.EnsureIndexes(); err != nil {
+		return errors.Wrap(err, "unable to ensure notifications history indexes")
+	}
+	s.historyRecorder = historyRecorder
+
 	notificationsDependencies := notifications.Dependencies{
 		Auth:         s.AuthClient(),
 		Clinics:      s.clinicsClient,
@@ -721,9 +727,10 @@ func (s *Standard) initializeWorkCoordinator() error {
 		connreqs.NewProcessor(notificationsDependencies),
 		connissues.NewProcessor(notificationsDependencies),
 	}
+	s.Logger().Debug("Creating and registering email notifications processors")
 
 	if err = s.workCoordinator.RegisterProcessors(notificationProcessors); err != nil {
-		return errors.Wrap(err, "unable to register notifications processors")
+		return errors.Wrap(err, "unable to register email notifications processors")
 	}
 
 	s.Logger().Debug("Starting work coordinator")

@@ -56,11 +56,12 @@ func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recor
 			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
 		}
 	}
-	if _, err := client.Create(ctx, create); err != nil {
+	wrk, err := client.Create(ctx, create)
+	if err != nil {
 		return err
 	}
 	entry := history.Entry{
-		Metadata:      metadata,
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		EventType:     history.NotificationQueued,
 		GroupID:       groupID,

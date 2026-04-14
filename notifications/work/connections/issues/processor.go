@@ -63,12 +63,14 @@ func (d *Metadata) Validate(validator structure.Validator) {
 
 func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
 	create := newWorkCreate(metadata)
-	if _, err := client.Create(ctx, create); err != nil {
+	wrk, err := client.Create(ctx, create)
+	if err != nil {
 		return err
 	}
+
 	groupID := pointer.DefaultString(create.GroupID, "")
 	entry := history.Entry{
-		Metadata:      metadata,
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		EventType:     history.NotificationQueued,
 		GroupID:       groupID,
