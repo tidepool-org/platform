@@ -238,14 +238,28 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 }
 
 func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, customer customerio.Customer, submission *SubmissionResponse) error {
+	logger := s.logger.WithField("submission", submission.Content.ID)
+
 	surveyCompletedData := oura.OuraEligibilitySurveyCompletedData{
 		OuraEligibilitySurveyID:       submission.Content.ID,
 		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == "true",
 	}
 
+	v := validator.New(s.logger)
+	survey := OuraEligibilitySurvey{
+		DateOfBirth: submission.Content.Answers.GetAnswerTextByName(DateOfBirthField),
+		Name:        submission.Content.Answers.GetAnswerTextByName(NameField),
+	}
+
+	survey.Validate(v)
+	if err := v.Error(); err != nil {
+		surveyCompletedData.OuraEligibilitySurveyEligible = false
+		logger.WithError(err).Warn("consent survey is invalid")
+	}
+
 	if surveyCompletedData.OuraEligibilitySurveyEligible {
-		if err := s.ensureConsentRecordExists(ctx, customer.Identifiers.ID, submission); err != nil {
-			s.logger.WithField("submission", submission.Content.ID).WithError(err).Warn("unable to ensure consent record exists")
+		if err := s.ensureConsentRecordExists(ctx, customer.Identifiers.ID, submission, survey); err != nil {
+			s.logger.WithError(err).Warn("unable to ensure consent record exists")
 			return err
 		}
 
@@ -279,20 +293,8 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, custome
 	return nil
 }
 
-func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse) error {
+func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse, survey OuraEligibilitySurvey) error {
 	logger := s.logger.WithField("submission", submission.Content.ID)
-
-	survey := OuraEligibilitySurvey{
-		DateOfBirth: submission.Content.Answers.GetAnswerTextByName(DateOfBirthField),
-		Name:        submission.Content.Answers.GetAnswerTextByName(NameField),
-	}
-
-	v := validator.New(s.logger)
-	survey.Validate(v)
-	if err := v.Error(); err != nil {
-		logger.WithError(err).Warn("consent survey is invalid")
-		return nil
-	}
 
 	creates := make([]*consent.RecordCreate, 0)
 
