@@ -60,6 +60,7 @@ func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recor
 		return err
 	}
 	entry := history.Entry{
+		Metadata:      metadata,
 		ProcessorType: Type,
 		EventType:     history.NotificationQueued,
 		GroupID:       groupID,
@@ -144,6 +145,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	if len(connectedDataSources) > 0 {
 		// User now has a connected dataSource so no email to send.
 		entry := history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			Email:         pointer.DefaultString(user.Username, ""),
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
@@ -178,6 +180,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Variables: emailVars,
 	}
 	entry := history.Entry{
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		Email:         pointer.DefaultString(user.Username, ""),
 		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
@@ -192,11 +195,13 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
 		entry = history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			Email:         pointer.DefaultString(user.Username, ""),
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
 			EventType:     history.NotificationEmailError,
 			UserID:        data.UserID,
+			Error:         errors.Wrap(err, "unable to send email template for connection request"),
 		}
 		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
 			if lgr := log.LoggerFromContext(ctx); lgr != nil {
@@ -207,6 +212,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	entry = history.Entry{
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		Email:         pointer.DefaultString(user.Username, ""),
 		GroupID:       pointer.DefaultString(wrk.GroupID, ""),

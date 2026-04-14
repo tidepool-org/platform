@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -61,7 +59,8 @@ type Entry struct {
 	DataSourceID  string    `bson:"dataSourceId,omitempty"`
 	Email         string    `bson:"email,omitempty"`
 	GroupID       string    `bson:"groupId,omitempty"`
-	Metadata      bson.M    `bson:"metadata,omitempty"`
+	Metadata      any       `bson:"metadata,omitempty"`
+	Error         error     `bson:"error,omitempty"`
 	UserID        string    `bson:"userId,omitempty"`
 }
 

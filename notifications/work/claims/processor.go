@@ -65,6 +65,7 @@ func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recor
 		return err
 	}
 	entry := history.Entry{
+		Metadata:      metadata,
 		ProcessorType: Type,
 		EventType:     history.NotificationQueued,
 		GroupID:       groupID,
@@ -128,6 +129,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	// If user already claimed they will no longer have the custodian field set
 	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
 		entry := history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			Email:         pointer.DefaultString(patient.Email, ""),
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
@@ -144,6 +146,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 
 	entry := history.Entry{
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		Email:         pointer.DefaultString(patient.Email, ""),
 		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
@@ -158,11 +161,13 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 	if _, err := p.dependencies.Confirmation.ResendAccountSignupWithResponse(ctx, *patient.Email); err != nil {
 		entry := history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			Email:         pointer.DefaultString(patient.Email, ""),
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
 			EventType:     history.NotificationEmailError,
 			UserID:        data.UserID,
+			Error:         errors.Wrap(err, "unable to resend account signup"),
 		}
 		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
 			if lgr := log.LoggerFromContext(ctx); lgr != nil {
@@ -173,6 +178,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(errors.Newf(`unable to resend account signup email`), wrk)
 	}
 	entry = history.Entry{
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		Email:         pointer.DefaultString(patient.Email, ""),
 		GroupID:       pointer.DefaultString(wrk.GroupID, ""),

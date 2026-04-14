@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-
 	"github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/errors"
@@ -70,6 +68,7 @@ func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recor
 	}
 	groupID := pointer.DefaultString(create.GroupID, "")
 	entry := history.Entry{
+		Metadata:      metadata,
 		ProcessorType: Type,
 		EventType:     history.NotificationQueued,
 		GroupID:       groupID,
@@ -122,11 +121,13 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 	if user == nil || user.Username == nil {
 		entry := history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			EventType:     history.NotificationGeneralError,
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
 			DataSourceID:  data.DataSourceID,
 			UserID:        data.UserID,
+			Error:         errors.New("user not found"),
 		}
 		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
 			if lgr := log.LoggerFromContext(ctx); lgr != nil {
@@ -148,6 +149,7 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Variables: emailVars,
 	}
 	entry := history.Entry{
+		Metadata:      wrk.Metadata,
 		ProcessorType: Type,
 		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
 		DataSourceID:  data.DataSourceID,
@@ -162,14 +164,13 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
 		entry := history.Entry{
+			Metadata:      wrk.Metadata,
 			ProcessorType: Type,
 			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
 			DataSourceID:  data.DataSourceID,
 			EventType:     history.NotificationEmailError,
 			UserID:        data.UserID,
-			Metadata: bson.M{
-				"error": err,
-			},
+			Error:         errors.Wrap(err, "unable to send email template for device issues"),
 		}
 		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
 			if lgr := log.LoggerFromContext(ctx); lgr != nil {
@@ -179,6 +180,20 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 
 		return notifications.NewFailingResult(err, wrk)
 	}
+	entry = history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(user.Username, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationEmailSent,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
+		}
+	}
+
 	return *work.NewProcessResultDelete()
 }
 
