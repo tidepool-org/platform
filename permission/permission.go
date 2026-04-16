@@ -25,6 +25,7 @@ const (
 	Write     = "upload"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -destination=./client_mock.go -package=permission . Client
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
 	UpdateUserPermissions(ctx context.Context, requestUserID string, targetUserID string, permissions Permissions) error

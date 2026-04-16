@@ -19,6 +19,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	testRest "github.com/tidepool-org/platform/test/rest"
@@ -31,10 +32,11 @@ var _ = Describe("Router", func() {
 	var svc *serviceTest.Service
 	var userAccessor *user.MockUserAccessor
 	var profileAccessor *user.MockUserProfileAccessor
+	var permsClient *permission.MockClient
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		svc, userAccessor, profileAccessor = serviceTest.NewMockedService(ctrl)
+		svc, userAccessor, profileAccessor, permsClient = serviceTest.NewMockedService(ctrl)
 	})
 
 	Context("NewRouter", func() {
@@ -103,10 +105,12 @@ var _ = Describe("Router", func() {
 						Username: pointer.FromString("dev@tidepool.org"),
 					}
 
-					profileAccessor.EXPECT().FindUserProfile(gomock.Any(), userID).
+					profileAccessor.EXPECT().
+						FindUserProfile(gomock.Any(), userID).
 						Return(userProfile, nil).AnyTimes()
 
-					userAccessor.EXPECT().FindUserById(gomock.Any(), userID).
+					userAccessor.EXPECT().
+						FindUserById(gomock.Any(), userID).
 						Return(userDetails, nil).AnyTimes()
 				})
 
@@ -121,10 +125,20 @@ var _ = Describe("Router", func() {
 					AfterEach(func() {
 						res.AssertOutputsEmpty()
 					})
+
 					Context("as service", func() {
 						BeforeEach(func() {
 							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+							permsClient.EXPECT().
+								HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
 						})
 
 						It("it succeeds if the profile exists", func() {
@@ -133,6 +147,7 @@ var _ = Describe("Router", func() {
 							Expect(json.Marshal(userProfile)).To(MatchJSON(res.WriteInputs[0]))
 						})
 					})
+
 					Context("as user", func() {
 						BeforeEach(func() {
 							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
@@ -143,6 +158,49 @@ var _ = Describe("Router", func() {
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userProfile)).To(MatchJSON(res.WriteInputs[0]))
+						})
+
+						Context("other persons profile", func() {
+							var otherPersonID string
+							var otherProfile *user.UserProfile
+							var otherDetails *user.User
+							BeforeEach(func() {
+								otherPersonID = userTest.RandomID()
+								req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
+								otherProfile = &user.UserProfile{
+									FullName:      "Someone Else's Profile",
+									Birthday:      "2002-03-04",
+									DiagnosisDate: "2003-04-05",
+									About:         "Not about me",
+									MRN:           "11223346",
+								}
+								otherDetails = &user.User{
+									UserID:   pointer.FromString(otherPersonID),
+									Username: pointer.FromString("dev+other@tidepool.org"),
+								}
+							})
+							It("retrieves another person's profile if user has access", func() {
+								permsClient.EXPECT().
+									HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+									Return(true, nil).AnyTimes()
+								profileAccessor.EXPECT().
+									FindUserProfile(gomock.Any(), otherPersonID).
+									Return(otherProfile, nil).AnyTimes()
+								userAccessor.EXPECT().
+									FindUserById(gomock.Any(), otherPersonID).
+									Return(otherDetails, nil).AnyTimes()
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
+							})
+							It("fails to retrieve another person's profile if user does not have access", func() {
+								permsClient.EXPECT().
+									HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+									Return(false, nil).AnyTimes()
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+								res.WriteOutputs = nil
+							})
 						})
 					})
 				})
