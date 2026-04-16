@@ -11,8 +11,6 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
-	"github.com/tidepool-org/platform/apple"
-	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/user/keycloak"
 
@@ -43,7 +41,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
-	logInternal "github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
@@ -88,6 +85,7 @@ type Service struct {
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 	consentService                 consent.Service
 	userAccessor                   user.UserAccessor
+	userProfileAccessor            user.UserProfileAccessor
 	permsClient                    *permissionClient.Client
 }
 
@@ -166,6 +164,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeUserAccessor(); err != nil {
+		return err
+	}
+	if err := s.initializeUserProfileAccessor(s.userAccessor); err != nil {
 		return err
 	}
 	if err := s.initializePermissionsClient(); err != nil {
@@ -249,6 +250,11 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 		Version: s.VersionReporter().Long(),
 	}
 }
+
+func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+	return s.userProfileAccessor
+}
+
 func (s *Service) PermissionsClient() permission.Client {
 	return s.permsClient
 }
@@ -714,6 +720,34 @@ func (s *Service) initializeUserAccessor() error {
 	}
 	s.userAccessor = keycloak.NewKeycloakUserAccessor(config)
 
+	return nil
+}
+
+func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) error {
+	s.Logger().Debug("Initializing user profile accessor")
+
+	if userAccessor == nil {
+		return errors.New("empty user accessor passed to initializeUserProfileAccessor")
+	}
+	cfg := storeStructuredMongo.NewConfig()
+	// Note the "SEAGULL" prefix, this is so that the regular env vars
+	// for mongo access such as TIDEPOOL_STORE_SCHEME are
+	// SEAGULL_TIDEPOOL_STORE_SCHEME so as to not conflict with existing
+	// TIDEPOOL_STORE_SCHEME values. This is done instead of using a
+	// seagull client as seagull will eventually be removed so no sense
+	// in keeping it around.
+	if err := cfg.LoadPrefix("SEAGULL"); err != nil {
+		return errors.Wrap(err, "unable to load seagull profile accessor config")
+	}
+
+	s.Logger().Debug("creating legacy seagull profile accessor")
+
+	repo, err := authMongo.NewFallbackUserProfileRepository(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create fallback user profile repository")
+	}
+
+	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor)
 	return nil
 }
 
