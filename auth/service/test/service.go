@@ -18,6 +18,7 @@ import (
 	serviceTest "github.com/tidepool-org/platform/service/test"
 	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Service struct {
@@ -109,6 +110,10 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	output := s.StatusOutputs[0]
 	s.StatusOutputs = s.StatusOutputs[1:]
 	return output
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return nil
 }
 
 func (s *Service) AppValidator() *appvalidate.Validator {
