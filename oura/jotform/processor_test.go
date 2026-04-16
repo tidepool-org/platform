@@ -2,6 +2,7 @@ package jotform_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net/http"
@@ -14,6 +15,8 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.uber.org/mock/gomock"
+
+	"github.com/tidepool-org/platform/oura"
 
 	"github.com/tidepool-org/platform/oura/jotform/store"
 
@@ -207,6 +210,51 @@ var _ = Describe("SubmissionProcessor", func() {
 					Expect(input.ProductID).To(Equal("9122899853526"))
 					return nil
 				})
+
+			err = processor.ProcessSubmission(ctx, submissionID)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should mark the survey is ineligible if date of birth is missing", func() {
+			submissionID := "6410095903544943563"
+			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
+
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission_missing_dob.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			jotformResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/submission/"+submissionID)},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
+			)
+
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			appAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/customers/"+userID+"/attributes")},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
+			)
+			expectedEvent := &customerio.Event{
+				Name: oura.OuraEligibilitySurveyCompletedEventType,
+				Data: oura.OuraEligibilitySurveyCompletedData{
+					OuraEligibilitySurveyID:       "6410095903544943563",
+					OuraEligibilitySurveyEligible: false,
+				},
+			}
+			Expect(expectedEvent.SetDeduplicationID(nil, "06336454-cf65-11f0-b3af-fac742a1f967")).To(Succeed())
+			expectedEventJSON, err := json.Marshal(expectedEvent)
+			Expect(err).ToNot(HaveOccurred())
+
+			trackAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events"),
+					ouraTest.NewRequestJSONBodyMatcher(string(expectedEventJSON)),
+				},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
+			)
+
+			usr := &user.User{UserID: &userID}
+			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
 
 			err = processor.ProcessSubmission(ctx, submissionID)
 			Expect(err).ToNot(HaveOccurred())
@@ -525,7 +573,7 @@ var _ = Describe("SubmissionProcessor", func() {
 					Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 						Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 						Expect(len(input.Code)).To(BeNumerically(">=", 12))
-						//Expect(input.ProductID).To(Equal("9122899853526"))
+						Expect(input.ProductID).To(Equal("9122899853526"))
 						return nil
 					})
 
