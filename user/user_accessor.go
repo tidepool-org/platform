@@ -30,7 +30,7 @@ var (
 
 type LegacyUserProfileAccessor interface {
 	FindUserProfile(ctx context.Context, id string) (*LegacyUserProfile, error)
-	UpdateUserProfile(ctx context.Context, id string, p *LegacyUserProfile) error
+	UpdateUserProfile(ctx context.Context, id string, p *UserProfile) error
 	DeleteUserProfile(ctx context.Context, id string) error
 }
 
