@@ -131,17 +131,17 @@ func MarshalThenUnmarshal(src any, dst *LegacyUserProfile) error {
 
 func (doc *LegacySeagullDocument) MigrationStatus() migrationStatus {
 	if doc.MigrationStart != nil && doc.MigrationEnd != nil {
-		return migrationCompleted
+		return MigrationCompleted
 	}
 	if doc.MigrationStart != nil && doc.MigrationEnd == nil && doc.MigrationError == nil {
-		return migrationInProgress
+		return MigrationInProgress
 	}
 	if doc.MigrationStart != nil && doc.MigrationError != nil {
-		return migrationError
+		return MigrationError
 	}
-	return migrationUnmigrated
+	return MigrationUnmigrated
 }
 
 func (doc *LegacySeagullDocument) IsMigrating() bool {
-	return doc.MigrationStatus() != migrationUnmigrated
+	return doc.MigrationStatus() != MigrationUnmigrated
 }

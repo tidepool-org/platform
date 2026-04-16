@@ -29,7 +29,7 @@ func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id str
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return nil, err
 	}
-	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
+	if seagullProfile != nil && seagullProfile.MigrationStatus == MigrationUnmigrated {
 		return seagullProfile.ToUserProfile(), nil
 	}
 	profile, err := f.accessor.FindUserProfile(ctx, id)
@@ -66,7 +66,7 @@ func (f *FallbackLegacyUserAccessor) updateUserProfile(ctx context.Context, id s
 		return err
 	}
 	// An unmigrated profile should be returned until the profile has been migrated
-	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
+	if seagullProfile != nil && seagullProfile.MigrationStatus == MigrationUnmigrated {
 		// During an attempt to update a seagull profile, the migration process may have started in b/t the previous call and the attempt to update.
 		// In this we will retry as the migration time.
 		return f.legacy.UpdateUserProfile(ctx, id, profile)
@@ -79,7 +79,7 @@ func (f *FallbackLegacyUserAccessor) DeleteUserProfile(ctx context.Context, id s
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
 	}
-	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
+	if seagullProfile != nil && seagullProfile.MigrationStatus == MigrationUnmigrated {
 		return f.legacy.DeleteUserProfile(ctx, id)
 	}
 	return f.accessor.DeleteUserProfile(ctx, id)
