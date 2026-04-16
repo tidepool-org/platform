@@ -13,6 +13,8 @@ const (
 	TimestampFormat = "2006-01-02T15:04:05-07:00"
 )
 
+//go:generate mockgen -build_flags=--mod=mod -destination=./user_mock.go -package=user . UserProfileAccessor,UserAccessor
+
 var (
 	ShorelineManagedRoles = map[string]struct{}{"patient": {}, "clinic": {}, "clinician": {}, "custodial_account": {}}
 
