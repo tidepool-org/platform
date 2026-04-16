@@ -27,13 +27,9 @@ var (
 // interface, but for now will only retrieve user
 // information.
 type UserAccessor interface {
-	CreateUser(ctx context.Context, details *NewUserDetails) (*FullUser, error)
-	UpdateUser(ctx context.Context, user *FullUser, details *UpdateUserDetails) (*FullUser, error)
-	FindUser(ctx context.Context, user *FullUser) (*FullUser, error)
-	FindUserById(ctx context.Context, id string) (*FullUser, error)
-	FindUsersWithIds(ctx context.Context, ids []string) ([]*FullUser, error)
-	RemoveUser(ctx context.Context, user *FullUser) error
-	RemoveTokensForUser(ctx context.Context, userId string) error
+	FindUser(ctx context.Context, user *User) (*User, error)
+	FindUserById(ctx context.Context, id string) (*User, error)
+	FindUsersWithIds(ctx context.Context, ids []string) ([]*User, error)
 	UpdateUserProfile(ctx context.Context, id string, p *UserProfile) error
 	DeleteUserProfile(ctx context.Context, id string) error
 }
