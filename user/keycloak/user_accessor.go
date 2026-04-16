@@ -1,4 +1,4 @@
-package user
+package keycloak
 
 import (
 	"context"
@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"golang.org/x/oauth2"
+
+	userLib "github.com/tidepool-org/platform/user"
 )
 
 type keycloakUserAccessor struct {
@@ -24,7 +26,7 @@ func NewKeycloakUserAccessor(config *KeycloakConfig) *keycloakUserAccessor {
 	}
 }
 
-func (m *keycloakUserAccessor) CreateUser(ctx context.Context, details *NewUserDetails) (*FullUser, error) {
+func (m *keycloakUserAccessor) CreateUser(ctx context.Context, details *userLib.NewUserDetails) (*userLib.FullUser, error) {
 	keycloakUser := &keycloakUser{
 		Enabled:       details.Password != nil && *details.Password != "",
 		EmailVerified: details.EmailVerified,
@@ -41,7 +43,7 @@ func (m *keycloakUserAccessor) CreateUser(ctx context.Context, details *NewUserD
 	// Users without roles should be treated as patients to prevent keycloak from displaying
 	// the role selection dialog
 	if len(details.Roles) == 0 {
-		details.Roles = []string{RolePatient}
+		details.Roles = []string{userLib.RolePatient}
 	}
 	if details.Username != nil {
 		keycloakUser.Username = *details.Username
@@ -52,8 +54,8 @@ func (m *keycloakUserAccessor) CreateUser(ctx context.Context, details *NewUserD
 	keycloakUser.Roles = details.Roles
 
 	keycloakUser, err := m.keycloakClient.CreateUser(ctx, keycloakUser)
-	if errors.Is(err, ErrUserConflict) {
-		return nil, ErrUserConflict
+	if errors.Is(err, userLib.ErrUserConflict) {
+		return nil, userLib.ErrUserConflict
 	}
 	if err != nil {
 		return nil, err
@@ -71,7 +73,7 @@ func (m *keycloakUserAccessor) CreateUser(ctx context.Context, details *NewUserD
 	return user, nil
 }
 
-func (m *keycloakUserAccessor) UpdateUser(ctx context.Context, user *FullUser, details *UpdateUserDetails) (*FullUser, error) {
+func (m *keycloakUserAccessor) UpdateUser(ctx context.Context, user *userLib.FullUser, details *userLib.UpdateUserDetails) (*userLib.FullUser, error) {
 	emails := append([]string{}, details.Emails...)
 	if details.Username != nil {
 		emails = append(emails, *details.Username)
@@ -84,7 +86,7 @@ func (m *keycloakUserAccessor) UpdateUser(ctx context.Context, user *FullUser, d
 		return m.updateKeycloakUser(ctx, user, details)
 	}
 	// expected all users to be migrated(?)
-	return nil, ErrUserNotMigrated
+	return nil, userLib.ErrUserNotMigrated
 }
 
 func (m *keycloakUserAccessor) assertEmailsUnique(ctx context.Context, userId string, emails []string) error {
@@ -109,13 +111,13 @@ func (m *keycloakUserAccessor) assertEmailsUnique(ctx context.Context, userId st
 			return err
 		}
 		if user != nil && user.ID != userId {
-			return ErrEmailConflict
+			return userLib.ErrEmailConflict
 		}
 	}
 	return nil
 }
 
-func (m *keycloakUserAccessor) updateKeycloakUser(ctx context.Context, user *FullUser, details *UpdateUserDetails) (*FullUser, error) {
+func (m *keycloakUserAccessor) updateKeycloakUser(ctx context.Context, user *userLib.FullUser, details *userLib.UpdateUserDetails) (*userLib.FullUser, error) {
 	keycloakUser := userToKeycloakUser(user)
 	if details.Roles != nil {
 		keycloakUser.Roles = details.Roles
@@ -127,7 +129,7 @@ func (m *keycloakUserAccessor) updateKeycloakUser(ctx context.Context, user *Ful
 		// Remove the custodial role after the password has been set
 		newRoles := make([]string, 0)
 		for _, role := range keycloakUser.Roles {
-			if role != RoleCustodialAccount {
+			if role != userLib.RoleCustodialAccount {
 				newRoles = append(newRoles, role)
 			}
 		}
@@ -143,8 +145,8 @@ func (m *keycloakUserAccessor) updateKeycloakUser(ctx context.Context, user *Ful
 	if details.EmailVerified != nil {
 		keycloakUser.EmailVerified = *details.EmailVerified
 	}
-	if details.TermsAccepted != nil && IsValidTimestamp(*details.TermsAccepted) {
-		if ts, err := TimestampToUnixString(*details.TermsAccepted); err == nil {
+	if details.TermsAccepted != nil && userLib.IsValidTimestamp(*details.TermsAccepted) {
+		if ts, err := userLib.TimestampToUnixString(*details.TermsAccepted); err == nil {
 			keycloakUser.Attributes.TermsAcceptedDate = []string{ts}
 		}
 	}
@@ -162,11 +164,11 @@ func (m *keycloakUserAccessor) updateKeycloakUser(ctx context.Context, user *Ful
 	return newUserFromKeycloakUser(updated), nil
 }
 
-func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *FullUser) (*FullUser, error) {
+func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *userLib.FullUser) (*userLib.FullUser, error) {
 	var keycloakUser *keycloakUser
 	var err error
 
-	if IsValidUserID(user.Id) {
+	if userLib.IsValidUserID(user.Id) {
 		keycloakUser, err = m.keycloakClient.GetUserById(ctx, user.Id)
 	} else {
 		email := ""
@@ -176,18 +178,18 @@ func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *FullUser) (*F
 		keycloakUser, err = m.keycloakClient.GetUserByEmail(ctx, email)
 	}
 
-	if err != nil && err != ErrUserNotFound {
+	if err != nil && err != userLib.ErrUserNotFound {
 		return nil, err
 	} else if err == nil && keycloakUser != nil {
 		return newUserFromKeycloakUser(keycloakUser), nil
 	}
 	// expected all users to already be migrated(?)
-	return nil, ErrUserNotMigrated
+	return nil, userLib.ErrUserNotMigrated
 }
 
-func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*FullUser, error) {
-	if !IsValidUserID(id) {
-		return nil, ErrUserNotFound
+func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*userLib.FullUser, error) {
+	if !userLib.IsValidUserID(id) {
+		return nil, userLib.ErrUserNotFound
 	}
 
 	keycloakUser, err := m.keycloakClient.GetUserById(ctx, id)
@@ -195,12 +197,12 @@ func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*Fu
 		return nil, err
 	}
 	if keycloakUser == nil {
-		return nil, ErrUserNotFound
+		return nil, userLib.ErrUserNotFound
 	}
 	return newUserFromKeycloakUser(keycloakUser), nil
 }
 
-func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*FullUser, err error) {
+func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*userLib.FullUser, err error) {
 	keycloakUsers, err := m.keycloakClient.FindUsersWithIds(ctx, ids)
 	if err != nil {
 		return users, err
@@ -212,7 +214,7 @@ func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []strin
 	return users, nil
 }
 
-func (m *keycloakUserAccessor) RemoveUser(ctx context.Context, user *FullUser) error {
+func (m *keycloakUserAccessor) RemoveUser(ctx context.Context, user *userLib.FullUser) error {
 	return m.keycloakClient.DeleteUser(ctx, user.Id)
 }
 
@@ -220,7 +222,7 @@ func (m *keycloakUserAccessor) RemoveTokensForUser(ctx context.Context, userId s
 	return m.keycloakClient.DeleteUserSessions(ctx, userId)
 }
 
-func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userId string, p *UserProfile) error {
+func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userId string, p *userLib.UserProfile) error {
 	return m.keycloakClient.UpdateUserProfile(ctx, userId, p)
 }
 
