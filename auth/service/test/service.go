@@ -14,6 +14,7 @@ import (
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
 	"github.com/tidepool-org/platform/cluster"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
@@ -108,6 +109,10 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 }
 
 func (s *Service) UserAccessor() user.UserAccessor {
+	return nil
+}
+
+func (s *Service) PermissionsClient() permission.Client {
 	return nil
 }
 

@@ -35,6 +35,7 @@ type UserAccessor interface {
 	RemoveUser(ctx context.Context, user *FullUser) error
 	RemoveTokensForUser(ctx context.Context, userId string) error
 	UpdateUserProfile(ctx context.Context, id string, p *UserProfile) error
+	DeleteUserProfile(ctx context.Context, id string) error
 }
 
 type TokenIntrospectionResult struct {

@@ -225,6 +225,18 @@ func (c *keycloakClient) UpdateUserProfile(ctx context.Context, id string, p *Us
 	return c.UpdateUser(ctx, user)
 }
 
+func (c *keycloakClient) DeleteUserProfile(ctx context.Context, id string) error {
+	user, err := c.GetUserById(ctx, id)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return ErrUserNotFound
+	}
+	user.Attributes.Profile = nil
+	return c.UpdateUser(ctx, user)
+}
+
 func (c *keycloakClient) UpdateUserPassword(ctx context.Context, id, password string) error {
 	token, err := c.getAdminToken(ctx)
 	if err != nil {

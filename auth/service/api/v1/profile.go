@@ -14,7 +14,8 @@ import (
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/profiles/:userId", api.RequireUser(r.GetProfile)),
-		rest.Put("/v1/profiles/:userId", api.RequireUser(r.UpdateProfile)),
+		rest.Put("/v1/profiles/:userId", r.requireUserHasCustodian("userId", r.UpdateProfile)),
+		rest.Delete("/v1/profiles/:userId", r.requireUserHasCustodian("userId", r.DeleteProfile)),
 	}
 }
 
@@ -23,8 +24,13 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-	if !details.IsService() && details.UserID() != userID {
-		responder.Empty(http.StatusNotFound)
+	hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), userID)
+	if err != nil {
+		responder.InternalServerError(err)
+		return
+	}
+	if !hasPerms {
+		responder.Empty(http.StatusForbidden)
 		return
 	}
 
@@ -40,12 +46,7 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
-	details := request.GetAuthDetails(ctx)
 	userID := req.PathParam("userId")
-	if !details.IsService() && details.UserID() != userID {
-		responder.Empty(http.StatusNotFound)
-		return
-	}
 
 	profile := &user.UserProfile{}
 	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
@@ -53,6 +54,23 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	err := r.UserAccessor().UpdateUserProfile(ctx, userID, profile)
+	if stdErrs.Is(err, user.ErrUserNotFound) {
+		responder.Empty(http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		responder.InternalServerError(err)
+		return
+	}
+	responder.Empty(http.StatusOK)
+}
+
+func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
+	userID := req.PathParam("userId")
+
+	err := r.UserAccessor().DeleteUserProfile(ctx, userID)
 	if stdErrs.Is(err, user.ErrUserNotFound) {
 		responder.Empty(http.StatusNotFound)
 		return

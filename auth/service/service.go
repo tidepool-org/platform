@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	"github.com/tidepool-org/platform/cluster"
+	permission "github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
@@ -24,6 +25,7 @@ type Service interface {
 	Domain() string
 	AuthStore() authStore.Store
 	UserAccessor() user.UserAccessor
+	PermissionsClient() permission.Client
 
 	ProviderFactory() provider.Factory
 
