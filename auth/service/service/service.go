@@ -42,7 +42,10 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
+	logInternal "github.com/tidepool-org/platform/log"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -84,6 +87,7 @@ type Service struct {
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 	consentService                 consent.Service
 	userAccessor                   user.UserAccessor
+	permsClient                    *permissionClient.Client
 }
 
 func New() *Service {
@@ -163,6 +167,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeUserAccessor(); err != nil {
 		return err
 	}
+	if err := s.initializePermissionsClient(); err != nil {
+		return err
+	}
 	return s.initializeUserEventsHandler()
 }
 
@@ -240,6 +247,9 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	return &authService.Status{
 		Version: s.VersionReporter().Long(),
 	}
+}
+func (s *Service) PermissionsClient() permission.Client {
+	return s.permsClient
 }
 
 func (s *Service) UserAccessor() user.UserAccessor {
@@ -538,6 +548,25 @@ func (s *Service) initializeTaskClient() error {
 	}
 	s.taskClient = clnt
 
+	return nil
+}
+
+func (s *Service) initializePermissionsClient() error {
+	s.Logger().Debug("Loading permission client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	reporter := s.ConfigReporter().WithScopes("permission", "client")
+	loader := platform.NewConfigReporterLoader(reporter)
+	if err := cfg.Load(loader); err != nil {
+		return errors.Wrap(err, "unable to load permission client config")
+	}
+
+	permsClient, err := permissionClient.New(cfg, platform.AuthorizeAsService)
+	if err != nil {
+		return errors.Wrap(err, "unable to create permission client")
+	}
+	s.permsClient = permsClient
 	return nil
 }
 

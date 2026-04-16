@@ -28,7 +28,9 @@ type ClinicProfile struct {
 func (u *UserProfile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
-	addAttribute(attributes, "profile.fullName", u.FullName)
+	if u.FullName != "" {
+		addAttribute(attributes, "profile.fullName", u.FullName)
+	}
 	if u.Patient != nil {
 		patient := u.Patient
 		addAttribute(attributes, "profile.patient.birthday", patient.Birthday)
@@ -72,7 +74,7 @@ func profileFromAttributes(attributes map[string][]string) (profile *UserProfile
 		u.Clinic = clinic
 	}
 
-	if u.Clinic == nil && u.Patient == nil {
+	if u.Clinic == nil && u.Patient == nil && u.FullName == "" {
 		return nil, false
 	}
 	return u, true
