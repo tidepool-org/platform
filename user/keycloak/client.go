@@ -238,58 +238,6 @@ func (c *keycloakClient) DeleteUserProfile(ctx context.Context, id string) error
 	return c.UpdateUser(ctx, user)
 }
 
-func (c *keycloakClient) UpdateUserPassword(ctx context.Context, id, password string) error {
-	token, err := c.getAdminToken(ctx)
-	if err != nil {
-		return err
-	}
-
-	return c.keycloak.SetPassword(
-		ctx,
-		token.AccessToken,
-		id,
-		c.cfg.Realm,
-		password,
-		false,
-	)
-}
-
-func (c *keycloakClient) CreateUser(ctx context.Context, user *keycloakUser) (*keycloakUser, error) {
-	token, err := c.getAdminToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	model := gocloak.User{
-		Username:      &user.Username,
-		Email:         &user.Email,
-		EmailVerified: &user.EmailVerified,
-		Enabled:       &user.Enabled,
-		RealmRoles:    &user.Roles,
-	}
-
-	if len(user.Attributes.TermsAcceptedDate) > 0 {
-		attrs := map[string][]string{
-			termsAcceptedAttribute: user.Attributes.TermsAcceptedDate,
-		}
-		model.Attributes = &attrs
-	}
-
-	user.ID, err = c.keycloak.CreateUser(ctx, token.AccessToken, c.cfg.Realm, model)
-	if err != nil {
-		if e, ok := err.(*gocloak.APIError); ok && e.Code == http.StatusConflict {
-			err = userLib.ErrUserConflict
-		}
-		return nil, err
-	}
-
-	if err := c.updateRolesForUser(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return c.GetUserById(ctx, user.ID)
-}
-
 func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (users []*keycloakUser, err error) {
 	const errMessage = "could not retrieve users by ids"
 
@@ -359,20 +307,6 @@ func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token
 	}
 
 	return result, nil
-}
-
-func (c *keycloakClient) DeleteUser(ctx context.Context, id string) error {
-	token, err := c.getAdminToken(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := c.keycloak.DeleteUser(ctx, token.AccessToken, c.cfg.Realm, id); err != nil {
-		if aErr, ok := err.(*gocloak.APIError); ok && aErr.Code == http.StatusNotFound {
-			return nil
-		}
-	}
-	return err
 }
 
 func (c *keycloakClient) DeleteUserSessions(ctx context.Context, id string) error {
@@ -538,22 +472,22 @@ func newKeycloakUser(gocloakUser *gocloak.User) *keycloakUser {
 	return user
 }
 
-func newUserFromKeycloakUser(keycloakUser *keycloakUser) *userLib.FullUser {
-	termsAcceptedDate := ""
+func newUserFromKeycloakUser(keycloakUser *keycloakUser) *userLib.User {
+	var termsAcceptedDate *string
 	attrs := keycloakUser.Attributes
 	if len(attrs.TermsAcceptedDate) > 0 {
 		if ts, err := userLib.UnixStringToTimestamp(attrs.TermsAcceptedDate[0]); err == nil {
-			termsAcceptedDate = ts
+			termsAcceptedDate = &ts
 		}
 	}
 
-	user := &userLib.FullUser{
-		Id:            keycloakUser.ID,
-		Username:      keycloakUser.Username,
+	user := &userLib.User{
+		UserID:        pointer.FromString(keycloakUser.ID),
+		Username:      pointer.FromString(keycloakUser.Username),
 		Emails:        []string{keycloakUser.Email},
-		Roles:         keycloakUser.Roles,
+		Roles:         pointer.FromStringArray(keycloakUser.Roles),
 		TermsAccepted: termsAcceptedDate,
-		EmailVerified: keycloakUser.EmailVerified,
+		EmailVerified: pointer.FromBool(keycloakUser.EmailVerified),
 		IsMigrated:    true,
 		Enabled:       keycloakUser.Enabled,
 		Profile:       attrs.Profile,
@@ -570,14 +504,14 @@ func newUserFromKeycloakUser(keycloakUser *keycloakUser) *userLib.FullUser {
 	return user
 }
 
-func userToKeycloakUser(u *userLib.FullUser) *keycloakUser {
+func userToKeycloakUser(u *userLib.User) *keycloakUser {
 	keycloakUser := &keycloakUser{
-		ID:            u.Id,
-		Username:      strings.ToLower(u.Username),
+		ID:            pointer.ToString(u.UserID),
+		Username:      strings.ToLower(pointer.ToString(u.Username)),
 		Email:         strings.ToLower(u.Email()),
 		Enabled:       u.IsEnabled(),
-		EmailVerified: u.EmailVerified,
-		Roles:         u.Roles,
+		EmailVerified: pointer.ToBool(u.EmailVerified),
+		Roles:         pointer.ToStringArray(u.Roles),
 		Attributes:    keycloakUserAttributes{},
 	}
 	if len(keycloakUser.Roles) == 0 {
@@ -586,8 +520,10 @@ func userToKeycloakUser(u *userLib.FullUser) *keycloakUser {
 	if !u.IsMigrated && u.PwHash == "" && !u.HasRole(userLib.RoleCustodialAccount) {
 		keycloakUser.Roles = append(keycloakUser.Roles, userLib.RoleCustodialAccount)
 	}
-	if termsAccepted, err := userLib.TimestampToUnixString(u.TermsAccepted); err == nil {
-		keycloakUser.Attributes.TermsAcceptedDate = []string{termsAccepted}
+	if u.TermsAccepted != nil {
+		if termsAccepted, err := userLib.TimestampToUnixString(*u.TermsAccepted); err == nil {
+			keycloakUser.Attributes.TermsAcceptedDate = []string{termsAccepted}
+		}
 	}
 	if u.Profile != nil {
 		keycloakUser.Attributes.Profile = u.Profile
