@@ -6,6 +6,8 @@ import (
 
 type Permission map[string]interface{}
 type Permissions map[string]Permission
+
+// GroupedPermissions are permissions that are keyed by userID.
 type GroupedPermissions map[string]Permissions
 
 const (
@@ -19,6 +21,7 @@ const (
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
 	UpdateUserPermissions(ctx context.Context, requestUserID string, targetUserID string, permissions Permissions) error
+	// GroupsForUser returns permissions that have been shared with granteeUserID. It is keyed by the user that has shared something with granteeUserID
 	GroupsForUser(ctx context.Context, granteeUserID string) (GroupedPermissions, error)
 	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
@@ -68,22 +71,11 @@ func HasExplicitMembershipRelationship(ctx context.Context, client Client, grant
 	return false, nil
 }
 
-func HasExplicitWritePermissions(ctx context.Context, c Client, granteeUserID, grantorUserID string) (has bool, err error) {
-	if granteeUserID != "" && granteeUserID == grantorUserID {
-		return true, nil
+func (p Permissions) HasReadPermissions() bool {
+	for _, perm := range []string{Custodian, Owner, Read, Write} {
+		if _, ok := p[perm]; ok {
+			return true
+		}
 	}
-	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
-	if err != nil {
-		return false, err
-	}
-	if _, ok := perms[Custodian]; ok {
-		return true, nil
-	}
-	if _, ok := perms[Write]; ok {
-		return true, nil
-	}
-	if _, ok := perms[Owner]; ok {
-		return true, nil
-	}
-	return false, nil
+	return false
 }
