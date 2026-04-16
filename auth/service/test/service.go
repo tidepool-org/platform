@@ -3,8 +3,8 @@ package test
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/gomega"
+	gomock "go.uber.org/mock/gomock"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -46,6 +46,7 @@ type Service struct {
 	TwiistServiceAccountAuthorizerInvocations int
 	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
 	userAccessor                              user.UserAccessor
+	permsClient                               permission.Client
 	profileAccessor                           user.UserProfileAccessor
 }
 
@@ -61,9 +62,10 @@ func NewService() *Service {
 // NewMockedService uses a combination of the "old" style manual stub / fakes /
 // mocks and newer gomocks for convenience so that the current code doesn't
 // have to be refactored too much
-func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor) {
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor, permsClient *permission.MockClient) {
 	userAccessor = user.NewMockUserAccessor(ctrl)
 	profileAccessor = user.NewMockUserProfileAccessor(ctrl)
+	permsClient = permission.NewMockClient(ctrl)
 	return &Service{
 		Service:             serviceTest.NewService(),
 		AuthStoreImpl:       authStoreTest.NewStore(),
@@ -71,7 +73,8 @@ func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user
 		TaskClientImpl:      taskTest.NewClient(),
 		userAccessor:        userAccessor,
 		profileAccessor:     profileAccessor,
-	}, userAccessor, profileAccessor
+		permsClient:         permsClient,
+	}, userAccessor, profileAccessor, permsClient
 }
 
 func (s *Service) Domain() string {
@@ -125,7 +128,7 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 }
 
 func (s *Service) PermissionsClient() permission.Client {
-	return nil
+	return s.permsClient
 }
 
 func (s *Service) AppValidator() *appvalidate.Validator {
