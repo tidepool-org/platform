@@ -3,6 +3,7 @@ package v1
 import (
 	"context"
 	stdErrs "errors"
+	"maps"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -78,39 +79,90 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		responder.InternalServerError(err)
 		return
 	}
-	results := make([]*user.User, 0, len(trustorPerms))
 	for userID, perms := range trustorPerms {
 		if userID == targetUserID {
 			// Don't include own user in result
 			continue
 		}
 
+		clone := maps.Clone(perms)
 		mergedUserPerms[userID] = &permission.TrustPermissions{
-			TrustorPermissions: &perms,
-		}
-
-		if perms.HasReadPermissions() {
-			sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
-			if err != nil {
-				responder.InternalServerError(err)
-				return
-			}
-			profile, err := r.getProfile(ctx, userID)
-			if err != nil && !stdErrs.Is(err, user.ErrUserProfileNotFound) {
-				r.handleProfileErr(responder, err)
-				return
-			}
-			sharedUser.Profile = profile
-			// Seems no sharedUser.Sanitize call to filter out "protected" fields in seagull except sanitizeUser to remove "passwordExists" field
-			perms := perms
-			sharedUser.TrustorPermissions = &perms
-			if len(perms) == 0 && profile != nil {
-				sharedUser.Profile = nil
-			}
-
-			results = append(results, sharedUser)
+			TrustorPermissions: &clone,
 		}
 	}
+
+	trusteePerms, err := r.PermissionsClient().UsersInGroup(ctx, targetUserID)
+	if err != nil {
+		responder.InternalServerError(err)
+		return
+	}
+	for userID, perms := range trusteePerms {
+		if userID == targetUserID {
+			// Don't include own user in result
+			continue
+		}
+
+		if _, ok := mergedUserPerms[userID]; !ok {
+			mergedUserPerms[userID] = &permission.TrustPermissions{}
+		}
+		clone := maps.Clone(perms)
+		mergedUserPerms[userID].TrusteePermissions = &clone
+	}
+	filteredUserPerms := make(map[string]*permission.TrustPermissions, len(mergedUserPerms))
+
+	for userID, trustPerms := range mergedUserPerms {
+		if userMatchesQueryOnPermissions(*trustPerms, filter) {
+			filteredUserPerms[userID] = trustPerms
+		}
+	}
+
+	results := make([]*user.User, 0, len(mergedUserPerms))
+	// just doing sequentially fetching of users for now
+	for userID, trustPerms := range filteredUserPerms {
+		// Does this mean all users should already be migrated
+		// to keycloak before this call? Or should UserAccessor have a "fallback" like shoreline's legacy mongodb repo?
+		sharedUser, err := r.UserAccessor().FindUserById(ctx, userID)
+		if stdErrs.Is(err, user.ErrUserNotFound) || sharedUser == nil {
+			// According to seagull code, "It's possible for a user profile to be deleted before the sharing permissions", so we can ignore if user or profile not found.
+			continue
+		}
+		if err != nil {
+			responder.InternalServerError(err)
+			return
+		}
+		if !userMatchesQueryOnUser(sharedUser, filter) {
+			continue
+		}
+		profile, err := r.getProfile(ctx, userID)
+		if stdErrs.Is(err, user.ErrUserProfileNotFound) || profile == nil {
+			continue
+		}
+		if err != nil {
+			r.handleProfileErr(responder, err)
+			return
+		}
+		trustorPerms := trustPerms.TrustorPermissions
+		if trustorPerms == nil || len(*trustorPerms) == 0 {
+			profile = profile.ClearPatientInfo()
+		} else {
+
+			if trustorPerms.HasAny(permission.Custodian, permission.Read, permission.Write) {
+				// TODO: need to read seagull.value.settings
+			}
+			if trustorPerms.Has(permission.Custodian) {
+				// TODO: need to read seagull.value.preferences
+			}
+		}
+		sharedUser.Profile = profile
+		sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
+		sharedUser.TrustorPermissions = trustPerms.TrustorPermissions
+		// Seems no sharedUser.Sanitize call to filter out "protected" fields in seagull except sanitizeUser to remove "passwordExists" field - which doesn't exist in current platform/user.User
+		matchedUser := userMatchingQuery(sharedUser, filter)
+		if matchedUser != nil {
+			results = append(results, matchedUser)
+		}
+	}
+
 	responder.Data(http.StatusOK, results)
 }
 
