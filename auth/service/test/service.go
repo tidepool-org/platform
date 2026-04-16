@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -47,6 +48,8 @@ type Service struct {
 	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
 	ClusterReleaseReporterInvocations         int
 	ClusterReleaseReporterImpl                cluster.ReleaseReporter
+	userAccessor                              user.UserAccessor
+	profileAccessor                           user.UserProfileAccessor
 }
 
 func NewService() *Service {
@@ -56,6 +59,22 @@ func NewService() *Service {
 		ProviderFactoryImpl: providerTest.NewFactory(),
 		TaskClientImpl:      taskTest.NewClient(),
 	}
+}
+
+// NewMockedService uses a combination of the "old" style manual stub / fakes /
+// mocks and newer gomocks for convenience so that the current code doesn't
+// have to be refactored too much
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor) {
+	userAccessor = user.NewMockUserAccessor(ctrl)
+	profileAccessor = user.NewMockUserProfileAccessor(ctrl)
+	return &Service{
+		Service:             serviceTest.NewService(),
+		AuthStoreImpl:       authStoreTest.NewStore(),
+		ProviderFactoryImpl: providerTest.NewFactory(),
+		TaskClientImpl:      taskTest.NewClient(),
+		userAccessor:        userAccessor,
+		profileAccessor:     profileAccessor,
+	}, userAccessor, profileAccessor
 }
 
 func (s *Service) Domain() string {
@@ -108,10 +127,6 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	return output
 }
 
-func (s *Service) UserAccessor() user.UserAccessor {
-	return nil
-}
-
 func (s *Service) PermissionsClient() permission.Client {
 	return nil
 }
@@ -146,4 +161,12 @@ func (s *Service) Expectations() {
 	s.ProviderFactoryImpl.Expectations()
 	s.TaskClientImpl.Expectations()
 	gomega.Expect(s.StatusOutputs).To(gomega.BeEmpty())
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+	return s.profileAccessor
 }

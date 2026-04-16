@@ -99,7 +99,6 @@ func (c *keycloakClient) doLogin(ctx context.Context, clientId, clientSecret, us
 
 func (c *keycloakClient) GetBackendServiceToken(ctx context.Context) (*oauth2.Token, error) {
 	jwt, err := c.keycloak.LoginClient(ctx, c.cfg.BackendClientID, c.cfg.BackendClientSecret, c.cfg.Realm)
-	fmt.Println("GetBackendServiceToken LoginClient", c.cfg.BackendClientID, c.cfg.BackendClientSecret, c.cfg.Realm)
 	if err != nil {
 		return nil, err
 	}
