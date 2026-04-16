@@ -16,13 +16,20 @@ type FallbackLegacyUserAccessor struct {
 	accessor UserProfileAccessor
 }
 
-func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id string) (*LegacyUserProfile, error) {
+func NewFallbackLegacyUserAccessor(legacy LegacyUserProfileAccessor, accessor UserProfileAccessor) *FallbackLegacyUserAccessor {
+	return &FallbackLegacyUserAccessor{
+		legacy:   legacy,
+		accessor: accessor,
+	}
+}
+
+func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id string) (*UserProfile, error) {
 	seagullProfile, err := f.legacy.FindUserProfile(ctx, id)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return nil, err
 	}
 	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
-		return seagullProfile, nil
+		return seagullProfile.ToUserProfile(), nil
 	}
 	profile, err := f.accessor.FindUserProfile(ctx, id)
 	if err != nil {
@@ -31,19 +38,18 @@ func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, id str
 	if profile == nil {
 		return nil, ErrUserProfileNotFound
 	}
-	return profile.ToLegacyProfile(), nil
+	return profile, nil
 }
 
-func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, id string, p *LegacyUserProfile) error {
+func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, id string, profile *UserProfile) error {
 	seagullProfile, err := f.legacy.FindUserProfile(ctx, id)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
 	}
 	// An unmigrated profile should be returned until the profile has been migrated
 	if seagullProfile != nil && seagullProfile.MigrationStatus == migrationUnmigrated {
-		return f.legacy.UpdateUserProfile(ctx, id, p)
+		return f.legacy.UpdateUserProfile(ctx, id, profile)
 	}
-	profile := p.ToUserProfile()
 	return f.accessor.UpdateUserProfile(ctx, id, profile)
 }
 

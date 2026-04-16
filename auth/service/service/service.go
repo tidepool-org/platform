@@ -23,6 +23,7 @@ import (
 	authServiceApi "github.com/tidepool-org/platform/auth/service/api"
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	authStore "github.com/tidepool-org/platform/auth/store"
+	authMongo "github.com/tidepool-org/platform/auth/store/mongo"
 	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
 	"github.com/tidepool-org/platform/consent"
 	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
@@ -103,6 +104,7 @@ type Service struct {
 	workStructuredStore            *workStoreStructuredMongo.Store
 	workCoordinator                *workService.Coordinator
 	userAccessor                   user.UserAccessor
+	userProfileAccessor            user.UserProfileAccessor
 	permsClient                    *permissionClient.Client
 }
 
@@ -198,6 +200,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 	if err := s.initializeUserAccessor(); err != nil {
 		return err
 	}
+	if err := s.initializeUserProfileAccessor(s.userAccessor); err != nil {
+		return err
+	}
 	if err := s.initializePermissionsClient(); err != nil {
 		return err
 	}
@@ -279,6 +284,11 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 		Version: s.VersionReporter().Long(),
 	}
 }
+
+func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+	return s.userProfileAccessor
+}
+
 func (s *Service) PermissionsClient() permission.Client {
 	return s.permsClient
 }
@@ -841,6 +851,34 @@ func (s *Service) initializeUserAccessor() error {
 	}
 	s.userAccessor = keycloak.NewKeycloakUserAccessor(config)
 
+	return nil
+}
+
+func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) error {
+	s.Logger().Debug("Initializing user profile accessor")
+
+	if userAccessor == nil {
+		return errors.New("empty user accessor passed to initializeUserProfileAccessor")
+	}
+	cfg := storeStructuredMongo.NewConfig()
+	// Note the "SEAGULL" prefix, this is so that the regular env vars
+	// for mongo access such as TIDEPOOL_STORE_SCHEME are
+	// SEAGULL_TIDEPOOL_STORE_SCHEME so as to not conflict with existing
+	// TIDEPOOL_STORE_SCHEME values. This is done instead of using a
+	// seagull client as seagull will eventually be removed so no sense
+	// in keeping it around.
+	if err := cfg.LoadPrefix("SEAGULL"); err != nil {
+		return errors.Wrap(err, "unable to load seagull profile accessor config")
+	}
+
+	s.Logger().Debug("creating legacy seagull profile accessor")
+
+	repo, err := authMongo.NewFallbackUserProfileRepository(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create fallback user profile repository")
+	}
+
+	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor)
 	return nil
 }
 
