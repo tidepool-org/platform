@@ -164,14 +164,14 @@ func isUsersQueryValid(filter *usersProfileFilter) bool {
 	}
 	return true
 }
-func userMatchesQueryOnPermissions(user *userLib.User, filter *usersProfileFilter) bool {
+func userMatchesQueryOnPermissions(trustPerms permission.TrustPermissions, filter *usersProfileFilter) bool {
 	if filter == nil {
 		return true
 	}
-	if len(filter.TrustorPermissions) > 0 && !arePermissionsSatisfied(filter.TrustorPermissions, *user.TrustorPermissions) {
+	if len(filter.TrustorPermissions) > 0 && (trustPerms.TrustorPermissions == nil || !arePermissionsSatisfied(filter.TrustorPermissions, *trustPerms.TrustorPermissions)) {
 		return false
 	}
-	if len(filter.TrusteePermissions) > 0 && !arePermissionsSatisfied(filter.TrusteePermissions, *user.TrusteePermissions) {
+	if len(filter.TrusteePermissions) > 0 && (trustPerms.TrusteePermissions == nil || !arePermissionsSatisfied(filter.TrusteePermissions, *trustPerms.TrusteePermissions)) {
 		return false
 	}
 
@@ -214,7 +214,11 @@ func userMatchingQuery(user *userLib.User, filter *usersProfileFilter) *userLib.
 	if filter == nil {
 		return user
 	}
-	if !userMatchesQueryOnPermissions(user, filter) ||
+	trustPerms := permission.TrustPermissions{
+		TrustorPermissions: user.TrustorPermissions,
+		TrusteePermissions: user.TrusteePermissions,
+	}
+	if !userMatchesQueryOnPermissions(trustPerms, filter) ||
 		!userMatchesQueryOnUser(user, filter) ||
 		!userMatchesQueryOnProfile(user, filter) {
 		return nil

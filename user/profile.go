@@ -96,6 +96,24 @@ func (up *UserProfile) ToLegacyProfile() *LegacyUserProfile {
 	return legacyProfile
 }
 
+// ClearPatientInfo makes a copy of up, clearing out certain patient information - this is called usually due to lack of permissions to the patient information
+func (up *UserProfile) ClearPatientInfo() *UserProfile {
+	// explicitly specifying the type to make sure it's a value instead of pointer
+	var newProfile UserProfile = *up
+	newProfile.Birthday = ""
+	newProfile.DiagnosisDate = ""
+	newProfile.TargetDevices = nil
+	newProfile.TargetTimezone = ""
+	newProfile.About = ""
+	newProfile.MRN = ""
+	newProfile.BiologicalSex = ""
+
+	// TODO: should these be cleared out?
+	newProfile.Custodian = nil
+	newProfile.Clinic = nil
+	return &newProfile
+}
+
 func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	up := &UserProfile{
 		FullName: cmp.Or(p.FullName, emptyFakeChildCustodianName),
