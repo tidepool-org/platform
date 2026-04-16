@@ -287,7 +287,7 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, custome
 
 	err = s.customerIOClient.SendEvent(ctx, customer.Identifiers.ID, surveyCompleted)
 	if err != nil {
-		return errors.Wrap(err, "unable to send sizing kit delivered event")
+		return errors.Wrap(err, "unable to send eligibility survey completed event")
 	}
 
 	return nil
