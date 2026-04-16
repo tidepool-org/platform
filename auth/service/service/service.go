@@ -11,6 +11,10 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 
+	"github.com/tidepool-org/platform/apple"
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/user"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -79,6 +83,7 @@ type Service struct {
 	partnerSecrets                 *appvalidate.PartnerSecrets
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 	consentService                 consent.Service
+	userAccessor                   user.UserAccessor
 }
 
 func New() *Service {
@@ -153,6 +158,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeRouter(); err != nil {
+		return err
+	}
+	if err := s.initializeUserAccessor(); err != nil {
 		return err
 	}
 	return s.initializeUserEventsHandler()
@@ -232,6 +240,10 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	return &authService.Status{
 		Version: s.VersionReporter().Long(),
 	}
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
 }
 
 func (s *Service) initializeDomain() error {
@@ -659,6 +671,18 @@ func (s *Service) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize events runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Service) initializeUserAccessor() error {
+	s.Logger().Debug("Initializing user accessor")
+
+	config := &user.KeycloakConfig{}
+	if err := config.FromEnv(); err != nil {
+		return err
+	}
+	s.userAccessor = user.NewKeycloakUserAccessor(config)
 
 	return nil
 }

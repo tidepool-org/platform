@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Service interface {
@@ -19,6 +20,7 @@ type Service interface {
 
 	Domain() string
 	AuthStore() authStore.Store
+	UserAccessor() user.UserAccessor
 
 	ProviderFactory() provider.Factory
 
