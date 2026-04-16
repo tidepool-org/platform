@@ -31,6 +31,7 @@ func (r *Router) Routes() []*rest.Route {
 		r.DeviceTokensRoutes(),
 		r.AppValidateRoutes(),
 		r.UDIRoutes(),
+		r.ProfileRoutes(),
 	}
 	acc := make([]*rest.Route, 0)
 	for _, r := range routes {
