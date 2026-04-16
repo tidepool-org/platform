@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
 )
 
 //go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
@@ -22,6 +23,7 @@ type Service interface {
 
 	Domain() string
 	AuthStore() authStore.Store
+	UserAccessor() user.UserAccessor
 
 	ProviderFactory() provider.Factory
 
