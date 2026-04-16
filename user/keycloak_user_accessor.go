@@ -223,3 +223,7 @@ func (m *keycloakUserAccessor) RemoveTokensForUser(ctx context.Context, userId s
 func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userId string, p *UserProfile) error {
 	return m.keycloakClient.UpdateUserProfile(ctx, userId, p)
 }
+
+func (m *keycloakUserAccessor) DeleteUserProfile(ctx context.Context, userId string) error {
+	return m.keycloakClient.DeleteUserProfile(ctx, userId)
+}
