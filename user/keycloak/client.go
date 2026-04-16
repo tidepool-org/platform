@@ -300,7 +300,7 @@ func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token
 		result.Subject = customClaims.Subject
 		result.EmailVerified = customClaims.EmailVerified
 		result.ExpiresAt = customClaims.ExpiresAt.Unix()
-		result.RealmAccess = RealmAccess{
+		result.RealmAccess = userLib.RealmAccess{
 			Roles: customClaims.RealmAccess.Roles,
 		}
 		result.IdentityProvider = customClaims.IdentityProvider
