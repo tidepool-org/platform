@@ -9,6 +9,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
@@ -59,15 +60,14 @@ func (p *LegacySeagullProfileRepository) FindUserProfile(ctx context.Context, us
 	return doc.ToLegacyProfile()
 }
 
-func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.UserProfile) error {
+func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.LegacyUserProfile) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
-	legacyProfile := profile.ToLegacyProfile()
-	if err := structureValidator.New().Validate(legacyProfile); err != nil {
+	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		return err
 	}
 	var doc user.LegacySeagullDocument
@@ -86,7 +86,7 @@ func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, 
 	}
 
 	// This will create a new value even if doc.Value is empty
-	updatedValueRaw, err := user.AddProfileToSeagullValue(doc.Value, legacyProfile)
+	updatedValueRaw, err := user.AddProfileToSeagullValue(doc.Value, profile)
 	if err != nil {
 		return err
 	}

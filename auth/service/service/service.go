@@ -104,7 +104,7 @@ type Service struct {
 	workStructuredStore            *workStoreStructuredMongo.Store
 	workCoordinator                *workService.Coordinator
 	userAccessor                   user.UserAccessor
-	userProfileAccessor            user.UserProfileAccessor
+	userProfileAccessor            user.ProfileAccessor
 	permsClient                    *permissionClient.Client
 }
 
@@ -265,6 +265,18 @@ func (s *Service) ProviderFactory() provider.Factory {
 
 func (s *Service) DeviceCheck() apple.DeviceCheck {
 	return s.deviceCheck
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) ProfileAccessor() user.ProfileAccessor {
+	return s.userProfileAccessor
+}
+
+func (s *Service) PermissionsClient() permission.Client {
+	return s.permsClient
 }
 
 func (s *Service) AppValidator() *appvalidate.Validator {
@@ -878,7 +890,7 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 		return errors.Wrap(err, "unable to create fallback user profile repository")
 	}
 
-	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor)
+	s.userProfileAccessor = user.NewFallbackLegacyUserAccessor(repo, userAccessor, userAccessor)
 	return nil
 }
 
