@@ -74,6 +74,26 @@ func HasExplicitMembershipRelationship(ctx context.Context, client Client, grant
 	return false, nil
 }
 
+func HasExplicitWritePermissions(ctx context.Context, c Client, granteeUserID, grantorUserID string) (has bool, err error) {
+	if granteeUserID != "" && granteeUserID == grantorUserID {
+		return true, nil
+	}
+	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
+	if err != nil {
+		return false, err
+	}
+	if _, ok := perms[Custodian]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Write]; ok {
+		return true, nil
+	}
+	if _, ok := perms[Owner]; ok {
+		return true, nil
+	}
+	return false, nil
+}
+
 func (p Permission) Has(permissionType string) bool {
 	_, exists := p[permissionType]
 	return exists

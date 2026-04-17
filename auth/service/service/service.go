@@ -23,7 +23,6 @@ import (
 	authServiceApi "github.com/tidepool-org/platform/auth/service/api"
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	authStore "github.com/tidepool-org/platform/auth/store"
-	authMongo "github.com/tidepool-org/platform/auth/store/mongo"
 	authStoreMongo "github.com/tidepool-org/platform/auth/store/mongo"
 	"github.com/tidepool-org/platform/consent"
 	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
@@ -278,7 +277,6 @@ func (s *Service) ProfileAccessor() user.ProfileAccessor {
 func (s *Service) PermissionsClient() permission.Client {
 	return s.permsClient
 }
-
 func (s *Service) AppValidator() *appvalidate.Validator {
 	return s.appValidator
 }
@@ -295,18 +293,6 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	return &authService.Status{
 		Version: s.VersionReporter().Long(),
 	}
-}
-
-func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
-	return s.userProfileAccessor
-}
-
-func (s *Service) PermissionsClient() permission.Client {
-	return s.permsClient
-}
-
-func (s *Service) UserAccessor() user.UserAccessor {
-	return s.userAccessor
 }
 
 func (s *Service) initializeDomain() error {
@@ -885,7 +871,7 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 
 	s.Logger().Debug("creating legacy seagull profile accessor")
 
-	repo, err := authMongo.NewLegacySeagullProfileRepository(cfg)
+	repo, err := authStoreMongo.NewLegacySeagullProfileRepository(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create fallback user profile repository")
 	}

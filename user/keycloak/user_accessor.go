@@ -106,7 +106,10 @@ func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID str
 	if err != nil {
 		return err
 	}
-	return m.keycloakClient.UpdateUserProfile(ctx, userID, p.ToUserProfile(roles))
+	if !userLib.HasClinicOrClinicianRole(roles) && p.Clinic != nil {
+		p.Clinic = nil
+	}
+	return m.keycloakClient.UpdateUserProfile(ctx, userID, p.ToUserProfile())
 }
 
 func (m *keycloakUserAccessor) UpdateUserProfileV2(ctx context.Context, userID string, p *userLib.UserProfile) error {
