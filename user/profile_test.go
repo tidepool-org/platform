@@ -40,8 +40,8 @@ var _ = Describe("User", func() {
 
 	Context("Profile", func() {
 		DescribeTable("ToLegacyProfile",
-			func(profile *user.UserProfile, legacyProfile *user.LegacyUserProfile) {
-				Expect(profile.ToLegacyProfile()).To(BeComparableTo(legacyProfile))
+			func(profile *user.UserProfile, legacyProfile *user.LegacyUserProfile, roles []string) {
+				Expect(profile.ToLegacyProfile(roles)).To(BeComparableTo(legacyProfile))
 			},
 			Entry("Regular patient", &user.UserProfile{
 				FullName:       "Bob",
@@ -58,10 +58,12 @@ var _ = Describe("User", func() {
 						About:          "About me",
 						MRN:            "1112222",
 						TargetDevices:  []string{"SomeDevice900"},
-						TargetTimezone: pointer.FromString("UTC"),
+						TargetTimezone: "UTC",
 					},
 					MigrationStatus: user.MigrationCompleted,
-				}),
+				},
+				[]string{user.RolePatient},
+			),
 			Entry("Fake child", &user.UserProfile{
 				FullName:      "Child Name",
 				Birthday:      "2000-02-03",
@@ -81,7 +83,9 @@ var _ = Describe("User", func() {
 						IsOtherPerson: true,
 					},
 					MigrationStatus: user.MigrationCompleted,
-				}),
+				},
+				[]string{user.RolePatient},
+			),
 			Entry("Clinic", &user.UserProfile{
 				FullName: "Clinician Name",
 				Clinic: &user.ClinicProfile{
@@ -100,7 +104,9 @@ var _ = Describe("User", func() {
 						NPI:       pointer.FromString("1234567890"),
 					},
 					MigrationStatus: user.MigrationCompleted,
-				}),
+				},
+				[]string{user.RoleClinician},
+			),
 		)
 	})
 })
