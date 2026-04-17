@@ -135,8 +135,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			}
 			trustorPerms := trustPerms.TrustorPermissions
 
-			// TODO: get actual roles
-			profile := seagullProfile.ToUserProfile(nil)
+			profile := seagullProfile.ToUserProfile()
 			if trustorPerms == nil || len(*trustorPerms) == 0 {
 				profile = profile.ClearPatientInfo()
 			} else {
@@ -243,17 +242,4 @@ func (r *Router) handleUserOrProfileErr(responder *request.Responder, err error)
 	default:
 		responder.InternalServerError(err)
 	}
-}
-
-func (r *Router) handledUserNotExists(ctx context.Context, responder *request.Responder, userID string) (handled bool) {
-	person, err := r.UserAccessor().FindUserById(ctx, userID)
-	if err != nil {
-		r.handleUserOrProfileErr(responder, err)
-		return true
-	}
-	if person == nil {
-		responder.Empty(http.StatusNotFound)
-		return true
-	}
-	return false
 }

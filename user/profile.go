@@ -173,7 +173,7 @@ func (up *UserProfile) ClearPatientInfo() *UserProfile {
 	return &newProfile
 }
 
-func (p *LegacyUserProfile) ToUserProfile(roles []string) *UserProfile {
+func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
 	up := &UserProfile{
 		FullName: p.FullName,
 		Clinic:   p.Clinic,
@@ -202,7 +202,7 @@ func (p *LegacyUserProfile) ToUserProfile(roles []string) *UserProfile {
 		up.MRN = p.Patient.MRN
 		up.BiologicalSex = p.Patient.BiologicalSex
 	}
-	if p.Clinic != nil || HasClinicOrClinicianRole(roles) {
+	if p.Clinic != nil {
 		up.Clinic = &ClinicProfile{
 			Name:      pointer.CloneString(p.Clinic.Name),
 			Role:      pointer.CloneString(p.Clinic.Role),
