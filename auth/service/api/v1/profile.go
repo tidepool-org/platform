@@ -58,7 +58,7 @@ func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	responder.Data(http.StatusOK, profile)
+	responder.Data(http.StatusOK, profile.ToUserProfile())
 }
 
 func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request) {

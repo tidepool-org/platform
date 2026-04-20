@@ -68,7 +68,7 @@ func (m *keycloakUserAccessor) FindUserProfile(ctx context.Context, id string) (
 	if err != nil {
 		return nil, err
 	}
-	if user == nil {
+	if user == nil || user.Profile == nil {
 		return nil, userLib.ErrUserProfileNotFound
 	}
 	return user.Profile.ToLegacyProfile(pointer.ToStringArray(user.Roles)), nil

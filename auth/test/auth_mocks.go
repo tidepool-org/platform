@@ -13,12 +13,11 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	auth "github.com/tidepool-org/platform/auth"
 	page "github.com/tidepool-org/platform/page"
 	permission "github.com/tidepool-org/platform/permission"
 	request "github.com/tidepool-org/platform/request"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockClient is a mock of Client interface.
@@ -507,6 +506,66 @@ func (c *MockClientGetUserPermissionsCall) DoAndReturn(f func(context.Context, s
 	return c
 }
 
+// GroupsForUser mocks base method.
+func (m *MockClient) GroupsForUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GroupsForUser", ctx, granteeUserID)
+	ret0, _ := ret[0].(permission.Permissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GroupsForUser indicates an expected call of GroupsForUser.
+func (mr *MockClientMockRecorder) GroupsForUser(ctx, granteeUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GroupsForUser", reflect.TypeOf((*MockClient)(nil).GroupsForUser), ctx, granteeUserID)
+}
+
+// HasCustodianPermissions mocks base method.
+func (m *MockClient) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasCustodianPermissions", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasCustodianPermissions indicates an expected call of HasCustodianPermissions.
+func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
+}
+
+// HasMembershipRelationship mocks base method.
+func (m *MockClient) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasMembershipRelationship", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasMembershipRelationship indicates an expected call of HasMembershipRelationship.
+func (mr *MockClientMockRecorder) HasMembershipRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasMembershipRelationship", reflect.TypeOf((*MockClient)(nil).HasMembershipRelationship), ctx, granteeUserID, grantorUserID)
+}
+
+// HasWritePermissions mocks base method.
+func (m *MockClient) HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasWritePermissions", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasWritePermissions indicates an expected call of HasWritePermissions.
+func (mr *MockClientMockRecorder) HasWritePermissions(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasWritePermissions", reflect.TypeOf((*MockClient)(nil).HasWritePermissions), ctx, granteeUserID, grantorUserID)
+}
+
 // ListProviderSessions mocks base method.
 func (m *MockClient) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	m.ctrl.T.Helper()
@@ -777,6 +836,21 @@ func (c *MockClientUpdateUserPermissionsCall) Do(f func(context.Context, string,
 func (c *MockClientUpdateUserPermissionsCall) DoAndReturn(f func(context.Context, string, string, permission.Permissions) error) *MockClientUpdateUserPermissionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
+}
+
+// UsersInGroup mocks base method.
+func (m *MockClient) UsersInGroup(ctx context.Context, sharerID string) (permission.Permissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UsersInGroup", ctx, sharerID)
+	ret0, _ := ret[0].(permission.Permissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UsersInGroup indicates an expected call of UsersInGroup.
+func (mr *MockClientMockRecorder) UsersInGroup(ctx, sharerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersInGroup", reflect.TypeOf((*MockClient)(nil).UsersInGroup), ctx, sharerID)
 }
 
 // ValidateSessionToken mocks base method.
