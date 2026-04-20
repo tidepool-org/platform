@@ -14,10 +14,14 @@ import (
 	reflect "reflect"
 	time "time"
 
+<<<<<<< HEAD
 	gomock "go.uber.org/mock/gomock"
 
 	log "github.com/tidepool-org/platform/log"
+=======
+>>>>>>> e425e627a (Fix tests broken during rebase.)
 	work "github.com/tidepool-org/platform/work"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockProcessingUpdater is a mock of ProcessingUpdater interface.
