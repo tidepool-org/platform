@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/ant0ine/go-json-rest/rest"
+
 	authServiceApiV1 "github.com/tidepool-org/platform/auth/service/api/v1"
 	serviceTest "github.com/tidepool-org/platform/auth/service/test"
 	authTest "github.com/tidepool-org/platform/auth/test"

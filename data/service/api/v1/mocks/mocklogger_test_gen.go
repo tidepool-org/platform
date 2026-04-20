@@ -12,8 +12,9 @@ package mocks
 import (
 	reflect "reflect"
 
-	log "github.com/tidepool-org/platform/log"
 	gomock "go.uber.org/mock/gomock"
+
+	log "github.com/tidepool-org/platform/log"
 )
 
 // MockLogger is a mock of Logger interface.

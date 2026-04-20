@@ -14,8 +14,9 @@ import (
 	reflect "reflect"
 	time "time"
 
-	work "github.com/tidepool-org/platform/work"
 	gomock "go.uber.org/mock/gomock"
+
+	work "github.com/tidepool-org/platform/work"
 )
 
 // MockProcessingUpdater is a mock of ProcessingUpdater interface.
