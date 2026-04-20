@@ -14,17 +14,14 @@ import (
 	reflect "reflect"
 	time "time"
 
+	gomock "go.uber.org/mock/gomock"
+
 	auth "github.com/tidepool-org/platform/auth"
 	data "github.com/tidepool-org/platform/data"
 	source "github.com/tidepool-org/platform/data/source"
 	dexcom "github.com/tidepool-org/platform/dexcom"
 	fetch "github.com/tidepool-org/platform/dexcom/fetch"
 	oauth "github.com/tidepool-org/platform/oauth"
-<<<<<<< HEAD
-=======
-	request "github.com/tidepool-org/platform/request"
-	gomock "go.uber.org/mock/gomock"
->>>>>>> e425e627a (Fix tests broken during rebase.)
 )
 
 // MockAuthClient is a mock of AuthClient interface.
