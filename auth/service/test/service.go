@@ -49,7 +49,7 @@ type Service struct {
 	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
 	userAccessor                              user.UserAccessor
 	permsClient                               permission.Client
-	profileAccessor                           user.UserProfileAccessor
+	profileAccessor                           user.ProfileAccessor
 }
 
 func NewService() *Service {
@@ -64,9 +64,9 @@ func NewService() *Service {
 // NewMockedService uses a combination of the "old" style manual stub / fakes /
 // mocks and newer gomocks for convenience so that the current code doesn't
 // have to be refactored too much
-func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockUserProfileAccessor, permsClient *permission.MockClient) {
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockProfileAccessor, permsClient *permission.MockClient) {
 	userAccessor = user.NewMockUserAccessor(ctrl)
-	profileAccessor = user.NewMockUserProfileAccessor(ctrl)
+	profileAccessor = user.NewMockProfileAccessor(ctrl)
 	permsClient = permission.NewMockClient(ctrl)
 	return &Service{
 		Service:             serviceTest.NewService(),
@@ -169,6 +169,6 @@ func (s *Service) UserAccessor() user.UserAccessor {
 	return s.userAccessor
 }
 
-func (s *Service) UserProfileAccessor() user.UserProfileAccessor {
+func (s *Service) ProfileAccessor() user.ProfileAccessor {
 	return s.profileAccessor
 }

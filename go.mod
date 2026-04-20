@@ -4,6 +4,7 @@ go 1.25.7
 
 require (
 	github.com/IBM/sarama v1.45.1
+	github.com/Nerzal/gocloak/v13 v13.9.0
 	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/aws/aws-sdk-go v1.55.6
 	github.com/bas-d/appattest v0.1.0
@@ -11,6 +12,7 @@ require (
 	github.com/deckarep/golang-set/v2 v2.8.0
 	github.com/githubnemo/CompileDaemon v1.4.0
 	github.com/golang-jwt/jwt/v4 v4.5.2
+	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/gowebpki/jcs v1.0.1
@@ -46,7 +48,6 @@ require (
 
 require (
 	codeberg.org/go-pdf/fpdf v0.11.1 // indirect
-	github.com/Nerzal/gocloak/v13 v13.9.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
@@ -69,7 +70,6 @@ require (
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.0.0 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b // indirect
 	github.com/google/pprof v0.0.0-20250317173921-a4b03ec1a45e // indirect
