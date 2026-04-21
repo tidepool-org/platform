@@ -56,7 +56,6 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("dataSourceState", &d.DataSourceState).NotEmpty()
 	validator.String("dataSourceId", &d.DataSourceID).NotEmpty()
 	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
-	validator.String("fullName", &d.FullName).NotEmpty()
 	validator.String("providerName", &d.ProviderName).NotEmpty()
 	validator.String("userId", &d.UserID).NotEmpty()
 }
@@ -219,8 +218,6 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 	}
 	if fullName, ok := wrk.Metadata["fullName"].(string); ok {
 		data.FullName = fullName
-	} else {
-		return nil, errors.Newf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
 	}
 	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
 		data.RestrictedTokenID = restrictedTokenID
