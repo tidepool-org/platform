@@ -21,6 +21,10 @@ const (
 	TypeMaxLength = 64
 
 	TypeBigDataDonationProject = "big_data_donation_project"
+	TypeRipple                 = "ripple"
+
+	MinimumBDDPVersionForRipple = 2
+	RippleVersionForJotform     = 1
 
 	ContentTypeMarkdown ContentType = "markdown"
 )
@@ -87,6 +91,20 @@ func (p *Filter) Validate(validator structure.Validator) {
 	if p.Latest != nil {
 		typeValidator.Exists()
 		versionValidator.NotExists()
+	}
+}
+
+// DependentConsentTypes returns the consent types that must be revoked
+// when the given parent type and version is revoked.
+func DependentConsentTypes(parentType string, version int) []string {
+	switch parentType {
+	case TypeBigDataDonationProject:
+		if version >= MinimumBDDPVersionForRipple {
+			return []string{TypeRipple}
+		}
+		return nil
+	default:
+		return nil
 	}
 }
 

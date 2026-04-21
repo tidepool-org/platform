@@ -47,9 +47,11 @@ type SubmissionProcessor struct {
 }
 
 type Config struct {
+	Enabled bool   `envconfig:"TIDEPOOL_OURA_JOTFORM_ENABLED"`
 	BaseURL string `envconfig:"TIDEPOOL_OURA_JOTFORM_BASE_URL" default:"https://api.jotform.com"`
 	APIKey  string `envconfig:"TIDEPOOL_OURA_JOTFORM_API_KEY"`
 	FormID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_FORM_ID"`
+	TeamID  string `envconfig:"TIDEPOOL_OURA_JOTFORM_TEAM_ID"`
 }
 
 func NewSubmissionProcessor(config Config, logger log.Logger, consentService consent.Service, customerIOClient *customerio.Client, userClient user.Client, shopifyClient shopify.Client, submissionStore store.Store) (*SubmissionProcessor, error) {
@@ -73,6 +75,12 @@ func NewSubmissionProcessor(config Config, logger log.Logger, consentService con
 }
 
 func (s *SubmissionProcessor) Reconcile(ctx context.Context, lastSubmissionID string) (ReconcileResult, error) {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform reconcile was called, but jotform integration is not enabled")
+		return ReconcileResult{
+			LastProcessedID: lastSubmissionID,
+		}, nil
+	}
 	return s.reconcile(ctx, s.config.FormID, lastSubmissionID)
 }
 
@@ -124,6 +132,11 @@ func (s *SubmissionProcessor) reconcile(ctx context.Context, formID string, last
 }
 
 func (s *SubmissionProcessor) ProcessSubmission(ctx context.Context, submissionID string) error {
+	if !s.config.Enabled {
+		s.logger.Debug("jotform process submission was called, but jotform integration is not enabled")
+		return nil
+	}
+
 	submission, err := s.jotformClient.GetSubmission(ctx, submissionID)
 	if err != nil {
 		return errors.Wrap(err, "failed to get submission")
@@ -158,15 +171,15 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 		logger.Warn("submission has no answers")
 		return nil
 	}
-	identifiers, err := s.validateUser(ctx, submission.Content.ID, submission.Content.Answers)
+	customer, err := s.validateUser(ctx, submission.Content.ID, submission.Content.Answers)
 	if err != nil {
 		return errors.Wrap(err, "unable to validate user")
-	} else if identifiers == nil {
+	} else if customer == nil {
 		logger.Warn("invalid user")
 		return nil
 	}
 
-	if err := s.handleSurveyCompleted(ctx, *identifiers, submission); err != nil {
+	if err := s.handleSurveyCompleted(ctx, *customer, submission); err != nil {
 		return err
 	}
 
@@ -179,7 +192,7 @@ func (s *SubmissionProcessor) processSubmission(ctx context.Context, submission 
 
 // validateUser validates the user id by comparing the participant id from the submission with the participant id from customer.io
 // this is required because jotform webhooks are not signed or authenticated
-func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Identifiers, error) {
+func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID string, answers Answers) (*customerio.Customer, error) {
 	logger := s.logger.WithField("submissionId", submissionID)
 
 	userID := answers.GetAnswerTextByName(UserIDField)
@@ -187,12 +200,14 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		logger.Info("submission has no user id")
 		return nil, nil
 	}
+	logger = logger.WithField("userId", userID)
 
 	participantID := answers.GetAnswerTextByName(ParticipantIDField)
 	if participantID == "" {
 		logger.Info("submission has no participant id")
 		return nil, nil
 	}
+	logger = logger.WithField("submissionParticipantId", participantID)
 
 	customer, err := s.customerIOClient.GetCustomer(ctx, userID, customerio.IDTypeUserID)
 	if err != nil {
@@ -200,11 +215,13 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 	}
 
 	if customer == nil {
-		logger.Warnf("customer not found for user with id %s", userID)
+		logger.Warnf("no matching customer found for user id")
 		return nil, nil
 	}
 	if customer.OuraParticipantID != participantID {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.
+			WithField("customerParticipantId", customer.OuraParticipantID).
+			Warnf("submission participant id does not match customer participant id")
 		return nil, nil
 	}
 
@@ -213,22 +230,36 @@ func (s *SubmissionProcessor) validateUser(ctx context.Context, submissionID str
 		return nil, errors.Wrap(err, "unable to get user")
 	}
 	if usr == nil {
-		logger.Warnf("participant id mismatch for user with id %s", userID)
+		logger.Warnf("user not found")
 		return nil, nil
 	}
 
-	return &customer.Identifiers, nil
+	return customer, nil
 }
 
-func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, identifiers customerio.Identifiers, submission *SubmissionResponse) error {
+func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, customer customerio.Customer, submission *SubmissionResponse) error {
+	logger := s.logger.WithField("submission", submission.Content.ID)
+
 	surveyCompletedData := oura.OuraEligibilitySurveyCompletedData{
 		OuraEligibilitySurveyID:       submission.Content.ID,
 		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == "true",
 	}
 
+	v := validator.New(s.logger)
+	survey := OuraEligibilitySurvey{
+		DateOfBirth: submission.Content.Answers.GetAnswerTextByName(DateOfBirthField),
+		Name:        submission.Content.Answers.GetAnswerTextByName(NameField),
+	}
+
+	survey.Validate(v)
+	if err := v.Error(); err != nil {
+		surveyCompletedData.OuraEligibilitySurveyEligible = false
+		logger.WithError(err).Warn("consent survey is invalid")
+	}
+
 	if surveyCompletedData.OuraEligibilitySurveyEligible {
-		if err := s.ensureConsentRecordExists(ctx, identifiers.ID, submission); err != nil {
-			s.logger.WithField("submission", submission.Content.ID).WithError(err).Warn("unable to ensure consent record exists")
+		if err := s.ensureConsentRecordExists(ctx, customer.Identifiers.ID, submission, survey); err != nil {
+			s.logger.WithError(err).Warn("unable to ensure consent record exists")
 			return err
 		}
 
@@ -248,62 +279,68 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, identif
 		Data: surveyCompletedData,
 	}
 
-	err := surveyCompleted.SetDeduplicationID(submission.Content.CreatedAt.Time, surveyCompletedData.OuraEligibilitySurveyID)
+	// Use oura participant id as deduplication attribute to prevent multiple submissions
+	err := surveyCompleted.SetDeduplicationID(nil, customer.OuraParticipantID)
 	if err != nil {
 		return errors.Wrap(err, "unable to set event id")
 	}
 
-	err = s.customerIOClient.SendEvent(ctx, identifiers.ID, surveyCompleted)
+	err = s.customerIOClient.SendEvent(ctx, customer.Identifiers.ID, surveyCompleted)
 	if err != nil {
-		return errors.Wrap(err, "unable to send sizing kit delivered event")
+		return errors.Wrap(err, "unable to send eligibility survey completed event")
 	}
 
 	return nil
 }
 
-func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse) error {
+func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse, survey OuraEligibilitySurvey) error {
 	logger := s.logger.WithField("submission", submission.Content.ID)
 
-	survey := OuraEligibilitySurvey{
-		DateOfBirth: submission.Content.Answers.GetAnswerTextByName(DateOfBirthField),
-		Name:        submission.Content.Answers.GetAnswerTextByName(NameField),
-	}
+	creates := make([]*consent.RecordCreate, 0)
 
-	v := validator.New(s.logger)
-	survey.Validate(v)
-	if err := v.Error(); err != nil {
-		logger.WithError(err).Warn("consent survey is invalid")
+	rippleRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeRipple)
+	if err != nil {
+		return errors.Wrap(err, "unable to get active ripple consent record")
+	}
+	if rippleRecord != nil && rippleRecord.Version >= consent.RippleVersionForJotform {
+		// If RIPPLE already exists, BDDP must also exist - nothing to do
+		logger.WithField("userId", userID).Info("ripple consent record already exists")
 		return nil
 	}
 
-	filter := consent.NewRecordFilter()
-	filter.Latest = pointer.FromAny(true)
-	filter.Status = pointer.FromAny(consent.RecordStatusActive)
-	filter.Type = pointer.FromAny(consent.TypeBigDataDonationProject)
-	filter.Version = pointer.FromAny(1)
-
-	pagination := page.NewPaginationMinimum()
-
-	records, err := s.consentService.ListConsentRecords(ctx, userID, filter, pagination)
+	bddpRecord, err := s.consentService.GetActiveConsentRecord(ctx, userID, consent.TypeBigDataDonationProject)
 	if err != nil {
-		return errors.Wrap(err, "unable to list consent records")
+		return errors.Wrap(err, "unable to get active bddp consent record")
+	}
+	if bddpRecord == nil || bddpRecord.Version < consent.MinimumBDDPVersionForRipple {
+		latestBDDP, err := s.consentService.ListConsents(ctx, &consent.Filter{
+			Type:   pointer.FromAny(consent.TypeBigDataDonationProject),
+			Latest: pointer.FromAny(true),
+		}, page.NewPaginationMinimum())
+		if err != nil || latestBDDP.Count == 0 {
+			return errors.Wrap(err, "unable to find latest BDDP version")
+		}
+
+		bddpCreate := consent.NewRecordCreate()
+		bddpCreate.AgeGroup = consent.AgeGroupEighteenOrOver
+		bddpCreate.GrantorType = consent.GrantorTypeOwner
+		bddpCreate.OwnerName = survey.Name
+		bddpCreate.Type = consent.TypeBigDataDonationProject
+		bddpCreate.Version = latestBDDP.Data[0].Version
+		creates = append(creates, bddpCreate)
 	}
 
-	if records.Count > 0 {
-		logger.WithField("userId", userID).Info("consent record already exists")
-		return nil
-	}
+	rippleCreate := consent.NewRecordCreate()
+	rippleCreate.AgeGroup = consent.AgeGroupEighteenOrOver
+	rippleCreate.GrantorType = consent.GrantorTypeOwner
+	rippleCreate.OwnerName = survey.Name
+	rippleCreate.Type = consent.TypeRipple
+	rippleCreate.Version = consent.RippleVersionForJotform
+	creates = append(creates, rippleCreate)
 
-	create := consent.NewRecordCreate()
-	create.AgeGroup = consent.AgeGroupEighteenOrOver
-	create.GrantorType = consent.GrantorTypeOwner
-	create.OwnerName = survey.Name
-	create.Type = consent.TypeBigDataDonationProject
-	create.Version = 1
-
-	_, err = s.consentService.CreateConsentRecord(ctx, userID, create)
+	_, err = s.consentService.CreateConsentRecords(ctx, userID, creates)
 	if err != nil {
-		return errors.Wrap(err, "unable to create consent record")
+		return errors.Wrap(err, "unable to create consent records")
 	}
 
 	return nil
@@ -324,7 +361,7 @@ func (s *SubmissionProcessor) saveProcessedSubmission(ctx context.Context, submi
 		CreatedTime:  time.Now(),
 	}
 
-	if err := s.store.SaveProcessedSubmission(ctx, processedSubmission); err != nil && !mongo.IsDup(err) {
+	if err := s.store.CreateProcessedSubmission(ctx, processedSubmission); err != nil && !mongo.IsDup(err) {
 		return err
 	}
 

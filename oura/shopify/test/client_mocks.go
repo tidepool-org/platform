@@ -12,6 +12,7 @@ package test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 
@@ -80,41 +81,80 @@ func (c *MockClientCreateDiscountCodeCall) DoAndReturn(f func(context.Context, s
 	return c
 }
 
-// GetDeliveredProducts mocks base method.
-func (m *MockClient) GetDeliveredProducts(ctx context.Context, orderID string) (*shopify.DeliveredProducts, error) {
+// GetGIDsOfUpdatedOrders mocks base method.
+func (m *MockClient) GetGIDsOfUpdatedOrders(ctx context.Context, updatedSince time.Time, count int) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeliveredProducts", ctx, orderID)
-	ret0, _ := ret[0].(*shopify.DeliveredProducts)
+	ret := m.ctrl.Call(m, "GetGIDsOfUpdatedOrders", ctx, updatedSince, count)
+	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDeliveredProducts indicates an expected call of GetDeliveredProducts.
-func (mr *MockClientMockRecorder) GetDeliveredProducts(ctx, orderID any) *MockClientGetDeliveredProductsCall {
+// GetGIDsOfUpdatedOrders indicates an expected call of GetGIDsOfUpdatedOrders.
+func (mr *MockClientMockRecorder) GetGIDsOfUpdatedOrders(ctx, updatedSince, count any) *MockClientGetGIDsOfUpdatedOrdersCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeliveredProducts", reflect.TypeOf((*MockClient)(nil).GetDeliveredProducts), ctx, orderID)
-	return &MockClientGetDeliveredProductsCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetGIDsOfUpdatedOrders", reflect.TypeOf((*MockClient)(nil).GetGIDsOfUpdatedOrders), ctx, updatedSince, count)
+	return &MockClientGetGIDsOfUpdatedOrdersCall{Call: call}
 }
 
-// MockClientGetDeliveredProductsCall wrap *gomock.Call
-type MockClientGetDeliveredProductsCall struct {
+// MockClientGetGIDsOfUpdatedOrdersCall wrap *gomock.Call
+type MockClientGetGIDsOfUpdatedOrdersCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockClientGetDeliveredProductsCall) Return(arg0 *shopify.DeliveredProducts, arg1 error) *MockClientGetDeliveredProductsCall {
+func (c *MockClientGetGIDsOfUpdatedOrdersCall) Return(arg0 []string, arg1 error) *MockClientGetGIDsOfUpdatedOrdersCall {
 	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientGetDeliveredProductsCall) Do(f func(context.Context, string) (*shopify.DeliveredProducts, error)) *MockClientGetDeliveredProductsCall {
+func (c *MockClientGetGIDsOfUpdatedOrdersCall) Do(f func(context.Context, time.Time, int) ([]string, error)) *MockClientGetGIDsOfUpdatedOrdersCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientGetDeliveredProductsCall) DoAndReturn(f func(context.Context, string) (*shopify.DeliveredProducts, error)) *MockClientGetDeliveredProductsCall {
+func (c *MockClientGetGIDsOfUpdatedOrdersCall) DoAndReturn(f func(context.Context, time.Time, int) ([]string, error)) *MockClientGetGIDsOfUpdatedOrdersCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetOrderSummary mocks base method.
+func (m *MockClient) GetOrderSummary(ctx context.Context, orderID string) (*shopify.OrderSummary, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOrderSummary", ctx, orderID)
+	ret0, _ := ret[0].(*shopify.OrderSummary)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOrderSummary indicates an expected call of GetOrderSummary.
+func (mr *MockClientMockRecorder) GetOrderSummary(ctx, orderID any) *MockClientGetOrderSummaryCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOrderSummary", reflect.TypeOf((*MockClient)(nil).GetOrderSummary), ctx, orderID)
+	return &MockClientGetOrderSummaryCall{Call: call}
+}
+
+// MockClientGetOrderSummaryCall wrap *gomock.Call
+type MockClientGetOrderSummaryCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientGetOrderSummaryCall) Return(arg0 *shopify.OrderSummary, arg1 error) *MockClientGetOrderSummaryCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientGetOrderSummaryCall) Do(f func(context.Context, string) (*shopify.OrderSummary, error)) *MockClientGetOrderSummaryCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientGetOrderSummaryCall) DoAndReturn(f func(context.Context, string) (*shopify.OrderSummary, error)) *MockClientGetOrderSummaryCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

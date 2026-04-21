@@ -109,7 +109,7 @@ var _ = Describe("Processor", func() {
 				}),
 			}
 
-			id, err := customerio.CreateUlid(deduplicationTime, deduplicationID)
+			id, err := customerio.CreateUlid(&deduplicationTime, "data_source_state_changed"+":"+deduplicationID)
 			Expect(err).ToNot(HaveOccurred())
 
 			trackAPIResponses.AddResponse(

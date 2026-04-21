@@ -83,6 +83,45 @@ func (c *MockServiceCreateConsentRecordCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// CreateConsentRecords mocks base method.
+func (m *MockService) CreateConsentRecords(arg0 context.Context, arg1 string, arg2 []*consent.RecordCreate) ([]*consent.Record, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateConsentRecords", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*consent.Record)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateConsentRecords indicates an expected call of CreateConsentRecords.
+func (mr *MockServiceMockRecorder) CreateConsentRecords(arg0, arg1, arg2 any) *MockServiceCreateConsentRecordsCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateConsentRecords", reflect.TypeOf((*MockService)(nil).CreateConsentRecords), arg0, arg1, arg2)
+	return &MockServiceCreateConsentRecordsCall{Call: call}
+}
+
+// MockServiceCreateConsentRecordsCall wrap *gomock.Call
+type MockServiceCreateConsentRecordsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServiceCreateConsentRecordsCall) Return(arg0 []*consent.Record, arg1 error) *MockServiceCreateConsentRecordsCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServiceCreateConsentRecordsCall) Do(f func(context.Context, string, []*consent.RecordCreate) ([]*consent.Record, error)) *MockServiceCreateConsentRecordsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServiceCreateConsentRecordsCall) DoAndReturn(f func(context.Context, string, []*consent.RecordCreate) ([]*consent.Record, error)) *MockServiceCreateConsentRecordsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // EnsureConsent mocks base method.
 func (m *MockService) EnsureConsent(arg0 context.Context, arg1 *consent.Consent) error {
 	m.ctrl.T.Helper()
@@ -117,6 +156,45 @@ func (c *MockServiceEnsureConsentCall) Do(f func(context.Context, *consent.Conse
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockServiceEnsureConsentCall) DoAndReturn(f func(context.Context, *consent.Consent) error) *MockServiceEnsureConsentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetActiveConsentRecord mocks base method.
+func (m *MockService) GetActiveConsentRecord(arg0 context.Context, arg1, arg2 string) (*consent.Record, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetActiveConsentRecord", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*consent.Record)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetActiveConsentRecord indicates an expected call of GetActiveConsentRecord.
+func (mr *MockServiceMockRecorder) GetActiveConsentRecord(arg0, arg1, arg2 any) *MockServiceGetActiveConsentRecordCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetActiveConsentRecord", reflect.TypeOf((*MockService)(nil).GetActiveConsentRecord), arg0, arg1, arg2)
+	return &MockServiceGetActiveConsentRecordCall{Call: call}
+}
+
+// MockServiceGetActiveConsentRecordCall wrap *gomock.Call
+type MockServiceGetActiveConsentRecordCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServiceGetActiveConsentRecordCall) Return(arg0 *consent.Record, arg1 error) *MockServiceGetActiveConsentRecordCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServiceGetActiveConsentRecordCall) Do(f func(context.Context, string, string) (*consent.Record, error)) *MockServiceGetActiveConsentRecordCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServiceGetActiveConsentRecordCall) DoAndReturn(f func(context.Context, string, string) (*consent.Record, error)) *MockServiceGetActiveConsentRecordCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

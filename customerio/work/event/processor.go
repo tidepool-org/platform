@@ -148,7 +148,7 @@ func (p *Processor) eventFromMetadata(metadata *Metadata) (*customerio.Event, er
 	deduplicationTime := *metadata.EventDeduplicationTime
 	deduplicationID := *metadata.EventDeduplicationID
 
-	if err := event.SetDeduplicationID(deduplicationTime, deduplicationID); err != nil {
+	if err := event.SetDeduplicationID(&deduplicationTime, deduplicationID); err != nil {
 		return nil, errors.Wrap(err, "unable to set event deduplication id")
 	}
 	if err := structureValidator.New(log.LoggerFromContext(p.Context())).Validate(event); err != nil {
@@ -172,27 +172,23 @@ func NewDataSourceStateChangedEventWorkCreate(dataSrc *dataSource.Source) (*work
 		return nil, errors.New("data source is missing")
 	}
 
-	workMetadata := &Metadata{}
-	workMetadata.UserID = pointer.FromString(dataSrc.UserID)
-	workMetadata.EventType = pointer.FromString(customerio.DataSourceStateChangedEventType)
-	workMetadata.EventData = &customerio.DataSourceStateChangedEvent{
-		ProviderName: dataSrc.ProviderName,
-		State:        dataSrc.State,
-	}
-	workMetadata.EventDeduplicationTime = pointer.FromTime(DeduplicationTimeFromDataSource(*dataSrc))
-	workMetadata.EventDeduplicationID = pointer.FromString(EventDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc))
-
-	encodedWorkMetadata, err := metadata.Encode(workMetadata)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to encode work metadata")
-	}
-
-	return &work.Create{
-		Type:              Type,
-		DeduplicationID:   pointer.FromString(WorkDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
-		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
-		Metadata:          encodedWorkMetadata,
-	}, nil
+	return metadata.WithMetadata(
+		&work.Create{
+			Type:              Type,
+			DeduplicationID:   pointer.FromString(WorkDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
+			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
+		},
+		&Metadata{
+			UserID:    pointer.FromString(dataSrc.UserID),
+			EventType: pointer.FromString(customerio.DataSourceStateChangedEventType),
+			EventData: &customerio.DataSourceStateChangedEvent{
+				ProviderName: dataSrc.ProviderName,
+				State:        dataSrc.State,
+			},
+			EventDeduplicationTime: pointer.FromTime(DeduplicationTimeFromDataSource(*dataSrc)),
+			EventDeduplicationID:   pointer.FromString(EventDeduplicationIDFromDataSource(customerio.DataSourceStateChangedEventType, *dataSrc)),
+		},
+	)
 }
 
 func WorkDeduplicationIDFromDataSource(eventType string, dataSrc dataSource.Source) string {

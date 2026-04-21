@@ -10,14 +10,12 @@ import (
 )
 
 type Router struct {
-	fulfillmentEventProcessor  *shopify.FulfillmentEventProcessor
-	ordersCreateEventProcessor *shopify.OrdersCreateEventProcessor
+	processor *shopify.OrderProcessor
 }
 
-func NewRouter(fulfillmentEventProcessor *shopify.FulfillmentEventProcessor, ordersCreateEventProcessor *shopify.OrdersCreateEventProcessor) (*Router, error) {
+func NewRouter(processor *shopify.OrderProcessor) (*Router, error) {
 	return &Router{
-		fulfillmentEventProcessor:  fulfillmentEventProcessor,
-		ordersCreateEventProcessor: ordersCreateEventProcessor,
+		processor: processor,
 	}, nil
 }
 
@@ -38,8 +36,8 @@ func (r *Router) HandleFulfillmentEvent(res rest.ResponseWriter, req *rest.Reque
 		return
 	}
 
-	if err := r.fulfillmentEventProcessor.Process(ctx, event); err != nil {
-		responder.InternalServerError(err)
+	if err := r.processor.ProcessFulfillment(ctx, event); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 
@@ -57,8 +55,8 @@ func (r *Router) HandleOrdersCreateEvent(res rest.ResponseWriter, req *rest.Requ
 		return
 	}
 
-	if err := r.ordersCreateEventProcessor.Process(ctx, event); err != nil {
-		responder.InternalServerError(err)
+	if err := r.processor.ProcessOrderCreate(ctx, event); err != nil {
+		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
 

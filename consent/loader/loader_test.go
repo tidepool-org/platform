@@ -45,10 +45,10 @@ var _ = Describe("SeedConsents", func() {
 				// Verify the consent object is properly constructed
 				Expect(cons.ContentType).To(Equal(consent.ContentTypeMarkdown))
 				Expect(len(cons.Type)).To(BeNumerically(">", 0))
-				Expect(cons.Version).To(BeNumerically("==", 1))
+				Expect(cons.Version).To(BeNumerically(">", 0))
 				Expect(cons.Content).ToNot(BeEmpty())
 				return nil
-			}).Times(1)
+			}).Times(3)
 
 			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
@@ -61,21 +61,31 @@ var _ = Describe("SeedConsents", func() {
 				// Capture the consent for detailed verification
 				capturedConsents = append(capturedConsents, consent)
 				return nil
-			}).Times(1)
+			}).Times(3)
 
 			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Verify we captured
-			Expect(capturedConsents).To(HaveLen(1))
+			// Verify we captured all 3 consents
+			Expect(capturedConsents).To(HaveLen(3))
 
-			// Verify big_data_donation_project consent
-			tbddp := findConsentByType(capturedConsents, "big_data_donation_project")
-			Expect(tbddp).ToNot(BeNil())
-			Expect(string(tbddp.Type)).To(Equal("big_data_donation_project"))
-			Expect(tbddp.Version).To(Equal(1))
-			Expect(tbddp.ContentType).To(Equal(consent.ContentTypeMarkdown))
-			Expect(tbddp.Content).To(ContainSubstring("Tidepool Big Data Donation Project"))
+			// Verify big_data_donation_project v1 consent
+			tbddpV1 := findConsentByTypeAndVersion(capturedConsents, "big_data_donation_project", 1)
+			Expect(tbddpV1).ToNot(BeNil())
+			Expect(tbddpV1.ContentType).To(Equal(consent.ContentTypeMarkdown))
+			Expect(tbddpV1.Content).To(ContainSubstring("Tidepool Big Data Donation Project"))
+
+			// Verify big_data_donation_project v2 consent
+			tbddpV2 := findConsentByTypeAndVersion(capturedConsents, "big_data_donation_project", 2)
+			Expect(tbddpV2).ToNot(BeNil())
+			Expect(tbddpV2.ContentType).To(Equal(consent.ContentTypeMarkdown))
+			Expect(tbddpV2.Content).To(ContainSubstring("Tidepool Big Data Donation Project"))
+
+			// Verify ripple v1 consent
+			ripple := findConsentByTypeAndVersion(capturedConsents, "ripple", 1)
+			Expect(ripple).ToNot(BeNil())
+			Expect(ripple.ContentType).To(Equal(consent.ContentTypeMarkdown))
+			Expect(ripple.Content).To(ContainSubstring("RIPPLE"))
 		})
 	})
 
@@ -237,7 +247,16 @@ var _ = Describe("SeedConsents", func() {
 // Helper function to find consent by type
 func findConsentByType(consents []*consent.Consent, typeName string) *consent.Consent {
 	for _, c := range consents {
-		if string(c.Type) == typeName {
+		if c.Type == typeName {
+			return c
+		}
+	}
+	return nil
+}
+
+func findConsentByTypeAndVersion(consents []*consent.Consent, typeName string, version int) *consent.Consent {
+	for _, c := range consents {
+		if c.Type == typeName && c.Version == version {
 			return c
 		}
 	}
