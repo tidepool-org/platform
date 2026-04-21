@@ -19,6 +19,7 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/permission"
 	serviceContext "github.com/tidepool-org/platform/service/context"
 	"github.com/tidepool-org/platform/summary"
@@ -46,6 +47,7 @@ type Standard struct {
 	dataRawClient                  dataRaw.Client
 	dataSourceClient               dataSourceService.Client
 	workClient                     work.Client
+	notificationsHistoryRecorder   notificationsHistory.Recorder
 	alertsRepository               alerts.Repository
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
@@ -54,14 +56,14 @@ type Standard struct {
 func WithContext(authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client, notificationsHistoryRecorder notificationsHistory.Recorder,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer,
 	handler dataService.HandlerFunc) rest.HandlerFunc {
 	return func(response rest.ResponseWriter, request *rest.Request) {
 		standard, standardErr := NewStandard(response, request, authClient, metricClient, permissionClient,
 			dataDeduplicatorFactory, store, syncTaskStore, dataClient, dataRawClient, dataSourceClient,
-			workClient, abbottServiceRequestAuthorizer, twiistServiceAccountAuthorizer)
+			workClient, notificationsHistoryRecorder, abbottServiceRequestAuthorizer, twiistServiceAccountAuthorizer)
 		if standardErr != nil {
 			if responder, responderErr := serviceContext.NewResponder(response, request); responderErr != nil {
 				response.WriteHeader(http.StatusInternalServerError)
@@ -80,7 +82,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	authClient auth.Client, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDeduplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSourceService.Client, workClient work.Client, notificationsHistoryRecorder notificationsHistory.Recorder,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if authClient == nil {
@@ -113,6 +115,9 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
+	if notificationsHistoryRecorder == nil {
+		return nil, errors.New("notifications history recorder is missing")
+	}
 	if abbottServiceRequestAuthorizer == nil {
 		return nil, errors.New("abbott service request authorizer is missing")
 	}
@@ -137,6 +142,7 @@ func NewStandard(response rest.ResponseWriter, request *rest.Request,
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
 		workClient:                     workClient,
+		notificationsHistoryRecorder:   notificationsHistoryRecorder,
 		abbottServiceRequestAuthorizer: abbottServiceRequestAuthorizer,
 		twiistServiceAccountAuthorizer: twiistServiceAccountAuthorizer,
 	}, nil
@@ -268,4 +274,8 @@ func (s *Standard) AlertsRepository() alerts.Repository {
 
 func (s *Standard) GetMongoClient() *mongo.Client {
 	return s.dataStore.GetClient()
+}
+
+func (s *Standard) NotificationsHistoryRecorder() notificationsHistory.Recorder {
+	return s.notificationsHistoryRecorder
 }

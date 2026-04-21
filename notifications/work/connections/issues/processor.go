@@ -7,16 +7,17 @@ import (
 
 	"github.com/tidepool-org/go-common/events"
 
-	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/work"
-
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/work"
 )
 
 const (
-	processorType            = "org.tidepool.processors.connections.issues"
+	Type                     = "org.tidepool.user.notification.connection.issue"
 	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
@@ -24,7 +25,7 @@ const (
 
 // NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
 func NewGroupID(dataSourceID string) string {
-	return fmt.Sprintf("%s:%s", processorType, dataSourceID)
+	return fmt.Sprintf("%s:%s", Type, dataSourceID)
 }
 
 type processor struct {
@@ -55,14 +56,27 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("dataSourceState", &d.DataSourceState).NotEmpty()
 	validator.String("dataSourceId", &d.DataSourceID).NotEmpty()
 	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
-	validator.String("fullName", &d.FullName).NotEmpty()
 	validator.String("providerName", &d.ProviderName).NotEmpty()
 	validator.String("userId", &d.UserID).NotEmpty()
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
 	create := newWorkCreate(metadata)
-	if _, err := client.Create(ctx, create); err != nil {
+	wrk, err := client.Create(ctx, create)
+	if err != nil {
+		return err
+	}
+
+	groupID := pointer.DefaultString(create.GroupID, "")
+	entry := history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		EventType:     history.NotificationQueued,
+		GroupID:       groupID,
+		DataSourceID:  metadata.DataSourceID,
+		UserID:        metadata.UserID,
+	}
+	if err := recorder.Create(ctx, entry); err != nil {
 		return err
 	}
 	return nil
@@ -70,7 +84,7 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 
 func newWorkCreate(metadata Metadata) *work.Create {
 	return &work.Create{
-		Type:              processorType,
+		Type:              Type,
 		SerialID:          pointer.FromString(metadata.UserID),
 		GroupID:           pointer.FromString(NewGroupID(metadata.DataSourceID)),
 		ProcessingTimeout: processingTimeoutSeconds,
@@ -85,7 +99,7 @@ func NewProcessor(dependencies notifications.Dependencies) *processor {
 }
 
 func (p *processor) Type() string {
-	return processorType
+	return Type
 }
 
 func (p *processor) Quantity() int {
@@ -107,6 +121,21 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		return notifications.NewFailingResult(err, wrk)
 	}
 	if user == nil || user.Username == nil {
+		entry := history.Entry{
+			Metadata:      wrk.Metadata,
+			ProcessorType: Type,
+			EventType:     history.NotificationGeneralError,
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			DataSourceID:  data.DataSourceID,
+			UserID:        data.UserID,
+			Error:         errors.New("user not found"),
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
 	}
 
@@ -120,9 +149,52 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 		Template:  data.EmailTemplate,
 		Variables: emailVars,
 	}
+	entry := history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		DataSourceID:  data.DataSourceID,
+		EventType:     history.NotificationAttempted,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email attempted event.")
+		}
+	}
+
 	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
+		entry := history.Entry{
+			Metadata:      wrk.Metadata,
+			ProcessorType: Type,
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			DataSourceID:  data.DataSourceID,
+			EventType:     history.NotificationEmailError,
+			UserID:        data.UserID,
+			Error:         errors.Wrap(err, "unable to send email template for device issues"),
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification send email error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(err, wrk)
 	}
+	entry = history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(user.Username, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationEmailSent,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
+		}
+	}
+
 	return *work.NewProcessResultDelete()
 }
 
@@ -146,8 +218,6 @@ func toMetadata(wrk *work.Work) (*Metadata, error) {
 	}
 	if fullName, ok := wrk.Metadata["fullName"].(string); ok {
 		data.FullName = fullName
-	} else {
-		return nil, errors.Newf(`expected field "fullName" to exist and be a string, received %T`, wrk.Metadata["fullName"])
 	}
 	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
 		data.RestrictedTokenID = restrictedTokenID

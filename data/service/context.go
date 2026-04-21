@@ -12,6 +12,7 @@ import (
 	dataSourceService "github.com/tidepool-org/platform/data/source/service"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/summary"
@@ -42,6 +43,7 @@ type Context interface {
 	DataRawClient() dataRaw.Client
 	DataSourceClient() dataSourceService.Client
 	WorkClient() work.Client
+	NotificationsHistoryRecorder() notificationsHistory.Recorder
 
 	AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer
 	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer
