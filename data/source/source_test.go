@@ -127,18 +127,35 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderExternalID = pointer.FromString(valid)
 					},
 				),
+				Entry("state invalid type",
+					func(object map[string]any, expectedDatum *dataSource.Filter) {
+						object["state"] = true
+						expectedDatum.State = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
+				),
+				Entry("state valid",
+					func(object map[string]any, expectedDatum *dataSource.Filter) {
+						valid := dataSourceTest.RandomState()
+						object["state"] = valid
+						expectedDatum.State = pointer.FromString(valid)
+					},
+				),
 				Entry("multiple",
 					func(object map[string]any, expectedDatum *dataSource.Filter) {
 						object["providerType"] = true
 						object["providerName"] = true
 						object["providerExternalId"] = true
+						object["state"] = true
 						expectedDatum.ProviderType = nil
 						expectedDatum.ProviderName = nil
 						expectedDatum.ProviderExternalID = nil
+						expectedDatum.State = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerType"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerName"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerExternalId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
 				),
 			)
 		})
@@ -223,15 +240,37 @@ var _ = Describe("Source", func() {
 						datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
 					},
 				),
+				Entry("state missing",
+					func(datum *dataSource.Filter) { datum.State = nil },
+				),
+				Entry("state empty",
+					func(datum *dataSource.Filter) {
+						datum.State = pointer.FromString("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
+				),
+				Entry("state invalid",
+					func(datum *dataSource.Filter) {
+						datum.State = pointer.FromString("invalid")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", dataSource.States()), "/state"),
+				),
+				Entry("state valid",
+					func(datum *dataSource.Filter) {
+						datum.State = pointer.FromString(dataSourceTest.RandomState())
+					},
+				),
 				Entry("multiple errors",
 					func(datum *dataSource.Filter) {
 						datum.ProviderType = pointer.FromString("")
 						datum.ProviderName = pointer.FromString("")
 						datum.ProviderExternalID = pointer.FromString("")
+						datum.State = pointer.FromString("")
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", auth.ProviderTypes()), "/providerType"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerName"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 				),
 			)
 		})
@@ -265,6 +304,9 @@ var _ = Describe("Source", func() {
 					if filter.ProviderExternalID != nil {
 						values["providerExternalId"] = []string{*filter.ProviderExternalID}
 					}
+					if filter.State != nil {
+						values["state"] = []string{*filter.State}
+					}
 					Expect(filter.MutateRequest(req)).To(Succeed())
 					Expect(req.URL.Query()).To(Equal(values))
 				})
@@ -273,6 +315,7 @@ var _ = Describe("Source", func() {
 					filter.ProviderType = nil
 					filter.ProviderName = nil
 					filter.ProviderExternalID = nil
+					filter.State = nil
 					Expect(filter.MutateRequest(req)).To(Succeed())
 					Expect(req.URL.Query()).To(BeEmpty())
 				})

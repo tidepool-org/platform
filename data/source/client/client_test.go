@@ -253,6 +253,9 @@ var _ = Describe("Client", func() {
 							if filter.ProviderExternalID != nil {
 								query["providerExternalId"] = []string{*filter.ProviderExternalID}
 							}
+							if filter.State != nil {
+								query["state"] = []string{*filter.State}
+							}
 							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
 

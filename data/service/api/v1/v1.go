@@ -34,6 +34,7 @@ func Routes() []service.Route {
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
+	routes = append(routes, NotificationsRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
 	routes = append(routes, ouraServiceApiV1.Routes()...)
 

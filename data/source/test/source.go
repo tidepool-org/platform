@@ -54,6 +54,7 @@ func RandomFilter(options ...test.Option) *dataSource.Filter {
 		ProviderType:       test.RandomOptional(authTest.RandomProviderType, options...),
 		ProviderName:       test.RandomOptional(authTest.RandomProviderName, options...),
 		ProviderExternalID: test.RandomOptional(authTest.RandomProviderExternalID, options...),
+		State:              test.RandomOptional(RandomState, options...),
 	}
 }
 
@@ -65,6 +66,7 @@ func CloneFilter(datum *dataSource.Filter) *dataSource.Filter {
 		ProviderType:       pointer.CloneString(datum.ProviderType),
 		ProviderName:       pointer.CloneString(datum.ProviderName),
 		ProviderExternalID: pointer.CloneString(datum.ProviderExternalID),
+		State:              pointer.CloneString(datum.State),
 	}
 }
 
@@ -78,6 +80,9 @@ func NewObjectFromFilter(datum *dataSource.Filter, objectFormat test.ObjectForma
 	}
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
+	}
+	if datum.State != nil {
+		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
 	return object
 }

@@ -52,6 +52,7 @@ type Filter struct {
 	ProviderType       *string `json:"providerType,omitempty" bson:"providerType,omitempty"`
 	ProviderName       *string `json:"providerName,omitempty" bson:"providerName,omitempty"`
 	ProviderExternalID *string `json:"providerExternalId,omitempty" bson:"providerExternalId,omitempty"`
+	State              *string `json:"state,omitempty" bson:"state,omitempty"`
 }
 
 func NewFilter() *Filter {
@@ -62,12 +63,14 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.ProviderType = parser.String("providerType")
 	f.ProviderName = parser.String("providerName")
 	f.ProviderExternalID = parser.String("providerExternalId")
+	f.State = parser.String("state")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("providerType", f.ProviderType).OneOf(auth.ProviderTypes()...)
 	validator.String("providerName", f.ProviderName).Using(auth.ProviderNameValidator)
 	validator.String("providerExternalId", f.ProviderExternalID).Using(auth.ProviderExternalIDValidator)
+	validator.String("state", f.State).OneOf(States()...)
 }
 
 func (f *Filter) MutateRequest(req *http.Request) error {
@@ -80,6 +83,9 @@ func (f *Filter) MutateRequest(req *http.Request) error {
 	}
 	if f.ProviderExternalID != nil {
 		parameters["providerExternalId"] = *f.ProviderExternalID
+	}
+	if f.State != nil {
+		parameters["state"] = *f.State
 	}
 	return request.NewParametersMutator(parameters).MutateRequest(req)
 }

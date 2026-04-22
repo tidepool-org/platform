@@ -3,10 +3,14 @@ package service
 import (
 	"context"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/IBM/sarama"
+	"github.com/kelseyhightower/envconfig"
+
 	eventsCommon "github.com/tidepool-org/go-common/events"
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
@@ -14,6 +18,7 @@ import (
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 
 	"github.com/tidepool-org/platform/application"
+	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
@@ -29,7 +34,9 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/mailer"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	notificationsWorkProcessors "github.com/tidepool-org/platform/notifications/work/processors"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/oura"
 	ouraClient "github.com/tidepool-org/platform/oura/client"
@@ -45,10 +52,20 @@ import (
 	summaryClient "github.com/tidepool-org/platform/summary/client"
 	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
+	"github.com/tidepool-org/platform/user"
+	userClient "github.com/tidepool-org/platform/user/client"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
+
+type confirmationClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
+}
+
+func (c *confirmationClientConfig) Load() error {
+	return envconfig.Process("", c)
+}
 
 type Standard struct {
 	*service.DEPRECATEDService
@@ -60,14 +77,17 @@ type Standard struct {
 	syncTaskStore                  *syncTaskMongo.Store
 	workStructuredStore            *workStoreStructuredMongo.Store
 	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
-	clinicsClient                  *clinics.Client
+	clinicsClient                  clinics.Client
 	dataClient                     *Client
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
+	mailerClient                   mailer.Mailer
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
 	abbottClient                   *abbottClient.Client
 	ouraClient                     *ouraClient.Client
+	userClient                     user.Client
+	confirmationClient             confirmationClient.ClientWithResponsesInterface
 	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
@@ -122,7 +142,16 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeDataSourceClient(); err != nil {
 		return err
 	}
+	if err := s.initializeMailerClient(); err != nil {
+		return err
+	}
+	if err := s.initializeUserClient(); err != nil {
+		return err
+	}
 	if err := s.initializeSummaryClient(); err != nil {
+		return err
+	}
+	if err := s.initializeConfirmationClient(); err != nil {
 		return err
 	}
 	if err := s.initializeWorkClient(); err != nil {
@@ -480,7 +509,7 @@ func (s *Standard) initializeClinicsClient() error {
 	if err != nil {
 		return errors.Wrap(err, "unable to create clinics client")
 	}
-	s.clinicsClient = &clnt
+	s.clinicsClient = clnt
 
 	return nil
 }
@@ -517,6 +546,57 @@ func (s *Standard) initializeDataSourceClient() error {
 		return errors.Wrap(err, "unable to create data source client")
 	}
 	s.dataSourceClient = clnt
+
+	return nil
+}
+
+func (s *Standard) initializeMailerClient() error {
+	s.Logger().Debug("Initializing mailer client")
+	client, err := mailer.Client()
+	if err != nil {
+		return errors.Wrap(err, "unable to create mailer client")
+	}
+	s.mailerClient = client
+	return nil
+}
+
+func (s *Standard) initializeUserClient() error {
+	s.Logger().Debug("Initializing user client")
+	client, err := userClient.NewDefaultClient(userClient.Params{
+		ConfigReporter: s.ConfigReporter(),
+		Logger:         s.Logger(),
+		UserAgent:      s.UserAgent(),
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create user client")
+	}
+	s.userClient = client
+	return nil
+}
+
+func (s *Standard) initializeConfirmationClient() error {
+	s.Logger().Debug("Initializing confirmation client")
+
+	cfg := &confirmationClientConfig{}
+	if err := cfg.Load(); err != nil {
+		return errors.Wrap(err, "unable to load confirmation client config")
+	}
+
+	opts := confirmationClient.WithRequestEditorFn(func(ctx context.Context, req *http.Request) error {
+		token, err := s.AuthClient().ServerSessionToken()
+		if err != nil {
+			return err
+		}
+
+		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		return nil
+	})
+
+	client, err := confirmationClient.NewClientWithResponses(cfg.ServiceAddress, opts)
+	if err != nil {
+		return errors.Wrap(err, "unable to create confirmation client")
+	}
+	s.confirmationClient = client
 
 	return nil
 }
@@ -690,6 +770,27 @@ func (s *Standard) initializeWorkCoordinator() error {
 		if err := ouraWorkProcessors.EnsureWork(ctx, ouraDependencies.WorkClient); err != nil {
 			return errors.Wrap(err, "unable to ensure oura work")
 		}
+	}
+
+	s.Logger().Debug("Creating notifications processor factories")
+
+	notificationsDependencies := notificationsWorkProcessors.Dependencies{
+		Dependencies:       dependencies,
+		ClinicClient:       s.clinicsClient,
+		ConfirmationClient: s.confirmationClient,
+		DataSourceClient:   s.dataSourceClient,
+		MailerClient:       s.mailerClient,
+		UserClient:         s.userClient,
+	}
+	notificationsProcessorFactories, err := notificationsWorkProcessors.NewProcessorFactories(notificationsDependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create notifications processor factories")
+	}
+
+	s.Logger().Debug("Registering notifications processor factories")
+
+	if err = s.workCoordinator.RegisterProcessorFactories(notificationsProcessorFactories); err != nil {
+		return errors.Wrap(err, "unable to register notifications processor factories")
 	}
 
 	s.Logger().Debug("Starting work coordinator")

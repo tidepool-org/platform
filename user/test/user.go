@@ -21,14 +21,14 @@ func RandomPassword() string {
 	return test.RandomString()
 }
 
-func RandomUser() *user.User {
-	datum := &user.User{}
-	datum.UserID = pointer.FromString(RandomUserID())
-	datum.Username = pointer.FromString(RandomUsername())
-	datum.EmailVerified = pointer.FromBool(test.RandomBool())
-	datum.TermsAccepted = pointer.FromString(test.RandomTimeBeforeNow().Format(time.RFC3339Nano))
-	datum.Roles = nil
-	return datum
+func RandomUser(options ...test.Option) *user.User {
+	return &user.User{
+		UserID:        pointer.FromString(RandomUserID()),
+		Username:      test.RandomOptional(RandomUsername, options...),
+		EmailVerified: test.RandomOptional(test.RandomBool, options...),
+		TermsAccepted: test.RandomOptional(func() string { return test.RandomTimeBeforeNow().Format(time.RFC3339Nano) }, options...),
+		Roles:         nil,
+	}
 }
 
 func CloneUser(datum *user.User) *user.User {

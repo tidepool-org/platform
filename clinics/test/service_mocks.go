@@ -42,6 +42,45 @@ func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
+// GetClinic mocks base method.
+func (m *MockClient) GetClinic(ctx context.Context, clinicID string) (*client.Clinic, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClinic", ctx, clinicID)
+	ret0, _ := ret[0].(*client.Clinic)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClinic indicates an expected call of GetClinic.
+func (mr *MockClientMockRecorder) GetClinic(ctx, clinicID any) *MockClientGetClinicCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClinic", reflect.TypeOf((*MockClient)(nil).GetClinic), ctx, clinicID)
+	return &MockClientGetClinicCall{Call: call}
+}
+
+// MockClientGetClinicCall wrap *gomock.Call
+type MockClientGetClinicCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientGetClinicCall) Return(arg0 *client.Clinic, arg1 error) *MockClientGetClinicCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientGetClinicCall) Do(f func(context.Context, string) (*client.Clinic, error)) *MockClientGetClinicCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientGetClinicCall) DoAndReturn(f func(context.Context, string) (*client.Clinic, error)) *MockClientGetClinicCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // GetClinician mocks base method.
 func (m *MockClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*client.Clinician, error) {
 	m.ctrl.T.Helper()
@@ -116,6 +155,45 @@ func (c *MockClientGetEHRSettingsCall) Do(f func(context.Context, string) (*clie
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockClientGetEHRSettingsCall) DoAndReturn(f func(context.Context, string) (*client.EHRSettings, error)) *MockClientGetEHRSettingsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// GetPatient mocks base method.
+func (m *MockClient) GetPatient(ctx context.Context, clinicID, patientID string) (*client.Patient, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPatient", ctx, clinicID, patientID)
+	ret0, _ := ret[0].(*client.Patient)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPatient indicates an expected call of GetPatient.
+func (mr *MockClientMockRecorder) GetPatient(ctx, clinicID, patientID any) *MockClientGetPatientCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPatient", reflect.TypeOf((*MockClient)(nil).GetPatient), ctx, clinicID, patientID)
+	return &MockClientGetPatientCall{Call: call}
+}
+
+// MockClientGetPatientCall wrap *gomock.Call
+type MockClientGetPatientCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientGetPatientCall) Return(arg0 *client.Patient, arg1 error) *MockClientGetPatientCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientGetPatientCall) Do(f func(context.Context, string, string) (*client.Patient, error)) *MockClientGetPatientCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientGetPatientCall) DoAndReturn(f func(context.Context, string, string) (*client.Patient, error)) *MockClientGetPatientCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

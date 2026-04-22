@@ -392,6 +392,9 @@ func (c *DataSourcesRepository) list(ctx context.Context, userID string, filter 
 	if filter.ProviderExternalID != nil {
 		query["providerExternalId"] = *filter.ProviderExternalID
 	}
+	if filter.State != nil {
+		query["state"] = *filter.State
+	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := c.Find(ctx, query, opts)
