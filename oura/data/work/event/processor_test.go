@@ -46,7 +46,7 @@ import (
 
 var _ = Describe("processor", func() {
 	It("FailingRetryDuration is expected", func() {
-		Expect(ouraDataWorkEvent.FailingRetryDuration).To(Equal(time.Minute))
+		Expect(ouraDataWorkEvent.FailingRetryDuration).To(Equal(1 * time.Minute))
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {
@@ -56,7 +56,7 @@ var _ = Describe("processor", func() {
 	Context("Metadata", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraDataWorkEvent.Metadata)) {
-				datum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptional())
+				datum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraDataWorkEventTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraDataWorkEventTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -80,7 +80,7 @@ var _ = Describe("processor", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *ouraDataWorkEvent.Metadata), expectedErrors ...error) {
-					expectedDatum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptional())
+					expectedDatum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptionals())
 					object := ouraDataWorkEventTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &ouraDataWorkEvent.Metadata{}
@@ -112,7 +112,7 @@ var _ = Describe("processor", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *ouraDataWorkEvent.Metadata), expectedErrors ...error) {
-					datum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptional())
+					datum := ouraDataWorkEventTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -190,7 +190,7 @@ var _ = Describe("processor", func() {
 					userID = userTest.RandomUserID()
 					providerSessionID = authTest.RandomProviderSessionID()
 					ouraUserID = ouraTest.RandomUserID()
-					event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+					event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					event.UserID = pointer.From(ouraUserID)
 				})
 
@@ -217,7 +217,7 @@ var _ = Describe("processor", func() {
 						var providerSession *auth.ProviderSession
 
 						BeforeEach(func() {
-							providerSession = authTest.RandomProviderSession(test.AllowOptional())
+							providerSession = authTest.RandomProviderSession(test.AllowOptionals())
 							providerSession.ID = providerSessionID
 							providerSession.UserID = userID
 							providerSession.Type = oauth.ProviderType
@@ -241,7 +241,7 @@ var _ = Describe("processor", func() {
 
 							BeforeEach(func() {
 								dataSourceID = dataSourceTest.RandomDataSourceID()
-								dataSrc = dataSourceTest.RandomSource(test.AllowOptional())
+								dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
 								dataSrc.ID = dataSourceID
 								dataSrc.UserID = userID
 								dataSrc.ProviderType = oauth.ProviderType
@@ -297,7 +297,7 @@ var _ = Describe("processor", func() {
 										BeforeEach(func() {
 											var err error
 											createdDataRaw, err = metadata.WithMetadata(
-												dataRawTest.RandomRaw(test.AllowOptional()),
+												dataRawTest.RandomRaw(test.AllowOptionals()),
 												&ouraDataWork.Metadata{
 													Scope: providerSession.OAuthToken.Scope,
 													EventMetadata: ouraDataWorkEvent.EventMetadata{
@@ -338,7 +338,7 @@ var _ = Describe("processor", func() {
 										})
 
 										It("returns delete process result if successful", func() {
-											updatedDataSource := dataSourceTest.RandomSource(test.AllowOptional())
+											updatedDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
 											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
 											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
 										})

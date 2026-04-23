@@ -187,7 +187,7 @@ var _ = Describe("device_hashes", func() {
 		Context("DeviceHashesMetadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *dataWork.DeviceHashesMetadata)) {
-					datum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptional())
+					datum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, dataWorkTest.NewObjectFromDeviceHashesMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, dataWorkTest.NewObjectFromDeviceHashesMetadata(datum, test.ObjectFormatBSON))
@@ -210,7 +210,7 @@ var _ = Describe("device_hashes", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *dataWork.DeviceHashesMetadata), expectedErrors ...error) {
-						expectedDatum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptional())
+						expectedDatum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptionals())
 						object := dataWorkTest.NewObjectFromDeviceHashesMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &dataWork.DeviceHashesMetadata{}
@@ -239,7 +239,7 @@ var _ = Describe("device_hashes", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *dataWork.DeviceHashesMetadata), expectedErrors ...error) {
-						datum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptional())
+						datum := dataWorkTest.RandomDeviceHashesMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},

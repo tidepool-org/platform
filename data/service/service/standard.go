@@ -81,7 +81,7 @@ type Standard struct {
 	dataClient                     *Client
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
-	mailerClient                   mailer.Mailer
+	mailerClient                   mailer.Client
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
 	abbottClient                   *abbottClient.Client
@@ -552,7 +552,7 @@ func (s *Standard) initializeDataSourceClient() error {
 
 func (s *Standard) initializeMailerClient() error {
 	s.Logger().Debug("Initializing mailer client")
-	client, err := mailer.Client()
+	client, err := mailer.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "unable to create mailer client")
 	}
@@ -707,11 +707,11 @@ func (s *Standard) initializeOuraClient() error {
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
-	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
-	if err != nil {
+	if coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient); err != nil {
 		return errors.Wrap(err, "unable to create work coordinator")
+	} else {
+		s.workCoordinator = coordinator
 	}
-	s.workCoordinator = coordinator
 
 	dependencies := workBase.Dependencies{
 		WorkClient: s.workClient,
@@ -789,7 +789,7 @@ func (s *Standard) initializeWorkCoordinator() error {
 
 	s.Logger().Debug("Registering notifications processor factories")
 
-	if err = s.workCoordinator.RegisterProcessorFactories(notificationsProcessorFactories); err != nil {
+	if err := s.workCoordinator.RegisterProcessorFactories(notificationsProcessorFactories); err != nil {
 		return errors.Wrap(err, "unable to register notifications processor factories")
 	}
 

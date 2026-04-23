@@ -13,7 +13,7 @@ import (
 const (
 	Type              = "org.tidepool.oura.webhook.subscribe"
 	Quantity          = 1
-	Frequency         = time.Minute
+	Frequency         = 1 * time.Minute
 	ProcessingTimeout = 15 * time.Minute
 )
 

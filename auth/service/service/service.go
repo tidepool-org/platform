@@ -485,7 +485,7 @@ func (s *Service) initializeConsentService() error {
 	}
 
 	s.Logger().Debug("Initializing mailer")
-	mailr, err := mailer.Client()
+	mailr, err := mailer.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "unable to create mailer")
 	}

@@ -215,7 +215,7 @@ var _ = Describe("Client", func() {
 								var responseResult dataSource.SourceArray
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSourceArray(1, 4, test.AllowOptional())
+									responseResult = dataSourceTest.RandomSourceArray(1, 4, test.AllowOptionals())
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
@@ -238,7 +238,7 @@ var _ = Describe("Client", func() {
 
 					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
-							filter = dataSourceTest.RandomFilter(test.AllowOptional())
+							filter = dataSourceTest.RandomFilter(test.AllowOptionals())
 							pagination = pageTest.RandomPagination()
 							query := url.Values{
 								"page": []string{strconv.Itoa(pagination.Page)},
@@ -267,7 +267,7 @@ var _ = Describe("Client", func() {
 					var create *dataSource.Create
 
 					BeforeEach(func() {
-						create = dataSourceTest.RandomCreate(test.AllowOptional())
+						create = dataSourceTest.RandomCreate(test.AllowOptionals())
 					})
 
 					Context("without server response", func() {
@@ -364,7 +364,7 @@ var _ = Describe("Client", func() {
 							var responseResult *dataSource.Source
 
 							BeforeEach(func() {
-								responseResult = dataSourceTest.RandomSource(test.AllowOptional())
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 
@@ -531,7 +531,7 @@ var _ = Describe("Client", func() {
 							var responseResult *dataSource.Source
 
 							BeforeEach(func() {
-								responseResult = dataSourceTest.RandomSource(test.AllowOptional())
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 
@@ -548,7 +548,7 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						condition = requestTest.RandomCondition()
-						update = dataSourceTest.RandomUpdate(test.AllowOptional())
+						update = dataSourceTest.RandomUpdate(test.AllowOptionals())
 					})
 
 					Context("without server response", func() {
@@ -645,7 +645,7 @@ var _ = Describe("Client", func() {
 								var responseResult *dataSource.Source
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSource(test.AllowOptional())
+									responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
@@ -926,7 +926,7 @@ var _ = Describe("Client", func() {
 							var responseResult *dataSource.Source
 
 							BeforeEach(func() {
-								responseResult = dataSourceTest.RandomSource(test.AllowOptional())
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 

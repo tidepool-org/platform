@@ -56,8 +56,8 @@ func (f *Filter) CreatedTime() *time.Time {
 
 type Create struct {
 	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
-	DigestMD5      *string        `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
-	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"`
+	DigestMD5      *string        `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`       //nolint:tagliatelle // Okay
+	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` //nolint:tagliatelle // Okay
 	MediaType      *string        `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
 	ArchivableTime *time.Time     `json:"archivableTime,omitempty" bson:"archivableTime,omitempty"`
 }
@@ -85,8 +85,8 @@ func (c *Create) SetMetadata(metadata map[string]any) {
 }
 
 type Content struct {
-	DigestMD5    string        `json:"digestMD5" bson:"digestMD5"`
-	DigestSHA256 *string       `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
+	DigestMD5    string        `json:"digestMD5" bson:"digestMD5"`                           //nolint:tagliatelle // Okay
+	DigestSHA256 *string       `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` //nolint:tagliatelle // Okay // FUTURE: Require - https://tidepool.atlassian.net/browse/BACK-4416
 	MediaType    string        `json:"mediaType" bson:"mediaType"`
 	ReadCloser   io.ReadCloser `json:"-" bson:"-"`
 }
@@ -130,8 +130,8 @@ type Raw struct {
 	UserID         string         `json:"userId" bson:"userId"`
 	DataSetID      string         `json:"dataSetId" bson:"dataSetId"`
 	Metadata       map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
-	DigestMD5      string         `json:"digestMD5" bson:"digestMD5"`
-	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
+	DigestMD5      string         `json:"digestMD5" bson:"digestMD5"`                           //nolint:tagliatelle // Okay
+	DigestSHA256   *string        `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` //nolint:tagliatelle // Okay // FUTURE: Require - https://tidepool.atlassian.net/browse/BACK-4416
 	MediaType      string         `json:"mediaType" bson:"mediaType"`
 	Size           int            `json:"size" bson:"size"`
 	ProcessedTime  *time.Time     `json:"processedTime,omitempty" bson:"processedTime,omitempty"`

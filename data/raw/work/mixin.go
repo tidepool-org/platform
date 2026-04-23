@@ -197,16 +197,17 @@ func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate 
 }
 
 func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessResult {
+	if dataRawUpdate == nil {
+		return m.Failed(errors.New("data raw update is missing"))
+	}
 	if m.dataRaw == nil {
 		return m.Failed(errors.New("data raw is missing"))
 	}
 
-	if dataRawUpdate != nil {
-		if dataRwMetadata, err := metadata.Encode(m.dataRawMetadata); err != nil {
-			return m.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
-		} else if dataRwMetadata != nil || m.dataRaw.Metadata != nil {
-			dataRawUpdate.Metadata = &dataRwMetadata
-		}
+	if dataRwMetadata, err := metadata.Encode(m.dataRawMetadata); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+	} else if dataRwMetadata != nil || m.dataRaw.Metadata != nil {
+		dataRawUpdate.Metadata = &dataRwMetadata
 	}
 
 	if dataRw, err := m.dataRawClient.Update(context.WithoutCancel(m.Context()), m.dataRaw.ID, nil, dataRawUpdate); err != nil {

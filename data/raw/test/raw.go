@@ -153,7 +153,7 @@ func NewObjectFromContent(datum *dataRaw.Content, objectFormat test.ObjectFormat
 }
 
 func RandomUpdate(options ...test.Option) *dataRaw.Update {
-	archived := test.IsConditionallyTrue(options...)
+	archived := test.IsOptionalPresent(options...)
 	archivedTime := test.RandomTimeBeforeNow()
 	archivableTime := test.RandomTimeBefore(archivedTime)
 	processedTime := test.RandomTimeBefore(archivableTime)
@@ -204,7 +204,7 @@ func NewObjectFromUpdate(datum *dataRaw.Update, objectFormat test.ObjectFormat) 
 }
 
 func RandomRaw(options ...test.Option) *dataRaw.Raw {
-	archived := test.IsConditionallyTrue(options...)
+	archived := test.IsOptionalPresent(options...)
 	modifiedTime := test.RandomTimeBeforeNow()
 	archivedTime := test.RandomTimeBefore(modifiedTime)
 	archivableTime := test.RandomTimeBefore(archivedTime)

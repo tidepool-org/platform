@@ -164,7 +164,7 @@ var _ = Describe("factory", func() {
 
 		BeforeEach(func() {
 			var err error
-			timeRange = *timesTest.RandomTimeRange(test.AllowOptional())
+			timeRange = *timesTest.RandomTimeRange(test.AllowOptionals())
 			timeRangeTruncated = timeRange.InLocation(time.UTC).Date()
 			encodedTimeRangeTruncated, err = metadata.Encode(&timeRangeTruncated)
 			Expect(err).ToNot(HaveOccurred())

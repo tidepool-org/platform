@@ -26,7 +26,7 @@ const (
 type (
 	ClinicClient     = clinics.Client
 	DataSourceClient = dataSource.Client
-	MailerClient     = mailer.Mailer
+	MailerClient     = mailer.Client
 	UserClient       = user.Client
 )
 

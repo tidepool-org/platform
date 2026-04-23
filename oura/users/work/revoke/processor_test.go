@@ -24,7 +24,7 @@ import (
 
 var _ = Describe("processor", func() {
 	It("FailingRetryDuration is expected", func() {
-		Expect(ouraUsersWorkRevoke.FailingRetryDuration).To(Equal(time.Minute))
+		Expect(ouraUsersWorkRevoke.FailingRetryDuration).To(Equal(1 * time.Minute))
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {

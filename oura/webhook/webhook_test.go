@@ -50,7 +50,7 @@ var _ = Describe("Webhook", func() {
 			})
 
 			It("parses the datum", func() {
-				datum := ouraWebhookTest.RandomEvent(test.AllowOptional())
+				datum := ouraWebhookTest.RandomEvent(test.AllowOptionals())
 				object := ouraWebhookTest.NewObjectFromEvent(datum, test.ObjectFormatJSON)
 				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(ouraWebhook.ParseEvent(parser)).To(Equal(datum))
@@ -60,7 +60,7 @@ var _ = Describe("Webhook", func() {
 
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraWebhook.Event)) {
-				datum := ouraWebhookTest.RandomEvent(test.AllowOptional())
+				datum := ouraWebhookTest.RandomEvent(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraWebhookTest.NewObjectFromEvent(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraWebhookTest.NewObjectFromEvent(datum, test.ObjectFormatBSON))
@@ -83,7 +83,7 @@ var _ = Describe("Webhook", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *ouraWebhook.Event), expectedErrors ...error) {
-					expectedDatum := ouraWebhookTest.RandomEvent(test.AllowOptional())
+					expectedDatum := ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					object := ouraWebhookTest.NewObjectFromEvent(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &ouraWebhook.Event{}
@@ -124,7 +124,7 @@ var _ = Describe("Webhook", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *ouraWebhook.Event), expectedErrors ...error) {
-					datum := ouraWebhookTest.RandomEvent(test.AllowOptional())
+					datum := ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -265,7 +265,7 @@ var _ = Describe("Webhook", func() {
 
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraWebhook.EventMetadata)) {
-				datum := ouraWebhookTest.RandomEventMetadata(test.AllowOptional())
+				datum := ouraWebhookTest.RandomEventMetadata(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraWebhookTest.NewObjectFromEventMetadata(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraWebhookTest.NewObjectFromEventMetadata(datum, test.ObjectFormatBSON))
@@ -288,7 +288,7 @@ var _ = Describe("Webhook", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *ouraWebhook.EventMetadata), expectedErrors ...error) {
-					expectedDatum := ouraWebhookTest.RandomEventMetadata(test.AllowOptional())
+					expectedDatum := ouraWebhookTest.RandomEventMetadata(test.AllowOptionals())
 					object := ouraWebhookTest.NewObjectFromEventMetadata(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &ouraWebhook.EventMetadata{}
@@ -317,7 +317,7 @@ var _ = Describe("Webhook", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *ouraWebhook.EventMetadata), expectedErrors ...error) {
-					datum := ouraWebhookTest.RandomEventMetadata(test.AllowOptional())
+					datum := ouraWebhookTest.RandomEventMetadata(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -331,14 +331,14 @@ var _ = Describe("Webhook", func() {
 				),
 				Entry("event invalid",
 					func(datum *ouraWebhook.EventMetadata) {
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 						datum.Event.EventTime = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event/event_time"),
 				),
 				Entry("multiple errors",
 					func(datum *ouraWebhook.EventMetadata) {
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 						datum.Event.EventTime = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event/event_time"),

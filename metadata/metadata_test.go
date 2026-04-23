@@ -462,8 +462,8 @@ func (b *bravo) Parse(parser structure.ObjectParser) {
 
 func randomObject() *object {
 	return &object{
-		Alpha: test.RandomOptional(test.RandomString, test.AllowOptional()),
-		Bravo: test.RandomOptionalPointer(randomBravo, test.AllowOptional()),
+		Alpha: test.RandomOptional(test.RandomString, test.AllowOptionals()),
+		Bravo: test.RandomOptionalPointer(randomBravo, test.AllowOptionals()),
 	}
 }
 
@@ -483,7 +483,7 @@ func objectToMetadata(object *object) map[string]any {
 
 func randomBravo() *bravo {
 	return &bravo{
-		Charlie: test.RandomOptional(test.RandomString, test.AllowOptional()),
+		Charlie: test.RandomOptional(test.RandomString, test.AllowOptionals()),
 	}
 }
 

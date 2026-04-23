@@ -35,7 +35,7 @@ var _ = Describe("mixin", func() {
 		Context("Metadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *dataSourceWork.Metadata)) {
-					datum := dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+					datum := dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, dataSourceWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, dataSourceWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -58,7 +58,7 @@ var _ = Describe("mixin", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *dataSourceWork.Metadata), expectedErrors ...error) {
-						expectedDatum := dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+						expectedDatum := dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 						object := dataSourceWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &dataSourceWork.Metadata{}
@@ -87,7 +87,7 @@ var _ = Describe("mixin", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *dataSourceWork.Metadata), expectedErrors ...error) {
-						datum := dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+						datum := dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -185,7 +185,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *dataSourceWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -217,7 +217,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *dataSourceWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -251,7 +251,7 @@ var _ = Describe("mixin", func() {
 
 			BeforeEach(func() {
 				var err error
-				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataSourceWorkTest.RandomMetadata(test.AllowOptionals())
 				mixin, err = dataSourceWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSourceClient, workMetadata)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mixin).ToNot(BeNil())
@@ -329,13 +329,13 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns true after SetDataSourceMetadata is called with non-nil value", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataSourceMetadata(dataSrcMetadata)).To(BeNil())
 					Expect(mixin.HasDataSourceMetadata()).To(BeTrue())
 				})
 
 				It("returns false after SetDataSourceMetadata is called with nil", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataSourceMetadata(dataSrcMetadata)).To(BeNil())
 					Expect(mixin.HasDataSourceMetadata()).To(BeTrue())
 					Expect(mixin.SetDataSourceMetadata(nil)).To(BeNil())
@@ -349,7 +349,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns the metadata after SetDataSourceMetadata is called", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataSourceMetadata(dataSrcMetadata)).To(BeNil())
 					Expect(mixin.DataSourceMetadata()).To(Equal(dataSrcMetadata))
 				})
@@ -357,13 +357,13 @@ var _ = Describe("mixin", func() {
 
 			Context("SetDataSourceMetadata", func() {
 				It("sets the metadata and returns nil", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataSourceMetadata(dataSrcMetadata)).To(BeNil())
 					Expect(mixin.DataSourceMetadata()).To(Equal(dataSrcMetadata))
 				})
 
 				It("sets the metadata to nil and returns nil", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataSourceMetadata(dataSrcMetadata)).To(BeNil())
 					Expect(mixin.SetDataSourceMetadata(nil)).To(BeNil())
 					Expect(mixin.DataSourceMetadata()).To(BeNil())
@@ -423,6 +423,10 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("UpdateDataSource", func() {
+				It("returns failed process result when data source update is missing", func() {
+					Expect(mixin.UpdateDataSource(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data source update is missing")))
+				})
+
 				It("returns failed process result when data source is missing", func() {
 					Expect(mixin.UpdateDataSource(&dataSource.Update{})).To(workTest.MatchFailedProcessResultError(MatchError("data source is missing")))
 				})
@@ -437,7 +441,7 @@ var _ = Describe("mixin", func() {
 						dataSrc = randomDataSourceWithMockMetadata()
 						Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 						mixin.DataSourceMetadata().Mock = pointer.From(testString)
-						dataSrcUpdate = dataSourceTest.RandomUpdate(test.AllowOptional())
+						dataSrcUpdate = dataSourceTest.RandomUpdate(test.AllowOptionals())
 						dataSrcUpdate.Metadata = nil
 						expectedDataSrcUpdate = dataSourceTest.CloneUpdate(dataSrcUpdate)
 						expectedDataSrcUpdate.Metadata = &map[string]any{"mock": testString}
@@ -492,7 +496,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataSourceWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSourceClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					Expect(mixin.HasWorkMetadata()).To(BeFalse())
 				})
 
@@ -506,7 +512,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataSourceWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSourceClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					Expect(mixin.FetchDataSourceFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
@@ -546,7 +554,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataSourceWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataSourceClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataSourceWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					dataRw := randomDataSourceWithMockMetadata()
 					Expect(mixin.SetDataSource(dataRw)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataSource()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
@@ -567,7 +577,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("adds non-nil fields to context", func() {
-					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataSrcMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.Metadata = dataSrcMetadata.AsObject()
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
@@ -592,7 +602,7 @@ var _ = Describe("mixin", func() {
 })
 
 func randomDataSourceWithMockMetadata() *dataSource.Source {
-	dataSrc := dataSourceTest.RandomSource(test.AllowOptional())
-	dataSrc.Metadata = workTest.RandomMockMetadata(test.AllowOptional()).AsObject()
+	dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
+	dataSrc.Metadata = workTest.RandomMockMetadata(test.AllowOptionals()).AsObject()
 	return dataSrc
 }

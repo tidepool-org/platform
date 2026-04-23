@@ -7,11 +7,11 @@ import (
 
 //go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
-type Mailer interface {
+type Client interface {
 	clients.MailerClient
 }
 
-func Client() (clients.MailerClient, error) {
+func NewClient() (Client, error) {
 	config := events.NewConfig()
 	if err := config.LoadFromEnv(); err != nil {
 		return nil, err

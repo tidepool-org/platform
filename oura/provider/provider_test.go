@@ -107,7 +107,7 @@ var _ = Describe("provider", func() {
 				var providerSession *auth.ProviderSession
 
 				BeforeEach(func() {
-					providerSession = authTest.RandomProviderSession(test.AllowOptional())
+					providerSession = authTest.RandomProviderSession(test.AllowOptionals())
 				})
 
 				It("returns an error if provider session is nil", func() {
@@ -125,7 +125,7 @@ var _ = Describe("provider", func() {
 					var expectedDataSrcUpdate *dataSource.Update
 
 					BeforeEach(func() {
-						dataSrc = dataSourceTest.RandomSource(test.AllowOptional())
+						dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
 						dataSrc.ProviderSessionID = pointer.From(providerSession.ID)
 						expectedDataSrcUpdate = &dataSource.Update{State: pointer.From(dataSource.StateDisconnected)}
 						mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Not(gomock.Nil()), providerSession.ID).Return(dataSrc, nil)
@@ -216,7 +216,7 @@ var _ = Describe("provider", func() {
 					})
 
 					It("returns true if user has existing data sources", func() {
-						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSourceTest.RandomSourceArray(1, 3, test.AllowOptional()), nil)
+						mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedFilter, page.NewPaginationMinimum()).Return(dataSourceTest.RandomSourceArray(1, 3, test.AllowOptionals()), nil)
 						Expect(prvdr.AllowUserInitiatedAction(ctx, userID, oauth.ActionAuthorize)).To(BeTrue())
 					})
 				})

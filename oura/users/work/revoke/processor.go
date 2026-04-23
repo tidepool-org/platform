@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	FailingRetryDuration       = time.Minute
+	FailingRetryDuration       = 1 * time.Minute
 	FailingRetryDurationJitter = 5 * time.Second
 )
 

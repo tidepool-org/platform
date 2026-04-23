@@ -25,7 +25,7 @@ var _ = Describe("ingestion_offset", func() {
 		Context("IngestionOffsetMetadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *dataWork.IngestionOffsetMetadata)) {
-					datum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptional())
+					datum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, dataWorkTest.NewObjectFromIngestionOffsetMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, dataWorkTest.NewObjectFromIngestionOffsetMetadata(datum, test.ObjectFormatBSON))
@@ -48,7 +48,7 @@ var _ = Describe("ingestion_offset", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *dataWork.IngestionOffsetMetadata), expectedErrors ...error) {
-						expectedDatum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptional())
+						expectedDatum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptionals())
 						object := dataWorkTest.NewObjectFromIngestionOffsetMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &dataWork.IngestionOffsetMetadata{}
@@ -77,7 +77,7 @@ var _ = Describe("ingestion_offset", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *dataWork.IngestionOffsetMetadata), expectedErrors ...error) {
-						datum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptional())
+						datum := dataWorkTest.RandomIngestionOffsetMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},

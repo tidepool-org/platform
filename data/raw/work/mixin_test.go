@@ -36,7 +36,7 @@ var _ = Describe("mixin", func() {
 		Context("Metadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *dataRawWork.Metadata)) {
-					datum := dataRawWorkTest.RandomMetadata(test.AllowOptional())
+					datum := dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, dataRawWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, dataRawWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -59,7 +59,7 @@ var _ = Describe("mixin", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *dataRawWork.Metadata), expectedErrors ...error) {
-						expectedDatum := dataRawWorkTest.RandomMetadata(test.AllowOptional())
+						expectedDatum := dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 						object := dataRawWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &dataRawWork.Metadata{}
@@ -88,7 +88,7 @@ var _ = Describe("mixin", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *dataRawWork.Metadata), expectedErrors ...error) {
-						datum := dataRawWorkTest.RandomMetadata(test.AllowOptional())
+						datum := dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -186,7 +186,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *dataRawWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -218,7 +218,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *dataRawWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -252,7 +252,7 @@ var _ = Describe("mixin", func() {
 
 			BeforeEach(func() {
 				var err error
-				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = dataRawWorkTest.RandomMetadata(test.AllowOptionals())
 				mixin, err = dataRawWork.NewMixinFromWorkWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient, workMetadata)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mixin).ToNot(BeNil())
@@ -330,13 +330,13 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns true after SetDataRawMetadata is called with non-nil value", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataRawMetadata(dataRwMetadata)).To(BeNil())
 					Expect(mixin.HasDataRawMetadata()).To(BeTrue())
 				})
 
 				It("returns false after SetDataRawMetadata is called with nil", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataRawMetadata(dataRwMetadata)).To(BeNil())
 					Expect(mixin.HasDataRawMetadata()).To(BeTrue())
 					Expect(mixin.SetDataRawMetadata(nil)).To(BeNil())
@@ -350,7 +350,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns the metadata after SetDataRawMetadata is called", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataRawMetadata(dataRwMetadata)).To(BeNil())
 					Expect(mixin.DataRawMetadata()).To(Equal(dataRwMetadata))
 				})
@@ -358,13 +358,13 @@ var _ = Describe("mixin", func() {
 
 			Context("SetDataRawMetadata", func() {
 				It("sets the metadata and returns nil", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataRawMetadata(dataRwMetadata)).To(BeNil())
 					Expect(mixin.DataRawMetadata()).To(Equal(dataRwMetadata))
 				})
 
 				It("sets the metadata to nil and returns nil", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					Expect(mixin.SetDataRawMetadata(dataRwMetadata)).To(BeNil())
 					Expect(mixin.SetDataRawMetadata(nil)).To(BeNil())
 					Expect(mixin.DataRawMetadata()).To(BeNil())
@@ -406,7 +406,7 @@ var _ = Describe("mixin", func() {
 				BeforeEach(func() {
 					userID = userTest.RandomUserID()
 					dataSetID = dataTest.RandomDataSetID()
-					dataRawCreate = dataRawTest.RandomCreate(test.AllowOptional())
+					dataRawCreate = dataRawTest.RandomCreate(test.AllowOptionals())
 					reader = test.NewReader()
 				})
 
@@ -444,6 +444,10 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("UpdateDataRaw", func() {
+				It("returns failed process result when data raw update is missing", func() {
+					Expect(mixin.UpdateDataRaw(nil)).To(workTest.MatchFailedProcessResultError(MatchError("data raw update is missing")))
+				})
+
 				It("returns failed process result when data raw is missing", func() {
 					Expect(mixin.UpdateDataRaw(&dataRaw.Update{})).To(workTest.MatchFailedProcessResultError(MatchError("data raw is missing")))
 				})
@@ -458,7 +462,7 @@ var _ = Describe("mixin", func() {
 						dataRw = randomDataRawWithMockMetadata()
 						Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
 						mixin.DataRawMetadata().Mock = pointer.From(testString)
-						dataRwUpdate = dataRawTest.RandomUpdate(test.AllowOptional())
+						dataRwUpdate = dataRawTest.RandomUpdate(test.AllowOptionals())
 						dataRwUpdate.Metadata = nil
 						expectedDataRwUpdate = dataRawTest.CloneUpdate(dataRwUpdate)
 						expectedDataRwUpdate.Metadata = &map[string]any{"mock": testString}
@@ -665,7 +669,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					Expect(mixin.HasWorkMetadata()).To(BeFalse())
 				})
 
@@ -679,7 +685,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					Expect(mixin.FetchDataRawFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
@@ -719,7 +727,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := dataRawWork.NewMixinWithParsedMetadata[workTest.MockMetadata](mockWorkProvider, mockDataRawClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin, _ = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(dataRawWork.MixinFromWorkWithParsedMetadata[workTest.MockMetadata])
+					Expect(ok).To(BeTrue())
 					dataRw := randomDataRawWithMockMetadata()
 					Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromDataRaw()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
@@ -740,7 +750,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("adds non-nil fields to context", func() {
-					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+					dataRwMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 					dataRw := randomDataRawWithMockMetadata()
 					dataRw.Metadata = dataRwMetadata.AsObject()
 					Expect(mixin.SetDataRaw(dataRw)).To(BeNil())
@@ -763,7 +773,7 @@ var _ = Describe("mixin", func() {
 })
 
 func randomDataRawWithMockMetadata() *dataRaw.Raw {
-	dataRw := dataRawTest.RandomRaw(test.AllowOptional())
-	dataRw.Metadata = workTest.RandomMockMetadata(test.AllowOptional()).AsObject()
+	dataRw := dataRawTest.RandomRaw(test.AllowOptionals())
+	dataRw.Metadata = workTest.RandomMockMetadata(test.AllowOptionals()).AsObject()
 	return dataRw
 }

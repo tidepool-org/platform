@@ -3,7 +3,7 @@ package mongo
 import (
 	"bytes"
 	"context"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // MD5 acceptable for data integrity checksums, not used for security
 	"crypto/sha256"
 	"encoding/base64"
 	"io"
@@ -32,8 +32,7 @@ const (
 	IDSeparator  = ":"
 	IDDateFormat = time.DateOnly
 
-	CompressionOriginalSizeMinimum = 100 // To prevent unnecessary compression
-	CompressionFactorMinimum       = 0.1
+	CompressionFactorMinimum = 0.1
 )
 
 type Store struct {
@@ -166,35 +165,42 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	hasherSHA256 := sha256.New()
 
 	// Setup readers
-	originalLimitReader := io.LimitReader(reader, dataRaw.SizeMaximum+1)                                       // Limit original size to prevent abuse
-	originalSizeReader := compress.SizeReader(originalLimitReader)                                             // Capture original size
-	originalHeadReader := compress.HeadReader(originalSizeReader, dataRaw.SizeStoredMaximum)                   // Capture original head to use if compression not warranted
-	hasherMD5Reader := io.TeeReader(originalHeadReader, hasherMD5)                                             // Calculate MD5 digest of original data
-	hasherSHA256Reader := io.TeeReader(hasherMD5Reader, hasherSHA256)                                          // Calculate SHA256 digest of original data
-	compressedLimitReader := compress.LimitCompressReadCloser(hasherSHA256Reader, dataRaw.SizeStoredMaximum+1) // Limit compressed size to prevent abuse
+	originalLimitReader := io.LimitReader(reader, dataRaw.SizeMaximum+1)                         // Limit original size to prevent abuse
+	originalSizeReader := compress.SizeReader(originalLimitReader)                               // Capture original size
+	originalHeadReader := compress.HeadReader(originalSizeReader, dataRaw.SizeStoredMaximum)     // Capture original head to use if compression not warranted
+	hasherMD5Reader := io.TeeReader(originalHeadReader, hasherMD5)                               // Calculate MD5 digest of original data
+	hasherSHA256Reader := io.TeeReader(hasherMD5Reader, hasherSHA256)                            // Calculate SHA256 digest of original data
+	compressedReadCloser := compress.CompressReadCloser(hasherSHA256Reader)                      // Compress original
+	compressedSizeReader := compress.SizeReader(compressedReadCloser)                            // Capture compressed size
+	compressedHeadReader := compress.HeadReader(compressedSizeReader, dataRaw.SizeStoredMaximum) // Capture compressed head to use if compression warranted
+	defer func() {
+		if err := compressedReadCloser.Close(); err != nil {
+			log.LoggerFromContext(ctx).WithError(err).Warn("unable to close compressed limit reader")
+		}
+	}()
 
-	// Read all compressed data
-	compressedData, err := io.ReadAll(compressedLimitReader)
+	// Read all data (original and compressed data captured via HeadReader)
+	_, err := io.Copy(io.Discard, compressedHeadReader)
 	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to read compressed data")
-		return nil, errors.Wrap(err, "unable to read compressed data")
+		lgr.Error("unable to read data")
+		return nil, errors.Wrap(err, "unable to read data")
 	}
 
 	// TODO: BACK-3629 - Respond with HTTP 400 Bad Request when raw data request body exceeds maximum size
 
-	// Ensure original size is valid
+	// Ensure size is valid
 	originalSize := originalSizeReader.Size()
 	if originalSize > dataRaw.SizeMaximum {
-		lgr.Error("data size exceeds maximum allowed size")
-		return nil, errors.New("data size exceeds maximum allowed size")
+		lgr.Error("data size exceeds maximum")
+		return nil, errors.New("data size exceeds maximum")
 	}
 
-	// Ensure compressed size is valid
-	compressedSize := len(compressedData)
-	if compressedSize > dataRaw.SizeStoredMaximum {
-		lgr.Error("compressed data size exceeds maximum allowed size")
-		return nil, errors.New("compressed data size exceeds maximum allowed size")
+	// Ensure stored size is valid
+	compressedSize := compressedSizeReader.Size()
+	if originalSize > dataRaw.SizeStoredMaximum && compressedSize > dataRaw.SizeStoredMaximum {
+		lgr.Error("data size stored exceeds maximum")
+		return nil, errors.New("data size stored exceeds maximum")
 	}
 
 	// TODO: BACK-3630 - Respond with HTTP 400 Bad Request when raw data request-specified MD5 digest does not match calculated
@@ -214,14 +220,13 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	}
 
 	// Use compressed data if compression is significant or original data cannot be stored directly
-	compressed := originalSize > dataRaw.SizeStoredMaximum ||
-		(originalSize >= CompressionOriginalSizeMinimum && compressionFactor(originalSize, int64(compressedSize)) >= CompressionFactorMinimum)
+	compressed := originalSize > dataRaw.SizeStoredMaximum || compressionFactor(originalSize, compressedSize) >= CompressionFactorMinimum
 
 	var data bsonPrimitive.Binary
 	if compressed {
-		data = bsonPrimitive.Binary{Data: compressedData}
+		data = bsonPrimitive.Binary{Data: compressedHeadReader.Head()}
 	} else {
-		data = bsonPrimitive.Binary{Data: originalHeadReader.Bytes()}
+		data = bsonPrimitive.Binary{Data: originalHeadReader.Head()}
 	}
 
 	document := &Document{
@@ -251,7 +256,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		return nil, errors.Wrap(err, "unable to create raw")
 	}
 
-	document.ID = result.InsertedID.(bsonPrimitive.ObjectID)
+	document.ID, _ = result.InsertedID.(bsonPrimitive.ObjectID)
 
 	return document.AsRaw(), nil
 }
@@ -260,7 +265,7 @@ func (s *Store) Get(ctx context.Context, id string, condition *storeStructured.C
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	objectID, _, err := objectIDAndDateFromID(id)
+	objectID, _, err := ObjectIDAndDateFromID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +303,7 @@ func (s *Store) GetContent(ctx context.Context, id string, condition *storeStruc
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	objectID, _, err := objectIDAndDateFromID(id)
+	objectID, _, err := ObjectIDAndDateFromID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -334,7 +339,7 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	objectID, _, err := objectIDAndDateFromID(id)
+	objectID, _, err := ObjectIDAndDateFromID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -407,7 +412,7 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	objectID, _, err := objectIDAndDateFromID(id)
+	objectID, _, err := ObjectIDAndDateFromID(id)
 	if err != nil {
 		return nil, err
 	}
@@ -446,7 +451,7 @@ func (s *Store) DeleteMultiple(ctx context.Context, ids []string) (int, error) {
 	if ctx == nil {
 		return 0, errors.New("context is missing")
 	}
-	objectIDs, err := objectIDsFromIDs(ids)
+	objectIDs, err := ObjectIDsFromIDs(ids)
 	if err != nil {
 		return 0, err
 	}
@@ -455,6 +460,10 @@ func (s *Store) DeleteMultiple(ctx context.Context, ids []string) (int, error) {
 
 	now := time.Now()
 	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("DeleteMultiple") }()
+
+	if len(objectIDs) == 0 {
+		return 0, nil
+	}
 
 	query := bson.M{"_id": bson.M{"$in": objectIDs}}
 
@@ -554,11 +563,7 @@ func (s *Store) findOne(ctx context.Context, query bson.M, opts ...*mongoOptions
 func (s *Store) findMany(ctx context.Context, query bson.M, opts ...*mongoOptions.FindOptions) (Documents, error) {
 	cursor, err := s.Find(ctx, query, opts...)
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	var documents Documents
@@ -570,12 +575,12 @@ func (s *Store) findMany(ctx context.Context, query bson.M, opts ...*mongoOption
 }
 
 type Document struct {
-	ID             bsonPrimitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` // Database only
+	ID             bsonPrimitive.ObjectID `json:"_id,omitempty" bson:"_id,omitempty"` //nolint:tagliatelle // Mongo only
 	UserID         string                 `json:"userId,omitempty" bson:"userId,omitempty"`
 	DataSetID      string                 `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
 	Metadata       map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"`
-	DigestMD5      string                 `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`
-	DigestSHA256   *string                `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` // FUTURE: Optional until data migrated
+	DigestMD5      string                 `json:"digestMD5,omitempty" bson:"digestMD5,omitempty"`       //nolint:tagliatelle // Okay
+	DigestSHA256   *string                `json:"digestSHA256,omitempty" bson:"digestSHA256,omitempty"` //nolint:tagliatelle // Okay // FUTURE: Require - https://tidepool.atlassian.net/browse/BACK-4416
 	MediaType      string                 `json:"mediaType,omitempty" bson:"mediaType,omitempty"`
 	Size           int                    `json:"size,omitempty" bson:"size,omitempty"`
 	Compressed     bool                   `json:"compressed,omitempty" bson:"compressed,omitempty"`
@@ -590,7 +595,7 @@ type Document struct {
 
 func (d *Document) AsRaw() *dataRaw.Raw {
 	return &dataRaw.Raw{
-		ID:             idFromObjectIDAndDate(d.ID, d.CreatedTime),
+		ID:             IDFromObjectIDAndDate(d.ID, d.CreatedTime),
 		UserID:         d.UserID,
 		DataSetID:      d.DataSetID,
 		Metadata:       d.Metadata,
@@ -623,6 +628,9 @@ func (d *Document) AsContent() *dataRaw.Content {
 type Documents []*Document
 
 func (d Documents) AsRaw() []*dataRaw.Raw {
+	if d == nil {
+		return nil
+	}
 	rws := make([]*dataRaw.Raw, len(d))
 	for index, document := range d {
 		rws[index] = document.AsRaw()
@@ -630,13 +638,13 @@ func (d Documents) AsRaw() []*dataRaw.Raw {
 	return rws
 }
 
-func objectIDsFromIDs(ids []string) ([]bsonPrimitive.ObjectID, error) {
+func ObjectIDsFromIDs(ids []string) ([]bsonPrimitive.ObjectID, error) {
 	if ids == nil {
 		return nil, nil
 	}
 	objectIDs := make([]bsonPrimitive.ObjectID, len(ids))
 	for index, id := range ids {
-		if objectID, _, err := objectIDAndDateFromID(id); err != nil {
+		if objectID, _, err := ObjectIDAndDateFromID(id); err != nil {
 			return nil, err
 		} else {
 			objectIDs[index] = objectID
@@ -645,7 +653,7 @@ func objectIDsFromIDs(ids []string) ([]bsonPrimitive.ObjectID, error) {
 	return objectIDs, nil
 }
 
-func objectIDAndDateFromID(id string) (bsonPrimitive.ObjectID, time.Time, error) {
+func ObjectIDAndDateFromID(id string) (bsonPrimitive.ObjectID, time.Time, error) {
 	if id == "" {
 		return bsonPrimitive.NilObjectID, time.Time{}, errors.New("id is missing")
 	} else if parts := strings.SplitN(id, ":", 2); len(parts) != 2 {
@@ -659,13 +667,13 @@ func objectIDAndDateFromID(id string) (bsonPrimitive.ObjectID, time.Time, error)
 	}
 }
 
-func idFromObjectIDAndDate(objectID bsonPrimitive.ObjectID, date time.Time) string {
-	return strings.Join([]string{objectID.Hex(), date.Format(IDDateFormat)}, IDSeparator)
+func IDFromObjectIDAndDate(objectID bsonPrimitive.ObjectID, date time.Time) string {
+	return strings.Join([]string{objectID.Hex(), date.UTC().Format(IDDateFormat)}, IDSeparator)
 }
 
 func compressionFactor(originalSize int64, compressedSize int64) float64 {
 	if originalSize == 0 {
-		return 1.0
+		return -1.0
 	}
 	return 1.0 - float64(compressedSize)/float64(originalSize)
 }

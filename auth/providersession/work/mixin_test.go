@@ -35,7 +35,7 @@ var _ = Describe("mixin", func() {
 		Context("Metadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *providerSessionWork.Metadata)) {
-					datum := providerSessionWorkTest.RandomMetadata(test.AllowOptional())
+					datum := providerSessionWorkTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, providerSessionWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, providerSessionWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -58,7 +58,7 @@ var _ = Describe("mixin", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *providerSessionWork.Metadata), expectedErrors ...error) {
-						expectedDatum := providerSessionWorkTest.RandomMetadata(test.AllowOptional())
+						expectedDatum := providerSessionWorkTest.RandomMetadata(test.AllowOptionals())
 						object := providerSessionWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &providerSessionWork.Metadata{}
@@ -87,7 +87,7 @@ var _ = Describe("mixin", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *providerSessionWork.Metadata), expectedErrors ...error) {
-						datum := providerSessionWorkTest.RandomMetadata(test.AllowOptional())
+						datum := providerSessionWorkTest.RandomMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -165,7 +165,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *providerSessionWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = providerSessionWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = providerSessionWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -199,7 +199,7 @@ var _ = Describe("mixin", func() {
 
 			BeforeEach(func() {
 				var err error
-				workMetadata = providerSessionWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = providerSessionWorkTest.RandomMetadata(test.AllowOptionals())
 				mixin, err = providerSessionWork.NewMixinFromWork(mockWorkProvider, mockProviderSessionClient, workMetadata)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mixin).ToNot(BeNil())
@@ -217,12 +217,12 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns true after SetProviderSession is called with a provider session", func() {
-					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasProviderSession()).To(BeTrue())
 				})
 
 				It("returns false after SetProviderSession is called with nil", func() {
-					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasProviderSession()).To(BeTrue())
 					Expect(mixin.SetProviderSession(nil)).To(BeNil())
 					Expect(mixin.HasProviderSession()).To(BeFalse())
@@ -235,13 +235,13 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns the provider session after SetProviderSession is called with a provider session", func() {
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
 					Expect(mixin.ProviderSession()).To(Equal(providerSession))
 				})
 
 				It("returns nil after SetProviderSession is called with nil", func() {
-					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetProviderSession(nil)).To(BeNil())
 					Expect(mixin.ProviderSession()).To(BeNil())
 				})
@@ -249,13 +249,13 @@ var _ = Describe("mixin", func() {
 
 			Context("SetProviderSession", func() {
 				It("decodes metadata from provider session and returns nil", func() {
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
 					Expect(mixin.ProviderSession()).To(Equal(providerSession))
 				})
 
 				It("clears metadata when provider session is nil and returns nil", func() {
-					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetProviderSession(nil)).To(BeNil())
 					Expect(mixin.ProviderSession()).To(BeNil())
 				})
@@ -280,7 +280,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("sets the provider session and returns nil on success", func() {
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), providerSessionID).Return(providerSession, nil)
 					Expect(mixin.FetchProviderSession(providerSessionID)).To(BeNil())
 					Expect(mixin.ProviderSession()).To(Equal(providerSession))
@@ -297,9 +297,9 @@ var _ = Describe("mixin", func() {
 					var providerSessionUpdate *auth.ProviderSessionUpdate
 
 					BeforeEach(func() {
-						providerSession = authTest.RandomProviderSession(test.AllowOptional())
+						providerSession = authTest.RandomProviderSession(test.AllowOptionals())
 						Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
-						providerSessionUpdate = authTest.RandomProviderSessionUpdate(test.AllowOptional())
+						providerSessionUpdate = authTest.RandomProviderSessionUpdate(test.AllowOptionals())
 					})
 
 					It("returns failing process result when the client returns an error", func() {
@@ -314,7 +314,7 @@ var _ = Describe("mixin", func() {
 					})
 
 					It("updates the provider session and returns nil on success", func() {
-						updatedDataSrc := authTest.RandomProviderSession(test.AllowOptional())
+						updatedDataSrc := authTest.RandomProviderSession(test.AllowOptionals())
 						mockProviderSessionClient.EXPECT().UpdateProviderSession(gomock.Not(gomock.Nil()), providerSession.ID, providerSessionUpdate).Return(updatedDataSrc, nil)
 						Expect(mixin.UpdateProviderSession(providerSessionUpdate)).To(BeNil())
 						Expect(mixin.ProviderSession()).To(Equal(updatedDataSrc))
@@ -327,7 +327,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := providerSessionWork.NewMixin(mockWorkProvider, mockProviderSessionClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
+					Expect(ok).To(BeTrue())
 					Expect(mixin.HasWorkMetadata()).To(BeFalse())
 				})
 
@@ -341,7 +343,9 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := providerSessionWork.NewMixin(mockWorkProvider, mockProviderSessionClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
+					Expect(ok).To(BeTrue())
 					Expect(mixin.FetchProviderSessionFromWorkMetadata()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
@@ -365,7 +369,7 @@ var _ = Describe("mixin", func() {
 
 				It("sets the provider session and returns nil on success", func() {
 					workMetadata.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), *workMetadata.ProviderSessionID).Return(providerSession, nil)
 					Expect(mixin.FetchProviderSessionFromWorkMetadata()).To(BeNil())
 					Expect(mixin.ProviderSession()).To(Equal(providerSession))
@@ -381,14 +385,16 @@ var _ = Describe("mixin", func() {
 					mixinWithoutMetadata, err := providerSessionWork.NewMixin(mockWorkProvider, mockProviderSessionClient)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(mixinWithoutMetadata).ToNot(BeNil())
-					mixin = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					var ok bool
+					mixin, ok = mixinWithoutMetadata.(providerSessionWork.MixinFromWork)
+					Expect(ok).To(BeTrue())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromProviderSession()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
 				It("updates work metadata with the provider session id and returns nil", func() {
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromProviderSession()).To(BeNil())
 					Expect(workMetadata.ProviderSessionID).To(Equal(&providerSession.ID))
@@ -402,7 +408,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("adds non-nil fields to context", func() {
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					Expect(mixin.SetProviderSession(providerSession)).To(BeNil())
 					Expect(mockWorkProvider.Fields).To(Equal(log.Fields{
 						"providerSession": log.Fields{

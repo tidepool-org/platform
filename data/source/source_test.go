@@ -59,7 +59,7 @@ var _ = Describe("Source", func() {
 	Context("Filter", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataSource.Filter)) {
-				datum := dataSourceTest.RandomFilter(test.AllowOptional())
+				datum := dataSourceTest.RandomFilter(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromFilter(datum, test.ObjectFormatBSON))
@@ -75,7 +75,7 @@ var _ = Describe("Source", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataSource.Filter), expectedErrors ...error) {
-					expectedDatum := dataSourceTest.RandomFilter(test.AllowOptional())
+					expectedDatum := dataSourceTest.RandomFilter(test.AllowOptionals())
 					object := dataSourceTest.NewObjectFromFilter(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Filter{}
@@ -163,7 +163,7 @@ var _ = Describe("Source", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataSource.Filter), expectedErrors ...error) {
-					datum := dataSourceTest.RandomFilter(test.AllowOptional())
+					datum := dataSourceTest.RandomFilter(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -279,7 +279,7 @@ var _ = Describe("Source", func() {
 			var filter *dataSource.Filter
 
 			BeforeEach(func() {
-				filter = dataSourceTest.RandomFilter(test.AllowOptional())
+				filter = dataSourceTest.RandomFilter(test.AllowOptionals())
 			})
 
 			Context("MutateRequest", func() {
@@ -332,7 +332,7 @@ var _ = Describe("Source", func() {
 	Context("Create", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataSource.Create)) {
-				datum := dataSourceTest.RandomCreate(test.AllowOptional())
+				datum := dataSourceTest.RandomCreate(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromCreate(datum, test.ObjectFormatBSON))
@@ -348,7 +348,7 @@ var _ = Describe("Source", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataSource.Create), expectedErrors ...error) {
-					expectedDatum := dataSourceTest.RandomCreate(test.AllowOptional())
+					expectedDatum := dataSourceTest.RandomCreate(test.AllowOptionals())
 					object := dataSourceTest.NewObjectFromCreate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Create{}
@@ -436,7 +436,7 @@ var _ = Describe("Source", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataSource.Create), expectedErrors ...error) {
-					datum := dataSourceTest.RandomCreate(test.AllowOptional())
+					datum := dataSourceTest.RandomCreate(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -541,7 +541,7 @@ var _ = Describe("Source", func() {
 	Context("Update", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataSource.Update)) {
-				datum := dataSourceTest.RandomUpdate(test.AllowOptional())
+				datum := dataSourceTest.RandomUpdate(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromUpdate(datum, test.ObjectFormatBSON))
@@ -557,7 +557,7 @@ var _ = Describe("Source", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataSource.Update), expectedErrors ...error) {
-					expectedDatum := dataSourceTest.RandomUpdate(test.AllowOptional())
+					expectedDatum := dataSourceTest.RandomUpdate(test.AllowOptionals())
 					object := dataSourceTest.NewObjectFromUpdate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Update{}
@@ -751,7 +751,7 @@ var _ = Describe("Source", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataSource.Update), expectedErrors ...error) {
-					datum := dataSourceTest.RandomUpdate(test.AllowOptional())
+					datum := dataSourceTest.RandomUpdate(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -1090,7 +1090,7 @@ var _ = Describe("Source", func() {
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *dataSource.Update), expectator func(datum *dataSource.Update, expectedDatum *dataSource.Update)) {
-					datum := dataSourceTest.RandomUpdate(test.AllowOptional())
+					datum := dataSourceTest.RandomUpdate(test.AllowOptionals())
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneUpdate(datum)
 					normalizer := structureNormalizer.New(logTest.NewLogger())
@@ -1184,7 +1184,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns false when all fields are not nil", func() {
-				datum = dataSourceTest.RandomUpdate(test.AllowOptional())
+				datum = dataSourceTest.RandomUpdate(test.AllowOptionals())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 		})
@@ -1193,7 +1193,7 @@ var _ = Describe("Source", func() {
 	Context("Source", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataSource.Source)) {
-				datum := dataSourceTest.RandomSource(test.AllowOptional())
+				datum := dataSourceTest.RandomSource(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataSourceTest.NewObjectFromSource(datum, test.ObjectFormatBSON))
@@ -1209,7 +1209,7 @@ var _ = Describe("Source", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataSource.Source), expectedErrors ...error) {
-					expectedDatum := dataSourceTest.RandomSource(test.AllowOptional())
+					expectedDatum := dataSourceTest.RandomSource(test.AllowOptionals())
 					object := dataSourceTest.NewObjectFromSource(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataSource.Source{}
@@ -1536,7 +1536,7 @@ var _ = Describe("Source", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataSource.Source), expectedErrors ...error) {
-					datum := dataSourceTest.RandomSource(test.AllowOptional())
+					datum := dataSourceTest.RandomSource(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -2023,7 +2023,7 @@ var _ = Describe("Source", func() {
 		Context("Normalize", func() {
 			DescribeTable("normalizes the datum",
 				func(mutator func(datum *dataSource.Source), expectator func(datum *dataSource.Source, expectedDatum *dataSource.Source)) {
-					datum := dataSourceTest.RandomSource(test.AllowOptional())
+					datum := dataSourceTest.RandomSource(test.AllowOptionals())
 					mutator(datum)
 					expectedDatum := dataSourceTest.CloneSource(datum)
 					normalizer := structureNormalizer.New(logTest.NewLogger())
@@ -2046,7 +2046,7 @@ var _ = Describe("Source", func() {
 			var sanitized *dataSource.Source
 
 			BeforeEach(func() {
-				original = dataSourceTest.RandomSource(test.AllowOptional())
+				original = dataSourceTest.RandomSource(test.AllowOptionals())
 				original.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 				original.Error = errorsTest.RandomSerializable()
 				sanitized = dataSourceTest.CloneSource(original)
@@ -2091,14 +2091,14 @@ var _ = Describe("Source", func() {
 
 		Context("EnsureMetadata", func() {
 			It("ensures the metadata is not nil", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Metadata = nil
 				source.EnsureMetadata()
 				Expect(source.Metadata).ToNot(BeNil())
 			})
 
 			It("does not replace any existing metadata", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				metadata := metadataTest.RandomMetadataMap()
 				source.Metadata = metadata
 				source.EnsureMetadata()
@@ -2108,20 +2108,20 @@ var _ = Describe("Source", func() {
 
 		Context("HasError", func() {
 			It("returns false if the error wrapper is nil", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = nil
 				Expect(source.HasError()).To(BeFalse())
 			})
 
 			It("returns false if the error is nil", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = &errors.Serializable{}
 				Expect(source.HasError()).To(BeFalse())
 			})
 
 			It("returns true if the error is not nil", func() {
 				testErr := errorsTest.RandomError()
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = &errors.Serializable{Error: testErr}
 				Expect(source.HasError()).To(BeTrue())
 			})
@@ -2129,20 +2129,20 @@ var _ = Describe("Source", func() {
 
 		Context("GetError", func() {
 			It("returns nil if the error wrapper is nil", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = nil
 				Expect(source.GetError()).To(BeNil())
 			})
 
 			It("returns nil if the error is nil", func() {
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = &errors.Serializable{}
 				Expect(source.GetError()).To(BeNil())
 			})
 
 			It("returns the error if the error is not nil", func() {
 				testErr := errorsTest.RandomError()
-				source := dataSourceTest.RandomSource(test.AllowOptional())
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
 				source.Error = &errors.Serializable{Error: testErr}
 				Expect(source.GetError()).To(Equal(testErr))
 			})
@@ -2155,7 +2155,7 @@ var _ = Describe("Source", func() {
 			var sanitized dataSource.SourceArray
 
 			BeforeEach(func() {
-				originals = dataSourceTest.RandomSourceArray(1, 3, test.AllowOptional())
+				originals = dataSourceTest.RandomSourceArray(1, 3, test.AllowOptionals())
 				for _, original := range originals {
 					original.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
 					original.Error = errorsTest.RandomSerializable()

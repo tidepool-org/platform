@@ -39,7 +39,7 @@ import (
 
 var _ = Describe("processor", func() {
 	It("FailingRetryDuration is expected", func() {
-		Expect(ouraDataWorkSetup.FailingRetryDuration).To(Equal(time.Minute))
+		Expect(ouraDataWorkSetup.FailingRetryDuration).To(Equal(1 * time.Minute))
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {
@@ -116,7 +116,7 @@ var _ = Describe("processor", func() {
 					var providerSessionStack *Stack[*auth.ProviderSession]
 
 					BeforeEach(func() {
-						providerSession := authTest.RandomProviderSession(test.AllowOptional())
+						providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 						providerSession.ID = providerSessionID
 						providerSession.UserID = userID
 						providerSession.Type = oauth.ProviderType
@@ -151,7 +151,7 @@ var _ = Describe("processor", func() {
 								ouraUserID = ouraTest.RandomUserID()
 								personalInfo = ouraTest.RandomPersonalInfo()
 								personalInfo.ID = pointer.From(ouraUserID)
-								initialDataSource := dataSourceTest.RandomSource(test.AllowOptional())
+								initialDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
 								initialDataSource.UserID = userID
 								initialDataSource.ProviderType = oauth.ProviderType
 								initialDataSource.ProviderName = oura.ProviderName
@@ -214,7 +214,7 @@ var _ = Describe("processor", func() {
 									var initialDataSet *data.DataSet
 
 									BeforeEach(func() {
-										initialDataSet = dataTest.RandomDataSet(test.AllowOptional())
+										initialDataSet = dataTest.RandomDataSet(test.AllowOptionals())
 										initialDataSet.UserID = pointer.From(userID)
 									})
 
@@ -385,7 +385,7 @@ var _ = Describe("processor", func() {
 									var expectedDataSourceUpdate *dataSource.Update
 
 									BeforeEach(func() {
-										existingDataSource = dataSourceTest.RandomSource(test.AllowOptional())
+										existingDataSource = dataSourceTest.RandomSource(test.AllowOptionals())
 										existingDataSource.UserID = userID
 										existingDataSource.ProviderType = oauth.ProviderType
 										existingDataSource.ProviderName = oura.ProviderName

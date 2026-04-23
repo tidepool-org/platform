@@ -43,7 +43,7 @@ var _ = Describe("ConsentService", func() {
 
 	var mockController *gomock.Controller
 	var bddp *test.MockBigDataDonationProjectSharer
-	var mailer *mailerTest.MockMailer
+	var mailer *mailerTest.MockClient
 	var userClient *userTest.MockClient
 
 	var store *authStoreMongo.Store
@@ -58,7 +58,7 @@ var _ = Describe("ConsentService", func() {
 
 		mockController = gomock.NewController(GinkgoT())
 		bddp = test.NewMockBigDataDonationProjectSharer(mockController)
-		mailer = mailerTest.NewMockMailer(mockController)
+		mailer = mailerTest.NewMockClient(mockController)
 		userClient = userTest.NewMockClient(mockController)
 
 		store = GetSuiteStore()
@@ -747,7 +747,7 @@ var _ = Describe("ConsentService", func() {
 	})
 })
 
-func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
+func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).
@@ -765,7 +765,7 @@ func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClie
 		})
 }
 
-func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
+func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).

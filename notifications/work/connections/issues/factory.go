@@ -22,7 +22,7 @@ const (
 )
 
 type (
-	MailerClient = mailer.Mailer
+	MailerClient = mailer.Client
 	UserClient   = user.Client
 )
 

@@ -13,6 +13,29 @@ func RandomReadCloser() io.ReadCloser {
 	return io.NopCloser(RandomReader())
 }
 
+func ZeroReader() io.Reader {
+	return &ReaderZero{}
+}
+
+type ReaderZero struct{}
+
+func (z *ReaderZero) Read(bites []byte) (int, error) {
+	clear(bites)
+	return len(bites), nil
+}
+
+func RandReader() io.Reader {
+	return &ReaderRand{}
+}
+
+type ReaderRand struct{}
+
+func (z *ReaderRand) Read(bites []byte) (int, error) {
+	length := len(bites)
+	copy(bites, RandomBytesFromRange(length, length))
+	return length, nil
+}
+
 type ReadOutput struct {
 	BytesRead int
 	Error     error

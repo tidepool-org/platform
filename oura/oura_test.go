@@ -261,7 +261,7 @@ var _ = Describe("oura", func() {
 	Context("CreateSubscription", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.CreateSubscription)) {
-				datum := ouraTest.RandomCreateSubscription(test.AllowOptional())
+				datum := ouraTest.RandomCreateSubscription(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromCreateSubscription(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromCreateSubscription(datum, test.ObjectFormatBSON))
@@ -284,7 +284,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.CreateSubscription), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomCreateSubscription(test.AllowOptional())
+					expectedDatum := ouraTest.RandomCreateSubscription(test.AllowOptionals())
 					object := ouraTest.NewObjectFromCreateSubscription(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.CreateSubscription{}
@@ -322,7 +322,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.CreateSubscription), expectedErrors ...error) {
-					datum := ouraTest.RandomCreateSubscription(test.AllowOptional())
+					datum := ouraTest.RandomCreateSubscription(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -416,7 +416,7 @@ var _ = Describe("oura", func() {
 	Context("UpdateSubscription", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.UpdateSubscription)) {
-				datum := ouraTest.RandomUpdateSubscription(test.AllowOptional())
+				datum := ouraTest.RandomUpdateSubscription(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromUpdateSubscription(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromUpdateSubscription(datum, test.ObjectFormatBSON))
@@ -439,7 +439,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.UpdateSubscription), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomUpdateSubscription(test.AllowOptional())
+					expectedDatum := ouraTest.RandomUpdateSubscription(test.AllowOptionals())
 					object := ouraTest.NewObjectFromUpdateSubscription(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.UpdateSubscription{}
@@ -477,7 +477,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.UpdateSubscription), expectedErrors ...error) {
-					datum := ouraTest.RandomUpdateSubscription(test.AllowOptional())
+					datum := ouraTest.RandomUpdateSubscription(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -575,7 +575,7 @@ var _ = Describe("oura", func() {
 			})
 
 			It("parses the datum", func() {
-				datum := ouraTest.RandomSubscription(test.AllowOptional())
+				datum := ouraTest.RandomSubscription(test.AllowOptionals())
 				object := ouraTest.NewObjectFromSubscription(datum, test.ObjectFormatJSON)
 				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(oura.ParseSubscription(parser)).To(Equal(datum))
@@ -585,7 +585,7 @@ var _ = Describe("oura", func() {
 
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.Subscription)) {
-				datum := ouraTest.RandomSubscription(test.AllowOptional())
+				datum := ouraTest.RandomSubscription(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromSubscription(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromSubscription(datum, test.ObjectFormatBSON))
@@ -608,7 +608,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.Subscription), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomSubscription(test.AllowOptional())
+					expectedDatum := ouraTest.RandomSubscription(test.AllowOptionals())
 					object := ouraTest.NewObjectFromSubscription(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.Subscription{}
@@ -649,7 +649,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.Subscription), expectedErrors ...error) {
-					datum := ouraTest.RandomSubscription(test.AllowOptional())
+					datum := ouraTest.RandomSubscription(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -762,7 +762,7 @@ var _ = Describe("oura", func() {
 	Context("Subscriptions", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.Subscriptions)) {
-				datum := pointer.From(ouraTest.RandomSubscriptions(test.AllowOptional()))
+				datum := pointer.From(ouraTest.RandomSubscriptions(test.AllowOptionals()))
 				mutator(datum)
 				array := test.AsAnyArray(*datum)
 				test.ExpectSerializedArrayJSON(array, ouraTest.NewArrayFromSubscriptions(datum, test.ObjectFormatJSON))
@@ -907,7 +907,7 @@ var _ = Describe("oura", func() {
 	Context("PersonalInfo", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.PersonalInfo)) {
-				datum := ouraTest.RandomPersonalInfo(test.AllowOptional())
+				datum := ouraTest.RandomPersonalInfo(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromPersonalInfo(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromPersonalInfo(datum, test.ObjectFormatBSON))
@@ -930,7 +930,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.PersonalInfo), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomPersonalInfo(test.AllowOptional())
+					expectedDatum := ouraTest.RandomPersonalInfo(test.AllowOptionals())
 					object := ouraTest.NewObjectFromPersonalInfo(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.PersonalInfo{}
@@ -974,7 +974,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.PersonalInfo), expectedErrors ...error) {
-					datum := ouraTest.RandomPersonalInfo(test.AllowOptional())
+					datum := ouraTest.RandomPersonalInfo(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -1005,7 +1005,7 @@ var _ = Describe("oura", func() {
 	Context("Pagination", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.Pagination)) {
-				datum := ouraTest.RandomPagination(test.AllowOptional())
+				datum := ouraTest.RandomPagination(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromPagination(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromPagination(datum, test.ObjectFormatBSON))
@@ -1028,7 +1028,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.Pagination), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomPagination(test.AllowOptional())
+					expectedDatum := ouraTest.RandomPagination(test.AllowOptionals())
 					object := ouraTest.NewObjectFromPagination(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.Pagination{}
@@ -1057,7 +1057,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.Pagination), expectedErrors ...error) {
-					datum := ouraTest.RandomPagination(test.AllowOptional())
+					datum := ouraTest.RandomPagination(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -1099,7 +1099,7 @@ var _ = Describe("oura", func() {
 	Context("DataResponse", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.DataResponse)) {
-				datum := ouraTest.RandomDataResponse(test.AllowOptional())
+				datum := ouraTest.RandomDataResponse(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraTest.NewObjectFromDataResponse(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraTest.NewObjectFromDataResponse(datum, test.ObjectFormatBSON))
@@ -1122,7 +1122,7 @@ var _ = Describe("oura", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *oura.DataResponse), expectedErrors ...error) {
-					expectedDatum := ouraTest.RandomDataResponse(test.AllowOptional())
+					expectedDatum := ouraTest.RandomDataResponse(test.AllowOptionals())
 					object := ouraTest.NewObjectFromDataResponse(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &oura.DataResponse{}
@@ -1154,7 +1154,7 @@ var _ = Describe("oura", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *oura.DataResponse), expectedErrors ...error) {
-					datum := ouraTest.RandomDataResponse(test.AllowOptional())
+					datum := ouraTest.RandomDataResponse(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},

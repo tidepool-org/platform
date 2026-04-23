@@ -201,27 +201,27 @@ var _ = Describe("Mongo", func() {
 
 				Context("List", func() {
 					It("returns an error when the context is missing", func() {
-						result, err := repository.List(context.Context(nil), userID, dataSourceTest.RandomFilter(test.AllowOptional()), pageTest.RandomPagination())
+						result, err := repository.List(context.Context(nil), userID, dataSourceTest.RandomFilter(test.AllowOptionals()), pageTest.RandomPagination())
 						errorsTest.ExpectEqual(err, errors.New("context is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is missing", func() {
 						userID = ""
-						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptional()), pageTest.RandomPagination())
+						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptionals()), pageTest.RandomPagination())
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the user id is invalid", func() {
 						userID = "invalid"
-						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptional()), pageTest.RandomPagination())
+						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptionals()), pageTest.RandomPagination())
 						errorsTest.ExpectEqual(err, errors.New("user id is invalid"))
 						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the filter is invalid", func() {
-						filter := dataSourceTest.RandomFilter(test.AllowOptional())
+						filter := dataSourceTest.RandomFilter(test.AllowOptionals())
 						filter.ProviderType = pointer.FromString("")
 						result, err := repository.List(ctx, userID, filter, pageTest.RandomPagination())
 						errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
@@ -231,7 +231,7 @@ var _ = Describe("Mongo", func() {
 					It("returns an error when the pagination is invalid", func() {
 						pagination := pageTest.RandomPagination()
 						pagination.Page = -1
-						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptional()), pagination)
+						result, err := repository.List(ctx, userID, dataSourceTest.RandomFilter(test.AllowOptionals()), pagination)
 						errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
 						Expect(result).To(BeNil())
 					})
@@ -371,7 +371,7 @@ var _ = Describe("Mongo", func() {
 					var create *dataSource.Create
 
 					BeforeEach(func() {
-						create = dataSourceTest.RandomCreate(test.AllowOptional())
+						create = dataSourceTest.RandomCreate(test.AllowOptionals())
 					})
 
 					It("returns an error when the context is missing", func() {
@@ -472,7 +472,7 @@ var _ = Describe("Mongo", func() {
 							}
 							_, err := mongoCollection.InsertMany(context.Background(), AsInterfaceArray(originals))
 							Expect(err).ToNot(HaveOccurred())
-							_, err = mongoCollection.InsertMany(context.Background(), []interface{}{dataSourceTest.RandomSource(test.AllowOptional()), dataSourceTest.RandomSource(test.AllowOptional())})
+							_, err = mongoCollection.InsertMany(context.Background(), []interface{}{dataSourceTest.RandomSource(test.AllowOptionals()), dataSourceTest.RandomSource(test.AllowOptionals())})
 							Expect(err).ToNot(HaveOccurred())
 						})
 
@@ -564,7 +564,7 @@ var _ = Describe("Mongo", func() {
 				BeforeEach(func() {
 					id = dataSourceTest.RandomDataSourceID()
 					condition = requestTest.RandomCondition()
-					update = dataSourceTest.RandomUpdate(test.AllowOptional())
+					update = dataSourceTest.RandomUpdate(test.AllowOptionals())
 				})
 
 				It("returns an error when the context is missing", func() {
@@ -613,7 +613,7 @@ var _ = Describe("Mongo", func() {
 					var original *dataSource.Source
 
 					BeforeEach(func() {
-						original = dataSourceTest.RandomSource(test.AllowOptional())
+						original = dataSourceTest.RandomSource(test.AllowOptionals())
 						original.ID = id
 						_, err := mongoCollection.InsertOne(context.Background(), original)
 						Expect(err).ToNot(HaveOccurred())
@@ -836,9 +836,9 @@ var _ = Describe("Mongo", func() {
 					var original *dataSource.Source
 
 					BeforeEach(func() {
-						original = dataSourceTest.RandomSource(test.AllowOptional())
+						original = dataSourceTest.RandomSource(test.AllowOptionals())
 						original.ID = id
-						_, err := mongoCollection.InsertMany(context.Background(), []any{original, dataSourceTest.RandomSource(test.AllowOptional()), dataSourceTest.RandomSource(test.AllowOptional())})
+						_, err := mongoCollection.InsertMany(context.Background(), []any{original, dataSourceTest.RandomSource(test.AllowOptionals()), dataSourceTest.RandomSource(test.AllowOptionals())})
 						Expect(err).ToNot(HaveOccurred())
 					})
 

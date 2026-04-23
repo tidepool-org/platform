@@ -17,7 +17,7 @@ func RandomMetadataMap() map[string]any {
 }
 
 func RandomOptionalMetadataMap(options ...test.Option) map[string]any {
-	if test.IsConditionallyTrue(options...) {
+	if test.IsOptionalPresent(options...) {
 		return RandomMetadataMap()
 	} else {
 		return nil

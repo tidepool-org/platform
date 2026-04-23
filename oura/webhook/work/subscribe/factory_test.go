@@ -26,7 +26,7 @@ var _ = Describe("factory", func() {
 	})
 
 	It("Frequency is expected", func() {
-		Expect(ouraWebhookWorkSubscribe.Frequency).To(Equal(time.Minute))
+		Expect(ouraWebhookWorkSubscribe.Frequency).To(Equal(1 * time.Minute))
 	})
 
 	It("ProcessingTimeout is expected", func() {

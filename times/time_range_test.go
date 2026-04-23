@@ -25,7 +25,7 @@ var _ = Describe("time_range", func() {
 			})
 
 			It("returns new datum when the object is valid", func() {
-				datum := timesTest.RandomTimeRange(test.AllowOptional())
+				datum := timesTest.RandomTimeRange(test.AllowOptionals())
 				object := timesTest.NewObjectFromTimeRange(datum, test.ObjectFormatJSON)
 				parser := structureParser.NewObject(logTest.NewLogger(), &object)
 				Expect(times.ParseTimeRange(parser)).To(Equal(datum))
@@ -36,7 +36,7 @@ var _ = Describe("time_range", func() {
 		Context("TimeRange", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *times.TimeRange)) {
-					datum := timesTest.RandomTimeRange(test.AllowOptional())
+					datum := timesTest.RandomTimeRange(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, timesTest.NewObjectFromTimeRange(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, timesTest.NewObjectFromTimeRange(datum, test.ObjectFormatBSON))
@@ -60,7 +60,7 @@ var _ = Describe("time_range", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *times.TimeRange), expectedErrors ...error) {
-						expectedDatum := timesTest.RandomTimeRange(test.AllowOptional())
+						expectedDatum := timesTest.RandomTimeRange(test.AllowOptionals())
 						object := timesTest.NewObjectFromTimeRange(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &times.TimeRange{}
@@ -92,7 +92,7 @@ var _ = Describe("time_range", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *times.TimeRange), expectedErrors ...error) {
-						datum := timesTest.RandomTimeRange(test.AllowOptional())
+						datum := timesTest.RandomTimeRange(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -250,7 +250,7 @@ var _ = Describe("time_range", func() {
 		Context("TimeRangeMetadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *times.TimeRangeMetadata)) {
-					datum := timesTest.RandomTimeRangeMetadata(test.AllowOptional())
+					datum := timesTest.RandomTimeRangeMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, timesTest.NewObjectFromTimeRangeMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, timesTest.NewObjectFromTimeRangeMetadata(datum, test.ObjectFormatBSON))
@@ -265,7 +265,7 @@ var _ = Describe("time_range", func() {
 				),
 				Entry("all",
 					func(datum *times.TimeRangeMetadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 					},
 				),
 			)
@@ -273,7 +273,7 @@ var _ = Describe("time_range", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *times.TimeRangeMetadata), expectedErrors ...error) {
-						expectedDatum := timesTest.RandomTimeRangeMetadata(test.AllowOptional())
+						expectedDatum := timesTest.RandomTimeRangeMetadata(test.AllowOptionals())
 						object := timesTest.NewObjectFromTimeRangeMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &times.TimeRangeMetadata{}
@@ -302,7 +302,7 @@ var _ = Describe("time_range", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *times.TimeRangeMetadata), expectedErrors ...error) {
-						datum := timesTest.RandomTimeRangeMetadata(test.AllowOptional())
+						datum := timesTest.RandomTimeRangeMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -329,7 +329,7 @@ var _ = Describe("time_range", func() {
 					),
 					Entry("time range valid",
 						func(datum *times.TimeRangeMetadata) {
-							datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+							datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 						},
 					),
 					Entry("multiple errors",

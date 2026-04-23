@@ -25,7 +25,7 @@ var _ = Describe("token", func() {
 		Context("TokenMetadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *oauthWork.TokenMetadata)) {
-					datum := oauthWorkTest.RandomTokenMetadata(test.AllowOptional())
+					datum := oauthWorkTest.RandomTokenMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, oauthWorkTest.NewObjectFromTokenMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, oauthWorkTest.NewObjectFromTokenMetadata(datum, test.ObjectFormatBSON))
@@ -48,7 +48,7 @@ var _ = Describe("token", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *oauthWork.TokenMetadata), expectedErrors ...error) {
-						expectedDatum := oauthWorkTest.RandomTokenMetadata(test.AllowOptional())
+						expectedDatum := oauthWorkTest.RandomTokenMetadata(test.AllowOptionals())
 						object := oauthWorkTest.NewObjectFromTokenMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &oauthWork.TokenMetadata{}
@@ -77,7 +77,7 @@ var _ = Describe("token", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *oauthWork.TokenMetadata), expectedErrors ...error) {
-						datum := oauthWorkTest.RandomTokenMetadata(test.AllowOptional())
+						datum := oauthWorkTest.RandomTokenMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},

@@ -89,7 +89,7 @@ var _ = Describe("mixin", func() {
 
 				It("returns successfully", func() {
 					expectedResult := workTest.RandomSuccessProcessResult()
-					providerSession := authTest.RandomProviderSession(test.AllowOptional())
+					providerSession := authTest.RandomProviderSession(test.AllowOptionals())
 					mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
 					mockDataSourceMixin.EXPECT().FetchDataSourceFromProviderSessionID(providerSession.ID).Return(expectedResult)
 					Expect(mixin.FetchDataSourceFromProviderSession()).To(Equal(expectedResult))
@@ -103,7 +103,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failed result if data source provider session id is missing", func() {
-					dataSrc := dataSourceTest.RandomSource(test.AllowOptional())
+					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
 					dataSrc.ProviderSessionID = nil
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					Expect(mixin.FetchProviderSessionFromDataSource()).To(workTest.MatchFailedProcessResultError(MatchError("data source provider session id is missing")))
@@ -111,7 +111,7 @@ var _ = Describe("mixin", func() {
 
 				It("returns successfully", func() {
 					expectedResult := workTest.RandomSuccessProcessResult()
-					dataSrc := dataSourceTest.RandomSource(test.AllowOptional())
+					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
 					dataSrc.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					mockProviderSessionMixin.EXPECT().FetchProviderSession(*dataSrc.ProviderSessionID).Return(expectedResult)
@@ -178,7 +178,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failed result if data source data set id is missing", func() {
-					dataSrc := dataSourceTest.RandomSource(test.AllowOptional())
+					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
 					dataSrc.DataSetID = nil
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					Expect(mixin.FetchDataSetFromDataSource()).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
@@ -186,7 +186,7 @@ var _ = Describe("mixin", func() {
 
 				It("returns successfully", func() {
 					expectedResult := workTest.RandomSuccessProcessResult()
-					dataSrc := dataSourceTest.RandomSource(test.AllowOptional())
+					dataSrc := dataSourceTest.RandomSource(test.AllowOptionals())
 					dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					mockDataSetMixin.EXPECT().FetchDataSet(*dataSrc.DataSetID).Return(expectedResult)
@@ -198,7 +198,7 @@ var _ = Describe("mixin", func() {
 				var dataSetCreate *data.DataSetCreate
 
 				BeforeEach(func() {
-					dataSetCreate = dataTest.RandomDataSetCreate(test.AllowOptional())
+					dataSetCreate = dataTest.RandomDataSetCreate(test.AllowOptionals())
 				})
 
 				It("returns failed result if data source is missing", func() {
@@ -210,7 +210,7 @@ var _ = Describe("mixin", func() {
 					var dataSrc *dataSource.Source
 
 					BeforeEach(func() {
-						dataSrc = dataSourceTest.RandomSource(test.AllowOptional())
+						dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
 						dataSrc.DataSetID = nil
 						mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					})
@@ -227,7 +227,7 @@ var _ = Describe("mixin", func() {
 					})
 
 					It("returns successfully", func() {
-						dataSt := dataTest.RandomDataSet(test.AllowOptional())
+						dataSt := dataTest.RandomDataSet(test.AllowOptionals())
 						expectedResult := workTest.RandomSuccessProcessResult()
 						mockDataSetMixin.EXPECT().CreateDataSet(dataSrc.UserID, dataSetCreate).Return(nil)
 						mockDataSetMixin.EXPECT().DataSet().Return(dataSt)
@@ -294,7 +294,7 @@ var _ = Describe("mixin", func() {
 				var reader *test.Reader
 
 				BeforeEach(func() {
-					dataRawCreate = dataRawTest.RandomCreate(test.AllowOptional())
+					dataRawCreate = dataRawTest.RandomCreate(test.AllowOptionals())
 					reader = test.NewReader()
 				})
 
@@ -307,7 +307,7 @@ var _ = Describe("mixin", func() {
 					var dataSrc *dataSource.Source
 
 					BeforeEach(func() {
-						dataSrc = dataSourceTest.RandomSource(test.AllowOptional())
+						dataSrc = dataSourceTest.RandomSource(test.AllowOptionals())
 						dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
 						mockDataSourceMixin.EXPECT().DataSource().Return(dataSrc)
 					})
@@ -324,7 +324,7 @@ var _ = Describe("mixin", func() {
 					})
 
 					It("returns successfully", func() {
-						dataRw := dataRawTest.RandomRaw(test.AllowOptional())
+						dataRw := dataRawTest.RandomRaw(test.AllowOptionals())
 						expectedResult := workTest.RandomSuccessProcessResult()
 						mockDataRawMixin.EXPECT().CreateDataRaw(dataSrc.UserID, *dataSrc.DataSetID, dataRawCreate, reader).Return(nil)
 						mockDataRawMixin.EXPECT().DataRaw().Return(dataRw)
@@ -397,7 +397,7 @@ var _ = Describe("mixin", func() {
 				var replacementDataSourceUpdate *dataSource.Update
 
 				BeforeEach(func() {
-					replacementDataSource = dataSourceTest.RandomSource(test.AllowOptional())
+					replacementDataSource = dataSourceTest.RandomSource(test.AllowOptionals())
 					replacementDataSource.State = dataSource.StateDisconnected
 				})
 
@@ -491,7 +491,7 @@ var _ = Describe("mixin", func() {
 						var originalDataSource *dataSource.Source
 
 						BeforeEach(func() {
-							originalDataSource = dataSourceTest.RandomSource(test.AllowOptional())
+							originalDataSource = dataSourceTest.RandomSource(test.AllowOptionals())
 							mockDataSourceMixin.EXPECT().DataSource().Return(originalDataSource)
 							replacementDataSourceUpdate = &dataSource.Update{
 								ProviderSessionID: originalDataSource.ProviderSessionID,

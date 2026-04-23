@@ -31,7 +31,7 @@ var _ = Describe("work", func() {
 
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraDataWork.Metadata)) {
-				datum := ouraDataWorkTest.RandomMetadata(test.AllowOptional())
+				datum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, ouraDataWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, ouraDataWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -54,7 +54,7 @@ var _ = Describe("work", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *ouraDataWork.Metadata), expectedErrors ...error) {
-					expectedDatum := ouraDataWorkTest.RandomMetadata(test.AllowOptional())
+					expectedDatum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
 					object := ouraDataWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					result := &ouraDataWork.Metadata{}
@@ -89,7 +89,7 @@ var _ = Describe("work", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *ouraDataWork.Metadata), expectedErrors ...error) {
-					datum := ouraDataWorkTest.RandomMetadata(test.AllowOptional())
+					datum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -115,12 +115,12 @@ var _ = Describe("work", func() {
 				Entry("time range missing",
 					func(datum *ouraDataWork.Metadata) {
 						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					},
 				),
 				Entry("time range invalid",
 					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 						datum.TimeRange.From = pointer.From(time.Time{})
 						datum.Event = nil
 					},
@@ -128,20 +128,20 @@ var _ = Describe("work", func() {
 				),
 				Entry("time range valid",
 					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 						datum.Event = nil
 					},
 				),
 				Entry("event missing",
 					func(datum *ouraDataWork.Metadata) {
 						datum.Event = nil
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 					},
 				),
 				Entry("event invalid",
 					func(datum *ouraDataWork.Metadata) {
 						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 						datum.Event.EventTime = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event/event_time"),
@@ -149,7 +149,7 @@ var _ = Describe("work", func() {
 				Entry("event valid",
 					func(datum *ouraDataWork.Metadata) {
 						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					},
 				),
 				Entry("neither time range nor event",
@@ -161,17 +161,17 @@ var _ = Describe("work", func() {
 				),
 				Entry("both time range and event",
 					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 					},
 					structureValidator.ErrorValuesNotExistForOne("event", "timeRange"),
 				),
 				Entry("multiple errors",
 					func(datum *ouraDataWork.Metadata) {
 						datum.Scope = pointer.From([]string{})
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptional())
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
 						datum.TimeRange.From = pointer.From(time.Time{})
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptional())
+						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
 						datum.Event.EventTime = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scope"),

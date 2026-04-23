@@ -43,7 +43,7 @@ var _ = Describe("Raw", func() {
 	Context("Filter", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Filter)) {
-				datum := dataRawTest.RandomFilter(test.AllowOptional())
+				datum := dataRawTest.RandomFilter(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromFilter(datum, test.ObjectFormatBSON))
@@ -66,7 +66,7 @@ var _ = Describe("Raw", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataRaw.Filter), expectedErrors ...error) {
-					expectedDatum := dataRawTest.RandomFilter(test.AllowOptional())
+					expectedDatum := dataRawTest.RandomFilter(test.AllowOptionals())
 					object := dataRawTest.NewObjectFromFilter(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataRaw.Filter{}
@@ -101,7 +101,7 @@ var _ = Describe("Raw", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataRaw.Filter), expectedErrors ...error) {
-					datum := dataRawTest.RandomFilter(test.AllowOptional())
+					datum := dataRawTest.RandomFilter(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -149,7 +149,7 @@ var _ = Describe("Raw", func() {
 			var filter *dataRaw.Filter
 
 			BeforeEach(func() {
-				filter = dataRawTest.RandomFilter(test.AllowOptional())
+				filter = dataRawTest.RandomFilter(test.AllowOptionals())
 			})
 
 			Context("CreatedTime", func() {
@@ -176,7 +176,7 @@ var _ = Describe("Raw", func() {
 	Context("Create", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Create)) {
-				datum := dataRawTest.RandomCreate(test.AllowOptional())
+				datum := dataRawTest.RandomCreate(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromCreate(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromCreate(datum, test.ObjectFormatBSON))
@@ -199,7 +199,7 @@ var _ = Describe("Raw", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataRaw.Create), expectedErrors ...error) {
-					expectedDatum := dataRawTest.RandomCreate(test.AllowOptional())
+					expectedDatum := dataRawTest.RandomCreate(test.AllowOptionals())
 					object := dataRawTest.NewObjectFromCreate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataRaw.Create{}
@@ -237,7 +237,7 @@ var _ = Describe("Raw", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataRaw.Create), expectedErrors ...error) {
-					datum := dataRawTest.RandomCreate(test.AllowOptional())
+					datum := dataRawTest.RandomCreate(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -299,7 +299,7 @@ var _ = Describe("Raw", func() {
 
 		Context("SetMetadata", func() {
 			It("sets metadata", func() {
-				datum := dataRawTest.RandomCreate(test.AllowOptional())
+				datum := dataRawTest.RandomCreate(test.AllowOptionals())
 				metadata := metadataTest.RandomMetadataMap()
 				datum.SetMetadata(metadata)
 				Expect(datum.Metadata).To(Equal(metadata))
@@ -310,7 +310,7 @@ var _ = Describe("Raw", func() {
 	Context("Content", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Content)) {
-				datum := dataRawTest.RandomContent(test.AllowOptional())
+				datum := dataRawTest.RandomContent(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromContent(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromContent(datum, test.ObjectFormatBSON))
@@ -333,7 +333,7 @@ var _ = Describe("Raw", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataRaw.Content), expectedErrors ...error) {
-					datum := dataRawTest.RandomContent(test.AllowOptional())
+					datum := dataRawTest.RandomContent(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -374,7 +374,7 @@ var _ = Describe("Raw", func() {
 	Context("Update", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Update)) {
-				datum := dataRawTest.RandomUpdate(test.AllowOptional())
+				datum := dataRawTest.RandomUpdate(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromUpdate(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromUpdate(datum, test.ObjectFormatBSON))
@@ -397,7 +397,7 @@ var _ = Describe("Raw", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataRaw.Update), expectedErrors ...error) {
-					expectedDatum := dataRawTest.RandomUpdate(test.AllowOptional())
+					expectedDatum := dataRawTest.RandomUpdate(test.AllowOptionals())
 					object := dataRawTest.NewObjectFromUpdate(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataRaw.Update{}
@@ -429,7 +429,7 @@ var _ = Describe("Raw", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataRaw.Update), expectedErrors ...error) {
-					datum := dataRawTest.RandomUpdate(test.AllowOptional())
+					datum := dataRawTest.RandomUpdate(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -494,7 +494,7 @@ var _ = Describe("Raw", func() {
 	Context("Raw", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *dataRaw.Raw)) {
-				datum := dataRawTest.RandomRaw(test.AllowOptional())
+				datum := dataRawTest.RandomRaw(test.AllowOptionals())
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, dataRawTest.NewObjectFromRaw(datum, test.ObjectFormatJSON))
 				test.ExpectSerializedObjectBSON(datum, dataRawTest.NewObjectFromRaw(datum, test.ObjectFormatBSON))
@@ -517,7 +517,7 @@ var _ = Describe("Raw", func() {
 		Context("Parse", func() {
 			DescribeTable("parses the datum",
 				func(mutator func(object map[string]any, expectedDatum *dataRaw.Raw), expectedErrors ...error) {
-					expectedDatum := dataRawTest.RandomRaw(test.AllowOptional())
+					expectedDatum := dataRawTest.RandomRaw(test.AllowOptionals())
 					object := dataRawTest.NewObjectFromRaw(expectedDatum, test.ObjectFormatJSON)
 					mutator(object, expectedDatum)
 					datum := &dataRaw.Raw{}
@@ -576,7 +576,7 @@ var _ = Describe("Raw", func() {
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataRaw.Raw), expectedErrors ...error) {
-					datum := dataRawTest.RandomRaw(test.AllowOptional())
+					datum := dataRawTest.RandomRaw(test.AllowOptionals())
 					mutator(datum)
 					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 				},
@@ -749,7 +749,7 @@ var _ = Describe("Raw", func() {
 			var datum *dataRaw.Raw
 
 			BeforeEach(func() {
-				datum = dataRawTest.RandomRaw(test.AllowOptional())
+				datum = dataRawTest.RandomRaw(test.AllowOptionals())
 			})
 
 			Context("IsProcessed", func() {

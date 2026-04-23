@@ -19,7 +19,7 @@ type (
 	ClinicClient       = clinics.Client
 	ConfirmationClient = confirmationClient.ClientWithResponsesInterface
 	DataSourceClient   = dataSource.Client
-	MailerClient       = mailer.Mailer
+	MailerClient       = mailer.Client
 	UserClient         = user.Client
 )
 

@@ -74,7 +74,7 @@ func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 		lgr.WithError(err).Error("unable to calculate signature")
 		responder.InternalServerError(errors.Wrap(err, "unable to calculate signature"))
 		return
-	} else if calculatedSignature != signature {
+	} else if !hmac.Equal([]byte(calculatedSignature), []byte(signature)) {
 		lgr.WithField("calculatedSignature", calculatedSignature).Error("signature is invalid")
 		responder.String(http.StatusForbidden, "signature is invalid")
 		return
@@ -104,7 +104,7 @@ func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 		return
 	} else if providerSessionsCount := len(providerSessions); providerSessionsCount < 1 {
 		lgr.Error("provider session is missing")
-		responder.InternalServerError(errors.Wrap(err, "provider session is missing")) // HTTP failure to force retry later
+		responder.InternalServerError(errors.New("provider session is missing")) // HTTP failure to force retry later
 		return
 	}
 

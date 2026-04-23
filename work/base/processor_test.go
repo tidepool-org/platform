@@ -101,7 +101,7 @@ var _ = Describe("processor", func() {
 			var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 			BeforeEach(func() {
-				mockMetadata = workTest.RandomMockMetadata(test.AllowOptional())
+				mockMetadata = workTest.RandomMockMetadata(test.AllowOptionals())
 				wrk = workTest.RandomWork()
 				wrk.Metadata = mockMetadata.AsObject()
 				mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
@@ -235,7 +235,7 @@ var _ = Describe("processor", func() {
 					})
 
 					It("returns nil and updates work when processing update succeeds", func() {
-						expectedMockMetadata := workTest.RandomMockMetadata(test.AllowOptional())
+						expectedMockMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
 						expectedWork := workTest.RandomWork()
 						expectedWork.Metadata = expectedMockMetadata.AsObject()
 						mockProcessingUpdater.EXPECT().

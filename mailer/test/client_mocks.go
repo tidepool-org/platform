@@ -17,32 +17,32 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-// MockMailer is a mock of Mailer interface.
-type MockMailer struct {
+// MockClient is a mock of Client interface.
+type MockClient struct {
 	ctrl     *gomock.Controller
-	recorder *MockMailerMockRecorder
+	recorder *MockClientMockRecorder
 	isgomock struct{}
 }
 
-// MockMailerMockRecorder is the mock recorder for MockMailer.
-type MockMailerMockRecorder struct {
-	mock *MockMailer
+// MockClientMockRecorder is the mock recorder for MockClient.
+type MockClientMockRecorder struct {
+	mock *MockClient
 }
 
-// NewMockMailer creates a new mock instance.
-func NewMockMailer(ctrl *gomock.Controller) *MockMailer {
-	mock := &MockMailer{ctrl: ctrl}
-	mock.recorder = &MockMailerMockRecorder{mock}
+// NewMockClient creates a new mock instance.
+func NewMockClient(ctrl *gomock.Controller) *MockClient {
+	mock := &MockClient{ctrl: ctrl}
+	mock.recorder = &MockClientMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockMailer) EXPECT() *MockMailerMockRecorder {
+func (m *MockClient) EXPECT() *MockClientMockRecorder {
 	return m.recorder
 }
 
 // SendEmailTemplate mocks base method.
-func (m *MockMailer) SendEmailTemplate(arg0 context.Context, arg1 events.SendEmailTemplateEvent) error {
+func (m *MockClient) SendEmailTemplate(arg0 context.Context, arg1 events.SendEmailTemplateEvent) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SendEmailTemplate", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -50,31 +50,31 @@ func (m *MockMailer) SendEmailTemplate(arg0 context.Context, arg1 events.SendEma
 }
 
 // SendEmailTemplate indicates an expected call of SendEmailTemplate.
-func (mr *MockMailerMockRecorder) SendEmailTemplate(arg0, arg1 any) *MockMailerSendEmailTemplateCall {
+func (mr *MockClientMockRecorder) SendEmailTemplate(arg0, arg1 any) *MockClientSendEmailTemplateCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailTemplate", reflect.TypeOf((*MockMailer)(nil).SendEmailTemplate), arg0, arg1)
-	return &MockMailerSendEmailTemplateCall{Call: call}
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailTemplate", reflect.TypeOf((*MockClient)(nil).SendEmailTemplate), arg0, arg1)
+	return &MockClientSendEmailTemplateCall{Call: call}
 }
 
-// MockMailerSendEmailTemplateCall wrap *gomock.Call
-type MockMailerSendEmailTemplateCall struct {
+// MockClientSendEmailTemplateCall wrap *gomock.Call
+type MockClientSendEmailTemplateCall struct {
 	*gomock.Call
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockMailerSendEmailTemplateCall) Return(arg0 error) *MockMailerSendEmailTemplateCall {
+func (c *MockClientSendEmailTemplateCall) Return(arg0 error) *MockClientSendEmailTemplateCall {
 	c.Call = c.Call.Return(arg0)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockMailerSendEmailTemplateCall) Do(f func(context.Context, events.SendEmailTemplateEvent) error) *MockMailerSendEmailTemplateCall {
+func (c *MockClientSendEmailTemplateCall) Do(f func(context.Context, events.SendEmailTemplateEvent) error) *MockClientSendEmailTemplateCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockMailerSendEmailTemplateCall) DoAndReturn(f func(context.Context, events.SendEmailTemplateEvent) error) *MockMailerSendEmailTemplateCall {
+func (c *MockClientSendEmailTemplateCall) DoAndReturn(f func(context.Context, events.SendEmailTemplateEvent) error) *MockClientSendEmailTemplateCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

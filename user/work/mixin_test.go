@@ -34,7 +34,7 @@ var _ = Describe("mixin", func() {
 		Context("Metadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *userWork.Metadata)) {
-					datum := userWorkTest.RandomMetadata(test.AllowOptional())
+					datum := userWorkTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, userWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, userWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -57,7 +57,7 @@ var _ = Describe("mixin", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *userWork.Metadata), expectedErrors ...error) {
-						expectedDatum := userWorkTest.RandomMetadata(test.AllowOptional())
+						expectedDatum := userWorkTest.RandomMetadata(test.AllowOptionals())
 						object := userWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &userWork.Metadata{}
@@ -86,7 +86,7 @@ var _ = Describe("mixin", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *userWork.Metadata), expectedErrors ...error) {
-						datum := userWorkTest.RandomMetadata(test.AllowOptional())
+						datum := userWorkTest.RandomMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},
@@ -164,7 +164,7 @@ var _ = Describe("mixin", func() {
 			var workMetadata *userWork.Metadata
 
 			BeforeEach(func() {
-				workMetadata = userWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = userWorkTest.RandomMetadata(test.AllowOptionals())
 			})
 
 			It("returns an error when provider is missing", func() {
@@ -198,7 +198,7 @@ var _ = Describe("mixin", func() {
 
 			BeforeEach(func() {
 				var err error
-				workMetadata = userWorkTest.RandomMetadata(test.AllowOptional())
+				workMetadata = userWorkTest.RandomMetadata(test.AllowOptionals())
 				mixin, err = userWork.NewMixinFromWork(mockWorkProvider, mockUserClient, workMetadata)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mixin).ToNot(BeNil())
@@ -216,12 +216,12 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns true after SetUser is called with a user", func() {
-					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasUser()).To(BeTrue())
 				})
 
 				It("returns false after SetUser is called with nil", func() {
-					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.HasUser()).To(BeTrue())
 					Expect(mixin.SetUser(nil)).To(BeNil())
 					Expect(mixin.HasUser()).To(BeFalse())
@@ -234,13 +234,13 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns the user after SetUser is called with a user", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					Expect(mixin.SetUser(usr)).To(BeNil())
 					Expect(mixin.User()).To(Equal(usr))
 				})
 
 				It("returns nil after SetUser is called with nil", func() {
-					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetUser(nil)).To(BeNil())
 					Expect(mixin.User()).To(BeNil())
 				})
@@ -248,13 +248,13 @@ var _ = Describe("mixin", func() {
 
 			Context("SetUser", func() {
 				It("decodes metadata from user and returns nil", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					Expect(mixin.SetUser(usr)).To(BeNil())
 					Expect(mixin.User()).To(Equal(usr))
 				})
 
 				It("clears metadata when user is nil and returns nil", func() {
-					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptional()))).To(BeNil())
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetUser(nil)).To(BeNil())
 					Expect(mixin.User()).To(BeNil())
 				})
@@ -279,7 +279,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("sets the user and returns nil on success", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					mockUserClient.EXPECT().Get(gomock.Not(gomock.Nil()), usrID).Return(usr, nil)
 					Expect(mixin.FetchUser(usrID)).To(BeNil())
 					Expect(mixin.User()).To(Equal(usr))
@@ -333,7 +333,7 @@ var _ = Describe("mixin", func() {
 
 				It("sets the user and returns nil on success", func() {
 					workMetadata.UserID = pointer.From(userTest.RandomUserID())
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					mockUserClient.EXPECT().Get(gomock.Not(gomock.Nil()), *workMetadata.UserID).Return(usr, nil)
 					Expect(mixin.FetchUserFromWorkMetadata()).To(BeNil())
 					Expect(mixin.User()).To(Equal(usr))
@@ -346,7 +346,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("returns failed process result when user id is missing", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					usr.UserID = nil
 					Expect(mixin.SetUser(usr)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromUser()).To(workTest.MatchFailedProcessResultError(MatchError("user id is missing")))
@@ -359,13 +359,13 @@ var _ = Describe("mixin", func() {
 					var ok bool
 					mixin, ok = mixinWithoutMetadata.(userWork.MixinFromWork)
 					Expect(ok).To(BeTrue())
-					user := userTest.RandomUser(test.AllowOptional())
+					user := userTest.RandomUser(test.AllowOptionals())
 					Expect(mixin.SetUser(user)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromUser()).To(workTest.MatchFailedProcessResultError(MatchError("work metadata is missing")))
 				})
 
 				It("updates work metadata with the user id and returns nil", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					Expect(mixin.SetUser(usr)).To(BeNil())
 					Expect(mixin.UpdateWorkMetadataFromUser()).To(BeNil())
 					Expect(workMetadata.UserID).To(Equal(usr.UserID))
@@ -379,7 +379,7 @@ var _ = Describe("mixin", func() {
 				})
 
 				It("adds non-nil fields to context", func() {
-					usr := userTest.RandomUser(test.AllowOptional())
+					usr := userTest.RandomUser(test.AllowOptionals())
 					Expect(mixin.SetUser(usr)).To(BeNil())
 					Expect(mockWorkProvider.Fields).To(Equal(log.Fields{
 						"user": log.Fields{

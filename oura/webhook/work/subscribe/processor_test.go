@@ -82,7 +82,7 @@ var _ = Describe("processor", func() {
 		Context("Metadata", func() {
 			DescribeTable("serializes the datum as expected",
 				func(mutator func(datum *ouraWebhookWorkSubscribe.Metadata)) {
-					datum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptional())
+					datum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptionals())
 					mutator(datum)
 					test.ExpectSerializedObjectJSON(datum, ouraWebhookWorkSubscribeTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
 					test.ExpectSerializedObjectBSON(datum, ouraWebhookWorkSubscribeTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
@@ -105,7 +105,7 @@ var _ = Describe("processor", func() {
 			Context("Parse", func() {
 				DescribeTable("parses the datum",
 					func(mutator func(object map[string]any, expectedDatum *ouraWebhookWorkSubscribe.Metadata), expectedErrors ...error) {
-						expectedDatum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptional())
+						expectedDatum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptionals())
 						object := ouraWebhookWorkSubscribeTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
 						mutator(object, expectedDatum)
 						result := &ouraWebhookWorkSubscribe.Metadata{}
@@ -134,7 +134,7 @@ var _ = Describe("processor", func() {
 			Context("Validate", func() {
 				DescribeTable("validates the datum",
 					func(mutator func(datum *ouraWebhookWorkSubscribe.Metadata), expectedErrors ...error) {
-						datum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptional())
+						datum := ouraWebhookWorkSubscribeTest.RandomMetadata(test.AllowOptionals())
 						mutator(datum)
 						errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
 					},

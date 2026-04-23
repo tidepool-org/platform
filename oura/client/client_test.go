@@ -155,7 +155,7 @@ var _ = Describe("client", func() {
 					var createSubscription *oura.CreateSubscription
 
 					BeforeEach(func() {
-						createSubscription = ouraTest.RandomCreateSubscription(test.AllowOptional())
+						createSubscription = ouraTest.RandomCreateSubscription(test.AllowOptionals())
 					})
 
 					It("returns error if create is missing", func() {
@@ -217,7 +217,7 @@ var _ = Describe("client", func() {
 
 					BeforeEach(func() {
 						id = ouraTest.RandomID()
-						updateSubscription = ouraTest.RandomUpdateSubscription(test.AllowOptional())
+						updateSubscription = ouraTest.RandomUpdateSubscription(test.AllowOptionals())
 					})
 
 					It("returns error if id is missing", func() {
