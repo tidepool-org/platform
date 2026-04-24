@@ -331,7 +331,12 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 		return nil, errors.Wrap(err, "unable to create work")
 	}
 
-	document.ID = result.InsertedID.(bsonPrimitive.ObjectID)
+	if insertedID, ok := result.InsertedID.(bsonPrimitive.ObjectID); !ok || insertedID.IsZero() {
+		lgr.WithError(err).Error("work id is invalid")
+		return nil, errors.Wrap(err, "work id is invalid")
+	} else {
+		document.ID = insertedID
+	}
 
 	return document.AsWork(), nil
 }

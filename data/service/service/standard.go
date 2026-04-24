@@ -588,7 +588,7 @@ func (s *Standard) initializeConfirmationClient() error {
 			return err
 		}
 
-		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, token)
 		return nil
 	})
 

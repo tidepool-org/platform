@@ -15,6 +15,6 @@ func Decompress(input []byte) ([]byte, error) {
 }
 
 var (
-	encoder, _ = zstd.NewWriter(nil, zstd.WithEncoderLevel(compress.CompressionLevel))
-	decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))
+	encoder, _ = zstd.NewWriter(nil, zstd.WithEncoderLevel(compress.CompressionLevel)) // Cannot fail given these arguments
+	decoder, _ = zstd.NewReader(nil, zstd.WithDecoderConcurrency(0))                   // Cannot fail given these arguments
 )

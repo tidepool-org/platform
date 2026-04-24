@@ -8,13 +8,13 @@ import (
 	"slices"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
-	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
-	"go.mongodb.org/mongo-driver/mongo"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
+
+	"go.mongodb.org/mongo-driver/bson"
+	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	compressTest "github.com/tidepool-org/platform/compress/test"
 	"github.com/tidepool-org/platform/crypto"

@@ -104,9 +104,9 @@ func (p *OrderProcessor) ReconcileUpdatedOrders(ctx context.Context, updatedSinc
 	latestUpdatedTime := updatedSince
 	for _, gid := range gids {
 		if order, reconcileErr := p.ReconcileOrder(ctx, gid); reconcileErr != nil {
-			return latestUpdatedTime, errors.Wrapf(err, "unable to reconcile order %s", gid)
+			return latestUpdatedTime, errors.Wrapf(reconcileErr, "unable to reconcile order %s", gid)
 		} else if order == nil {
-			return latestUpdatedTime, errors.Wrapf(err, "order is missing %s", gid)
+			return latestUpdatedTime, errors.Newf("order is missing %s", gid)
 		} else {
 			latestUpdatedTime = order.UpdatedTime
 		}

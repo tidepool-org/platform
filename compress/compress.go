@@ -46,17 +46,17 @@ func (l *CompressedReadCloser) Read(p []byte) (int, error) {
 }
 
 func (l *CompressedReadCloser) Close() error {
+	if l.pipeWriter != nil {
+		if err := l.pipeWriter.Close(); err != nil && !errors.Is(err, io.ErrClosedPipe) {
+			return err
+		}
+		l.pipeWriter = nil
+	}
 	if l.pipeReader != nil {
 		if err := l.pipeReader.Close(); err != nil {
 			return err
 		}
 		l.pipeReader = nil
-	}
-	if l.pipeWriter != nil {
-		if err := l.pipeWriter.Close(); err != nil {
-			return err
-		}
-		l.pipeWriter = nil
 	}
 	return nil
 }

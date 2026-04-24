@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -35,7 +36,7 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 
 func (m *Metadata) Validate(validator structure.Validator) {
 	validator.String("clinicId", &m.ClinicID).NotEmpty()
-	validator.String("userId", &m.UserID).NotEmpty()
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
 }
 
 type Processor struct {
@@ -73,7 +74,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 }
 
 func (p *Processor) process() *work.ProcessResult {
-	patient, err := p.ClinicClient.GetPatient(p.Context(), p.Metadata().ClinicID, p.Metadata().UserID)
+	patient, err := p.GetPatient(p.Context(), p.Metadata().ClinicID, p.Metadata().UserID)
 	if err != nil {
 		return p.Failing(err)
 	} else if patient == nil {
@@ -87,8 +88,8 @@ func (p *Processor) process() *work.ProcessResult {
 		return nil
 	}
 
-	if _, err := p.ConfirmationClient.ResendAccountSignupWithResponse(p.Context(), *patient.Email); err != nil {
-		return p.Failing(errors.Newf(`unable to resend account signup email`))
+	if _, err := p.ResendAccountSignupWithResponse(p.Context(), *patient.Email); err != nil {
+		return p.Failing(errors.New("unable to resend account signup email"))
 	}
 
 	return nil

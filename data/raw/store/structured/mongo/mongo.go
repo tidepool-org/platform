@@ -175,7 +175,7 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	compressedHeadReader := compress.HeadReader(compressedSizeReader, dataRaw.SizeStoredMaximum) // Capture compressed head to use if compression warranted
 	defer func() {
 		if err := compressedReadCloser.Close(); err != nil {
-			log.LoggerFromContext(ctx).WithError(err).Warn("unable to close compressed limit reader")
+			lgr.WithError(err).Warn("unable to close compressed read closer")
 		}
 	}()
 
@@ -256,7 +256,12 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 		return nil, errors.Wrap(err, "unable to create raw")
 	}
 
-	document.ID, _ = result.InsertedID.(bsonPrimitive.ObjectID)
+	if insertedID, ok := result.InsertedID.(bsonPrimitive.ObjectID); !ok || insertedID.IsZero() {
+		lgr.WithError(err).Error("raw id is invalid")
+		return nil, errors.Wrap(err, "raw id is invalid")
+	} else {
+		document.ID = insertedID
+	}
 
 	return document.AsRaw(), nil
 }

@@ -6,11 +6,13 @@ import (
 
 	"github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
 	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -29,7 +31,7 @@ type Metadata struct {
 	ProviderName      string    `json:"providerName,omitempty"`
 	RestrictedTokenID string    `json:"restrictedTokenId,omitempty"`
 	UserID            string    `json:"userId,omitempty"`
-	WhenToSend        time.Time `json:"whenToSend,omitempty"`
+	WhenToSend        time.Time `json:"whenToSend,omitzero"`
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
@@ -64,9 +66,9 @@ func (m *Metadata) Validate(validator structure.Validator) {
 	validator.String("email", &m.Email).NotEmpty()
 	validator.String("emailTemplate", &m.EmailTemplate).NotEmpty()
 	validator.String("patientName", &m.PatientName).NotEmpty()
-	validator.String("providerName", &m.ProviderName).NotEmpty()
-	validator.String("restrictedTokenId", &m.RestrictedTokenID).NotEmpty()
-	validator.String("userId", &m.UserID).NotEmpty()
+	validator.String("providerName", &m.ProviderName).Using(auth.ProviderNameValidator)
+	validator.String("restrictedTokenId", &m.RestrictedTokenID).Using(auth.RestrictedTokenIDValidator)
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
 }
 
 type UserMixin = userWork.Mixin
@@ -125,7 +127,7 @@ func (p *Processor) process() *work.ProcessResult {
 		ProviderName: pointer.FromString(p.Metadata().ProviderName),
 		State:        pointer.FromString(dataSource.StateConnected),
 	}
-	dataSrcs, err := p.DataSourceClient.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
+	dataSrcs, err := p.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
 	if err != nil {
 		return p.Failing(err)
 	} else if len(dataSrcs) > 0 {
@@ -133,9 +135,9 @@ func (p *Processor) process() *work.ProcessResult {
 	}
 
 	var clinicName string
-	clinic, err := p.ClinicClient.GetClinic(p.Context(), p.Metadata().ClinicID)
+	clinic, err := p.GetClinic(p.Context(), p.Metadata().ClinicID)
 	if err != nil {
-		return p.Failing(errors.Wrapf(err, `error getting clinic`))
+		return p.Failing(errors.Wrapf(err, "error getting clinic"))
 	} else if clinic != nil {
 		clinicName = clinic.Name
 	}
@@ -151,7 +153,7 @@ func (p *Processor) process() *work.ProcessResult {
 		Template:  p.Metadata().EmailTemplate,
 		Variables: variables,
 	}
-	if err := p.MailerClient.SendEmailTemplate(p.Context(), templateEvent); err != nil {
+	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
 		return p.Failing(err)
 	}
 

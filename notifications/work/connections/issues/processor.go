@@ -6,8 +6,11 @@ import (
 
 	"github.com/tidepool-org/go-common/events"
 
+	"github.com/tidepool-org/platform/auth"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
 	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -53,12 +56,13 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
-	validator.String("dataSourceState", &m.DataSourceState).NotEmpty()
-	validator.String("dataSourceId", &m.DataSourceID).NotEmpty()
+	validator.String("dataSourceState", &m.DataSourceState).OneOf(dataSource.States()...)
+	validator.String("dataSourceId", &m.DataSourceID).Using(dataSource.IDValidator)
 	validator.String("emailTemplate", &m.EmailTemplate).NotEmpty()
 	validator.String("fullName", &m.FullName).NotEmpty()
-	validator.String("providerName", &m.ProviderName).NotEmpty()
-	validator.String("userId", &m.UserID).NotEmpty()
+	validator.String("providerName", &m.ProviderName).Using(auth.ProviderNameValidator)
+	validator.String("restrictedTokenId", &m.RestrictedTokenID).Using(auth.RestrictedTokenIDValidator)
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
 }
 
 type UserMixin = userWork.Mixin
@@ -123,7 +127,7 @@ func (p *Processor) process() *work.ProcessResult {
 		Template:  p.Metadata().EmailTemplate,
 		Variables: variables,
 	}
-	if err := p.MailerClient.SendEmailTemplate(p.Context(), templateEvent); err != nil {
+	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
 		return p.Failing(err)
 	}
 

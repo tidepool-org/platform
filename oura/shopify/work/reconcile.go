@@ -118,7 +118,7 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 	create, err := metadata.WithMetadata(
 		&work.Create{
 			Type:              Type,
-			DeduplicationID:   pointer.FromString(Type),
+			DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
 			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 		},
 		&Metadata{
