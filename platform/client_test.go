@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -224,6 +226,30 @@ var _ = Describe("Client", func() {
 			Context("HTTPClient", func() {
 				It("returns successfully", func() {
 					Expect(clnt.HTTPClient()).ToNot(BeNil())
+				})
+
+				It("uses the timeout from config", func() {
+					config.Config.Timeout = 42 * time.Second
+					c, err := platform.NewClient(config, platform.AuthorizeAsService)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(c.HTTPClient().Timeout).To(Equal(42 * time.Second))
+				})
+
+				It("times out on a slow server", func() {
+					slowSvr := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						time.Sleep(50 * time.Millisecond)
+						w.WriteHeader(http.StatusOK)
+					}))
+					defer slowSvr.Close()
+
+					config.Config.Timeout = 5 * time.Millisecond
+					c, err := platform.NewClient(config, platform.AuthorizeAsService)
+					Expect(err).ToNot(HaveOccurred())
+
+					req, err := http.NewRequestWithContext(ctx, http.MethodGet, slowSvr.URL, nil)
+					Expect(err).ToNot(HaveOccurred())
+					_, err = c.HTTPClient().Do(req)
+					Expect(err).To(MatchError(ContainSubstring("deadline exceeded")))
 				})
 			})
 
