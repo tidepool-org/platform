@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	PartnerCoastal      = "Coastal"
+	PartnerCoastal     = "Coastal"
 	coastalHTTPTimeout = 60 * time.Second
 )
 
@@ -34,10 +34,10 @@ type CoastalSecretsConfig struct {
 	ClientSecret string `envconfig:"COASTAL_CLIENT_SECRET"`
 	RCTypeID     string `envconfig:"COASTAL_RC_TYPE_ID"`
 	// KeyData is the raw contents of the ED25519 private key file in PEM format.
-	KeyData        []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
+	KeyData []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
+	// HTTPTimeout overrides coastalHTTPTimeout when non-zero. Used in tests only.
+	HTTPTimeout    time.Duration
 	certificateURL string
-	// HTTPTimeout overrides coastalHTTPTimeout when non-zero. Used in tests.
-	HTTPTimeout time.Duration `envconfig:"TIDEPOOL_COASTAL_HTTP_TIMEOUT"`
 }
 
 type CoastalSecrets struct {
