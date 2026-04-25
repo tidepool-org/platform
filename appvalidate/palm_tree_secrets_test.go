@@ -85,7 +85,7 @@ var _ = Describe("PalmTreeSecrets", func() {
 			pt, err = NewPalmTreeSecrets(logTest.NewLogger(), cfg)
 			Expect(err).ToNot(HaveOccurred())
 
-			partnerData, err = json.Marshal(map[string]interface{}{
+			partnerData, err = json.Marshal(map[string]any{
 				"csr": "test-csr",
 			})
 			Expect(err).ToNot(HaveOccurred())
