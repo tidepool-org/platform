@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -27,7 +28,8 @@ var (
 )
 
 const (
-	PartnerPalmTree = "PalmTree"
+	PartnerPalmTree     = "PalmTree"
+	palmTreeHTTPTimeout = 60 * time.Second
 )
 
 type PalmTreeSecretsConfig struct {
@@ -37,7 +39,9 @@ type PalmTreeSecretsConfig struct {
 	// CertData is the raw contents of the tls certificate file
 	CertData []byte `envconfig:"PALMTREE_TLS_CERT_DATA"`
 	// KeyData is the raw contents of the tls private key file
-	KeyData        []byte `envconfig:"PALMTREE_TLS_KEY_DATA"`
+	KeyData []byte `envconfig:"PALMTREE_TLS_KEY_DATA"`
+	// HTTPTimeout overrides palmTreeHTTPTimeout when non-zero. Used in tests only.
+	HTTPTimeout    time.Duration
 	certificateURL string
 }
 
@@ -82,9 +86,13 @@ func NewPalmTreeSecrets(logger log.Logger, cfg PalmTreeSecretsConfig) (*PalmTree
 		},
 	}
 
+	timeout := cfg.HTTPTimeout
+	if timeout == 0 {
+		timeout = palmTreeHTTPTimeout
+	}
 	return &PalmTreeSecrets{
 		Config: cfg,
-		client: &http.Client{Transport: tr},
+		client: &http.Client{Transport: tr, Timeout: timeout},
 	}, nil
 }
 
