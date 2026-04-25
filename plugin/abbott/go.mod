@@ -2,8 +2,6 @@ module github.com/tidepool-org/platform-plugin-abbott
 
 go 1.25.7
 
-toolchain go1.25.7
-
 require (
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/tidepool-org/platform v0.0.0

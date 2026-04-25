@@ -1,6 +1,8 @@
 package client_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -8,6 +10,12 @@ import (
 	configTest "github.com/tidepool-org/platform/config/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
+
+var _ = Describe("DefaultHTTPTimeout", func() {
+	It("is 60 seconds", func() {
+		Expect(client.DefaultHTTPTimeout).To(Equal(60 * time.Second))
+	})
+})
 
 var _ = Describe("Config", func() {
 	Context("NewConfig", func() {
@@ -21,6 +29,12 @@ var _ = Describe("Config", func() {
 			Expect(cfg).ToNot(BeNil())
 			Expect(cfg.Address).To(BeEmpty())
 			Expect(cfg.UserAgent).To(BeEmpty())
+		})
+
+		It("sets Timeout to DefaultHTTPTimeout", func() {
+			cfg := client.NewConfig()
+			Expect(cfg).ToNot(BeNil())
+			Expect(cfg.Timeout).To(Equal(client.DefaultHTTPTimeout))
 		})
 	})
 
