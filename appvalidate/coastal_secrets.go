@@ -13,6 +13,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
@@ -22,7 +23,8 @@ import (
 )
 
 const (
-	PartnerCoastal = "Coastal"
+	PartnerCoastal      = "Coastal"
+	coastalHTTPTimeout = 60 * time.Second
 )
 
 type CoastalSecretsConfig struct {
@@ -34,6 +36,8 @@ type CoastalSecretsConfig struct {
 	// KeyData is the raw contents of the ED25519 private key file in PEM format.
 	KeyData        []byte `envconfig:"COASTAL_PRIVATE_KEY_DATA"`
 	certificateURL string
+	// HTTPTimeout overrides coastalHTTPTimeout when non-zero. Used in tests.
+	HTTPTimeout time.Duration `envconfig:"TIDEPOOL_COASTAL_HTTP_TIMEOUT"`
 }
 
 type CoastalSecrets struct {
@@ -167,7 +171,11 @@ func (c *CoastalSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte) (
 	req.Header.Add("accept", "application/json")
 	req.Header.Add("signature", signature)
 
-	res, err := http.DefaultClient.Do(req)
+	timeout := c.Config.HTTPTimeout
+	if timeout == 0 {
+		timeout = coastalHTTPTimeout
+	}
+	res, err := (&http.Client{Timeout: timeout}).Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to issue Coastal API request: %w", err)
 	}
