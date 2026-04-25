@@ -7,6 +7,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/request"
@@ -50,6 +51,7 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 		if httpClient == nil {
 			return nil, errors.New("unable to create http client")
 		}
+		httpClient.Timeout = client.DefaultHTTPTimeout
 
 		s.tokenSource = tknSrc
 		s.httpClient = httpClient

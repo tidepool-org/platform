@@ -2,12 +2,15 @@ package client
 
 import (
 	"net/url"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 )
+
+const DefaultHTTPTimeout = 60 * time.Second
 
 type Config struct {
 	Address string // this should be overridden for loaders using envconfig
@@ -23,10 +26,14 @@ type Config struct {
 	//
 	// More info: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 	UserAgent string `envconfig:"TIDEPOOL_USER_AGENT"`
+
+	// Timeout is the maximum time to wait for an HTTP request to complete.
+	// Defaults to 60 seconds. Set via TIDEPOOL_HTTP_TIMEOUT (e.g. "30s", "2m").
+	Timeout time.Duration `envconfig:"TIDEPOOL_HTTP_TIMEOUT"`
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{Timeout: DefaultHTTPTimeout}
 }
 
 func (c *Config) Load(loader ConfigLoader) error {
