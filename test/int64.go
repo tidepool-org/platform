@@ -3,6 +3,7 @@ package test
 import (
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 func MustInt64(value int64, err error) int64 {
@@ -37,17 +38,19 @@ func RandomInt64FromRange(minimum int64, maximum int64) int64 {
 }
 
 func RandomInt64Maximum() int64 {
-	return math.MaxInt64
+	return math.MaxInt64 >> 1
 }
 
 func RandomInt64Minimum() int64 {
-	return math.MinInt64
+	return math.MinInt64>>1 + 1
 }
 
 func NewObjectFromInt64(value int64, objectFormat ObjectFormat) interface{} {
 	switch objectFormat {
 	case ObjectFormatJSON:
 		return float64(value)
+	case ObjectFormatConfig:
+		return strconv.FormatInt(value, 10)
 	}
 	return value
 }

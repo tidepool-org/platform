@@ -1,6 +1,7 @@
 package test
 
 import (
+	"maps"
 	time "time"
 
 	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
@@ -70,15 +71,16 @@ func RandomWorkWithState(state string) *work.Work {
 		} else {
 			datum.ProcessingTime = pointer.FromTime(test.RandomTimeFromRange(datum.ProcessingAvailableTime, now))
 			datum.ProcessingDuration = pointer.FromFloat64(now.Sub(*datum.ProcessingTime).Seconds())
-			if state == work.StateFailing {
+			switch state {
+			case work.StateFailing:
 				datum.FailingTime = pointer.FromTime(now)
 				datum.FailingError = errors.NewSerializable(errorsTest.RandomError())
 				datum.FailingRetryCount = pointer.FromInt(test.RandomIntFromRange(0, 10))
 				datum.FailingRetryTime = pointer.FromTime(test.RandomTimeAfter(now))
-			} else if state == work.StateFailed {
+			case work.StateFailed:
 				datum.FailedTime = pointer.FromTime(now)
 				datum.FailedError = errors.NewSerializable(errorsTest.RandomError())
-			} else if state == work.StateSuccess {
+			case work.StateSuccess:
 				datum.SuccessTime = pointer.FromTime(now)
 			}
 		}
@@ -137,7 +139,9 @@ func NewObjectFromWork(datum *work.Work, objectFormat test.ObjectFormat) map[str
 	object["processingAvailableTime"] = test.NewObjectFromTime(datum.ProcessingAvailableTime, objectFormat)
 	object["processingPriority"] = test.NewObjectFromInt(datum.ProcessingPriority, objectFormat)
 	object["processingTimeout"] = test.NewObjectFromInt(datum.ProcessingTimeout, objectFormat)
-	object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
+	if len(datum.Metadata) > 0 {
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
+	}
 	object["pendingTime"] = test.NewObjectFromTime(datum.PendingTime, objectFormat)
 	if datum.ProcessingTime != nil {
 		object["processingTime"] = test.NewObjectFromTime(*datum.ProcessingTime, objectFormat)
@@ -177,4 +181,55 @@ func NewObjectFromWork(datum *work.Work, objectFormat test.ObjectFormat) map[str
 	object["revision"] = test.NewObjectFromInt(datum.Revision, objectFormat)
 
 	return object
+}
+
+func NewWorkFromCreateWithState(create *work.Create, state string) *work.Work {
+	if create == nil {
+		return nil
+	}
+	now := time.Now()
+	datum := &work.Work{
+		ID:                      RandomID(),
+		Type:                    create.Type,
+		GroupID:                 pointer.CloneString(create.GroupID),
+		DeduplicationID:         pointer.CloneString(create.DeduplicationID),
+		SerialID:                pointer.CloneString(create.SerialID),
+		ProcessingAvailableTime: create.ProcessingAvailableTime,
+		ProcessingPriority:      create.ProcessingPriority,
+		ProcessingTimeout:       create.ProcessingTimeout,
+		Metadata:                maps.Clone(create.Metadata),
+		PendingTime:             create.ProcessingAvailableTime,
+		State:                   state,
+		CreatedTime:             now,
+		ModifiedTime:            pointer.FromTime(now),
+		Revision:                test.RandomInt(),
+	}
+	switch state {
+	case work.StatePending:
+		datum.ProcessingAvailableTime = now
+	case work.StateProcessing:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
+		datum.ProcessingTime = pointer.FromTime(now)
+		datum.ProcessingTimeoutTime = pointer.FromTime(now.Add(time.Duration(datum.ProcessingTimeout) * time.Second))
+	case work.StateFailing:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
+		datum.ProcessingTime = pointer.FromTime(now)
+		datum.ProcessingDuration = pointer.FromFloat64(0.0)
+		datum.FailingTime = pointer.FromTime(now)
+		datum.FailingError = errorsTest.RandomSerializable()
+		datum.FailingRetryCount = pointer.FromInt(1)
+		datum.FailingRetryTime = pointer.FromTime(now.Add(10 * time.Minute))
+	case work.StateFailed:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
+		datum.ProcessingTime = pointer.FromTime(now)
+		datum.ProcessingDuration = pointer.FromFloat64(0.0)
+		datum.FailedTime = pointer.FromTime(now)
+		datum.FailedError = errorsTest.RandomSerializable()
+	case work.StateSuccess:
+		datum.ProcessingAvailableTime = now.Add(-10 * time.Second)
+		datum.ProcessingTime = pointer.FromTime(now)
+		datum.ProcessingDuration = pointer.FromFloat64(0.0)
+		datum.SuccessTime = pointer.FromTime(now)
+	}
+	return datum
 }

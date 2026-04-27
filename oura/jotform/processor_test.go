@@ -153,20 +153,20 @@ var _ = Describe("SubmissionProcessor", func() {
 				Return(nil, nil)
 
 			consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {
+				DoAndReturn(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Consent], error) {
 					Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
 					Expect(filter.Latest).To(PointTo(Equal(true)))
-				}).
-				Return(&storeStructuredMongo.ListResult[consent.Consent]{
-					Count: 1,
-					Data: []consent.Consent{{
-						Type:    "big_data_donation_project",
-						Version: 2,
-					}},
-				}, nil)
+					return &storeStructuredMongo.ListResult[consent.Consent]{
+						Count: 1,
+						Data: []consent.Consent{{
+							Type:    "big_data_donation_project",
+							Version: 2,
+						}},
+					}, nil
+				})
 
 			consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
-				Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+				DoAndReturn(func(ctx context.Context, userID string, creates []*consent.RecordCreate) ([]*consent.Record, error) {
 					Expect(creates).To(HaveLen(2))
 					Expect(creates[0].Type).To(Equal("big_data_donation_project"))
 					Expect(creates[0].Version).To(Equal(2))
@@ -178,33 +178,33 @@ var _ = Describe("SubmissionProcessor", func() {
 					Expect(creates[1].OwnerName).To(Equal("James Jellyfish"))
 					Expect(creates[1].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
 					Expect(creates[1].GrantorType).To(Equal(consent.GrantorTypeOwner))
-				}).
-				Return([]*consent.Record{
-					{
-						ID:          "1234567890",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "big_data_donation_project",
-						Version:     2,
-					},
-					{
-						ID:          "1234567891",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "ripple",
-						Version:     1,
-					},
-				}, nil)
+					return []*consent.Record{
+						{
+							ID:          "1234567890",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   "James Jellyfish",
+							GrantorType: "owner",
+							Type:        "big_data_donation_project",
+							Version:     2,
+						},
+						{
+							ID:          "1234567891",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   "James Jellyfish",
+							GrantorType: "owner",
+							Type:        "ripple",
+							Version:     1,
+						},
+					}, nil
+				})
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+				DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
 					Expect(input.ProductID).To(Equal("9122899853526"))
@@ -302,7 +302,7 @@ var _ = Describe("SubmissionProcessor", func() {
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+				DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
 					return nil
@@ -358,30 +358,30 @@ var _ = Describe("SubmissionProcessor", func() {
 
 			// Should create only RIPPLE
 			consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
-				Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+				DoAndReturn(func(ctx context.Context, userID string, creates []*consent.RecordCreate) ([]*consent.Record, error) {
 					Expect(creates).To(HaveLen(1))
 					Expect(creates[0].Type).To(Equal("ripple"))
 					Expect(creates[0].Version).To(Equal(1))
 					Expect(creates[0].OwnerName).To(Equal("James Jellyfish"))
 					Expect(creates[0].AgeGroup).To(Equal(consent.AgeGroupEighteenOrOver))
 					Expect(creates[0].GrantorType).To(Equal(consent.GrantorTypeOwner))
-				}).
-				Return([]*consent.Record{
-					{
-						ID:          "1234567891",
-						UserID:      userID,
-						Status:      consent.RecordStatusActive,
-						AgeGroup:    consent.AgeGroupEighteenOrOver,
-						OwnerName:   "James Jellyfish",
-						GrantorType: "owner",
-						Type:        "ripple",
-						Version:     1,
-					},
-				}, nil)
+					return []*consent.Record{
+						{
+							ID:          "1234567891",
+							UserID:      userID,
+							Status:      consent.RecordStatusActive,
+							AgeGroup:    consent.AgeGroupEighteenOrOver,
+							OwnerName:   "James Jellyfish",
+							GrantorType: "owner",
+							Type:        "ripple",
+							Version:     1,
+						},
+					}, nil
+				})
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+				DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
 					return nil
@@ -521,20 +521,20 @@ var _ = Describe("SubmissionProcessor", func() {
 					Return(nil, nil)
 
 				consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) {
+					DoAndReturn(func(ctx context.Context, filter *consent.Filter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Consent], error) {
 						Expect(filter.Type).To(PointTo(Equal("big_data_donation_project")))
 						Expect(filter.Latest).To(PointTo(Equal(true)))
-					}).
-					Return(&storeStructuredMongo.ListResult[consent.Consent]{
-						Count: 1,
-						Data: []consent.Consent{{
-							Type:    "big_data_donation_project",
-							Version: 2,
-						}},
-					}, nil)
+						return &storeStructuredMongo.ListResult[consent.Consent]{
+							Count: 1,
+							Data: []consent.Consent{{
+								Type:    "big_data_donation_project",
+								Version: 2,
+							}},
+						}, nil
+					})
 
 				consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
-					Do(func(ctx context.Context, userID string, creates []*consent.RecordCreate) {
+					DoAndReturn(func(ctx context.Context, userID string, creates []*consent.RecordCreate) ([]*consent.Record, error) {
 						Expect(creates).To(HaveLen(2))
 						Expect(creates[0].Type).To(Equal("big_data_donation_project"))
 						Expect(creates[0].Version).To(Equal(2))
@@ -544,33 +544,33 @@ var _ = Describe("SubmissionProcessor", func() {
 						Expect(creates[1].Type).To(Equal("ripple"))
 						Expect(creates[1].Version).To(Equal(1))
 						Expect(creates[1].OwnerName).To(Equal(name))
-					}).
-					Return([]*consent.Record{
-						{
-							ID:          "1234567890",
-							UserID:      userID,
-							Status:      consent.RecordStatusActive,
-							AgeGroup:    consent.AgeGroupEighteenOrOver,
-							OwnerName:   name,
-							GrantorType: "owner",
-							Type:        "big_data_donation_project",
-							Version:     2,
-						},
-						{
-							ID:          "1234567891",
-							UserID:      userID,
-							Status:      consent.RecordStatusActive,
-							AgeGroup:    consent.AgeGroupEighteenOrOver,
-							OwnerName:   name,
-							GrantorType: "owner",
-							Type:        "ripple",
-							Version:     1,
-						},
-					}, nil)
+						return []*consent.Record{
+							{
+								ID:          "1234567890",
+								UserID:      userID,
+								Status:      consent.RecordStatusActive,
+								AgeGroup:    consent.AgeGroupEighteenOrOver,
+								OwnerName:   name,
+								GrantorType: "owner",
+								Type:        "big_data_donation_project",
+								Version:     2,
+							},
+							{
+								ID:          "1234567891",
+								UserID:      userID,
+								Status:      consent.RecordStatusActive,
+								AgeGroup:    consent.AgeGroupEighteenOrOver,
+								OwnerName:   name,
+								GrantorType: "owner",
+								Type:        "ripple",
+								Version:     1,
+							},
+						}, nil
+					})
 
 				shopifyClnt.EXPECT().
 					CreateDiscountCode(gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+					DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 						Expect(input.Title).To(Equal("Oura Sizing Kit Discount Code"))
 						Expect(len(input.Code)).To(BeNumerically(">=", 12))
 						Expect(input.ProductID).To(Equal("9122899853526"))

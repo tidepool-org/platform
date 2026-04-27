@@ -211,7 +211,7 @@ func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	}
 	logs, err := r.Provider.BlobClient().ListDeviceLogs(req.Context(), userID, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	responder.Data(http.StatusOK, logs)
@@ -229,7 +229,7 @@ func (r *Router) GetDeviceLogsBlob(res rest.ResponseWriter, req *rest.Request) {
 
 	deviceLogMetadata, err := blobClient.GetDeviceLogsBlob(req.Context(), deviceLogID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if deviceLogMetadata == nil {
@@ -239,7 +239,7 @@ func (r *Router) GetDeviceLogsBlob(res rest.ResponseWriter, req *rest.Request) {
 
 	allowed, err := api.CheckMembership(req, r.AuthClient(), *deviceLogMetadata.UserID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if !allowed {
@@ -261,7 +261,7 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 
 	deviceLogMetadata, err := blobClient.GetDeviceLogsBlob(req.Context(), deviceLogID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if deviceLogMetadata == nil {
@@ -271,7 +271,7 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 
 	allowed, err := api.CheckMembership(req, r.AuthClient(), *deviceLogMetadata.UserID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if !allowed {
@@ -281,7 +281,7 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 
 	content, err := blobClient.GetDeviceLogsContent(req.Context(), *deviceLogMetadata.ID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if content == nil || content.Body == nil {

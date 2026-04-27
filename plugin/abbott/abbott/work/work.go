@@ -2,6 +2,7 @@ package work
 
 import (
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 type DataDeduplicatorFactory any
@@ -21,6 +22,7 @@ type AbbottClient any
 type WorkClient any
 
 type ProcessorDependencies struct {
+	workBase.Dependencies
 	DataDeduplicatorFactory DataDeduplicatorFactory
 	DataRawClient           DataRawClient
 	DataSetClient           DataSetClient
@@ -28,7 +30,6 @@ type ProcessorDependencies struct {
 	SummaryClient           SummaryClient
 	ProviderSessionClient   ProviderSessionClient
 	AbbottClient            AbbottClient
-	WorkClient              WorkClient
 }
 
 func NewProcessorFactories(processorDependencies ProcessorDependencies) ([]work.ProcessorFactory, error) {

@@ -61,12 +61,14 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 		UpdatedTime:  order.UpdatedAt,
 	}
 
-	for _, lineItem := range order.GetLineItems().GetNodes() {
-		if lineItem == nil {
-			continue
+	if order.GetLineItems() != nil {
+		for _, lineItem := range order.GetLineItems().GetNodes() {
+			if lineItem == nil || lineItem.GetProduct() == nil {
+				continue
+			}
+			id := strings.TrimPrefix(lineItem.GetProduct().GetId(), shopify.ProductGIDPrefix)
+			summary.OrderedProductIDs = append(summary.OrderedProductIDs, id)
 		}
-		id := strings.TrimPrefix(lineItem.GetProduct().GetId(), shopify.ProductGIDPrefix)
-		summary.OrderedProductIDs = append(summary.OrderedProductIDs, id)
 	}
 
 	deliveredProducts := map[string]struct{}{}
@@ -83,7 +85,7 @@ func (c *defaultClient) GetOrderSummary(ctx context.Context, orderID string) (*s
 			continue
 		}
 		for _, lineItem := range lineItems.GetNodes() {
-			if lineItem == nil || lineItem.GetLineItem() == nil {
+			if lineItem == nil || lineItem.GetLineItem() == nil || lineItem.GetLineItem().GetProduct() == nil {
 				continue
 			}
 			id := strings.TrimPrefix(lineItem.GetLineItem().GetProduct().GetId(), shopify.ProductGIDPrefix)

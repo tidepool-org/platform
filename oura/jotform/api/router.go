@@ -36,7 +36,7 @@ func (r *Router) HandleJotformSubmission(res rest.ResponseWriter, req *rest.Requ
 	responder := request.MustNewResponder(res, req)
 
 	if err := req.ParseMultipartForm(multipartMaxMemory); err != nil {
-		responder.Error(http.StatusInternalServerError, fmt.Errorf("unable to parse form data"))
+		responder.InternalServerError(fmt.Errorf("unable to parse form data"))
 		return
 	}
 
@@ -49,7 +49,7 @@ func (r *Router) HandleJotformSubmission(res rest.ResponseWriter, req *rest.Requ
 	err := r.submissionProcessor.ProcessSubmission(req.Context(), submissionID)
 	if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to process submission")
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

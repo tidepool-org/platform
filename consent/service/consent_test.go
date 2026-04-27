@@ -41,11 +41,9 @@ import (
 var _ = Describe("ConsentService", func() {
 	var logger log.Logger
 
-	var bddpCtrl *gomock.Controller
+	var mockController *gomock.Controller
 	var bddp *test.MockBigDataDonationProjectSharer
-	var mailerCtrl *gomock.Controller
-	var mailer *mailerTest.MockMailer
-	var userClientCtrl *gomock.Controller
+	var mailer *mailerTest.MockClient
 	var userClient *userTest.MockClient
 
 	var store *authStoreMongo.Store
@@ -56,17 +54,12 @@ var _ = Describe("ConsentService", func() {
 	}
 
 	BeforeEach(func() {
-		t := GinkgoT()
 		logger = logTest.NewLogger()
 
-		bddpCtrl = gomock.NewController(t)
-		bddp = test.NewMockBigDataDonationProjectSharer(bddpCtrl)
-
-		mailerCtrl = gomock.NewController(t)
-		mailer = mailerTest.NewMockMailer(mailerCtrl)
-
-		userClientCtrl = gomock.NewController(t)
-		userClient = userTest.NewMockClient(userClientCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		bddp = test.NewMockBigDataDonationProjectSharer(mockController)
+		mailer = mailerTest.NewMockClient(mockController)
+		userClient = userTest.NewMockClient(mockController)
 
 		store = GetSuiteStore()
 
@@ -83,11 +76,6 @@ var _ = Describe("ConsentService", func() {
 		Expect(consentService.EnsureConsent(ctx(), test.MockBDDPConsentV1)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.MockBDDPConsentV2)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.MockRippleConsentV1)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		bddpCtrl.Finish()
-		mailerCtrl.Finish()
 	})
 
 	Describe("ListConsents", func() {
@@ -759,11 +747,11 @@ var _ = Describe("ConsentService", func() {
 	})
 })
 
-func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
+func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).
-		Do(func(_ context.Context, event events.SendEmailTemplateEvent) error {
+		DoAndReturn(func(_ context.Context, event events.SendEmailTemplateEvent) error {
 			Expect(event.Recipient).To(Equal(*usr.Username))
 			Expect(event.Template).To(HavePrefix(service.DefaultInformedConsentGrantedEmailTemplate))
 			Expect(event.Variables).To(HaveKeyWithValue("Name", create.OwnerName))
@@ -774,19 +762,19 @@ func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClie
 			Expect(event.Attachments[0].Data).ToNot(BeEmpty())
 			Expect(event.Attachments[0].ContentType).To(Equal("application/pdf"))
 			return nil
-		}).Return(nil)
+		})
 }
 
-func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
+func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).
-		Do(func(_ context.Context, event events.SendEmailTemplateEvent) error {
+		DoAndReturn(func(_ context.Context, event events.SendEmailTemplateEvent) error {
 			Expect(event.Recipient).To(Equal(*usr.Username))
 			Expect(event.Template).To(HavePrefix(service.DefaultInformedConsentRevokedEmailTemplate))
 			Expect(event.Variables).To(HaveKeyWithValue("Name", record.OwnerName))
 			Expect(event.Variables).To(HaveKeyWithValue("Type", cases.Title(language.English, cases.Compact).String(strings.ReplaceAll(record.Type, "_", " "))))
 			Expect(event.Variables).To(HaveKeyWithValue("Version", strconv.Itoa(record.Version)))
 			return nil
-		}).Return(nil)
+		})
 }

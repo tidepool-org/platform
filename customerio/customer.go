@@ -16,8 +16,8 @@ const (
 type IDType string
 
 type Customer struct {
-	Identifiers `json:",inline"`
-	Attributes  `json:",inline"`
+	Identifiers
+	Attributes
 }
 
 type Attributes struct {

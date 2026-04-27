@@ -7,74 +7,184 @@ import (
 	dataSet "github.com/tidepool-org/platform/data/set"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
-	workBase "github.com/tidepool-org/platform/work/base"
 )
 
-const MetadataKeyID = "dataSetId"
+//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
 
-type Mixin struct {
-	*workBase.Processor
-	Client  dataSet.Client
-	DataSet *data.DataSet
+const MetadataKeyDataSetID = "dataSetId"
+
+type Metadata struct {
+	DataSetID *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
 }
 
-func NewMixin(processor *workBase.Processor, client dataSet.Client) (*Mixin, error) {
-	if processor == nil {
-		return nil, errors.New("processor is missing")
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.DataSetID = parser.String(MetadataKeyDataSetID)
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.String(MetadataKeyDataSetID, m.DataSetID).Using(data.SetIDValidator)
+}
+
+type Mixin interface {
+	DataSetClient() dataSet.Client
+
+	HasDataSet() bool
+	DataSet() *data.DataSet
+	SetDataSet(dataSet *data.DataSet) *work.ProcessResult
+
+	FetchDataSet(dataSetID string) *work.ProcessResult
+	CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult
+	UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult
+
+	AddDataSetToContext()
+}
+
+type MixinFromWork interface {
+	Mixin
+
+	HasWorkMetadata() bool
+
+	FetchDataSetFromWorkMetadata() *work.ProcessResult
+	UpdateWorkMetadataFromDataSet() *work.ProcessResult
+}
+
+func NewMixin(provider work.Provider, dataSetClient dataSet.Client) (Mixin, error) {
+	if provider == nil {
+		return nil, errors.New("provider is missing")
 	}
-	if client == nil {
-		return nil, errors.New("client is missing")
+	if dataSetClient == nil {
+		return nil, errors.New("data set client is missing")
 	}
-	return &Mixin{
-		Processor: processor,
-		Client:    client,
+	return &mixin{
+		Provider:      provider,
+		dataSetClient: dataSetClient,
 	}, nil
 }
 
-func (m *Mixin) DataSetIDFromMetadata() (*string, error) {
-	parser := m.MetadataParser()
-	dataSetID := parser.String(MetadataKeyID)
-	if err := parser.Error(); err != nil {
-		return nil, errors.Wrap(err, "unable to parse data set id from metadata")
+func NewMixinFromWork(provider work.Provider, dataSetClient dataSet.Client, workMetadata *Metadata) (MixinFromWork, error) {
+	if provider == nil {
+		return nil, errors.New("provider is missing")
 	}
-	return dataSetID, nil
+	if dataSetClient == nil {
+		return nil, errors.New("data set client is missing")
+	}
+	if workMetadata == nil {
+		return nil, errors.New("work metadata is missing")
+	}
+	return &mixin{
+		Provider:      provider,
+		dataSetClient: dataSetClient,
+		workMetadata:  workMetadata,
+	}, nil
 }
 
-func (m *Mixin) FetchDataSetFromMetadata() *work.ProcessResult {
-	dataSetID, err := m.DataSetIDFromMetadata()
-	if err != nil || dataSetID == nil {
-		return m.Failed(errors.Wrap(err, "unable to get data set id from metadata"))
-	}
-	return m.FetchDataSet(*dataSetID)
+type mixin struct {
+	work.Provider
+	dataSetClient dataSet.Client
+	dataSet       *data.DataSet
+	workMetadata  *Metadata
 }
 
-func (m *Mixin) FetchDataSet(dataSetID string) *work.ProcessResult {
-	dataSet, err := m.Client.GetDataSet(m.Context(), dataSetID)
-	if err != nil {
-		return m.Failing(errors.Wrap(err, "unable to fetch data set"))
-	} else if dataSet == nil {
-		return m.Failed(errors.New("data set is missing"))
-	}
-	m.DataSet = dataSet
+func (m *mixin) DataSetClient() dataSet.Client {
+	return m.dataSetClient
+}
 
-	m.AddFieldToContext("dataSet", log.Fields{"id": m.DataSet.ID, "userId": m.DataSet.UserID})
+func (m *mixin) HasDataSet() bool {
+	return m.dataSet != nil
+}
 
+func (m *mixin) DataSet() *data.DataSet {
+	return m.dataSet
+}
+
+func (m *mixin) SetDataSet(dataSet *data.DataSet) *work.ProcessResult {
+	m.dataSet = dataSet
+	m.AddDataSetToContext()
 	return nil
 }
 
-func (m *Mixin) UpdateDataSet(dataSetUpdate data.DataSetUpdate) *work.ProcessResult {
-	if m.DataSet == nil {
+func (m *mixin) FetchDataSet(dataSetID string) *work.ProcessResult {
+	if dataSt, err := m.dataSetClient.GetDataSet(m.Context(), dataSetID); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to get data set"))
+	} else if dataSt == nil {
 		return m.Failed(errors.New("data set is missing"))
+	} else {
+		return m.SetDataSet(dataSt)
+	}
+}
+
+func (m *mixin) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult {
+	if m.dataSet != nil {
+		return m.Failed(errors.New("data set already exists"))
 	}
 
-	src, err := m.Client.UpdateDataSet(context.WithoutCancel(m.Context()), *m.DataSet.ID, &dataSetUpdate)
-	if err != nil {
+	if dataSt, err := m.dataSetClient.CreateUserDataSet(context.WithoutCancel(m.Context()), userID, dataSetCreate); err != nil {
+		return m.Failing(errors.Wrap(err, "unable to create data set"))
+	} else if dataSt == nil {
+		return m.Failed(errors.New("data set is missing"))
+	} else if result := m.SetDataSet(dataSt); result != nil {
+		return result
+	}
+
+	log.LoggerFromContext(m.Context()).Debug("created data set")
+	return nil
+}
+
+func (m *mixin) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessResult {
+	if m.dataSet == nil {
+		return m.Failed(errors.New("data set is missing"))
+	} else if m.dataSet.ID == nil {
+		return m.Failed(errors.New("data set id is missing"))
+	}
+
+	if dataSt, err := m.dataSetClient.UpdateDataSet(context.WithoutCancel(m.Context()), *m.dataSet.ID, dataSetUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data set"))
-	} else if src == nil {
+	} else if dataSt == nil {
 		return m.Failed(errors.New("data set is missing"))
+	} else {
+		return m.SetDataSet(dataSt)
 	}
+}
 
-	m.DataSet = src
+func (m *mixin) HasWorkMetadata() bool {
+	return m.workMetadata != nil
+}
+
+func (m *mixin) FetchDataSetFromWorkMetadata() *work.ProcessResult {
+	if m.workMetadata == nil {
+		return m.Failed(errors.New("work metadata is missing"))
+	} else if m.workMetadata.DataSetID == nil {
+		return m.Failed(errors.New("work metadata data set id is missing"))
+	} else {
+		return m.FetchDataSet(*m.workMetadata.DataSetID)
+	}
+}
+
+func (m *mixin) UpdateWorkMetadataFromDataSet() *work.ProcessResult {
+	if m.dataSet == nil {
+		return m.Failed(errors.New("data set is missing"))
+	} else if m.dataSet.ID == nil {
+		return m.Failed(errors.New("data set id is missing"))
+	} else if m.workMetadata == nil {
+		return m.Failed(errors.New("work metadata is missing"))
+	}
+	m.workMetadata.DataSetID = pointer.Clone(m.dataSet.ID)
 	return nil
+}
+
+func (m *mixin) AddDataSetToContext() {
+	m.AddFieldToContext("dataSet", dataSetToFields(m.dataSet))
+}
+
+func dataSetToFields(dataSet *data.DataSet) log.Fields {
+	if dataSet == nil {
+		return nil
+	}
+	return log.Fields{
+		"id":     dataSet.ID,
+		"userId": dataSet.UserID,
+	}
 }

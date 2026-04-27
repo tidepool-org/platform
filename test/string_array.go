@@ -110,13 +110,22 @@ func RandomStringArrayLengthMinimum() int {
 	return 1
 }
 
-func NewObjectFromStringArray(value []string, objectFormat ObjectFormat) interface{} {
+func CloneStringArray(value []string) []string {
 	if value == nil {
 		return nil
 	}
-	object := []interface{}{}
-	for _, element := range value {
-		object = append(object, NewObjectFromString(element, objectFormat))
+	result := make([]string, len(value))
+	copy(result, value)
+	return result
+}
+
+func NewArrayFromStringArray(value []string, objectFormat ObjectFormat) []any {
+	if value == nil {
+		return nil
 	}
-	return object
+	array := []any{}
+	for _, element := range value {
+		array = append(array, NewObjectFromString(element, objectFormat))
+	}
+	return array
 }

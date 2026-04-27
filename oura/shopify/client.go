@@ -18,7 +18,8 @@ type Config struct {
 	ClientSecret string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_SECRET"`
 }
 
-//go:generate mockgen -source=client.go -destination=./test/client.go -package=test Client
+//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error
 	GetOrderSummary(ctx context.Context, orderID string) (*OrderSummary, error)

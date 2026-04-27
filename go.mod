@@ -1,8 +1,6 @@
 module github.com/tidepool-org/platform
 
-go 1.24.1
-
-toolchain go1.24.5
+go 1.25.7
 
 require (
 	github.com/IBM/sarama v1.45.1
@@ -19,6 +17,7 @@ require (
 	github.com/gowebpki/jcs v1.0.1
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/klauspost/compress v1.18.5
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/oklog/ulid/v2 v2.1.1
@@ -90,7 +89,6 @@ require (
 	github.com/jessp01/gohighlight v0.21.2 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.2 // indirect
 	github.com/lestrrat-go/httpcc v1.0.1 // indirect

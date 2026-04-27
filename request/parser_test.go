@@ -18,7 +18,7 @@ import (
 
 func generateNewUniqueKey[A any](f func() string, existingKeys map[string]A) string {
 	maxLoops := 1000
-	for loops := 0; loops < maxLoops; loops++ {
+	for range maxLoops {
 		gen := f()
 		if _, found := existingKeys[gen]; !found {
 			return gen
@@ -29,6 +29,34 @@ func generateNewUniqueKey[A any](f func() string, existingKeys map[string]A) str
 }
 
 var _ = Describe("Parser", func() {
+	Context("DecodeOption", func() {
+		Context("IgnoreNotParsed", func() {
+			It("returns false by default", func() {
+				option := request.DecodeOption{}
+				Expect(option.IgnoreNotParsed()).To(BeFalse())
+			})
+
+			It("returns true if set", func() {
+				option := request.IgnoreNotParsed()
+				Expect(option.IgnoreNotParsed()).To(BeTrue())
+			})
+		})
+	})
+
+	Context("DecodeOptions", func() {
+		It("merges options", func() {
+			resolvedOption := request.DecodeOptions([]request.DecodeOption{{}, request.IgnoreNotParsed(), {}})
+			Expect(resolvedOption.IgnoreNotParsed()).To(BeTrue())
+		})
+	})
+
+	Context("IgnoreNotParsed", func() {
+		It("returns true", func() {
+			option := request.IgnoreNotParsed()
+			Expect(option.IgnoreNotParsed()).To(BeTrue())
+		})
+	})
+
 	Context("with header", func() {
 		var header http.Header
 		var key string
@@ -195,55 +223,6 @@ var _ = Describe("Parser", func() {
 			})
 		})
 
-		Context("ParseIntHeader", func() {
-			var value int
-
-			BeforeEach(func() {
-				value = test.RandomInt()
-			})
-
-			It("returns nil if the header is nil", func() {
-				header = nil
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result).To(BeNil())
-			})
-
-			It("returns nil if the key is not present", func() {
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result).To(BeNil())
-			})
-
-			It("returns nil if there are no values", func() {
-				header[key] = []string{}
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result).To(BeNil())
-			})
-
-			It("returns an error if there is more than one value", func() {
-				header[key] = []string{strconv.Itoa(test.RandomInt()), strconv.Itoa(value), strconv.Itoa(test.RandomInt())}
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
-				Expect(result).To(BeNil())
-			})
-
-			It("returns an error if the value is not valid", func() {
-				header[key] = []string{"abc"}
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
-				Expect(result).To(BeNil())
-			})
-
-			It("returns the value if there is exactly one and it is valid", func() {
-				header[key] = []string{strconv.Itoa(value)}
-				result, err := request.ParseIntHeader(header, key)
-				Expect(err).ToNot(HaveOccurred())
-				Expect(result).ToNot(BeNil())
-				Expect(*result).To(Equal(value))
-			})
-		})
 		Context("ParseTimeHeader", func() {
 			var value string
 			var layout string
@@ -293,6 +272,56 @@ var _ = Describe("Parser", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(result).ToNot(BeNil())
 				Expect(result.Format(layout)).To(Equal(value))
+			})
+		})
+
+		Context("ParseIntHeader", func() {
+			var value int
+
+			BeforeEach(func() {
+				value = test.RandomInt()
+			})
+
+			It("returns nil if the header is nil", func() {
+				header = nil
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns nil if the key is not present", func() {
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns nil if there are no values", func() {
+				header[key] = []string{}
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeNil())
+			})
+
+			It("returns an error if there is more than one value", func() {
+				header[key] = []string{strconv.Itoa(test.RandomInt()), strconv.Itoa(value), strconv.Itoa(test.RandomInt())}
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns an error if the value is not valid", func() {
+				header[key] = []string{"abc"}
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).To(MatchError(fmt.Sprintf("header %q is invalid", key)))
+				Expect(result).To(BeNil())
+			})
+
+			It("returns the value if there is exactly one and it is valid", func() {
+				header[key] = []string{strconv.Itoa(value)}
+				result, err := request.ParseIntHeader(header, key)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).ToNot(BeNil())
+				Expect(*result).To(Equal(value))
 			})
 		})
 	})

@@ -221,7 +221,7 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 			}
 
 			var err error
-			timeValue, err = time.Parse(layout, stringValue)
+			timeValue, err = time.ParseInLocation(layout, stringValue, time.UTC)
 			if err != nil {
 				o.base.WithReference(reference).ReportError(ErrorValueTimeNotParsable(stringValue, layout))
 				return nil

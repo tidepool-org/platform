@@ -9,6 +9,13 @@ func Default[T any, S *T](value S, defaultValue T) T {
 	return *value
 }
 
+func DefaultPointer[T any](value *T, defaultValue *T) *T {
+	if value == nil {
+		return defaultValue
+	}
+	return value
+}
+
 // DefaultBool
 // Deprecated: use the generic version instead
 func DefaultBool(value *bool, defaultValue bool) bool {

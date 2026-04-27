@@ -319,19 +319,24 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 	ctx = context.WithoutCancel(ctx)
 
 	result, err := s.InsertOne(ctx, document)
-	lgr = lgr.WithError(err)
 	if err != nil {
 
 		// Return nil without error to indicate duplicate based upon type and deduplication id (see unique index above), but ok
 		if mongo.IsDuplicateKeyError(err) {
+			lgr.Debug("work with same type and deduplication id already exists")
 			return nil, nil
 		}
 
-		lgr.Error("unable to create work")
+		lgr.WithError(err).Error("unable to create work")
 		return nil, errors.Wrap(err, "unable to create work")
 	}
 
-	document.ID = result.InsertedID.(bsonPrimitive.ObjectID)
+	if insertedID, ok := result.InsertedID.(bsonPrimitive.ObjectID); !ok || insertedID.IsZero() {
+		lgr.WithError(err).Error("work id is invalid")
+		return nil, errors.Wrap(err, "work id is invalid")
+	} else {
+		document.ID = insertedID
+	}
 
 	return document.AsWork(), nil
 }
@@ -529,7 +534,7 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	}
 	if condition == nil {
 		condition = storeStructured.NewCondition()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 

@@ -13,44 +13,28 @@ func RandomProviderSessionID() string {
 	return auth.NewProviderSessionID()
 }
 
-func RandomProviderSessionIDs() []string {
-	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomProviderSessionID)
-}
-
 func RandomProviderType() string {
 	return test.RandomStringFromArray(auth.ProviderTypes())
-}
-
-func RandomProviderTypes() []string {
-	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(auth.ProviderTypes()), auth.ProviderTypes())
 }
 
 func RandomProviderName() string {
 	return test.RandomStringFromRangeAndCharset(1, auth.ProviderNameLengthMaximum, test.CharsetAlphaNumeric)
 }
 
-func RandomProviderNames() []string {
-	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 2, RandomProviderName)
-}
-
 func RandomProviderExternalID() string {
 	return test.RandomStringFromRangeAndCharset(1, auth.ProviderExternalIDLengthMaximum, test.CharsetAlphaNumeric)
 }
 
-func RandomProviderExternalIDs() []string {
-	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 2, RandomProviderExternalID)
-}
-
-func RandomProviderSession() *auth.ProviderSession {
+func RandomProviderSession(options ...test.Option) *auth.ProviderSession {
 	datum := &auth.ProviderSession{}
 	datum.ID = RandomProviderSessionID()
 	datum.UserID = userTest.RandomUserID()
 	datum.Type = RandomProviderType()
 	datum.Name = RandomProviderName()
 	datum.OAuthToken = RandomToken()
-	datum.ExternalID = pointer.FromString(RandomProviderExternalID())
+	datum.ExternalID = test.RandomOptional(RandomProviderExternalID, options...)
 	datum.CreatedTime = test.RandomTimeBeforeNow()
-	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(datum.CreatedTime, time.Now()))
+	datum.ModifiedTime = test.RandomOptional(func() time.Time { return test.RandomTimeFromRange(datum.CreatedTime, time.Now()) }, options...)
 	return datum
 }
 
@@ -92,10 +76,40 @@ func NewObjectFromProviderSession(datum *auth.ProviderSession, objectFormat test
 	return object
 }
 
-func RandomProviderSessionUpdate() *auth.ProviderSessionUpdate {
+func RandomProviderSessions(options ...test.Option) auth.ProviderSessions {
+	datum := make(auth.ProviderSessions, test.RandomIntFromRange(1, 3))
+	for index := range datum {
+		datum[index] = RandomProviderSession(options...)
+	}
+	return datum
+}
+
+func CloneProviderSessions(datum auth.ProviderSessions) auth.ProviderSessions {
+	if datum == nil {
+		return nil
+	}
+	clone := make(auth.ProviderSessions, len(datum))
+	for index, datum := range datum {
+		clone[index] = CloneProviderSession(datum)
+	}
+	return clone
+}
+
+func NewArrayFromProviderSessions(datum []auth.ProviderSession, objectFormat test.ObjectFormat) []any {
+	if datum == nil {
+		return nil
+	}
+	object := make([]any, len(datum))
+	for index, datum := range datum {
+		object[index] = NewObjectFromProviderSession(&datum, objectFormat)
+	}
+	return object
+}
+
+func RandomProviderSessionUpdate(options ...test.Option) *auth.ProviderSessionUpdate {
 	datum := &auth.ProviderSessionUpdate{}
 	datum.OAuthToken = RandomToken()
-	datum.ExternalID = pointer.FromString(RandomProviderExternalID())
+	datum.ExternalID = test.RandomOptional(RandomProviderExternalID, options...)
 	return datum
 }
 

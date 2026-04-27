@@ -5,15 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/customerio"
-	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
-	"github.com/tidepool-org/platform/mailer"
-	"github.com/tidepool-org/platform/oura"
-	"github.com/tidepool-org/platform/oura/jotform"
-	"github.com/tidepool-org/platform/oura/shopify"
-	"github.com/tidepool-org/platform/user"
-	userClient "github.com/tidepool-org/platform/user/client"
-
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -37,23 +28,28 @@ import (
 	consentApiV1 "github.com/tidepool-org/platform/consent/api/v1"
 	consentLoader "github.com/tidepool-org/platform/consent/loader"
 	consentService "github.com/tidepool-org/platform/consent/service"
+	"github.com/tidepool-org/platform/customerio"
+	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	dataClient "github.com/tidepool-org/platform/data/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceClient "github.com/tidepool-org/platform/data/source/client"
 	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/mailer"
+	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/jotform"
 	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
 	jotformStore "github.com/tidepool-org/platform/oura/jotform/store"
 	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
+	ouraProvider "github.com/tidepool-org/platform/oura/provider"
+	"github.com/tidepool-org/platform/oura/shopify"
 	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
 	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
 	shopifyStore "github.com/tidepool-org/platform/oura/shopify/store"
 	shopifyWork "github.com/tidepool-org/platform/oura/shopify/work"
-
-	"github.com/tidepool-org/platform/log"
-	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
-	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -63,7 +59,10 @@ import (
 	taskClient "github.com/tidepool-org/platform/task/client"
 	"github.com/tidepool-org/platform/twiist"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
+	"github.com/tidepool-org/platform/user"
+	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
 )
@@ -220,7 +219,7 @@ func (s *Service) AuthStore() authStore.Store {
 	return s.authStore
 }
 
-func (s *Service) AuthServiceClient() authService.Client {
+func (s *Service) AuthClient() auth.Client {
 	return s.authClient
 }
 
@@ -354,7 +353,7 @@ func (s *Service) initializeShopify() error {
 		return errors.Wrap(err, "unable to create shopify order event store")
 	}
 
-	s.shopifyOrderProcessor, err = shopify.NewOrderProcessor(s.Logger(), shopifyConfig, s.customerIOClient, s.shopifyClient, s.AuthServiceClient(), s.DataSourceClient(), orderEventStore)
+	s.shopifyOrderProcessor, err = shopify.NewOrderProcessor(s.Logger(), shopifyConfig, s.customerIOClient, s.shopifyClient, s.AuthClient(), s.DataSourceClient(), orderEventStore)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify order processor")
 	}
@@ -486,7 +485,7 @@ func (s *Service) initializeConsentService() error {
 	}
 
 	s.Logger().Debug("Initializing mailer")
-	mailr, err := mailer.Client()
+	mailr, err := mailer.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "unable to create mailer")
 	}
@@ -745,7 +744,7 @@ func (s *Service) initializeProviders() error {
 	} else if prvdrErr = cfg.Validate(); prvdrErr != nil {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create oura provider")
 	} else {
-		cfg.Client.UserAgent = s.UserAgent()
+		cfg.ClientConfig.UserAgent = s.UserAgent()
 		dependencies := ouraProvider.Dependencies{
 			Config:                *cfg,
 			ProviderSessionClient: s.authClient,
@@ -893,34 +892,23 @@ func (s *Service) initializeWorkCoordinator() error {
 	}
 	s.workCoordinator = coordinator
 
-	s.Logger().Info("Ensuring reconciler work item exists")
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
-
-	ctx = log.NewContextWithLogger(ctx, s.Logger())
-	err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure jotform reconciler work item exists")
-	}
-	err = shopifyWork.EnsureReconcilerWorkItemExists(ctx, s.workClient)
-	if err != nil {
-		return errors.Wrap(err, "unable to ensure shopify reconciler work item exists")
-	}
-
 	var factories []work.ProcessorFactory
+
+	dependencies := workBase.Dependencies{
+		WorkClient: s.workClient,
+	}
 
 	s.Logger().Info("Creating jotform work processor factory")
 
-	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
+	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{Dependencies: dependencies, SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
 		return errors.Wrap(err, "unable to create jotform work processor factory")
 	} else {
 		factories = append(factories, factory)
 	}
 
-	s.Logger().Info("Creating customer.io work processor factory")
+	s.Logger().Info("Creating customerio work processor factory")
 
-	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{CustomerIOClient: s.customerIOClient}); err != nil {
+	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{Dependencies: dependencies, CustomerIOClient: s.customerIOClient}); err != nil {
 		return errors.Wrap(err, "unable to create customerio work processor factory")
 	} else {
 		factories = append(factories, factory)
@@ -928,14 +916,31 @@ func (s *Service) initializeWorkCoordinator() error {
 
 	s.Logger().Info("Creating shopify work processor factory")
 
-	if factory, err := shopifyWork.NewProcessorFactory(shopifyWork.Dependencies{OrderProcessor: s.shopifyOrderProcessor}); err != nil {
+	if factory, err := shopifyWork.NewProcessorFactory(shopifyWork.Dependencies{Dependencies: dependencies, OrderProcessor: s.shopifyOrderProcessor}); err != nil {
 		return errors.Wrap(err, "unable to create shopify work processor factory")
 	} else {
 		factories = append(factories, factory)
 	}
 
+	s.Logger().Info("Registering work processor factories")
+
 	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
-		return errors.Wrapf(err, "unable to register work processor factores")
+		return errors.Wrap(err, "unable to register work processor factories")
+	}
+
+	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), time.Second*10)
+	defer cancel()
+
+	s.Logger().Info("Ensuring jotform reconciler work item exists")
+
+	if err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient); err != nil {
+		return errors.Wrap(err, "unable to ensure jotform reconciler work item exists")
+	}
+
+	s.Logger().Info("Ensuring shopify reconciler work item exists")
+
+	if err = shopifyWork.EnsureReconcilerWorkItemExists(ctx, s.workClient); err != nil {
+		return errors.Wrap(err, "unable to ensure shopify reconciler work item exists")
 	}
 
 	s.Logger().Info("Starting work coordinator")

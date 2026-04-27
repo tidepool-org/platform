@@ -14,6 +14,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+//go:generate mockgen -source=consent.go -destination=test/consent_mocks.go -package=test -typed
+
 const (
 	TypeMinLength = 1
 	TypeMaxLength = 64
@@ -27,7 +29,6 @@ const (
 	ContentTypeMarkdown ContentType = "markdown"
 )
 
-//go:generate mockgen -source=consent.go -destination=test/service_mocks.go -package=test Service
 type Service interface {
 	ConsentAccessor
 	RecordAccessor

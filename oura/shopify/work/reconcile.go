@@ -5,8 +5,11 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/oura/shopify"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -20,15 +23,35 @@ const (
 	FailingRetryDurationJitter = 10 * time.Second
 	FailingRetryDuration       = ProcessingTimeout * 2
 	ProcessingTimeout          = 3 * time.Minute
+)
 
+const (
 	MetadataKeyUpdatedSince = "updatedSince"
 )
 
+type Metadata struct {
+	UpdatedSince time.Time `json:"updatedSince,omitzero"`
+}
+
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	if ptr := parser.Time(MetadataKeyUpdatedSince, time.RFC3339); ptr != nil {
+		m.UpdatedSince = *ptr
+	}
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.Time(MetadataKeyUpdatedSince, &m.UpdatedSince).NotZero()
+}
+
 type Dependencies struct {
+	workBase.Dependencies
 	OrderProcessor *shopify.OrderProcessor
 }
 
 func (d Dependencies) Validate() error {
+	if err := d.Dependencies.Validate(); err != nil {
+		return err
+	}
 	if d.OrderProcessor == nil {
 		return errors.New("order processor is missing")
 	}
@@ -43,6 +66,11 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
 }
 
+type Processor struct {
+	*workBase.Processor[Metadata]
+	Dependencies
+}
+
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultPendingBuilder: &workBase.ConstantProcessResultPendingBuilder{
@@ -54,7 +82,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		},
 	}
 
-	base, err := workBase.NewProcessor(processResultBuilder)
+	base, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
@@ -65,55 +93,42 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	}, nil
 }
 
-func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
-	create := &work.Create{
-		Type:              Type,
-		DeduplicationID:   pointer.FromString(Type),
-		ProcessingTimeout: int(ProcessingTimeout.Seconds()),
-		Metadata: map[string]any{
-			MetadataKeyUpdatedSince: time.Now(),
-		},
-	}
-	if _, err := client.Create(ctx, create); err != nil {
-		return err
-	}
-	return nil
-}
-
-type Processor struct {
-	*workBase.Processor
-	Dependencies
-}
-
-func (p *Processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) *work.ProcessResult {
-	return work.ProcessPipeline{
-		p.ProcessPipelineFunc(ctx, wrk, updater),
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.reconcile,
-		p.Pending,
-	}.Process()
+	).Process(p.Pending)
 }
 
 func (p *Processor) reconcile() *work.ProcessResult {
-	updatedSince, err := p.updatedSinceFromMetadata()
-	if err != nil {
-		return p.Failed(err)
-	} else if updatedSince == nil || updatedSince.IsZero() {
-		return p.Failed(errors.New("updated since is missing"))
-	}
-
-	latestUpdatedTime, err := p.OrderProcessor.ReconcileUpdatedOrders(p.Context(), *updatedSince)
-	p.Work().Metadata[MetadataKeyUpdatedSince] = latestUpdatedTime
+	latestUpdatedTime, err := p.OrderProcessor.ReconcileUpdatedOrders(p.Context(), p.Metadata().UpdatedSince)
+	p.Metadata().UpdatedSince = latestUpdatedTime
 
 	if err != nil {
 		return p.Failing(err)
 	}
 
-	p.Logger().Info("reconciled orders")
+	log.LoggerFromContext(p.Context()).Info("reconciled orders")
 	return nil
 }
 
-func (p *Processor) updatedSinceFromMetadata() (*time.Time, error) {
-	parser := p.MetadataParser()
-	updatedSince := parser.Time(MetadataKeyUpdatedSince, time.RFC3339)
-	return updatedSince, parser.Error()
+func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
+	if client == nil {
+		return errors.New("client is missing")
+	}
+	create, err := metadata.WithMetadata(
+		&work.Create{
+			Type:              Type,
+			DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
+			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
+		},
+		&Metadata{
+			UpdatedSince: time.Now(),
+		},
+	)
+	if err != nil {
+		return errors.Wrap(err, "unable to create work create")
+	} else if _, err := client.Create(ctx, create); err != nil {
+		return err
+	}
+	return nil
 }

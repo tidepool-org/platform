@@ -171,7 +171,7 @@ func (c *ConsentService) RevokeConsentRecord(ctx context.Context, userID string,
 	}
 	record, err := c.consentRecordRepository.GetConsentRecord(ctx, userID, revoke.ID)
 	if err != nil {
-		return errors.Wrapf(err, "consent record doesn't exist")
+		return errors.Wrap(err, "consent record doesn't exist")
 	}
 
 	type recordRevokeConsent struct {

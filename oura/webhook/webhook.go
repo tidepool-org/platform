@@ -1,53 +1,39 @@
 package webhook
 
 import (
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
 
-// All, but heartrate
+const EventPath = "/event"
+
+// All except for heartrate (not available via webhook)
 func DataTypes() []string {
-	return []string{
-		oura.DataTypeDailyActivity,
-		oura.DataTypeDailyCardiovascularAge,
-		oura.DataTypeDailyReadiness,
-		oura.DataTypeDailyResilience,
-		oura.DataTypeDailySleep,
-		oura.DataTypeDailySpO2,
-		oura.DataTypeDailyStress,
-		oura.DataTypeEnhancedTag,
-		oura.DataTypeRestModePeriod,
-		oura.DataTypeRingConfiguration,
-		oura.DataTypeSession,
-		oura.DataTypeSleep,
-		oura.DataTypeSleepTime,
-		oura.DataTypeVO2Max,
-		oura.DataTypeWorkout,
-	}
+	return slices.DeleteFunc(oura.DataTypes(), func(dataType string) bool {
+		return dataType == oura.DataTypeHeartRate
+	})
 }
 
 type Event struct {
-	EventTime *time.Time `json:"event_time,omitempty"`
-	EventType *string    `json:"event_type,omitempty"`
-	UserID    *string    `json:"user_id,omitempty"`
-	ObjectID  *string    `json:"object_id,omitempty"`
-	DataType  *string    `json:"data_type,omitempty"`
+	EventTime *time.Time `json:"event_time,omitempty" bson:"event_time,omitempty"`
+	EventType *string    `json:"event_type,omitempty" bson:"event_type,omitempty"`
+	UserID    *string    `json:"user_id,omitempty" bson:"user_id,omitempty"`
+	ObjectID  *string    `json:"object_id,omitempty" bson:"object_id,omitempty"`
+	DataType  *string    `json:"data_type,omitempty" bson:"data_type,omitempty"`
 }
 
 func ParseEvent(parser structure.ObjectParser) *Event {
 	if !parser.Exists() {
 		return nil
 	}
-	datum := NewEvent()
-	parser.Parse(datum)
+	datum := &Event{}
+	datum.Parse(parser)
 	return datum
-
-}
-
-func NewEvent() *Event {
-	return &Event{}
 }
 
 func (e *Event) Parse(parser structure.ObjectParser) {
@@ -66,47 +52,34 @@ func (e *Event) Validate(validator structure.Validator) {
 	validator.String("data_type", e.DataType).Exists().OneOf(DataTypes()...)
 }
 
-type CreateSubscription struct {
-	CallbackURL       *string `json:"callback_url,omitempty"`
-	VerificationToken *string `json:"verification_token,omitempty"`
-	EventType         *string `json:"event_type,omitempty"`
-	DataType          *string `json:"data_type,omitempty"`
+func (e *Event) String() string {
+	var parts []string
+	if e.EventTime != nil {
+		parts = append(parts, e.EventTime.Format(time.RFC3339Nano))
+	} else {
+		parts = append(parts, "")
+	}
+	parts = append(parts,
+		pointer.Default(e.EventType, ""),
+		pointer.Default(e.UserID, ""),
+		pointer.Default(e.ObjectID, ""),
+		pointer.Default(e.DataType, ""),
+	)
+	return strings.Join(parts, ":")
 }
 
-func (c *CreateSubscription) Parse(parser structure.ObjectParser) {
-	c.CallbackURL = parser.String("callback_url")
-	c.VerificationToken = parser.String("verification_token")
-	c.EventType = parser.String("event_type")
-	c.DataType = parser.String("data_type")
+const MetadataKeyEvent = "event"
+
+type EventMetadata struct {
+	Event *Event `json:"event,omitempty" bson:"event,omitempty"`
 }
 
-func (c *CreateSubscription) Validate(validator structure.Validator) {
-	validator.String("callback_url", c.CallbackURL).Exists().NotEmpty()
-	validator.String("verification_token", c.VerificationToken).Exists().NotEmpty()
-	validator.String("event_type", c.EventType).Exists().OneOf(oura.EventTypes()...)
-	validator.String("data_type", c.DataType).Exists().OneOf(DataTypes()...)
+func (e *EventMetadata) Parse(parser structure.ObjectParser) {
+	e.Event = ParseEvent(parser.WithReferenceObjectParser(MetadataKeyEvent))
 }
 
-type Subscription struct {
-	ID             *string    `json:"id,omitempty"`
-	CallbackURL    *string    `json:"callback_url,omitempty"`
-	EventType      *string    `json:"event_type,omitempty"`
-	DataType       *string    `json:"data_type,omitempty"`
-	ExpirationTime *time.Time `json:"expiration_time,omitempty"`
-}
-
-func (s *Subscription) Parse(parser structure.ObjectParser) {
-	s.ID = parser.String("id")
-	s.CallbackURL = parser.String("callback_url")
-	s.EventType = parser.String("event_type")
-	s.DataType = parser.String("data_type")
-	s.ExpirationTime = parser.Time("expiration_time", time.RFC3339Nano)
-}
-
-func (s *Subscription) Validate(validator structure.Validator) {
-	validator.String("id", s.ID).Exists().NotEmpty()
-	validator.String("callback_url", s.CallbackURL).Exists().NotEmpty()
-	validator.String("event_type", s.EventType).Exists().OneOf(oura.EventTypes()...)
-	validator.String("data_type", s.DataType).Exists().OneOf(DataTypes()...)
-	validator.Time("expiration_time", s.ExpirationTime).Exists().NotZero()
+func (e *EventMetadata) Validate(validator structure.Validator) {
+	if e.Event != nil {
+		e.Event.Validate(validator.WithReference(MetadataKeyEvent))
+	}
 }

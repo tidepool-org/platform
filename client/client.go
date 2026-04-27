@@ -118,7 +118,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	return request.DecodeObject(ctx, structure.NewPointerSource(), body, responseBody)
+	return request.DecodeStream(ctx, structure.NewPointerSource(), body, responseBody)
 }
 
 func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
@@ -152,12 +152,10 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		}
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create request to %s %s", method, url)
 	}
-
-	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
 		if err = mutator.MutateRequest(req); err != nil {

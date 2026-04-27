@@ -10,100 +10,85 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	oauthToken "github.com/tidepool-org/platform/oauth/token"
 	"github.com/tidepool-org/platform/work"
-	workBase "github.com/tidepool-org/platform/work/base"
 )
 
-const (
-	MetadataKeyOAuthToken = "oauthToken"
-)
+//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
 
-type Mixin struct {
-	*workBase.Processor
-	providerSessionMixin *providerSessionWork.Mixin
-	tokenSource          *oauthToken.Source
+type Mixin interface {
+	oauth.TokenSource
+
+	TokenSource() oauth.TokenSource
+	FetchTokenSource() *work.ProcessResult
 }
 
-func NewMixin(processor *workBase.Processor, providerSessionMixin *providerSessionWork.Mixin) (*Mixin, error) {
-	if processor == nil {
-		return nil, errors.New("processor is missing")
+func NewMixin(provider work.Provider, providerSessionMixin providerSessionWork.Mixin) (Mixin, error) {
+	if provider == nil {
+		return nil, errors.New("provider is missing")
 	}
 	if providerSessionMixin == nil {
 		return nil, errors.New("provider session mixin is missing")
 	}
-
-	return &Mixin{
-		Processor:            processor,
+	return &mixin{
+		Provider:             provider,
 		providerSessionMixin: providerSessionMixin,
 	}, nil
 }
 
-func (m *Mixin) TokenSource() oauth.TokenSource {
+type providerSessionMixin = providerSessionWork.Mixin
+
+type mixin struct {
+	work.Provider
+	providerSessionMixin
+	tokenSource *oauthToken.Source
+}
+
+func (m *mixin) TokenSource() oauth.TokenSource {
 	return m // Encapsulate to persist updated token
 }
 
-func (m *Mixin) FetchTokenSource() *work.ProcessResult {
-	if m.providerSessionMixin.ProviderSession == nil {
+func (m *mixin) FetchTokenSource() *work.ProcessResult {
+	if prvdrSession := m.ProviderSession(); prvdrSession == nil {
 		return m.Failed(errors.New("provider session is missing"))
-	}
-
-	tokenSource, err := oauthToken.NewSourceWithToken(m.providerSessionMixin.ProviderSession.OAuthToken)
-	if err != nil {
+	} else if tokenSource, err := oauthToken.NewSourceWithToken(prvdrSession.OAuthToken); err != nil {
 		return m.Failed(errors.Wrap(err, "unable to create token source"))
-	}
-	m.tokenSource = tokenSource
-
-	return nil
-}
-
-func (m *Mixin) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
-	return m.tokenSource.HTTPClient(ctx, tokenSourceSource)
-}
-
-func (m *Mixin) UpdateToken(ctx context.Context) error {
-	if err := m.tokenSource.UpdateToken(ctx); err != nil {
-		return err
-	}
-	return m.updateProviderSessionFromTokenSource()
-}
-
-func (m *Mixin) ExpireToken(ctx context.Context) error {
-	if err := m.tokenSource.ExpireToken(ctx); err != nil {
-		return err
-	}
-	return m.updateProviderSessionFromTokenSource()
-}
-
-func (m *Mixin) updateProviderSessionFromTokenSource() error {
-	if m.providerSessionMixin.ProviderSession == nil {
-		return errors.New("provider session is missing")
-	}
-	if token := m.tokenSource.Token(); token == m.providerSessionMixin.ProviderSession.OAuthToken {
+	} else {
+		m.tokenSource = tokenSource
 		return nil
-	} else if result := m.providerSessionMixin.UpdateProviderSession(auth.ProviderSessionUpdate{OAuthToken: token, ExternalID: m.providerSessionMixin.ProviderSession.ExternalID}); result != nil {
+	}
+}
+
+func (m *mixin) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+	if m.tokenSource == nil {
+		return nil, errors.New("token source is missing")
+	} else {
+		return m.tokenSource.HTTPClient(ctx, tokenSourceSource)
+	}
+}
+
+func (m *mixin) UpdateToken(ctx context.Context) (bool, error) {
+	if m.tokenSource == nil {
+		return false, errors.New("token source is missing")
+	} else if updated, err := m.tokenSource.UpdateToken(ctx); err != nil || !updated {
+		return updated, err
+	} else {
+		return true, m.updateProviderSessionFromTokenSource()
+	}
+}
+
+func (m *mixin) ExpireToken(ctx context.Context) (bool, error) {
+	if m.tokenSource == nil {
+		return false, errors.New("token source is missing")
+	} else if expired, err := m.tokenSource.ExpireToken(ctx); err != nil || !expired {
+		return expired, err
+	} else {
+		return true, m.updateProviderSessionFromTokenSource()
+	}
+}
+
+func (m *mixin) updateProviderSessionFromTokenSource() error {
+	if result := m.UpdateProviderSession(&auth.ProviderSessionUpdate{OAuthToken: m.tokenSource.Token(), ExternalID: m.ProviderSession().ExternalID}); result != nil {
 		return result.Error()
 	} else {
 		return nil
 	}
-}
-
-type OAuthTokenMixin struct {
-	*workBase.Processor
-}
-
-func NewOAuthTokenMixin(processor *workBase.Processor) (*OAuthTokenMixin, error) {
-	if processor == nil {
-		return nil, errors.New("processor is missing")
-	}
-	return &OAuthTokenMixin{
-		Processor: processor,
-	}, nil
-}
-
-func (o *OAuthTokenMixin) OAuthTokenFromMetadata() (*auth.OAuthToken, error) {
-	parser := o.MetadataParser()
-	oauthToken := auth.ParseOAuthToken(parser.WithReferenceObjectParser(MetadataKeyOAuthToken))
-	if err := parser.Error(); err != nil {
-		return nil, errors.Wrap(err, "unable to parse oauth token from metadata")
-	}
-	return oauthToken, nil
 }

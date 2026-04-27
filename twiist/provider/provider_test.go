@@ -12,15 +12,16 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/auth"
+	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
 	configTest "github.com/tidepool-org/platform/config/test"
 	"github.com/tidepool-org/platform/data"
+	dataSetTest "github.com/tidepool-org/platform/data/set/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/oauth"
-	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	twiistProvider "github.com/tidepool-org/platform/twiist/provider"
@@ -30,12 +31,10 @@ import (
 
 var _ = Describe("Provider", func() {
 	var userID string
-	var providerSessionClientController *gomock.Controller
-	var providerSessionClient *twiistProviderTest.MockProviderSessionClient
-	var dataSetClientController *gomock.Controller
-	var dataSetClient *twiistProviderTest.MockDataSetClient
-	var dataSourceController *gomock.Controller
-	var dataSourceClient *twiistProviderTest.MockDataSourceClient
+	var mockController *gomock.Controller
+	var providerSessionClient *providerSessionTest.MockClient
+	var dataSetClient *dataSetTest.MockClient
+	var dataSourceClient *dataSourceTest.MockClient
 	var jwks jwk.Set
 	var prvdr *twiistProvider.Provider
 
@@ -55,14 +54,11 @@ var _ = Describe("Provider", func() {
 			"twiist": twiistConfig,
 		}
 
-		providerSessionClientController = gomock.NewController(GinkgoT())
-		providerSessionClient = twiistProviderTest.NewMockProviderSessionClient(providerSessionClientController)
+		mockController = gomock.NewController(GinkgoT())
 
-		dataSetClientController = gomock.NewController(GinkgoT())
-		dataSetClient = twiistProviderTest.NewMockDataSetClient(dataSetClientController)
-
-		dataSourceController = gomock.NewController(GinkgoT())
-		dataSourceClient = twiistProviderTest.NewMockDataSourceClient(dataSourceController)
+		providerSessionClient = providerSessionTest.NewMockClient(mockController)
+		dataSetClient = dataSetTest.NewMockClient(mockController)
+		dataSourceClient = dataSourceTest.NewMockClient(mockController)
 
 		var err error
 		jwks, err = jwk.ParseString(twiistProviderTest.JWKSRaw)
@@ -78,11 +74,6 @@ var _ = Describe("Provider", func() {
 
 		prvdr, err = twiistProvider.New(providerDependencies)
 		Expect(err).ToNot(HaveOccurred())
-	})
-
-	AfterEach(func() {
-		dataSetClientController.Finish()
-		dataSourceController.Finish()
 	})
 
 	Describe("OnCreate", func() {
@@ -117,12 +108,12 @@ var _ = Describe("Provider", func() {
 				Return(nil, nil)
 
 			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
-				UserID:             &userID,
-				ProviderType:       pointer.FromString("oauth"),
-				ProviderName:       pointer.FromString("twiist"),
+				ID:                 dataSourceTest.RandomDataSourceID(),
+				UserID:             userID,
+				ProviderType:       "oauth",
+				ProviderName:       "twiist",
 				ProviderExternalID: pointer.FromString(dataSourceExternalID),
-				State:              pointer.FromString(dataSource.StateDisconnected),
+				State:              dataSource.StateDisconnected,
 			}
 			dataSourceClient.EXPECT().
 				Create(ctx, gomock.Eq(session.UserID), gomock.Any()).
@@ -132,7 +123,7 @@ var _ = Describe("Provider", func() {
 			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 			dataSetClient.EXPECT().
 				CreateUserDataSet(ctx, gomock.Eq(session.UserID), gomock.Any()).
-				Do(func(_ context.Context, _ string, create *data.DataSetCreate) {
+				DoAndReturn(func(_ context.Context, _ string, create *data.DataSetCreate) (*data.DataSet, error) {
 					Expect(create).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"Client": PointTo(MatchFields(IgnoreExtras, Fields{
 							"Name":    PointTo(Equal("com.sequelmedtech.tidepool-service")),
@@ -147,30 +138,30 @@ var _ = Describe("Provider", func() {
 						"Time":                PointTo(BeTemporally("<=", time.Now())),
 						"TimeProcessing":      PointTo(Equal("none")),
 					})))
-				}).
-				Return(&dataSet, nil)
+					return &dataSet, nil
+				})
 
 			providerSessionClient.EXPECT().
 				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
-				Do(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) {
+				DoAndReturn(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"OAuthToken": PointTo(Equal(*session.OAuthToken)),
 						"ExternalID": PointTo(Equal(providerSessionExternalID)),
 					})))
-				}).
-				Return(session, nil)
+					return session, nil
+				})
 
 			dataSourceClient.EXPECT().
-				Update(ctx, gomock.Eq(*dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"DataSetIDs":         PointTo(ConsistOf(dataSetID)),
+						"DataSetID":          PointTo(Equal(dataSetID)),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),
 					})))
-				}).
-				Return(dataSrc, nil)
+					return dataSrc, nil
+				})
 
 			Expect(prvdr.OnCreate(ctx, session)).To(Succeed())
 		})
@@ -178,17 +169,16 @@ var _ = Describe("Provider", func() {
 		It("reuses data source and data set for existing connections", func() {
 			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			dataSetID := dataTest.RandomDatumID()
-			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
 
 			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
-				UserID:             &userID,
-				ProviderType:       pointer.FromString("oauth"),
-				ProviderName:       pointer.FromString("twiist"),
+				ID:                 dataSourceTest.RandomDataSourceID(),
+				UserID:             userID,
+				ProviderType:       "oauth",
+				ProviderName:       "twiist",
 				ProviderSessionID:  pointer.FromString(session.ID),
 				ProviderExternalID: pointer.FromString(dataSourceExternalID),
-				State:              pointer.FromString(dataSource.StateConnected),
-				DataSetIDs:         pointer.FromStringArray([]string{dataSetID}),
+				State:              dataSource.StateConnected,
+				DataSetID:          pointer.FromString(dataSetID),
 			}
 
 			dataSourceClient.EXPECT().
@@ -198,101 +188,35 @@ var _ = Describe("Provider", func() {
 				DeleteProviderSession(ctx, gomock.Eq(session.ID)).
 				Return(nil)
 			dataSourceClient.EXPECT().
-				Update(ctx, gomock.Eq(*dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"State": PointTo(Equal("disconnected")),
 					})))
-				}).
-				Return(dataSrc, nil)
-			dataSetClient.EXPECT().
-				GetDataSet(ctx, gomock.Eq(dataSetID)).
-				Return(&dataSet, nil)
+					return dataSrc, nil
+				})
 
 			providerSessionClient.EXPECT().
 				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
-				Do(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) {
+				DoAndReturn(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
 						"OAuthToken": PointTo(Equal(*session.OAuthToken)),
 						"ExternalID": PointTo(Equal(providerSessionExternalID)),
 					})))
-				}).
-				Return(session, nil)
+					return session, nil
+				})
 
 			dataSourceClient.EXPECT().
-				Update(ctx, gomock.Eq(*dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
+				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"DataSetIDs":         PointTo(ConsistOf(dataSetID)),
+						"DataSetID":          PointTo(Equal(dataSetID)),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),
 					})))
-				}).
-				Return(dataSrc, nil)
-
-			Expect(prvdr.OnCreate(ctx, session)).To(Succeed())
-		})
-
-		It("reuses data source and creates data set if it doesn't exist", func() {
-			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
-			missingDataSetID := dataTest.RandomDatumID()
-			dataSetID := dataTest.RandomDatumID()
-			dataSet := data.DataSet{ID: pointer.FromString(dataSetID)}
-
-			dataSrc := &dataSource.Source{
-				ID:                 pointer.FromString(dataSourceTest.RandomDataSourceID()),
-				UserID:             &userID,
-				ProviderType:       pointer.FromString("oauth"),
-				ProviderName:       pointer.FromString("twiist"),
-				ProviderSessionID:  pointer.FromString(session.ID),
-				ProviderExternalID: pointer.FromString(dataSourceExternalID),
-				State:              pointer.FromString(dataSource.StateConnected),
-				DataSetIDs:         pointer.FromStringArray([]string{missingDataSetID}),
-			}
-
-			dataSourceClient.EXPECT().
-				List(ctx, session.UserID, gomock.Any(), gomock.Any()).
-				Return(dataSource.SourceArray{dataSrc}, nil)
-			providerSessionClient.EXPECT().
-				DeleteProviderSession(ctx, gomock.Eq(session.ID)).
-				Return(nil)
-			dataSourceClient.EXPECT().
-				Update(ctx, gomock.Eq(*dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
-					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"State": PointTo(Equal("disconnected")),
-					})))
-				}).
-				Return(dataSrc, nil)
-			dataSetClient.EXPECT().
-				GetDataSet(ctx, gomock.Eq(missingDataSetID)).
-				Return(nil, nil)
-			dataSetClient.EXPECT().
-				CreateUserDataSet(ctx, gomock.Eq(session.UserID), gomock.Any()).
-				Return(&dataSet, nil)
-
-			providerSessionClient.EXPECT().
-				UpdateProviderSession(ctx, gomock.Eq(session.ID), gomock.Any()).
-				Do(func(_ context.Context, _ string, update *auth.ProviderSessionUpdate) {
-					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"OAuthToken": PointTo(Equal(*session.OAuthToken)),
-						"ExternalID": PointTo(Equal(providerSessionExternalID)),
-					})))
-				}).
-				Return(session, nil)
-
-			dataSourceClient.EXPECT().
-				Update(ctx, gomock.Eq(*dataSrc.ID), gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
-					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"DataSetIDs":         PointTo(ConsistOf(missingDataSetID, dataSetID)),
-						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
-						"ProviderSessionID":  PointTo(Equal(session.ID)),
-						"State":              PointTo(Equal("connected")),
-					})))
-				}).
-				Return(dataSrc, nil)
+					return dataSrc, nil
+				})
 
 			Expect(prvdr.OnCreate(ctx, session)).To(Succeed())
 		})
@@ -322,38 +246,23 @@ var _ = Describe("Provider", func() {
 			}
 		})
 
-		It("disconnects all data sources for the provider", func() {
+		It("disconnects the data source for the provider", func() {
 			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
 			dataSrc := dataSourceTest.RandomSource()
-			dataSrc.UserID = &userID
-			dataSrcs := dataSource.SourceArray{dataSourceTest.RandomSource(), dataSourceTest.RandomSource()}
-			for _, s := range dataSrcs {
-				s.ProviderType = pointer.FromString("oauth")
-				s.ProviderName = pointer.FromString("twiist")
-				s.State = pointer.FromString(dataSource.StateConnected)
-			}
+			dataSrc.UserID = userID
 
 			dataSourceClient.EXPECT().
-				List(ctx, session.UserID, gomock.Any(), gomock.Any()).
-				Do(func(_ context.Context, userID string, filter *dataSource.Filter, _ *page.Pagination) {
-					Expect(filter).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"ProviderType":      PointTo(ConsistOf("oauth")),
-						"ProviderName":      PointTo(ConsistOf("twiist")),
-						"ProviderSessionID": PointTo(ConsistOf(session.ID)),
-					})))
-				}).
-				Return(dataSrcs, nil)
+				GetFromProviderSession(ctx, session.ID).
+				Return(dataSrc, nil)
 
-			for _, s := range dataSrcs {
-				dataSourceClient.EXPECT().
-					Update(gomock.Any(), gomock.Eq(*s.ID), gomock.Any(), gomock.Any()).
-					Do(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) {
-						Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-							"State": PointTo(Equal("disconnected")),
-						})))
-					}).
-					Return(nil, nil)
-			}
+			dataSourceClient.EXPECT().
+				Update(gomock.Any(), gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
+				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
+					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
+						"State": PointTo(Equal("disconnected")),
+					})))
+					return nil, nil
+				})
 
 			Expect(prvdr.OnDelete(ctx, session)).To(Succeed())
 		})

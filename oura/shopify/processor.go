@@ -104,9 +104,9 @@ func (p *OrderProcessor) ReconcileUpdatedOrders(ctx context.Context, updatedSinc
 	latestUpdatedTime := updatedSince
 	for _, gid := range gids {
 		if order, reconcileErr := p.ReconcileOrder(ctx, gid); reconcileErr != nil {
-			return latestUpdatedTime, errors.Wrapf(err, "unable to reconcile order %s", gid)
+			return latestUpdatedTime, errors.Wrapf(reconcileErr, "unable to reconcile order %s", gid)
 		} else if order == nil {
-			return latestUpdatedTime, errors.Wrapf(err, "order is missing %s", gid)
+			return latestUpdatedTime, errors.Newf("order is missing %s", gid)
 		} else {
 			latestUpdatedTime = order.UpdatedTime
 		}
@@ -289,10 +289,10 @@ func (p *OrderProcessor) processNewOrder(ctx context.Context, order OrderSummary
 	}
 
 	if count := len(order.OrderedProductIDs); count == 0 {
-		logger.Info("ignoring fulfillment event with no delivered products")
+		logger.Info("ignoring order create event with no delivered products")
 		return nil
 	} else if count > 1 {
-		logger.Warn("ignoring fulfillment event with multiple delivered products")
+		logger.Warn("ignoring order create event with multiple delivered products")
 		return nil
 	}
 
@@ -393,8 +393,8 @@ func (p *OrderProcessor) onSizingKitDelivered(ctx context.Context, identifiers c
 func (p *OrderProcessor) onRingDelivered(ctx context.Context, identifiers customerio.Identifiers, order OrderSummary) error {
 	// A user must have a data source to be able to link their account
 	sources, err := p.dataSourceClient.List(ctx, identifiers.ID, &dataSource.Filter{
-		ProviderName: pointer.FromAny([]string{oura.ProviderName}),
-		ProviderType: pointer.FromAny([]string{auth.ProviderTypeOAuth}),
+		ProviderName: pointer.FromAny(oura.ProviderName),
+		ProviderType: pointer.FromAny(auth.ProviderTypeOAuth),
 	}, page.NewPaginationMinimum())
 	if err != nil {
 		return errors.Wrap(err, "unable to list data sources")
@@ -402,8 +402,8 @@ func (p *OrderProcessor) onRingDelivered(ctx context.Context, identifiers custom
 	if len(sources) == 0 {
 		p.logger.WithField("userId", identifiers.ID).Info("creating oura data source")
 		create := dataSource.NewCreate()
-		create.ProviderName = pointer.FromAny(oura.ProviderName)
-		create.ProviderType = pointer.FromAny(auth.ProviderTypeOAuth)
+		create.ProviderName = oura.ProviderName
+		create.ProviderType = auth.ProviderTypeOAuth
 
 		_, err := p.dataSourceClient.Create(ctx, identifiers.ID, create)
 		if err != nil {

@@ -49,53 +49,29 @@ func RandomDeviceHashMap() map[string]any {
 	return deviceHashMap
 }
 
-func RandomFilter() *dataSource.Filter {
-	datum := &dataSource.Filter{}
-	datum.ProviderType = pointer.FromStringArray(authTest.RandomProviderTypes())
-	datum.ProviderName = pointer.FromStringArray(authTest.RandomProviderNames())
-	datum.ProviderSessionID = pointer.FromStringArray(authTest.RandomProviderSessionIDs())
-	datum.ProviderExternalID = pointer.FromStringArray(authTest.RandomProviderExternalIDs())
-	datum.State = pointer.FromStringArray(RandomStates())
-	return datum
+func RandomFilter(options ...test.Option) *dataSource.Filter {
+	return &dataSource.Filter{
+		ProviderType:       test.RandomOptional(authTest.RandomProviderType, options...),
+		ProviderName:       test.RandomOptional(authTest.RandomProviderName, options...),
+		ProviderExternalID: test.RandomOptional(authTest.RandomProviderExternalID, options...),
+		State:              test.RandomOptional(RandomState, options...),
+	}
 }
 
-func NewObjectFromFilter(datum *dataSource.Filter, objectFormat test.ObjectFormat) map[string]interface{} {
+func CloneFilter(datum *dataSource.Filter) *dataSource.Filter {
 	if datum == nil {
 		return nil
 	}
-	object := map[string]interface{}{}
-	if datum.ProviderType != nil {
-		object["providerType"] = test.NewObjectFromStringArray(*datum.ProviderType, objectFormat)
+	return &dataSource.Filter{
+		ProviderType:       pointer.CloneString(datum.ProviderType),
+		ProviderName:       pointer.CloneString(datum.ProviderName),
+		ProviderExternalID: pointer.CloneString(datum.ProviderExternalID),
+		State:              pointer.CloneString(datum.State),
 	}
-	if datum.ProviderName != nil {
-		object["providerName"] = test.NewObjectFromStringArray(*datum.ProviderName, objectFormat)
-	}
-	if datum.ProviderSessionID != nil {
-		object["providerSessionId"] = test.NewObjectFromStringArray(*datum.ProviderSessionID, objectFormat)
-	}
-	if datum.ProviderExternalID != nil {
-		object["providerExternalId"] = test.NewObjectFromStringArray(*datum.ProviderExternalID, objectFormat)
-	}
-	if datum.State != nil {
-		object["state"] = test.NewObjectFromStringArray(*datum.State, objectFormat)
-	}
-	return object
 }
 
-func RandomCreate() *dataSource.Create {
-	datum := &dataSource.Create{}
-	datum.ProviderType = pointer.FromString(authTest.RandomProviderType())
-	datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
-	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
-	datum.Metadata = metadataTest.RandomMetadataMap()
-	return datum
-}
-
-func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectFormat) map[string]interface{} {
-	if datum == nil {
-		return nil
-	}
-	object := map[string]interface{}{}
+func NewObjectFromFilter(datum *dataSource.Filter, objectFormat test.ObjectFormat) map[string]any {
+	object := map[string]any{}
 	if datum.ProviderType != nil {
 		object["providerType"] = test.NewObjectFromString(*datum.ProviderType, objectFormat)
 	}
@@ -105,69 +81,119 @@ func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectForma
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
 	}
-	if datum.Metadata != nil {
+	if datum.State != nil {
+		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
+	}
+	return object
+}
+
+func RandomCreate(options ...test.Option) *dataSource.Create {
+	return &dataSource.Create{
+		ProviderType:       authTest.RandomProviderType(),
+		ProviderName:       authTest.RandomProviderName(),
+		ProviderExternalID: test.RandomOptional(authTest.RandomProviderExternalID, options...),
+		Metadata:           metadataTest.RandomMetadataMap(),
+	}
+}
+
+func CloneCreate(datum *dataSource.Create) *dataSource.Create {
+	if datum == nil {
+		return nil
+	}
+	return &dataSource.Create{
+		ProviderType:       datum.ProviderType,
+		ProviderName:       datum.ProviderName,
+		ProviderExternalID: pointer.CloneString(datum.ProviderExternalID),
+		Metadata:           metadataTest.CloneMetadataMap(datum.Metadata),
+	}
+}
+
+func NewObjectFromCreate(datum *dataSource.Create, objectFormat test.ObjectFormat) map[string]any {
+	object := map[string]any{}
+	object["providerType"] = test.NewObjectFromString(datum.ProviderType, objectFormat)
+	object["providerName"] = test.NewObjectFromString(datum.ProviderName, objectFormat)
+	if datum.ProviderExternalID != nil {
+		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
+	}
+	if len(datum.Metadata) > 0 {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	return object
 }
 
-func RandomUpdate() *dataSource.Update {
-	state := RandomState()
-	datum := &dataSource.Update{}
-	switch state {
-	case dataSource.StateConnected:
-		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
+func RandomUpdate(options ...test.Option) *dataSource.Update {
+	var state *string
+	var earliestDataTime *time.Time
+	var latestDataTime *time.Time
+	var lastImportTime *time.Time
+
+	state = test.RandomOptional(RandomState, options...)
+	now := time.Now()
+	switch test.RandomIntFromRange(0, 4) {
+	case 0:
+	case 1:
+		lastImportTime = pointer.FromTime(test.RandomTimeBeforeNow())
+	case 2:
+		earliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
+		lastImportTime = pointer.FromTime(test.RandomTimeFromRange(*earliestDataTime, now))
+	case 3:
+		latestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
+		lastImportTime = pointer.FromTime(test.RandomTimeFromRange(*latestDataTime, now))
+	case 4:
+		earliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
+		latestDataTime = pointer.FromTime(test.RandomTimeFromRange(*earliestDataTime, now))
+		lastImportTime = pointer.FromTime(test.RandomTimeFromRange(*latestDataTime, now))
 	}
-	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
-	datum.State = pointer.FromString(state)
-	datum.Metadata = metadataTest.RandomMetadataMap()
-	datum.Error = errorsTest.RandomSerializable()
-	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomDataSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
-	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
-	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
-	return datum
+
+	return &dataSource.Update{
+		ProviderExternalID: test.RandomOptional(authTest.RandomProviderExternalID, options...),
+		ProviderSessionID:  test.Conditional(authTest.RandomProviderSessionID, state != nil && *state == dataSource.StateConnected),
+		State:              state,
+		Metadata:           test.RandomOptional(metadataTest.RandomMetadataMap, options...),
+		Error:              test.RandomOptionalPointer(errorsTest.RandomSerializable, options...),
+		DataSetID:          test.RandomOptional(dataTest.RandomDataSetID, options...),
+		EarliestDataTime:   earliestDataTime,
+		LatestDataTime:     latestDataTime,
+		LastImportTime:     lastImportTime,
+	}
 }
 
 func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 	if datum == nil {
 		return nil
 	}
-	clone := &dataSource.Update{}
-	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
-	clone.ProviderExternalID = pointer.CloneString(datum.ProviderExternalID)
-	clone.State = pointer.CloneString(datum.State)
-	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
-	clone.Error = errorsTest.CloneSerializable(datum.Error)
-	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
-	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
-	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
-	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
-	return clone
+	return &dataSource.Update{
+		ProviderExternalID: pointer.CloneString(datum.ProviderExternalID),
+		ProviderSessionID:  pointer.CloneString(datum.ProviderSessionID),
+		State:              pointer.CloneString(datum.State),
+		Metadata:           metadataTest.CloneMetadataMapPointer(datum.Metadata),
+		Error:              errorsTest.CloneSerializable(datum.Error),
+		DataSetID:          pointer.CloneString(datum.DataSetID),
+		EarliestDataTime:   pointer.CloneTime(datum.EarliestDataTime),
+		LatestDataTime:     pointer.CloneTime(datum.LatestDataTime),
+		LastImportTime:     pointer.CloneTime(datum.LastImportTime),
+	}
 }
 
-func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectFormat) map[string]interface{} {
-	if datum == nil {
-		return nil
-	}
-	object := map[string]interface{}{}
-	if datum.ProviderSessionID != nil {
-		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
-	}
+func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectFormat) map[string]any {
+	object := map[string]any{}
 	if datum.ProviderExternalID != nil {
 		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
+	}
+	if datum.ProviderSessionID != nil {
+		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
 	}
 	if datum.State != nil {
 		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
 	}
 	if datum.Metadata != nil {
-		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
+		object["metadata"] = metadataTest.NewObjectFromMetadataMap(*datum.Metadata, objectFormat)
 	}
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)
 	}
-	if datum.DataSetIDs != nil {
-		object["dataSetIds"] = test.NewObjectFromStringArray(*datum.DataSetIDs, objectFormat)
+	if datum.DataSetID != nil {
+		object["dataSetId"] = test.NewObjectFromString(*datum.DataSetID, objectFormat)
 	}
 	if datum.EarliestDataTime != nil {
 		object["earliestDataTime"] = test.NewObjectFromTime(*datum.EarliestDataTime, objectFormat)
@@ -182,44 +208,40 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 }
 
 func MatchUpdate(datum *dataSource.Update) gomegaTypes.GomegaMatcher {
-	if datum == nil {
-		return gomega.BeNil()
-	}
 	return gomegaGstruct.PointTo(gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
-		"ProviderSessionID":  gomega.Equal(datum.ProviderSessionID),
 		"ProviderExternalID": gomega.Equal(datum.ProviderExternalID),
+		"ProviderSessionID":  gomega.Equal(datum.ProviderSessionID),
 		"State":              gomega.Equal(datum.State),
 		"Metadata":           gomega.Equal(datum.Metadata),
 		"Error":              gomega.Equal(datum.Error),
-		"DataSetIDs":         gomega.Equal(datum.DataSetIDs),
+		"DataSetID":          gomega.Equal(datum.DataSetID),
 		"EarliestDataTime":   test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":     test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":     test.MatchTime(datum.LastImportTime),
 	}))
 }
 
-func RandomSource() *dataSource.Source {
+func RandomSource(options ...test.Option) *dataSource.Source {
 	state := RandomState()
 	datum := &dataSource.Source{}
-	datum.ID = pointer.FromString(RandomDataSourceID())
-	datum.UserID = pointer.FromString(userTest.RandomUserID())
-	datum.ProviderType = pointer.FromString(authTest.RandomProviderType())
-	datum.ProviderName = pointer.FromString(authTest.RandomProviderName())
-	switch state {
-	case dataSource.StateConnected, dataSource.StateError:
-		datum.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
-	}
-	datum.ProviderExternalID = pointer.FromString(authTest.RandomProviderExternalID())
-	datum.State = pointer.FromString(state)
+	datum.ID = RandomDataSourceID()
+	datum.UserID = userTest.RandomUserID()
+	datum.ProviderType = authTest.RandomProviderType()
+	datum.ProviderName = authTest.RandomProviderName()
+	datum.ProviderExternalID = test.RandomOptional(authTest.RandomProviderExternalID, options...)
+	datum.ProviderSessionID = test.Conditional(authTest.RandomProviderSessionID, state != dataSource.StateDisconnected)
+	datum.State = state
 	datum.Metadata = metadataTest.RandomMetadataMap()
-	datum.Error = errorsTest.RandomSerializable()
-	datum.DataSetIDs = pointer.FromStringArray(dataTest.RandomDataSetIDs())
-	datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBeforeNow())
-	datum.LatestDataTime = pointer.FromTime(test.RandomTimeFromRange(*datum.EarliestDataTime, time.Now()))
-	datum.LastImportTime = pointer.FromTime(test.RandomTimeFromRange(*datum.LatestDataTime, time.Now()))
-	datum.CreatedTime = pointer.FromTime(test.RandomTimeBeforeNow())
-	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(*datum.CreatedTime, time.Now()))
-	datum.Revision = pointer.FromInt(requestTest.RandomRevision())
+	datum.Error = test.RandomOptionalPointer(errorsTest.RandomSerializable, options...)
+	datum.DataSetID = test.RandomOptional(dataTest.RandomDataSetID, options...)
+	datum.LastImportTime = test.RandomOptional(test.RandomTimeBeforeNow, options...)
+	if datum.LastImportTime != nil && test.RandomBool() {
+		datum.LatestDataTime = pointer.FromTime(test.RandomTimeBefore(*datum.LastImportTime))
+		datum.EarliestDataTime = pointer.FromTime(test.RandomTimeBefore(*datum.LatestDataTime))
+	}
+	datum.CreatedTime = test.RandomTimeBefore(pointer.DefaultTime(datum.LastImportTime, time.Now()))
+	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(pointer.DefaultTime(datum.LastImportTime, datum.CreatedTime), time.Now()))
+	datum.Revision = requestTest.RandomRevision()
 	return datum
 }
 
@@ -228,59 +250,49 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 		return nil
 	}
 	clone := &dataSource.Source{}
-	clone.ID = pointer.CloneString(datum.ID)
-	clone.UserID = pointer.CloneString(datum.UserID)
-	clone.ProviderType = pointer.CloneString(datum.ProviderType)
-	clone.ProviderName = pointer.CloneString(datum.ProviderName)
-	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
+	clone.ID = datum.ID
+	clone.UserID = datum.UserID
+	clone.ProviderType = datum.ProviderType
+	clone.ProviderName = datum.ProviderName
 	clone.ProviderExternalID = pointer.CloneString(datum.ProviderExternalID)
-	clone.State = pointer.CloneString(datum.State)
+	clone.ProviderSessionID = pointer.CloneString(datum.ProviderSessionID)
+	clone.State = datum.State
 	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
-	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
+	clone.DataSetID = pointer.CloneString(datum.DataSetID)
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
 	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
-	clone.CreatedTime = pointer.CloneTime(datum.CreatedTime)
+	clone.CreatedTime = datum.CreatedTime
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
-	clone.Revision = pointer.CloneInt(datum.Revision)
+	clone.Revision = datum.Revision
 	return clone
 }
 
-func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectFormat) map[string]interface{} {
+func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectFormat) map[string]any {
 	if datum == nil {
 		return nil
 	}
-	object := map[string]interface{}{}
-	if datum.ID != nil {
-		object["id"] = test.NewObjectFromString(*datum.ID, objectFormat)
-	}
-	if datum.UserID != nil {
-		object["userId"] = test.NewObjectFromString(*datum.UserID, objectFormat)
-	}
-	if datum.ProviderType != nil {
-		object["providerType"] = test.NewObjectFromString(*datum.ProviderType, objectFormat)
-	}
-	if datum.ProviderName != nil {
-		object["providerName"] = test.NewObjectFromString(*datum.ProviderName, objectFormat)
+	object := map[string]any{}
+	object["id"] = test.NewObjectFromString(datum.ID, objectFormat)
+	object["userId"] = test.NewObjectFromString(datum.UserID, objectFormat)
+	object["providerType"] = test.NewObjectFromString(datum.ProviderType, objectFormat)
+	object["providerName"] = test.NewObjectFromString(datum.ProviderName, objectFormat)
+	if datum.ProviderExternalID != nil {
+		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
 	}
 	if datum.ProviderSessionID != nil {
 		object["providerSessionId"] = test.NewObjectFromString(*datum.ProviderSessionID, objectFormat)
 	}
-	if datum.ProviderExternalID != nil {
-		object["providerExternalId"] = test.NewObjectFromString(*datum.ProviderExternalID, objectFormat)
-	}
-	if datum.State != nil {
-		object["state"] = test.NewObjectFromString(*datum.State, objectFormat)
-	}
-	if datum.Metadata != nil {
+	object["state"] = test.NewObjectFromString(datum.State, objectFormat)
+	if len(datum.Metadata) > 0 {
 		object["metadata"] = metadataTest.NewObjectFromMetadataMap(datum.Metadata, objectFormat)
 	}
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)
 	}
-	if datum.DataSetIDs != nil {
-		object["dataSetIds"] = test.NewObjectFromStringArray(*datum.DataSetIDs, objectFormat)
+	if datum.DataSetID != nil {
+		object["dataSetId"] = test.NewObjectFromString(*datum.DataSetID, objectFormat)
 	}
 	if datum.EarliestDataTime != nil {
 		object["earliestDataTime"] = test.NewObjectFromTime(*datum.EarliestDataTime, objectFormat)
@@ -291,15 +303,11 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	if datum.LastImportTime != nil {
 		object["lastImportTime"] = test.NewObjectFromTime(*datum.LastImportTime, objectFormat)
 	}
-	if datum.CreatedTime != nil {
-		object["createdTime"] = test.NewObjectFromTime(*datum.CreatedTime, objectFormat)
-	}
+	object["createdTime"] = test.NewObjectFromTime(datum.CreatedTime, objectFormat)
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
 	}
-	if datum.Revision != nil {
-		object["revision"] = test.NewObjectFromInt(*datum.Revision, objectFormat)
-	}
+	object["revision"] = test.NewObjectFromInt(datum.Revision, objectFormat)
 	return object
 }
 
@@ -312,25 +320,25 @@ func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
 		"UserID":             gomega.Equal(datum.UserID),
 		"ProviderType":       gomega.Equal(datum.ProviderType),
 		"ProviderName":       gomega.Equal(datum.ProviderName),
-		"ProviderSessionID":  gomega.Equal(datum.ProviderSessionID),
 		"ProviderExternalID": gomega.Equal(datum.ProviderExternalID),
+		"ProviderSessionID":  gomega.Equal(datum.ProviderSessionID),
 		"State":              gomega.Equal(datum.State),
 		"Metadata":           gomega.Equal(datum.Metadata),
 		"Error":              gomega.Equal(datum.Error),
-		"DataSetIDs":         gomega.Equal(datum.DataSetIDs),
+		"DataSetID":          gomega.Equal(datum.DataSetID),
 		"EarliestDataTime":   test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":     test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":     test.MatchTime(datum.LastImportTime),
-		"CreatedTime":        test.MatchTime(datum.CreatedTime),
+		"CreatedTime":        gomega.Equal(datum.CreatedTime),
 		"ModifiedTime":       test.MatchTime(datum.ModifiedTime),
 		"Revision":           gomega.Equal(datum.Revision),
 	}))
 }
 
-func RandomSourceArray(minimumLength int, maximumLength int) dataSource.SourceArray {
+func RandomSourceArray(minimumLength int, maximumLength int, options ...test.Option) dataSource.SourceArray {
 	datum := make(dataSource.SourceArray, test.RandomIntFromRange(minimumLength, maximumLength))
 	for index := range datum {
-		datum[index] = RandomSource()
+		datum[index] = RandomSource(options...)
 	}
 	return datum
 }

@@ -15,7 +15,7 @@ func RandomPendingProcessResult() *work.ProcessResult {
 	return work.NewProcessResultPending(work.PendingUpdate{
 		ProcessingAvailableTime: test.RandomTimeAfterNow(),
 		ProcessingPriority:      test.RandomInt(),
-		ProcessingTimeout:       test.RandomIntFromRange(1, work.ProcessingTimeoutMaximum),
+		ProcessingTimeout:       test.RandomIntFromRange(1, int(work.ProcessingTimeoutMaximum.Seconds())),
 		Metadata:                metadataTest.RandomMetadataMap(),
 	})
 }
@@ -39,6 +39,18 @@ func RandomFailedProcessResult() *work.ProcessResult {
 func RandomSuccessProcessResult() *work.ProcessResult {
 	return work.NewProcessResultSuccess(work.SuccessUpdate{
 		Metadata: metadataTest.RandomMetadataMap(),
+	})
+}
+
+func MatchFailingError(errorMatcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return gomegaGstruct.MatchFields(gomegaGstruct.IgnoreExtras, gomegaGstruct.Fields{
+		"FailingError": errorsTest.MatchSerialized(errorMatcher),
+	})
+}
+
+func MatchFailedError(errorMatcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return gomegaGstruct.MatchFields(gomegaGstruct.IgnoreExtras, gomegaGstruct.Fields{
+		"FailedError": errorsTest.MatchSerialized(errorMatcher),
 	})
 }
 
@@ -90,4 +102,12 @@ func MatchDeleteProcessResult() gomegaTypes.GomegaMatcher {
 		"FailedUpdate":  gomega.BeNil(),
 		"SuccessUpdate": gomega.BeNil(),
 	}))
+}
+
+func MatchFailingProcessResultError(errorMatcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return MatchFailingProcessResult(MatchFailingError(errorMatcher))
+}
+
+func MatchFailedProcessResultError(errorMatcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return MatchFailedProcessResult(MatchFailedError(errorMatcher))
 }

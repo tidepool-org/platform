@@ -141,7 +141,7 @@ func NewObjectFromAlertScheduleSettings(datum *dexcom.AlertScheduleSettings, obj
 		object["endTime"] = test.NewObjectFromString(*datum.EndTime, objectFormat)
 	}
 	if datum.DaysOfWeek != nil {
-		object["daysOfWeek"] = test.NewObjectFromStringArray(*datum.DaysOfWeek, objectFormat)
+		object["daysOfWeek"] = test.NewArrayFromStringArray(*datum.DaysOfWeek, objectFormat)
 	}
 	if datum.Override != nil {
 		object["override"] = NewObjectFromOverride(datum.Override, objectFormat)

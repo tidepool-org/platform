@@ -3,6 +3,7 @@ package test
 import (
 	"sort"
 
+	auth "github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/test"
 )
 
@@ -18,4 +19,16 @@ func RandomScope() []string {
 	scope := test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomScopeToken)
 	sort.Strings(scope)
 	return scope
+}
+
+func CloneScope(scope []string) []string {
+	return test.CloneStringArray(scope)
+}
+
+func NewObjectFromScope(scope []string, objectFormat test.ObjectFormat) any {
+	switch objectFormat {
+	case test.ObjectFormatConfig:
+		return test.NewObjectFromString(auth.JoinScope(scope), objectFormat)
+	}
+	return test.NewArrayFromStringArray(scope, objectFormat)
 }

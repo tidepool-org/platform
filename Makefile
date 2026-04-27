@@ -49,6 +49,15 @@ GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interv
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
+ifdef TEST
+	TEST_PACKAGE=$(shell [ -d "$(TEST)" ] && echo "$(TEST)" || dirname "$(TEST)")
+	TEST_PACKAGE_NAME=$(notdir $(TEST_PACKAGE))
+	TEST_DIRECTORY=$(realpath $(TEST_PACKAGE))
+	TEST_FILE=$(notdir $(TEST))
+endif
+
+TEST_REPEAT ?= 1
+
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build
 DOCKER_PUSH_CMD ?= docker push
@@ -163,7 +172,7 @@ ifdef PLUGIN
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
 		go work edit -go=`sed -n 's/^go //p' go.mod` && \
-		go work edit -toolchain=`sed -n 's/^toolchain //p' go.mod` && \
+		go work edit -toolchain=`grep -q '^toolchain' go.mod && sed -n 's/^toolchain //p' go.mod || sed -n 's/^go /go/p' go.mod` && \
 		$(MAKE) plugin-visibility
 endif
 
@@ -265,10 +274,15 @@ test-ginkgo: ginkgo
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
-test-ginkgo-until-failure: ginkgo
-	@echo "ginkgo $(GINKGO_FLAGS) -untilItFails $(TEST)"
+test-ginkgo-repeat: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+
+test-ginkgo-until-failure: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) --until-it-fails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && \
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
@@ -280,10 +294,15 @@ ci-test-ginkgo: ginkgo
 	@cd $(ROOT_DIRECTORY) && \
 		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
 
-ci-test-ginkgo-until-failure: ginkgo
-	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $(TEST)"
+ci-test-ginkgo-repeat: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) -untilItFails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+
+ci-test-ginkgo-until-failure: ginkgo
+	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $(TEST)"
+	@cd $(ROOT_DIRECTORY) && \
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
@@ -299,6 +318,21 @@ test-go:
 ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
+
+ginkgo-bootstrap: ginkgo
+ifdef TEST
+	@echo "ginkgo bootstrap $(TEST_PACKAGE)"
+	@cd "$(TEST_DIRECTORY)" && \
+		[ -f "$(TEST_PACKAGE_NAME)_suite_test.go" ] || \
+		ginkgo bootstrap --template "$(ROOT_DIRECTORY)/.ginkgo/templates/bootstrap"
+endif
+
+ginkgo-generate: ginkgo-bootstrap
+ifdef TEST
+	@echo "ginkgo generate $(TEST)"
+	@cd "$(TEST_DIRECTORY)" && \
+		ginkgo generate --template "$(ROOT_DIRECTORY)/.ginkgo/templates/generate" $(TEST_FILE)
+endif
 
 service-build:
 ifdef SERVICE
@@ -409,14 +443,14 @@ phony:
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
     ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
-    ci-test-ginkgo-until-failure ci-test-ginkgo-watch ci-test-go clean clean-all \
-    clean-bin clean-cover clean-debug clean-generate clean-test clean-version \
-    CompileDaemon default docker docker-build docker-dump docker-login docker-push \
-    format format-write format-write-changed generate ginkgo go-generate \
-    go-mod-download go-mod-tidy goimports imports imports-write \
-    imports-write-changed init mockgen phony plugin-visibility \
-    plugin-visibility-private plugin-visibility-public plugins-visibility \
-    plugins-visibility-private plugins-visibility-public pre-commit service-build \
-    service-debug service-restart service-restart-all service-start test \
-    test-ginkgo test-ginkgo-until-failure test-ginkgo-watch test-go tmp \
-    version-write vet vet-ignore
+    ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
+    ci-test-go clean clean-all clean-bin clean-cover clean-debug clean-generate \
+    clean-test clean-version CompileDaemon default docker docker-build docker-dump \
+    docker-login docker-push format format-write format-write-changed generate \
+    ginkgo ginkgo-bootstrap ginkgo-generate go-generate go-mod-download go-mod-tidy \
+    goimports imports imports-write imports-write-changed init mockgen phony \
+    plugin-visibility plugin-visibility-private plugin-visibility-public \
+    plugins-visibility plugins-visibility-private plugins-visibility-public \
+    pre-commit service-build service-debug service-restart service-restart-all \
+    service-start test test-ginkgo test-ginkgo-repeat test-ginkgo-until-failure \
+    test-ginkgo-watch test-go tmp version-write vet vet-ignore

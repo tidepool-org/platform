@@ -11,27 +11,21 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
+
 	"go.uber.org/mock/gomock"
-
-	dataSource "github.com/tidepool-org/platform/data/source"
-	"github.com/tidepool-org/platform/oura"
-
-	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
-
-	"github.com/tidepool-org/platform/customerio"
 
 	"github.com/tidepool-org/platform/auth"
 	authTest "github.com/tidepool-org/platform/auth/test"
-
-	"github.com/tidepool-org/platform/pointer"
-
-	"github.com/tidepool-org/platform/oura/shopify"
-
+	"github.com/tidepool-org/platform/customerio"
+	dataSource "github.com/tidepool-org/platform/data/source"
+	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
-	shopfiyTest "github.com/tidepool-org/platform/oura/shopify/test"
+	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/oura/shopify"
+	shopifyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 var _ = Describe("OrderProcessor", func() {
@@ -40,11 +34,11 @@ var _ = Describe("OrderProcessor", func() {
 		processor *shopify.OrderProcessor
 		logger    log.Logger
 
-		ctrl *gomock.Controller
+		mockController *gomock.Controller
 
 		authClient       *authTest.MockClient
 		dataSourceClient *dataSourceTest.MockClient
-		shopifyClnt      *shopfiyTest.MockClient
+		shopifyClnt      *shopifyTest.MockClient
 
 		appAPIServer    *httptest.Server
 		appAPIResponses *ouraTest.StubResponses
@@ -56,7 +50,7 @@ var _ = Describe("OrderProcessor", func() {
 	BeforeEach(func() {
 		ctx = context.Background()
 		logger = logTest.NewLogger()
-		ctrl, ctx = gomock.WithContext(ctx, GinkgoT())
+		mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 
 		appAPIResponses = ouraTest.NewStubResponses()
 		appAPIServer = ouraTest.NewStubServer(appAPIResponses)
@@ -71,9 +65,9 @@ var _ = Describe("OrderProcessor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		shopifyClnt = shopfiyTest.NewMockClient(ctrl)
-		authClient = authTest.NewMockClient(ctrl)
-		dataSourceClient = dataSourceTest.NewMockClient(ctrl)
+		shopifyClnt = shopifyTest.NewMockClient(mockController)
+		authClient = authTest.NewMockClient(mockController)
+		dataSourceClient = dataSourceTest.NewMockClient(mockController)
 
 		config := shopify.Config{
 			Enabled: true,
@@ -89,7 +83,6 @@ var _ = Describe("OrderProcessor", func() {
 
 		appAPIServer.Close()
 		trackAPIServer.Close()
-		ctrl.Finish()
 	})
 
 	Context("ProcessFulfillment", func() {
@@ -144,7 +137,7 @@ var _ = Describe("OrderProcessor", func() {
 
 			shopifyClnt.EXPECT().
 				CreateDiscountCode(gomock.Any(), gomock.Any()).
-				Do(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+				DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
 					Expect(input.Title).To(Equal(shopify.OuraRingDiscountCodeTitle))
 					Expect(len(input.Code)).To(BeNumerically(">=", 12))
 					Expect(input.ProductID).To(Equal(shopify.OuraRingProductID))
@@ -165,8 +158,7 @@ var _ = Describe("OrderProcessor", func() {
 					)
 
 					return nil
-				}).
-				Return(nil)
+				})
 
 			err = processor.ProcessFulfillment(ctx, event)
 			Expect(err).ToNot(HaveOccurred())
@@ -199,14 +191,14 @@ var _ = Describe("OrderProcessor", func() {
 				List(gomock.Any(), id, gomock.Any(), gomock.Any()).
 				Return(dataSource.SourceArray{}, nil)
 			dataSourceClient.EXPECT().Create(gomock.Any(), id, gomock.Any()).DoAndReturn(func(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error) {
-				Expect(create.ProviderName).To(PointTo(Equal("oura")))
-				Expect(create.ProviderType).To(PointTo(Equal("oauth")))
+				Expect(create.ProviderName).To(Equal("oura"))
+				Expect(create.ProviderType).To(Equal("oauth"))
 
 				source := dataSourceTest.RandomSource()
-				source.UserID = pointer.FromAny(userID)
-				source.ProviderName = pointer.FromAny(oura.ProviderName)
-				source.ProviderType = pointer.FromAny(auth.ProviderTypeOAuth)
-				source.State = pointer.FromAny(dataSource.StateDisconnected)
+				source.UserID = userID
+				source.ProviderName = oura.ProviderName
+				source.ProviderType = auth.ProviderTypeOAuth
+				source.State = dataSource.StateDisconnected
 				return source, nil
 			})
 

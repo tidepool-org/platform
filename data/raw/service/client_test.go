@@ -23,17 +23,13 @@ import (
 
 var _ = Describe("Client", func() {
 	var (
-		controller *gomock.Controller
-		mockStore  *dataRawServiceTest.MockStore
+		mockController *gomock.Controller
+		mockStore      *dataRawServiceTest.MockStore
 	)
 
 	BeforeEach(func() {
-		controller = gomock.NewController(GinkgoT())
-		mockStore = dataRawServiceTest.NewMockStore(controller)
-	})
-
-	AfterEach(func() {
-		controller.Finish()
+		mockController = gomock.NewController(GinkgoT())
+		mockStore = dataRawServiceTest.NewMockStore(mockController)
 	})
 
 	Context("NewClient", func() {
@@ -112,9 +108,7 @@ var _ = Describe("Client", func() {
 			It("calls store.Update with mapped condition and returns result", func() {
 				id := test.RandomString()
 				condition := &request.Condition{Revision: pointer.FromInt(test.RandomInt())}
-				update := &dataRaw.Update{
-					ProcessedTime: test.RandomTime(),
-				}
+				update := dataRawTest.RandomUpdate()
 				mappedCondition := storeStructured.MapCondition(condition)
 				expected := &dataRaw.Raw{ID: test.RandomString()}
 				mockStore.EXPECT().Update(ctx, id, mappedCondition, update).Return(expected, nil)

@@ -2,6 +2,10 @@ package pointer
 
 import "time"
 
+func From[T any](value T) *T {
+	return &value
+}
+
 func FromBool(value bool) *bool {
 	return &value
 }

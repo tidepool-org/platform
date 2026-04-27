@@ -65,10 +65,11 @@ func CreateUlid(time *time.Time, id string) (ulid.ULID, error) {
 
 	var ms uint64
 	if time != nil {
-		ms = uint64(time.UnixMilli())
-		if ms < 0 {
+		if time.UnixMilli() < 0 {
 			return ulid.Zero, errors.New("time must be after epoch")
 		}
+
+		ms = uint64(time.UnixMilli())
 	}
 
 	hash := sha1.Sum([]byte(id))

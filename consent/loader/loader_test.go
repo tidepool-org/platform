@@ -21,21 +21,20 @@ import (
 
 var _ = Describe("SeedConsents", func() {
 	var (
-		ctx         context.Context
-		mockCtrl    *gomock.Controller
-		mockService *consentTest.MockService
-		logger      log.Logger
+		ctx            context.Context
+		mockController *gomock.Controller
+		mockService    *consentTest.MockService
+		logger         log.Logger
 	)
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		mockCtrl = gomock.NewController(GinkgoT())
-		mockService = consentTest.NewMockService(mockCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		mockService = consentTest.NewMockService(mockController)
 		logger = test.NewLogger()
 	})
 
 	AfterEach(func() {
-		mockCtrl.Finish()
 		loader.ResetContentFS()
 	})
 

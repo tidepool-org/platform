@@ -5,6 +5,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+//go:generate mockgen -source=challenge.go -destination=test/challenge_mocks.go -package=test -typed
+
 // ChallengeCreate is the expected request body used to create an attestation
 // or assertion challenge.
 type ChallengeCreate struct {
@@ -29,7 +31,6 @@ func (c *ChallengeCreate) Validate(v structure.Validator) {
 	v.String("keyId", &c.KeyID).NotEmpty()
 }
 
-//go:generate mockgen -source=challenge.go -destination=test/challenge_mocks.go -package=test ChallengeGenerator
 type ChallengeGenerator interface {
 	GenerateChallenge(size int) (string, error)
 }

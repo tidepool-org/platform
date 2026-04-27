@@ -20,6 +20,7 @@ import (
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
 
@@ -29,7 +30,8 @@ const (
 
 var _ = Describe("Processor", func() {
 	var (
-		ctrl                  *gomock.Controller
+		mockController        *gomock.Controller
+		mockWorkClient        *workTest.MockClient
 		mockProcessingUpdater *workTest.MockProcessingUpdater
 
 		logger log.Logger
@@ -44,8 +46,9 @@ var _ = Describe("Processor", func() {
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		mockProcessingUpdater = workTest.NewMockProcessingUpdater(ctrl)
+		mockController = gomock.NewController(GinkgoT())
+		mockWorkClient = workTest.NewMockClient(mockController)
+		mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
 
 		logger = logTest.NewLogger()
 
@@ -62,7 +65,13 @@ var _ = Describe("Processor", func() {
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
 
-		processor, err = event.NewProcessor(event.Dependencies{CustomerIOClient: customerIOClient})
+		dependencies := event.Dependencies{
+			Dependencies: workBase.Dependencies{
+				WorkClient: mockWorkClient,
+			},
+			CustomerIOClient: customerIOClient,
+		}
+		processor, err = event.NewProcessor(dependencies)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(processor).ToNot(BeNil())
 	})
@@ -73,7 +82,6 @@ var _ = Describe("Processor", func() {
 
 		appAPIServer.Close()
 		trackAPIServer.Close()
-		ctrl.Finish()
 	})
 
 	Context("", func() {
@@ -90,11 +98,11 @@ var _ = Describe("Processor", func() {
 			wrk := &work.Work{
 				ID: workTest.RandomID(),
 				Metadata: storeStructuredMongo.BSONToMap(bson.M{
-					"userId":    *dataSource.UserID,
+					"userId":    dataSource.UserID,
 					"eventType": "data_source_state_changed",
 					"eventData": bson.M{
-						"provider_name": *dataSource.ProviderName,
-						"state":         *dataSource.State,
+						"provider_name": dataSource.ProviderName,
+						"state":         dataSource.State,
 					},
 					"eventDeduplicationTime": deduplicationTime,
 					"eventDeduplicationId":   deduplicationID,
@@ -106,13 +114,13 @@ var _ = Describe("Processor", func() {
 
 			trackAPIResponses.AddResponse(
 				[]ouraTest.RequestMatcher{
-					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+*dataSource.UserID+"/events"),
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+dataSource.UserID+"/events"),
 					ouraTest.NewRequestJSONBodyMatcher(`{
 					  	        "name": "data_source_state_changed",
 						        "id": "` + id.String() + `",
 						        "data": {
-                                    "provider_name": "` + *dataSource.ProviderName + `",
-                                    "state": "` + *dataSource.State + `"
+                                    "provider_name": "` + dataSource.ProviderName + `",
+                                    "state": "` + dataSource.State + `"
                                 }
 					        }`),
 				},
