@@ -289,10 +289,10 @@ func (p *OrderProcessor) processNewOrder(ctx context.Context, order OrderSummary
 	}
 
 	if count := len(order.OrderedProductIDs); count == 0 {
-		logger.Info("ignoring fulfillment event with no delivered products")
+		logger.Info("ignoring order create event with no delivered products")
 		return nil
 	} else if count > 1 {
-		logger.Warn("ignoring fulfillment event with multiple delivered products")
+		logger.Warn("ignoring order create event with multiple delivered products")
 		return nil
 	}
 
