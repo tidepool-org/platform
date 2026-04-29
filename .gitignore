@@ -30,3 +30,5 @@ _tmp
 .gvm_local
 .idea
 *.code-workspace
+.pi-lens
+.pi/extensions
