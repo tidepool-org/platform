@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/onsi/gomega"
+	gomock "go.uber.org/mock/gomock"
 
 	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
@@ -13,11 +14,13 @@ import (
 	authService "github.com/tidepool-org/platform/auth/service"
 	authStore "github.com/tidepool-org/platform/auth/store"
 	authStoreTest "github.com/tidepool-org/platform/auth/store/test"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	providerTest "github.com/tidepool-org/platform/provider/test"
 	serviceTest "github.com/tidepool-org/platform/service/test"
 	"github.com/tidepool-org/platform/task"
 	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Service struct {
@@ -44,6 +47,9 @@ type Service struct {
 	PartnerSecretsImpl                        *appvalidate.PartnerSecrets
 	TwiistServiceAccountAuthorizerInvocations int
 	TwiistServiceAccountAuthorizerImpl        auth.ServiceAccountAuthorizer
+	userAccessor                              user.UserAccessor
+	permsClient                               permission.Client
+	profileAccessor                           user.ProfileAccessor
 }
 
 func NewService() *Service {
@@ -53,6 +59,24 @@ func NewService() *Service {
 		ProviderFactoryImpl: providerTest.NewFactory(),
 		TaskClientImpl:      taskTest.NewClient(),
 	}
+}
+
+// NewMockedService uses a combination of the "old" style manual stub / fakes /
+// mocks and newer gomocks for convenience so that the current code doesn't
+// have to be refactored too much
+func NewMockedService(ctrl *gomock.Controller) (svc *Service, userAccessor *user.MockUserAccessor, profileAccessor *user.MockProfileAccessor, permsClient *permission.MockClient) {
+	userAccessor = user.NewMockUserAccessor(ctrl)
+	profileAccessor = user.NewMockProfileAccessor(ctrl)
+	permsClient = permission.NewMockClient(ctrl)
+	return &Service{
+		Service:             serviceTest.NewService(),
+		AuthStoreImpl:       authStoreTest.NewStore(),
+		ProviderFactoryImpl: providerTest.NewFactory(),
+		TaskClientImpl:      taskTest.NewClient(),
+		userAccessor:        userAccessor,
+		profileAccessor:     profileAccessor,
+		permsClient:         permsClient,
+	}, userAccessor, profileAccessor, permsClient
 }
 
 func (s *Service) Domain() string {
@@ -111,6 +135,10 @@ func (s *Service) Status(ctx context.Context) *authService.Status {
 	return output
 }
 
+func (s *Service) PermissionsClient() permission.Client {
+	return s.permsClient
+}
+
 func (s *Service) AppValidator() *appvalidate.Validator {
 	s.AppvalidateValidatorInvocations++
 
@@ -135,4 +163,12 @@ func (s *Service) Expectations() {
 	s.ProviderFactoryImpl.Expectations()
 	s.TaskClientImpl.Expectations()
 	gomega.Expect(s.StatusOutputs).To(gomega.BeEmpty())
+}
+
+func (s *Service) UserAccessor() user.UserAccessor {
+	return s.userAccessor
+}
+
+func (s *Service) ProfileAccessor() user.ProfileAccessor {
+	return s.profileAccessor
 }
