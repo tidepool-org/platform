@@ -26,11 +26,19 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/profile", r.requireMembership("userId", r.GetProfile)),
 		rest.Get("/v1/users/:userId/users", r.requireMembership("userId", r.GetUsersWithProfiles)),
+
 		rest.Get("/v1/users/legacy/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
+		rest.Get("/metadata/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
+
 		rest.Put("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
-		rest.Put("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
 		rest.Post("/v1/users/:userId/profile", r.requireCustodian("userId", r.UpdateProfile)),
+
+		rest.Put("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+		rest.Put("/metadata/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+
 		rest.Post("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+		rest.Post("/metadata/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
+
 		rest.Delete("/v1/users/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
 		rest.Delete("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
 	}
