@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/request"
@@ -30,7 +31,7 @@ func (r *Router) OAuthRoutes() []*rest.Route {
 		rest.Delete("/v1/oauth/:name/authorize", serviceApi.RequireUser(r.OAuthProviderAuthorizeDelete)),
 		rest.Get("/v1/oauth/:name/redirect", r.OAuthProviderRedirectGet),
 
-		rest.Delete("/v1/users/:userId/oauth/:name/authorize", serviceApi.RequireServer(r.UserOAuthProviderAuthorizeDelete)),
+		rest.Delete("/v1/users/:userId/oauth/:name/authorize", serviceApi.RequireWritePermissions(r.permissionsClient, "userId", r.UserOAuthProviderAuthorizeDelete)),
 	}
 }
 
@@ -308,6 +309,10 @@ func (r *Router) providerCookieName(prvdr provider.Provider) string {
 
 func (r *Router) providerCookiePath(prvdr provider.Provider) string {
 	return fmt.Sprintf("/v1/%s/%s", prvdr.Type(), prvdr.Name())
+}
+
+func (r *Router) permissionsClient() permission.Client {
+	return r.AuthClient()
 }
 
 const htmlOnRedirect = `
