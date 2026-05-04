@@ -241,32 +241,6 @@ func (r *Buckets[PB, B]) GetOldestRecordTime(ctx context.Context, userId string)
 	return bucket.FirstData, nil
 }
 
-func (r *Buckets[PB, B]) GetTotalHours(ctx context.Context, userId string) (int, error) {
-	if ctx == nil {
-		return 0, errors.New("context is missing")
-	}
-	if userId == "" {
-		return 0, errors.New("userId is missing")
-	}
-
-	firstBucket, err := r.GetOldest(ctx, userId)
-	if err != nil {
-		return 0, err
-	}
-
-	// we have no buckets, no point in continuing
-	if firstBucket == nil {
-		return 0, nil
-	}
-
-	lastBucket, err := r.GetNewest(ctx, userId)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(lastBucket.LastData.Sub(firstBucket.FirstData).Hours()), nil
-}
-
 func (r *Buckets[PB, B]) WriteModifiedBuckets(ctx context.Context, buckets types.BucketsByTime[PB, B]) error {
 	if ctx == nil {
 		return errors.New("context is missing")

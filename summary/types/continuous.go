@@ -88,7 +88,7 @@ func (p *ContinuousPeriod) Update(bucket *Bucket[*ContinuousBucket, ContinuousBu
 		return nil
 	}
 
-	if p.state.FirstCountedHour.IsZero() && p.state.FirstCountedHour.IsZero() {
+	if p.state.FirstCountedHour.IsZero() && p.state.LastCountedHour.IsZero() {
 		p.state.FirstCountedHour = bucket.Time
 		p.state.LastCountedHour = bucket.Time
 	} else {
