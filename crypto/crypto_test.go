@@ -42,7 +42,7 @@ var _ = Describe("Crypto", func() {
 		)
 	})
 
-	Context("Errors", func() {
+	Context("ErrorValueStringAsBase64EncodedMD5HashNotValid", func() {
 		DescribeTable("have expected details when error",
 			errorsTest.ExpectErrorDetails,
 			Entry("is ErrorValueStringAsBase64EncodedMD5HashNotValid with empty string", crypto.ErrorValueStringAsBase64EncodedMD5HashNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as Base64 encoded MD5 hash`),
@@ -59,6 +59,55 @@ var _ = Describe("Crypto", func() {
 			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "c3fcd3d76192e4007dfb496cca67e13b"),
 			Entry("is whitespace", "        ", "7bb0edd98f22430a03b67f853e83c2ca"),
 			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "f95f3e07a713a0e44d53bd69493d9279"),
+		)
+	})
+
+	Context("Base64EncodedSHA256Hash", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(crypto.Base64EncodedSHA256Hash([]byte(value))).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "ccSA35PWri8e+tFEfGbJUl4xYhjPUfyNntgy8trxi3M="),
+			Entry("is whitespace", "        ", "i2+gExPOUa/AnmEPgZJQ2lAXeK02PLpPnjEqbsgj1Co="),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "FBpCHgyT00Gc61TIERs02m6WCdLB9z6v1C5DGMMf8X8="),
+		)
+	})
+
+	Context("IsValidBase64EncodedSHA256Hash, Base64EncodedSHA256HashValidator, and ValidateBase64EncodedSHA256Hash", func() {
+		DescribeTable("return the expected results when the input",
+			func(value string, expectedErrors ...error) {
+				Expect(crypto.IsValidBase64EncodedSHA256Hash(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				crypto.Base64EncodedSHA256HashValidator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(crypto.ValidateBase64EncodedSHA256Hash(value), expectedErrors...)
+			},
+			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
+			Entry("is not valid Base64 encoded", "Mylfd9FyN4JNmrXnB/WCAySsVYMYMGssUxxsPWBC8q4=$", crypto.ErrorValueStringAsBase64EncodedSHA256HashNotValid("Mylfd9FyN4JNmrXnB/WCAySsVYMYMGssUxxsPWBC8q4=$")),
+			Entry("is valid Base64 encoded and byte length is out of range (lower)", "ujwNNmdOWZEh+F1a78I8jBSJM0CF6tOBWhFkgjn90g==", crypto.ErrorValueStringAsBase64EncodedSHA256HashNotValid("ujwNNmdOWZEh+F1a78I8jBSJM0CF6tOBWhFkgjn90g==")),
+			Entry("is valid Base64 encoded and byte length is in range", "SJ0r9WRIOLtidvXAXCzeV49w076LW/6fy4BuK5+wPnE="),
+			Entry("is valid Base64 encoded and byte length is out of range (upper)", "R5Q5Eeb0FswBwDLzTXXCpxpjZf6AK/TG2vGa4vQcIjwy", crypto.ErrorValueStringAsBase64EncodedSHA256HashNotValid("R5Q5Eeb0FswBwDLzTXXCpxpjZf6AK/TG2vGa4vQcIjwy")),
+		)
+	})
+
+	Context("ErrorValueStringAsBase64EncodedSHA256HashNotValid", func() {
+		DescribeTable("have expected details when error",
+			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorValueStringAsBase64EncodedSHA256HashNotValid with empty string", crypto.ErrorValueStringAsBase64EncodedSHA256HashNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as Base64 encoded SHA256 hash`),
+			Entry("is ErrorValueStringAsBase64EncodedSHA256HashNotValid with non-empty string", crypto.ErrorValueStringAsBase64EncodedSHA256HashNotValid("U6gJpuAj375MasnhUusR5yNDr9cjZZhnlRGfmvlt4w=="), "value-not-valid", "value is not valid", `value "U6gJpuAj375MasnhUusR5yNDr9cjZZhnlRGfmvlt4w==" is not valid as Base64 encoded SHA256 hash`),
+		)
+	})
+
+	Context("HexEncodedSHA256Hash", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(crypto.HexEncodedSHA256Hash(value)).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "71c480df93d6ae2f1efad1447c66c9525e316218cf51fc8d9ed832f2daf18b73"),
+			Entry("is whitespace", "        ", "8b6fa01313ce51afc09e610f819250da501778ad363cba4f9e312a6ec823d42a"),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "141a421e0c93d3419ceb54c8111b34da6e9609d2c1f73eafd42e4318c31ff17f"),
 		)
 	})
 

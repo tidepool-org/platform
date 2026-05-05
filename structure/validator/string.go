@@ -203,7 +203,7 @@ func (s *String) AsTime(layout string) structure.Time {
 	var valueAsTime *time.Time
 
 	if s.value != nil {
-		if parsed, err := time.Parse(layout, *s.value); err != nil {
+		if parsed, err := time.ParseInLocation(layout, *s.value, time.UTC); err != nil {
 			s.base.ReportError(ErrorValueStringAsTimeNotValid(*s.value, layout))
 		} else {
 			valueAsTime = &parsed

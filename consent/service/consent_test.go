@@ -41,11 +41,9 @@ import (
 var _ = Describe("ConsentService", func() {
 	var logger log.Logger
 
-	var bddpCtrl *gomock.Controller
+	var mockController *gomock.Controller
 	var bddp *test.MockBigDataDonationProjectSharer
-	var mailerCtrl *gomock.Controller
-	var mailer *mailerTest.MockMailer
-	var userClientCtrl *gomock.Controller
+	var mailer *mailerTest.MockClient
 	var userClient *userTest.MockClient
 
 	var store *authStoreMongo.Store
@@ -56,17 +54,12 @@ var _ = Describe("ConsentService", func() {
 	}
 
 	BeforeEach(func() {
-		t := GinkgoT()
 		logger = logTest.NewLogger()
 
-		bddpCtrl = gomock.NewController(t)
-		bddp = test.NewMockBigDataDonationProjectSharer(bddpCtrl)
-
-		mailerCtrl = gomock.NewController(t)
-		mailer = mailerTest.NewMockMailer(mailerCtrl)
-
-		userClientCtrl = gomock.NewController(t)
-		userClient = userTest.NewMockClient(userClientCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		bddp = test.NewMockBigDataDonationProjectSharer(mockController)
+		mailer = mailerTest.NewMockClient(mockController)
+		userClient = userTest.NewMockClient(mockController)
 
 		store = GetSuiteStore()
 
@@ -81,11 +74,8 @@ var _ = Describe("ConsentService", func() {
 		Expect(consentService.EnsureConsent(ctx(), test.ConsentV2)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.AnotherConsentV1)).To(Succeed())
 		Expect(consentService.EnsureConsent(ctx(), test.MockBDDPConsentV1)).To(Succeed())
-	})
-
-	AfterEach(func() {
-		bddpCtrl.Finish()
-		mailerCtrl.Finish()
+		Expect(consentService.EnsureConsent(ctx(), test.MockBDDPConsentV2)).To(Succeed())
+		Expect(consentService.EnsureConsent(ctx(), test.MockRippleConsentV1)).To(Succeed())
 	})
 
 	Describe("ListConsents", func() {
@@ -124,13 +114,15 @@ var _ = Describe("ConsentService", func() {
 		It("should return all consents with an empty filter", func() {
 			result, err := consentService.ListConsents(ctx(), &consent.Filter{}, page.NewPagination())
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(result.Count).To(Equal(4))
-			Expect(result.Data).To(HaveLen(4))
+			Expect(result.Count).To(Equal(6))
+			Expect(result.Data).To(HaveLen(6))
 			Expect(result.Data).To(ConsistOf(
 				test.MatchConsent(*test.ConsentV2),
 				test.MatchConsent(*test.ConsentV1),
 				test.MatchConsent(*test.AnotherConsentV1),
 				test.MatchConsent(*test.MockBDDPConsentV1),
+				test.MatchConsent(*test.MockBDDPConsentV2),
+				test.MatchConsent(*test.MockRippleConsentV1),
 			))
 		})
 
@@ -139,9 +131,11 @@ var _ = Describe("ConsentService", func() {
 			pagination.Page = 1
 			pagination.Size = 1
 
-			result, err := consentService.ListConsents(ctx(), &consent.Filter{}, pagination)
+			result, err := consentService.ListConsents(ctx(), &consent.Filter{
+				Type: pointer.FromAny("test_consent"),
+			}, pagination)
 			Expect(err).To(Not(HaveOccurred()))
-			Expect(result.Count).To(Equal(4))
+			Expect(result.Count).To(Equal(2))
 			Expect(result.Data).To(HaveLen(1))
 			Expect(result.Data).To(ConsistOf(test.MatchConsent(*test.ConsentV1)))
 		})
@@ -235,7 +229,7 @@ var _ = Describe("ConsentService", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = consentService.CreateConsentRecord(ctx(), userID, create)
-			Expect(err).To(MatchError("consent record for the same type and version already exists"))
+			Expect(err).To(MatchError("consent record for the same type and version already exists: test_consent v2"))
 		})
 
 		It("should return an error if consent with a greater version already exists", func() {
@@ -248,7 +242,7 @@ var _ = Describe("ConsentService", func() {
 
 			create.Version = test.ConsentV1.Version
 			_, err = consentService.CreateConsentRecord(ctx(), userID, create)
-			Expect(err).To(MatchError("consent record for a greater version already exists"))
+			Expect(err).To(MatchError("consent record for a greater version already exists: test_consent"))
 		})
 
 		It("should revoke consents with a lower version of the same type", func() {
@@ -273,6 +267,48 @@ var _ = Describe("ConsentService", func() {
 			Expect(record.Status).To(Equal(consent.RecordStatusRevoked))
 			Expect(record.RevocationTime).To(PointTo(BeTemporally("~", time.Now(), time.Minute)))
 			Expect(record.ModifiedTime).ToNot(Equal(v1.ModifiedTime))
+		})
+	})
+
+	Describe("GetActiveConsentRecord", func() {
+		var userID string
+
+		BeforeEach(func() {
+			usr := userTest.RandomUser()
+			userID = *usr.UserID
+
+			creates := []*consent.RecordCreate{
+				test.RandomRecordCreateForConsent(test.ConsentV1),
+				test.RandomRecordCreateForConsent(test.ConsentV2),
+				test.RandomRecordCreateForConsent(test.AnotherConsentV1),
+			}
+			for i, create := range creates {
+				SetConsentGrantedMailerExpectations(mailer, userClient, usr, create)
+
+				create.CreatedTime = create.CreatedTime.Add(-time.Duration(len(creates)-i) * time.Second)
+				created, err := consentService.CreateConsentRecord(ctx(), userID, create)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).ToNot(BeNil())
+			}
+		})
+
+		It("should return latest consent record for each type", func() {
+			type expectedVersion struct {
+				typ     string
+				version int
+			}
+			expectations := []expectedVersion{
+				{test.ConsentV2.Type, test.ConsentV2.Version},
+				{test.AnotherConsentV1.Type, test.AnotherConsentV1.Version},
+			}
+
+			for _, expectation := range expectations {
+				record, err := consentService.GetActiveConsentRecord(ctx(), userID, expectation.typ)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(record).ToNot(BeNil())
+				Expect(record.Type).To(Equal(expectation.typ))
+				Expect(record.Version).To(Equal(expectation.version))
+			}
 		})
 	})
 
@@ -544,13 +580,178 @@ var _ = Describe("ConsentService", func() {
 			Expect(revoked.ModifiedTime).To(BeTemporally("~", time.Now(), time.Minute))
 		})
 	})
+
+	Describe("CreateConsentRecords", func() {
+		var userID string
+		var usr *user.User
+
+		BeforeEach(func() {
+			usr = userTest.RandomUser()
+			userID = *usr.UserID
+		})
+
+		It("should create multiple consent records atomically", func() {
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+			rippleCreate := test.RandomRecordCreateForConsent(test.MockRippleConsentV1)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, rippleCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			records, err := consentService.CreateConsentRecords(ctx(), userID, []*consent.RecordCreate{bddpCreate, rippleCreate})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(records).To(HaveLen(2))
+			Expect(records[0].Type).To(Equal(consent.TypeBigDataDonationProject))
+			Expect(records[0].Version).To(Equal(2))
+			Expect(records[1].Type).To(Equal(consent.TypeRipple))
+			Expect(records[1].Version).To(Equal(1))
+		})
+
+		It("should revoke BDDP v1 when creating BDDP v2 as part of batch", func() {
+			v1Create := test.RandomRecordCreateForConsent(test.MockBDDPConsentV1)
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, v1Create)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			v1, err := consentService.CreateConsentRecord(ctx(), userID, v1Create)
+			Expect(err).ToNot(HaveOccurred())
+
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+			rippleCreate := test.RandomRecordCreateForConsent(test.MockRippleConsentV1)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, rippleCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			records, err := consentService.CreateConsentRecords(ctx(), userID, []*consent.RecordCreate{bddpCreate, rippleCreate})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(records).To(HaveLen(2))
+
+			revoked, err := consentService.GetConsentRecord(ctx(), userID, v1.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(revoked.Status).To(Equal(consent.RecordStatusRevoked))
+		})
+
+		It("should return an error if consent type is invalid", func() {
+			create := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+			create.Type = "invalid"
+
+			_, err := consentService.CreateConsentRecords(ctx(), userID, []*consent.RecordCreate{create})
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("RevokeConsentRecord - cascade", func() {
+		var userID string
+		var usr *user.User
+
+		BeforeEach(func() {
+			usr = userTest.RandomUser()
+			userID = *usr.UserID
+		})
+
+		It("should cascade revoke RIPPLE when BDDP v2 is revoked", func() {
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+			rippleCreate := test.RandomRecordCreateForConsent(test.MockRippleConsentV1)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, rippleCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			records, err := consentService.CreateConsentRecords(ctx(), userID, []*consent.RecordCreate{bddpCreate, rippleCreate})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(records).To(HaveLen(2))
+
+			bddpRecord := records[0]
+			rippleRecord := records[1]
+
+			revoke := consent.NewRecordRevoke()
+			revoke.ID = bddpRecord.ID
+
+			SetConsentRevokedMailerExpectations(mailer, userClient, usr, bddpRecord)
+			SetConsentRevokedMailerExpectations(mailer, userClient, usr, rippleRecord)
+			bddp.EXPECT().Unshare(gomock.Any(), userID).Return(nil)
+
+			Expect(consentService.RevokeConsentRecord(ctx(), userID, revoke)).To(Succeed())
+
+			revokedBDDP, err := consentService.GetConsentRecord(ctx(), userID, bddpRecord.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(revokedBDDP.Status).To(Equal(consent.RecordStatusRevoked))
+
+			revokedRipple, err := consentService.GetConsentRecord(ctx(), userID, rippleRecord.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(revokedRipple.Status).To(Equal(consent.RecordStatusRevoked))
+		})
+
+		It("should succeed when revoking BDDP v2 with no active RIPPLE", func() {
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			bddpRecord, err := consentService.CreateConsentRecord(ctx(), userID, bddpCreate)
+			Expect(err).ToNot(HaveOccurred())
+
+			revoke := consent.NewRecordRevoke()
+			revoke.ID = bddpRecord.ID
+
+			SetConsentRevokedMailerExpectations(mailer, userClient, usr, bddpRecord)
+			bddp.EXPECT().Unshare(gomock.Any(), userID).Return(nil)
+
+			Expect(consentService.RevokeConsentRecord(ctx(), userID, revoke)).To(Succeed())
+		})
+
+		It("should not cascade when revoking RIPPLE alone", func() {
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV2)
+			rippleCreate := test.RandomRecordCreateForConsent(test.MockRippleConsentV1)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, rippleCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			records, err := consentService.CreateConsentRecords(ctx(), userID, []*consent.RecordCreate{bddpCreate, rippleCreate})
+			Expect(err).ToNot(HaveOccurred())
+
+			bddpRecord := records[0]
+			rippleRecord := records[1]
+
+			revoke := consent.NewRecordRevoke()
+			revoke.ID = rippleRecord.ID
+
+			SetConsentRevokedMailerExpectations(mailer, userClient, usr, rippleRecord)
+
+			Expect(consentService.RevokeConsentRecord(ctx(), userID, revoke)).To(Succeed())
+
+			// BDDP should still be active
+			activeBDDP, err := consentService.GetConsentRecord(ctx(), userID, bddpRecord.ID)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(activeBDDP.Status).To(Equal(consent.RecordStatusActive))
+		})
+
+		It("should not cascade when revoking BDDP v1", func() {
+			bddpCreate := test.RandomRecordCreateForConsent(test.MockBDDPConsentV1)
+
+			SetConsentGrantedMailerExpectations(mailer, userClient, usr, bddpCreate)
+			bddp.EXPECT().Share(gomock.Any(), userID).Return(nil)
+
+			bddpRecord, err := consentService.CreateConsentRecord(ctx(), userID, bddpCreate)
+			Expect(err).ToNot(HaveOccurred())
+
+			revoke := consent.NewRecordRevoke()
+			revoke.ID = bddpRecord.ID
+
+			SetConsentRevokedMailerExpectations(mailer, userClient, usr, bddpRecord)
+			bddp.EXPECT().Unshare(gomock.Any(), userID).Return(nil)
+
+			Expect(consentService.RevokeConsentRecord(ctx(), userID, revoke)).To(Succeed())
+		})
+	})
 })
 
-func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
+func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, create *consent.RecordCreate) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).
-		Do(func(_ context.Context, event events.SendEmailTemplateEvent) error {
+		DoAndReturn(func(_ context.Context, event events.SendEmailTemplateEvent) error {
 			Expect(event.Recipient).To(Equal(*usr.Username))
 			Expect(event.Template).To(HavePrefix(service.DefaultInformedConsentGrantedEmailTemplate))
 			Expect(event.Variables).To(HaveKeyWithValue("Name", create.OwnerName))
@@ -561,19 +762,19 @@ func SetConsentGrantedMailerExpectations(mailer *mailerTest.MockMailer, userClie
 			Expect(event.Attachments[0].Data).ToNot(BeEmpty())
 			Expect(event.Attachments[0].ContentType).To(Equal("application/pdf"))
 			return nil
-		}).Return(nil)
+		})
 }
 
-func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockMailer, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
+func SetConsentRevokedMailerExpectations(mailer *mailerTest.MockClient, userClient *userTest.MockClient, usr *user.User, record *consent.Record) {
 	userClient.EXPECT().Get(gomock.Any(), *usr.UserID).Return(usr, nil)
 	mailer.EXPECT().
 		SendEmailTemplate(gomock.Any(), gomock.Any()).
-		Do(func(_ context.Context, event events.SendEmailTemplateEvent) error {
+		DoAndReturn(func(_ context.Context, event events.SendEmailTemplateEvent) error {
 			Expect(event.Recipient).To(Equal(*usr.Username))
 			Expect(event.Template).To(HavePrefix(service.DefaultInformedConsentRevokedEmailTemplate))
 			Expect(event.Variables).To(HaveKeyWithValue("Name", record.OwnerName))
 			Expect(event.Variables).To(HaveKeyWithValue("Type", cases.Title(language.English, cases.Compact).String(strings.ReplaceAll(record.Type, "_", " "))))
 			Expect(event.Variables).To(HaveKeyWithValue("Version", strconv.Itoa(record.Version)))
 			return nil
-		}).Return(nil)
+		})
 }

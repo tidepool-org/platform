@@ -7,46 +7,25 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 
 	"github.com/tidepool-org/platform/auth"
+	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
+	dataSet "github.com/tidepool-org/platform/data/set"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
-	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/twiist"
 )
 
-const ProviderName = "twiist"
-
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test ProviderSessionClient
-type ProviderSessionClient interface {
-	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
-	DeleteProviderSession(ctx context.Context, id string) error
-}
-
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSourceClient
-type DataSourceClient interface {
-	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
-	Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
-	Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error)
-}
-
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSetClient
-type DataSetClient interface {
-	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
-	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
-}
-
 type ProviderDependencies struct {
 	ConfigReporter        config.Reporter
-	ProviderSessionClient ProviderSessionClient
-	DataSourceClient      DataSourceClient
-	DataSetClient         DataSetClient
+	ProviderSessionClient providerSession.Client
+	DataSourceClient      dataSource.Client
+	DataSetClient         dataSet.Client
 	JWKS                  jwk.Set
 }
 
@@ -68,9 +47,9 @@ func (p ProviderDependencies) Validate() error {
 
 type Provider struct {
 	*oauthProvider.Provider
-	providerSessionClient ProviderSessionClient
-	dataSourceClient      DataSourceClient
-	dataSetClient         DataSetClient
+	providerSessionClient providerSession.Client
+	dataSourceClient      dataSource.Client
+	dataSetClient         dataSet.Client
 }
 
 // Compile time check for making sure Provider is a valid oauth.Provider
@@ -81,7 +60,12 @@ func New(providerDependencies ProviderDependencies) (*Provider, error) {
 		return nil, err
 	}
 
-	prvdr, err := oauthProvider.New(ProviderName, providerDependencies.ConfigReporter.WithScopes(ProviderName), providerDependencies.JWKS)
+	cfg, err := oauthProvider.NewConfigWithConfigReporter(providerDependencies.ConfigReporter.WithScopes(twiist.ProviderName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create provider config")
+	}
+
+	prvdr, err := oauthProvider.New(twiist.ProviderName, cfg, providerDependencies.JWKS)
 	if err != nil {
 		return nil, err
 	}
@@ -122,29 +106,21 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 
 	lgr := log.LoggerFromContext(ctx)
 
-	dataSrcFilter := &dataSource.Filter{
-		ProviderType:      pointer.FromStringArray([]string{p.Type()}),
-		ProviderName:      pointer.FromStringArray([]string{p.Name()}),
-		ProviderSessionID: pointer.FromStringArray([]string{providerSession.ID}),
-	}
-	dataSrcs, err := p.dataSourceClient.List(ctx, providerSession.UserID, dataSrcFilter, nil)
+	dataSrc, err := p.dataSourceClient.GetFromProviderSession(ctx, providerSession.ID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get data sources")
+		return errors.Wrap(err, "unable to get data source for provider session")
+	} else if dataSrc == nil {
+		lgr.Warn("no data source found for provider session")
+		return nil
 	}
 
-	if count := len(dataSrcs); count > 1 {
-		lgr.WithField("count", count).Warn("unexpected number of data sources found for provider session")
-	}
+	ctx, lgr = log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
 
 	dataSrcUpdate := &dataSource.Update{
 		State: pointer.FromString(dataSource.StateDisconnected),
 	}
-	for _, dataSrc := range dataSrcs {
-		dataSrcCtx, dataSrcLgr := log.ContextAndLoggerWithField(ctx, "dataSourceId", dataSrc.ID)
-
-		if _, err = p.dataSourceClient.Update(dataSrcCtx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
-			dataSrcLgr.WithError(err).Error("unable to update data source while deleting provider session")
-		}
+	if _, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate); err != nil {
+		lgr.WithError(err).Error("unable to update data source while deleting provider session")
 	}
 
 	// TODO: BACK-3652 - Allow unlinking of twiist account from Tidepool-initiated action
@@ -152,8 +128,13 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	return nil
 }
 
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return false
+func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error) {
+	switch action {
+	case oauth.ActionRevoke:
+		return false, nil
+	default:
+		return p.Provider.AllowUserInitiatedAction(ctx, userID, action)
+	}
 }
 
 func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.ProviderSession) (*dataSource.Source, error) {
@@ -165,9 +146,9 @@ func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.
 	}
 
 	dataSrcFilter := &dataSource.Filter{
-		ProviderType:       pointer.FromStringArray([]string{p.Type()}),
-		ProviderName:       pointer.FromStringArray([]string{p.Name()}),
-		ProviderExternalID: pointer.FromStringArray([]string{dataSrcExternalID}),
+		ProviderType:       pointer.FromString(p.Type()),
+		ProviderName:       pointer.FromString(p.Name()),
+		ProviderExternalID: pointer.FromString(dataSrcExternalID),
 	}
 	dataSrcs, err := p.dataSourceClient.List(ctx, providerSession.UserID, dataSrcFilter, nil)
 	if err != nil {
@@ -184,8 +165,8 @@ func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.
 
 	if dataSrc == nil {
 		dataSrcCreate := &dataSource.Create{
-			ProviderType:       pointer.FromString(p.Type()),
-			ProviderName:       pointer.FromString(p.Name()),
+			ProviderType:       p.Type(),
+			ProviderName:       p.Name(),
 			ProviderExternalID: pointer.FromString(dataSrcExternalID),
 		}
 		if dataSrc, err = p.dataSourceClient.Create(ctx, providerSession.UserID, dataSrcCreate); err != nil {
@@ -203,13 +184,13 @@ func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.
 	}
 
 	// Unexpected state for data source, cleanup
-	if *dataSrc.State != dataSource.StateDisconnected {
+	if dataSrc.State != dataSource.StateDisconnected {
 		lgr.WithField("state", dataSrc.State).Warn("data source in unexpected state")
 
 		srcUpdate := &dataSource.Update{
 			State: pointer.FromString(dataSource.StateDisconnected),
 		}
-		if _, err = p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, srcUpdate); err != nil {
+		if _, err = p.dataSourceClient.Update(ctx, dataSrc.ID, nil, srcUpdate); err != nil {
 			return nil, errors.Wrap(err, "unable to update data source")
 		}
 	}
@@ -220,12 +201,16 @@ func (p *Provider) prepareDataSource(ctx context.Context, providerSession *auth.
 }
 
 func (p *Provider) prepareDataSet(ctx context.Context, dataSrc *dataSource.Source) error {
-	dataSet, err := newDataSetEnsurer(p.dataSetClient).Ensure(ctx, *dataSrc)
-	if err != nil {
-		return err
+	if dataSrc.DataSetID != nil {
+		return nil
 	}
 
-	dataSrc.AddDataSetID(*dataSet.ID)
+	dataSet, err := p.dataSetClient.CreateUserDataSet(ctx, dataSrc.UserID, NewDataSetCreate())
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set")
+	}
+
+	dataSrc.DataSetID = dataSet.ID
 
 	return nil
 }
@@ -240,12 +225,12 @@ func (p *Provider) connectDataSource(ctx context.Context, providerSession *auth.
 	}
 
 	dataSrcUpdate := &dataSource.Update{
-		DataSetIDs:         dataSrc.DataSetIDs,
+		DataSetID:          dataSrc.DataSetID,
 		ProviderExternalID: dataSrc.ProviderExternalID,
 		ProviderSessionID:  pointer.FromString(providerSession.ID),
 		State:              pointer.FromString(dataSource.StateConnected),
 	}
-	if _, err := p.dataSourceClient.Update(ctx, *dataSrc.ID, nil, dataSrcUpdate); err != nil {
+	if _, err := p.dataSourceClient.Update(ctx, dataSrc.ID, nil, dataSrcUpdate); err != nil {
 		return errors.Wrap(err, "unable to update data source")
 	}
 
@@ -265,7 +250,7 @@ func (p *Provider) extractExternalIDsFromProviderSession(providerSession *auth.P
 		return "", "", nil
 	} else if idToken := providerSession.OAuthToken.IDToken; idToken == nil {
 		return "", "", nil
-	} else if err := p.Provider.ParseToken(*idToken, &claims); err != nil {
+	} else if err := p.ParseToken(*idToken, &claims); err != nil {
 		return "", "", errors.Wrap(err, "unable to parse id token")
 	} else if !claims.VerifyAudience(p.ClientID(), true) {
 		return "", "", errors.New("unable to verify id token audience claim")
@@ -278,17 +263,8 @@ func (p *Provider) extractExternalIDsFromProviderSession(providerSession *auth.P
 	}
 }
 
-func newDataSetEnsurer(dataSetClient dataSource.DataSetEnsurerClient) *dataSource.DataSetEnsurer {
-	return &dataSource.DataSetEnsurer{
-		Client:  dataSetClient,
-		Factory: dataSetCreateFactory{},
-	}
-}
-
-type dataSetCreateFactory struct{}
-
-func (d dataSetCreateFactory) NewDataSetCreate(dataSrc dataSource.Source) data.DataSetCreate {
-	return data.DataSetCreate{
+func NewDataSetCreate() *data.DataSetCreate {
+	return &data.DataSetCreate{
 		Client: &data.DataSetClient{
 			Name:    pointer.FromString(twiist.DataSetClientName),
 			Version: pointer.FromString(twiist.DataSetClientVersion),

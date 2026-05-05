@@ -17,6 +17,16 @@ type HTTPClientOutput struct {
 	Error      error
 }
 
+type UpdateTokenOutput struct {
+	Updated bool
+	Error   error
+}
+
+type ExpireTokenOutput struct {
+	Expired bool
+	Error   error
+}
+
 type TokenSource struct {
 	HTTPClientInvocations  int
 	HTTPClientInputs       []HTTPClientInput
@@ -24,13 +34,15 @@ type TokenSource struct {
 	HTTPClientOutputs      []HTTPClientOutput
 	HTTPClientOutput       *HTTPClientOutput
 	UpdateTokenInvocations int
-	UpdateTokenStub        func() error
-	UpdateTokenOutputs     []error
-	UpdateTokenOutput      error
+	UpdateTokenInputs      []context.Context
+	UpdateTokenStub        func(ctx context.Context) (bool, error)
+	UpdateTokenOutputs     []UpdateTokenOutput
+	UpdateTokenOutput      *UpdateTokenOutput
 	ExpireTokenInvocations int
-	ExpireTokenStub        func() error
-	ExpireTokenOutputs     []error
-	ExpireTokenOutput      error
+	ExpireTokenInputs      []context.Context
+	ExpireTokenStub        func(ctx context.Context) (bool, error)
+	ExpireTokenOutputs     []ExpireTokenOutput
+	ExpireTokenOutput      *ExpireTokenOutput
 }
 
 func NewTokenSource() *TokenSource {
@@ -54,34 +66,36 @@ func (t *TokenSource) HTTPClient(ctx context.Context, tokenSourceSource oauth.To
 	panic("HTTPClient has no output")
 }
 
-func (t *TokenSource) UpdateToken() error {
+func (t *TokenSource) UpdateToken(ctx context.Context) (bool, error) {
 	t.UpdateTokenInvocations++
+	t.UpdateTokenInputs = append(t.UpdateTokenInputs, ctx)
 	if t.UpdateTokenStub != nil {
-		return t.UpdateTokenStub()
+		return t.UpdateTokenStub(ctx)
 	}
 	if len(t.UpdateTokenOutputs) > 0 {
 		output := t.UpdateTokenOutputs[0]
 		t.UpdateTokenOutputs = t.UpdateTokenOutputs[1:]
-		return output
+		return output.Updated, output.Error
 	}
 	if t.UpdateTokenOutput != nil {
-		return t.UpdateTokenOutput
+		return t.UpdateTokenOutput.Updated, t.UpdateTokenOutput.Error
 	}
 	panic("UpdateToken has no output")
 }
 
-func (t *TokenSource) ExpireToken() error {
+func (t *TokenSource) ExpireToken(ctx context.Context) (bool, error) {
 	t.ExpireTokenInvocations++
+	t.ExpireTokenInputs = append(t.ExpireTokenInputs, ctx)
 	if t.ExpireTokenStub != nil {
-		return t.ExpireTokenStub()
+		return t.ExpireTokenStub(ctx)
 	}
 	if len(t.ExpireTokenOutputs) > 0 {
 		output := t.ExpireTokenOutputs[0]
 		t.ExpireTokenOutputs = t.ExpireTokenOutputs[1:]
-		return output
+		return output.Expired, output.Error
 	}
 	if t.ExpireTokenOutput != nil {
-		return t.ExpireTokenOutput
+		return t.ExpireTokenOutput.Expired, t.ExpireTokenOutput.Error
 	}
 	panic("ExpireToken has no output")
 }

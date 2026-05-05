@@ -6,6 +6,8 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
+//go:generate mockgen -source=repository.go -destination=test/repository_mocks.go -package=test -typed
+
 var (
 	ErrDuplicateKeyId = errors.New("duplicate key id")
 	ErrKeyIdNotFound  = errors.New("key id not found")
@@ -16,7 +18,6 @@ type Filter struct {
 	KeyID  string
 }
 
-//go:generate mockgen -source=repository.go -destination=test/repository_mocks.go -package=test Repository
 type Repository interface {
 	IsVerified(ctx context.Context, f Filter) (bool, error)
 	Get(ctx context.Context, f Filter) (*AppValidation, error)

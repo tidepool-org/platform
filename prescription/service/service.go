@@ -4,41 +4,38 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/tidepool-org/go-common/clients"
 	"github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/clinics"
-
-	"github.com/tidepool-org/platform/page"
-
-	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
-
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/mailer"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/prescription"
+	prescriptionStore "github.com/tidepool-org/platform/prescription/store"
 )
 
 const prescriptionTemplate = "prescription_access_code"
 
 type PrescriptionService struct {
 	clinicsClient     clinics.Client
-	mailer            clients.MailerClient
+	mailerClient      mailer.Client
 	prescriptionStore prescriptionStore.Store
 }
 
-func NewService(store prescriptionStore.Store, clinicsClient clinics.Client, mailer clients.MailerClient) (prescription.Service, error) {
+func NewService(store prescriptionStore.Store, clinicsClient clinics.Client, mailerClient mailer.Client) (prescription.Service, error) {
 	if store == nil {
 		return nil, errors.New("prescription store is missing")
 	}
 	if clinicsClient == nil {
 		return nil, errors.New("clinics client is missing")
 	}
-	if mailer == nil {
+	if mailerClient == nil {
 		return nil, errors.New("mailer client is missing")
 	}
 
 	return &PrescriptionService{
 		clinicsClient:     clinicsClient,
-		mailer:            mailer,
+		mailerClient:      mailerClient,
 		prescriptionStore: store,
 	}, nil
 }
@@ -132,5 +129,5 @@ func (p *PrescriptionService) sendAccessCodeEmail(ctx context.Context, prescr *p
 		},
 	}
 
-	return p.mailer.SendEmailTemplate(ctx, email)
+	return p.mailerClient.SendEmailTemplate(ctx, email)
 }

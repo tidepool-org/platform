@@ -25,68 +25,48 @@ func (p *ProviderSessionRepository) EnsureIndexes() error {
 		{
 			Keys: bson.D{{Key: "id", Value: 1}},
 			Options: options.Index().
-				SetUnique(true).
-				SetBackground(true),
+				SetUnique(true),
 		},
 		{
-			Keys: bson.D{{Key: "userId", Value: 1}},
+			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "type", Value: 1}, {Key: "name", Value: 1}, {Key: "externalId", Value: 1}},
 			Options: options.Index().
-				SetBackground(true),
+				SetUnique(true),
 		},
 		{
-			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "type", Value: 1}, {Key: "name", Value: 1}},
-			Options: options.Index().
-				SetUnique(true).
-				SetBackground(true),
-		},
-		{
-			Keys: bson.D{{Key: "externalId", Value: 1}, {Key: "type", Value: 1}, {Key: "name", Value: 1}},
+			Keys: bson.D{{Key: "type", Value: 1}, {Key: "name", Value: 1}, {Key: "externalId", Value: 1}},
 		},
 	})
 }
 
-func (p *ProviderSessionRepository) CreateUserProviderSession(ctx context.Context, userID string, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
+func (p *ProviderSessionRepository) CreateProviderSession(ctx context.Context, create *auth.ProviderSessionCreate) (*auth.ProviderSession, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
-	providerSession, err := auth.NewProviderSession(ctx, userID, create)
-	if err != nil {
-		return nil, err
-	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(providerSession); err != nil {
-		return nil, errors.Wrap(err, "provider session is invalid")
+	if create == nil {
+		return nil, errors.New("create is missing")
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
+		return nil, errors.Wrap(err, "create is invalid")
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
+	logger := log.LoggerFromContext(ctx).WithField("create", create)
 
-	_, err = p.InsertOne(ctx, providerSession)
-	logger.WithFields(log.Fields{"id": providerSession.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateUserProviderSession")
+	providerSession := &auth.ProviderSession{
+		ID:          auth.NewProviderSessionID(),
+		UserID:      create.UserID,
+		Type:        create.Type,
+		Name:        create.Name,
+		OAuthToken:  create.OAuthToken,
+		ExternalID:  create.ExternalID,
+		CreatedTime: now,
+	}
+	_, err := p.InsertOne(ctx, providerSession)
+	logger.WithFields(log.Fields{"id": providerSession.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateProviderSession")
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to create user provider session")
+		return nil, errors.Wrap(err, "unable to create provider session")
 	}
 
 	return providerSession, nil
-}
-
-func (p *ProviderSessionRepository) DeleteUserProviderSessions(ctx context.Context, userID string) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if userID == "" {
-		return errors.New("user id is missing")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("userId", userID)
-
-	changeInfo, err := p.DeleteMany(ctx, bson.M{"userId": userID})
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteUserProviderSessions")
-	if err != nil {
-		return errors.Wrap(err, "unable to delete user provider sessions")
-	}
-
-	return nil
 }
 
 func (p *ProviderSessionRepository) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
@@ -94,7 +74,7 @@ func (p *ProviderSessionRepository) ListProviderSessions(ctx context.Context, fi
 		return nil, errors.New("context is missing")
 	}
 	if filter == nil {
-		filter = auth.NewProviderSessionFilter()
+		return nil, errors.New("filter is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
 		return nil, errors.Wrap(err, "filter is invalid")
 	}
@@ -124,17 +104,14 @@ func (p *ProviderSessionRepository) ListProviderSessions(ctx context.Context, fi
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := p.Find(ctx, selector, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to list user provider sessions")
+		return nil, errors.Wrap(err, "unable to list provider sessions")
 	}
 
 	providerSessions := auth.ProviderSessions{}
 	if err = cursor.All(ctx, &providerSessions); err != nil {
-		return nil, errors.Wrap(err, "unable to decode user provider sessions")
+		return nil, errors.Wrap(err, "unable to decode provider sessions")
 	}
 
-	if providerSessions == nil {
-		providerSessions = auth.ProviderSessions{}
-	}
 	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListProviderSessions")
 
 	return providerSessions, nil
@@ -218,45 +195,4 @@ func (p *ProviderSessionRepository) DeleteProviderSession(ctx context.Context, i
 	}
 
 	return nil
-}
-
-func (p *ProviderSessionRepository) ListAllProviderSessions(ctx context.Context, filter auth.ProviderSessionFilter, pagination page.Pagination) (auth.ProviderSessions, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&filter); err != nil {
-		return nil, errors.Wrap(err, "filter is invalid")
-	}
-	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(&pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
-
-	selector := bson.M{}
-	if filter.Type != nil {
-		selector["type"] = *filter.Type
-	}
-	if filter.Name != nil {
-		selector["name"] = *filter.Name
-	}
-	if filter.ExternalID != nil {
-		selector["externalId"] = *filter.ExternalID
-	}
-	opts := storeStructuredMongo.FindWithPagination(&pagination).
-		SetSort(bson.M{"createdTime": -1})
-	cursor, err := p.Find(ctx, selector, opts)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to list all provider sessions")
-	}
-
-	providerSessions := auth.ProviderSessions{}
-	if err = cursor.All(ctx, &providerSessions); err != nil {
-		return nil, errors.Wrap(err, "unable to decode all provider sessions")
-	}
-
-	logger.WithFields(log.Fields{"count": len(providerSessions), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListAllProviderSessions")
-
-	return providerSessions, nil
 }

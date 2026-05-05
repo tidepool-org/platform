@@ -117,7 +117,7 @@ type BaseSummary struct {
 }
 
 type Summary[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData] struct {
-	BaseSummary `json:",inline" bson:",inline"`
+	BaseSummary `bson:",inline"`
 
 	Periods PP `json:"periods" bson:"periods"`
 }

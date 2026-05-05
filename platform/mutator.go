@@ -80,7 +80,7 @@ func (t *TraceMutator) MutateRequest(req *http.Request) error {
 
 	if t.Context != nil {
 		if err := request.CopyTrace(t.Context, req); err != nil {
-			return errors.Wrapf(err, "unable to copy trace")
+			return errors.Wrap(err, "unable to copy trace")
 		}
 	}
 

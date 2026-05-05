@@ -2,30 +2,26 @@ package requests
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tidepool-org/go-common/events"
 
-	"github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/auth"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
+	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const (
-	processorType            = "org.tidepool.processors.connections.requests"
-	quantity                 = 2
-	frequency                = time.Minute
-	processingTimeoutSeconds = 60
+	FailingRetryDuration       = 1 * time.Minute
+	FailingRetryDurationJitter = 5 * time.Second
 )
-
-// NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
-func NewGroupID(userID, providerName string) string {
-	return fmt.Sprintf("%s:%s:%s", processorType, userID, providerName)
-}
 
 type Metadata struct {
 	ClinicID          string    `json:"clinicId,omitempty"`
@@ -38,170 +34,128 @@ type Metadata struct {
 	WhenToSend        time.Time `json:"whenToSend,omitzero"`
 }
 
-type processor struct {
-	dependencies notifications.Dependencies
-}
-
-func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
-	whenToSend := metadata.WhenToSend
-	if whenToSend.IsZero() {
-		whenToSend = time.Now().Add(time.Hour * 24 * 7)
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clinicId"); ptr != nil {
+		m.ClinicID = *ptr
 	}
-	create := newWorkCreate(whenToSend, metadata)
-	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
-		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
-			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
-		}
+	if ptr := parser.String("email"); ptr != nil {
+		m.Email = *ptr
 	}
-	if _, err := client.Create(ctx, create); err != nil {
-		return err
+	if ptr := parser.String("emailTemplate"); ptr != nil {
+		m.EmailTemplate = *ptr
 	}
-	return nil
-}
-
-func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
-	return &work.Create{
-		Type:                    processorType,
-		SerialID:                pointer.FromString(metadata.UserID),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID, metadata.ProviderName)),
-		ProcessingTimeout:       processingTimeoutSeconds,
-		ProcessingAvailableTime: notBefore,
-		Metadata:                fromConnectAccountData(metadata),
+	if ptr := parser.String("patientName"); ptr != nil {
+		m.PatientName = *ptr
+	}
+	if ptr := parser.String("providerName"); ptr != nil {
+		m.ProviderName = *ptr
+	}
+	if ptr := parser.String("restrictedTokenId"); ptr != nil {
+		m.RestrictedTokenID = *ptr
+	}
+	if ptr := parser.String("userId"); ptr != nil {
+		m.UserID = *ptr
+	}
+	if ptr := parser.Time("whenToSend", time.RFC3339Nano); ptr != nil {
+		m.WhenToSend = *ptr
 	}
 }
 
-func (d *Metadata) Parse(parser structure.ObjectParser) {
-	d.ClinicID = pointer.ToString(parser.String("clinicId"))
-	d.Email = pointer.ToString(parser.String("email"))
-	d.EmailTemplate = pointer.ToString(parser.String("emailTemplate"))
-	d.PatientName = pointer.ToString(parser.String("patientName"))
-	d.ProviderName = pointer.ToString(parser.String("providerName"))
-	d.RestrictedTokenID = pointer.ToString(parser.String("restrictedTokenId"))
-	d.UserID = pointer.ToString(parser.String("userId"))
-	d.WhenToSend = pointer.ToTime(parser.Time("whenToSend", time.RFC3339Nano))
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.String("clinicId", &m.ClinicID).NotEmpty()
+	validator.String("email", &m.Email).NotEmpty()
+	validator.String("emailTemplate", &m.EmailTemplate).NotEmpty()
+	validator.String("patientName", &m.PatientName).NotEmpty()
+	validator.String("providerName", &m.ProviderName).Using(auth.ProviderNameValidator)
+	validator.String("restrictedTokenId", &m.RestrictedTokenID).Using(auth.RestrictedTokenIDValidator)
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
 }
 
-func (d *Metadata) Validate(validator structure.Validator) {
-	validator.String("clinicId", &d.ClinicID).NotEmpty()
-	validator.String("email", &d.Email).NotEmpty()
-	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
-	validator.String("patientName", &d.PatientName).NotEmpty()
-	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("restrictedTokenId", &d.RestrictedTokenID).NotEmpty()
-	validator.String("userId", &d.UserID).NotEmpty()
+type UserMixin = userWork.Mixin
+
+type Processor struct {
+	*workBase.Processor[Metadata]
+	UserMixin
+	Dependencies
 }
 
-func NewProcessor(dependencies notifications.Dependencies) *processor {
-	return &processor{
-		dependencies: dependencies,
+func NewProcessor(dependencies Dependencies) (*Processor, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
-}
 
-func (p *processor) Type() string {
-	return processorType
-}
+	processResultBuilder := &workBase.ProcessResultBuilder{
+		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
+			Duration:       FailingRetryDuration,
+			DurationJitter: FailingRetryDurationJitter,
+		},
+	}
 
-func (p *processor) Quantity() int {
-	return quantity
-}
-
-func (p *processor) Frequency() time.Duration {
-	return frequency
-}
-
-func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
-	data, err := toConnectAccountData(wrk)
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
+		return nil, errors.Wrap(err, "unable to create processor")
+	}
+	userMixin, err := userWork.NewMixin(processor, dependencies.UserClient)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create user mixin")
 	}
 
-	user, err := p.dependencies.Users.Get(ctx, data.UserID)
+	return &Processor{
+		Processor:    processor,
+		UserMixin:    userMixin,
+		Dependencies: dependencies,
+	}, nil
+}
+
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.process,
+	).Process(p.Delete)
+}
+
+func (p *Processor) process() *work.ProcessResult {
+	if result := p.FetchUser(p.Metadata().UserID); result != nil {
+		return result
+	}
+
+	username := p.User().Username
+	if username == nil {
+		return p.Failed(errors.New("user username is missing"))
+	}
+
+	filter := &dataSource.Filter{
+		ProviderName: pointer.FromString(p.Metadata().ProviderName),
+		State:        pointer.FromString(dataSource.StateConnected),
+	}
+	dataSrcs, err := p.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
 	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
-	}
-	filter := source.NewFilter()
-	filter.ProviderName = pointer.FromStringArray([]string{data.ProviderName})
-	filter.State = pointer.FromStringArray([]string{source.StateConnected})
-	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserID, filter, nil)
-	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-	if len(connectedDataSources) > 0 {
-		// User now has a connected dataSource so no email to send.
-		return *work.NewProcessResultDelete()
+		return p.Failing(err)
+	} else if len(dataSrcs) > 0 {
+		return nil // User now has a connected dataSource so no email to send
 	}
 
 	var clinicName string
-	clinic, err := p.dependencies.Clinics.GetClinic(ctx, data.ClinicID)
+	clinic, err := p.GetClinic(p.Context(), p.Metadata().ClinicID)
 	if err != nil {
-		return notifications.NewFailingResult(errors.Wrapf(err, `error getting clinic`), wrk)
-	}
-	if clinic != nil {
+		return p.Failing(errors.Wrapf(err, "error getting clinic"))
+	} else if clinic != nil {
 		clinicName = clinic.Name
 	}
-	emailVars := map[string]string{
+
+	variables := map[string]string{
 		"ClinicName":        clinicName,
-		"PatientName":       data.PatientName,
-		"ProviderName":      data.ProviderName,
-		"RestrictedTokenId": data.RestrictedTokenID,
+		"PatientName":       p.Metadata().PatientName,
+		"ProviderName":      p.Metadata().ProviderName,
+		"RestrictedTokenId": p.Metadata().RestrictedTokenID,
 	}
 	templateEvent := events.SendEmailTemplateEvent{
-		Recipient: *user.Username,
-		Template:  data.EmailTemplate,
-		Variables: emailVars,
+		Recipient: *username,
+		Template:  p.Metadata().EmailTemplate,
+		Variables: variables,
 	}
-	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
-		return notifications.NewFailingResult(err, wrk)
+	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
+		return p.Failing(err)
 	}
-	return *work.NewProcessResultDelete()
-}
 
-func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
-	wrk.EnsureMetadata()
-	var data Metadata
-	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
-		data.ClinicID = clinicID
-	} else {
-		return nil, errors.Newf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
-	}
-	if userID, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserID = userID
-	} else {
-		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
-	}
-	if providerName, ok := wrk.Metadata["providerName"].(string); ok {
-		data.ProviderName = providerName
-	} else {
-		return nil, errors.Newf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
-	}
-	if patientName, ok := wrk.Metadata["patientName"].(string); ok {
-		data.PatientName = patientName
-	} else {
-		return nil, errors.Newf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
-	}
-	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
-		data.RestrictedTokenID = restrictedTokenID
-	} else {
-		return nil, errors.Newf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
-	}
-	if emailTemplate, ok := wrk.Metadata["emailTemplate"].(string); ok {
-		data.EmailTemplate = emailTemplate
-	} else {
-		return nil, errors.Newf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
-	}
-	return &data, nil
-}
-
-func fromConnectAccountData(data Metadata) map[string]any {
-	return map[string]any{
-		"clinicId":          data.ClinicID,
-		"userId":            data.UserID,
-		"providerName":      data.ProviderName,
-		"patientName":       data.PatientName,
-		"restrictedTokenId": data.RestrictedTokenID,
-		"emailTemplate":     data.EmailTemplate,
-	}
+	return nil
 }

@@ -107,6 +107,7 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.Dat
 	now = now.UTC()
 	timestamp := now.Truncate(time.Millisecond)
 
+	dataSet.Time = pointer.FromTime(pointer.DefaultTime(dataSet.Time, timestamp))
 	dataSet.CreatedTime = pointer.FromTime(timestamp)
 	dataSet.ModifiedTime = pointer.FromTime(timestamp)
 

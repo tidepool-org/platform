@@ -182,7 +182,7 @@ func NewObjectFromBase(datum *types.Base, objectFormat test.ObjectFormat) map[st
 		object["modifiedUserId"] = test.NewObjectFromString(*datum.ModifiedUserID, objectFormat)
 	}
 	if datum.Notes != nil {
-		object["notes"] = test.NewObjectFromStringArray(*datum.Notes, objectFormat)
+		object["notes"] = test.NewArrayFromStringArray(*datum.Notes, objectFormat)
 	}
 	if datum.Origin != nil {
 		object["origin"] = originTest.NewObjectFromOrigin(datum.Origin, objectFormat)
@@ -194,7 +194,7 @@ func NewObjectFromBase(datum *types.Base, objectFormat test.ObjectFormat) map[st
 		object["source"] = test.NewObjectFromString(*datum.Source, objectFormat)
 	}
 	if datum.Tags != nil {
-		object["tags"] = test.NewObjectFromStringArray(*datum.Tags, objectFormat)
+		object["tags"] = test.NewArrayFromStringArray(*datum.Tags, objectFormat)
 	}
 	if datum.Time != nil {
 		object["time"] = test.NewObjectFromTime(*datum.Time, objectFormat)

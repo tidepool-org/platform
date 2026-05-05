@@ -28,8 +28,6 @@ type Service struct {
 	AuthStoreImpl                             *authStoreTest.Store
 	ProviderFactoryInvocations                int
 	ProviderFactoryImpl                       *providerTest.Factory
-	AuthServiceClientInvocations              int
-	AuthServiceClientImpl                     authService.Client
 	TaskClientInvocations                     int
 	TaskClientImpl                            *taskTest.Client
 	ConfirmationClientInvocations             int
@@ -75,12 +73,6 @@ func (s *Service) ProviderFactory() provider.Factory {
 	s.ProviderFactoryInvocations++
 
 	return s.ProviderFactoryImpl
-}
-
-func (s *Service) AuthServiceClient() authService.Client {
-	s.AuthServiceClientInvocations++
-
-	return s.AuthServiceClientImpl
 }
 
 func (s *Service) TaskClient() task.Client {

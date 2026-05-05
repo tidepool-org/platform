@@ -39,7 +39,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if err := validator.Error(); err != nil {
@@ -49,7 +49,7 @@ func (r *Router) CreatePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 	prescr, err := r.prescriptionService.CreatePrescription(ctx, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -74,7 +74,7 @@ func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Requ
 
 	filter, err := prescription.NewClinicFilter(clinicID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -86,7 +86,7 @@ func (r *Router) ListClinicPrescriptions(res rest.ResponseWriter, req *rest.Requ
 
 	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -106,7 +106,7 @@ func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Reques
 
 	filter, err := prescription.NewPatientFilter(userID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -118,7 +118,7 @@ func (r *Router) ListUserPrescriptions(res rest.ResponseWriter, req *rest.Reques
 
 	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -144,7 +144,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 
 	filter, err := prescription.NewClinicFilter(clinicID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	filter.ID = prescriptionID
@@ -152,7 +152,7 @@ func (r *Router) GetClinicPrescription(res rest.ResponseWriter, req *rest.Reques
 	pagination := &page.Pagination{Page: 0, Size: 1}
 	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -178,7 +178,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 
 	filter, err := prescription.NewPatientFilter(userID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	filter.ID = prescriptionID
@@ -186,7 +186,7 @@ func (r *Router) GetPatientPrescription(res rest.ResponseWriter, req *rest.Reque
 	pagination := &page.Pagination{Page: 0, Size: 1}
 	prescr, err := r.prescriptionService.ListPrescriptions(ctx, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -213,7 +213,7 @@ func (r *Router) DeletePrescription(res rest.ResponseWriter, req *rest.Request) 
 
 	success, err := r.prescriptionService.DeletePrescription(ctx, clinicID, prescriptionID, userID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -247,7 +247,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 
 	validator := structureValidator.New(log.LoggerFromContext(ctx)).WithReference("initialSettings")
 	if err := r.deviceSettingsValidator.Validate(ctx, create.InitialSettings, validator); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 	if err := validator.Error(); err != nil {
@@ -257,7 +257,7 @@ func (r *Router) AddRevision(res rest.ResponseWriter, req *rest.Request) {
 
 	prescr, err := r.prescriptionService.AddRevision(ctx, prescriptionID, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if prescr == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
@@ -286,7 +286,7 @@ func (r *Router) ClaimPrescription(res rest.ResponseWriter, req *rest.Request) {
 
 	prescr, err := r.prescriptionService.ClaimPrescription(ctx, claim)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if prescr == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
@@ -316,7 +316,7 @@ func (r *Router) UpdateState(res rest.ResponseWriter, req *rest.Request) {
 
 	prescr, err := r.prescriptionService.UpdatePrescriptionState(ctx, prescriptionID, update)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if prescr == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFound())
@@ -334,7 +334,7 @@ func (r *Router) canAccessPrescriptionsForRequestUserID(details request.AuthDeta
 func (r *Router) getClinicianOrRespondWithError(ctx context2.Context, clinicID, clinicianID string, responder *request.Responder) *clinic.Clinician {
 	clinician, err := r.clinicsClient.GetClinician(ctx, clinicID, clinicianID)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, request.ErrorInternalServerError(err))
+		responder.InternalServerError(err)
 		return nil
 	}
 	if clinician == nil {

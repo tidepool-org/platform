@@ -1,10 +1,12 @@
 package http
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/textproto"
 	"net/url"
 	"strings"
@@ -21,14 +23,14 @@ const (
 )
 
 var (
-	methods = []string{
+	Methods = []string{
 		http.MethodGet,
 		http.MethodPost,
 		http.MethodPut,
 		http.MethodPatch,
 		http.MethodDelete,
 	}
-	statusCodes = []int{
+	StatusCodes = []int{
 		http.StatusContinue,
 		http.StatusSwitchingProtocols,
 		http.StatusProcessing,
@@ -92,7 +94,7 @@ var (
 )
 
 func NewMethod() string {
-	return methods[rand.Intn(len(methods))]
+	return Methods[rand.Intn(len(Methods))]
 }
 
 func NewScheme() string {
@@ -188,7 +190,7 @@ func NewTimeout() int {
 }
 
 func NewStatusCode() int {
-	return statusCodes[rand.Intn(len(statusCodes))]
+	return StatusCodes[rand.Intn(len(StatusCodes))]
 }
 
 func NewRequest() *http.Request {
@@ -196,4 +198,53 @@ func NewRequest() *http.Request {
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(req).ToNot(gomega.BeNil())
 	return req
+}
+
+func NewResponseWriter() *ResponseWriter {
+	return &ResponseWriter{ResponseRecorder: httptest.NewRecorder()}
+}
+
+type ResponseWriter struct {
+	*httptest.ResponseRecorder
+	wroteHeader bool
+}
+
+func (r *ResponseWriter) WriteHeader(code int) {
+	if r.Header().Get("Content-Type") == "" {
+		r.Header().Set("Content-Type", "application/json; charset=utf-8")
+	}
+	r.ResponseRecorder.WriteHeader(code)
+	r.wroteHeader = true
+}
+
+func (r *ResponseWriter) EncodeJson(value any) ([]byte, error) {
+	if bites, err := json.Marshal(value); err != nil {
+		return nil, err
+	} else {
+		return bites, nil
+	}
+}
+
+func (r *ResponseWriter) WriteJson(value any) error {
+	if bites, err := r.EncodeJson(value); err != nil {
+		return err
+	} else if _, err = r.Write(bites); err != nil {
+		return err
+	} else {
+		return nil
+	}
+}
+
+func (r *ResponseWriter) Write(bites []byte) (int, error) {
+	if !r.wroteHeader {
+		r.WriteHeader(http.StatusOK)
+	}
+	return r.ResponseRecorder.Write(bites)
+}
+
+func (r *ResponseWriter) Flush() {
+	if !r.wroteHeader {
+		r.WriteHeader(http.StatusOK)
+	}
+	r.ResponseRecorder.Flush()
 }

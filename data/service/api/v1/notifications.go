@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
+	notificationsWorkClaims "github.com/tidepool-org/platform/notifications/work/claims"
+	notificationsWorkConnectionsIssues "github.com/tidepool-org/platform/notifications/work/connections/issues"
+	notificationsWorkConnectionsRequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
-
-	"github.com/tidepool-org/platform/notifications/work/claims"
-	connissues "github.com/tidepool-org/platform/notifications/work/connections/issues"
-	connrequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 )
 
 func NotificationsRoutes() []dataService.Route {
@@ -26,13 +25,13 @@ func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data claims.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkClaims.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := claims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := notificationsWorkClaims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -46,13 +45,13 @@ func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data connrequests.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkConnectionsRequests.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := connrequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := notificationsWorkConnectionsRequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -66,13 +65,13 @@ func SendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	var data connissues.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkConnectionsIssues.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := connissues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), data); err != nil {
+	if err := notificationsWorkConnectionsIssues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}

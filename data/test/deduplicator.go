@@ -7,11 +7,15 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomDeduplicatorDescriptor() *data.DeduplicatorDescriptor {
+func RandomHash() string {
+	return test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexadecimalLowercase)
+}
+
+func RandomDeduplicatorDescriptor(options ...test.Option) *data.DeduplicatorDescriptor {
 	datum := data.NewDeduplicatorDescriptor()
-	datum.Name = pointer.FromString(netTest.RandomReverseDomain())
-	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
-	datum.Hash = pointer.FromString(test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexadecimalLowercase))
+	datum.Name = test.RandomOptional(netTest.RandomReverseDomain, options...)
+	datum.Version = test.RandomOptional(netTest.RandomSemanticVersion, options...)
+	datum.Hash = test.RandomOptional(RandomHash, options...)
 	return datum
 }
 

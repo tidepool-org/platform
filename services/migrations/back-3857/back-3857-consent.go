@@ -278,7 +278,7 @@ func (m *Migration) ensureUsersShareWithBigdataAccount(ctx context.Context, bigd
 				}, options.Update().SetUpsert(true))
 				if err != nil {
 					logger.WithError(err).Error("error creating organization permission")
-					return errors.Wrapf(err, "error creating big data permission for user")
+					return errors.Wrap(err, "error creating big data permission for user")
 				}
 				if res.UpsertedCount > 0 {
 					logger.Info("successfully created big data permission relationship")
@@ -399,7 +399,7 @@ func (m *Migration) createRecordForUser(ctx context.Context, share Permission) (
 	}
 
 	if err := m.populateAttributesFromUserProfile(ctx, share.SharerID, record); err != nil {
-		return nil, errors.Wrapf(err, "error populating profile attributes")
+		return nil, errors.Wrap(err, "error populating profile attributes")
 	}
 
 	return record, nil

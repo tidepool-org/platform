@@ -2,6 +2,15 @@ package pointer
 
 import "time"
 
+func EqualValue[T comparable](a *T, b *T) bool {
+	if (a == nil) != (b == nil) {
+		return false
+	} else if a == nil && b == nil {
+		return true
+	}
+	return *a == *b
+}
+
 func EqualBool(a *bool, b *bool) bool {
 	if (a == nil) != (b == nil) {
 		return false

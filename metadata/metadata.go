@@ -1,13 +1,14 @@
 package metadata
 
 import (
+	"bytes"
+	"context"
 	"encoding/json"
-	"maps"
 	"strconv"
 
-	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
-	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -21,7 +22,7 @@ func ParseMetadata(parser structure.ObjectParser) *Metadata {
 		return nil
 	}
 	datum := NewMetadata()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -73,25 +74,6 @@ func (m *Metadata) Delete(key string) {
 	delete(*m, key)
 }
 
-func (m *Metadata) Parser(logger log.Logger) structure.ObjectParser {
-	var object map[string]any = *m
-	return structureParser.NewObject(logger, &object)
-}
-
-func (m *Metadata) Clone() *Metadata {
-	if m == nil {
-		return nil
-	}
-	return MetadataFromMap(maps.Clone(m.AsMap()))
-}
-
-func (m *Metadata) AsMap() map[string]any {
-	if m == nil {
-		return nil
-	}
-	return *m
-}
-
 type MetadataArray []*Metadata
 
 func ParseMetadataArray(parser structure.ArrayParser) *MetadataArray {
@@ -99,7 +81,7 @@ func ParseMetadataArray(parser structure.ArrayParser) *MetadataArray {
 		return nil
 	}
 	datum := NewMetadataArray()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -126,5 +108,49 @@ func (m *MetadataArray) Validate(validator structure.Validator) {
 		} else {
 			metadataValidator.ReportError(structureValidator.ErrorValueNotExists())
 		}
+	}
+}
+
+func Decode[T any](ctx context.Context, metadata map[string]any, decodeOptions ...request.DecodeOption) (*T, error) {
+	if metadata == nil {
+		return nil, nil
+	}
+
+	object := new(T)
+	if err := request.DecodeObject(ctx, structure.NewPointerSource(), metadata, object, decodeOptions...); err != nil {
+		return nil, errors.Wrap(err, "unable to decode metadata")
+	}
+
+	return object, nil
+}
+
+func Encode[T any](object *T) (map[string]any, error) {
+	if object == nil {
+		return nil, nil
+	}
+
+	buffer := bytes.Buffer{}
+	if err := json.NewEncoder(&buffer).Encode(object); err != nil {
+		return nil, errors.Wrap(err, "unable to encode object")
+	}
+
+	metadata := map[string]any{}
+	if err := json.NewDecoder(&buffer).Decode(&metadata); err != nil {
+		return nil, errors.Wrap(err, "unable to decode metadata")
+	}
+
+	return metadata, nil
+}
+
+type MetadataSetter interface {
+	SetMetadata(metadata map[string]any)
+}
+
+func WithMetadata[S MetadataSetter, M any](setter S, meta *M) (S, error) {
+	if encoded, err := Encode(meta); err != nil {
+		return setter, err
+	} else {
+		setter.SetMetadata(encoded)
+		return setter, nil
 	}
 }

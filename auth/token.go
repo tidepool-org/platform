@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"sort"
 	"time"
 
 	"golang.org/x/oauth2"
@@ -12,14 +13,25 @@ import (
 
 const (
 	KeyIDToken = "id_token"
+	KeyScope   = "scope"
 )
 
 type OAuthToken struct {
-	AccessToken    string    `json:"accessToken" bson:"accessToken"`
+	AccessToken    string    `json:"accessToken,omitempty" bson:"accessToken,omitempty"`
 	TokenType      string    `json:"tokenType,omitempty" bson:"tokenType,omitempty"`
 	RefreshToken   string    `json:"refreshToken,omitempty" bson:"refreshToken,omitempty"`
-	ExpirationTime time.Time `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
+	ExpirationTime time.Time `json:"expirationTime,omitzero" bson:"expirationTime,omitempty"`
+	Scope          *[]string `json:"scope,omitempty" bson:"scope,omitempty"`
 	IDToken        *string   `json:"idToken,omitempty" bson:"idToken,omitempty"`
+}
+
+func ParseOAuthToken(parser structure.ObjectParser) *OAuthToken {
+	if !parser.Exists() {
+		return nil
+	}
+	datum := NewOAuthToken()
+	datum.Parse(parser)
+	return datum
 }
 
 func NewOAuthToken() *OAuthToken {
@@ -31,11 +43,17 @@ func NewOAuthTokenFromRawToken(rawToken *oauth2.Token) (*OAuthToken, error) {
 		return nil, errors.New("raw token is missing")
 	}
 
+	scope, err := GetScope(rawToken)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get scope from raw token")
+	}
+
 	return &OAuthToken{
 		AccessToken:    rawToken.AccessToken,
 		TokenType:      rawToken.TokenType,
 		RefreshToken:   rawToken.RefreshToken,
 		ExpirationTime: rawToken.Expiry,
+		Scope:          scope,
 		IDToken:        GetIDToken(rawToken),
 	}, nil
 }
@@ -53,12 +71,20 @@ func (o *OAuthToken) Parse(parser structure.ObjectParser) {
 	if expirationTime := parser.Time("expirationTime", time.RFC3339Nano); expirationTime != nil {
 		o.ExpirationTime = *expirationTime
 	}
+	o.Scope = parser.StringArray("scope")
 	o.IDToken = parser.String("idToken")
 }
 
 func (o *OAuthToken) Validate(validator structure.Validator) {
 	validator.String("accessToken", &o.AccessToken).NotEmpty()
+	validator.StringArray("scope", o.Scope).EachUsing(ScopeTokenValidator).EachUnique()
 	validator.String("idToken", o.IDToken).NotEmpty()
+}
+
+func (o *OAuthToken) Normalize(normalizer structure.Normalizer) {
+	if o.Scope != nil {
+		sort.Strings(*o.Scope)
+	}
 }
 
 func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
@@ -72,12 +98,21 @@ func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
 	refreshed.RefreshToken = rawToken.RefreshToken
 	refreshed.ExpirationTime = rawToken.Expiry
 
-	// Only replace IDToken if one is provided
+	// Only replace if one provided
+	if scope, err := GetScope(rawToken); err != nil {
+		return nil, err
+	} else if scope != nil {
+		refreshed.Scope = scope
+	}
 	if idToken := GetIDToken(rawToken); idToken != nil {
 		refreshed.IDToken = idToken
 	}
 
 	return &refreshed, nil
+}
+
+func (o *OAuthToken) IsExpiredAt(tm time.Time) bool {
+	return !o.ExpirationTime.After(tm)
 }
 
 func (o *OAuthToken) Expired() *OAuthToken {
@@ -86,6 +121,7 @@ func (o *OAuthToken) Expired() *OAuthToken {
 		TokenType:      o.TokenType,
 		RefreshToken:   o.RefreshToken,
 		ExpirationTime: time.Now().Add(-time.Second),
+		Scope:          o.Scope,
 		IDToken:        o.IDToken,
 	}
 }
@@ -97,15 +133,32 @@ func (o *OAuthToken) RawToken() *oauth2.Token {
 		RefreshToken: o.RefreshToken,
 		Expiry:       o.ExpirationTime,
 	}
-	return SetIDToken(rawToken, o.IDToken)
+
+	extra := map[string]any{}
+	if o.Scope != nil {
+		extra[KeyScope] = JoinScope(*o.Scope)
+	}
+	if o.IDToken != nil {
+		extra[KeyIDToken] = *o.IDToken
+	}
+	if len(extra) > 0 {
+		rawToken = rawToken.WithExtra(extra)
+	}
+
+	return rawToken
 }
 
 func (o *OAuthToken) MatchesRawToken(rawToken *oauth2.Token) bool {
+	scope, err := GetScope(rawToken)
+	if err != nil {
+		return false
+	}
 	return rawToken != nil &&
 		rawToken.AccessToken == o.AccessToken &&
 		rawToken.TokenType == o.TokenType &&
 		rawToken.RefreshToken == o.RefreshToken &&
 		rawToken.Expiry.Equal(o.ExpirationTime) &&
+		pointer.EqualStringArray(scope, o.Scope) &&
 		pointer.EqualString(GetIDToken(rawToken), o.IDToken)
 }
 
@@ -116,9 +169,14 @@ func GetIDToken(rawToken *oauth2.Token) *string {
 	return nil
 }
 
-func SetIDToken(rawToken *oauth2.Token, idToken *string) *oauth2.Token {
-	if idToken != nil {
-		rawToken = rawToken.WithExtra(map[string]any{KeyIDToken: *idToken})
+func GetScope(rawToken *oauth2.Token) (*[]string, error) {
+	if rawScope, ok := rawToken.Extra(KeyScope).(string); !ok {
+		return nil, nil
+	} else if scope, err := ParseScope(rawScope); err != nil {
+		return nil, err
+	} else if scope == nil {
+		return nil, nil
+	} else {
+		return pointer.FromStringArray(scope), nil
 	}
-	return rawToken
 }
