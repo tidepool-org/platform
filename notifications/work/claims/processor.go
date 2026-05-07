@@ -6,14 +6,16 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/notifications"
+	"github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
 
 const (
-	processorType            = "org.tidepool.processors.users.claims"
+	Type                     = "org.tidepool.user.notification.account.claim"
 	quantity                 = 2
 	frequency                = time.Minute
 	processingTimeoutSeconds = 60
@@ -26,7 +28,7 @@ const (
 // that hasn't been processed yetm the processor should delete all work items
 // of the same group id when it is time to process the item.
 func NewGroupID(userID string) string {
-	return fmt.Sprintf("%s:%s", processorType, userID)
+	return fmt.Sprintf("%s:%s", Type, userID)
 }
 
 type Metadata struct {
@@ -46,19 +48,31 @@ func (d *Metadata) Validate(validator structure.Validator) {
 	validator.String("userId", &d.UserID).NotEmpty()
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) error {
+func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
 	whenToSend := metadata.WhenToSend
 	if whenToSend.IsZero() {
 		whenToSend = time.Now().Add(time.Hour * 24 * 7)
 	}
 	create := newWorkCreate(whenToSend, metadata)
-	if groupID := pointer.DefaultString(create.GroupID, ""); groupID != "" {
+	groupID := pointer.DefaultString(create.GroupID, "")
+	if groupID != "" {
 		// Delete any other work items with the same group id because if a new reminder is added, any older ones would be too early since the last reminder of the same group id.
 		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
 			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
 		}
 	}
-	if _, err := client.Create(ctx, create); err != nil {
+	wrk, err := client.Create(ctx, create)
+	if err != nil {
+		return err
+	}
+	entry := history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		EventType:     history.NotificationQueued,
+		GroupID:       groupID,
+		UserID:        metadata.UserID,
+	}
+	if err := recorder.Create(ctx, entry); err != nil {
 		return err
 	}
 	return nil
@@ -66,7 +80,7 @@ func AddWorkItem(ctx context.Context, client work.Client, metadata Metadata) err
 
 func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
 	return &work.Create{
-		Type:                    processorType,
+		Type:                    Type,
 		SerialID:                pointer.FromString(metadata.UserID),
 		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID)),
 		ProcessingTimeout:       processingTimeoutSeconds,
@@ -86,7 +100,7 @@ func NewProcessor(dependencies notifications.Dependencies) *processor {
 }
 
 func (p *processor) Type() string {
-	return processorType
+	return Type
 }
 
 func (p *processor) Quantity() int {
@@ -115,12 +129,69 @@ func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.Pr
 	}
 	// If user already claimed they will no longer have the custodian field set
 	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
+		entry := history.Entry{
+			Metadata:      wrk.Metadata,
+			ProcessorType: Type,
+			Email:         pointer.DefaultString(patient.Email, ""),
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			EventType:     history.NotificationConditionsExpired,
+			UserID:        data.UserID,
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification conditions expired event.")
+			}
+		}
+
 		return *work.NewProcessResultDelete()
 	}
 
+	entry := history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(patient.Email, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationAttempted,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification attempted event.")
+		}
+	}
+
 	if _, err := p.dependencies.Confirmation.ResendAccountSignupWithResponse(ctx, *patient.Email); err != nil {
+		entry := history.Entry{
+			Metadata:      wrk.Metadata,
+			ProcessorType: Type,
+			Email:         pointer.DefaultString(patient.Email, ""),
+			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+			EventType:     history.NotificationEmailError,
+			UserID:        data.UserID,
+			Error:         errors.Wrap(err, "unable to resend account signup"),
+		}
+		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+			if lgr := log.LoggerFromContext(ctx); lgr != nil {
+				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email send error event.")
+			}
+		}
+
 		return notifications.NewFailingResult(errors.Newf(`unable to resend account signup email`), wrk)
 	}
+	entry = history.Entry{
+		Metadata:      wrk.Metadata,
+		ProcessorType: Type,
+		Email:         pointer.DefaultString(patient.Email, ""),
+		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
+		EventType:     history.NotificationEmailSent,
+		UserID:        data.UserID,
+	}
+	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
+		}
+	}
+
 	return *work.NewProcessResultDelete()
 }
 
