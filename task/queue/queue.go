@@ -112,6 +112,7 @@ type queue struct {
 	timer             *time.Timer
 	taskRepository    store.TaskRepository
 	iterator          *mongo.Cursor
+	nextAvailable     *mruCache
 }
 
 func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
@@ -140,6 +141,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 		runners:           make(map[string]Runner),
 		dispatchChannel:   make(chan *task.Task, workers),
 		completionChannel: make(chan *task.Task, workers),
+		nextAvailable:     NewMRUCache(DefaultLRUCacheMaxSize),
 	}, nil
 }
 
@@ -371,13 +373,29 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
+// errNoAdvancement indicates that a task ran, but didn't advance its availableTime.
+//
+// Not advancing availableTime is indicative of an unhandled error case in the task and can
+// lead to the task being run indefinitely on each task loop. It could be a simple int, but
+// a previous revision used a time.Time in a slightly different way, and this version keeps
+// that to avoid the need for a database migration.
+var errNoAdvancement = errors.New("pending task requires advancement of available time")
+
 func (q *queue) computeState(tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
-		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
-			tsk.AppendError(errors.New("pending task requires future available time"))
+		if tsk.AvailableTime == nil {
+			tsk.AppendError(errNoAdvancement)
 			tsk.SetFailed()
+			return
 		}
+		availableTime := *tsk.AvailableTime
+		if q.hasAvailableTimeButNoAdvancement(tsk.ID, availableTime) {
+			tsk.AppendError(errNoAdvancement)
+			tsk.SetFailed()
+			return
+		}
+		q.nextAvailable.Store(tsk.ID, availableTime)
 	case task.TaskStateRunning:
 		if tsk.HasError() {
 			tsk.SetFailed()
@@ -389,6 +407,14 @@ func (q *queue) computeState(tsk *task.Task) {
 		tsk.AppendError(errors.New("unknown state"))
 		tsk.SetFailed()
 	}
+}
+
+func (q *queue) hasAvailableTimeButNoAdvancement(taskID string, t time.Time) bool {
+	prev := q.nextAvailable.Get(taskID)
+	if prev.IsZero() {
+		return false
+	}
+	return t.Equal(prev) || t.Before(prev)
 }
 
 func (q *queue) startTimer(delay time.Duration) {
