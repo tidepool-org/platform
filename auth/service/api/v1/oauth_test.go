@@ -100,12 +100,6 @@ var _ = Describe("OAuth", func() {
 
 		Context("with user details (same user)", func() {
 			BeforeEach(func() {
-				svc.AuthClientImpl.GetUserPermissionsOutputs = []permissionTest.GetUserPermissionsOutput{{
-					Permissions: permission.Permissions{
-						permission.Owner: permission.Permission{},
-					},
-					Error: nil,
-				}}
 				svc.AuthClientImpl.ListProviderSessionsOutputs = []authTest.ListProviderSessionsOutput{{
 					ProviderSessions: auth.ProviderSessions{},
 					Error:            nil,
@@ -182,22 +176,30 @@ var _ = Describe("OAuth", func() {
 			})
 		})
 
-		Context("with user details trying to access a different user without self-access", func() {
+		Context("with existing provider sessions", func() {
 			BeforeEach(func() {
-				targetUserID := serviceTest.NewUserID()
-				svc.AuthClientImpl.GetUserPermissionsOutputs = []permissionTest.GetUserPermissionsOutput{{
-					Permissions: permission.Permissions{},
-					Error:       nil,
+				svc.AuthClientImpl.ListProviderSessionsOutputs = []authTest.ListProviderSessionsOutput{{
+					ProviderSessions: auth.ProviderSessions{
+						&auth.ProviderSession{ID: "session-1", Type: "example"},
+						&auth.ProviderSession{ID: "session-2", Type: "example"},
+					},
+					Error: nil,
 				}}
-				details := request.NewAuthDetails(request.MethodSessionToken, targetUserID, authTest.NewSessionToken())
-				req.URL.Path = fmt.Sprintf("/v1/users/%s/oauth/example/authorize", userID)
+				svc.AuthClientImpl.DeleteProviderSessionOutputs = []error{nil, nil}
+				details := request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 				req.Request = req.WithContext(request.NewContextWithAuthDetails(ctx, details))
 			})
 
-			It("denies access when user tries to access another user without permissions", func() {
+			It("deletes each matching provider session and responds with OK", func() {
 				res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 				handlerFunc(res, req)
-				Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
+				Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+				Expect(svc.AuthClientImpl.DeleteProviderSessionInvocations).To(Equal(2))
+				ids := []string{}
+				for _, input := range svc.AuthClientImpl.DeleteProviderSessionInputs {
+					ids = append(ids, input.ID)
+				}
+				Expect(ids).To(Equal([]string{"session-1", "session-2"}))
 			})
 		})
 
