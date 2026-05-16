@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/tidepool-org/platform/errors"
@@ -35,6 +36,9 @@ type Client struct {
 	address             string
 	userAgent           string
 	errorResponseParser ErrorResponseParser
+
+	// DefaultRequestTimeout applies to requests whose context doesn't include a timeout.
+	DefaultRequestTimeout time.Duration
 }
 
 func New(cfg *Config) (*Client, error) {
@@ -49,11 +53,14 @@ func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*
 	}
 
 	return &Client{
-		address:             cfg.Address,
-		userAgent:           cfg.UserAgent,
-		errorResponseParser: errorResponseParser,
+		address:               cfg.Address,
+		userAgent:             cfg.UserAgent,
+		errorResponseParser:   errorResponseParser,
+		DefaultRequestTimeout: DefaultRequestTimeout,
 	}, nil
 }
+
+const DefaultRequestTimeout = time.Minute
 
 func (c *Client) ConstructURL(paths ...string) string {
 	segments := []string{}
@@ -90,6 +97,14 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
 	if err != nil {
 		return nil, err
+	}
+
+	reqCtx := req.Context()
+	if _, ok := reqCtx.Deadline(); !ok {
+		toCtx, cancel := context.WithTimeout(reqCtx, c.DefaultRequestTimeout)
+		defer cancel()
+		req = req.WithContext(toCtx)
+		ctx = toCtx
 	}
 
 	res, err := httpClient.Do(req)
@@ -152,12 +167,10 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		}
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create request to %s %s", method, url)
 	}
-
-	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
 		if err = mutator.MutateRequest(req); err != nil {
