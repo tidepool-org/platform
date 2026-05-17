@@ -1,3 +1,4 @@
+//nolint:tagliatelle // struct tags derived from Oura API
 package client
 
 import (
@@ -17,7 +18,6 @@ const ErrorResponseBodyLimit = 1024 * 1024
 type ErrorResponseParser struct{}
 
 func (e *ErrorResponseParser) ParseErrorResponse(ctx context.Context, res *http.Response, req *http.Request) error {
-
 	// Capture full response body for 422 Unprocessable Entity which indicates a request body validation error
 	// Equivalent to our use of 400 Bad Request
 	if res.StatusCode == http.StatusUnprocessableEntity {

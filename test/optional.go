@@ -74,9 +74,25 @@ func Conditional[T any](generator func() T, condition bool) *T {
 	}
 }
 
+func ConditionalWithOptions[T any](generator func(options ...Option) T, condition bool, options ...Option) *T {
+	if condition {
+		return pointer.From(generator(options...))
+	} else {
+		return nil
+	}
+}
+
 func ConditionalPointer[T any](generator func() *T, condition bool) *T {
 	if condition {
 		return generator()
+	} else {
+		return nil
+	}
+}
+
+func ConditionalPointerWithOptions[T any](generator func(options ...Option) *T, condition bool, options ...Option) *T {
+	if condition {
+		return generator(options...)
 	} else {
 		return nil
 	}

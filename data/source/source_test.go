@@ -1184,7 +1184,7 @@ var _ = Describe("Source", func() {
 			})
 
 			It("returns false when all fields are not nil", func() {
-				datum = dataSourceTest.RandomUpdate(test.AllowOptionals())
+				datum = dataSourceTest.RandomUpdate(test.RequireOptionals())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 		})

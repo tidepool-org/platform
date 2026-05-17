@@ -78,10 +78,6 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	return nil
 }
 
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return true
-}
-
 func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error) {
 	return true, nil
 }

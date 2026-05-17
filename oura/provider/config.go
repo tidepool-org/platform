@@ -10,7 +10,7 @@ import (
 
 type Config struct {
 	*oauthProviderClient.Config
-	PartnerURL    string `json:"partner_url,omitempty"`
+	PartnerURL    string `json:"partner_url,omitempty"` //nolint:tagliatelle // Environment variable
 	PartnerSecret string `json:"-"`
 }
 

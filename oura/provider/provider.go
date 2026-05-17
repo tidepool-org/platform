@@ -73,7 +73,7 @@ func New(dependencies Dependencies) (*Provider, error) {
 		providerSessionClient: dependencies.ProviderSessionClient,
 		dataSourceClient:      dependencies.DataSourceClient,
 		workClient:            dependencies.WorkClient,
-		acceptURL:             dependencies.Config.ProviderConfig.AcceptURL,
+		acceptURL:             dependencies.Config.AcceptURL,
 		partnerURL:            dependencies.Config.PartnerURL,
 		partnerSecret:         dependencies.Config.PartnerSecret,
 	}

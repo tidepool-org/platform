@@ -12,7 +12,7 @@ func RandomTimeRange(options ...test.Option) *times.TimeRange {
 	datum := &times.TimeRange{}
 	datum.From = test.RandomOptional(test.RandomTime, options...)
 	datum.To = test.RandomOptional(func() time.Time { return test.RandomTimeAfter(pointer.Default(datum.From, time.Time{})) }, options...)
-	return datum
+	return pointer.From(datum.InLocation(time.UTC))
 }
 
 func CloneTimeRange(datum *times.TimeRange) *times.TimeRange {

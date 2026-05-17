@@ -220,7 +220,8 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	}
 
 	// Use compressed data if compression is significant or original data cannot be stored directly
-	compressed := originalSize > dataRaw.SizeStoredMaximum || compressionFactor(originalSize, compressedSize) >= CompressionFactorMinimum
+	compressionFactor := compressionFactor(originalSize, compressedSize)
+	compressed := originalSize > dataRaw.SizeStoredMaximum || compressionFactor >= CompressionFactorMinimum
 
 	var data bsonPrimitive.Binary
 	if compressed {
@@ -678,7 +679,7 @@ func IDFromObjectIDAndDate(objectID bsonPrimitive.ObjectID, date time.Time) stri
 
 func compressionFactor(originalSize int64, compressedSize int64) float64 {
 	if originalSize == 0 {
-		return -1.0
+		return 0
 	}
 	return 1.0 - float64(compressedSize)/float64(originalSize)
 }

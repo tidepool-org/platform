@@ -132,8 +132,8 @@ func (p *Provenance) Parse(parser structure.ObjectParser) {
 }
 
 type DataRawReference struct {
-	ID        string `json:"id,omitempty"`
-	Reference any    `json:"reference,omitempty"`
+	ID        string `json:"id,omitempty" bson:"id,omitempty"`
+	Reference any    `json:"reference,omitempty" bson:"reference,omitempty"`
 }
 
 func ParseDataRawReference(parser structure.ObjectParser) *DataRawReference {

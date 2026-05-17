@@ -11,16 +11,20 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
+	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/pointer"
+	storeStructuredTest "github.com/tidepool-org/platform/store/structured/test"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/user"
+	userTest "github.com/tidepool-org/platform/user/test"
 )
 
 var _ = Describe("Raw", func() {
@@ -58,7 +62,11 @@ var _ = Describe("Raw", func() {
 			),
 			Entry("all",
 				func(datum *dataRaw.Filter) {
-					*datum = *dataRawTest.RandomFilter()
+					datum.CreatedDate = pointer.From(dataRawTest.RandomCreatedDate())
+					datum.DataSetID = pointer.From(dataTest.RandomDataSetID())
+					datum.Processed = pointer.From(test.RandomBool())
+					datum.Archivable = pointer.From(test.RandomBool())
+					datum.Archived = pointer.From(test.RandomBool())
 				},
 			),
 		)
@@ -191,7 +199,11 @@ var _ = Describe("Raw", func() {
 			),
 			Entry("all",
 				func(datum *dataRaw.Create) {
-					*datum = *dataRawTest.RandomCreate()
+					datum.Metadata = metadataTest.RandomMetadataMap()
+					datum.DigestMD5 = pointer.From(netTest.RandomDigestMD5())
+					datum.DigestSHA256 = pointer.From(netTest.RandomDigestSHA256())
+					datum.MediaType = pointer.From(netTest.RandomMediaType())
+					datum.ArchivableTime = pointer.From(test.RandomTimeBeforeNow())
 				},
 			),
 		)
@@ -325,7 +337,10 @@ var _ = Describe("Raw", func() {
 			),
 			Entry("all",
 				func(datum *dataRaw.Content) {
-					*datum = *dataRawTest.RandomContent()
+					datum.DigestMD5 = netTest.RandomDigestMD5()
+					datum.DigestSHA256 = pointer.From(netTest.RandomDigestSHA256())
+					datum.MediaType = netTest.RandomMediaType()
+					datum.ReadCloser = test.RandomReadCloser()
 				},
 			),
 		)
@@ -389,7 +404,10 @@ var _ = Describe("Raw", func() {
 			),
 			Entry("all",
 				func(datum *dataRaw.Update) {
-					*datum = *dataRawTest.RandomUpdate()
+					datum.ProcessedTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.ArchivableTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.ArchivedTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.Metadata = metadataTest.RandomMetadataMapPointer()
 				},
 			),
 		)
@@ -509,7 +527,20 @@ var _ = Describe("Raw", func() {
 			),
 			Entry("all",
 				func(datum *dataRaw.Raw) {
-					*datum = *dataRawTest.RandomRaw()
+					datum.ID = dataRawTest.RandomDataRawIDFromTime(test.RandomTimeBeforeNow())
+					datum.UserID = userTest.RandomUserID()
+					datum.DataSetID = dataTest.RandomDataSetID()
+					datum.Metadata = metadataTest.RandomMetadataMap()
+					datum.DigestMD5 = netTest.RandomDigestMD5()
+					datum.DigestSHA256 = pointer.From(netTest.RandomDigestSHA256())
+					datum.MediaType = netTest.RandomMediaType()
+					datum.Size = test.RandomIntFromRange(0, 1024)
+					datum.ProcessedTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.ArchivableTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.ArchivedTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.CreatedTime = test.RandomTimeBeforeNow()
+					datum.ModifiedTime = pointer.From(test.RandomTimeBeforeNow())
+					datum.Revision = storeStructuredTest.RandomRevision()
 				},
 			),
 		)
