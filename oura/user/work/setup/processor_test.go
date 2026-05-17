@@ -26,6 +26,8 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
+	ouraDataWorkPeriodic "github.com/tidepool-org/platform/oura/data/work/periodic"
+	ouraDataWorkPersonal "github.com/tidepool-org/platform/oura/data/work/personal"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
 	ouraUserWorkSetupTest "github.com/tidepool-org/platform/oura/user/work/setup/test"
@@ -277,13 +279,45 @@ var _ = Describe("processor", func() {
 										})
 
 										Context("with successful data historic work create", func() {
+											var expectedDataPeriodicWorkCreate *work.Create
+
 											BeforeEach(func() {
 												dataHistoricWork := workTest.NewWorkFromCreateWithState(expectedDataHistoricWorkCreate, work.StatePending)
 												mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataHistoricWorkCreate).Return(dataHistoricWork, nil)
+												expectedDataPeriodicWorkCreate = test.Must(ouraDataWorkPeriodic.NewWorkCreate(providerSessionID))
 											})
 
-											It("returns delete process result when successful", func() {
-												Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+											It("returned failing process result if unable to create data periodic work", func() {
+												testErr := errorsTest.RandomError()
+												mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataPeriodicWorkCreate).Return(nil, testErr)
+												Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+											})
+
+											Context("with successful data periodic work create", func() {
+												var expectedDataPersonalWorkCreate *work.Create
+
+												BeforeEach(func() {
+													dataPeriodicWork := workTest.NewWorkFromCreateWithState(expectedDataPeriodicWorkCreate, work.StatePending)
+													mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataPeriodicWorkCreate).Return(dataPeriodicWork, nil)
+													expectedDataPersonalWorkCreate = test.Must(ouraDataWorkPersonal.NewWorkCreate(providerSessionID))
+												})
+
+												It("returned failing process result if unable to create data personal work", func() {
+													testErr := errorsTest.RandomError()
+													mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataPersonalWorkCreate).Return(nil, testErr)
+													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+												})
+
+												Context("with successful data periodic work create", func() {
+													BeforeEach(func() {
+														dataPersonalWork := workTest.NewWorkFromCreateWithState(expectedDataPersonalWorkCreate, work.StatePending)
+														mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataPersonalWorkCreate).Return(dataPersonalWork, nil)
+													})
+
+													It("returns delete process result when successful", func() {
+														Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+													})
+												})
 											})
 										})
 									})

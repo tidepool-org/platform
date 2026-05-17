@@ -46,6 +46,8 @@ import (
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
+	ouraDataWorkPeriodic "github.com/tidepool-org/platform/oura/data/work/periodic"
+	ouraDataWorkPersonal "github.com/tidepool-org/platform/oura/data/work/personal"
 	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
 	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
@@ -831,6 +833,34 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 			OuraClient:            s.ouraClient,
 		}); err != nil {
 			return errors.Wrap(err, "unable to create oura data historic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data periodic work processor factory")
+
+		if processorFactory, err := ouraDataWorkPeriodic.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data periodic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data personal work processor factory")
+
+		if processorFactory, err := ouraDataWorkPersonal.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data personal work processor factory")
 		} else {
 			processorFactories = append(processorFactories, processorFactory)
 		}

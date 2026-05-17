@@ -19,6 +19,8 @@ import (
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
+	ouraDataWorkPeriodic "github.com/tidepool-org/platform/oura/data/work/periodic"
+	ouraDataWorkPersonal "github.com/tidepool-org/platform/oura/data/work/personal"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -140,6 +142,8 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.updateProviderSessionExternalID,
 		p.createDataSourceStateChangeEventWork,
 		p.createDataHistoricWork,
+		p.createDataPeriodicWork,
+		p.createDataPersonalWork,
 	).Process(p.Delete)
 }
 
@@ -211,6 +215,28 @@ func (p *Processor) createDataSourceStateChangeEventWork() *work.ProcessResult {
 
 func (p *Processor) createDataHistoricWork() *work.ProcessResult {
 	if workCreate, err := ouraDataWorkHistoric.NewWorkCreate(p.ProviderSession().ID, nil); err != nil {
+		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
+	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
+		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
+	}
+
+	log.LoggerFromContext(p.Context()).Debug("created data historic work")
+	return nil
+}
+
+func (p *Processor) createDataPeriodicWork() *work.ProcessResult {
+	if workCreate, err := ouraDataWorkPeriodic.NewWorkCreate(p.ProviderSession().ID); err != nil {
+		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
+	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
+		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
+	}
+
+	log.LoggerFromContext(p.Context()).Debug("created data historic work")
+	return nil
+}
+
+func (p *Processor) createDataPersonalWork() *work.ProcessResult {
+	if workCreate, err := ouraDataWorkPersonal.NewWorkCreate(p.ProviderSession().ID); err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
 	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
