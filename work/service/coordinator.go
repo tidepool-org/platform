@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"math/rand"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
@@ -51,6 +51,9 @@ type Coordinator struct {
 	managerCancelFunc          context.CancelFunc
 	managerWaitGroup           sync.WaitGroup
 	timer                      *time.Timer
+
+	// Testing
+	NowFunc func() time.Time
 }
 
 func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionTokenProvider, workClient WorkClient) (*Coordinator, error) {
@@ -94,6 +97,10 @@ func (c *Coordinator) RegisterProcessorFactories(processorFactories []work.Proce
 func (c *Coordinator) RegisterProcessorFactory(processorFactory work.ProcessorFactory) error {
 	if processorFactory == nil {
 		return errors.New("processor factory is missing")
+	}
+
+	if c.workersCompletionChannel != nil {
+		return errors.New("coordinator already started")
 	}
 
 	processorType := processorFactory.Type()
@@ -241,13 +248,13 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 		if err := recover(); err != nil {
 			stack := strings.Split(strings.ReplaceAll(string(debug.Stack()), "\t", ""), "\n")
 			failingErr := errors.WithMeta(errors.Newf("unhandled panic: %v", err), stack)
-			completion.ProcessResult = c.processResultBuilder.Failing(ctx, wrk, failingErr)
+			completion.ProcessResult = c.processResultBuilder.Failing(ctx, wrk, failingErr, c.Now())
 		}
 	}()
 
 	processorFactory, ok := c.processorFactories[wrk.Type]
 	if !ok {
-		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.New("processor factory not found for type"))
+		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.New("processor factory not found for type"), c.Now())
 		return
 	}
 
@@ -266,7 +273,7 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 
 		// Log if past processing timeout time
 		defer func() {
-			if time.Now().After(*wrk.ProcessingTimeoutTime) {
+			if c.Now().After(*wrk.ProcessingTimeoutTime) {
 				log.LoggerFromContext(ctx).Warn("processing duration exceeds timeout time")
 			}
 		}()
@@ -274,9 +281,9 @@ func (c *Coordinator) processWorkWithCompletion(ctx context.Context, wrk *work.W
 
 	// Create a new processor and process
 	if processor, err := processorFactory.New(); err != nil {
-		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.Wrap(err, "unable to create processor"))
+		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.Wrap(err, "unable to create processor"), c.Now())
 	} else if processor == nil {
-		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.Wrap(err, "processor is missing"))
+		completion.ProcessResult = c.processResultBuilder.Failed(ctx, wrk, errors.Wrap(err, "processor is missing"), c.Now())
 	} else {
 		completion.ProcessResult = processor.Process(ctx, wrk, processingUpdater)
 	}
@@ -350,7 +357,7 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 
 func (c *Coordinator) startTimer() {
 	jitter := int64(float64(c.frequency) * CoordinatorDelayJitter)
-	frequencyWithJitter := c.frequency + time.Duration(rand.Int63n(jitter*2+1)-jitter)
+	frequencyWithJitter := c.frequency + time.Duration(crypto.RandomInt64N(jitter*2+1)-jitter)
 	if c.timer == nil {
 		c.timer = time.NewTimer(frequencyWithJitter)
 	} else {
@@ -365,6 +372,13 @@ func (c *Coordinator) stopTimer() {
 		}
 		c.timer = nil
 	}
+}
+
+func (c *Coordinator) Now() time.Time {
+	if c.NowFunc != nil {
+		return c.NowFunc()
+	}
+	return time.Now().UTC()
 }
 
 type coordinatorProcessingIdentifier struct {

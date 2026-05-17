@@ -24,11 +24,13 @@ var _ = Describe("process_result", func() {
 	var ctx context.Context
 	var mockController *gomock.Controller
 	var wrk *work.Work
+	var tm time.Time
 
 	BeforeEach(func() {
 		ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		mockController, ctx = gomock.WithContext(ctx, GinkgoT())
 		wrk = workTest.RandomWork()
+		tm = test.RandomTime()
 	})
 
 	Context("ProcessResultBuilder", func() {
@@ -40,7 +42,7 @@ var _ = Describe("process_result", func() {
 
 		Context("Pending", func() {
 			It("returns Failed ProcessResult when PendingBuilder is nil", func() {
-				Expect(builder.Pending(ctx, wrk)).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
+				Expect(builder.Pending(ctx, wrk, tm)).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
 					"FailedError": errorsTest.MatchSerialized(MatchError("pending process result builder is not configured")),
 					"Metadata":    Equal(wrk.Metadata),
 				})))
@@ -55,7 +57,7 @@ var _ = Describe("process_result", func() {
 					Return(processingAvailableTime)
 
 				builder.ProcessResultPendingBuilder = mockProcessResultPendingBuilder
-				Expect(builder.Pending(ctx, wrk)).To(workTest.MatchPendingProcessResult(Equal(work.PendingUpdate{
+				Expect(builder.Pending(ctx, wrk, tm)).To(workTest.MatchPendingProcessResult(Equal(work.PendingUpdate{
 					ProcessingAvailableTime: processingAvailableTime,
 					ProcessingPriority:      wrk.ProcessingPriority,
 					ProcessingTimeout:       wrk.ProcessingTimeout,
@@ -72,7 +74,7 @@ var _ = Describe("process_result", func() {
 			})
 
 			It("returns Failed ProcessResult when FailingBuilder is nil", func() {
-				Expect(builder.Failing(ctx, wrk, err)).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
+				Expect(builder.Failing(ctx, wrk, err, tm)).To(workTest.MatchFailedProcessResult(MatchAllFields(Fields{
 					"FailedError": errorsTest.MatchSerialized(MatchError("failing process result builder is not configured")),
 					"Metadata":    Equal(wrk.Metadata),
 				})))
@@ -91,7 +93,7 @@ var _ = Describe("process_result", func() {
 					Return(failingRetryTime)
 
 				builder.ProcessResultFailingBuilder = mockProcessResultFailingBuilder
-				Expect(builder.Failing(ctx, wrk, err)).To(workTest.MatchFailingProcessResult(Equal(work.FailingUpdate{
+				Expect(builder.Failing(ctx, wrk, err, tm)).To(workTest.MatchFailingProcessResult(Equal(work.FailingUpdate{
 					FailingError:      errors.Serializable{Error: err},
 					FailingRetryCount: failingRetryCount,
 					FailingRetryTime:  failingRetryTime,
@@ -103,7 +105,7 @@ var _ = Describe("process_result", func() {
 		Context("Failed", func() {
 			It("returns Failed ProcessResult", func() {
 				err := errorsTest.RandomError()
-				Expect(builder.Failed(ctx, wrk, err)).To(workTest.MatchFailedProcessResult(Equal(work.FailedUpdate{
+				Expect(builder.Failed(ctx, wrk, err, tm)).To(workTest.MatchFailedProcessResult(Equal(work.FailedUpdate{
 					FailedError: errors.Serializable{Error: err},
 					Metadata:    wrk.Metadata,
 				})))
@@ -112,7 +114,7 @@ var _ = Describe("process_result", func() {
 
 		Context("Success", func() {
 			It("returns Success ProcessResult", func() {
-				Expect(builder.Success(ctx, wrk)).To(workTest.MatchSuccessProcessResult(Equal(work.SuccessUpdate{
+				Expect(builder.Success(ctx, wrk, tm)).To(workTest.MatchSuccessProcessResult(Equal(work.SuccessUpdate{
 					Metadata: wrk.Metadata,
 				})))
 			})
@@ -120,7 +122,7 @@ var _ = Describe("process_result", func() {
 
 		Context("Delete", func() {
 			It("returns Delete ProcessResult", func() {
-				Expect(builder.Delete(ctx, wrk)).To(workTest.MatchDeleteProcessResult())
+				Expect(builder.Delete(ctx, wrk, tm)).To(workTest.MatchDeleteProcessResult())
 			})
 		})
 	})
@@ -162,18 +164,18 @@ var _ = Describe("process_result", func() {
 	Context("ConstantProcessResultFailingBuilder", func() {
 		var err error
 		var failingRetryCount int
-		var now time.Time
+		var tm time.Time
 
 		BeforeEach(func() {
 			err = errorsTest.RandomError()
 			failingRetryCount = test.RandomIntFromRange(0, 10)
-			now = test.RandomTime()
+			tm = test.RandomTime()
 		})
 
 		It("returns duration after now", func() {
 			duration := test.RandomDuration()
 			builder := &workBase.ConstantProcessResultFailingBuilder{Duration: duration}
-			Expect(builder.FailingRetryTime(ctx, wrk, err, failingRetryCount, now)).To(Equal(now.Add(duration)))
+			Expect(builder.FailingRetryTime(ctx, wrk, err, failingRetryCount, tm)).To(Equal(tm.Add(duration)))
 		})
 	})
 
@@ -182,7 +184,7 @@ var _ = Describe("process_result", func() {
 		var durationJitter time.Duration
 		var err error
 		var failingRetryCount int
-		var now time.Time
+		var tm time.Time
 		var builder *workBase.ExponentialProcessResultFailingBuilder
 
 		BeforeEach(func() {
@@ -190,7 +192,7 @@ var _ = Describe("process_result", func() {
 			durationJitter = test.RandomDurationFromRange(0, time.Minute)
 			err = errorsTest.RandomError()
 			failingRetryCount = test.RandomIntFromRange(1, 10)
-			now = test.RandomTime()
+			tm = test.RandomTime()
 
 			builder = &workBase.ExponentialProcessResultFailingBuilder{
 				Duration:       duration,
@@ -199,18 +201,18 @@ var _ = Describe("process_result", func() {
 		})
 
 		It("returns now for failing retry count less than 1", func() {
-			Expect(builder.FailingRetryTime(ctx, nil, err, 0, now)).To(Equal(now))
+			Expect(builder.FailingRetryTime(ctx, nil, err, 0, tm)).To(Equal(tm))
 		})
 
 		It("returns duration within duration jitter after now for failing retry count of 1", func() {
-			Expect(builder.FailingRetryTime(ctx, nil, err, 1, now)).To(And(BeTemporally(">=", now.Add(duration-durationJitter)), BeTemporally("<=", now.Add(duration+durationJitter))))
+			Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
 		})
 
 		It("calculates exponential duration", func() {
 			exponentialFactor := time.Duration(1 << (failingRetryCount - 1))
 			duration *= exponentialFactor
 			durationJitter *= exponentialFactor
-			Expect(builder.FailingRetryTime(ctx, nil, err, failingRetryCount, now)).To(And(BeTemporally(">=", now.Add(duration-durationJitter)), BeTemporally("<=", now.Add(duration+durationJitter))))
+			Expect(builder.FailingRetryTime(ctx, nil, err, failingRetryCount, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
 		})
 	})
 })
