@@ -33,14 +33,17 @@ type Mixin interface {
 	DataRawClient() dataRaw.Client
 
 	HasDataRaw() bool
+	EnsureDataRaw() *work.ProcessResult
 	DataRaw() *dataRaw.Raw
 	SetDataRaw(dataRaw *dataRaw.Raw) *work.ProcessResult
+	ClearDataRaw()
 
 	FetchDataRaw(dataRawID string) *work.ProcessResult
 	CreateDataRaw(userID string, dataSetID string, dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult
 	UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessResult
 
 	HasDataRawContent() bool
+	EnsureDataRawContent() *work.ProcessResult
 	DataRawContent() *dataRaw.Content
 
 	FetchDataRawContent(dataRawID string) *work.ProcessResult
@@ -136,6 +139,14 @@ func (m *mixin[M]) HasDataRaw() bool {
 	return m.dataRaw != nil
 }
 
+func (m *mixin[M]) EnsureDataRaw() *work.ProcessResult {
+	if m.dataRaw == nil {
+		return m.Failed(errors.New("data raw is missing"))
+	} else {
+		return nil
+	}
+}
+
 func (m *mixin[M]) DataRaw() *dataRaw.Raw {
 	return m.dataRaw
 }
@@ -153,6 +164,13 @@ func (m *mixin[M]) SetDataRaw(dataRw *dataRaw.Raw) *work.ProcessResult {
 	m.dataRawContent = nil
 	m.AddDataRawToContext()
 	return nil
+}
+
+func (m *mixin[M]) ClearDataRaw() {
+	m.dataRaw = nil
+	m.dataRawMetadata = nil
+	m.dataRawContent = nil
+	m.AddDataRawToContext()
 }
 
 func (m *mixin[M]) HasDataRawMetadata() bool {
@@ -225,6 +243,14 @@ func (m *mixin[M]) UpdateDataRawMetadata() *work.ProcessResult {
 
 func (m *mixin[M]) HasDataRawContent() bool {
 	return m.dataRawContent != nil
+}
+
+func (m *mixin[M]) EnsureDataRawContent() *work.ProcessResult {
+	if m.dataRawContent == nil {
+		return m.Failed(errors.New("data raw content is missing"))
+	} else {
+		return nil
+	}
 }
 
 func (m *mixin[M]) DataRawContent() *dataRaw.Content {

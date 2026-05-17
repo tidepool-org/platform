@@ -230,6 +230,24 @@ var _ = Describe("mixin", func() {
 				})
 			})
 
+			Context("EnsureDataSet", func() {
+				It("returns failed result initially", func() {
+					Expect(mixin.EnsureDataSet()).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
+				})
+
+				It("returns nil after SetDataSet is called with a data set", func() {
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureDataSet()).To(BeNil())
+				})
+
+				It("returns failed result after SetDataSet is called with nil", func() {
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureDataSet()).To(BeNil())
+					Expect(mixin.SetDataSet(nil)).To(BeNil())
+					Expect(mixin.EnsureDataSet()).To(workTest.MatchFailedProcessResultError(MatchError("data set is missing")))
+				})
+			})
+
 			Context("DataSet", func() {
 				It("returns nil initially", func() {
 					Expect(mixin.DataSet()).To(BeNil())
@@ -258,6 +276,19 @@ var _ = Describe("mixin", func() {
 				It("clears metadata when data set is nil and returns nil", func() {
 					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetDataSet(nil)).To(BeNil())
+					Expect(mixin.DataSet()).To(BeNil())
+				})
+			})
+
+			Context("ClearDataSet", func() {
+				It("clears data set when data set is not set", func() {
+					mixin.ClearDataSet()
+					Expect(mixin.DataSet()).To(BeNil())
+				})
+
+				It("clears data set when data set is set", func() {
+					Expect(mixin.SetDataSet(dataTest.RandomDataSet(test.AllowOptionals()))).To(BeNil())
+					mixin.ClearDataSet()
 					Expect(mixin.DataSet()).To(BeNil())
 				})
 			})

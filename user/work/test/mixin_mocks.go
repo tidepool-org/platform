@@ -78,6 +78,80 @@ func (c *MockMixinAddUserToContextCall) DoAndReturn(f func()) *MockMixinAddUserT
 	return c
 }
 
+// ClearUser mocks base method.
+func (m *MockMixin) ClearUser() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearUser")
+}
+
+// ClearUser indicates an expected call of ClearUser.
+func (mr *MockMixinMockRecorder) ClearUser() *MockMixinClearUserCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearUser", reflect.TypeOf((*MockMixin)(nil).ClearUser))
+	return &MockMixinClearUserCall{Call: call}
+}
+
+// MockMixinClearUserCall wrap *gomock.Call
+type MockMixinClearUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinClearUserCall) Return() *MockMixinClearUserCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinClearUserCall) Do(f func()) *MockMixinClearUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinClearUserCall) DoAndReturn(f func()) *MockMixinClearUserCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureUser mocks base method.
+func (m *MockMixin) EnsureUser() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureUser")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureUser indicates an expected call of EnsureUser.
+func (mr *MockMixinMockRecorder) EnsureUser() *MockMixinEnsureUserCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureUser", reflect.TypeOf((*MockMixin)(nil).EnsureUser))
+	return &MockMixinEnsureUserCall{Call: call}
+}
+
+// MockMixinEnsureUserCall wrap *gomock.Call
+type MockMixinEnsureUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureUserCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureUserCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureUserCall) Do(f func() *work.ProcessResult) *MockMixinEnsureUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureUserCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureUserCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // FetchUser mocks base method.
 func (m *MockMixin) FetchUser(userID string) *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -324,6 +398,80 @@ func (c *MockMixinFromWorkAddUserToContextCall) Do(f func()) *MockMixinFromWorkA
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkAddUserToContextCall) DoAndReturn(f func()) *MockMixinFromWorkAddUserToContextCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ClearUser mocks base method.
+func (m *MockMixinFromWork) ClearUser() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearUser")
+}
+
+// ClearUser indicates an expected call of ClearUser.
+func (mr *MockMixinFromWorkMockRecorder) ClearUser() *MockMixinFromWorkClearUserCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearUser", reflect.TypeOf((*MockMixinFromWork)(nil).ClearUser))
+	return &MockMixinFromWorkClearUserCall{Call: call}
+}
+
+// MockMixinFromWorkClearUserCall wrap *gomock.Call
+type MockMixinFromWorkClearUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkClearUserCall) Return() *MockMixinFromWorkClearUserCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkClearUserCall) Do(f func()) *MockMixinFromWorkClearUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkClearUserCall) DoAndReturn(f func()) *MockMixinFromWorkClearUserCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureUser mocks base method.
+func (m *MockMixinFromWork) EnsureUser() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureUser")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureUser indicates an expected call of EnsureUser.
+func (mr *MockMixinFromWorkMockRecorder) EnsureUser() *MockMixinFromWorkEnsureUserCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureUser", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureUser))
+	return &MockMixinFromWorkEnsureUserCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureUserCall wrap *gomock.Call
+type MockMixinFromWorkEnsureUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureUserCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureUserCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureUserCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureUserCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureUserCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -32,12 +32,17 @@ type Mixin interface {
 	DataSourceClient() dataSource.Client
 
 	HasDataSource() bool
+	EnsureDataSource() *work.ProcessResult
 	DataSource() *dataSource.Source
 	SetDataSource(dataSource *dataSource.Source) *work.ProcessResult
+	ClearDataSource()
 
 	FetchDataSource(dataSourceID string) *work.ProcessResult
 	FetchDataSourceFromProviderSessionID(providerSessionID string) *work.ProcessResult
 	UpdateDataSource(dataSourceUpdate *dataSource.Update) *work.ProcessResult
+
+	EnsureDataSourceHasProviderSessionID() *work.ProcessResult
+	EnsureDataSourceHasDataSetID() *work.ProcessResult
 
 	AddDataSourceToContext()
 }
@@ -127,6 +132,14 @@ func (m *mixin[M]) HasDataSource() bool {
 	return m.dataSource != nil
 }
 
+func (m *mixin[M]) EnsureDataSource() *work.ProcessResult {
+	if m.dataSource == nil {
+		return m.Failed(errors.New("data source is missing"))
+	} else {
+		return nil
+	}
+}
+
 func (m *mixin[M]) DataSource() *dataSource.Source {
 	return m.dataSource
 }
@@ -143,6 +156,12 @@ func (m *mixin[M]) SetDataSource(dataSrc *dataSource.Source) *work.ProcessResult
 	m.dataSourceMetadata = dataSrcMetadata
 	m.AddDataSourceToContext()
 	return nil
+}
+
+func (m *mixin[M]) ClearDataSource() {
+	m.dataSource = nil
+	m.dataSourceMetadata = nil
+	m.AddDataSourceToContext()
 }
 
 func (m *mixin[M]) HasDataSourceMetadata() bool {
@@ -228,6 +247,26 @@ func (m *mixin[M]) UpdateWorkMetadataFromDataSource() *work.ProcessResult {
 	}
 	m.workMetadata.DataSourceID = pointer.From(m.dataSource.ID)
 	return nil
+}
+
+func (m *mixin[M]) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
+	if dataSrc := m.DataSource(); dataSrc == nil {
+		return m.Failed(errors.New("data source is missing"))
+	} else if providerSessionID := dataSrc.ProviderSessionID; providerSessionID == nil {
+		return m.Failed(errors.New("data source provider session id is missing"))
+	} else {
+		return nil
+	}
+}
+
+func (m *mixin[M]) EnsureDataSourceHasDataSetID() *work.ProcessResult {
+	if dataSrc := m.DataSource(); dataSrc == nil {
+		return m.Failed(errors.New("data source is missing"))
+	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
+		return m.Failed(errors.New("data source data set id is missing"))
+	} else {
+		return nil
+	}
 }
 
 func (m *mixin[M]) AddDataSourceToContext() {

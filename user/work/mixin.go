@@ -29,8 +29,10 @@ type Mixin interface {
 	UserClient() user.Client
 
 	HasUser() bool
+	EnsureUser() *work.ProcessResult
 	User() *user.User
 	SetUser(user *user.User) *work.ProcessResult
+	ClearUser()
 
 	FetchUser(userID string) *work.ProcessResult
 
@@ -91,6 +93,14 @@ func (m *mixin) HasUser() bool {
 	return m.user != nil
 }
 
+func (m *mixin) EnsureUser() *work.ProcessResult {
+	if m.user == nil {
+		return m.Failed(errors.New("user is missing"))
+	} else {
+		return nil
+	}
+}
+
 func (m *mixin) User() *user.User {
 	return m.user
 }
@@ -99,6 +109,11 @@ func (m *mixin) SetUser(user *user.User) *work.ProcessResult {
 	m.user = user
 	m.AddUserToContext()
 	return nil
+}
+
+func (m *mixin) ClearUser() {
+	m.user = nil
+	m.AddUserToContext()
 }
 
 func (m *mixin) FetchUser(userID string) *work.ProcessResult {

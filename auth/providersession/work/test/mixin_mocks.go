@@ -79,6 +79,80 @@ func (c *MockMixinAddProviderSessionToContextCall) DoAndReturn(f func()) *MockMi
 	return c
 }
 
+// ClearProviderSession mocks base method.
+func (m *MockMixin) ClearProviderSession() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearProviderSession")
+}
+
+// ClearProviderSession indicates an expected call of ClearProviderSession.
+func (mr *MockMixinMockRecorder) ClearProviderSession() *MockMixinClearProviderSessionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearProviderSession", reflect.TypeOf((*MockMixin)(nil).ClearProviderSession))
+	return &MockMixinClearProviderSessionCall{Call: call}
+}
+
+// MockMixinClearProviderSessionCall wrap *gomock.Call
+type MockMixinClearProviderSessionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinClearProviderSessionCall) Return() *MockMixinClearProviderSessionCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinClearProviderSessionCall) Do(f func()) *MockMixinClearProviderSessionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinClearProviderSessionCall) DoAndReturn(f func()) *MockMixinClearProviderSessionCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureProviderSession mocks base method.
+func (m *MockMixin) EnsureProviderSession() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureProviderSession")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureProviderSession indicates an expected call of EnsureProviderSession.
+func (mr *MockMixinMockRecorder) EnsureProviderSession() *MockMixinEnsureProviderSessionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureProviderSession", reflect.TypeOf((*MockMixin)(nil).EnsureProviderSession))
+	return &MockMixinEnsureProviderSessionCall{Call: call}
+}
+
+// MockMixinEnsureProviderSessionCall wrap *gomock.Call
+type MockMixinEnsureProviderSessionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureProviderSessionCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureProviderSessionCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureProviderSessionCall) Do(f func() *work.ProcessResult) *MockMixinEnsureProviderSessionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureProviderSessionCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureProviderSessionCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // FetchProviderSession mocks base method.
 func (m *MockMixin) FetchProviderSession(providerSessionID string) *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -363,6 +437,80 @@ func (c *MockMixinFromWorkAddProviderSessionToContextCall) Do(f func()) *MockMix
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkAddProviderSessionToContextCall) DoAndReturn(f func()) *MockMixinFromWorkAddProviderSessionToContextCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ClearProviderSession mocks base method.
+func (m *MockMixinFromWork) ClearProviderSession() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearProviderSession")
+}
+
+// ClearProviderSession indicates an expected call of ClearProviderSession.
+func (mr *MockMixinFromWorkMockRecorder) ClearProviderSession() *MockMixinFromWorkClearProviderSessionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearProviderSession", reflect.TypeOf((*MockMixinFromWork)(nil).ClearProviderSession))
+	return &MockMixinFromWorkClearProviderSessionCall{Call: call}
+}
+
+// MockMixinFromWorkClearProviderSessionCall wrap *gomock.Call
+type MockMixinFromWorkClearProviderSessionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkClearProviderSessionCall) Return() *MockMixinFromWorkClearProviderSessionCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkClearProviderSessionCall) Do(f func()) *MockMixinFromWorkClearProviderSessionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkClearProviderSessionCall) DoAndReturn(f func()) *MockMixinFromWorkClearProviderSessionCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureProviderSession mocks base method.
+func (m *MockMixinFromWork) EnsureProviderSession() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureProviderSession")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureProviderSession indicates an expected call of EnsureProviderSession.
+func (mr *MockMixinFromWorkMockRecorder) EnsureProviderSession() *MockMixinFromWorkEnsureProviderSessionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureProviderSession", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureProviderSession))
+	return &MockMixinFromWorkEnsureProviderSessionCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureProviderSessionCall wrap *gomock.Call
+type MockMixinFromWorkEnsureProviderSessionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureProviderSessionCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureProviderSessionCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureProviderSessionCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureProviderSessionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureProviderSessionCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureProviderSessionCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

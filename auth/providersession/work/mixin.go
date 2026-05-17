@@ -32,8 +32,10 @@ type Mixin interface {
 	ProviderSessionClient() providerSession.Client
 
 	HasProviderSession() bool
+	EnsureProviderSession() *work.ProcessResult
 	ProviderSession() *auth.ProviderSession
 	SetProviderSession(providerSession *auth.ProviderSession) *work.ProcessResult
+	ClearProviderSession()
 
 	FetchProviderSession(providerSessionID string) *work.ProcessResult
 	UpdateProviderSession(providerSessionUpdate *auth.ProviderSessionUpdate) *work.ProcessResult
@@ -95,6 +97,14 @@ func (m *mixin) HasProviderSession() bool {
 	return m.providerSession != nil
 }
 
+func (m *mixin) EnsureProviderSession() *work.ProcessResult {
+	if m.providerSession == nil {
+		return m.Failed(errors.New("provider session is missing"))
+	} else {
+		return nil
+	}
+}
+
 func (m *mixin) ProviderSession() *auth.ProviderSession {
 	return m.providerSession
 }
@@ -103,6 +113,11 @@ func (m *mixin) SetProviderSession(providerSession *auth.ProviderSession) *work.
 	m.providerSession = providerSession
 	m.AddProviderSessionToContext()
 	return nil
+}
+
+func (m *mixin) ClearProviderSession() {
+	m.providerSession = nil
+	m.AddProviderSessionToContext()
 }
 
 func (m *mixin) FetchProviderSession(providerSessionID string) *work.ProcessResult {

@@ -78,6 +78,42 @@ func (c *MockMixinAddDataSourceToContextCall) DoAndReturn(f func()) *MockMixinAd
 	return c
 }
 
+// ClearDataSource mocks base method.
+func (m *MockMixin) ClearDataSource() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSource")
+}
+
+// ClearDataSource indicates an expected call of ClearDataSource.
+func (mr *MockMixinMockRecorder) ClearDataSource() *MockMixinClearDataSourceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSource", reflect.TypeOf((*MockMixin)(nil).ClearDataSource))
+	return &MockMixinClearDataSourceCall{Call: call}
+}
+
+// MockMixinClearDataSourceCall wrap *gomock.Call
+type MockMixinClearDataSourceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinClearDataSourceCall) Return() *MockMixinClearDataSourceCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinClearDataSourceCall) Do(f func()) *MockMixinClearDataSourceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinClearDataSourceCall) DoAndReturn(f func()) *MockMixinClearDataSourceCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataSource mocks base method.
 func (m *MockMixin) DataSource() *source.Source {
 	m.ctrl.T.Helper()
@@ -150,6 +186,120 @@ func (c *MockMixinDataSourceClientCall) Do(f func() source.Client) *MockMixinDat
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinDataSourceClientCall) DoAndReturn(f func() source.Client) *MockMixinDataSourceClientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSource mocks base method.
+func (m *MockMixin) EnsureDataSource() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSource")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSource indicates an expected call of EnsureDataSource.
+func (mr *MockMixinMockRecorder) EnsureDataSource() *MockMixinEnsureDataSourceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSource", reflect.TypeOf((*MockMixin)(nil).EnsureDataSource))
+	return &MockMixinEnsureDataSourceCall{Call: call}
+}
+
+// MockMixinEnsureDataSourceCall wrap *gomock.Call
+type MockMixinEnsureDataSourceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureDataSourceCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureDataSourceCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureDataSourceCall) Do(f func() *work.ProcessResult) *MockMixinEnsureDataSourceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureDataSourceCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureDataSourceCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasDataSetID mocks base method.
+func (m *MockMixin) EnsureDataSourceHasDataSetID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasDataSetID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasDataSetID indicates an expected call of EnsureDataSourceHasDataSetID.
+func (mr *MockMixinMockRecorder) EnsureDataSourceHasDataSetID() *MockMixinEnsureDataSourceHasDataSetIDCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasDataSetID", reflect.TypeOf((*MockMixin)(nil).EnsureDataSourceHasDataSetID))
+	return &MockMixinEnsureDataSourceHasDataSetIDCall{Call: call}
+}
+
+// MockMixinEnsureDataSourceHasDataSetIDCall wrap *gomock.Call
+type MockMixinEnsureDataSourceHasDataSetIDCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureDataSourceHasDataSetIDCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureDataSourceHasDataSetIDCall) Do(f func() *work.ProcessResult) *MockMixinEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureDataSourceHasDataSetIDCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasProviderSessionID mocks base method.
+func (m *MockMixin) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasProviderSessionID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasProviderSessionID indicates an expected call of EnsureDataSourceHasProviderSessionID.
+func (mr *MockMixinMockRecorder) EnsureDataSourceHasProviderSessionID() *MockMixinEnsureDataSourceHasProviderSessionIDCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasProviderSessionID", reflect.TypeOf((*MockMixin)(nil).EnsureDataSourceHasProviderSessionID))
+	return &MockMixinEnsureDataSourceHasProviderSessionIDCall{Call: call}
+}
+
+// MockMixinEnsureDataSourceHasProviderSessionIDCall wrap *gomock.Call
+type MockMixinEnsureDataSourceHasProviderSessionIDCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureDataSourceHasProviderSessionIDCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureDataSourceHasProviderSessionIDCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureDataSourceHasProviderSessionIDCall) Do(f func() *work.ProcessResult) *MockMixinEnsureDataSourceHasProviderSessionIDCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureDataSourceHasProviderSessionIDCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureDataSourceHasProviderSessionIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -718,6 +868,42 @@ func (c *MockMixinFromWorkAddDataSourceToContextCall) DoAndReturn(f func()) *Moc
 	return c
 }
 
+// ClearDataSource mocks base method.
+func (m *MockMixinFromWork) ClearDataSource() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSource")
+}
+
+// ClearDataSource indicates an expected call of ClearDataSource.
+func (mr *MockMixinFromWorkMockRecorder) ClearDataSource() *MockMixinFromWorkClearDataSourceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSource", reflect.TypeOf((*MockMixinFromWork)(nil).ClearDataSource))
+	return &MockMixinFromWorkClearDataSourceCall{Call: call}
+}
+
+// MockMixinFromWorkClearDataSourceCall wrap *gomock.Call
+type MockMixinFromWorkClearDataSourceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkClearDataSourceCall) Return() *MockMixinFromWorkClearDataSourceCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkClearDataSourceCall) Do(f func()) *MockMixinFromWorkClearDataSourceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkClearDataSourceCall) DoAndReturn(f func()) *MockMixinFromWorkClearDataSourceCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataSource mocks base method.
 func (m *MockMixinFromWork) DataSource() *source.Source {
 	m.ctrl.T.Helper()
@@ -790,6 +976,120 @@ func (c *MockMixinFromWorkDataSourceClientCall) Do(f func() source.Client) *Mock
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkDataSourceClientCall) DoAndReturn(f func() source.Client) *MockMixinFromWorkDataSourceClientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSource mocks base method.
+func (m *MockMixinFromWork) EnsureDataSource() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSource")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSource indicates an expected call of EnsureDataSource.
+func (mr *MockMixinFromWorkMockRecorder) EnsureDataSource() *MockMixinFromWorkEnsureDataSourceCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSource", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureDataSource))
+	return &MockMixinFromWorkEnsureDataSourceCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureDataSourceCall wrap *gomock.Call
+type MockMixinFromWorkEnsureDataSourceCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureDataSourceCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureDataSourceCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureDataSourceCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasDataSetID mocks base method.
+func (m *MockMixinFromWork) EnsureDataSourceHasDataSetID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasDataSetID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasDataSetID indicates an expected call of EnsureDataSourceHasDataSetID.
+func (mr *MockMixinFromWorkMockRecorder) EnsureDataSourceHasDataSetID() *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasDataSetID", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureDataSourceHasDataSetID))
+	return &MockMixinFromWorkEnsureDataSourceHasDataSetIDCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureDataSourceHasDataSetIDCall wrap *gomock.Call
+type MockMixinFromWorkEnsureDataSourceHasDataSetIDCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasDataSetIDCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasProviderSessionID mocks base method.
+func (m *MockMixinFromWork) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasProviderSessionID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasProviderSessionID indicates an expected call of EnsureDataSourceHasProviderSessionID.
+func (mr *MockMixinFromWorkMockRecorder) EnsureDataSourceHasProviderSessionID() *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasProviderSessionID", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureDataSourceHasProviderSessionID))
+	return &MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall wrap *gomock.Call
+type MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataSourceHasProviderSessionIDCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1158,6 +1458,42 @@ func (c *MockMixinWithParsedMetadataAddDataSourceToContextCall[M]) DoAndReturn(f
 	return c
 }
 
+// ClearDataSource mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) ClearDataSource() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSource")
+}
+
+// ClearDataSource indicates an expected call of ClearDataSource.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) ClearDataSource() *MockMixinWithParsedMetadataClearDataSourceCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSource", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).ClearDataSource))
+	return &MockMixinWithParsedMetadataClearDataSourceCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataClearDataSourceCall wrap *gomock.Call
+type MockMixinWithParsedMetadataClearDataSourceCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataClearDataSourceCall[M]) Return() *MockMixinWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataClearDataSourceCall[M]) Do(f func()) *MockMixinWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataClearDataSourceCall[M]) DoAndReturn(f func()) *MockMixinWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataSource mocks base method.
 func (m *MockMixinWithParsedMetadata[M]) DataSource() *source.Source {
 	m.ctrl.T.Helper()
@@ -1268,6 +1604,120 @@ func (c *MockMixinWithParsedMetadataDataSourceMetadataCall[M]) Do(f func() *M) *
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinWithParsedMetadataDataSourceMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinWithParsedMetadataDataSourceMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSource mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataSource() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSource")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSource indicates an expected call of EnsureDataSource.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataSource() *MockMixinWithParsedMetadataEnsureDataSourceCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSource", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataSource))
+	return &MockMixinWithParsedMetadataEnsureDataSourceCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataSourceCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataSourceCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataSourceCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataSourceCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataSourceCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasDataSetID mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataSourceHasDataSetID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasDataSetID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasDataSetID indicates an expected call of EnsureDataSourceHasDataSetID.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataSourceHasDataSetID() *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasDataSetID", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataSourceHasDataSetID))
+	return &MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasProviderSessionID mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasProviderSessionID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasProviderSessionID indicates an expected call of EnsureDataSourceHasProviderSessionID.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataSourceHasProviderSessionID() *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasProviderSessionID", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataSourceHasProviderSessionID))
+	return &MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1636,6 +2086,42 @@ func (c *MockMixinFromWorkWithParsedMetadataAddDataSourceToContextCall[M]) DoAnd
 	return c
 }
 
+// ClearDataSource mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) ClearDataSource() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataSource")
+}
+
+// ClearDataSource indicates an expected call of ClearDataSource.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) ClearDataSource() *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataSource", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).ClearDataSource))
+	return &MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataClearDataSourceCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M]) Return() *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M]) Do(f func()) *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M]) DoAndReturn(f func()) *MockMixinFromWorkWithParsedMetadataClearDataSourceCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // DataSource mocks base method.
 func (m *MockMixinFromWorkWithParsedMetadata[M]) DataSource() *source.Source {
 	m.ctrl.T.Helper()
@@ -1746,6 +2232,120 @@ func (c *MockMixinFromWorkWithParsedMetadataDataSourceMetadataCall[M]) Do(f func
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkWithParsedMetadataDataSourceMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinFromWorkWithParsedMetadataDataSourceMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSource mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataSource() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSource")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSource indicates an expected call of EnsureDataSource.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataSource() *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSource", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataSource))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasDataSetID mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataSourceHasDataSetID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasDataSetID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasDataSetID indicates an expected call of EnsureDataSourceHasDataSetID.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataSourceHasDataSetID() *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasDataSetID", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataSourceHasDataSetID))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasDataSetIDCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataSourceHasProviderSessionID mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataSourceHasProviderSessionID")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataSourceHasProviderSessionID indicates an expected call of EnsureDataSourceHasProviderSessionID.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataSourceHasProviderSessionID() *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataSourceHasProviderSessionID", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataSourceHasProviderSessionID))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataSourceHasProviderSessionIDCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

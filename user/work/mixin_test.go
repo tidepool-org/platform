@@ -228,6 +228,24 @@ var _ = Describe("mixin", func() {
 				})
 			})
 
+			Context("EnsureUser", func() {
+				It("returns failed result initially", func() {
+					Expect(mixin.EnsureUser()).To(workTest.MatchFailedProcessResultError(MatchError("user is missing")))
+				})
+
+				It("returns nil after SetUser is called with a user", func() {
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureUser()).To(BeNil())
+				})
+
+				It("returns failed result after SetUser is called with nil", func() {
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureUser()).To(BeNil())
+					Expect(mixin.SetUser(nil)).To(BeNil())
+					Expect(mixin.EnsureUser()).To(workTest.MatchFailedProcessResultError(MatchError("user is missing")))
+				})
+			})
+
 			Context("User", func() {
 				It("returns nil initially", func() {
 					Expect(mixin.User()).To(BeNil())
@@ -256,6 +274,19 @@ var _ = Describe("mixin", func() {
 				It("clears metadata when user is nil and returns nil", func() {
 					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetUser(nil)).To(BeNil())
+					Expect(mixin.User()).To(BeNil())
+				})
+			})
+
+			Context("ClearUser", func() {
+				It("clears user when user is not set", func() {
+					mixin.ClearUser()
+					Expect(mixin.User()).To(BeNil())
+				})
+
+				It("clears user when user is set", func() {
+					Expect(mixin.SetUser(userTest.RandomUser(test.AllowOptionals()))).To(BeNil())
+					mixin.ClearUser()
 					Expect(mixin.User()).To(BeNil())
 				})
 			})
