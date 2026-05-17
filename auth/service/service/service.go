@@ -41,15 +41,15 @@ import (
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/oura/jotform"
-	jotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
-	jotformStore "github.com/tidepool-org/platform/oura/jotform/store"
-	jotformWork "github.com/tidepool-org/platform/oura/jotform/work"
+	ouraJotformAPI "github.com/tidepool-org/platform/oura/jotform/api"
+	ouraJotformStore "github.com/tidepool-org/platform/oura/jotform/store"
+	ouraJotformWork "github.com/tidepool-org/platform/oura/jotform/work"
 	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	"github.com/tidepool-org/platform/oura/shopify"
-	shopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
-	shopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
-	shopifyStore "github.com/tidepool-org/platform/oura/shopify/store"
-	shopifyWork "github.com/tidepool-org/platform/oura/shopify/work"
+	ouraShopifyAPI "github.com/tidepool-org/platform/oura/shopify/api"
+	ouraShopifyClient "github.com/tidepool-org/platform/oura/shopify/client"
+	ouraShopifyStore "github.com/tidepool-org/platform/oura/shopify/store"
+	ouraShopifyWork "github.com/tidepool-org/platform/oura/shopify/work"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
@@ -323,7 +323,7 @@ func (s *Service) initializeSubmissionProcessor() error {
 		return errors.Wrap(err, "unable to load jotform config")
 	}
 
-	submissionStore, err := jotformStore.NewStore(s.authStore.Store)
+	submissionStore, err := ouraJotformStore.NewStore(s.authStore.Store)
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform submission store")
 	}
@@ -343,12 +343,12 @@ func (s *Service) initializeShopify() error {
 	}
 
 	var err error
-	s.shopifyClient, err = shopifyClient.New(context.Background(), shopifyConfig)
+	s.shopifyClient, err = ouraShopifyClient.New(context.Background(), shopifyConfig)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify client")
 	}
 
-	orderEventStore, err := shopifyStore.NewStore(s.authStore.Store)
+	orderEventStore, err := ouraShopifyStore.NewStore(s.authStore.Store)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify order event store")
 	}
@@ -385,14 +385,14 @@ func (s *Service) initializeRouter() error {
 
 	s.Logger().Debug("Creating jotform router")
 
-	jotformRouter, err := jotformAPI.NewRouter(s.jotformSubmissionProcessor)
+	jotformRouter, err := ouraJotformAPI.NewRouter(s.jotformSubmissionProcessor)
 	if err != nil {
 		return errors.Wrap(err, "unable to create jotform router")
 	}
 
 	s.Logger().Debug("Creating shopify router")
 
-	shopifyRouter, err := shopifyAPI.NewRouter(s.shopifyOrderProcessor)
+	shopifyRouter, err := ouraShopifyAPI.NewRouter(s.shopifyOrderProcessor)
 	if err != nil {
 		return errors.Wrap(err, "unable to create shopify router")
 	}
@@ -818,7 +818,7 @@ func (s *Service) initializeAppValidate() error {
 	if err != nil {
 		return err
 	}
-	s.Logger().Infof("Initialized AppValidate with: %#v", *cfg)
+	s.Logger().Debugf("Initialized AppValidate with: %#v", *cfg)
 	authStore := s.AuthStore()
 	if authStore == nil {
 		return errors.New("auth store should be initialized before app validate")
@@ -875,7 +875,7 @@ func (s *Service) initializeTwiistServiceAccountAuthorizer() error {
 
 func (s *Service) terminateUserEventsHandler() {
 	if s.userEventsHandler != nil {
-		s.Logger().Info("Terminating the userEventsHandler")
+		s.Logger().Debug("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
@@ -884,68 +884,101 @@ func (s *Service) terminateUserEventsHandler() {
 }
 
 func (s *Service) initializeWorkCoordinator() error {
-	s.Logger().Info("Creating work coordinator")
+	s.Logger().Debug("Creating work coordinator")
 
-	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
-	if err != nil {
+	if coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient); err != nil {
 		return errors.Wrap(err, "unable to create work coordinator")
+	} else {
+		s.workCoordinator = coordinator
 	}
-	s.workCoordinator = coordinator
 
-	var factories []work.ProcessorFactory
+	s.Logger().Debug("Creating work processor factories")
+
+	if err := s.initializeWorkProcessorFactories(); err != nil {
+		return errors.Wrap(err, "unable to create work processor factories")
+	}
+
+	s.Logger().Debug("Creating work singletons")
+
+	if err := s.initializeWorkSingletons(); err != nil {
+		return errors.Wrap(err, "unable to create work singletons")
+	}
+
+	s.Logger().Debug("Starting work coordinator")
+
+	s.workCoordinator.Start()
+
+	return nil
+}
+
+func (s *Service) initializeWorkProcessorFactories() error {
+	var processorFactories []work.ProcessorFactory
 
 	dependencies := workBase.Dependencies{
 		WorkClient: s.workClient,
 	}
 
-	s.Logger().Info("Creating jotform work processor factory")
+	s.Logger().Debug("Creating customerio work processor factory")
 
-	if factory, err := jotformWork.NewProcessorFactory(jotformWork.Dependencies{Dependencies: dependencies, SubmissionProcessor: s.jotformSubmissionProcessor}); err != nil {
-		return errors.Wrap(err, "unable to create jotform work processor factory")
-	} else {
-		factories = append(factories, factory)
-	}
-
-	s.Logger().Info("Creating customerio work processor factory")
-
-	if factory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{Dependencies: dependencies, CustomerIOClient: s.customerIOClient}); err != nil {
+	if processorFactory, err := customerioWork.NewProcessorFactory(customerioWork.Dependencies{
+		Dependencies:     dependencies,
+		CustomerIOClient: s.customerIOClient,
+	}); err != nil {
 		return errors.Wrap(err, "unable to create customerio work processor factory")
 	} else {
-		factories = append(factories, factory)
+		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	s.Logger().Info("Creating shopify work processor factory")
+	s.Logger().Debug("Creating oura jotform work processor factory")
 
-	if factory, err := shopifyWork.NewProcessorFactory(shopifyWork.Dependencies{Dependencies: dependencies, OrderProcessor: s.shopifyOrderProcessor}); err != nil {
-		return errors.Wrap(err, "unable to create shopify work processor factory")
+	if processorFactory, err := ouraJotformWork.NewProcessorFactory(ouraJotformWork.Dependencies{
+		Dependencies:        dependencies,
+		SubmissionProcessor: s.jotformSubmissionProcessor,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create oura jotform work processor factory")
 	} else {
-		factories = append(factories, factory)
+		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	s.Logger().Info("Registering work processor factories")
+	s.Logger().Debug("Creating oura shopify work processor factory")
 
-	if err := s.workCoordinator.RegisterProcessorFactories(factories); err != nil {
+	if processorFactory, err := ouraShopifyWork.NewProcessorFactory(ouraShopifyWork.Dependencies{
+		Dependencies:   dependencies,
+		OrderProcessor: s.shopifyOrderProcessor,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create oura shopify work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Registering work processor factories")
+
+	if err := s.workCoordinator.RegisterProcessorFactories(processorFactories); err != nil {
 		return errors.Wrap(err, "unable to register work processor factories")
 	}
 
-	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), time.Second*10)
+	return nil
+}
+
+func (s *Service) initializeWorkSingletons() error {
+	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
 	defer cancel()
 
-	s.Logger().Info("Ensuring jotform reconciler work item exists")
+	s.Logger().Debug("Creating oura jotform reconciler work")
 
-	if err = jotformWork.EnsureReconcilerWorkItemExists(ctx, s.workClient); err != nil {
-		return errors.Wrap(err, "unable to ensure jotform reconciler work item exists")
+	if workCreate, err := ouraJotformWork.NewWorkCreate(); err != nil {
+		return errors.Wrap(err, "unable to create oura jotform reconciler work create")
+	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create oura jotform reconciler work")
 	}
 
-	s.Logger().Info("Ensuring shopify reconciler work item exists")
+	s.Logger().Debug("Creating oura shopify reconciler work")
 
-	if err = shopifyWork.EnsureReconcilerWorkItemExists(ctx, s.workClient); err != nil {
-		return errors.Wrap(err, "unable to ensure shopify reconciler work item exists")
+	if workCreate, err := ouraShopifyWork.NewWorkCreate(); err != nil {
+		return errors.Wrap(err, "unable to create oura shopify reconciler work create")
+	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create oura shopify reconciler work")
 	}
-
-	s.Logger().Info("Starting work coordinator")
-
-	s.workCoordinator.Start()
 
 	return nil
 }
