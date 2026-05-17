@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oura"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
@@ -65,7 +66,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 
 	var processorFactories []work.ProcessorFactory
 
-	if processorFactory, err := ouraDataWorkEvent.NewProcessorFactory(ouraDataWorkEvent.Dependencies{
+	if processorFactory, err := ouraDataWorkEvent.NewProcessorFactory(ouraDataWork.Dependencies{
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
@@ -77,7 +78,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	if processorFactory, err := ouraDataWorkHistoric.NewProcessorFactory(ouraDataWorkHistoric.Dependencies{
+	if processorFactory, err := ouraDataWorkHistoric.NewProcessorFactory(ouraDataWork.Dependencies{
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,

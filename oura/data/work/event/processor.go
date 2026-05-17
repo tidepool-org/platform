@@ -2,7 +2,6 @@ package event
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
@@ -17,10 +16,12 @@ import (
 	"github.com/tidepool-org/platform/net"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
+	ouraData "github.com/tidepool-org/platform/oura/data"
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
-	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -32,7 +33,7 @@ const (
 
 type (
 	ProviderSessionMetadata = providerSessionWork.Metadata
-	EventMetadata           = ouraWebhook.EventMetadata
+	EventMetadata           = oura.EventMetadata
 )
 
 type Metadata struct {
@@ -46,8 +47,16 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
-	m.ProviderSessionMetadata.Validate(validator)
-	m.EventMetadata.Validate(validator)
+	if m.ProviderSessionID != nil {
+		m.ProviderSessionMetadata.Validate(validator)
+	} else {
+		validator.WithReference(providerSessionWork.MetadataKeyProviderSessionID).ReportError(structureValidator.ErrorValueNotExists())
+	}
+	if m.Event != nil {
+		m.EventMetadata.Validate(validator)
+	} else {
+		validator.WithReference(oura.MetadataKeyEvent).ReportError(structureValidator.ErrorValueNotExists())
+	}
 }
 
 type (
@@ -55,8 +64,9 @@ type (
 	DataSourceMixin                = dataSourceWork.Mixin
 	ProviderSessionDataSourceMixin = dataWork.ProviderSessionDataSourceMixin
 	OAuthMixin                     = oauthWork.Mixin
-	DataRawMixin                   = dataRawWork.MixinWithParsedMetadata[ouraDataWork.Metadata]
+	DataRawMixin                   = dataRawWork.MixinWithParsedMetadata[ouraData.Metadata]
 	DataSourceDataRawMixin         = dataWork.DataSourceDataRawMixin
+	OuraClient                     = oura.Client
 )
 
 type Processor struct {
@@ -68,11 +78,9 @@ type Processor struct {
 	DataRawMixin
 	DataSourceDataRawMixin
 	OuraClient
-	data map[string]any
-	Now  func() time.Time
 }
 
-func NewProcessor(dependencies Dependencies) (*Processor, error) {
+func NewProcessor(dependencies ouraDataWork.Dependencies) (*Processor, error) {
 	if err := dependencies.Validate(); err != nil {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
@@ -104,7 +112,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create oauth mixin")
 	}
-	dataRawMixin, err := dataRawWork.NewMixinWithParsedMetadata[ouraDataWork.Metadata](processor, dependencies.DataRawClient)
+	dataRawMixin, err := dataRawWork.NewMixinWithParsedMetadata[ouraData.Metadata](processor, dependencies.DataRawClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create data raw mixin")
 	}
@@ -122,7 +130,6 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		DataRawMixin:                   dataRawMixin,
 		DataSourceDataRawMixin:         dataSourceDataRawMixin,
 		OuraClient:                     dependencies.OuraClient,
-		Now:                            time.Now,
 	}, nil
 }
 
@@ -130,59 +137,56 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.FetchProviderSessionFromWorkMetadata,
 		p.FetchDataSourceFromProviderSession,
+		p.EnsureDataSourceHasDataSetID,
 		p.FetchTokenSource,
-		p.fetchEventData,
-		p.createDataRaw,
+		p.fetchData,
 	).Process(p.Delete)
 }
 
-func (p *Processor) fetchEventData() *work.ProcessResult {
-	if p.DataSource().DataSetID == nil {
-		return p.Failed(errors.New("data set id is missing"))
-	}
-
-	// Determine authorized scope
-	scope := pointer.DefaultStringArray(p.ProviderSession().OAuthToken.Scope, nil)
-
-	// Determine if data type is in scope, if not, then warn and done
+func (p *Processor) fetchData() *work.ProcessResult {
 	event := p.Metadata().Event
-	if !slices.Contains(oura.DataTypesForScopes(scope), *event.DataType) {
-		log.LoggerFromContext(p.Context()).WithFields(log.Fields{"event": event, "scope": scope}).Warn("event for data type not in scope")
-		return p.Delete()
+
+	// If data type scope is not authorized, then skip
+	if !oura.DataTypeInScopes(*event.DataType, p.ProviderSession().OAuthToken.Scope) {
+		log.LoggerFromContext(p.Context()).Info("skipping datum with data type not authorized by scope")
+		return nil
 	}
 
 	// If event type is create or update, then get latest datum
-	var data map[string]any
+	data := oura.Data{}
 	switch *p.Metadata().Event.EventType {
 	case oura.EventTypeCreate, oura.EventTypeUpdate:
 		if datum, err := p.GetDatum(p.Context(), *event.DataType, *event.ObjectID, p.TokenSource()); err != nil {
-			return p.Failing(errors.Wrapf(err, "unable to get data for data with type %q and object id %q", *event.DataType, *event.ObjectID))
+			// Fail immediately if not found, likely means data was deleted, but mark as failed for now for future investigation, otherwise retry
+			if request.IsErrorResourceNotFound(errors.Cause(err)) {
+				return p.Failed(errors.Wrapf(err, "datum with data type %q and object id %q not found", *event.DataType, *event.ObjectID))
+			} else {
+				return p.Failing(errors.Wrapf(err, "unable to get datum with data type %q and object id %q", *event.DataType, *event.ObjectID))
+			}
 		} else {
-			data = datum
+			data = append(data, datum)
 		}
 	case oura.EventTypeDelete:
-		data = map[string]any{}
 	}
 
-	p.data = data
-	return nil
+	return p.createDataRaw(*event.DataType, event, data)
 }
 
-func (p *Processor) createDataRaw() *work.ProcessResult {
+func (p *Processor) createDataRaw(dataType string, event *oura.Event, data oura.Data) *work.ProcessResult {
 	if dataRawCreate, err := metadata.WithMetadata(
 		&dataRaw.Create{
 			MediaType:      pointer.From(net.MediaTypeJSON),
-			ArchivableTime: pointer.From(p.Now().UTC()),
+			ArchivableTime: pointer.From(p.Now()),
 		},
-		&ouraDataWork.Metadata{
-			Scope: p.ProviderSession().OAuthToken.Scope,
-			EventMetadata: ouraDataWork.EventMetadata{
-				Event: p.Metadata().Event,
+		&ouraData.Metadata{
+			DataType: dataType,
+			EventMetadata: oura.EventMetadata{
+				Event: event,
 			},
 		},
 	); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else {
-		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(p.data))
+		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(&oura.DataMap{dataType: data})) // Store as map for later processing
 	}
 }

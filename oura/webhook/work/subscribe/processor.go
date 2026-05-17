@@ -109,11 +109,14 @@ func (p *Processor) synchronizeSubscriptions() *work.ProcessResult {
 		p.Metadata().Override = nil // Clear early after deleting
 	}
 
-	callbackURL := p.PartnerURL() + ouraWebhook.EventPath
-	verificationToken := p.PartnerSecret()
+	partnerURL := p.PartnerURL()
+	partnerSecret := p.PartnerSecret()
 
-	for _, dataType := range ouraWebhook.DataTypes() {
+	for _, dataType := range oura.EventDataTypes() {
 		for _, eventType := range oura.EventTypes() {
+			callbackURL := ouraWebhook.CallbackURLForEvent(partnerURL, eventType, dataType)
+			verificationToken := ouraWebhook.VerificationTokenForCallbackURL(callbackURL, partnerSecret)
+
 			// If an existing subscription exists for this event type and data type, then ensure correct, otherwise create one
 			if existingSubscription := existingSubscriptions.Get(dataType, eventType); existingSubscription != nil && existingSubscription.ID != nil {
 				subscription := existingSubscription
@@ -124,30 +127,35 @@ func (p *Processor) synchronizeSubscriptions() *work.ProcessResult {
 					updateSubscription := &oura.UpdateSubscription{
 						CallbackURL:       pointer.From(callbackURL),
 						VerificationToken: pointer.From(verificationToken),
-						DataType:          subscription.DataType,
-						EventType:         subscription.EventType,
+						DataType:          pointer.From(dataType),
+						EventType:         pointer.From(eventType),
 					}
 					if subscription, err = p.UpdateSubscription(p.Context(), subscriptionID, updateSubscription); err != nil {
 						return p.Failing(errors.Wrapf(err, "unable to update existing subscription with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
 					} else if subscription == nil {
-						return p.Failed(errors.Newf("updated subscription is missing with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
+						return p.Failing(errors.Newf("updated subscription is missing with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
 					} else {
 						log.LoggerFromContext(p.Context()).WithField("subscription", subscription).Info("updated subscription")
 					}
 				}
 
-				// If the subscription is nearing expiration, then renew
+				var expirationTime *time.Time
 				if subscription.ExpirationTime != nil {
-					if expirationTime, err := time.ParseInLocation(oura.SubscriptionExpirationTimeFormat, *subscription.ExpirationTime, time.UTC); err != nil {
-						return p.Failing(errors.Wrapf(err, "unable to parse expiration time of existing subscription with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
-					} else if (override == OverrideRenew) || time.Until(expirationTime) < ExpirationTimeDurationMinimum {
-						if subscription, err = p.RenewSubscription(p.Context(), subscriptionID); err != nil {
-							return p.Failing(errors.Wrapf(err, "unable to renew existing subscription with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
-						} else if subscription == nil {
-							return p.Failed(errors.Newf("renewed subscription is missing with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
-						} else {
-							log.LoggerFromContext(p.Context()).WithField("subscription", subscription).Info("renewed subscription")
-						}
+					if parsedExpirationTime, parseErr := time.ParseInLocation(oura.SubscriptionExpirationTimeFormat, *subscription.ExpirationTime, time.UTC); parseErr != nil {
+						return p.Failing(errors.Wrapf(parseErr, "unable to parse expiration time of existing subscription with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
+					} else {
+						expirationTime = pointer.From(parsedExpirationTime)
+					}
+				}
+
+				// If the subscription is nearing expiration, then renew
+				if (override == OverrideRenew) || (expirationTime != nil && time.Until(*expirationTime) < ExpirationTimeDurationMinimum) {
+					if subscription, err = p.RenewSubscription(p.Context(), subscriptionID); err != nil {
+						return p.Failing(errors.Wrapf(err, "unable to renew existing subscription with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
+					} else if subscription == nil {
+						return p.Failing(errors.Newf("renewed subscription is missing with id %q, data type %q, and event type %q", subscriptionID, dataType, eventType))
+					} else {
+						log.LoggerFromContext(p.Context()).WithField("subscription", subscription).Info("renewed subscription")
 					}
 				}
 
@@ -165,7 +173,7 @@ func (p *Processor) synchronizeSubscriptions() *work.ProcessResult {
 				if subscription, err := p.CreateSubscription(p.Context(), createSubscription); err != nil {
 					return p.Failing(errors.Wrapf(err, "unable to create new subscription with data type %q and event type %q", dataType, eventType))
 				} else if subscription == nil {
-					return p.Failed(errors.Newf("created subscription is missing with data type %q and event type %q", dataType, eventType))
+					return p.Failing(errors.Newf("created subscription is missing with data type %q and event type %q", dataType, eventType))
 				} else {
 					log.LoggerFromContext(p.Context()).WithField("subscription", subscription).Info("created subscription")
 				}

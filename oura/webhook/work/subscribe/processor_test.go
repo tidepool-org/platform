@@ -247,9 +247,10 @@ var _ = Describe("processor", func() {
 						var expectedMetadata map[string]any
 
 						newSubscription := func(dataType string, eventType string) *oura.Subscription {
+							callbackURL := ouraWebhook.CallbackURLForEvent(partnerURL, eventType, dataType)
 							return &oura.Subscription{
 								ID:             pointer.From(ouraTest.RandomID()),
-								CallbackURL:    pointer.From(partnerURL + ouraWebhook.EventPath),
+								CallbackURL:    pointer.From(callbackURL),
 								DataType:       pointer.From(dataType),
 								EventType:      pointer.From(eventType),
 								ExpirationTime: pointer.From(test.RandomTimeAfter(expirationTime.Add(time.Minute)).Format(oura.SubscriptionExpirationTimeFormat)),
@@ -257,18 +258,22 @@ var _ = Describe("processor", func() {
 						}
 
 						newCreateSubscription := func(dataType string, eventType string) *oura.CreateSubscription {
+							callbackURL := ouraWebhook.CallbackURLForEvent(partnerURL, eventType, dataType)
+							verificationToken := ouraWebhook.VerificationTokenForCallbackURL(callbackURL, partnerSecret)
 							return &oura.CreateSubscription{
-								CallbackURL:       pointer.From(partnerURL + ouraWebhook.EventPath),
-								VerificationToken: pointer.From(partnerSecret),
+								CallbackURL:       pointer.From(callbackURL),
+								VerificationToken: pointer.From(verificationToken),
 								DataType:          pointer.From(dataType),
 								EventType:         pointer.From(eventType),
 							}
 						}
 
 						newUpdateSubscription := func(dataType string, eventType string) *oura.UpdateSubscription {
+							callbackURL := ouraWebhook.CallbackURLForEvent(partnerURL, eventType, dataType)
+							verificationToken := ouraWebhook.VerificationTokenForCallbackURL(callbackURL, partnerSecret)
 							return &oura.UpdateSubscription{
-								CallbackURL:       pointer.From(partnerURL + ouraWebhook.EventPath),
-								VerificationToken: pointer.From(partnerSecret),
+								CallbackURL:       pointer.From(callbackURL),
+								VerificationToken: pointer.From(verificationToken),
 								DataType:          pointer.From(dataType),
 								EventType:         pointer.From(eventType),
 							}
@@ -280,7 +285,7 @@ var _ = Describe("processor", func() {
 							partnerURL = test.RandomString()
 							partnerSecret = test.RandomString()
 							knownSubscriptions = oura.Subscriptions{}
-							for _, dataType := range ouraWebhook.DataTypes() {
+							for _, dataType := range oura.EventDataTypes() {
 								for _, eventType := range oura.EventTypes() {
 									knownSubscriptions = append(knownSubscriptions, newSubscription(dataType, eventType))
 								}
@@ -331,7 +336,7 @@ var _ = Describe("processor", func() {
 							It("fails if create subscription is missing", func() {
 								failedSubscription := createSubscriptions[0]
 								mockOuraClient.EXPECT().CreateSubscription(gomock.Not(gomock.Nil()), newCreateSubscription(*failedSubscription.DataType, *failedSubscription.EventType)).Return(nil, nil)
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError(fmt.Sprintf("created subscription is missing with data type %q and event type %q", *failedSubscription.DataType, *failedSubscription.EventType))))
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("created subscription is missing with data type %q and event type %q", *failedSubscription.DataType, *failedSubscription.EventType))))
 							})
 
 							Context("with successful create subscriptions", func() {
@@ -380,7 +385,7 @@ var _ = Describe("processor", func() {
 
 								It("fails if updated subscription is missing", func() {
 									mockOuraClient.EXPECT().UpdateSubscription(gomock.Not(gomock.Nil()), *failedSubscription.ID, newUpdateSubscription(*failedSubscription.DataType, *failedSubscription.EventType)).Return(nil, nil)
-									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError(fmt.Sprintf("updated subscription is missing with id %q, data type %q, and event type %q", *failedSubscription.ID, *failedSubscription.DataType, *failedSubscription.EventType))))
+									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("updated subscription is missing with id %q, data type %q, and event type %q", *failedSubscription.ID, *failedSubscription.DataType, *failedSubscription.EventType))))
 								})
 							})
 
@@ -408,7 +413,7 @@ var _ = Describe("processor", func() {
 
 								It("fails if renewed subscription is missing", func() {
 									mockOuraClient.EXPECT().RenewSubscription(gomock.Not(gomock.Nil()), *failedSubscription.ID).Return(nil, nil)
-									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError(fmt.Sprintf("renewed subscription is missing with id %q, data type %q, and event type %q", *failedSubscription.ID, *failedSubscription.DataType, *failedSubscription.EventType))))
+									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("renewed subscription is missing with id %q, data type %q, and event type %q", *failedSubscription.ID, *failedSubscription.DataType, *failedSubscription.EventType))))
 								})
 							})
 
@@ -428,7 +433,7 @@ var _ = Describe("processor", func() {
 
 								It("fails if create subscription is missing", func() {
 									mockOuraClient.EXPECT().CreateSubscription(gomock.Not(gomock.Nil()), newCreateSubscription(*failedSubscription.DataType, *failedSubscription.EventType)).Return(nil, nil)
-									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError(fmt.Sprintf("created subscription is missing with data type %q and event type %q", *failedSubscription.DataType, *failedSubscription.EventType))))
+									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("created subscription is missing with data type %q and event type %q", *failedSubscription.DataType, *failedSubscription.EventType))))
 								})
 							})
 

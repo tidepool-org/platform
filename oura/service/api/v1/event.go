@@ -17,7 +17,6 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
-	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
@@ -35,6 +34,20 @@ func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	lgr := log.LoggerFromContext(ctx)
+
+	// Get the required path parameters
+	eventType, err := request.DecodeRequestPathParameter(req, PathParameterEventType, oura.IsValidEventType)
+	if err != nil {
+		lgr.WithError(err).Error("event type is invalid")
+		responder.String(http.StatusBadRequest, err.Error())
+		return
+	}
+	dataType, err := request.DecodeRequestPathParameter(req, PathParameterDataType, oura.IsValidEventDataType)
+	if err != nil {
+		lgr.WithError(err).Error("data type is invalid")
+		responder.String(http.StatusBadRequest, err.Error())
+		return
+	}
 
 	// Get required headers
 	headers := req.Header
@@ -81,13 +94,20 @@ func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	// Parse the event
-	event := &ouraWebhook.Event{}
+	event := &oura.Event{}
 	if err = request.DecodeStream(ctx, structure.NewPointerSource(), bytes.NewReader(body), event); err != nil {
 		lgr.WithError(err).Error("unable to parse request body")
 		responder.String(http.StatusBadRequest, "unable to parse request body") // HTTP failure to force retry later
 		return
 	}
 	lgr = lgr.WithField("event", event)
+
+	// Confirm matching path parameters
+	if *event.EventType != eventType || *event.DataType != dataType {
+		lgr.Error("event does not match path")
+		responder.String(http.StatusBadRequest, "event does not match path")
+		return
+	}
 
 	// Find the associated provider session
 	providerSessionFilter := &auth.ProviderSessionFilter{

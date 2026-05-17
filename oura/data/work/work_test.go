@@ -1,192 +1,79 @@
 package work_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	authTest "github.com/tidepool-org/platform/auth/test"
-	errorsTest "github.com/tidepool-org/platform/errors/test"
-	logTest "github.com/tidepool-org/platform/log/test"
+	"go.uber.org/mock/gomock"
+
+	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
+	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
+	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
-	ouraDataWorkTest "github.com/tidepool-org/platform/oura/data/work/test"
-	ouraWebhookTest "github.com/tidepool-org/platform/oura/webhook/test"
-	"github.com/tidepool-org/platform/pointer"
-	structureParser "github.com/tidepool-org/platform/structure/parser"
-	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/test"
-	timesTest "github.com/tidepool-org/platform/times/test"
+	ouraTest "github.com/tidepool-org/platform/oura/test"
+	workBase "github.com/tidepool-org/platform/work/base"
+	workTest "github.com/tidepool-org/platform/work/test"
 )
 
 var _ = Describe("work", func() {
-	It("Domain is expected", func() {
-		Expect(ouraDataWork.Domain).To(Equal("org.tidepool.oura.data"))
-	})
+	Context("with dependencies", func() {
+		var mockController *gomock.Controller
+		var mockWorkClient *workTest.MockClient
+		var mockProviderSessionClient *providerSessionTest.MockClient
+		var mockDataSourceClient *dataSourceTest.MockClient
+		var mockDataRawClient *dataRawTest.MockClient
+		var mockOuraClient *ouraTest.MockClient
+		var dependencies ouraDataWork.Dependencies
 
-	Context("Metadata", func() {
-		It("MetadataKeyScope is expected", func() {
-			Expect(ouraDataWork.MetadataKeyScope).To(Equal("scope"))
+		BeforeEach(func() {
+			mockController = gomock.NewController(GinkgoT())
+			mockWorkClient = workTest.NewMockClient(mockController)
+			mockProviderSessionClient = providerSessionTest.NewMockClient(mockController)
+			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
+			mockDataRawClient = dataRawTest.NewMockClient(mockController)
+			mockOuraClient = ouraTest.NewMockClient(mockController)
+			dependencies = ouraDataWork.Dependencies{
+				Dependencies: workBase.Dependencies{
+					WorkClient: mockWorkClient,
+				},
+				ProviderSessionClient: mockProviderSessionClient,
+				DataSourceClient:      mockDataSourceClient,
+				DataRawClient:         mockDataRawClient,
+				OuraClient:            mockOuraClient,
+			}
 		})
 
-		DescribeTable("serializes the datum as expected",
-			func(mutator func(datum *ouraDataWork.Metadata)) {
-				datum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
-				mutator(datum)
-				test.ExpectSerializedObjectJSON(datum, ouraDataWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedObjectBSON(datum, ouraDataWorkTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
-			},
-			Entry("succeeds",
-				func(datum *ouraDataWork.Metadata) {},
-			),
-			Entry("empty",
-				func(datum *ouraDataWork.Metadata) {
-					*datum = ouraDataWork.Metadata{}
-				},
-			),
-			Entry("all",
-				func(datum *ouraDataWork.Metadata) {
-					*datum = *ouraDataWorkTest.RandomMetadata()
-				},
-			),
-		)
+		Context("Dependencies", func() {
+			Context("Validate", func() {
+				It("returns an error if work client is missing", func() {
+					dependencies.WorkClient = nil
+					Expect(dependencies.Validate()).To(MatchError("work client is missing"))
+				})
 
-		Context("Parse", func() {
-			DescribeTable("parses the datum",
-				func(mutator func(object map[string]any, expectedDatum *ouraDataWork.Metadata), expectedErrors ...error) {
-					expectedDatum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
-					object := ouraDataWorkTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
-					mutator(object, expectedDatum)
-					result := &ouraDataWork.Metadata{}
-					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
-					Expect(result).To(Equal(expectedDatum))
-				},
-				Entry("succeeds",
-					func(object map[string]any, expectedDatum *ouraDataWork.Metadata) {},
-				),
-				Entry("empty",
-					func(object map[string]any, expectedDatum *ouraDataWork.Metadata) {
-						clear(object)
-						*expectedDatum = ouraDataWork.Metadata{}
-					},
-				),
-				Entry("multiple errors",
-					func(object map[string]any, expectedDatum *ouraDataWork.Metadata) {
-						object["scope"] = true
-						object["timeRange"] = true
-						object["event"] = true
-						expectedDatum.Scope = nil
-						expectedDatum.TimeRange = nil
-						expectedDatum.Event = nil
-					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/scope"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/timeRange"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/event"),
-				),
-			)
-		})
+				It("returns an error if provider session client is missing", func() {
+					dependencies.ProviderSessionClient = nil
+					Expect(dependencies.Validate()).To(MatchError("provider session client is missing"))
+				})
 
-		Context("Validate", func() {
-			DescribeTable("validates the datum",
-				func(mutator func(datum *ouraDataWork.Metadata), expectedErrors ...error) {
-					datum := ouraDataWorkTest.RandomMetadata(test.AllowOptionals())
-					mutator(datum)
-					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
-				},
-				Entry("succeeds",
-					func(datum *ouraDataWork.Metadata) {},
-				),
-				Entry("scope missing",
-					func(datum *ouraDataWork.Metadata) {
-						datum.Scope = nil
-					},
-				),
-				Entry("scope empty",
-					func(datum *ouraDataWork.Metadata) {
-						datum.Scope = pointer.From([]string{})
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scope"),
-				),
-				Entry("scope valid",
-					func(datum *ouraDataWork.Metadata) {
-						datum.Scope = pointer.From(authTest.RandomScope())
-					},
-				),
-				Entry("time range missing",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
-					},
-				),
-				Entry("time range invalid",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-						datum.TimeRange.From = pointer.From(time.Time{})
-						datum.Event = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timeRange/from"),
-				),
-				Entry("time range valid",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-						datum.Event = nil
-					},
-				),
-				Entry("event missing",
-					func(datum *ouraDataWork.Metadata) {
-						datum.Event = nil
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-					},
-				),
-				Entry("event invalid",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
-						datum.Event.EventTime = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event/event_time"),
-				),
-				Entry("event valid",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = nil
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
-					},
-				),
-				Entry("neither time range nor event",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = nil
-						datum.Event = nil
-					},
-					structureValidator.ErrorValuesNotExistForOne("event", "timeRange"),
-				),
-				Entry("both time range and event",
-					func(datum *ouraDataWork.Metadata) {
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
-					},
-					structureValidator.ErrorValuesNotExistForOne("event", "timeRange"),
-				),
-				Entry("multiple errors",
-					func(datum *ouraDataWork.Metadata) {
-						datum.Scope = pointer.From([]string{})
-						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-						datum.TimeRange.From = pointer.From(time.Time{})
-						datum.Event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
-						datum.Event.EventTime = nil
-					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/scope"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timeRange/from"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event/event_time"),
-					structureValidator.ErrorValuesNotExistForOne("event", "timeRange"),
-				),
-			)
-		})
-	})
+				It("returns an error if data source client is missing", func() {
+					dependencies.DataSourceClient = nil
+					Expect(dependencies.Validate()).To(MatchError("data source client is missing"))
+				})
 
-	Context("SerialIDFromProviderSessionID", func() {
-		It("returns expected", func() {
-			providerSessionID := authTest.RandomProviderSessionID()
-			Expect(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)).To(Equal(ouraDataWork.Domain + ":" + providerSessionID))
+				It("returns an error if data raw client is missing", func() {
+					dependencies.DataRawClient = nil
+					Expect(dependencies.Validate()).To(MatchError("data raw client is missing"))
+				})
+
+				It("returns an error if oura client is missing", func() {
+					dependencies.OuraClient = nil
+					Expect(dependencies.Validate()).To(MatchError("oura client is missing"))
+				})
+
+				It("returns successfully", func() {
+					Expect(dependencies.Validate()).To(Succeed())
+				})
+			})
 		})
 	})
 })
