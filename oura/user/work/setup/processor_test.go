@@ -11,6 +11,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
+	providerSessionWorkTest "github.com/tidepool-org/platform/auth/providersession/work/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	customerioWork "github.com/tidepool-org/platform/customerio/work/event"
 	"github.com/tidepool-org/platform/data"
@@ -25,12 +26,14 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
-	ouraDataWorkSetup "github.com/tidepool-org/platform/oura/data/work/setup"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
+	ouraUserWorkSetupTest "github.com/tidepool-org/platform/oura/user/work/setup/test"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
-	"github.com/tidepool-org/platform/times"
 	userTest "github.com/tidepool-org/platform/user/test"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -39,11 +42,89 @@ import (
 
 var _ = Describe("processor", func() {
 	It("FailingRetryDuration is expected", func() {
-		Expect(ouraDataWorkSetup.FailingRetryDuration).To(Equal(1 * time.Minute))
+		Expect(ouraUserWorkSetup.FailingRetryDuration).To(Equal(1 * time.Minute))
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {
-		Expect(ouraDataWorkSetup.FailingRetryDurationJitter).To(Equal(5 * time.Second))
+		Expect(ouraUserWorkSetup.FailingRetryDurationJitter).To(Equal(5 * time.Second))
+	})
+
+	Context("Metadata", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *ouraUserWorkSetup.Metadata)) {
+				datum := ouraUserWorkSetupTest.RandomMetadata(test.AllowOptionals())
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, ouraUserWorkSetupTest.NewObjectFromMetadata(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, ouraUserWorkSetupTest.NewObjectFromMetadata(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *ouraUserWorkSetup.Metadata) {},
+			),
+			Entry("empty",
+				func(datum *ouraUserWorkSetup.Metadata) {
+					*datum = ouraUserWorkSetup.Metadata{}
+				},
+			),
+			Entry("all",
+				func(datum *ouraUserWorkSetup.Metadata) {
+					datum.ProviderSessionMetadata = *providerSessionWorkTest.RandomMetadata()
+				},
+			),
+		)
+
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]any, expectedDatum *ouraUserWorkSetup.Metadata), expectedErrors ...error) {
+					expectedDatum := ouraUserWorkSetupTest.RandomMetadata(test.AllowOptionals())
+					object := ouraUserWorkSetupTest.NewObjectFromMetadata(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					result := &ouraUserWorkSetup.Metadata{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
+					Expect(result).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]any, expectedDatum *ouraUserWorkSetup.Metadata) {},
+				),
+				Entry("empty",
+					func(object map[string]any, expectedDatum *ouraUserWorkSetup.Metadata) {
+						clear(object)
+						*expectedDatum = ouraUserWorkSetup.Metadata{}
+					},
+				),
+				Entry("multiple errors",
+					func(object map[string]any, expectedDatum *ouraUserWorkSetup.Metadata) {
+						object["providerSessionId"] = true
+						expectedDatum.ProviderSessionID = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
+				),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *ouraUserWorkSetup.Metadata), expectedErrors ...error) {
+					datum := ouraUserWorkSetupTest.RandomMetadata(test.AllowOptionals())
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *ouraUserWorkSetup.Metadata) {},
+				),
+				Entry("provider session id missing",
+					func(datum *ouraUserWorkSetup.Metadata) {
+						datum.ProviderSessionID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("multiple errors",
+					func(datum *ouraUserWorkSetup.Metadata) {
+						datum.ProviderSessionID = pointer.From("")
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
+				),
+			)
+		})
 	})
 
 	Context("with dependencies", func() {
@@ -54,7 +135,7 @@ var _ = Describe("processor", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 		var mockDataSetClient *dataSetTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraDataWorkSetup.Dependencies
+		var dependencies ouraUserWorkSetup.Dependencies
 
 		BeforeEach(func() {
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
@@ -64,7 +145,7 @@ var _ = Describe("processor", func() {
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
 			mockDataSetClient = dataSetTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraDataWorkSetup.Dependencies{
+			dependencies = ouraUserWorkSetup.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -78,13 +159,13 @@ var _ = Describe("processor", func() {
 		Context("NewProcessor", func() {
 			It("returns an error if dependencies is invalid", func() {
 				dependencies.WorkClient = nil
-				processor, err := ouraDataWorkSetup.NewProcessor(dependencies)
+				processor, err := ouraUserWorkSetup.NewProcessor(dependencies)
 				Expect(err).To(MatchError("dependencies is invalid; work client is missing"))
 				Expect(processor).To(BeNil())
 			})
 
 			It("returns successfully", func() {
-				processor, err := ouraDataWorkSetup.NewProcessor(dependencies)
+				processor, err := ouraUserWorkSetup.NewProcessor(dependencies)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(processor).ToNot(BeNil())
 			})
@@ -93,7 +174,7 @@ var _ = Describe("processor", func() {
 				var userID string
 				var providerSessionID string
 				var wrk *work.Work
-				var processor *ouraDataWorkSetup.Processor
+				var processor *ouraUserWorkSetup.Processor
 				var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 				BeforeEach(func() {
@@ -102,11 +183,11 @@ var _ = Describe("processor", func() {
 				})
 
 				JustBeforeEach(func() {
-					create, err := ouraDataWorkSetup.NewWorkCreate(providerSessionID)
+					create, err := ouraUserWorkSetup.NewWorkCreate(providerSessionID)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(create).ToNot(BeNil())
 					wrk = workTest.NewWorkFromCreateWithState(create, work.StateProcessing)
-					processor, err = ouraDataWorkSetup.NewProcessor(dependencies)
+					processor, err = ouraUserWorkSetup.NewProcessor(dependencies)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processor).ToNot(BeNil())
 					mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
@@ -186,7 +267,7 @@ var _ = Describe("processor", func() {
 										BeforeEach(func() {
 											dataSourceStateChangeEventWork := workTest.NewWorkFromCreateWithState(expectedDataSourceStateChangeEventWorkCreate, work.StatePending)
 											mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataSourceStateChangeEventWorkCreate).Return(dataSourceStateChangeEventWork, nil)
-											expectedDataHistoricWorkCreate = test.Must(ouraDataWorkHistoric.NewWorkCreate(providerSessionID, times.TimeRange{From: dataSourceStack.Latest().LatestDataTime}))
+											expectedDataHistoricWorkCreate = test.Must(ouraDataWorkHistoric.NewWorkCreate(providerSessionID, nil))
 										})
 
 										It("returned failing process result if unable to create data historic work", func() {
@@ -209,7 +290,37 @@ var _ = Describe("processor", func() {
 								})
 							}
 
-							assertEnsureDataSetAndWorkCreate := func() {
+							assertProviderSessionUpdateAndWorkCreate := func() {
+								Context("with provider session update", func() {
+									var expectedProviderSessionUpdate *auth.ProviderSessionUpdate
+
+									BeforeEach(func() {
+										expectedProviderSessionUpdate = &auth.ProviderSessionUpdate{
+											OAuthToken: providerSessionStack.Latest().OAuthToken,
+											ExternalID: pointer.From(ouraUserID),
+										}
+									})
+
+									It("returns failing process result if unable to update provider session", func() {
+										testErr := errorsTest.RandomError()
+										mockProviderSessionClient.EXPECT().UpdateProviderSession(gomock.Not(gomock.Nil()), providerSessionID, expectedProviderSessionUpdate).Return(nil, testErr)
+										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+									})
+
+									Context("with successful provider session update", func() {
+										BeforeEach(func() {
+											providerSession := authTest.CloneProviderSession(providerSessionStack.Latest())
+											providerSession.ExternalID = pointer.From(ouraUserID)
+											providerSessionStack.Push(providerSession)
+											mockProviderSessionClient.EXPECT().UpdateProviderSession(gomock.Not(gomock.Nil()), providerSessionID, expectedProviderSessionUpdate).Return(providerSession, nil)
+										})
+
+										assertWorkCreate()
+									})
+								})
+							}
+
+							assertEnsureDataSet := func(inner func()) {
 								Context("with ensuring data set for data source", func() {
 									var initialDataSet *data.DataSet
 
@@ -221,7 +332,7 @@ var _ = Describe("processor", func() {
 									Context("with no existing data set", func() {
 										It("returns failing process result if unable to create data set for data source", func() {
 											testErr := errorsTest.RandomError()
-											mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, ouraDataWorkSetup.NewDataSetCreate()).Return(nil, testErr)
+											mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, ouraUserWorkSetup.NewDataSetCreate()).Return(nil, testErr)
 											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 										})
 
@@ -230,7 +341,7 @@ var _ = Describe("processor", func() {
 											var expectedDataSourceUpdate *dataSource.Update
 
 											BeforeEach(func() {
-												mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, ouraDataWorkSetup.NewDataSetCreate()).Return(initialDataSet, nil)
+												mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, ouraUserWorkSetup.NewDataSetCreate()).Return(initialDataSet, nil)
 												expectedDataSourceID = dataSourceStack.Latest().ID
 												expectedDataSourceUpdate = &dataSource.Update{
 													Metadata:  metadataTest.PointerFromMetadataMap(dataSourceStack.Latest().Metadata),
@@ -252,7 +363,7 @@ var _ = Describe("processor", func() {
 													mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), expectedDataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
 												})
 
-												assertWorkCreate()
+												inner()
 											})
 										})
 									})
@@ -273,7 +384,7 @@ var _ = Describe("processor", func() {
 												mockDataSetClient.EXPECT().GetDataSet(gomock.Not(gomock.Nil()), *initialDataSet.ID).Return(initialDataSet, nil)
 											})
 
-											assertWorkCreate()
+											inner()
 										})
 									})
 								})
@@ -292,7 +403,7 @@ var _ = Describe("processor", func() {
 									})
 								})
 
-								assertEnsureDataSetAndWorkCreate()
+								assertEnsureDataSet(assertWorkCreate)
 							})
 
 							It("returns failing process result if oura client returns an error when getting personal info", func() {
@@ -318,36 +429,6 @@ var _ = Describe("processor", func() {
 									mockDataSourceClient.EXPECT().List(gomock.Not(gomock.Nil()), userID, expectedDataSourceFilter, page.NewPagination()).Return(nil, testErr)
 									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 								})
-
-								assertProviderSessionUpdateEnsureDataSetAndWorkCreate := func() {
-									Context("with provider session update", func() {
-										var expectedProviderSessionUpdate *auth.ProviderSessionUpdate
-
-										BeforeEach(func() {
-											expectedProviderSessionUpdate = &auth.ProviderSessionUpdate{
-												OAuthToken: providerSessionStack.Latest().OAuthToken,
-												ExternalID: pointer.From(ouraUserID),
-											}
-										})
-
-										It("returns failing process result if unable to update provider session", func() {
-											testErr := errorsTest.RandomError()
-											mockProviderSessionClient.EXPECT().UpdateProviderSession(gomock.Not(gomock.Nil()), providerSessionID, expectedProviderSessionUpdate).Return(nil, testErr)
-											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-										})
-
-										Context("with successful provider session update", func() {
-											BeforeEach(func() {
-												providerSession := authTest.CloneProviderSession(providerSessionStack.Latest())
-												providerSession.ExternalID = pointer.From(ouraUserID)
-												providerSessionStack.Push(providerSession)
-												mockProviderSessionClient.EXPECT().UpdateProviderSession(gomock.Not(gomock.Nil()), providerSessionID, expectedProviderSessionUpdate).Return(providerSession, nil)
-											})
-
-											assertEnsureDataSetAndWorkCreate()
-										})
-									})
-								}
 
 								Context("without existing data source", func() {
 									var expectedDataSourceID string
@@ -376,7 +457,7 @@ var _ = Describe("processor", func() {
 											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), expectedDataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
 										})
 
-										assertProviderSessionUpdateEnsureDataSetAndWorkCreate()
+										assertEnsureDataSet(assertProviderSessionUpdateAndWorkCreate)
 									})
 								})
 
@@ -416,7 +497,7 @@ var _ = Describe("processor", func() {
 											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), existingDataSource.ID, nil, expectedDataSourceUpdate).Return(existingDataSource, nil)
 										})
 
-										assertProviderSessionUpdateEnsureDataSetAndWorkCreate()
+										assertEnsureDataSet(assertProviderSessionUpdateAndWorkCreate)
 									})
 								})
 							})

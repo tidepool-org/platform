@@ -12,7 +12,7 @@ import (
 	authTest "github.com/tidepool-org/platform/auth/test"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
-	ouraUsersWorkRevoke "github.com/tidepool-org/platform/oura/users/work/revoke"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/work"
@@ -22,32 +22,32 @@ import (
 
 var _ = Describe("factory", func() {
 	It("Type is expected", func() {
-		Expect(ouraUsersWorkRevoke.Type).To(Equal("org.tidepool.oura.users.revoke"))
+		Expect(ouraUserWorkRevoke.Type).To(Equal("org.tidepool.oura.user.revoke"))
 	})
 
 	It("Quantity is expected", func() {
-		Expect(ouraUsersWorkRevoke.Quantity).To(Equal(1))
+		Expect(ouraUserWorkRevoke.Quantity).To(Equal(1))
 	})
 
 	It("Frequency is expected", func() {
-		Expect(ouraUsersWorkRevoke.Frequency).To(Equal(5 * time.Second))
+		Expect(ouraUserWorkRevoke.Frequency).To(Equal(5 * time.Second))
 	})
 
 	It("ProcessingTimeout is expected", func() {
-		Expect(ouraUsersWorkRevoke.ProcessingTimeout).To(Equal(3 * time.Minute))
+		Expect(ouraUserWorkRevoke.ProcessingTimeout).To(Equal(3 * time.Minute))
 	})
 
 	Context("with dependencies", func() {
 		var mockController *gomock.Controller
 		var mockWorkClient *workTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraUsersWorkRevoke.Dependencies
+		var dependencies ouraUserWorkRevoke.Dependencies
 
 		BeforeEach(func() {
 			mockController = gomock.NewController(GinkgoT())
 			mockWorkClient = workTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraUsersWorkRevoke.Dependencies{
+			dependencies = ouraUserWorkRevoke.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -76,13 +76,13 @@ var _ = Describe("factory", func() {
 		Context("NewProcessorFactory", func() {
 			It("returns an error if dependencies is invalid", func() {
 				dependencies.WorkClient = nil
-				processorFactory, err := ouraUsersWorkRevoke.NewProcessorFactory(dependencies)
+				processorFactory, err := ouraUserWorkRevoke.NewProcessorFactory(dependencies)
 				Expect(err).To(MatchError("dependencies is invalid; work client is missing"))
 				Expect(processorFactory).To(BeNil())
 			})
 
 			It("returns successfully", func() {
-				processorFactory, err := ouraUsersWorkRevoke.NewProcessorFactory(dependencies)
+				processorFactory, err := ouraUserWorkRevoke.NewProcessorFactory(dependencies)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(processorFactory).ToNot(BeNil())
 			})
@@ -92,26 +92,26 @@ var _ = Describe("factory", func() {
 
 				BeforeEach(func() {
 					var err error
-					processorFactory, err = ouraUsersWorkRevoke.NewProcessorFactory(dependencies)
+					processorFactory, err = ouraUserWorkRevoke.NewProcessorFactory(dependencies)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processorFactory).ToNot(BeNil())
 				})
 
 				Context("Type", func() {
 					It("returns the expected type", func() {
-						Expect(processorFactory.Type()).To(Equal(ouraUsersWorkRevoke.Type))
+						Expect(processorFactory.Type()).To(Equal(ouraUserWorkRevoke.Type))
 					})
 				})
 
 				Context("Quantity", func() {
 					It("returns the expected quantity", func() {
-						Expect(processorFactory.Quantity()).To(Equal(ouraUsersWorkRevoke.Quantity))
+						Expect(processorFactory.Quantity()).To(Equal(ouraUserWorkRevoke.Quantity))
 					})
 				})
 
 				Context("Frequency", func() {
 					It("returns the expected frequency", func() {
-						Expect(processorFactory.Frequency()).To(Equal(ouraUsersWorkRevoke.Frequency))
+						Expect(processorFactory.Frequency()).To(Equal(ouraUserWorkRevoke.Frequency))
 					})
 				})
 
@@ -136,22 +136,22 @@ var _ = Describe("factory", func() {
 		})
 
 		It("returns an error if provider session id is missing", func() {
-			workCreate, err := ouraUsersWorkRevoke.NewWorkCreate("", oauthToken)
+			workCreate, err := ouraUserWorkRevoke.NewWorkCreate("", oauthToken)
 			Expect(err).To(MatchError("provider session id is missing"))
 			Expect(workCreate).To(BeNil())
 		})
 
 		It("returns an error if oauth token is missing", func() {
-			workCreate, err := ouraUsersWorkRevoke.NewWorkCreate(providerSessionID, nil)
+			workCreate, err := ouraUserWorkRevoke.NewWorkCreate(providerSessionID, nil)
 			Expect(err).To(MatchError("oauth token is missing"))
 			Expect(workCreate).To(BeNil())
 		})
 
 		It("returns successfully", func() {
-			workCreate, err := ouraUsersWorkRevoke.NewWorkCreate(providerSessionID, oauthToken)
+			workCreate, err := ouraUserWorkRevoke.NewWorkCreate(providerSessionID, oauthToken)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
-				Type:              ouraUsersWorkRevoke.Type,
+				Type:              ouraUserWorkRevoke.Type,
 				DeduplicationID:   pointer.From(providerSessionID),
 				ProcessingTimeout: 180,
 				Metadata: map[string]any{

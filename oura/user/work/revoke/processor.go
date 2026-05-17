@@ -6,6 +6,8 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -15,7 +17,23 @@ const (
 	FailingRetryDurationJitter = 5 * time.Second
 )
 
-type Metadata = oauthWork.TokenMetadata
+type TokenMetadata = oauthWork.TokenMetadata
+
+type Metadata struct {
+	TokenMetadata `bson:",inline"`
+}
+
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.TokenMetadata.Parse(parser)
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	if m.OAuthToken != nil {
+		m.TokenMetadata.Validate(validator)
+	} else {
+		validator.WithReference(oauthWork.MetadataKeyOAuthToken).ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
 
 type Processor struct {
 	*workBase.Processor[Metadata]

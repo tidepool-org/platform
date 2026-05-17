@@ -223,18 +223,20 @@ var _ = Describe("time_range", func() {
 				})
 			})
 
-			Context("String", func() {
-				var from = test.RandomTime()
-				var to = test.RandomTimeAfter(from)
+			Context("Hash", func() {
+				var from = time.Unix(1640955599, 0).UTC()
+				var to = time.Unix(1735678799, 0).UTC()
 
 				DescribeTable("returns the expected string",
 					func(timeRange times.TimeRange, expected string) {
-						Expect(timeRange.String(time.RFC3339)).To(Equal(expected))
+						hash, err := timeRange.Hash()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(hash).To(Equal(expected))
 					},
-					Entry("empty", times.TimeRange{}, "-"),
-					Entry("from", times.TimeRange{From: pointer.From(from)}, from.Format(time.RFC3339)+"-"),
-					Entry("to", times.TimeRange{To: pointer.From(to)}, "-"+to.Format(time.RFC3339)),
-					Entry("multiple", times.TimeRange{From: pointer.From(from), To: pointer.From(to)}, from.Format(time.RFC3339)+"-"+to.Format(time.RFC3339)),
+					Entry("empty", times.TimeRange{}, "RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o="),
+					Entry("from", times.TimeRange{From: pointer.From(from)}, "bP2bKpZXIjI2N1CLgbp7s2NsUR+eb4apYxBdtDjKiQc="),
+					Entry("to", times.TimeRange{To: pointer.From(to)}, "gJsYGg1jFrIJnrnguRJxEVAeB+FW0QBMfP5wAdQpOKA="),
+					Entry("multiple", times.TimeRange{From: pointer.From(from), To: pointer.From(to)}, "rB0D+LSaIpqiPoZefd88nQCaON7l9x7B1osHRQY4o/o="),
 				)
 			})
 		})

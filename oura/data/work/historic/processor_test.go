@@ -198,7 +198,7 @@ var _ = Describe("processor", func() {
 				})
 
 				JustBeforeEach(func() {
-					create, err := ouraDataWorkHistoric.NewWorkCreate(providerSessionID, *timeRange)
+					create, err := ouraDataWorkHistoric.NewWorkCreate(providerSessionID, timeRange)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(create).ToNot(BeNil())
 					wrk = workTest.NewWorkFromCreateWithState(create, work.StateProcessing)

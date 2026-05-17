@@ -20,7 +20,7 @@ import (
 	"github.com/tidepool-org/platform/oura"
 	ouraProvider "github.com/tidepool-org/platform/oura/provider"
 	ouraProviderTest "github.com/tidepool-org/platform/oura/provider/test"
-	ouraUsersWorkRevoke "github.com/tidepool-org/platform/oura/users/work/revoke"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
 	ouraWork "github.com/tidepool-org/platform/oura/work"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -161,7 +161,7 @@ var _ = Describe("provider", func() {
 
 							BeforeEach(func() {
 								expectedCount = test.RandomIntFromRange(0, 3)
-								expectedWorkCreate = test.Must(ouraUsersWorkRevoke.NewWorkCreate(providerSession.ID, providerSession.OAuthToken))
+								expectedWorkCreate = test.Must(ouraUserWorkRevoke.NewWorkCreate(providerSession.ID, providerSession.OAuthToken))
 								mockWorkClient.EXPECT().DeleteAllByGroupID(gomock.Not(gomock.Nil()), expectedGroupID).Return(expectedCount, nil)
 							})
 
@@ -172,7 +172,7 @@ var _ = Describe("provider", func() {
 							It("returns an error if Create revoke work fails", func() {
 								testErr := errorsTest.RandomError()
 								mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedWorkCreate).Return(nil, testErr)
-								Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to create users revoke work; " + testErr.Error()))
+								Expect(prvdr.OnDelete(ctx, providerSession)).To(MatchError("unable to create user revoke work; " + testErr.Error()))
 							})
 
 							It("succeeds", func() {

@@ -67,17 +67,24 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
 }
 
-func NewWorkCreate(providerSessionID string, timeRange times.TimeRange) (*work.Create, error) {
+func NewWorkCreate(providerSessionID string, timeRange *times.TimeRange) (*work.Create, error) {
 	if providerSessionID == "" {
 		return nil, errors.New("provider session id is missing")
 	}
+	if timeRange == nil {
+		timeRange = &times.TimeRange{}
+	}
 
-	timeRange = timeRange.InLocation(time.UTC).Date()
+	hash, err := timeRange.Hash()
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to hash event")
+	}
+
 	return metadata.WithMetadata(
 		&work.Create{
 			Type:              Type,
 			GroupID:           pointer.From(ouraWork.GroupIDFromProviderSessionID(providerSessionID)),
-			DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRange.String(oura.TimeRangeFormat))),
+			DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, hash)),
 			SerialID:          pointer.From(ouraDataWork.SerialIDFromProviderSessionID(providerSessionID)),
 			ProcessingTimeout: int(ProcessingTimeout.Seconds()),
 		},
@@ -86,7 +93,7 @@ func NewWorkCreate(providerSessionID string, timeRange times.TimeRange) (*work.C
 				ProviderSessionID: pointer.From(providerSessionID),
 			},
 			TimeRangeMetadata: TimeRangeMetadata{
-				TimeRange: pointer.From(timeRange),
+				TimeRange: timeRange,
 			},
 		},
 	)

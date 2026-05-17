@@ -21,7 +21,8 @@ import (
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
-	"github.com/tidepool-org/platform/times"
+	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -31,7 +32,23 @@ const (
 	FailingRetryDurationJitter = 5 * time.Second
 )
 
-type Metadata = providerSessionWork.Metadata
+type ProviderSessionMetadata = providerSessionWork.Metadata
+
+type Metadata struct {
+	ProviderSessionMetadata `bson:",inline"`
+}
+
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.ProviderSessionMetadata.Parse(parser)
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	if m.ProviderSessionID != nil {
+		m.ProviderSessionMetadata.Validate(validator)
+	} else {
+		validator.WithReference(providerSessionWork.MetadataKeyProviderSessionID).ReportError(structureValidator.ErrorValueNotExists())
+	}
+}
 
 type (
 	ProviderSessionMixin           = providerSessionWork.MixinFromWork
@@ -71,7 +88,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
-	providerSessionMixin, err := providerSessionWork.NewMixinFromWork(processor, dependencies.ProviderSessionClient, processor.Metadata())
+	providerSessionMixin, err := providerSessionWork.NewMixinFromWork(processor, dependencies.ProviderSessionClient, &processor.Metadata().ProviderSessionMetadata)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create provider session mixin")
 	}
@@ -119,8 +136,8 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.FetchDataSourceFromProviderSession,
 		p.FetchTokenSource,
 		p.updateDataSourceProviderExternalID,
-		p.updateProviderSessionExternalID,
 		p.ensureDataSetForDataSource,
+		p.updateProviderSessionExternalID,
 		p.createDataSourceStateChangeEventWork,
 		p.createDataHistoricWork,
 	).Process(p.Delete)
@@ -161,6 +178,13 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 	}
 }
 
+func (p *Processor) ensureDataSetForDataSource() *work.ProcessResult {
+	if p.DataSource().DataSetID != nil {
+		return p.FetchDataSetFromDataSource()
+	}
+	return p.CreateDataSetForDataSource(NewDataSetCreate())
+}
+
 func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 	if p.ProviderSession().ExternalID != nil {
 		return nil
@@ -172,14 +196,6 @@ func (p *Processor) updateProviderSessionExternalID() *work.ProcessResult {
 		ExternalID: p.DataSource().ProviderExternalID,
 	}
 	return p.UpdateProviderSession(providerSessionUpdate)
-}
-
-func (p *Processor) ensureDataSetForDataSource() *work.ProcessResult {
-	if p.DataSource().DataSetID == nil {
-		return p.CreateDataSetForDataSource(NewDataSetCreate())
-	} else {
-		return p.FetchDataSetFromDataSource()
-	}
 }
 
 func (p *Processor) createDataSourceStateChangeEventWork() *work.ProcessResult {
@@ -194,7 +210,7 @@ func (p *Processor) createDataSourceStateChangeEventWork() *work.ProcessResult {
 }
 
 func (p *Processor) createDataHistoricWork() *work.ProcessResult {
-	if workCreate, err := ouraDataWorkHistoric.NewWorkCreate(p.ProviderSession().ID, times.TimeRange{From: p.DataSource().LatestDataTime}); err != nil {
+	if workCreate, err := ouraDataWorkHistoric.NewWorkCreate(p.ProviderSession().ID, nil); err != nil {
 		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
 	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to create data historic work"))

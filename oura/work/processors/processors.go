@@ -12,8 +12,8 @@ import (
 	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
-	ouraDataWorkSetup "github.com/tidepool-org/platform/oura/data/work/setup"
-	ouraUsersWorkRevoke "github.com/tidepool-org/platform/oura/users/work/revoke"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
 	ouraWebhookWorkSubscribe "github.com/tidepool-org/platform/oura/webhook/work/subscribe"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -89,7 +89,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	if processorFactory, err := ouraDataWorkSetup.NewProcessorFactory(ouraDataWorkSetup.Dependencies{
+	if processorFactory, err := ouraUserWorkSetup.NewProcessorFactory(ouraUserWorkSetup.Dependencies{
 		Dependencies:          dependencies.Dependencies,
 		ProviderSessionClient: dependencies.ProviderSessionClient,
 		DataSourceClient:      dependencies.DataSourceClient,
@@ -110,7 +110,7 @@ func NewProcessorFactories(dependencies Dependencies) ([]work.ProcessorFactory, 
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
-	if processorFactory, err := ouraUsersWorkRevoke.NewProcessorFactory(ouraUsersWorkRevoke.Dependencies{
+	if processorFactory, err := ouraUserWorkRevoke.NewProcessorFactory(ouraUserWorkRevoke.Dependencies{
 		Dependencies: dependencies.Dependencies,
 		OuraClient:   dependencies.OuraClient,
 	}); err != nil {

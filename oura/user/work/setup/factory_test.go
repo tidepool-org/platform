@@ -14,8 +14,8 @@ import (
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataSetTest "github.com/tidepool-org/platform/data/set/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
-	ouraDataWorkSetup "github.com/tidepool-org/platform/oura/data/work/setup"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -24,19 +24,19 @@ import (
 
 var _ = Describe("factory", func() {
 	It("Type is expected", func() {
-		Expect(ouraDataWorkSetup.Type).To(Equal("org.tidepool.oura.data.setup"))
+		Expect(ouraUserWorkSetup.Type).To(Equal("org.tidepool.oura.user.setup"))
 	})
 
 	It("Quantity is expected", func() {
-		Expect(ouraDataWorkSetup.Quantity).To(Equal(1))
+		Expect(ouraUserWorkSetup.Quantity).To(Equal(1))
 	})
 
 	It("Frequency is expected", func() {
-		Expect(ouraDataWorkSetup.Frequency).To(Equal(5 * time.Second))
+		Expect(ouraUserWorkSetup.Frequency).To(Equal(5 * time.Second))
 	})
 
 	It("ProcessingTimeout is expected", func() {
-		Expect(ouraDataWorkSetup.ProcessingTimeout).To(Equal(3 * time.Minute))
+		Expect(ouraUserWorkSetup.ProcessingTimeout).To(Equal(3 * time.Minute))
 	})
 
 	Context("with dependencies", func() {
@@ -46,7 +46,7 @@ var _ = Describe("factory", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 		var mockDataSetClient *dataSetTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraDataWorkSetup.Dependencies
+		var dependencies ouraUserWorkSetup.Dependencies
 
 		BeforeEach(func() {
 			mockController = gomock.NewController(GinkgoT())
@@ -55,7 +55,7 @@ var _ = Describe("factory", func() {
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
 			mockDataSetClient = dataSetTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraDataWorkSetup.Dependencies{
+			dependencies = ouraUserWorkSetup.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -102,13 +102,13 @@ var _ = Describe("factory", func() {
 		Context("NewProcessorFactory", func() {
 			It("returns an error if dependencies is invalid", func() {
 				dependencies.WorkClient = nil
-				processorFactory, err := ouraDataWorkSetup.NewProcessorFactory(dependencies)
+				processorFactory, err := ouraUserWorkSetup.NewProcessorFactory(dependencies)
 				Expect(err).To(MatchError("dependencies is invalid; work client is missing"))
 				Expect(processorFactory).To(BeNil())
 			})
 
 			It("returns successfully", func() {
-				processorFactory, err := ouraDataWorkSetup.NewProcessorFactory(dependencies)
+				processorFactory, err := ouraUserWorkSetup.NewProcessorFactory(dependencies)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(processorFactory).ToNot(BeNil())
 			})
@@ -118,26 +118,26 @@ var _ = Describe("factory", func() {
 
 				BeforeEach(func() {
 					var err error
-					processorFactory, err = ouraDataWorkSetup.NewProcessorFactory(dependencies)
+					processorFactory, err = ouraUserWorkSetup.NewProcessorFactory(dependencies)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processorFactory).ToNot(BeNil())
 				})
 
 				Context("Type", func() {
 					It("returns the expected type", func() {
-						Expect(processorFactory.Type()).To(Equal(ouraDataWorkSetup.Type))
+						Expect(processorFactory.Type()).To(Equal(ouraUserWorkSetup.Type))
 					})
 				})
 
 				Context("Quantity", func() {
 					It("returns the expected quantity", func() {
-						Expect(processorFactory.Quantity()).To(Equal(ouraDataWorkSetup.Quantity))
+						Expect(processorFactory.Quantity()).To(Equal(ouraUserWorkSetup.Quantity))
 					})
 				})
 
 				Context("Frequency", func() {
 					It("returns the expected frequency", func() {
-						Expect(processorFactory.Frequency()).To(Equal(ouraDataWorkSetup.Frequency))
+						Expect(processorFactory.Frequency()).To(Equal(ouraUserWorkSetup.Frequency))
 					})
 				})
 
@@ -154,20 +154,20 @@ var _ = Describe("factory", func() {
 
 	Context("NewWorkCreate", func() {
 		It("returns an error if provider session id is missing", func() {
-			workCreate, err := ouraDataWorkSetup.NewWorkCreate("")
+			workCreate, err := ouraUserWorkSetup.NewWorkCreate("")
 			Expect(err).To(MatchError("provider session id is missing"))
 			Expect(workCreate).To(BeNil())
 		})
 
 		It("returns successfully", func() {
 			providerSessionID := authTest.RandomProviderSessionID()
-			workCreate, err := ouraDataWorkSetup.NewWorkCreate(providerSessionID)
+			workCreate, err := ouraUserWorkSetup.NewWorkCreate(providerSessionID)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(workCreate).To(Equal(&work.Create{
-				Type:              ouraDataWorkSetup.Type,
+				Type:              ouraUserWorkSetup.Type,
 				GroupID:           pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
 				DeduplicationID:   pointer.From(providerSessionID),
-				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
+				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
 				ProcessingTimeout: 180,
 				Metadata: map[string]any{
 					providerSessionWork.MetadataKeyProviderSessionID: providerSessionID,

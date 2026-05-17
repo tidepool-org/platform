@@ -15,7 +15,6 @@ import (
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/metadata"
-	"github.com/tidepool-org/platform/oura"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -158,17 +157,15 @@ var _ = Describe("factory", func() {
 	})
 
 	Context("NewWorkCreate", func() {
-		var timeRange times.TimeRange
-		var timeRangeTruncated times.TimeRange
-		var encodedTimeRangeTruncated map[string]any
+		var timeRange *times.TimeRange
+		var timeRangeHash string
+		var timeRangeEncoded map[string]any
 
 		BeforeEach(func() {
-			var err error
-			timeRange = *timesTest.RandomTimeRange(test.AllowOptionals())
-			timeRangeTruncated = timeRange.InLocation(time.UTC).Date()
-			encodedTimeRangeTruncated, err = metadata.Encode(&timeRangeTruncated)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(encodedTimeRangeTruncated).ToNot(BeNil())
+			timeRange = test.RandomOptionalPointerWithOptions(timesTest.RandomTimeRange, test.AllowOptionals())
+			timeRangeResolved := pointer.Default(timeRange, times.TimeRange{})
+			timeRangeHash = test.Must(timeRangeResolved.Hash())
+			timeRangeEncoded = test.Must(metadata.Encode(&timeRangeResolved))
 		})
 
 		It("returns an error if provider session id is missing", func() {
@@ -184,12 +181,12 @@ var _ = Describe("factory", func() {
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraDataWorkHistoric.Type,
 				GroupID:           pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
-				DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRangeTruncated.String(oura.TimeRangeFormat))),
+				DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRangeHash)),
 				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
 				ProcessingTimeout: 900,
 				Metadata: map[string]any{
 					providerSessionWork.MetadataKeyProviderSessionID: providerSessionID,
-					times.MetadataKeyTimeRange:                       encodedTimeRangeTruncated,
+					times.MetadataKeyTimeRange:                       timeRangeEncoded,
 				},
 			}))
 		})
