@@ -185,7 +185,7 @@ func (p *Processor) createDataRaw(dataType string, event *oura.Event, data oura.
 			},
 		},
 	); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		return p.Failed(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else {
 		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(&oura.DataMap{dataType: data})) // Store as map for later processing
 	}

@@ -14,6 +14,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -180,39 +181,90 @@ var _ = Describe("process_result", func() {
 	})
 
 	Context("ExponentialProcessResultFailingBuilder", func() {
-		var duration time.Duration
-		var durationJitter time.Duration
 		var err error
-		var failingRetryCount int
 		var tm time.Time
-		var builder *workBase.ExponentialProcessResultFailingBuilder
 
 		BeforeEach(func() {
-			duration = test.RandomDurationFromRange(0, time.Hour)
-			durationJitter = test.RandomDurationFromRange(0, time.Minute)
 			err = errorsTest.RandomError()
-			failingRetryCount = test.RandomIntFromRange(1, 10)
 			tm = test.RandomTime()
+		})
 
-			builder = &workBase.ExponentialProcessResultFailingBuilder{
-				Duration:       duration,
-				DurationJitter: durationJitter,
+		It("returns duration after now if less than absolute maximum duration", func() {
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration: tm.AddDate(10, 0, 0).Sub(tm) - 1,
 			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(BeTemporally("<", tm.AddDate(10, 0, 0)))
 		})
 
-		It("returns now for failing retry count less than 1", func() {
-			Expect(builder.FailingRetryTime(ctx, nil, err, 0, tm)).To(Equal(tm))
+		It("returns absolute maximum duration after now", func() {
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration: tm.AddDate(10, 0, 0).Sub(tm) + 1,
+			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(Equal(tm.AddDate(10, 0, 0)))
 		})
 
-		It("returns duration within duration jitter after now for failing retry count of 1", func() {
-			Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
+		It("returns duration after now if failing retry count within limits", func() {
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration: time.Second,
+			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 29, tm)).To(BeTemporally("<", tm.AddDate(10, 0, 0)))
 		})
 
-		It("calculates exponential duration", func() {
-			exponentialFactor := time.Duration(1 << (failingRetryCount - 1))
-			duration *= exponentialFactor
-			durationJitter *= exponentialFactor
-			Expect(builder.FailingRetryTime(ctx, nil, err, failingRetryCount, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
+		It("returns absolute maximum duration after now if failing retry count exceeds limits", func() {
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration: time.Second,
+			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 30, tm)).To(Equal(tm.AddDate(10, 0, 0)))
+		})
+
+		It("returns duration after now if failing retry count within limits", func() {
+			durationMaximum := 24 * time.Hour
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration:        time.Second,
+				DurationMaximum: pointer.FromDuration(durationMaximum),
+			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 17, tm)).To(BeTemporally("<", tm.Add(durationMaximum)))
+		})
+
+		It("returns specified maximum duration if failing retry count exceeds limits", func() {
+			durationMaximum := 24 * time.Hour
+			builder := &workBase.ExponentialProcessResultFailingBuilder{
+				Duration:        time.Second,
+				DurationMaximum: pointer.FromDuration(durationMaximum),
+			}
+			Expect(builder.FailingRetryTime(ctx, nil, err, 18, tm)).To(Equal(tm.Add(durationMaximum)))
+		})
+
+		Context("with random duration and duration jitter", func() {
+			var builder *workBase.ExponentialProcessResultFailingBuilder
+
+			BeforeEach(func() {
+				builder = &workBase.ExponentialProcessResultFailingBuilder{
+					Duration:       test.RandomDurationFromRange(0, time.Hour),
+					DurationJitter: test.RandomDurationFromRange(0, time.Minute),
+				}
+			})
+
+			It("returns now for failing retry count less than 1", func() {
+				Expect(builder.FailingRetryTime(ctx, nil, err, 0, tm)).To(Equal(tm))
+			})
+
+			It("returns duration after now for failing retry count of 1", func() {
+				builder.DurationJitter = 0
+				Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(BeTemporally("==", tm.Add(builder.Duration)))
+			})
+
+			It("returns duration within duration jitter after now for failing retry count of 1", func() {
+				Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(And(BeTemporally(">=", tm.Add(builder.Duration-builder.DurationJitter)), BeTemporally("<=", tm.Add(builder.Duration+builder.DurationJitter))))
+			})
+
+			It("calculates exponential duration", func() {
+				for index := range 17 {
+					duration := time.Duration(int64(builder.Duration) * (int64(1) << index))
+					durationJitter := time.Duration(int64(builder.DurationJitter) * (int64(1) << index))
+					Expect(builder.FailingRetryTime(ctx, nil, err, index+1, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
+				}
+			})
 		})
 	})
 })

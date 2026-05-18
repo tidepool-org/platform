@@ -308,7 +308,7 @@ var _ = Describe("processor", func() {
 													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 												})
 
-												Context("with successful data periodic work create", func() {
+												Context("with successful data personal work create", func() {
 													BeforeEach(func() {
 														dataPersonalWork := workTest.NewWorkFromCreateWithState(expectedDataPersonalWorkCreate, work.StatePending)
 														mockWorkClient.EXPECT().Create(gomock.Not(gomock.Nil()), expectedDataPersonalWorkCreate).Return(dataPersonalWork, nil)

@@ -85,8 +85,8 @@ const (
 	SubscriptionArrayLengthMaximum   = 100
 	SubscriptionExpirationTimeFormat = "2006-01-02T15:04:05.999999999" // Assume location UTC
 
-	TimeRangeFormat       = time.RFC3339
-	TimeRangeMaximumYears = 10
+	TimeFormat                = time.RFC3339
+	TimeWithoutTimezoneFormat = "2006-01-02T15:04:05"
 )
 
 var (
@@ -522,7 +522,9 @@ type Datum map[string]any
 func (d Datum) Time() *time.Time {
 	if timestampRaw, ok := d["timestamp"]; ok {
 		if timestampString, ok := timestampRaw.(string); ok {
-			if timestamp, err := time.ParseInLocation(TimeRangeFormat, timestampString, time.UTC); err == nil {
+			if timestamp, err := time.ParseInLocation(TimeFormat, timestampString, time.UTC); err == nil {
+				return pointer.From(timestamp)
+			} else if timestamp, err = time.ParseInLocation(TimeWithoutTimezoneFormat, timestampString, time.UTC); err == nil {
 				return pointer.From(timestamp)
 			}
 		}

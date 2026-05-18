@@ -102,13 +102,13 @@ func (p *Processor[W]) AddFieldsToContext(fields log.Fields) {
 }
 
 func (p *Processor[W]) ProcessingUpdate() *work.ProcessResult {
-	log.LoggerFromContext(p.context).Debug("update work")
+	log.LoggerFromContext(p.Context()).Debug("update work")
 
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
 
-	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.context), work.ProcessingUpdate{Metadata: p.work.Metadata})
+	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.Context()), work.ProcessingUpdate{Metadata: p.work.Metadata})
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to update work"))
 	} else if wrk == nil {
@@ -129,40 +129,40 @@ func (p *Processor[W]) Pending() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Pending(p.context, p.work, p.Now())
+	return p.processResultBuilder.Pending(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) Failing(err error) *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Failing(p.context, p.work, err, p.Now())
+	return p.processResultBuilder.Failing(p.Context(), p.work, err, p.Now())
 }
 
 func (p *Processor[W]) Failed(err error) *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Failed(p.context, p.work, err, p.Now())
+	return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now())
 }
 
 func (p *Processor[W]) Success() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Success(p.context, p.work, p.Now())
+	return p.processResultBuilder.Success(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) Delete() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Delete(p.context, p.work, p.Now())
+	return p.processResultBuilder.Delete(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
-	if workMetadata, err := metadata.Decode[W](p.context, p.work.Metadata); err != nil {
-		return p.processResultBuilder.Failed(p.context, p.work, err, p.Now()) // Do not encode metadata if decoding fails (otherwise we potentially corrupt metadata)
+	if workMetadata, err := metadata.Decode[W](p.Context(), p.work.Metadata); err != nil {
+		return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now()) // Do not encode metadata if decoding fails (otherwise we potentially corrupt metadata)
 	} else if workMetadata != nil {
 		*p.metadata = *workMetadata
 	}
@@ -171,7 +171,7 @@ func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
 
 func (p *Processor[W]) encodeMetadata() *work.ProcessResult {
 	if workMetadata, err := metadata.Encode(p.metadata); err != nil {
-		return p.processResultBuilder.Failed(p.context, p.work, err, p.Now())
+		return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now())
 	} else if workMetadata != nil {
 		p.work.Metadata = workMetadata
 	}

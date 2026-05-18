@@ -322,7 +322,7 @@ var _ = Describe("mixin", func() {
 				It("returns failing process result when unable to decode metadata", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.Metadata["mock"] = true
-					Expect(mixin.SetDataSource(dataSrc)).To(workTest.MatchFailingProcessResultError(MatchError("unable to decode data source metadata; unable to decode metadata; type is not string, but bool")))
+					Expect(mixin.SetDataSource(dataSrc)).To(workTest.MatchFailedProcessResultError(MatchError("unable to decode data source metadata; unable to decode metadata; type is not string, but bool")))
 				})
 
 				It("decodes metadata from data source and returns nil", func() {
@@ -483,7 +483,7 @@ var _ = Describe("mixin", func() {
 
 					It("returns failing process result when the update metadata cannot be decoded", func() {
 						mixin.DataSourceMetadata().Any = func() {}
-						Expect(mixin.UpdateDataSource(dataSrcUpdate)).To(workTest.MatchFailingProcessResultError(MatchError("unable to encode data source metadata; unable to encode object; json: unsupported type: func()")))
+						Expect(mixin.UpdateDataSource(dataSrcUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("unable to encode data source metadata; unable to encode object; json: unsupported type: func()")))
 					})
 
 					It("returns failing process result when the client returns an error", func() {
@@ -609,14 +609,14 @@ var _ = Describe("mixin", func() {
 					Expect(mixin.EnsureDataSourceHasProviderSessionID()).To(workTest.MatchFailedProcessResultError(MatchError("data source is missing")))
 				})
 
-				It("returns failed result after SetDatSource is called with a data source without a provider session id", func() {
+				It("returns failed result after SetDataSource is called with a data source without a provider session id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.ProviderSessionID = nil
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 					Expect(mixin.EnsureDataSourceHasProviderSessionID()).To(workTest.MatchFailedProcessResultError(MatchError("data source provider session id is missing")))
 				})
 
-				It("returns nil after SetDatSource is called with a data source with a provider session id", func() {
+				It("returns nil after SetDataSource is called with a data source with a provider session id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
@@ -638,14 +638,14 @@ var _ = Describe("mixin", func() {
 					Expect(mixin.EnsureDataSourceHasDataSetID()).To(workTest.MatchFailedProcessResultError(MatchError("data source is missing")))
 				})
 
-				It("returns failed result after SetDatSource is called with a data source without a data set id", func() {
+				It("returns failed result after SetDataSource is called with a data source without a data set id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.DataSetID = nil
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())
 					Expect(mixin.EnsureDataSourceHasDataSetID()).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 				})
 
-				It("returns nil after SetDatSource is called with a data source with a data set id", func() {
+				It("returns nil after SetDataSource is called with a data source with a data set id", func() {
 					dataSrc := randomDataSourceWithMockMetadata()
 					dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
 					Expect(mixin.SetDataSource(dataSrc)).To(BeNil())

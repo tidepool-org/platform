@@ -99,10 +99,6 @@ func (c *Coordinator) RegisterProcessorFactory(processorFactory work.ProcessorFa
 		return errors.New("processor factory is missing")
 	}
 
-	if c.workersCompletionChannel != nil {
-		return errors.New("coordinator already started")
-	}
-
 	processorType := processorFactory.Type()
 	if processorType == "" {
 		return errors.New("processor type is empty")

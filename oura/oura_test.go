@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/data"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -185,20 +186,16 @@ var _ = Describe("oura", func() {
 		Expect(oura.SubscriptionArrayLengthMaximum).To(Equal(100))
 	})
 
-	It("SubscriptionArrayLengthMaximum is expected", func() {
-		Expect(oura.SubscriptionArrayLengthMaximum).To(Equal(100))
-	})
-
 	It("SubscriptionExpirationTimeFormat is expected", func() {
 		Expect(oura.SubscriptionExpirationTimeFormat).To(Equal("2006-01-02T15:04:05.999999999"))
 	})
 
-	It("TimeRangeFormat is expected", func() {
-		Expect(oura.TimeRangeFormat).To(Equal(time.RFC3339))
+	It("TimeFormat is expected", func() {
+		Expect(oura.TimeFormat).To(Equal(time.RFC3339))
 	})
 
-	It("TimeRangeMaximumYears is expected", func() {
-		Expect(oura.TimeRangeMaximumYears).To(Equal(10))
+	It("TimeWithoutTimezoneFormat is expected", func() {
+		Expect(oura.TimeWithoutTimezoneFormat).To(Equal("2006-01-02T15:04:05"))
 	})
 
 	It("DeviceManufacturers is expected", func() {
@@ -333,15 +330,15 @@ var _ = Describe("oura", func() {
 	})
 
 	Context("DataTypeInScopes", func() {
-		It("returns true is scopes is nil", func() {
+		It("returns true if scopes is nil", func() {
 			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, nil)).To(BeTrue())
 		})
 
-		It("returns true is scopes is empty", func() {
+		It("returns true if scopes is empty", func() {
 			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, &[]string{})).To(BeTrue())
 		})
 
-		It("returns false is scopes does not include data type", func() {
+		It("returns false if scopes does not include data type", func() {
 			dataType := ouraTest.RandomDataType()
 			scopesForDataType := oura.ScopesForDataType(dataType)
 			scopes := slices.DeleteFunc(oura.Scopes(), func(scope string) bool {
@@ -350,19 +347,19 @@ var _ = Describe("oura", func() {
 			Expect(oura.DataTypeInScopes(dataType, &scopes)).To(BeFalse())
 		})
 
-		It("returns true is scopes includes data type", func() {
+		It("returns true if scopes includes data type", func() {
 			dataType := ouraTest.RandomDataType()
 			scopes := oura.ScopesForDataType(dataType)
 			Expect(oura.DataTypeInScopes(dataType, &scopes)).To(BeTrue())
 		})
 
-		It("returns true is scopes is all scopes", func() {
+		It("returns true if scopes is all scopes", func() {
 			Expect(oura.DataTypeInScopes(ouraTest.RandomDataType(), pointer.From(oura.Scopes()))).To(BeTrue())
 		})
 	})
 
 	Context("DataTypeInScope", func() {
-		It("returns false is scope does not include data type", func() {
+		It("returns false if scope does not include data type", func() {
 			dataType := ouraTest.RandomDataType()
 			scopesForDataType := oura.ScopesForDataType(dataType)
 			scopes := slices.DeleteFunc(oura.Scopes(), func(scope string) bool {
@@ -371,7 +368,7 @@ var _ = Describe("oura", func() {
 			Expect(oura.DataTypeInScope(dataType, test.RandomStringFromArray(scopes))).To(BeFalse())
 		})
 
-		It("returns true is scope includes data type", func() {
+		It("returns true if scope includes data type", func() {
 			dataType := ouraTest.RandomDataType()
 			scopes := oura.ScopesForDataType(dataType)
 			Expect(oura.DataTypeInScope(dataType, test.RandomStringFromArray(scopes))).To(BeTrue())
@@ -1470,12 +1467,12 @@ var _ = Describe("oura", func() {
 					Expect(datum.Hash()).To(Equal(expectedHash))
 				},
 				Entry("all", pointer.From("da349d70cc124d57bada133ce04f0513"), pointer.From(52), pointer.From(156.4), pointer.From(72.4), pointer.From("male"), pointer.From("bob@tidepool.io"), "yzFQ5RxZLgIzTnZxiAv3laIjSSn6+ktgVjfJDa8d/lQ="),
-				Entry("event_time missing", nil, pointer.From(41), pointer.From(152.7), pointer.From(64.0), pointer.From("female"), pointer.From("ann@tidepool.io"), "oTafvI7fAFUYapPCU6BI+gphl7634FLs6l+4tFYOvAs="),
-				Entry("event_type missing", pointer.From("e556b8b19d034cfc9f9d5b7dae9ed3c1"), nil, pointer.From(114.5), pointer.From(68.2), pointer.From(""), pointer.From("amy@tidepool.io"), "n37K1jw/lNmWF+IwmtJZgz2NrkrsGzLlmuRtbO/bOG4="),
-				Entry("user_id missing", pointer.From("66249a46d97a4d409b1a7dee4be85069"), pointer.From(34), nil, pointer.From(69.2), pointer.From("other"), pointer.From("jim@tidepool.io"), "ojh/ltPFb6qyWpKgfUVKZEv32AoYuvCnLIl2bjFD5o4="),
-				Entry("object_id missing", pointer.From("a125b96ff4fb4c45aad383d0094d34e4"), pointer.From(45), pointer.From(179.4), nil, pointer.From("non-binary"), pointer.From("jane@tidepool.io"), "QpInH6ifkBDeCnj6fXXK0RHeET824jSupJ/P7HCONBk="),
-				Entry("data_type missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), nil, pointer.From("jon@tidepool.io"), "o/76T/S37K186nvqG7ZVheKU6CkC4IjQfnklETlpduI="),
-				Entry("data_type missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), pointer.From("unspecified"), nil, "lUCGa4kv/0h02IEyM4cRAdQvE1rOGwj8OirKO/tLTQU="),
+				Entry("id missing", nil, pointer.From(41), pointer.From(152.7), pointer.From(64.0), pointer.From("female"), pointer.From("ann@tidepool.io"), "oTafvI7fAFUYapPCU6BI+gphl7634FLs6l+4tFYOvAs="),
+				Entry("age missing", pointer.From("e556b8b19d034cfc9f9d5b7dae9ed3c1"), nil, pointer.From(114.5), pointer.From(68.2), pointer.From(""), pointer.From("amy@tidepool.io"), "n37K1jw/lNmWF+IwmtJZgz2NrkrsGzLlmuRtbO/bOG4="),
+				Entry("weight missing", pointer.From("66249a46d97a4d409b1a7dee4be85069"), pointer.From(34), nil, pointer.From(69.2), pointer.From("other"), pointer.From("jim@tidepool.io"), "ojh/ltPFb6qyWpKgfUVKZEv32AoYuvCnLIl2bjFD5o4="),
+				Entry("height missing", pointer.From("a125b96ff4fb4c45aad383d0094d34e4"), pointer.From(45), pointer.From(179.4), nil, pointer.From("non-binary"), pointer.From("jane@tidepool.io"), "QpInH6ifkBDeCnj6fXXK0RHeET824jSupJ/P7HCONBk="),
+				Entry("biologicalSex missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), nil, pointer.From("jon@tidepool.io"), "o/76T/S37K186nvqG7ZVheKU6CkC4IjQfnklETlpduI="),
+				Entry("email missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), pointer.From("unspecified"), nil, "lUCGa4kv/0h02IEyM4cRAdQvE1rOGwj8OirKO/tLTQU="),
 				Entry("all missing", nil, nil, nil, nil, nil, nil, "RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o="),
 			)
 		})
@@ -1759,6 +1756,95 @@ var _ = Describe("oura", func() {
 				),
 			)
 		})
+
+		Context("TimeMaximum", func() {
+			It("returns nil when data is empty", func() {
+				datum := oura.Data{}
+				Expect(datum.TimeMaximum()).To(BeNil())
+			})
+
+			It("returns nil when no datum has a timestamp", func() {
+				datum := oura.Data{oura.Datum{}, oura.Datum{}}
+				Expect(datum.TimeMaximum()).To(BeNil())
+			})
+
+			It("returns the timestamp when there is a single datum with a timestamp", func() {
+				tm := test.RandomTime().Truncate(time.Second)
+				datum := oura.Data{oura.Datum{"timestamp": tm.UTC().Format(time.RFC3339)}}
+				Expect(datum.TimeMaximum()).To(PointTo(BeTemporally("==", tm)))
+			})
+
+			It("returns the maximum timestamp across multiple data", func() {
+				tm := test.RandomTime().Truncate(time.Second)
+				tmAfter := tm.Add(time.Hour)
+				tmBefore := tm.Add(-time.Hour)
+				datum := oura.Data{
+					oura.Datum{"timestamp": tm.UTC().Format(time.RFC3339)},
+					oura.Datum{"timestamp": tmAfter.UTC().Format(time.RFC3339)},
+					oura.Datum{"timestamp": tmBefore.UTC().Format(time.RFC3339)},
+				}
+				Expect(datum.TimeMaximum()).To(PointTo(BeTemporally("==", tmAfter)))
+			})
+
+			It("ignores data without a timestamp", func() {
+				tm := test.RandomTime().Truncate(time.Second)
+				datum := oura.Data{
+					oura.Datum{},
+					oura.Datum{"timestamp": tm.UTC().Format(time.RFC3339)},
+					oura.Datum{},
+				}
+				Expect(datum.TimeMaximum()).To(PointTo(BeTemporally("==", tm)))
+			})
+
+			It("ignores data with an invalid timestamp", func() {
+				tm := test.RandomTime().Truncate(time.Second)
+				datum := oura.Data{
+					oura.Datum{"timestamp": "not-a-timestamp"},
+					oura.Datum{"timestamp": tm.UTC().Format(time.RFC3339)},
+				}
+				Expect(datum.TimeMaximum()).To(PointTo(BeTemporally("==", tm)))
+			})
+		})
+	})
+
+	Context("Datum", func() {
+		Context("Time", func() {
+			It("returns nil when timestamp key is absent", func() {
+				datum := oura.Datum{}
+				Expect(datum.Time()).To(BeNil())
+			})
+
+			It("returns nil when timestamp value is not a string", func() {
+				datum := oura.Datum{"timestamp": 12345}
+				Expect(datum.Time()).To(BeNil())
+			})
+
+			It("returns nil when timestamp string is not a valid RFC3339 time", func() {
+				datum := oura.Datum{"timestamp": "not-a-timestamp"}
+				Expect(datum.Time()).To(BeNil())
+			})
+
+			It("returns the parsed time when timestamp is a valid RFC3339 string", func() {
+				tm := test.RandomTime().Truncate(time.Second)
+				datum := oura.Datum{"timestamp": tm.UTC().Format(time.RFC3339)}
+				Expect(datum.Time()).To(PointTo(BeTemporally("==", tm)))
+			})
+
+			It("returns the time in UTC when timestamp has a non-UTC offset", func() {
+				datum := oura.Datum{"timestamp": "2024-03-15T10:00:00+05:00"}
+				result := datum.Time()
+				Expect(result).ToNot(BeNil())
+				Expect(*result).To(BeTemporally("==", time.Date(2024, 3, 15, 5, 0, 0, 0, time.UTC)))
+			})
+
+			It("returns the time in UTC when timestamp has no timezone offset", func() {
+				datum := oura.Datum{"timestamp": "2024-03-15T10:00:00"}
+				result := datum.Time()
+				Expect(result).ToNot(BeNil())
+				Expect(result.Location()).To(Equal(time.UTC))
+				Expect(*result).To(BeTemporally("==", time.Date(2024, 3, 15, 10, 0, 0, 0, time.UTC)))
+			})
+		})
 	})
 
 	Context("IsValidDataID, DataIDValidator, and ValidateDataID", func() {
@@ -1787,7 +1873,7 @@ var _ = Describe("oura", func() {
 			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
 			Entry("is invalid", "invalid", structureValidator.ErrorValueStringNotOneOf("invalid", oura.DataTypes())),
 			Entry("is DataTypeDailyActivity", oura.DataTypeDailyActivity),
-			Entry("is DataTypeDailyCyclePhases", oura.DataTypeDailyCardiovascularAge),
+			Entry("is DataTypeDailyCardiovascularAge", oura.DataTypeDailyCardiovascularAge),
 			Entry("is DataTypeDailyCyclePhases", oura.DataTypeDailyCyclePhases),
 			Entry("is DataTypeDailyReadiness", oura.DataTypeDailyReadiness),
 			Entry("is DataTypeDailyResilience", oura.DataTypeDailyResilience),
@@ -1803,7 +1889,7 @@ var _ = Describe("oura", func() {
 			Entry("is DataTypeSession", oura.DataTypeSession),
 			Entry("is DataTypeSleep", oura.DataTypeSleep),
 			Entry("is DataTypeSleepTime", oura.DataTypeSleepTime),
-			Entry("is DataTypeVO2Max", oura.DataTypeWorkout),
+			Entry("is DataTypeVO2Max", oura.DataTypeVO2Max),
 			Entry("is DataTypeWorkout", oura.DataTypeWorkout),
 		)
 	})

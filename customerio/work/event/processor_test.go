@@ -16,6 +16,7 @@ import (
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	"github.com/tidepool-org/platform/test"
 	"github.com/tidepool-org/platform/work"
 
 	"github.com/tidepool-org/platform/log"
@@ -60,7 +61,10 @@ var _ = Describe("Processor", func() {
 
 		customerIOConfig := customerio.Config{
 			AppAPIBaseURL:   appAPIServer.URL,
+			AppAPIKey:       test.RandomString(),
 			TrackAPIBaseURL: trackAPIServer.URL,
+			SiteID:          test.RandomString(),
+			TrackAPIKey:     test.RandomString(),
 		}
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())

@@ -99,7 +99,7 @@ type ExponentialProcessResultFailingBuilder struct {
 }
 
 func (e *ExponentialProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, tm time.Time) time.Time {
-	duration := durationWithJitterExponential(e.Duration, e.DurationJitter, failingRetryCount-1)
+	duration := min(durationWithJitterExponential(e.Duration, e.DurationJitter, failingRetryCount-1), tm.AddDate(failingRetryDurationMaximumYears, 0, 0).Sub(tm))
 	if e.DurationMaximum != nil && duration > *e.DurationMaximum {
 		duration = *e.DurationMaximum
 	}
@@ -111,13 +111,16 @@ func durationWithJitterExponential(duration time.Duration, durationJitter time.D
 		return 0
 	}
 	duration = durationExponential(duration, exponent)
-	durationJitter = time.Duration(crypto.RandomInt64N(int64(durationExponential(durationAbsolute(durationJitter), exponent))))
-	if crypto.RandomBool() {
-		durationJitter = min(durationJitter, durationMaximum-duration)
-	} else {
-		durationJitter = -min(durationJitter, duration)
+	durationJitter = durationExponential(durationAbsolute(durationJitter), exponent)
+	if durationJitter > 0 {
+		durationJitter = time.Duration(crypto.RandomInt64N(int64(durationJitter)))
+		if crypto.RandomBool() {
+			duration += min(durationJitter, durationMaximum-duration)
+		} else {
+			duration -= min(durationJitter, duration)
+		}
 	}
-	return duration + durationJitter
+	return duration
 }
 
 func durationExponential(duration time.Duration, exponent int) time.Duration {
@@ -125,10 +128,10 @@ func durationExponential(duration time.Duration, exponent int) time.Duration {
 		return 0
 	} else if exponent == 0 {
 		return duration
-	} else if exponent > int(math.Log2(float64(durationMaximum)/float64(duration))) {
+	} else if exponent >= 63 || duration >= durationMaximum>>exponent {
 		return durationMaximum
 	} else {
-		return time.Duration(int64(duration) * (1 << exponent))
+		return time.Duration(int64(duration) * (int64(1) << exponent))
 	}
 }
 
@@ -140,4 +143,7 @@ func durationAbsolute(duration time.Duration) time.Duration {
 	}
 }
 
-const durationMaximum = time.Duration(math.MaxInt64)
+const (
+	failingRetryDurationMaximumYears = 10
+	durationMaximum                  = time.Duration(math.MaxInt64)
+)

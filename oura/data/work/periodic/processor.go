@@ -267,7 +267,7 @@ func (p *Processor) createDataRaw(dataType string, timeRange *times.TimeRange, d
 			},
 		},
 	); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		return p.Failed(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else {
 		p.ClearDataRaw()
 		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(&oura.DataMap{dataType: data})) // Store as map for later processing

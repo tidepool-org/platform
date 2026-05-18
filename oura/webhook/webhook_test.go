@@ -20,7 +20,7 @@ var _ = Describe("Webhook", func() {
 			},
 			Entry("has a partner url that ends with a slash", "https://test.tidepool.org/v1/partners/oura/", oura.EventTypeCreate, oura.DataTypeDailyActivity, "https://test.tidepool.org/v1/partners/oura/event/create/daily_activity"),
 			Entry("has an event type with a slash", "https://test.tidepool.org/v1/partners/oura", "with/slash", oura.DataTypeDailyActivity, "https://test.tidepool.org/v1/partners/oura/event/with%2Fslash/daily_activity"),
-			Entry("has an data type with a slash", "https://test.tidepool.org/v1/partners/oura", oura.EventTypeCreate, "with/slash", "https://test.tidepool.org/v1/partners/oura/event/create/with%2Fslash"),
+			Entry("has a data type with a slash", "https://test.tidepool.org/v1/partners/oura", oura.EventTypeCreate, "with/slash", "https://test.tidepool.org/v1/partners/oura/event/create/with%2Fslash"),
 			Entry("is valid", "https://test.tidepool.org/v1/partners/oura", oura.EventTypeCreate, oura.DataTypeDailyActivity, "https://test.tidepool.org/v1/partners/oura/event/create/daily_activity"),
 		)
 	})

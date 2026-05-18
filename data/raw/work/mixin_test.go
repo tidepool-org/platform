@@ -322,7 +322,7 @@ var _ = Describe("mixin", func() {
 				It("returns failing process result when unable to decode metadata", func() {
 					dataRw := randomDataRawWithMockMetadata()
 					dataRw.Metadata["mock"] = true
-					Expect(mixin.SetDataRaw(dataRw)).To(workTest.MatchFailingProcessResultError(MatchError("unable to decode data raw metadata; unable to decode metadata; type is not string, but bool")))
+					Expect(mixin.SetDataRaw(dataRw)).To(workTest.MatchFailedProcessResultError(MatchError("unable to decode data raw metadata; unable to decode metadata; type is not string, but bool")))
 				})
 
 				It("decodes metadata from data raw and returns nil", func() {
@@ -466,7 +466,7 @@ var _ = Describe("mixin", func() {
 						createdDataRaw := randomDataRawWithMockMetadata()
 						createdDataRaw.Metadata["invalid"] = true
 						mockDataRawClient.EXPECT().Create(gomock.Not(gomock.Nil()), userID, dataSetID, dataRawCreate, reader).Return(createdDataRaw, nil)
-						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailingProcessResultError(MatchError(ContainSubstring("unable to decode data raw metadata"))))
+						Expect(mixin.CreateDataRaw(userID, dataSetID, dataRawCreate, reader)).To(workTest.MatchFailedProcessResultError(MatchError(ContainSubstring("unable to decode data raw metadata"))))
 					})
 
 					It("updates the data raw and returns nil on success", func() {
@@ -505,7 +505,7 @@ var _ = Describe("mixin", func() {
 
 					It("returns failing process result when the update metadata cannot be decoded", func() {
 						mixin.DataRawMetadata().Any = func() {}
-						Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailingProcessResultError(MatchError("unable to encode data raw metadata; unable to encode object; json: unsupported type: func()")))
+						Expect(mixin.UpdateDataRaw(dataRwUpdate)).To(workTest.MatchFailedProcessResultError(MatchError("unable to encode data raw metadata; unable to encode object; json: unsupported type: func()")))
 					})
 
 					It("returns failing process result when the client returns an error", func() {
@@ -577,7 +577,7 @@ var _ = Describe("mixin", func() {
 			})
 
 			Context("EnsureDataRawContent", func() {
-				It("returns false initially", func() {
+				It("returns failed result initially", func() {
 					Expect(mixin.EnsureDataRawContent()).To(workTest.MatchFailedProcessResultError(MatchError("data raw content is missing")))
 				})
 
@@ -593,11 +593,11 @@ var _ = Describe("mixin", func() {
 						Expect(mixin.FetchDataRawContentFromDataRaw()).To(BeNil())
 					})
 
-					It("returns true after SetDataRaw is called with a data raw", func() {
+					It("returns nil after SetDataRaw is called with a data raw", func() {
 						Expect(mixin.EnsureDataRawContent()).To(BeNil())
 					})
 
-					It("returns false after SetDataRaw is called with nil", func() {
+					It("returns failed result after SetDataRaw is called with nil", func() {
 						Expect(mixin.EnsureDataRawContent()).To(BeNil())
 						Expect(mixin.SetDataRaw(nil)).To(BeNil())
 						Expect(mixin.EnsureDataRawContent()).To(workTest.MatchFailedProcessResultError(MatchError("data raw content is missing")))

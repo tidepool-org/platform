@@ -156,7 +156,7 @@ func (m *mixin[M]) SetDataRaw(dataRw *dataRaw.Raw) *work.ProcessResult {
 	if dataRw != nil {
 		var err error
 		if dataRwMetadata, err = metadata.Decode[M](m.Context(), dataRw.Metadata); err != nil {
-			return m.Failing(errors.Wrap(err, "unable to decode data raw metadata"))
+			return m.Failed(errors.Wrap(err, "unable to decode data raw metadata"))
 		}
 	}
 	m.dataRaw = dataRw
@@ -223,7 +223,7 @@ func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessRes
 	}
 
 	if dataRwMetadata, err := metadata.Encode(m.dataRawMetadata); err != nil {
-		return m.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		return m.Failed(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else if dataRwMetadata != nil || m.dataRaw.Metadata != nil {
 		dataRawUpdate.Metadata = &dataRwMetadata
 	}
@@ -258,14 +258,14 @@ func (m *mixin[M]) DataRawContent() *dataRaw.Content {
 }
 
 func (m *mixin[M]) FetchDataRawContent(dataRawID string) *work.ProcessResult {
-	dataRwContent, err := m.dataRawClient.GetContent(m.Context(), dataRawID, nil)
-	if err != nil {
+	if dataRwContent, err := m.dataRawClient.GetContent(m.Context(), dataRawID, nil); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to get data raw content"))
 	} else if dataRwContent == nil {
 		return m.Failed(errors.New("data raw content is missing"))
+	} else {
+		m.dataRawContent = dataRwContent
+		return nil
 	}
-	m.dataRawContent = dataRwContent
-	return nil
 }
 
 func (m *mixin[M]) FetchDataRawContentFromDataRaw() *work.ProcessResult {

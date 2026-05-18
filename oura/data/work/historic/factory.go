@@ -39,7 +39,7 @@ func NewWorkCreate(providerSessionID string, timeRange *times.TimeRange) (*work.
 
 	hash, err := timeRange.Hash()
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to hash event")
+		return nil, errors.Wrap(err, "unable to hash time range")
 	}
 
 	return metadata.WithMetadata(

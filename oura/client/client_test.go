@@ -722,7 +722,7 @@ var _ = Describe("client", func() {
 			Expect(ouraClient.DataTypeToPath(oura.DataTypeWorkout)).To(Equal(oura.DataTypeWorkout))
 		})
 
-		It("returns empty string for an unknown data type", func() {
+		It("returns data type for unknown data type", func() {
 			dataType := test.RandomString()
 			Expect(ouraClient.DataTypeToPath(dataType)).To(Equal(dataType))
 		})

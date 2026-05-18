@@ -15,10 +15,13 @@ import (
 var _ = Describe("Crypto", func() {
 	Context("RandomBool", func() {
 		It("returns both true and false", func() {
+			const attemptMaximum = 1000
 			results := map[bool]bool{}
-			for len(results) < 2 {
+			for attempt := 0; attempt < attemptMaximum && len(results) < 2; attempt++ {
 				results[crypto.RandomBool()] = true
 			}
+			Expect(results[true]).To(BeTrue())
+			Expect(results[false]).To(BeTrue())
 		})
 	})
 

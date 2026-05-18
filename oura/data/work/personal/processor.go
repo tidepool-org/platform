@@ -159,7 +159,7 @@ func (p *Processor) fetchData() *work.ProcessResult {
 	// If hash matches previous, then skip
 	hash, err := personalInfo.Hash()
 	if err != nil {
-		return p.Failing(errors.Wrap(err, "unable to compute hash of datum"))
+		return p.Failed(errors.Wrap(err, "unable to compute hash of datum"))
 	}
 	if previousHash := p.Metadata().PreviousHash; previousHash != nil && hash == *previousHash {
 		log.LoggerFromContext(p.Context()).Debug("skipping datum with matching hash")
@@ -169,7 +169,7 @@ func (p *Processor) fetchData() *work.ProcessResult {
 	// Convert to datum
 	datum, err := metadata.Encode(personalInfo)
 	if err != nil {
-		return p.Failing(errors.Wrap(err, "unable to encode datum"))
+		return p.Failed(errors.Wrap(err, "unable to encode datum"))
 	}
 
 	// Create data raw
@@ -195,7 +195,7 @@ func (p *Processor) createDataRaw(dataType string, timeRange *times.TimeRange, d
 			},
 		},
 	); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		return p.Failed(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else {
 		p.ClearDataRaw()
 		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(&oura.DataMap{dataType: data})) // Store as map for later processing

@@ -915,12 +915,14 @@ func (s *Standard) initializeWorkSingletons() error {
 	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
 	defer cancel()
 
-	s.Logger().Debug("Creating oura webhook subscribe work")
+	if s.ouraClient != nil {
+		s.Logger().Debug("Creating oura webhook subscribe work")
 
-	if workCreate, err := ouraWebhookWorkSubscribe.NewWorkCreate(); err != nil {
-		return errors.Wrap(err, "unable to create oura webhook subscribe work create")
-	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
-		return errors.Wrap(err, "unable to create oura webhook subscribe work")
+		if workCreate, err := ouraWebhookWorkSubscribe.NewWorkCreate(); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work create")
+		} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work")
+		}
 	}
 
 	return nil

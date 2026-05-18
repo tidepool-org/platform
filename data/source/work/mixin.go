@@ -149,7 +149,7 @@ func (m *mixin[M]) SetDataSource(dataSrc *dataSource.Source) *work.ProcessResult
 	if dataSrc != nil {
 		var err error
 		if dataSrcMetadata, err = metadata.Decode[M](m.Context(), dataSrc.Metadata); err != nil {
-			return m.Failing(errors.Wrap(err, "unable to decode data source metadata"))
+			return m.Failed(errors.Wrap(err, "unable to decode data source metadata"))
 		}
 	}
 	m.dataSource = dataSrc
@@ -207,7 +207,7 @@ func (m *mixin[M]) UpdateDataSource(dataSourceUpdate *dataSource.Update) *work.P
 	}
 
 	if dataSrcMetadata, err := metadata.Encode(m.dataSourceMetadata); err != nil {
-		return m.Failing(errors.Wrap(err, "unable to encode data source metadata"))
+		return m.Failed(errors.Wrap(err, "unable to encode data source metadata"))
 	} else if dataSrcMetadata != nil || m.dataSource.Metadata != nil {
 		dataSourceUpdate.Metadata = &dataSrcMetadata
 	}

@@ -226,23 +226,23 @@ func (p *Processor) createDataHistoricWork() *work.ProcessResult {
 
 func (p *Processor) createDataPeriodicWork() *work.ProcessResult {
 	if workCreate, err := ouraDataWorkPeriodic.NewWorkCreate(p.ProviderSession().ID); err != nil {
-		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
+		return p.Failed(errors.Wrap(err, "unable to create data periodic work create"))
 	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
+		return p.Failing(errors.Wrap(err, "unable to create data periodic work"))
 	}
 
-	log.LoggerFromContext(p.Context()).Debug("created data historic work")
+	log.LoggerFromContext(p.Context()).Debug("created data periodic work")
 	return nil
 }
 
 func (p *Processor) createDataPersonalWork() *work.ProcessResult {
 	if workCreate, err := ouraDataWorkPersonal.NewWorkCreate(p.ProviderSession().ID); err != nil {
-		return p.Failed(errors.Wrap(err, "unable to create data historic work create"))
+		return p.Failed(errors.Wrap(err, "unable to create data personal work create"))
 	} else if _, err = p.WorkClient().Create(p.Context(), workCreate); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to create data historic work"))
+		return p.Failing(errors.Wrap(err, "unable to create data personal work"))
 	}
 
-	log.LoggerFromContext(p.Context()).Debug("created data historic work")
+	log.LoggerFromContext(p.Context()).Debug("created data personal work")
 	return nil
 }
 

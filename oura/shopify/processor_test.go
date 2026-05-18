@@ -26,6 +26,7 @@ import (
 	shopifyTest "github.com/tidepool-org/platform/oura/shopify/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("OrderProcessor", func() {
@@ -60,7 +61,10 @@ var _ = Describe("OrderProcessor", func() {
 
 		customerIOConfig := customerio.Config{
 			AppAPIBaseURL:   appAPIServer.URL,
+			AppAPIKey:       test.RandomString(),
 			TrackAPIBaseURL: trackAPIServer.URL,
+			SiteID:          test.RandomString(),
+			TrackAPIKey:     test.RandomString(),
 		}
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())
