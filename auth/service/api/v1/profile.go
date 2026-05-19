@@ -146,13 +146,6 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			profile := seagullProfile.ToUserProfile()
 			if trustorPerms == nil || len(*trustorPerms) == 0 {
 				profile = profile.ClearPatientInfo()
-			} else {
-				if trustorPerms.HasAny(permission.Custodian, permission.Read, permission.Write) {
-					// TODO: need to read seagull.value.settings - confirm this is actually used
-				}
-				if trustorPerms.Has(permission.Custodian) {
-					// TODO: need to read seagull.value.preferences - confirm this is actually used
-				}
 			}
 			sharedUser.Profile = profile
 			sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
