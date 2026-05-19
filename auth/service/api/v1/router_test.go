@@ -489,6 +489,319 @@ var _ = Describe("Router", func() {
 					})
 				})
 			})
+
+			Context("v1/users/:userId/users", func() {
+				var res *testRest.ResponseWriter
+				var req *rest.Request
+				var ctx context.Context
+				var handlerFunc rest.HandlerFunc
+				var userID string
+				var details request.AuthDetails
+				var userProfile user.UserProfile
+				var userLimitedProfile user.UserProfile
+				var userRoles []string
+				var userDetails *user.User
+				var userLimitedDetails *user.User
+				var shareeUserID string
+				var shareeRoles []string
+				var shareeProfile user.UserProfile
+				var shareeDetails *user.User
+
+				JustBeforeEach(func() {
+					app, err := rest.MakeRouter(rtr.Routes()...)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(app).ToNot(BeNil())
+					handlerFunc = app.AppFunc()
+				})
+
+				BeforeEach(func() {
+					userID = userTest.RandomUserID()
+					shareeUserID = userTest.RandomUserID()
+					res = testRest.NewResponseWriter()
+					res.HeaderOutput = &http.Header{}
+					req = testRest.NewRequest()
+					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
+					req.Request = req.WithContext(ctx)
+					req.Method = http.MethodGet
+					req.URL.Path = fmt.Sprintf("/v1/users/%s/users", shareeUserID)
+					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+					userProfile = user.UserProfile{
+						FullName:      "Some User Profile",
+						Birthday:      "2001-02-03",
+						DiagnosisDate: "2002-03-04",
+						About:         "About me",
+						MRN:           "11223344",
+					}
+					userLimitedProfile = user.UserProfile{
+						FullName: "Some User Profile",
+					}
+					userRoles = []string{user.RolePatient}
+					userDetails = &user.User{
+						UserID:             pointer.FromString(userID),
+						Username:           pointer.FromString("dev@tidepool.org"),
+						EmailVerified:      pointer.FromBool(true),
+						Roles:              &userRoles,
+						Emails:             []string{"dev@tidepool.org"},
+						Profile:            &userProfile,
+						TrustorPermissions: &permission.Permission{},
+					}
+					userLimitedDetails = &user.User{
+						UserID:             pointer.FromString(userID),
+						Emails:             []string{"dev@tidepool.org"},
+						Profile:            &userLimitedProfile,
+						TrustorPermissions: &permission.Permission{},
+						TrusteePermissions: &permission.Permission{},
+					}
+
+					shareeProfile = user.UserProfile{
+						FullName:      "Someone Else's Profile",
+						Birthday:      "2002-03-04",
+						DiagnosisDate: "2003-04-05",
+						About:         "Not about me",
+						MRN:           "11223346",
+					}
+					shareeRoles = []string{user.RolePatient}
+					shareeDetails = &user.User{
+						UserID:             pointer.FromString(shareeUserID),
+						Username:           pointer.FromString("sharee@tidepool.org"),
+						EmailVerified:      pointer.FromBool(true),
+						Roles:              &shareeRoles,
+						Emails:             []string{"sharee@tidepool.org"},
+						Profile:            &shareeProfile,
+						TrustorPermissions: &permission.Permission{},
+					}
+
+					var s string
+					userAccessor.EXPECT().
+						FindUserById(gomock.Any(), gomock.AssignableToTypeOf(s)).
+						DoAndReturn(
+							func(ctx context.Context, id string) (*user.User, error) {
+								switch id {
+								case userID:
+									return userDetails, nil
+								case shareeUserID:
+									return shareeDetails, nil
+								}
+								return nil, user.ErrUserNotFound
+							}).AnyTimes()
+
+					profileAccessor.EXPECT().
+						FindUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
+						DoAndReturn(
+							func(ctx context.Context, id string) (*user.LegacyUserProfile, error) {
+								switch id {
+								case userID:
+									return userProfile.ToLegacyProfile(userRoles), nil
+								case shareeUserID:
+									return shareeProfile.ToLegacyProfile(shareeRoles), nil
+								}
+								return nil, user.ErrUserProfileNotFound
+							}).AnyTimes()
+
+					permsClient.EXPECT().
+						HasMembershipRelationship(gomock.Any(), shareeUserID, userID).
+						Return(true, nil).AnyTimes()
+
+				})
+				AfterEach(func() {
+					res.AssertOutputsEmpty()
+				})
+
+				Context("with full trust permissions", func() {
+					BeforeEach(func() {
+						permsClient.EXPECT().
+							GroupsForUser(gomock.Any(), userID).
+							Return(permission.Permissions{
+								userID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+							}, nil).AnyTimes()
+						permsClient.EXPECT().
+							GroupsForUser(gomock.Any(), shareeUserID).
+							Return(permission.Permissions{
+								shareeUserID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+								userID: permission.Permission{
+									permission.Read: map[string]any{},
+								},
+							}, nil).AnyTimes()
+
+						permsClient.EXPECT().
+							UsersInGroup(gomock.Any(), userID).
+							Return(permission.Permissions{
+								userID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+							}, nil).AnyTimes()
+						permsClient.EXPECT().
+							UsersInGroup(gomock.Any(), shareeUserID).
+							Return(permission.Permissions{
+								shareeUserID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+								userID: permission.Permission{
+									permission.Read: map[string]any{},
+								},
+							}, nil).AnyTimes()
+					})
+					Context("as service", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+						})
+						It("returns sharer's user info w/ sharee.", func() {
+							userResults := user.UserArray{
+								userDetails,
+							}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+						It("excludes self and returns empty if nothing shared.", func() {
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+							userResults := user.UserArray{}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+
+					Context("as user", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							var s string
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+								DoAndReturn(
+									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
+										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
+									}).AnyTimes()
+						})
+						It("returns sharer's user info w/ sharee.", func() {
+							userResults := user.UserArray{
+								userDetails,
+							}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+						It("excludes self and returns empty if nothing shared.", func() {
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+							userResults := user.UserArray{}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+				})
+
+				Context("with limited trust permissions", func() {
+					BeforeEach(func() {
+						permsClient.EXPECT().
+							GroupsForUser(gomock.Any(), userID).
+							Return(permission.Permissions{
+								userID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+							}, nil).AnyTimes()
+						permsClient.EXPECT().
+							GroupsForUser(gomock.Any(), shareeUserID).
+							Return(permission.Permissions{
+								shareeUserID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+								userID: permission.Permission{},
+							}, nil).AnyTimes()
+
+						permsClient.EXPECT().
+							UsersInGroup(gomock.Any(), userID).
+							Return(permission.Permissions{
+								userID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+							}, nil).AnyTimes()
+						permsClient.EXPECT().
+							UsersInGroup(gomock.Any(), shareeUserID).
+							Return(permission.Permissions{
+								shareeUserID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+								userID: permission.Permission{},
+							}, nil).AnyTimes()
+					})
+					Context("as service", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								Return(true, nil).AnyTimes()
+						})
+						It("returns full sharer details if service", func() {
+							userResults := user.UserArray{
+								userDetails,
+							}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+						It("excludes self and returns empty if nothing shared.", func() {
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+							userResults := user.UserArray{}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+
+					Context("as user", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							var s string
+							permsClient.EXPECT().
+								HasMembershipRelationship(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+								DoAndReturn(
+									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
+										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
+									}).AnyTimes()
+						})
+						It("returns sharer's limited user info w/ sharee.", func() {
+							userResults := user.UserArray{
+								userLimitedDetails,
+							}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+						It("excludes self and returns empty if nothing shared.", func() {
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+							userResults := user.UserArray{}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+				})
+			})
 		})
 	})
 })
