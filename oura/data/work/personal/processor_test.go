@@ -60,6 +60,10 @@ var _ = Describe("processor", func() {
 		Expect(ouraDataWorkPersonal.FailingRetryDurationJitter).To(Equal(5 * time.Second))
 	})
 
+	It("FailingRetryDurationMaximum is expected", func() {
+		Expect(ouraDataWorkPersonal.FailingRetryDurationMaximum).To(Equal(12 * time.Hour))
+	})
+
 	It("MetadataKeyPreviousHash is expected", func() {
 		Expect(ouraDataWorkPersonal.MetadataKeyPreviousHash).To(Equal("previousHash"))
 	})

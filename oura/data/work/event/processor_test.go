@@ -54,6 +54,10 @@ var _ = Describe("processor", func() {
 		Expect(ouraDataWorkEvent.FailingRetryDurationJitter).To(Equal(5 * time.Second))
 	})
 
+	It("FailingRetryDurationMaximum is expected", func() {
+		Expect(ouraDataWorkEvent.FailingRetryDurationMaximum).To(Equal(1 * time.Hour))
+	})
+
 	Context("Metadata", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraDataWorkEvent.Metadata)) {
@@ -271,6 +275,16 @@ var _ = Describe("processor", func() {
 								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 							})
 
+							It("with missing scope returns delete process result if successful", func() {
+								providerSession.OAuthToken.Scope = nil
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+							})
+
+							It("with empty scope returns delete process result if successful", func() {
+								providerSession.OAuthToken.Scope = pointer.From([]string{})
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+							})
+
 							It("returns successfully if event data type is not in scope", func() {
 								providerSession.OAuthToken.Scope = pointer.From(slices.DeleteFunc(oura.Scopes(), func(scope string) bool {
 									return oura.DataTypeInScope(*event.DataType, scope)
@@ -362,16 +376,6 @@ var _ = Describe("processor", func() {
 												BeforeEach(func() {
 													updatedDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
 													mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
-												})
-
-												It("with missing scope returns delete process result if successful", func() {
-													providerSession.OAuthToken.Scope = nil
-													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
-												})
-
-												It("with empty scope returns delete process result if successful", func() {
-													providerSession.OAuthToken.Scope = pointer.From([]string{})
-													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
 												})
 
 												It("with existing scope returns delete process result if successful", func() {

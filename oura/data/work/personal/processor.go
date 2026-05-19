@@ -28,9 +28,10 @@ import (
 )
 
 const (
-	PendingAvailableDuration   = 12 * time.Hour // Data returned is for previous 24 hours, using 12 hours ensures we do not miss data
-	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	PendingAvailableDuration    = 12 * time.Hour // Data returned is for previous 24 hours, using 12 hours ensures we do not miss data
+	FailingRetryDuration        = 1 * time.Minute
+	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationMaximum = 12 * time.Hour
 )
 
 const MetadataKeyPreviousHash = "previousHash"
@@ -87,8 +88,9 @@ func NewProcessor(dependencies ouraDataWork.Dependencies) (*Processor, error) {
 			Duration: PendingAvailableDuration,
 		},
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 
@@ -159,21 +161,22 @@ func (p *Processor) fetchData() *work.ProcessResult {
 	// If hash matches previous, then skip
 	hash, err := personalInfo.Hash()
 	if err != nil {
-		return p.Failed(errors.Wrap(err, "unable to compute hash of datum"))
+		return p.Failed(errors.Wrap(err, "unable to compute hash of personal info"))
 	}
 	if previousHash := p.Metadata().PreviousHash; previousHash != nil && hash == *previousHash {
-		log.LoggerFromContext(p.Context()).Debug("skipping datum with matching hash")
+		log.LoggerFromContext(p.Context()).Debug("skipping personal info with matching hash")
 		return nil
 	}
 
 	// Convert to datum
 	datum, err := metadata.Encode(personalInfo)
 	if err != nil {
-		return p.Failed(errors.Wrap(err, "unable to encode datum"))
+		return p.Failed(errors.Wrap(err, "unable to encode personal info"))
 	}
 
 	// Create data raw
-	if result := p.createDataRaw(oura.DataTypePersonalInfo, &times.TimeRange{To: pointer.From(p.Now())}, oura.Data{datum}); result != nil {
+	timeRange := &times.TimeRange{To: pointer.From(p.Now())}
+	if result := p.createDataRaw(oura.DataTypePersonalInfo, timeRange, oura.Data{datum}); result != nil {
 		return result
 	}
 

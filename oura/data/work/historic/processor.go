@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDuration        = 1 * time.Minute
+	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationMaximum = 1 * time.Hour
 )
 
 func DataTypes() []string {
@@ -102,8 +103,9 @@ func NewProcessor(dependencies ouraDataWork.Dependencies) (*Processor, error) {
 
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 
@@ -187,7 +189,8 @@ func (p *Processor) fetchData() *work.ProcessResult {
 
 		for {
 			// Fetch page of data for data type
-			dataResponse, err := p.GetData(ctx, dataType, p.Metadata().TimeRange, &pagination, p.TokenSource())
+			timeRange := p.Metadata().TimeRange
+			dataResponse, err := p.GetData(ctx, dataType, timeRange, &pagination, p.TokenSource())
 			if err != nil {
 				return p.Failing(errors.Wrapf(err, "unable to get data for data type %q", dataType))
 			} else if dataResponse == nil {
@@ -198,7 +201,7 @@ func (p *Processor) fetchData() *work.ProcessResult {
 			// large data responses, so this is not a current issue
 
 			// Persist data
-			if result := p.createDataRaw(dataType, p.Metadata().TimeRange, dataResponse.Data); result != nil {
+			if result := p.createDataRaw(dataType, timeRange, dataResponse.Data); result != nil {
 				return result
 			}
 

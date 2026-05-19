@@ -45,6 +45,10 @@ var _ = Describe("processor", func() {
 		Expect(ouraWebhookWorkSubscribe.FailingRetryDurationJitter).To(Equal(10 * time.Second))
 	})
 
+	It("FailingRetryDurationMaximum is expected", func() {
+		Expect(ouraWebhookWorkSubscribe.FailingRetryDurationMaximum).To(Equal(24 * time.Hour))
+	})
+
 	It("OverrideDisabled is expected", func() {
 		Expect(ouraWebhookWorkSubscribe.OverrideDisabled).To(Equal("disabled"))
 	})

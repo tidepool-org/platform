@@ -58,6 +58,10 @@ var _ = Describe("processor", func() {
 		Expect(ouraDataWorkHistoric.FailingRetryDurationJitter).To(Equal(5 * time.Second))
 	})
 
+	It("FailingRetryDurationMaximum is expected", func() {
+		Expect(ouraDataWorkHistoric.FailingRetryDurationMaximum).To(Equal(1 * time.Hour))
+	})
+
 	Context("DataTypes", func() {
 		It("returns expected data types", func() {
 			Expect(ouraDataWorkHistoric.DataTypes()).To(Equal(oura.EventDataTypes()))

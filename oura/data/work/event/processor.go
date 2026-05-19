@@ -27,8 +27,9 @@ import (
 )
 
 const (
-	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDuration        = 1 * time.Minute
+	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationMaximum = 1 * time.Hour
 )
 
 type (
@@ -87,8 +88,9 @@ func NewProcessor(dependencies ouraDataWork.Dependencies) (*Processor, error) {
 
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 

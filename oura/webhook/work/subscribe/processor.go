@@ -19,6 +19,7 @@ const (
 	PendingAvailableDuration      = 24 * time.Hour
 	FailingRetryDuration          = 1 * time.Minute
 	FailingRetryDurationJitter    = 10 * time.Second
+	FailingRetryDurationMaximum   = 24 * time.Hour
 	ExpirationTimeDurationMinimum = 7 * 24 * time.Hour // Normal expiration seems like 90 days, but this will refresh every 7
 
 	OverrideDisabled = "disabled" // Delete all existing subscriptions; data loss while subscriptions disabled, use with caution
@@ -65,8 +66,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 			Duration: PendingAvailableDuration,
 		},
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 

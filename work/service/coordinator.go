@@ -19,6 +19,7 @@ import (
 
 const (
 	CoordinatorFrequencyDefault = 5 * time.Minute
+	CoordinatorDelayInitial     = 1 * time.Minute
 	CoordinatorDelayJitter      = 0.1
 
 	FailingRetryDuration       = 1 * time.Minute
@@ -167,14 +168,19 @@ func (c *Coordinator) Stop() {
 }
 
 func (c *Coordinator) startManager() {
-	c.managerWaitGroup.Add(1)
+	c.managerWaitGroup.Go(func() {
+		// Delay before start to ensure other services available
+		select {
+		case <-c.managerContext.Done():
+			return
+		case <-time.After(durationWithJitter(CoordinatorDelayInitial, CoordinatorDelayJitter)):
+		}
 
-	go func() {
-		defer c.managerWaitGroup.Done()
-
+		// Start time to poll according to frequency
 		c.startTimer()
 		defer c.stopTimer()
 
+		// Loop until canceled
 		for {
 			select {
 			case <-c.managerContext.Done(): // Drain and complete any interrupted tasks
@@ -192,7 +198,7 @@ func (c *Coordinator) startManager() {
 				c.startTimer()
 			}
 		}
-	}()
+	})
 }
 
 func (c *Coordinator) requestAndDispatchWork() {
@@ -220,11 +226,9 @@ func (c *Coordinator) requestAndDispatchWork() {
 
 func (c *Coordinator) dispatchWork(ctx context.Context, wrk *work.Work) {
 	c.typeQuantities.Decrement(wrk.Type)
-	c.workersWaitGroup.Add(1)
-	go func() {
-		defer c.workersWaitGroup.Done()
+	c.workersWaitGroup.Go(func() {
 		c.workersCompletionChannel <- c.processWork(ctx, wrk)
-	}()
+	})
 }
 
 func (c *Coordinator) processWork(ctx context.Context, wrk *work.Work) *coordinatorProcessingCompletion {
@@ -352,8 +356,7 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 }
 
 func (c *Coordinator) startTimer() {
-	jitter := int64(float64(c.frequency) * CoordinatorDelayJitter)
-	frequencyWithJitter := c.frequency + time.Duration(crypto.RandomInt64N(jitter*2+1)-jitter)
+	frequencyWithJitter := durationWithJitter(c.frequency, CoordinatorDelayJitter)
 	if c.timer == nil {
 		c.timer = time.NewTimer(frequencyWithJitter)
 	} else {
@@ -438,4 +441,9 @@ func processResultToUpdate(processResult *work.ProcessResult) *work.Update {
 	default:
 		return nil
 	}
+}
+
+func durationWithJitter(duration time.Duration, durationJitterFactor float64) time.Duration {
+	durationJitter := int64(float64(duration) * durationJitterFactor)
+	return duration + time.Duration(crypto.RandomInt64N(durationJitter*2+1)-durationJitter)
 }

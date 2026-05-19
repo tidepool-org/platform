@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/work"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDuration        = 1 * time.Minute
+	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationMaximum = 24 * time.Hour
 )
 
 type TokenMetadata = oauthWork.TokenMetadata
@@ -47,8 +49,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 
