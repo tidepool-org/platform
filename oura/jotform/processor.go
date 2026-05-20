@@ -263,17 +263,35 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, custome
 			return err
 		}
 
-		surveyCompletedData.OuraSizingKitDiscountCode = shopify.RandomDiscountCode()
-		err := s.shopifyClient.CreateDiscountCode(ctx, shopify.DiscountCodeInput{
-			Title:     shopify.OuraSizingKitDiscountCodeTitle,
-			Code:      surveyCompletedData.OuraSizingKitDiscountCode,
-			ProductID: shopify.OuraSizingKitProductID,
-		})
-		if err != nil {
-			return errors.Wrap(err, "unable to create oura ring discount code")
+		// Generate a sizing kit discount code if the user must order a sizing kit first
+		if !customer.ShouldSkipSizingKitCampaign() {
+			surveyCompletedData.OuraSizingKitDiscountCode = shopify.RandomDiscountCode()
+			err := s.shopifyClient.CreateDiscountCode(ctx, shopify.DiscountCodeInput{
+				Title:     shopify.OuraSizingKitDiscountCodeTitle,
+				Code:      surveyCompletedData.OuraSizingKitDiscountCode,
+				ProductID: shopify.OuraSizingKitProductID,
+			})
+			if err != nil {
+				return errors.Wrap(err, "unable to create oura sizing kit discount code")
+			}
 		}
 	}
 
+	if err := s.sendSurveyCompleted(ctx, customer, surveyCompletedData); err != nil {
+		return errors.Wrap(err, "unable to send survey completed event")
+	}
+
+	// Send a "fake" sizing kit delivered event with a ring discount code to advance the user straight to the ring campaign
+	if customer.ShouldSkipSizingKitCampaign() {
+		if err := s.sendSizingKitDeliveredEvent(ctx, customer); err != nil {
+			return errors.Wrap(err, "unable to send sizing kit delivered event")
+		}
+	}
+
+	return nil
+}
+
+func (s *SubmissionProcessor) sendSurveyCompleted(ctx context.Context, customer customerio.Customer, surveyCompletedData oura.OuraEligibilitySurveyCompletedData) error {
 	surveyCompleted := &customerio.Event{
 		Name: oura.OuraEligibilitySurveyCompletedEventType,
 		Data: surveyCompletedData,
@@ -291,6 +309,31 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, custome
 	}
 
 	return nil
+}
+
+func (s *SubmissionProcessor) sendSizingKitDeliveredEvent(ctx context.Context, customer customerio.Customer) error {
+	discountCode := shopify.RandomDiscountCode()
+	err := s.shopifyClient.CreateDiscountCode(ctx, shopify.DiscountCodeInput{
+		Title:     shopify.OuraRingDiscountCodeTitle,
+		Code:      discountCode,
+		ProductID: shopify.OuraRingProductID,
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create oura ring discount code")
+	}
+
+	sizingKitDelivered := &customerio.Event{
+		Name: oura.OuraSizingKitDeliveredEventType,
+		Data: oura.OuraSizingKitDeliveredData{
+			OuraRingDiscountCode: discountCode,
+		},
+	}
+
+	if err = sizingKitDelivered.SetDeduplicationID(nil, customer.OuraParticipantID); err != nil {
+		return err
+	}
+
+	return s.customerIOClient.SendEvent(ctx, customer.Identifiers.ID, sizingKitDelivered)
 }
 
 func (s *SubmissionProcessor) ensureConsentRecordExists(ctx context.Context, userID string, submission *SubmissionResponse, survey OuraEligibilitySurvey) error {

@@ -27,8 +27,13 @@ type Attributes struct {
 	OuraSizingKitDiscountCode string `json:"oura_sizing_kit_discount_code,omitempty"`
 	OuraRingDiscountCode      string `json:"oura_ring_discount_code,omitempty"`
 	OuraParticipantID         string `json:"oura_participant_id,omitempty"`
+	OuraSkipSizingKit         string `json:"oura_skip_sizing_kit,omitempty"`
 
 	Update bool `json:"_update,omitempty"`
+}
+
+func (a Attributes) ShouldSkipSizingKitCampaign() bool {
+	return a.OuraSkipSizingKit == "true"
 }
 
 type customerResponse struct {
