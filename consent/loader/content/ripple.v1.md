@@ -7,6 +7,8 @@
 **PROTOCOL NO.:**    None   
 WCG IRB Protocol #20243599
 
+**IRB APPROVED:**    May 13, 2026
+
 **SPONSOR:**    Tidepool Project
 
 **INVESTIGATOR:**    Saira Khan-Gallo, MPH  
