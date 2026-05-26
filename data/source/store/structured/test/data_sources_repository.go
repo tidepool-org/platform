@@ -235,6 +235,10 @@ func (d *DataRepository) ListAll(ctx context.Context, filter *dataSource.Filter,
 	panic("ListAll has no output")
 }
 
+func (d *DataRepository) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	return false, nil
+}
+
 func (d *DataRepository) AssertOutputsEmpty() {
 	d.Closer.AssertOutputsEmpty()
 	if len(d.ListOutputs) > 0 {

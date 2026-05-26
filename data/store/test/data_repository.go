@@ -546,6 +546,10 @@ func (d *DataRepository) GetAlertableData(ctx context.Context, params dataStore.
 	return output.Response, output.Error
 }
 
+func (d *DataRepository) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	return false, nil
+}
+
 func (d *DataRepository) Expectations() {
 	d.Closer.AssertOutputsEmpty()
 	gomega.Expect(d.GetDataSetsForUserByIDOutputs).To(gomega.BeEmpty())
