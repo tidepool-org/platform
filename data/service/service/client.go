@@ -36,6 +36,11 @@ func (c *Client) ListUserDataSets(ctx context.Context, userID string, filter *da
 	return repository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
+func (c *Client) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	repository := c.dataStore.NewDataRepository()
+	return repository.HasAnyData(ctx, userID)
+}
+
 func (c *Client) CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error) {
 	repository := c.dataStore.NewDataRepository()
 

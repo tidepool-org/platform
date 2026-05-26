@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -333,6 +334,24 @@ func (c *DataSourcesRepository) ListAll(ctx context.Context, filter *dataSource.
 
 	lgr.WithFields(log.Fields{"count": len(result), "duration": time.Since(now) / time.Microsecond}).Debug("ListAll")
 	return result, nil
+}
+
+func (c *DataSourcesRepository) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	selector := bson.M{
+		"userId": userID,
+	}
+	opts := options.FindOne().SetProjection(bson.M{"_id": 1})
+	var doc struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+	err = c.FindOne(ctx, selector, opts).Decode(&doc)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (c *DataSourcesRepository) list(ctx context.Context, userID *string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {

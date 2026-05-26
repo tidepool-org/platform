@@ -121,6 +121,22 @@ func (c *ClientImpl) GetDataSet(ctx context.Context, id string) (*data.DataSet, 
 	return dataSet, nil
 }
 
+func (c *ClientImpl) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	if ctx == nil {
+		return false, errors.New("context is missing")
+	}
+
+	url := c.client.ConstructURL("v1", "users", userID, "data", "exists")
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, nil); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return true, nil
+}
+
 func (c *ClientImpl) GetCGMSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

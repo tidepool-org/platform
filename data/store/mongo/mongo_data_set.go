@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -125,6 +126,24 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.Dat
 	}
 
 	return d.GetDataSet(ctx, *dataSet.ID)
+}
+
+func (d *DataSetRepository) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	selector := bson.M{
+		"_userId": userID,
+	}
+	opts := options.FindOne().SetProjection(bson.M{"_id": 1})
+	var doc struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+	err = d.FindOne(ctx, selector, opts).Decode(&doc)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*data.DataSet, error) {

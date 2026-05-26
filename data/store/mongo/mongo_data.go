@@ -37,6 +37,10 @@ func (d *DataRepository) ListUserDataSets(ctx context.Context, userID string, fi
 	return d.DataSetRepository.ListUserDataSets(ctx, userID, filter, pagination)
 }
 
+func (d *DataRepository) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	return d.DataSetRepository.HasAnyData(ctx, userID)
+}
+
 func (d *DataRepository) GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error) {
 	return d.DataSetRepository.GetDataSet(ctx, dataSetID)
 }

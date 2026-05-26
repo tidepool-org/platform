@@ -60,3 +60,7 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 func (c *Client) ListAll(ctx context.Context, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error) {
 	return c.DataSourceStructuredStore().NewDataSourcesRepository().ListAll(ctx, filter, pagination)
 }
+
+func (c *Client) HasAnyData(ctx context.Context, userID string) (has bool, err error) {
+	return c.DataSourceStructuredStore().NewDataSourcesRepository().HasAnyData(ctx, userID)
+}

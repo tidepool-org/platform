@@ -42,6 +42,7 @@ type DataSetRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
 	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
+	HasAnyData(ctx context.Context, userID string) (has bool, err error)
 }
 
 // DatumRepository is the interface for interacting and modifying
