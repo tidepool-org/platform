@@ -44,17 +44,17 @@ func (m *MockProcessResultBuilder) EXPECT() *MockProcessResultBuilderMockRecorde
 }
 
 // Delete mocks base method.
-func (m *MockProcessResultBuilder) Delete(ctx context.Context, wrk *work.Work) *work.ProcessResult {
+func (m *MockProcessResultBuilder) Delete(ctx context.Context, wrk *work.Work, tm time.Time) *work.ProcessResult {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", ctx, wrk)
+	ret := m.ctrl.Call(m, "Delete", ctx, wrk, tm)
 	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockProcessResultBuilderMockRecorder) Delete(ctx, wrk any) *MockProcessResultBuilderDeleteCall {
+func (mr *MockProcessResultBuilderMockRecorder) Delete(ctx, wrk, tm any) *MockProcessResultBuilderDeleteCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockProcessResultBuilder)(nil).Delete), ctx, wrk)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockProcessResultBuilder)(nil).Delete), ctx, wrk, tm)
 	return &MockProcessResultBuilderDeleteCall{Call: call}
 }
 
@@ -70,29 +70,29 @@ func (c *MockProcessResultBuilderDeleteCall) Return(arg0 *work.ProcessResult) *M
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProcessResultBuilderDeleteCall) Do(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderDeleteCall {
+func (c *MockProcessResultBuilderDeleteCall) Do(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderDeleteCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProcessResultBuilderDeleteCall) DoAndReturn(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderDeleteCall {
+func (c *MockProcessResultBuilderDeleteCall) DoAndReturn(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderDeleteCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Failed mocks base method.
-func (m *MockProcessResultBuilder) Failed(ctx context.Context, wrk *work.Work, err error) *work.ProcessResult {
+func (m *MockProcessResultBuilder) Failed(ctx context.Context, wrk *work.Work, err error, tm time.Time) *work.ProcessResult {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Failed", ctx, wrk, err)
+	ret := m.ctrl.Call(m, "Failed", ctx, wrk, err, tm)
 	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
 // Failed indicates an expected call of Failed.
-func (mr *MockProcessResultBuilderMockRecorder) Failed(ctx, wrk, err any) *MockProcessResultBuilderFailedCall {
+func (mr *MockProcessResultBuilderMockRecorder) Failed(ctx, wrk, err, tm any) *MockProcessResultBuilderFailedCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Failed", reflect.TypeOf((*MockProcessResultBuilder)(nil).Failed), ctx, wrk, err)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Failed", reflect.TypeOf((*MockProcessResultBuilder)(nil).Failed), ctx, wrk, err, tm)
 	return &MockProcessResultBuilderFailedCall{Call: call}
 }
 
@@ -108,29 +108,29 @@ func (c *MockProcessResultBuilderFailedCall) Return(arg0 *work.ProcessResult) *M
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProcessResultBuilderFailedCall) Do(f func(context.Context, *work.Work, error) *work.ProcessResult) *MockProcessResultBuilderFailedCall {
+func (c *MockProcessResultBuilderFailedCall) Do(f func(context.Context, *work.Work, error, time.Time) *work.ProcessResult) *MockProcessResultBuilderFailedCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProcessResultBuilderFailedCall) DoAndReturn(f func(context.Context, *work.Work, error) *work.ProcessResult) *MockProcessResultBuilderFailedCall {
+func (c *MockProcessResultBuilderFailedCall) DoAndReturn(f func(context.Context, *work.Work, error, time.Time) *work.ProcessResult) *MockProcessResultBuilderFailedCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Failing mocks base method.
-func (m *MockProcessResultBuilder) Failing(ctx context.Context, wrk *work.Work, err error) *work.ProcessResult {
+func (m *MockProcessResultBuilder) Failing(ctx context.Context, wrk *work.Work, err error, tm time.Time) *work.ProcessResult {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Failing", ctx, wrk, err)
+	ret := m.ctrl.Call(m, "Failing", ctx, wrk, err, tm)
 	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
 // Failing indicates an expected call of Failing.
-func (mr *MockProcessResultBuilderMockRecorder) Failing(ctx, wrk, err any) *MockProcessResultBuilderFailingCall {
+func (mr *MockProcessResultBuilderMockRecorder) Failing(ctx, wrk, err, tm any) *MockProcessResultBuilderFailingCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Failing", reflect.TypeOf((*MockProcessResultBuilder)(nil).Failing), ctx, wrk, err)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Failing", reflect.TypeOf((*MockProcessResultBuilder)(nil).Failing), ctx, wrk, err, tm)
 	return &MockProcessResultBuilderFailingCall{Call: call}
 }
 
@@ -146,29 +146,29 @@ func (c *MockProcessResultBuilderFailingCall) Return(arg0 *work.ProcessResult) *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProcessResultBuilderFailingCall) Do(f func(context.Context, *work.Work, error) *work.ProcessResult) *MockProcessResultBuilderFailingCall {
+func (c *MockProcessResultBuilderFailingCall) Do(f func(context.Context, *work.Work, error, time.Time) *work.ProcessResult) *MockProcessResultBuilderFailingCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProcessResultBuilderFailingCall) DoAndReturn(f func(context.Context, *work.Work, error) *work.ProcessResult) *MockProcessResultBuilderFailingCall {
+func (c *MockProcessResultBuilderFailingCall) DoAndReturn(f func(context.Context, *work.Work, error, time.Time) *work.ProcessResult) *MockProcessResultBuilderFailingCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Pending mocks base method.
-func (m *MockProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work) *work.ProcessResult {
+func (m *MockProcessResultBuilder) Pending(ctx context.Context, wrk *work.Work, tm time.Time) *work.ProcessResult {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pending", ctx, wrk)
+	ret := m.ctrl.Call(m, "Pending", ctx, wrk, tm)
 	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
 // Pending indicates an expected call of Pending.
-func (mr *MockProcessResultBuilderMockRecorder) Pending(ctx, wrk any) *MockProcessResultBuilderPendingCall {
+func (mr *MockProcessResultBuilderMockRecorder) Pending(ctx, wrk, tm any) *MockProcessResultBuilderPendingCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pending", reflect.TypeOf((*MockProcessResultBuilder)(nil).Pending), ctx, wrk)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pending", reflect.TypeOf((*MockProcessResultBuilder)(nil).Pending), ctx, wrk, tm)
 	return &MockProcessResultBuilderPendingCall{Call: call}
 }
 
@@ -184,29 +184,29 @@ func (c *MockProcessResultBuilderPendingCall) Return(arg0 *work.ProcessResult) *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProcessResultBuilderPendingCall) Do(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderPendingCall {
+func (c *MockProcessResultBuilderPendingCall) Do(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderPendingCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProcessResultBuilderPendingCall) DoAndReturn(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderPendingCall {
+func (c *MockProcessResultBuilderPendingCall) DoAndReturn(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderPendingCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // Success mocks base method.
-func (m *MockProcessResultBuilder) Success(ctx context.Context, wrk *work.Work) *work.ProcessResult {
+func (m *MockProcessResultBuilder) Success(ctx context.Context, wrk *work.Work, tm time.Time) *work.ProcessResult {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Success", ctx, wrk)
+	ret := m.ctrl.Call(m, "Success", ctx, wrk, tm)
 	ret0, _ := ret[0].(*work.ProcessResult)
 	return ret0
 }
 
 // Success indicates an expected call of Success.
-func (mr *MockProcessResultBuilderMockRecorder) Success(ctx, wrk any) *MockProcessResultBuilderSuccessCall {
+func (mr *MockProcessResultBuilderMockRecorder) Success(ctx, wrk, tm any) *MockProcessResultBuilderSuccessCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Success", reflect.TypeOf((*MockProcessResultBuilder)(nil).Success), ctx, wrk)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Success", reflect.TypeOf((*MockProcessResultBuilder)(nil).Success), ctx, wrk, tm)
 	return &MockProcessResultBuilderSuccessCall{Call: call}
 }
 
@@ -222,13 +222,13 @@ func (c *MockProcessResultBuilderSuccessCall) Return(arg0 *work.ProcessResult) *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProcessResultBuilderSuccessCall) Do(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderSuccessCall {
+func (c *MockProcessResultBuilderSuccessCall) Do(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderSuccessCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProcessResultBuilderSuccessCall) DoAndReturn(f func(context.Context, *work.Work) *work.ProcessResult) *MockProcessResultBuilderSuccessCall {
+func (c *MockProcessResultBuilderSuccessCall) DoAndReturn(f func(context.Context, *work.Work, time.Time) *work.ProcessResult) *MockProcessResultBuilderSuccessCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -258,17 +258,17 @@ func (m *MockProcessResultPendingBuilder) EXPECT() *MockProcessResultPendingBuil
 }
 
 // ProcessingAvailableTime mocks base method.
-func (m *MockProcessResultPendingBuilder) ProcessingAvailableTime(ctx context.Context, wrk *work.Work, now time.Time) time.Time {
+func (m *MockProcessResultPendingBuilder) ProcessingAvailableTime(ctx context.Context, wrk *work.Work, tm time.Time) time.Time {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ProcessingAvailableTime", ctx, wrk, now)
+	ret := m.ctrl.Call(m, "ProcessingAvailableTime", ctx, wrk, tm)
 	ret0, _ := ret[0].(time.Time)
 	return ret0
 }
 
 // ProcessingAvailableTime indicates an expected call of ProcessingAvailableTime.
-func (mr *MockProcessResultPendingBuilderMockRecorder) ProcessingAvailableTime(ctx, wrk, now any) *MockProcessResultPendingBuilderProcessingAvailableTimeCall {
+func (mr *MockProcessResultPendingBuilderMockRecorder) ProcessingAvailableTime(ctx, wrk, tm any) *MockProcessResultPendingBuilderProcessingAvailableTimeCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessingAvailableTime", reflect.TypeOf((*MockProcessResultPendingBuilder)(nil).ProcessingAvailableTime), ctx, wrk, now)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProcessingAvailableTime", reflect.TypeOf((*MockProcessResultPendingBuilder)(nil).ProcessingAvailableTime), ctx, wrk, tm)
 	return &MockProcessResultPendingBuilderProcessingAvailableTimeCall{Call: call}
 }
 
@@ -358,17 +358,17 @@ func (c *MockProcessResultFailingBuilderFailingRetryCountCall) DoAndReturn(f fun
 }
 
 // FailingRetryTime mocks base method.
-func (m *MockProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, now time.Time) time.Time {
+func (m *MockProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, tm time.Time) time.Time {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FailingRetryTime", ctx, wrk, err, failingRetryCount, now)
+	ret := m.ctrl.Call(m, "FailingRetryTime", ctx, wrk, err, failingRetryCount, tm)
 	ret0, _ := ret[0].(time.Time)
 	return ret0
 }
 
 // FailingRetryTime indicates an expected call of FailingRetryTime.
-func (mr *MockProcessResultFailingBuilderMockRecorder) FailingRetryTime(ctx, wrk, err, failingRetryCount, now any) *MockProcessResultFailingBuilderFailingRetryTimeCall {
+func (mr *MockProcessResultFailingBuilderMockRecorder) FailingRetryTime(ctx, wrk, err, failingRetryCount, tm any) *MockProcessResultFailingBuilderFailingRetryTimeCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FailingRetryTime", reflect.TypeOf((*MockProcessResultFailingBuilder)(nil).FailingRetryTime), ctx, wrk, err, failingRetryCount, now)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FailingRetryTime", reflect.TypeOf((*MockProcessResultFailingBuilder)(nil).FailingRetryTime), ctx, wrk, err, failingRetryCount, tm)
 	return &MockProcessResultFailingBuilderFailingRetryTimeCall{Call: call}
 }
 

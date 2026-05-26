@@ -229,6 +229,24 @@ var _ = Describe("mixin", func() {
 				})
 			})
 
+			Context("EnsureProviderSession", func() {
+				It("returns failed result initially", func() {
+					Expect(mixin.EnsureProviderSession()).To(workTest.MatchFailedProcessResultError(MatchError("provider session is missing")))
+				})
+
+				It("returns nil after SetProviderSession is called with a provider session", func() {
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureProviderSession()).To(BeNil())
+				})
+
+				It("returns failed result after SetProviderSession is called with nil", func() {
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
+					Expect(mixin.EnsureProviderSession()).To(BeNil())
+					Expect(mixin.SetProviderSession(nil)).To(BeNil())
+					Expect(mixin.EnsureProviderSession()).To(workTest.MatchFailedProcessResultError(MatchError("provider session is missing")))
+				})
+			})
+
 			Context("ProviderSession", func() {
 				It("returns nil initially", func() {
 					Expect(mixin.ProviderSession()).To(BeNil())
@@ -257,6 +275,19 @@ var _ = Describe("mixin", func() {
 				It("clears metadata when provider session is nil and returns nil", func() {
 					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
 					Expect(mixin.SetProviderSession(nil)).To(BeNil())
+					Expect(mixin.ProviderSession()).To(BeNil())
+				})
+			})
+
+			Context("ClearProviderSession", func() {
+				It("clears provider session when provider session is not set", func() {
+					mixin.ClearProviderSession()
+					Expect(mixin.ProviderSession()).To(BeNil())
+				})
+
+				It("clears provider session when provider session is set", func() {
+					Expect(mixin.SetProviderSession(authTest.RandomProviderSession(test.AllowOptionals()))).To(BeNil())
+					mixin.ClearProviderSession()
 					Expect(mixin.ProviderSession()).To(BeNil())
 				})
 			})

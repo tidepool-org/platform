@@ -1,9 +1,11 @@
 package times
 
 import (
-	"strings"
+	"encoding/json"
 	"time"
 
+	"github.com/tidepool-org/platform/crypto"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -79,16 +81,12 @@ func (t TimeRange) Date() TimeRange {
 	return date
 }
 
-func (t TimeRange) String(layout string) string {
-	var parts []string
-	if t.From != nil {
-		parts = append(parts, t.From.Format(layout))
+func (t TimeRange) Hash() (string, error) {
+	if bites, err := json.Marshal(t); err != nil {
+		return "", errors.Wrap(err, "unable to generate hash")
+	} else {
+		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}
-	parts = append(parts, "-")
-	if t.To != nil {
-		parts = append(parts, t.To.Format(layout))
-	}
-	return strings.Join(parts, "")
 }
 
 const MetadataKeyTimeRange = "timeRange"

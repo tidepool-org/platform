@@ -479,11 +479,6 @@ var _ = Describe("client", func() {
 						dataType = ouraTest.RandomDataType()
 						timeRange = timesTest.RandomTimeRange()
 						pagination = ouraTest.RandomPagination()
-						expectedQuery = url.Values{
-							"start_date": []string{timeRange.From.Format(time.DateOnly)},
-							"end_date":   []string{timeRange.To.Format(time.DateOnly)},
-							"next_token": []string{*pagination.NextToken},
-						}
 					})
 
 					It("returns error if data type is invalid", func() {
@@ -524,40 +519,67 @@ var _ = Describe("client", func() {
 						Expect(datum).To(BeNil())
 					})
 
-					It("returns error if server returns non-http.StatusOK status code", func() {
-						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
-						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", dataType), expectedQuery.Encode()),
-								VerifyHeader(http.Header{}),
-								VerifyBody(nil),
-								RespondWith(http.StatusInternalServerError, nil),
-							),
-						)
+					assertExpectedQuery := func() {
+						Context("with expected query parameters", func() {
+							It("returns error if server returns non-http.StatusOK status code", func() {
+								mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+								mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+								server.AppendHandlers(
+									CombineHandlers(
+										VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", ouraClient.DataTypeToPath(dataType)), expectedQuery.Encode()),
+										VerifyHeader(http.Header{}),
+										VerifyBody(nil),
+										RespondWith(http.StatusInternalServerError, nil),
+									),
+								)
 
-						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
-						Expect(err).To(MatchError(ContainSubstring("unable to get data; unexpected response status code 500 from GET")))
-						Expect(datum).To(BeNil())
+								datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+								Expect(err).To(MatchError(ContainSubstring("unable to get data; unexpected response status code 500 from GET")))
+								Expect(datum).To(BeNil())
+							})
+
+							It("returns successfully if server returns http.StatusOK status code", func() {
+								expectedData := ouraTest.RandomDataResponse()
+								mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
+								mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+								server.AppendHandlers(
+									CombineHandlers(
+										VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", ouraClient.DataTypeToPath(dataType)), expectedQuery.Encode()),
+										VerifyBody(nil),
+										RespondWithJSONEncoded(http.StatusOK, expectedData),
+									),
+								)
+
+								datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(Equal(expectedData))
+							})
+						})
+					}
+
+					Context("with empty time range", func() {
+						BeforeEach(func() {
+							timeRange = &times.TimeRange{}
+							expectedQuery = url.Values{
+								"start_date": []string{"2000-01-01T00:00:00Z"},
+								"next_token": []string{*pagination.NextToken},
+							}
+						})
+
+						assertExpectedQuery()
 					})
 
-					It("returns successfully if server returns http.StatusOK status code", func() {
-						expectedData := ouraTest.RandomDataResponse()
-						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).Return(http.DefaultClient, nil)
-						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
-						server.AppendHandlers(
-							CombineHandlers(
-								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s", dataType), expectedQuery.Encode()),
-								VerifyBody(nil),
-								RespondWithJSONEncoded(http.StatusOK, expectedData),
-							),
-						)
+					Context("with time range", func() {
+						BeforeEach(func() {
+							expectedQuery = url.Values{
+								"start_date": []string{timeRange.From.In(time.UTC).Format(time.RFC3339)},
+								"end_date":   []string{timeRange.To.In(time.UTC).Format(time.RFC3339)},
+								"next_token": []string{*pagination.NextToken},
+							}
+						})
 
-						datum, err := clnt.GetData(ctx, dataType, timeRange, pagination, mockTokenSource)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(datum).To(Equal(expectedData))
+						assertExpectedQuery()
 					})
-
 				})
 
 				Context("GetDatum", func() {
@@ -592,7 +614,7 @@ var _ = Describe("client", func() {
 						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", dataType, dataID)),
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", ouraClient.DataTypeToPath(dataType), dataID)),
 								VerifyHeader(http.Header{}),
 								VerifyBody(nil),
 								RespondWith(http.StatusInternalServerError, nil),
@@ -610,7 +632,7 @@ var _ = Describe("client", func() {
 						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
 						server.AppendHandlers(
 							CombineHandlers(
-								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", dataType, dataID)),
+								VerifyRequest("GET", fmt.Sprintf("/v2/usercollection/%s/%s", ouraClient.DataTypeToPath(dataType), dataID)),
 								VerifyBody(nil),
 								RespondWithJSONEncoded(http.StatusOK, expectedDatum),
 							),
@@ -631,12 +653,11 @@ var _ = Describe("client", func() {
 				})
 
 				Context("RevokeOAuthToken", func() {
-
 					It("returns error if oauth token is missing", func() {
 						Expect(clnt.RevokeOAuthToken(ctx, nil)).To(MatchError("oauth token is missing"))
 					})
 
-					It("returns error if server returns non-http.StatusOK status code", func() {
+					It("returns error if server returns non-http.StatusOK and non-http.StatusUnauthorized status code", func() {
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("POST", "/oauth/revoke"),
@@ -647,6 +668,19 @@ var _ = Describe("client", func() {
 						)
 
 						Expect(clnt.RevokeOAuthToken(ctx, oauthToken)).To(MatchError(ContainSubstring("unable to revoke oauth token; unexpected response status code 500 from POST")))
+					})
+
+					It("returns successfully if server returns http.StatusUnauthorized status code", func() {
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest("POST", "/oauth/revoke"),
+								VerifyHeaderKV("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken)),
+								VerifyBody(nil),
+								RespondWith(http.StatusUnauthorized, nil),
+							),
+						)
+
+						Expect(clnt.RevokeOAuthToken(ctx, oauthToken)).To(Succeed())
 					})
 
 					It("returns successfully if server returns http.StatusOK status code", func() {
@@ -663,6 +697,60 @@ var _ = Describe("client", func() {
 					})
 				})
 			})
+		})
+	})
+
+	Context("DataTypeToPath", func() {
+		It("returns expected path for valid data type", func() {
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyActivity)).To(Equal(oura.DataTypeDailyActivity))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyCardiovascularAge)).To(Equal(oura.DataTypeDailyCardiovascularAge))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyCyclePhases)).To(Equal(oura.DataTypeDailyCyclePhases))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyReadiness)).To(Equal(oura.DataTypeDailyReadiness))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyResilience)).To(Equal(oura.DataTypeDailyResilience))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailySleep)).To(Equal(oura.DataTypeDailySleep))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailySpO2)).To(Equal(oura.DataTypeDailySpO2))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeDailyStress)).To(Equal(oura.DataTypeDailyStress))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeEnhancedTag)).To(Equal(oura.DataTypeEnhancedTag))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeHeartRate)).To(Equal(oura.DataTypeHeartRate))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeRestModePeriod)).To(Equal(oura.DataTypeRestModePeriod))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeRingBatteryLevel)).To(Equal(oura.DataTypeRingBatteryLevel))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeRingConfiguration)).To(Equal(oura.DataTypeRingConfiguration))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeSession)).To(Equal(oura.DataTypeSession))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeSleep)).To(Equal(oura.DataTypeSleep))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeSleepTime)).To(Equal(oura.DataTypeSleepTime))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeVO2Max)).To(Equal("vO2_max"))
+			Expect(ouraClient.DataTypeToPath(oura.DataTypeWorkout)).To(Equal(oura.DataTypeWorkout))
+		})
+
+		It("returns data type for unknown data type", func() {
+			dataType := test.RandomString()
+			Expect(ouraClient.DataTypeToPath(dataType)).To(Equal(dataType))
+		})
+	})
+
+	Context("PrometheusCodePathPatterns", func() {
+		It("returns expected patterns", func() {
+			Expect(ouraClient.PrometheusCodePathPatterns()).To(Equal([]string{
+				"/v2/usercollection/daily_activity/{document_id}",
+				"/v2/usercollection/daily_cardiovascular_age/{document_id}",
+				"/v2/usercollection/daily_cycle_phases/{document_id}",
+				"/v2/usercollection/daily_readiness/{document_id}",
+				"/v2/usercollection/daily_resilience/{document_id}",
+				"/v2/usercollection/daily_sleep/{document_id}",
+				"/v2/usercollection/daily_spo2/{document_id}",
+				"/v2/usercollection/daily_stress/{document_id}",
+				"/v2/usercollection/enhanced_tag/{document_id}",
+				"/v2/usercollection/rest_mode_period/{document_id}",
+				"/v2/usercollection/ring_configuration/{document_id}",
+				"/v2/usercollection/session/{document_id}",
+				"/v2/usercollection/sleep/{document_id}",
+				"/v2/usercollection/sleep_time/{document_id}",
+				"/v2/usercollection/vO2_max/{document_id}",
+				"/v2/usercollection/workout/{document_id}",
+				"/v2/webhook/subscription/{id}",
+				"/v2/webhook/subscription/renew/{id}",
+				"/",
+			}))
 		})
 	})
 })

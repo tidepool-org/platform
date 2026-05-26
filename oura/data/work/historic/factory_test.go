@@ -15,7 +15,7 @@ import (
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	"github.com/tidepool-org/platform/metadata"
-	"github.com/tidepool-org/platform/oura"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -51,7 +51,7 @@ var _ = Describe("factory", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 		var mockDataRawClient *dataRawTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraDataWorkHistoric.Dependencies
+		var dependencies ouraDataWork.Dependencies
 
 		BeforeEach(func() {
 			mockController = gomock.NewController(GinkgoT())
@@ -60,7 +60,7 @@ var _ = Describe("factory", func() {
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
 			mockDataRawClient = dataRawTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraDataWorkHistoric.Dependencies{
+			dependencies = ouraDataWork.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -69,39 +69,6 @@ var _ = Describe("factory", func() {
 				DataRawClient:         mockDataRawClient,
 				OuraClient:            mockOuraClient,
 			}
-		})
-
-		Context("Dependencies", func() {
-			Context("Validate", func() {
-				It("returns an error if work client is missing", func() {
-					dependencies.WorkClient = nil
-					Expect(dependencies.Validate()).To(MatchError("work client is missing"))
-				})
-
-				It("returns an error if provider session client is missing", func() {
-					dependencies.ProviderSessionClient = nil
-					Expect(dependencies.Validate()).To(MatchError("provider session client is missing"))
-				})
-
-				It("returns an error if data source client is missing", func() {
-					dependencies.DataSourceClient = nil
-					Expect(dependencies.Validate()).To(MatchError("data source client is missing"))
-				})
-
-				It("returns an error if data raw client is missing", func() {
-					dependencies.DataRawClient = nil
-					Expect(dependencies.Validate()).To(MatchError("data raw client is missing"))
-				})
-
-				It("returns an error if oura client is missing", func() {
-					dependencies.OuraClient = nil
-					Expect(dependencies.Validate()).To(MatchError("oura client is missing"))
-				})
-
-				It("returns successfully", func() {
-					Expect(dependencies.Validate()).To(Succeed())
-				})
-			})
 		})
 
 		Context("NewProcessorFactory", func() {
@@ -158,17 +125,15 @@ var _ = Describe("factory", func() {
 	})
 
 	Context("NewWorkCreate", func() {
-		var timeRange times.TimeRange
-		var timeRangeTruncated times.TimeRange
-		var encodedTimeRangeTruncated map[string]any
+		var timeRange *times.TimeRange
+		var timeRangeHash string
+		var timeRangeEncoded map[string]any
 
 		BeforeEach(func() {
-			var err error
-			timeRange = *timesTest.RandomTimeRange(test.AllowOptionals())
-			timeRangeTruncated = timeRange.InLocation(time.UTC).Date()
-			encodedTimeRangeTruncated, err = metadata.Encode(&timeRangeTruncated)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(encodedTimeRangeTruncated).ToNot(BeNil())
+			timeRange = test.RandomOptionalPointerWithOptions(timesTest.RandomTimeRange, test.AllowOptionals())
+			timeRangeResolved := pointer.Default(timeRange, times.TimeRange{})
+			timeRangeHash = test.Must(timeRangeResolved.Hash())
+			timeRangeEncoded = test.Must(metadata.Encode(&timeRangeResolved))
 		})
 
 		It("returns an error if provider session id is missing", func() {
@@ -184,12 +149,12 @@ var _ = Describe("factory", func() {
 			Expect(workCreate).To(Equal(&work.Create{
 				Type:              ouraDataWorkHistoric.Type,
 				GroupID:           pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
-				DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRangeTruncated.String(oura.TimeRangeFormat))),
-				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura.data:%s", providerSessionID)),
+				DeduplicationID:   pointer.From(fmt.Sprintf("%s:%s", providerSessionID, timeRangeHash)),
+				SerialID:          pointer.From(fmt.Sprintf("org.tidepool.oura:%s", providerSessionID)),
 				ProcessingTimeout: 900,
 				Metadata: map[string]any{
 					providerSessionWork.MetadataKeyProviderSessionID: providerSessionID,
-					times.MetadataKeyTimeRange:                       encodedTimeRangeTruncated,
+					times.MetadataKeyTimeRange:                       timeRangeEncoded,
 				},
 			}))
 		})

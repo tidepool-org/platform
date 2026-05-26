@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -25,9 +26,8 @@ import (
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraServiceApiV1 "github.com/tidepool-org/platform/oura/service/api/v1"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
-	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
-	ouraWebhookTest "github.com/tidepool-org/platform/oura/webhook/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/work"
@@ -61,7 +61,7 @@ var _ = Describe("event", func() {
 			handler             rest.HandlerFunc
 			secret              string
 			timestamp           string
-			event               *ouraWebhook.Event
+			event               *oura.Event
 			body                []byte
 			signature           string
 			providerSessions    auth.ProviderSessions
@@ -87,7 +87,7 @@ var _ = Describe("event", func() {
 			}
 			secret = test.RandomString()
 			timestamp = test.RandomTime().Format(time.RFC3339Nano)
-			event = ouraWebhookTest.RandomEvent()
+			event = ouraTest.RandomEvent()
 			body, err = json.Marshal(event)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(body).ToNot(BeNil())
@@ -112,9 +112,45 @@ var _ = Describe("event", func() {
 			header.Set(ouraServiceApiV1.RequestHeaderTimestamp, timestamp)
 			req.Request = httptest.NewRequestWithContext(ctx, "POST", "/", bytes.NewReader(body))
 			req.Header = header
+			req.PathParams = map[string]string{
+				ouraServiceApiV1.PathParameterEventType: *event.EventType,
+				ouraServiceApiV1.PathParameterDataType:  *event.DataType,
+			}
 		})
 
 		withHandler := func() {
+			It("returns http.StatusBadRequest when the event type is missing", func() {
+				delete(req.PathParams, ouraServiceApiV1.PathParameterEventType)
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterMissing(ouraServiceApiV1.PathParameterEventType).Error()))
+				logger.AssertError("event type is invalid")
+			})
+
+			It("returns http.StatusBadRequest when the event type is invalid", func() {
+				req.PathParams[ouraServiceApiV1.PathParameterEventType] = "invalid"
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterInvalid(ouraServiceApiV1.PathParameterEventType).Error()))
+				logger.AssertError("event type is invalid")
+			})
+
+			It("returns http.StatusBadRequest when the data type is missing", func() {
+				delete(req.PathParams, ouraServiceApiV1.PathParameterDataType)
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterMissing(ouraServiceApiV1.PathParameterDataType).Error()))
+				logger.AssertError("data type is invalid")
+			})
+
+			It("returns http.StatusBadRequest when the data type is invalid", func() {
+				req.PathParams[ouraServiceApiV1.PathParameterDataType] = "invalid"
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterInvalid(ouraServiceApiV1.PathParameterDataType).Error()))
+				logger.AssertError("data type is invalid")
+			})
+
 			It("returns http.StatusBadRequest when the signature is missing", func() {
 				req.Header.Del(ouraServiceApiV1.RequestHeaderSignature)
 				handler(res, req)
@@ -177,6 +213,22 @@ var _ = Describe("event", func() {
 					Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
 					Expect(res.ResponseRecorder).To(HaveHTTPBody("unable to parse request body"))
 					logger.AssertError("unable to parse request body", log.Fields{"signature": signature, "timestamp": timestamp, "bodySize": len(body)})
+				})
+
+				It("returns http.StatusBadRequest when the event type from path parameter and body do not match", func() {
+					req.PathParams[ouraServiceApiV1.PathParameterEventType] = test.RandomStringFromArray(slices.DeleteFunc(oura.EventTypes(), func(value string) bool { return value == *event.EventType }))
+					handler(res, req)
+					Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+					Expect(res.ResponseRecorder).To(HaveHTTPBody("event does not match path"))
+					logger.AssertError("event does not match path", log.Fields{"signature": signature, "timestamp": timestamp, "bodySize": len(body), "event": event})
+				})
+
+				It("returns http.StatusBadRequest when the data type from path parameter and body do not match", func() {
+					req.PathParams[ouraServiceApiV1.PathParameterDataType] = test.RandomStringFromArray(slices.DeleteFunc(oura.EventDataTypes(), func(value string) bool { return value == *event.DataType }))
+					handler(res, req)
+					Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusBadRequest))
+					Expect(res.ResponseRecorder).To(HaveHTTPBody("event does not match path"))
+					logger.AssertError("event does not match path", log.Fields{"signature": signature, "timestamp": timestamp, "bodySize": len(body), "event": event})
 				})
 
 				It("returns http.StatusInternalServerError when the provider sessions cannot be retrieved", func() {

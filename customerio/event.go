@@ -35,21 +35,30 @@ func (e *Event) Validate(validator structure.Validator) {
 }
 
 func (c *Client) SendEvent(ctx context.Context, userID string, event *Event) error {
-	if event == nil {
-		return errors.New("event is missing")
-	}
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
+	if event == nil {
+		return errors.New("event is missing")
+	}
 
-	ctx = log.NewContextWithLogger(ctx, c.logger)
+	ctx, lgr := log.ContextAndLoggerWithFields(log.NewContextWithLogger(ctx, c.logger), log.Fields{"userId": userID, "eventName": event.Name})
+
+	// If not enabled, then just log
+	if !c.enabled() {
+		lgr.Info("client is not enabled, skipping sending event")
+		return nil
+	}
+
 	url := c.trackClient.ConstructURL("api", "v1", "customers", userID, "events")
 
 	mutators := []request.RequestMutator{
 		c.trackAPIAuthMutator(),
 	}
 
-	c.logger.WithField("userId", userID).WithField("url", url).Debugf("sending %s event", event.Name)
+	ctx, lgr = log.ContextAndLoggerWithField(ctx, "url", url)
+
+	lgr.Debug("sending event")
 
 	if err := c.trackClient.RequestDataWithHTTPClient(ctx, http.MethodPost, url, mutators, event, nil, nil, c.httpClient); err != nil {
 		return err

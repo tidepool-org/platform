@@ -13,8 +13,8 @@ import (
 	oauthProviderClient "github.com/tidepool-org/platform/oauth/provider/client"
 	"github.com/tidepool-org/platform/oura"
 	ouraClient "github.com/tidepool-org/platform/oura/client"
-	ouraDataWorkSetup "github.com/tidepool-org/platform/oura/data/work/setup"
-	ouraUsersWorkRevoke "github.com/tidepool-org/platform/oura/users/work/revoke"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
 	ouraWork "github.com/tidepool-org/platform/oura/work"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
@@ -73,7 +73,7 @@ func New(dependencies Dependencies) (*Provider, error) {
 		providerSessionClient: dependencies.ProviderSessionClient,
 		dataSourceClient:      dependencies.DataSourceClient,
 		workClient:            dependencies.WorkClient,
-		acceptURL:             dependencies.Config.ProviderConfig.AcceptURL,
+		acceptURL:             dependencies.Config.AcceptURL,
 		partnerURL:            dependencies.Config.PartnerURL,
 		partnerSecret:         dependencies.Config.PartnerSecret,
 	}
@@ -107,8 +107,8 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	if err := p.deleteWorkForProviderSession(ctx, providerSession); err != nil {
 		return errors.Wrap(err, "unable to delete work for provider session")
 	}
-	if err := p.createUsersRevokeWork(ctx, providerSession); err != nil {
-		return errors.Wrap(err, "unable to create users revoke work")
+	if err := p.createUserRevokeWork(ctx, providerSession); err != nil {
+		return errors.Wrap(err, "unable to create user revoke work")
 	}
 	return nil
 }
@@ -278,7 +278,7 @@ func (p *Provider) deleteWorkForProviderSession(ctx context.Context, providerSes
 }
 
 func (p *Provider) createDataSetupWork(ctx context.Context, providerSession *auth.ProviderSession) error {
-	if workCreate, err := ouraDataWorkSetup.NewWorkCreate(providerSession.ID); err != nil {
+	if workCreate, err := ouraUserWorkSetup.NewWorkCreate(providerSession.ID); err != nil {
 		return errors.Wrap(err, "unable to create data setup work create")
 	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
 		return err
@@ -288,13 +288,13 @@ func (p *Provider) createDataSetupWork(ctx context.Context, providerSession *aut
 	return nil
 }
 
-func (p *Provider) createUsersRevokeWork(ctx context.Context, providerSession *auth.ProviderSession) error {
-	if workCreate, err := ouraUsersWorkRevoke.NewWorkCreate(providerSession.ID, providerSession.OAuthToken); err != nil {
-		return errors.Wrap(err, "unable to create users revoke work create")
+func (p *Provider) createUserRevokeWork(ctx context.Context, providerSession *auth.ProviderSession) error {
+	if workCreate, err := ouraUserWorkRevoke.NewWorkCreate(providerSession.ID, providerSession.OAuthToken); err != nil {
+		return errors.Wrap(err, "unable to create user revoke work create")
 	} else if _, err = p.workClient.Create(ctx, workCreate); err != nil {
 		return err
 	}
 
-	log.LoggerFromContext(ctx).Debug("created users revoke work")
+	log.LoggerFromContext(ctx).Debug("created user revoke work")
 	return nil
 }

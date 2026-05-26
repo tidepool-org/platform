@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/times"
@@ -23,6 +24,8 @@ const (
 	HeaderClientID     = "x-client-id"
 	HeaderClientSecret = "x-client-secret"
 )
+
+var TimeRangeFromDefault = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 type Provider interface {
 	oura.BaseClient
@@ -166,12 +169,12 @@ func (c *Client) GetData(ctx context.Context, dataType string, timeRange *times.
 		return nil, errors.New("token source is missing")
 	}
 
+	timeRangeUTC := timeRange.InLocation(time.UTC)
+
 	parameters := map[string]string{}
-	if timeRange.From != nil {
-		parameters["start_date"] = timeRange.From.Format(time.DateOnly)
-	}
-	if timeRange.To != nil {
-		parameters["end_date"] = timeRange.To.Format(time.DateOnly)
+	parameters["start_date"] = pointer.Default(timeRangeUTC.From, TimeRangeFromDefault).Format(time.RFC3339)
+	if timeRangeUTC.To != nil {
+		parameters["end_date"] = timeRangeUTC.To.Format(time.RFC3339)
 	}
 	if pagination.NextToken != nil {
 		parameters["next_token"] = *pagination.NextToken
@@ -179,7 +182,7 @@ func (c *Client) GetData(ctx context.Context, dataType string, timeRange *times.
 	mutators := []request.RequestMutator{request.NewParametersMutator(parameters)}
 
 	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
-	url := c.client.ConstructURL("v2", "usercollection", dataTypeToPath(dataType))
+	url := c.client.ConstructURL("v2", "usercollection", DataTypeToPath(dataType))
 	dataResponse := &oura.DataResponse{}
 	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, mutators, nil, dataResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get data")
@@ -200,7 +203,7 @@ func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, t
 	}
 
 	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
-	url := c.client.ConstructURL("v2", "usercollection", dataTypeToPath(dataType), dataID)
+	url := c.client.ConstructURL("v2", "usercollection", DataTypeToPath(dataType), dataID)
 	dataResponse := oura.Datum{}
 	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, nil, nil, &dataResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get datum")
@@ -214,9 +217,10 @@ func (c *Client) RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAuthTok
 		return errors.New("oauth token is missing")
 	}
 
+	// Possible response status codes (see below for details): 200, 401 (success; already revoked)
 	url := c.client.ConstructURL("oauth", "revoke")
 	mutators := []request.RequestMutator{request.NewHeaderMutator("Authorization", fmt.Sprintf("%s %s", oauthToken.TokenType, oauthToken.RefreshToken))}
-	if err := c.sendBaseRequest(ctx, http.MethodPost, url, mutators, nil, nil, nil); err != nil {
+	if err := c.sendBaseRequest(ctx, http.MethodPost, url, mutators, nil, nil, nil); err != nil && !request.IsErrorUnauthenticated(err) {
 		return errors.Wrap(err, "unable to revoke oauth token")
 	}
 
@@ -243,41 +247,30 @@ func (c *Client) sendBaseRequest(ctx context.Context, method string, url string,
 	})
 }
 
-func dataTypeToPath(dataType string) string {
+func DataTypeToPath(dataType string) string {
 	switch dataType {
-	// FUTURE:
-	// case oura.DataTypeVO2Max:
-	// 	return "vO2_max" // Capitalization inconsistency
+	case oura.DataTypeVO2Max:
+		return "vO2_max" // Capitalization inconsistency
 	default:
 		return dataType
 	}
 }
 
-const requestDurationMaximum = 30 * time.Second
-
-var (
-	prometheusCodePathPatterns = []string{
-		"/v2/usercollection/daily_activity/{document_id}",
-		"/v2/usercollection/daily_cardiovascular_age/{document_id}",
-		"/v2/usercollection/daily_readiness/{document_id}",
-		"/v2/usercollection/daily_resilience/{document_id}",
-		"/v2/usercollection/daily_sleep/{document_id}",
-		"/v2/usercollection/daily_spo2/{document_id}",
-		"/v2/usercollection/daily_stress/{document_id}",
-		"/v2/usercollection/enhanced_tag/{document_id}",
-		"/v2/usercollection/rest_mode_period/{document_id}",
-		"/v2/usercollection/ring_configuration/{document_id}",
-		"/v2/usercollection/session/{document_id}",
-		"/v2/usercollection/sleep/{document_id}",
-		"/v2/usercollection/sleep_time/{document_id}",
-		"/v2/usercollection/vO2_max/{document_id}", // Capitalization inconsistency
-		"/v2/usercollection/workout/{document_id}",
+func PrometheusCodePathPatterns() []string {
+	var patterns []string
+	for _, eventDataType := range oura.EventDataTypes() {
+		patterns = append(patterns, fmt.Sprintf("/v2/usercollection/%s/{document_id}", DataTypeToPath(eventDataType)))
+	}
+	return append(patterns,
 		"/v2/webhook/subscription/{id}",
 		"/v2/webhook/subscription/renew/{id}",
 		request.PatternAny,
-	}
-	prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspectorWithPatterns("tidepool_oura_api_client_requests", "Oura API client requests", prometheusCodePathPatterns...)
-)
+	)
+}
+
+const requestDurationMaximum = 30 * time.Second
+
+var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspectorWithPatterns("tidepool_oura_api_client_requests", "Oura API client requests", PrometheusCodePathPatterns()...)
 
 // Possible response status codes from Oura API:
 // 	200: successful get/list; response body contains the requested resource(s)

@@ -19,6 +19,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/oura"
+	"github.com/tidepool-org/platform/test"
 
 	"github.com/tidepool-org/platform/oura/jotform/store"
 
@@ -94,7 +95,10 @@ var _ = Describe("SubmissionProcessor", func() {
 		trackAPIServer = ouraTest.NewStubServer(trackAPIResponses)
 		customerIOConfig := customerio.Config{
 			AppAPIBaseURL:   appAPIServer.URL,
+			AppAPIKey:       test.RandomString(),
 			TrackAPIBaseURL: trackAPIServer.URL,
+			SiteID:          test.RandomString(),
+			TrackAPIKey:     test.RandomString(),
 		}
 		customerIOClient, err := customerio.NewClient(customerIOConfig, logger)
 		Expect(err).ToNot(HaveOccurred())

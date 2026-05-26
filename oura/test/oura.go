@@ -2,7 +2,6 @@ package test
 
 import (
 	"math/rand/v2"
-	"slices"
 
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	netTest "github.com/tidepool-org/platform/net/test"
@@ -32,11 +31,19 @@ func RandomEventType() string {
 	return test.RandomStringFromArray(oura.EventTypes())
 }
 
+func RandomEventDataType() string {
+	return test.RandomStringFromArray(oura.EventDataTypes())
+}
+
 func RandomID() string {
 	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
 func RandomUserID() string {
+	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
+}
+
+func RandomObjectID() string {
 	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
@@ -52,7 +59,7 @@ func RandomCreateSubscription(options ...test.Option) *oura.CreateSubscription {
 	return &oura.CreateSubscription{
 		CallbackURL:       pointer.From(RandomCallbackURL()),
 		VerificationToken: pointer.From(RandomVerificationToken()),
-		DataType:          pointer.From(RandomDataType()),
+		DataType:          pointer.From(RandomEventDataType()),
 		EventType:         pointer.From(RandomEventType()),
 	}
 }
@@ -93,7 +100,7 @@ func RandomUpdateSubscription(options ...test.Option) *oura.UpdateSubscription {
 	return &oura.UpdateSubscription{
 		CallbackURL:       pointer.From(RandomCallbackURL()),
 		VerificationToken: pointer.From(RandomVerificationToken()),
-		DataType:          pointer.From(RandomDataType()),
+		DataType:          pointer.From(RandomEventDataType()),
 		EventType:         pointer.From(RandomEventType()),
 	}
 }
@@ -134,7 +141,7 @@ func RandomSubscription(options ...test.Option) *oura.Subscription {
 	return &oura.Subscription{
 		ID:             pointer.From(RandomID()),
 		CallbackURL:    pointer.From(RandomCallbackURL()),
-		DataType:       pointer.From(RandomDataType()),
+		DataType:       pointer.From(RandomEventDataType()),
 		EventType:      pointer.From(RandomEventType()),
 		ExpirationTime: pointer.From(test.RandomTimeAfterNow().UTC().Format(oura.SubscriptionExpirationTimeFormat)),
 	}
@@ -178,7 +185,7 @@ func NewObjectFromSubscription(datum *oura.Subscription, format test.ObjectForma
 
 // RandomSubscriptions should ensure unique combinations of data types and event types
 func RandomSubscriptions(options ...test.Option) oura.Subscriptions {
-	dataTypes := oura.DataTypes()
+	dataTypes := oura.EventDataTypes()
 	eventTypes := oura.EventTypes()
 	dataTypesCount := len(dataTypes)
 	eventTypesCount := len(eventTypes)
@@ -214,6 +221,78 @@ func NewArrayFromSubscriptions(datum *oura.Subscriptions, format test.ObjectForm
 		array[index] = NewObjectFromSubscription(datum, format)
 	}
 	return array
+}
+
+func RandomEvent(options ...test.Option) *oura.Event {
+	return &oura.Event{
+		EventTime: pointer.From(test.RandomTime()),
+		EventType: pointer.From(test.RandomStringFromArray(oura.EventTypes())),
+		UserID:    pointer.From(RandomUserID()),
+		ObjectID:  pointer.From(RandomObjectID()),
+		DataType:  pointer.From(test.RandomStringFromArray(oura.EventDataTypes())),
+	}
+}
+
+func CloneEvent(datum *oura.Event) *oura.Event {
+	if datum == nil {
+		return nil
+	}
+	return &oura.Event{
+		EventTime: pointer.Clone(datum.EventTime),
+		EventType: pointer.Clone(datum.EventType),
+		UserID:    pointer.Clone(datum.UserID),
+		ObjectID:  pointer.Clone(datum.ObjectID),
+		DataType:  pointer.Clone(datum.DataType),
+	}
+}
+
+func NewObjectFromEvent(datum *oura.Event, format test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.EventTime != nil {
+		object["event_time"] = test.NewObjectFromTime(*datum.EventTime, format)
+	}
+	if datum.EventType != nil {
+		object["event_type"] = test.NewObjectFromString(*datum.EventType, format)
+	}
+	if datum.UserID != nil {
+		object["user_id"] = test.NewObjectFromString(*datum.UserID, format)
+	}
+	if datum.ObjectID != nil {
+		object["object_id"] = test.NewObjectFromString(*datum.ObjectID, format)
+	}
+	if datum.DataType != nil {
+		object["data_type"] = test.NewObjectFromString(*datum.DataType, format)
+	}
+	return object
+}
+
+func RandomEventMetadata(options ...test.Option) *oura.EventMetadata {
+	return &oura.EventMetadata{
+		Event: RandomEvent(options...),
+	}
+}
+
+func CloneEventMetadata(datum *oura.EventMetadata) *oura.EventMetadata {
+	if datum == nil {
+		return nil
+	}
+	return &oura.EventMetadata{
+		Event: CloneEvent(datum.Event),
+	}
+}
+
+func NewObjectFromEventMetadata(datum *oura.EventMetadata, format test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.Event != nil {
+		object[oura.MetadataKeyEvent] = NewObjectFromEvent(datum.Event, format)
+	}
+	return object
 }
 
 func RandomPersonalInfo(options ...test.Option) *oura.PersonalInfo {
@@ -294,12 +373,8 @@ func NewObjectFromPagination(datum *oura.Pagination, format test.ObjectFormat) m
 }
 
 func RandomDataResponse(options ...test.Option) *oura.DataResponse {
-	data := make([]any, test.RandomIntFromRange(1, 3))
-	for index := range data {
-		data[index] = RandomDatum(options...)
-	}
 	return &oura.DataResponse{
-		Data:       data,
+		Data:       RandomData(options...),
 		Pagination: *RandomPagination(options...),
 	}
 }
@@ -309,7 +384,7 @@ func CloneDataResponse(datum *oura.DataResponse) *oura.DataResponse {
 		return nil
 	}
 	return &oura.DataResponse{
-		Data:       slices.Clone(datum.Data),
+		Data:       CloneData(datum.Data),
 		Pagination: *ClonePagination(&datum.Pagination),
 	}
 }
@@ -320,13 +395,15 @@ func NewObjectFromDataResponse(datum *oura.DataResponse, format test.ObjectForma
 	}
 	object := NewObjectFromPagination(&datum.Pagination, format)
 	if datum.Data != nil {
-		object["data"] = slices.Clone(datum.Data)
+		object["data"] = NewArrayFromData(datum.Data, format)
 	}
 	return object
 }
 
 func RandomDatum(options ...test.Option) oura.Datum {
-	return metadataTest.RandomMetadataMap()
+	datum := metadataTest.RandomMetadataMap()
+	datum["timestamp"] = test.NewObjectFromTime(test.RandomTime(), test.ObjectFormatJSON)
+	return datum
 }
 
 func CloneDatum(datum oura.Datum) oura.Datum {
@@ -337,10 +414,32 @@ func NewObjectFromDatum(datum oura.Datum, format test.ObjectFormat) map[string]a
 	return metadataTest.NewObjectFromMetadataMap(datum, format)
 }
 
-func RandomData(options ...test.Option) []any {
-	datum := make([]any, test.RandomIntFromRange(1, 3))
-	for index := range datum {
-		datum[index] = RandomDatum(options...)
+func RandomData(options ...test.Option) oura.Data {
+	var data oura.Data
+	for range test.RandomIntFromRange(1, 3) {
+		data = append(data, RandomDatum(options...))
 	}
-	return datum
+	return data
+}
+
+func CloneData(data oura.Data) oura.Data {
+	if data == nil {
+		return nil
+	}
+	var clone oura.Data
+	for _, datum := range data {
+		clone = append(clone, CloneDatum(datum))
+	}
+	return clone
+}
+
+func NewArrayFromData(data oura.Data, format test.ObjectFormat) []any {
+	if data == nil {
+		return nil
+	}
+	array := make([]any, len(data))
+	for index, datum := range data {
+		array[index] = NewObjectFromDatum(datum, format)
+	}
+	return array
 }

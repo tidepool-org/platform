@@ -16,9 +16,11 @@ import (
 	"github.com/tidepool-org/platform/net"
 	oauthWork "github.com/tidepool-org/platform/oauth/work"
 	"github.com/tidepool-org/platform/oura"
+	ouraData "github.com/tidepool-org/platform/oura/data"
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/times"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -29,7 +31,11 @@ const (
 	FailingRetryDurationJitter = 5 * time.Second
 )
 
-var LaunchDate = time.Date(2015, time.March, 1, 0, 0, 0, 0, time.UTC) // 2015-03-01
+func DataTypes() []string {
+	return oura.EventDataTypes()
+}
+
+const MetadataKeyDataTypeNextTokens = "dataTypeNextTokens"
 
 type (
 	ProviderSessionMetadata = providerSessionWork.Metadata
@@ -39,16 +45,33 @@ type (
 type Metadata struct {
 	ProviderSessionMetadata `bson:",inline"`
 	TimeRangeMetadata       `bson:",inline"`
+	DataTypeNextTokens      *dataWork.StringStringMap `json:"dataTypeNextTokens,omitempty" bson:"dataTypeNextTokens,omitempty"`
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
 	m.ProviderSessionMetadata.Parse(parser)
 	m.TimeRangeMetadata.Parse(parser)
+	m.DataTypeNextTokens = dataWork.ParseStringStringMap(parser.WithReferenceObjectParser(MetadataKeyDataTypeNextTokens))
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
-	m.ProviderSessionMetadata.Validate(validator)
-	m.TimeRangeMetadata.Validate(validator)
+	if m.ProviderSessionID != nil {
+		m.ProviderSessionMetadata.Validate(validator)
+	} else {
+		validator.WithReference(providerSessionWork.MetadataKeyProviderSessionID).ReportError(structureValidator.ErrorValueNotExists())
+	}
+	if m.TimeRange != nil {
+		m.TimeRangeMetadata.Validate(validator)
+	} else {
+		validator.WithReference(times.MetadataKeyTimeRange).ReportError(structureValidator.ErrorValueNotExists())
+	}
+	if dataTypeNextTokensValidator := validator.WithReference(MetadataKeyDataTypeNextTokens); m.DataTypeNextTokens != nil {
+		m.DataTypeNextTokens.Validate(dataTypeNextTokensValidator)
+		for _, reference := range m.DataTypeNextTokens.SortedKeys() {
+			dataTypeNextTokensValidator.WithReference(reference).String(structure.ReferenceSelf, &reference).OneOf(DataTypes()...)
+			dataTypeNextTokensValidator.String(reference, (*m.DataTypeNextTokens)[reference]).NotEmpty()
+		}
+	}
 }
 
 type (
@@ -56,8 +79,9 @@ type (
 	DataSourceMixin                = dataSourceWork.Mixin
 	ProviderSessionDataSourceMixin = dataWork.ProviderSessionDataSourceMixin
 	OAuthMixin                     = oauthWork.Mixin
-	DataRawMixin                   = dataRawWork.MixinWithParsedMetadata[ouraDataWork.Metadata]
+	DataRawMixin                   = dataRawWork.MixinWithParsedMetadata[ouraData.Metadata]
 	DataSourceDataRawMixin         = dataWork.DataSourceDataRawMixin
+	OuraClient                     = oura.Client
 )
 
 type Processor struct {
@@ -69,12 +93,9 @@ type Processor struct {
 	DataRawMixin
 	DataSourceDataRawMixin
 	OuraClient
-	Now       func() time.Time
-	timeRange times.TimeRange
-	data      map[string]any
 }
 
-func NewProcessor(dependencies Dependencies) (*Processor, error) {
+func NewProcessor(dependencies ouraDataWork.Dependencies) (*Processor, error) {
 	if err := dependencies.Validate(); err != nil {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
@@ -106,7 +127,7 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create oauth mixin")
 	}
-	dataRawMixin, err := dataRawWork.NewMixinWithParsedMetadata[ouraDataWork.Metadata](processor, dependencies.DataRawClient)
+	dataRawMixin, err := dataRawWork.NewMixinWithParsedMetadata[ouraData.Metadata](processor, dependencies.DataRawClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create data raw mixin")
 	}
@@ -124,7 +145,6 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 		DataRawMixin:                   dataRawMixin,
 		DataSourceDataRawMixin:         dataSourceDataRawMixin,
 		OuraClient:                     dependencies.OuraClient,
-		Now:                            time.Now,
 	}, nil
 }
 
@@ -132,87 +152,92 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.FetchProviderSessionFromWorkMetadata,
 		p.FetchDataSourceFromProviderSession,
+		p.EnsureDataSourceHasDataSetID,
 		p.FetchTokenSource,
-		p.prepareTimeRange,
-		p.fetchHistoricData,
-		p.createDataRaw,
+		p.fetchData,
 	).Process(p.Delete)
 }
 
-func (p *Processor) prepareTimeRange() *work.ProcessResult {
-	p.timeRange = NormalizeTimeRange(p.Metadata().TimeRange, LaunchDate, p.Now().UTC())
-
-	log.LoggerFromContext(p.Context()).WithField("timeRange", log.Fields{"initial": p.Metadata().TimeRange, "final": p.timeRange}).Debug("prepared time range")
-	return nil
-}
-
-func (p *Processor) fetchHistoricData() *work.ProcessResult {
-	if p.DataSource().DataSetID == nil {
-		return p.Failed(errors.New("data set id is missing"))
+func (p *Processor) fetchData() *work.ProcessResult {
+	// If metadata not specified, then create
+	dataTypeNextTokens := p.Metadata().DataTypeNextTokens
+	if dataTypeNextTokens == nil {
+		dataTypeNextTokens = &dataWork.StringStringMap{}
 	}
 
-	// Determine authorized scope
-	scope := pointer.DefaultStringArray(p.ProviderSession().OAuthToken.Scope, nil)
+	// Fetch all data for available data types
+	for _, dataType := range DataTypes() {
+		ctx, lgr := log.ContextAndLoggerWithField(p.Context(), "dataType", dataType)
 
-	// Determine available data types, if not, then warn and done
-	dataTypes := oura.DataTypesForScopes(scope)
-	if len(dataTypes) == 0 {
-		log.LoggerFromContext(p.Context()).WithField("scope", scope).Warn("no data types in scope for historic data")
-		return p.Delete()
-	}
+		// If data type scope is not authorized, then skip
+		if !oura.DataTypeInScopes(dataType, p.ProviderSession().OAuthToken.Scope) {
+			lgr.Debug("skipping data type not authorized by scope")
+			continue
+		}
 
-	// Fetch historic data for available data types
-	data := map[string]any{}
-	for _, dataType := range dataTypes {
-		var dataTypeData []any
-
-		// Loop through all "pages" of the data, per documentation, but in practice we have not seen any pagination
+		// If data type is found, then use next token for pagination, unless nil which means done
 		var pagination oura.Pagination
-		for {
-			if dataResponse, err := p.GetData(p.Context(), dataType, &p.timeRange, &pagination, p.TokenSource()); err != nil {
-				return p.Failing(errors.Wrapf(err, "unable to get data for data type %q", dataType))
-			} else if dataResponse == nil {
-				return p.Failing(errors.Newf("data response for data type %q is missing", dataType))
-			} else {
-				dataTypeData = append(dataTypeData, dataResponse.Data...)
-				pagination = dataResponse.Pagination
-			}
+		if dataTypeNextToken, ok := (*dataTypeNextTokens)[dataType]; ok {
+			pagination.NextToken = dataTypeNextToken
 			if !pagination.HasNext() {
-				break
+				lgr.Debug("skipping data type already fetched")
+				continue
 			}
 		}
 
-		// Add to historic data
-		data[dataType] = dataTypeData
+		for {
+			// Fetch page of data for data type
+			dataResponse, err := p.GetData(ctx, dataType, p.Metadata().TimeRange, &pagination, p.TokenSource())
+			if err != nil {
+				return p.Failing(errors.Wrapf(err, "unable to get data for data type %q", dataType))
+			} else if dataResponse == nil {
+				return p.Failing(errors.Newf("data response for data type %q is missing", dataType))
+			}
+
+			// FUTURE: Consider streaming directly into data raw instead of buffering in memory, but in practice we have not seen any
+			// large data responses, so this is not a current issue
+
+			// Persist data
+			if result := p.createDataRaw(dataType, p.Metadata().TimeRange, dataResponse.Data); result != nil {
+				return result
+			}
+
+			// Update next token
+			(*dataTypeNextTokens)[dataType] = dataResponse.NextToken
+
+			// Update work metadata with next tokens
+			p.Metadata().DataTypeNextTokens = dataTypeNextTokens
+			if result := p.ProcessingUpdate(); result != nil {
+				return result
+			}
+
+			// If done, then break
+			if pagination = dataResponse.Pagination; !pagination.HasNext() {
+				break
+			}
+		}
 	}
 
-	p.data = data
+	p.Metadata().DataTypeNextTokens = dataTypeNextTokens
 	return nil
 }
 
-func (p *Processor) createDataRaw() *work.ProcessResult {
+func (p *Processor) createDataRaw(dataType string, timeRange *times.TimeRange, data oura.Data) *work.ProcessResult {
 	if dataRawCreate, err := metadata.WithMetadata(
 		&dataRaw.Create{
 			MediaType:      pointer.From(net.MediaTypeJSON),
-			ArchivableTime: pointer.From(p.Now().UTC()),
+			ArchivableTime: pointer.From(p.Now()),
 		},
-		&ouraDataWork.Metadata{
-			Scope: p.ProviderSession().OAuthToken.Scope,
-			TimeRangeMetadata: ouraDataWork.TimeRangeMetadata{
-				TimeRange: pointer.From(p.timeRange),
+		&ouraData.Metadata{
+			DataType: dataType,
+			TimeRangeMetadata: times.TimeRangeMetadata{
+				TimeRange: timeRange,
 			},
 		},
 	); err != nil {
-		return p.Failing(errors.Wrap(err, "unable to encode data raw metadata"))
+		return p.Failed(errors.Wrap(err, "unable to encode data raw metadata"))
 	} else {
-		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(p.data))
+		p.ClearDataRaw()
+		return p.CreateDataRawForDataSource(dataRawCreate, compress.JSONEncoderReader(&oura.DataMap{dataType: data})) // Store as map for later processing
 	}
-}
-
-// Limit time range to between original launch date (2015-03-01) and now, UTC, date-only
-func NormalizeTimeRange(timeRange *times.TimeRange, minimum time.Time, maximum time.Time) times.TimeRange {
-	normalized := pointer.Default(timeRange, times.TimeRange{})
-	normalized.From = pointer.DefaultPointer(normalized.From, pointer.From(minimum))
-	normalized.To = pointer.DefaultPointer(normalized.To, pointer.From(maximum))
-	return normalized.Clamped(minimum, maximum).InLocation(time.UTC).Date()
 }

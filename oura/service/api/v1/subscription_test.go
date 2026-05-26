@@ -19,6 +19,8 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	ouraServiceApiV1 "github.com/tidepool-org/platform/oura/service/api/v1"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
+	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	workTest "github.com/tidepool-org/platform/work/test"
@@ -26,11 +28,11 @@ import (
 
 var _ = Describe("subscription", func() {
 	It("QueryVerificationToken is expected", func() {
-		Expect(ouraServiceApiV1.QueryVerificationToken).To(Equal("verification_token"))
+		Expect(ouraServiceApiV1.QueryParameterVerificationToken).To(Equal("verification_token"))
 	})
 
 	It("QueryChallenge is expected", func() {
-		Expect(ouraServiceApiV1.QueryChallenge).To(Equal("challenge"))
+		Expect(ouraServiceApiV1.QueryParameterChallenge).To(Equal("challenge"))
 	})
 
 	Context("with request, response, and router", func() {
@@ -45,6 +47,10 @@ var _ = Describe("subscription", func() {
 			mockWorkClient    *workTest.MockClient
 			dependencies      ouraServiceApiV1.Dependencies
 			handler           rest.HandlerFunc
+			partnerURL        string
+			partnerSecret     string
+			eventType         string
+			dataType          string
 			verificationToken string
 			challenge         string
 			query             url.Values
@@ -64,18 +70,58 @@ var _ = Describe("subscription", func() {
 				OuraClient: mockOuraClient,
 				WorkClient: mockWorkClient,
 			}
-			verificationToken = ouraTest.RandomVerificationToken()
+			partnerURL = testHttp.NewAddress()
+			partnerSecret = test.RandomString()
+			eventType = ouraTest.RandomEventType()
+			dataType = ouraTest.RandomEventDataType()
+			verificationToken = ouraWebhook.VerificationTokenForCallbackURL(ouraWebhook.CallbackURLForEvent(partnerURL, eventType, dataType), partnerSecret)
 			challenge = ouraTest.RandomChallenge()
 			query = url.Values{
-				ouraServiceApiV1.QueryVerificationToken: []string{verificationToken},
-				ouraServiceApiV1.QueryChallenge:         []string{challenge},
+				ouraServiceApiV1.QueryParameterVerificationToken: []string{verificationToken},
+				ouraServiceApiV1.QueryParameterChallenge:         []string{challenge},
 			}
 			req.Request = httptest.NewRequestWithContext(ctx, "GET", "/?"+query.Encode(), nil)
+			req.PathParams = map[string]string{
+				ouraServiceApiV1.PathParameterEventType: eventType,
+				ouraServiceApiV1.PathParameterDataType:  dataType,
+			}
 		})
 
 		withHandler := func() {
+			It("returns http.StatusForbidden when the event type is missing", func() {
+				delete(req.PathParams, ouraServiceApiV1.PathParameterEventType)
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterMissing(ouraServiceApiV1.PathParameterEventType).Error()))
+				logger.AssertError("event type is invalid")
+			})
+
+			It("returns http.StatusForbidden when the event type is invalid", func() {
+				req.PathParams[ouraServiceApiV1.PathParameterEventType] = "invalid"
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterInvalid(ouraServiceApiV1.PathParameterEventType).Error()))
+				logger.AssertError("event type is invalid")
+			})
+
+			It("returns http.StatusForbidden when the data type is missing", func() {
+				delete(req.PathParams, ouraServiceApiV1.PathParameterDataType)
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterMissing(ouraServiceApiV1.PathParameterDataType).Error()))
+				logger.AssertError("data type is invalid")
+			})
+
+			It("returns http.StatusForbidden when the data type is invalid", func() {
+				req.PathParams[ouraServiceApiV1.PathParameterDataType] = "invalid"
+				handler(res, req)
+				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
+				Expect(res.ResponseRecorder).To(HaveHTTPBody(request.ErrorParameterInvalid(ouraServiceApiV1.PathParameterDataType).Error()))
+				logger.AssertError("data type is invalid")
+			})
+
 			It("returns http.StatusForbidden when the verification token is missing", func() {
-				query.Del(ouraServiceApiV1.QueryVerificationToken)
+				query.Del(ouraServiceApiV1.QueryParameterVerificationToken)
 				req.Request = httptest.NewRequestWithContext(ctx, "GET", "/?"+query.Encode(), nil)
 				handler(res, req)
 				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
@@ -84,7 +130,7 @@ var _ = Describe("subscription", func() {
 			})
 
 			It("returns http.StatusForbidden when the challenge is missing", func() {
-				query.Del(ouraServiceApiV1.QueryChallenge)
+				query.Del(ouraServiceApiV1.QueryParameterChallenge)
 				req.Request = httptest.NewRequestWithContext(ctx, "GET", "/?"+query.Encode(), nil)
 				handler(res, req)
 				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
@@ -92,22 +138,29 @@ var _ = Describe("subscription", func() {
 				logger.AssertError("challenge is missing")
 			})
 
-			It("returns http.StatusForbidden when the verification token is invalid", func() {
-				mockOuraClient.EXPECT().PartnerSecret().Return(test.RandomString())
-				handler(res, req)
-				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
-				Expect(res.ResponseRecorder).To(HaveHTTPBody("verification token is invalid"))
-				logger.AssertError("verification token is invalid", log.Fields{"challenge": challenge})
-			})
+			Context("with partner url and secret", func() {
+				BeforeEach(func() {
+					mockOuraClient.EXPECT().PartnerURL().Return(partnerURL)
+					mockOuraClient.EXPECT().PartnerSecret().Return(partnerSecret)
+				})
 
-			It("returns http.StatusOK with the challenge when the verification token is valid", func() {
-				expectedBody, err := json.Marshal(map[string]string{"challenge": challenge})
-				Expect(err).ToNot(HaveOccurred())
-				Expect(expectedBody).ToNot(BeEmpty())
-				mockOuraClient.EXPECT().PartnerSecret().Return(verificationToken)
-				handler(res, req)
-				Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusOK))
-				Expect(res.ResponseRecorder).To(HaveHTTPBody(MatchJSON(expectedBody)))
+				It("returns http.StatusForbidden when the verification token is invalid", func() {
+					query.Set(ouraServiceApiV1.QueryParameterVerificationToken, test.RandomString())
+					req.Request = httptest.NewRequestWithContext(ctx, "GET", "/?"+query.Encode(), nil)
+					handler(res, req)
+					Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusForbidden))
+					Expect(res.ResponseRecorder).To(HaveHTTPBody("verification token is invalid"))
+					logger.AssertError("verification token is invalid")
+				})
+
+				It("returns http.StatusOK with the challenge when the verification token is valid", func() {
+					expectedBody, err := json.Marshal(map[string]string{"challenge": challenge})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(expectedBody).ToNot(BeEmpty())
+					handler(res, req)
+					Expect(res.ResponseRecorder).To(HaveHTTPStatus(http.StatusOK))
+					Expect(res.ResponseRecorder).To(HaveHTTPBody(MatchJSON(expectedBody)))
+				})
 			})
 		}
 

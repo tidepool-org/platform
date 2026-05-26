@@ -13,6 +13,10 @@ func RandomStringArray() []string {
 	return RandomStringArrayFromRange(RandomStringArrayLengthMinimum(), RandomStringArrayLengthMaximum())
 }
 
+func RandomStringArrayFromArrayWithoutDuplicates(array []string) []string {
+	return RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(array), array)
+}
+
 func RandomStringArrayFromRange(minimumLength int, maximumLength int) []string {
 	if maximumLength < minimumLength {
 		panic("RandomStringArrayFromRange: maximum length is not greater than or equal to minimum length")

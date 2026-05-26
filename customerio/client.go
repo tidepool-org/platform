@@ -55,6 +55,10 @@ func NewClient(config Config, logger log.Logger) (*Client, error) {
 	}, nil
 }
 
+func (c *Client) enabled() bool {
+	return c.config.AppAPIKey != "" && c.config.TrackAPIKey != "" && c.config.SiteID != ""
+}
+
 // appAPIAuthMutator returns a request mutator for App API authentication (Bearer token)
 func (c *Client) appAPIAuthMutator() *request.HeaderMutator {
 	return request.NewHeaderMutator("Authorization", fmt.Sprintf("Bearer %s", c.config.AppAPIKey))

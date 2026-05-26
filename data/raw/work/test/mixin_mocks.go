@@ -79,6 +79,42 @@ func (c *MockMixinAddDataRawToContextCall) DoAndReturn(f func()) *MockMixinAddDa
 	return c
 }
 
+// ClearDataRaw mocks base method.
+func (m *MockMixin) ClearDataRaw() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataRaw")
+}
+
+// ClearDataRaw indicates an expected call of ClearDataRaw.
+func (mr *MockMixinMockRecorder) ClearDataRaw() *MockMixinClearDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataRaw", reflect.TypeOf((*MockMixin)(nil).ClearDataRaw))
+	return &MockMixinClearDataRawCall{Call: call}
+}
+
+// MockMixinClearDataRawCall wrap *gomock.Call
+type MockMixinClearDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinClearDataRawCall) Return() *MockMixinClearDataRawCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinClearDataRawCall) Do(f func()) *MockMixinClearDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinClearDataRawCall) DoAndReturn(f func()) *MockMixinClearDataRawCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CloseDataRawContent mocks base method.
 func (m *MockMixin) CloseDataRawContent() *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -265,6 +301,82 @@ func (c *MockMixinDataRawContentCall) Do(f func() *raw.Content) *MockMixinDataRa
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinDataRawContentCall) DoAndReturn(f func() *raw.Content) *MockMixinDataRawContentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRaw mocks base method.
+func (m *MockMixin) EnsureDataRaw() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRaw")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRaw indicates an expected call of EnsureDataRaw.
+func (mr *MockMixinMockRecorder) EnsureDataRaw() *MockMixinEnsureDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRaw", reflect.TypeOf((*MockMixin)(nil).EnsureDataRaw))
+	return &MockMixinEnsureDataRawCall{Call: call}
+}
+
+// MockMixinEnsureDataRawCall wrap *gomock.Call
+type MockMixinEnsureDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureDataRawCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureDataRawCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureDataRawCall) Do(f func() *work.ProcessResult) *MockMixinEnsureDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureDataRawCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureDataRawCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRawContent mocks base method.
+func (m *MockMixin) EnsureDataRawContent() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRawContent")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRawContent indicates an expected call of EnsureDataRawContent.
+func (mr *MockMixinMockRecorder) EnsureDataRawContent() *MockMixinEnsureDataRawContentCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRawContent", reflect.TypeOf((*MockMixin)(nil).EnsureDataRawContent))
+	return &MockMixinEnsureDataRawContentCall{Call: call}
+}
+
+// MockMixinEnsureDataRawContentCall wrap *gomock.Call
+type MockMixinEnsureDataRawContentCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinEnsureDataRawContentCall) Return(arg0 *work.ProcessResult) *MockMixinEnsureDataRawContentCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinEnsureDataRawContentCall) Do(f func() *work.ProcessResult) *MockMixinEnsureDataRawContentCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinEnsureDataRawContentCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinEnsureDataRawContentCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -909,6 +1021,42 @@ func (c *MockMixinFromWorkAddDataRawToContextCall) DoAndReturn(f func()) *MockMi
 	return c
 }
 
+// ClearDataRaw mocks base method.
+func (m *MockMixinFromWork) ClearDataRaw() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataRaw")
+}
+
+// ClearDataRaw indicates an expected call of ClearDataRaw.
+func (mr *MockMixinFromWorkMockRecorder) ClearDataRaw() *MockMixinFromWorkClearDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataRaw", reflect.TypeOf((*MockMixinFromWork)(nil).ClearDataRaw))
+	return &MockMixinFromWorkClearDataRawCall{Call: call}
+}
+
+// MockMixinFromWorkClearDataRawCall wrap *gomock.Call
+type MockMixinFromWorkClearDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkClearDataRawCall) Return() *MockMixinFromWorkClearDataRawCall {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkClearDataRawCall) Do(f func()) *MockMixinFromWorkClearDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkClearDataRawCall) DoAndReturn(f func()) *MockMixinFromWorkClearDataRawCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CloseDataRawContent mocks base method.
 func (m *MockMixinFromWork) CloseDataRawContent() *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -1095,6 +1243,82 @@ func (c *MockMixinFromWorkDataRawContentCall) Do(f func() *raw.Content) *MockMix
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkDataRawContentCall) DoAndReturn(f func() *raw.Content) *MockMixinFromWorkDataRawContentCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRaw mocks base method.
+func (m *MockMixinFromWork) EnsureDataRaw() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRaw")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRaw indicates an expected call of EnsureDataRaw.
+func (mr *MockMixinFromWorkMockRecorder) EnsureDataRaw() *MockMixinFromWorkEnsureDataRawCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRaw", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureDataRaw))
+	return &MockMixinFromWorkEnsureDataRawCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureDataRawCall wrap *gomock.Call
+type MockMixinFromWorkEnsureDataRawCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureDataRawCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureDataRawCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureDataRawCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataRawCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureDataRawCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataRawCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRawContent mocks base method.
+func (m *MockMixinFromWork) EnsureDataRawContent() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRawContent")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRawContent indicates an expected call of EnsureDataRawContent.
+func (mr *MockMixinFromWorkMockRecorder) EnsureDataRawContent() *MockMixinFromWorkEnsureDataRawContentCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRawContent", reflect.TypeOf((*MockMixinFromWork)(nil).EnsureDataRawContent))
+	return &MockMixinFromWorkEnsureDataRawContentCall{Call: call}
+}
+
+// MockMixinFromWorkEnsureDataRawContentCall wrap *gomock.Call
+type MockMixinFromWorkEnsureDataRawContentCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkEnsureDataRawContentCall) Return(arg0 *work.ProcessResult) *MockMixinFromWorkEnsureDataRawContentCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkEnsureDataRawContentCall) Do(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataRawContentCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkEnsureDataRawContentCall) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkEnsureDataRawContentCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -1539,6 +1763,42 @@ func (c *MockMixinWithParsedMetadataAddDataRawToContextCall[M]) DoAndReturn(f fu
 	return c
 }
 
+// ClearDataRaw mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) ClearDataRaw() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataRaw")
+}
+
+// ClearDataRaw indicates an expected call of ClearDataRaw.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) ClearDataRaw() *MockMixinWithParsedMetadataClearDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataRaw", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).ClearDataRaw))
+	return &MockMixinWithParsedMetadataClearDataRawCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataClearDataRawCall wrap *gomock.Call
+type MockMixinWithParsedMetadataClearDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataClearDataRawCall[M]) Return() *MockMixinWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataClearDataRawCall[M]) Do(f func()) *MockMixinWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataClearDataRawCall[M]) DoAndReturn(f func()) *MockMixinWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CloseDataRawContent mocks base method.
 func (m *MockMixinWithParsedMetadata[M]) CloseDataRawContent() *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -1763,6 +2023,82 @@ func (c *MockMixinWithParsedMetadataDataRawMetadataCall[M]) Do(f func() *M) *Moc
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinWithParsedMetadataDataRawMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinWithParsedMetadataDataRawMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRaw mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataRaw() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRaw")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRaw indicates an expected call of EnsureDataRaw.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataRaw() *MockMixinWithParsedMetadataEnsureDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRaw", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataRaw))
+	return &MockMixinWithParsedMetadataEnsureDataRawCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataRawCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataRawCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataRawCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataRawCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRawContent mocks base method.
+func (m *MockMixinWithParsedMetadata[M]) EnsureDataRawContent() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRawContent")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRawContent indicates an expected call of EnsureDataRawContent.
+func (mr *MockMixinWithParsedMetadataMockRecorder[M]) EnsureDataRawContent() *MockMixinWithParsedMetadataEnsureDataRawContentCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRawContent", reflect.TypeOf((*MockMixinWithParsedMetadata[M])(nil).EnsureDataRawContent))
+	return &MockMixinWithParsedMetadataEnsureDataRawContentCall[M]{Call: call}
+}
+
+// MockMixinWithParsedMetadataEnsureDataRawContentCall wrap *gomock.Call
+type MockMixinWithParsedMetadataEnsureDataRawContentCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinWithParsedMetadataEnsureDataRawContentCall[M]) Return(arg0 *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawContentCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinWithParsedMetadataEnsureDataRawContentCall[M]) Do(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawContentCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinWithParsedMetadataEnsureDataRawContentCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinWithParsedMetadataEnsureDataRawContentCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -2207,6 +2543,42 @@ func (c *MockMixinFromWorkWithParsedMetadataAddDataRawToContextCall[M]) DoAndRet
 	return c
 }
 
+// ClearDataRaw mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) ClearDataRaw() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClearDataRaw")
+}
+
+// ClearDataRaw indicates an expected call of ClearDataRaw.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) ClearDataRaw() *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClearDataRaw", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).ClearDataRaw))
+	return &MockMixinFromWorkWithParsedMetadataClearDataRawCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataClearDataRawCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataClearDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M]) Return() *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.Return()
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M]) Do(f func()) *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M]) DoAndReturn(f func()) *MockMixinFromWorkWithParsedMetadataClearDataRawCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // CloseDataRawContent mocks base method.
 func (m *MockMixinFromWorkWithParsedMetadata[M]) CloseDataRawContent() *work.ProcessResult {
 	m.ctrl.T.Helper()
@@ -2431,6 +2803,82 @@ func (c *MockMixinFromWorkWithParsedMetadataDataRawMetadataCall[M]) Do(f func() 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockMixinFromWorkWithParsedMetadataDataRawMetadataCall[M]) DoAndReturn(f func() *M) *MockMixinFromWorkWithParsedMetadataDataRawMetadataCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRaw mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataRaw() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRaw")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRaw indicates an expected call of EnsureDataRaw.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataRaw() *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRaw", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataRaw))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataRawCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawCall[M] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// EnsureDataRawContent mocks base method.
+func (m *MockMixinFromWorkWithParsedMetadata[M]) EnsureDataRawContent() *work.ProcessResult {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "EnsureDataRawContent")
+	ret0, _ := ret[0].(*work.ProcessResult)
+	return ret0
+}
+
+// EnsureDataRawContent indicates an expected call of EnsureDataRawContent.
+func (mr *MockMixinFromWorkWithParsedMetadataMockRecorder[M]) EnsureDataRawContent() *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureDataRawContent", reflect.TypeOf((*MockMixinFromWorkWithParsedMetadata[M])(nil).EnsureDataRawContent))
+	return &MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M]{Call: call}
+}
+
+// MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall wrap *gomock.Call
+type MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M any] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M]) Return(arg0 *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M] {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M]) Do(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M]) DoAndReturn(f func() *work.ProcessResult) *MockMixinFromWorkWithParsedMetadataEnsureDataRawContentCall[M] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

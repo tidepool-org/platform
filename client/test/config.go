@@ -32,5 +32,4 @@ func NewObjectFromConfig(config *client.Config, objectFormat test.ObjectFormat) 
 	object["address"] = test.NewObjectFromString(config.Address, objectFormat)
 	object["user_agent"] = test.NewObjectFromString(config.UserAgent, objectFormat)
 	return object
-
 }

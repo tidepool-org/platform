@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 )
@@ -21,6 +22,10 @@ type segmentMembershipResponse struct {
 }
 
 func (c *Client) ListCustomersInSegment(ctx context.Context, segmentID string) ([]Identifiers, error) {
+	if !c.enabled() {
+		return nil, errors.New("client is not enabled")
+	}
+
 	ctx = log.NewContextWithLogger(ctx, c.logger)
 	var allIdentifiers []Identifiers
 	start := ""

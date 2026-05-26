@@ -2,9 +2,9 @@ package historic_test
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
-	"math/rand/v2"
 	"slices"
 	"time"
 
@@ -16,25 +16,28 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
+	providerSessionWorkTest "github.com/tidepool-org/platform/auth/providersession/work/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
 	dataTest "github.com/tidepool-org/platform/data/test"
+	dataWork "github.com/tidepool-org/platform/data/work"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
-	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/oura"
+	ouraData "github.com/tidepool-org/platform/oura/data"
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
 	ouraDataWorkHistoricTest "github.com/tidepool-org/platform/oura/data/work/historic/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -55,6 +58,16 @@ var _ = Describe("processor", func() {
 		Expect(ouraDataWorkHistoric.FailingRetryDurationJitter).To(Equal(5 * time.Second))
 	})
 
+	Context("DataTypes", func() {
+		It("returns expected data types", func() {
+			Expect(ouraDataWorkHistoric.DataTypes()).To(Equal(oura.EventDataTypes()))
+		})
+	})
+
+	It("MetadataKeyDataTypeNextTokens is expected", func() {
+		Expect(ouraDataWorkHistoric.MetadataKeyDataTypeNextTokens).To(Equal("dataTypeNextTokens"))
+	})
+
 	Context("Metadata", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraDataWorkHistoric.Metadata)) {
@@ -73,8 +86,9 @@ var _ = Describe("processor", func() {
 			),
 			Entry("all",
 				func(datum *ouraDataWorkHistoric.Metadata) {
-					datum.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
-					datum.TimeRange = timesTest.RandomTimeRange()
+					datum.ProviderSessionMetadata = *providerSessionWorkTest.RandomMetadata()
+					datum.TimeRangeMetadata = *timesTest.RandomTimeRangeMetadata()
+					datum.DataTypeNextTokens = ouraDataWorkHistoricTest.RandomDataTypeNextTokens(test.AllowOptionals())
 				},
 			),
 		)
@@ -102,11 +116,14 @@ var _ = Describe("processor", func() {
 					func(object map[string]any, expectedDatum *ouraDataWorkHistoric.Metadata) {
 						object["providerSessionId"] = true
 						object["timeRange"] = true
+						object["dataTypeNextTokens"] = true
 						expectedDatum.ProviderSessionID = nil
 						expectedDatum.TimeRange = nil
+						expectedDatum.DataTypeNextTokens = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/providerSessionId"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/timeRange"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/dataTypeNextTokens"),
 				),
 			)
 		})
@@ -121,14 +138,45 @@ var _ = Describe("processor", func() {
 				Entry("succeeds",
 					func(datum *ouraDataWorkHistoric.Metadata) {},
 				),
+				Entry("provider session id missing",
+					func(datum *ouraDataWorkHistoric.Metadata) {
+						datum.ProviderSessionID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("time range missing",
+					func(datum *ouraDataWorkHistoric.Metadata) {
+						datum.TimeRange = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/timeRange"),
+				),
+				Entry("data type next tokens missing",
+					func(datum *ouraDataWorkHistoric.Metadata) {
+						datum.DataTypeNextTokens = nil
+					},
+				),
+				Entry("data type next tokens empty",
+					func(datum *ouraDataWorkHistoric.Metadata) {
+						datum.DataTypeNextTokens = &dataWork.StringStringMap{}
+					},
+				),
+				Entry("data type next tokens invalid",
+					func(datum *ouraDataWorkHistoric.Metadata) {
+						datum.DataTypeNextTokens = &dataWork.StringStringMap{"invalid": pointer.From("")}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", ouraDataWorkHistoric.DataTypes()), "/dataTypeNextTokens/invalid/#"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataTypeNextTokens/invalid"),
+				),
 				Entry("multiple errors",
 					func(datum *ouraDataWorkHistoric.Metadata) {
-						datum.ProviderSessionID = pointer.From("")
-						datum.TimeRange = timesTest.RandomTimeRange()
-						datum.TimeRange.From = pointer.From(time.Time{})
+						datum.ProviderSessionID = nil
+						datum.TimeRange = nil
+						datum.DataTypeNextTokens = &dataWork.StringStringMap{"invalid": pointer.From("")}
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timeRange/from"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/timeRange"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", ouraDataWorkHistoric.DataTypes()), "/dataTypeNextTokens/invalid/#"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataTypeNextTokens/invalid"),
 				),
 			)
 		})
@@ -142,7 +190,7 @@ var _ = Describe("processor", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 		var mockDataRawClient *dataRawTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraDataWorkHistoric.Dependencies
+		var dependencies ouraDataWork.Dependencies
 
 		BeforeEach(func() {
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
@@ -152,7 +200,7 @@ var _ = Describe("processor", func() {
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
 			mockDataRawClient = dataRawTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraDataWorkHistoric.Dependencies{
+			dependencies = ouraDataWork.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -182,30 +230,30 @@ var _ = Describe("processor", func() {
 				var userID string
 				var providerSessionID string
 				var ouraUserID string
-				var timeRange *times.TimeRange
-				var expectedTimeRange times.TimeRange
+				var expectedTimeRange *times.TimeRange
+				var dataTypeNextTokens *dataWork.StringStringMap
 				var wrk *work.Work
 				var processor *ouraDataWorkHistoric.Processor
 				var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 				BeforeEach(func() {
-					now = time.Now()
+					now = time.Now().UTC()
 					userID = userTest.RandomUserID()
 					providerSessionID = authTest.RandomProviderSessionID()
 					ouraUserID = ouraTest.RandomUserID()
-					timeRange = timesTest.RandomTimeRange(test.AllowOptionals())
-					expectedTimeRange = ouraDataWorkHistoric.NormalizeTimeRange(timeRange, ouraDataWorkHistoric.LaunchDate, now)
-				})
-
-				JustBeforeEach(func() {
-					create, err := ouraDataWorkHistoric.NewWorkCreate(providerSessionID, *timeRange)
+					expectedTimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
+					dataTypeNextTokens = test.RandomOptionalPointerWithOptions(ouraDataWorkHistoricTest.RandomDataTypeNextTokens, test.AllowOptionals())
+					create, err := ouraDataWorkHistoric.NewWorkCreate(providerSessionID, expectedTimeRange)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(create).ToNot(BeNil())
 					wrk = workTest.NewWorkFromCreateWithState(create, work.StateProcessing)
+					if dataTypeNextTokens != nil {
+						wrk.Metadata[ouraDataWorkHistoric.MetadataKeyDataTypeNextTokens] = ouraDataWorkHistoricTest.NewObjectFromDataTypeNextTokens(dataTypeNextTokens, test.ObjectFormatJSON)
+					}
 					processor, err = ouraDataWorkHistoric.NewProcessor(dependencies)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processor).ToNot(BeNil())
-					processor.Now = func() time.Time { return now }
+					processor.NowFunc = func() time.Time { return now }
 					mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
 				})
 
@@ -220,16 +268,12 @@ var _ = Describe("processor", func() {
 						var providerSession *auth.ProviderSession
 
 						BeforeEach(func() {
-							scopesWithoutDataTypes := []string{oura.ScopeEmail, oura.ScopePersonal}
-							scope := slices.DeleteFunc(oura.Scopes(), func(s string) bool { return slices.Contains(scopesWithoutDataTypes, s) })
-							rand.Shuffle(len(scope), func(i, j int) { scope[i], scope[j] = scope[j], scope[i] })
-							scope = scope[:test.RandomIntFromRange(1, len(scope))]
 							providerSession = authTest.RandomProviderSession(test.AllowOptionals())
 							providerSession.ID = providerSessionID
 							providerSession.UserID = userID
 							providerSession.Type = oauth.ProviderType
 							providerSession.Name = oura.ProviderName
-							providerSession.OAuthToken.Scope = pointer.From(scope)
+							providerSession.OAuthToken.Scope = pointer.From(test.RandomStringArrayFromArrayWithoutDuplicates(oura.ScopesForDataTypes(ouraDataWorkHistoric.DataTypes())))
 							providerSession.ExternalID = pointer.From(ouraUserID)
 							mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), providerSessionID).Return(providerSession, nil)
 						})
@@ -260,129 +304,268 @@ var _ = Describe("processor", func() {
 
 							It("returns failed process result if data set id is missing", func() {
 								dataSrc.DataSetID = nil
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data set id is missing")))
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 							})
 
-							It("returns successfully if there are scope is missing", func() {
-								providerSession.OAuthToken.Scope = nil
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
-							})
+							Context("with data types from scope", func() {
+								var expectedDataType *string
+								var expectedToken *string
 
-							It("returns successfully if there are scope is empty", func() {
-								providerSession.OAuthToken.Scope = pointer.From([]string{})
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
-							})
+								paginate := func(inner func()) {
+									Context("it paginates through the data types", func() {
+										BeforeEach(func() {
+											if dataTypeNextTokens != nil && expectedDataType != nil {
+												if nextToken, ok := (*dataTypeNextTokens)[*expectedDataType]; ok && nextToken == nil {
+													if test.RandomBool() {
+														(*dataTypeNextTokens)[*expectedDataType] = pointer.From(ouraTest.RandomNextToken())
+													} else {
+														delete(*dataTypeNextTokens, *expectedDataType)
+													}
+													wrk.Metadata[ouraDataWorkHistoric.MetadataKeyDataTypeNextTokens] = ouraDataWorkHistoricTest.NewObjectFromDataTypeNextTokens(dataTypeNextTokens, test.ObjectFormatJSON)
+												}
+											}
 
-							It("returns failing process result if get data fails", func() {
-								testErr := errorsTest.RandomError()
-								dataType := oura.DataTypesForScopes(*providerSession.OAuthToken.Scope)[0]
-								mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), dataType, &expectedTimeRange, &oura.Pagination{}, gomock.Not(gomock.Nil())).Return(nil, testErr)
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-							})
+											for _, dataType := range ouraDataWorkHistoric.DataTypes() {
+												if !oura.DataTypeInScopes(dataType, providerSession.OAuthToken.Scope) {
+													continue
+												}
 
-							It("returns failing process result if get data response is missing", func() {
-								dataType := oura.DataTypesForScopes(*providerSession.OAuthToken.Scope)[0]
-								mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), dataType, &expectedTimeRange, &oura.Pagination{}, gomock.Not(gomock.Nil())).Return(nil, nil)
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("data response for data type %q is missing", dataType))))
-							})
+												expectedPagination := &oura.Pagination{}
+												if dataTypeNextTokens != nil {
+													if nextToken, ok := (*dataTypeNextTokens)[dataType]; ok {
+														expectedPagination.NextToken = nextToken
+														if !expectedPagination.HasNext() {
+															continue
+														}
+													}
+												}
 
-							It("correctly paginates through data and then errors", func() {
-								testErr := errorsTest.RandomError()
-								dataType := oura.DataTypesForScopes(*providerSession.OAuthToken.Scope)[0]
-								var token *string
-								for range test.RandomIntFromRange(3, 10) {
-									nextToken := pointer.From(ouraTest.RandomNextToken())
-									mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), dataType, &expectedTimeRange, &oura.Pagination{NextToken: token}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: ouraTest.RandomData(), Pagination: oura.Pagination{NextToken: nextToken}}, nil)
-									token = nextToken
-								}
-								mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), dataType, &expectedTimeRange, &oura.Pagination{NextToken: token}, gomock.Not(gomock.Nil())).Return(nil, testErr)
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-							})
+												nextTokens := test.RandomArrayWithLength(test.RandomIntFromRange(0, 2), func() *string { return pointer.From(ouraTest.RandomNextToken()) })
+												if expectedDataType != nil && *expectedDataType == dataType {
+													nextTokens = append(nextTokens, expectedToken)
+												} else {
+													nextTokens = append(nextTokens, nil)
+												}
 
-							Context("with data", func() {
-								BeforeEach(func() {
-									for _, dataType := range oura.DataTypesForScopes(*providerSession.OAuthToken.Scope) {
-										mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), dataType, &expectedTimeRange, &oura.Pagination{}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: ouraTest.RandomData()}, nil)
-									}
-								})
+												for _, nextToken := range nextTokens {
+													expectedData := ouraTest.RandomData()
 
-								It("returns failing process result if create data raw fails", func() {
-									testErr := errorsTest.RandomError()
-									mockDataRawClient.EXPECT().
-										Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-										DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
-											Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
-												"Metadata": Equal(map[string]any{
-													"scope": test.AsAnyArray(*providerSession.OAuthToken.Scope),
-													"timeRange": map[string]any{
-														"from": expectedTimeRange.From.Format(time.RFC3339Nano),
-														"to":   expectedTimeRange.To.Format(time.RFC3339Nano),
-													},
-												}),
-												"DigestMD5":      BeNil(),
-												"DigestSHA256":   BeNil(),
-												"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
-												"ArchivableTime": PointTo(BeTemporally("~", now)),
-											})))
-											bites, err := io.ReadAll(reader)
-											Expect(err).ToNot(HaveOccurred())
-											Expect(bites).ToNot(BeEmpty())
-											return nil, testErr
+													dataResult := &oura.DataResponse{
+														Data:       expectedData,
+														Pagination: oura.Pagination{NextToken: nextToken},
+													}
+													mockOuraClient.EXPECT().
+														GetData(gomock.Not(gomock.Nil()), dataType, expectedTimeRange, expectedPagination, gomock.Not(gomock.Nil())).
+														DoAndReturn(func(_ context.Context, _ string, _ *times.TimeRange, _ *oura.Pagination, _ oauth.TokenSource) (*oura.DataResponse, error) {
+															return dataResult, nil
+														})
+
+													dataRawResult := test.Must(metadata.WithMetadata(
+														dataRawTest.RandomRaw(test.AllowOptionals()),
+														&ouraData.Metadata{
+															DataType: dataType,
+															TimeRangeMetadata: times.TimeRangeMetadata{
+																TimeRange: expectedTimeRange,
+															},
+														},
+													))
+													mockDataRawClient.EXPECT().
+														Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+														DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
+															Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
+																"Metadata": Equal(map[string]any{
+																	"dataType":  dataType,
+																	"timeRange": timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+																}),
+																"DigestMD5":      BeNil(),
+																"DigestSHA256":   BeNil(),
+																"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
+																"ArchivableTime": PointTo(Equal(now)),
+															})))
+															bites, err := io.ReadAll(reader)
+															Expect(err).ToNot(HaveOccurred())
+															Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{dataType: expectedData}))))
+															return dataRawResult, nil
+														})
+
+													mockDataSourceClient.EXPECT().
+														Update(gomock.Not(gomock.Nil()), dataSourceID, nil, gomock.Not(gomock.Nil())).
+														DoAndReturn(func(_ context.Context, _ string, _ *request.Condition, dataSrcUpdate *dataSource.Update) (*dataSource.Source, error) {
+															Expect(dataSrcUpdate).To(PointTo(MatchFields(IgnoreExtras, Fields{
+																"LastImportTime": PointTo(Equal(dataRawResult.CreatedTime)),
+																"Metadata":       PointTo(Equal(dataSrc.Metadata)),
+															})))
+															dataSrcUpdated := dataSourceTest.CloneSource(dataSrc)
+															dataSrcUpdated.LastImportTime = dataSrcUpdate.LastImportTime
+															if dataSrcUpdate.Metadata != nil {
+																dataSrcUpdated.Metadata = *dataSrcUpdate.Metadata
+															}
+															return dataSrcUpdated, nil
+														})
+
+													expectedPagination = &dataResult.Pagination
+
+													if dataTypeNextTokens == nil {
+														dataTypeNextTokens = &dataWork.StringStringMap{}
+													}
+													(*dataTypeNextTokens)[dataType] = nextToken
+													expectedProcessingUpdate := work.ProcessingUpdate{
+														Metadata: map[string]any{
+															"providerSessionId":  providerSessionID,
+															"timeRange":          timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+															"dataTypeNextTokens": ouraDataWorkHistoricTest.NewObjectFromDataTypeNextTokens(dataTypeNextTokens, test.ObjectFormatJSON),
+														},
+													}
+													mockProcessingUpdater.EXPECT().ProcessingUpdate(gomock.Not(gomock.Nil()), expectedProcessingUpdate).Return(wrk, nil)
+												}
+
+												if expectedDataType != nil && *expectedDataType == dataType {
+													break
+												}
+											}
 										})
-									Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-								})
 
-								Context("with successful create data raw", func() {
-									var createdDataRaw *dataRaw.Raw
-									var expectedDataSourceUpdate *dataSource.Update
+										inner()
+									})
+								}
+
+								Context("it errors as expected after paging through the data types", func() {
+									var expectedData oura.Data
 
 									BeforeEach(func() {
-										createdDataRaw = test.Must(metadata.WithMetadata(
-											dataRawTest.RandomRaw(test.AllowOptionals()),
-											&ouraDataWork.Metadata{
-												Scope: providerSession.OAuthToken.Scope,
-												TimeRangeMetadata: times.TimeRangeMetadata{
-													TimeRange: pointer.From(expectedTimeRange),
+										dataTypes := slices.DeleteFunc(ouraDataWorkHistoric.DataTypes(), func(dataType string) bool {
+											return !oura.DataTypeInScopes(dataType, providerSession.OAuthToken.Scope)
+										})
+										expectedDataType = pointer.From(test.RandomStringFromArray(dataTypes))
+										expectedToken = pointer.From(ouraTest.RandomNextToken())
+										expectedData = ouraTest.RandomData()
+									})
+
+									paginate(func() {
+										It("returns failing process result if get data fails", func() {
+											testErr := errorsTest.RandomError()
+											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(nil, testErr)
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+										})
+
+										It("returns failing process result if get data response is missing", func() {
+											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(nil, nil)
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(fmt.Sprintf("data response for data type %q is missing", *expectedDataType))))
+										})
+
+										It("returns failing process result if create data raw fails", func() {
+											testErr := errorsTest.RandomError()
+											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
+											mockDataRawClient.EXPECT().
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
+													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
+														"Metadata": Equal(map[string]any{
+															"dataType":  *expectedDataType,
+															"timeRange": timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+														}),
+														"DigestMD5":      BeNil(),
+														"DigestSHA256":   BeNil(),
+														"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
+														"ArchivableTime": PointTo(Equal(now)),
+													})))
+													bites, err := io.ReadAll(reader)
+													Expect(err).ToNot(HaveOccurred())
+													Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{*expectedDataType: expectedData}))))
+													return nil, testErr
+												})
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+										})
+
+										It("returns failing process result if update data source fails", func() {
+											testErr := errorsTest.RandomError()
+											dataRw := test.Must(metadata.WithMetadata(
+												dataRawTest.RandomRaw(test.AllowOptionals()),
+												&ouraData.Metadata{
+													DataType: *expectedDataType,
+													TimeRangeMetadata: times.TimeRangeMetadata{
+														TimeRange: expectedTimeRange,
+													},
 												},
-											},
-										))
-										expectedDataSourceUpdate = &dataSource.Update{
-											Metadata:       metadataTest.PointerFromMetadataMap(dataSrc.Metadata),
-											LastImportTime: pointer.From(createdDataRaw.CreatedTime),
-										}
-										mockDataRawClient.EXPECT().
-											Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-											DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
-												Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
-													"Metadata": Equal(map[string]any{
-														"scope": test.AsAnyArray(*providerSession.OAuthToken.Scope),
-														"timeRange": map[string]any{
-															"from": expectedTimeRange.From.Format(time.RFC3339Nano),
-															"to":   expectedTimeRange.To.Format(time.RFC3339Nano),
-														},
-													}),
-													"DigestMD5":      BeNil(),
-													"DigestSHA256":   BeNil(),
-													"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
-													"ArchivableTime": PointTo(BeTemporally("~", now)),
-												})))
-												bites, err := io.ReadAll(reader)
-												Expect(err).ToNot(HaveOccurred())
-												Expect(bites).ToNot(BeEmpty())
-												return createdDataRaw, nil
-											})
+											))
+											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
+											mockDataRawClient.EXPECT().
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
+													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
+														"Metadata": Equal(map[string]any{
+															"dataType":  *expectedDataType,
+															"timeRange": timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+														}),
+														"DigestMD5":      BeNil(),
+														"DigestSHA256":   BeNil(),
+														"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
+														"ArchivableTime": PointTo(Equal(now)),
+													})))
+													bites, err := io.ReadAll(reader)
+													Expect(err).ToNot(HaveOccurred())
+													Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{*expectedDataType: expectedData}))))
+													return dataRw, nil
+												})
+											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, &dataSource.Update{LastImportTime: pointer.From(dataRw.CreatedTime), Metadata: &dataSrc.Metadata}).Return(nil, testErr)
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+										})
+
+										It("returns failing process result if processing update fails", func() {
+											testErr := errorsTest.RandomError()
+											dataRw := test.Must(metadata.WithMetadata(
+												dataRawTest.RandomRaw(test.AllowOptionals()),
+												&ouraData.Metadata{
+													DataType: *expectedDataType,
+													TimeRangeMetadata: times.TimeRangeMetadata{
+														TimeRange: expectedTimeRange,
+													},
+												},
+											))
+											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
+											mockDataRawClient.EXPECT().
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
+													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
+														"Metadata": Equal(map[string]any{
+															"dataType":  *expectedDataType,
+															"timeRange": timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+														}),
+														"DigestMD5":      BeNil(),
+														"DigestSHA256":   BeNil(),
+														"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
+														"ArchivableTime": PointTo(Equal(now)),
+													})))
+													bites, err := io.ReadAll(reader)
+													Expect(err).ToNot(HaveOccurred())
+													Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{*expectedDataType: expectedData}))))
+													return dataRw, nil
+												})
+											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, &dataSource.Update{LastImportTime: pointer.From(dataRw.CreatedTime), Metadata: &dataSrc.Metadata}).Return(dataSrc, nil)
+											(*dataTypeNextTokens)[*expectedDataType] = nil
+											expectedProcessingUpdate := work.ProcessingUpdate{
+												Metadata: map[string]any{
+													"providerSessionId":  providerSessionID,
+													"timeRange":          timesTest.NewObjectFromTimeRange(expectedTimeRange, test.ObjectFormatJSON),
+													"dataTypeNextTokens": ouraDataWorkHistoricTest.NewObjectFromDataTypeNextTokens(dataTypeNextTokens, test.ObjectFormatJSON),
+												},
+											}
+											mockProcessingUpdater.EXPECT().ProcessingUpdate(gomock.Not(gomock.Nil()), expectedProcessingUpdate).Return(nil, testErr)
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+										})
+									})
+								})
+
+								Context("it completes successfully after paging through the data types", func() {
+									BeforeEach(func() {
+										expectedDataType = nil
+										expectedToken = nil
 									})
 
-									It("returns failing process result if update data source fails", func() {
-										testErr := errorsTest.RandomError()
-										mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(nil, testErr)
-										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-									})
-
-									It("returns delete process result if successful", func() {
-										updatedDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
-										mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
-										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+									paginate(func() {
+										It("returns delete process result if successful", func() {
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+										})
 									})
 								})
 							})
@@ -391,52 +574,5 @@ var _ = Describe("processor", func() {
 				})
 			})
 		})
-	})
-
-	Context("NormalizeTimeRange", func() {
-		now := time.Now()
-		nowNormalized := time.Now().UTC().Truncate(24 * time.Hour)
-		location := time.FixedZone("Test", -5*60*60) // UTC-5
-
-		DescribeTable("normalizes the time range as expected",
-			func(timeRange *times.TimeRange, expectedTimeRange times.TimeRange) {
-				Expect(ouraDataWorkHistoric.NormalizeTimeRange(timeRange, ouraDataWorkHistoric.LaunchDate, now)).To(Equal(expectedTimeRange))
-			},
-			Entry("with nil input",
-				nil,
-				times.TimeRange{
-					From: pointer.From(ouraDataWorkHistoric.LaunchDate),
-					To:   pointer.From(nowNormalized),
-				},
-			),
-			Entry("with from only",
-				&times.TimeRange{
-					From: pointer.From(time.Date(2020, 1, 1, 19, 34, 56, 789000000, location)),
-				},
-				times.TimeRange{
-					From: pointer.From(time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)),
-					To:   pointer.From(nowNormalized),
-				},
-			),
-			Entry("with to only",
-				&times.TimeRange{
-					To: pointer.From(time.Date(2020, 1, 1, 19, 34, 56, 789000000, location)),
-				},
-				times.TimeRange{
-					From: pointer.From(ouraDataWorkHistoric.LaunchDate),
-					To:   pointer.From(time.Date(2020, 1, 2, 0, 0, 0, 0, time.UTC)),
-				},
-			),
-			Entry("with from and to",
-				&times.TimeRange{
-					From: pointer.From(time.Date(2016, 5, 10, 12, 34, 56, 789000000, location)),
-					To:   pointer.From(time.Date(2019, 8, 20, 23, 45, 1, 123000000, location)),
-				},
-				times.TimeRange{
-					From: pointer.From(time.Date(2016, 5, 10, 0, 0, 0, 0, time.UTC)),
-					To:   pointer.From(time.Date(2019, 8, 21, 0, 0, 0, 0, time.UTC)),
-				},
-			),
-		)
 	})
 })

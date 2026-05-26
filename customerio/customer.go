@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
 )
@@ -56,6 +57,10 @@ type entityRequest struct {
 }
 
 func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Customer, error) {
+	if !c.enabled() {
+		return nil, errors.New("client is not enabled")
+	}
+
 	ctx = log.NewContextWithLogger(ctx, c.logger)
 	url := c.appClient.ConstructURL("v1", "customers", cid, "attributes")
 
@@ -81,6 +86,10 @@ func (c *Client) GetCustomer(ctx context.Context, cid string, typ IDType) (*Cust
 }
 
 func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*FindCustomersResponse, error) {
+	if !c.enabled() {
+		return nil, errors.New("client is not enabled")
+	}
+
 	ctx = log.NewContextWithLogger(ctx, c.logger)
 	url := c.appClient.ConstructURL("v1", "customers")
 
@@ -99,6 +108,10 @@ func (c *Client) FindCustomers(ctx context.Context, filter map[string]any) (*Fin
 }
 
 func (c *Client) UpdateCustomer(ctx context.Context, customer Customer) error {
+	if !c.enabled() {
+		return errors.New("client is not enabled")
+	}
+
 	ctx = log.NewContextWithLogger(ctx, c.logger)
 	url := c.trackClient.ConstructURL("api", "v2", "entity")
 

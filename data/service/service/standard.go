@@ -2,9 +2,10 @@ package service
 
 import (
 	"context"
-	"log"
+	stdLog "log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
@@ -25,7 +26,7 @@ import (
 	dataEvents "github.com/tidepool-org/platform/data/events"
 	dataRawService "github.com/tidepool-org/platform/data/raw/service"
 	dataRawStoreStructuredMongo "github.com/tidepool-org/platform/data/raw/store/structured/mongo"
-	"github.com/tidepool-org/platform/data/service/api"
+	dataServiceApi "github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
@@ -33,27 +34,37 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/mailer"
 	metricClient "github.com/tidepool-org/platform/metric/client"
-	notificationsWorkProcessors "github.com/tidepool-org/platform/notifications/work/processors"
+	notificationsWorkClaims "github.com/tidepool-org/platform/notifications/work/claims"
+	notificationsWorkConnectionsIssues "github.com/tidepool-org/platform/notifications/work/connections/issues"
+	notificationsWorkConnectionsRequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/oura"
 	ouraClient "github.com/tidepool-org/platform/oura/client"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
+	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
+	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
+	ouraDataWorkPeriodic "github.com/tidepool-org/platform/oura/data/work/periodic"
+	ouraDataWorkPersonal "github.com/tidepool-org/platform/oura/data/work/personal"
 	ouraProvider "github.com/tidepool-org/platform/oura/provider"
-	ouraWorkProcessors "github.com/tidepool-org/platform/oura/work/processors"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
+	ouraWebhookWorkSubscribe "github.com/tidepool-org/platform/oura/webhook/work/subscribe"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
-	"github.com/tidepool-org/platform/service/server"
-	"github.com/tidepool-org/platform/service/service"
+	serviceServer "github.com/tidepool-org/platform/service/server"
+	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
 	summaryClient "github.com/tidepool-org/platform/summary/client"
-	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
+	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
@@ -68,13 +79,13 @@ func (c *confirmationClientConfig) Load() error {
 }
 
 type Standard struct {
-	*service.DEPRECATEDService
+	*serviceService.DEPRECATEDService
 	metricClient                   *metricClient.Client
 	permissionClient               *permissionClient.Client
 	dataStore                      *dataStoreMongo.Store
 	dataRawStructuredStore         *dataRawStoreStructuredMongo.Store
 	dataSourceStructuredStore      *dataSourceStoreStructuredMongo.Store
-	syncTaskStore                  *syncTaskMongo.Store
+	syncTaskStore                  *synctaskStoreMongo.Store
 	workStructuredStore            *workStoreStructuredMongo.Store
 	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
 	clinicsClient                  clinics.Client
@@ -91,13 +102,13 @@ type Standard struct {
 	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
-	api                            *api.Standard
-	server                         *server.Standard
+	api                            *dataServiceApi.Standard
+	server                         *serviceServer.Standard
 }
 
 func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: service.NewDEPRECATEDService(),
+		DEPRECATEDService: serviceService.NewDEPRECATEDService(),
 	}
 }
 
@@ -188,7 +199,7 @@ func (s *Standard) Terminate() {
 	s.api = nil
 	s.twiistServiceAccountAuthorizer = nil
 	if s.userEventsHandler != nil {
-		s.Logger().Info("Terminating the userEventsHandler")
+		s.Logger().Debug("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
@@ -398,7 +409,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 
 	s.Logger().Debug("Creating sync task store")
 
-	str, err := syncTaskMongo.NewStore(cfg)
+	str, err := synctaskStoreMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}
@@ -713,8 +724,68 @@ func (s *Standard) initializeWorkCoordinator() error {
 		s.workCoordinator = coordinator
 	}
 
+	s.Logger().Debug("Creating work processor factories")
+
+	if err := s.initializeWorkProcessorFactories(); err != nil {
+		return errors.Wrap(err, "unable to create work processor factories")
+	}
+
+	s.Logger().Debug("Creating work singletons")
+
+	if err := s.initializeWorkSingletons(); err != nil {
+		return errors.Wrap(err, "unable to create work singletons")
+	}
+
+	s.Logger().Debug("Starting work coordinator")
+
+	s.workCoordinator.Start()
+
+	return nil
+}
+
+func (s *Standard) initializeWorkProcessorFactories() error {
+	var processorFactories []work.ProcessorFactory
+
 	dependencies := workBase.Dependencies{
 		WorkClient: s.workClient,
+	}
+
+	s.Logger().Debug("Creating notifications claims work processor factory")
+
+	if processorFactory, err := notificationsWorkClaims.NewProcessorFactory(notificationsWorkClaims.Dependencies{
+		Dependencies:       dependencies,
+		ClinicClient:       s.clinicsClient,
+		ConfirmationClient: s.confirmationClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications claims work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating notifications connections issues work processor factory")
+
+	if processorFactory, err := notificationsWorkConnectionsIssues.NewProcessorFactory(notificationsWorkConnectionsIssues.Dependencies{
+		Dependencies: dependencies,
+		MailerClient: s.mailerClient,
+		UserClient:   s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications connections issues work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating notifications connections requests work processor factory")
+
+	if processorFactory, err := notificationsWorkConnectionsRequests.NewProcessorFactory(notificationsWorkConnectionsRequests.Dependencies{
+		Dependencies:     dependencies,
+		ClinicClient:     s.clinicsClient,
+		DataSourceClient: s.dataSourceClient,
+		MailerClient:     s.mailerClient,
+		UserClient:       s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications connections requests work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
 	}
 
 	if s.abbottClient != nil {
@@ -730,72 +801,129 @@ func (s *Standard) initializeWorkCoordinator() error {
 			DataRawClient:           s.dataRawClient,
 			AbbottClient:            s.abbottClient,
 		}
-		abbottProcessorFactories, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies)
-		if err != nil {
+		if abbottProcessorFactories, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies); err != nil {
 			return errors.Wrap(err, "unable to create abbott processor factories")
-		}
-
-		s.Logger().Debug("Registering abbott processor factories")
-
-		if err = s.workCoordinator.RegisterProcessorFactories(abbottProcessorFactories); err != nil {
-			return errors.Wrap(err, "unable to register abbott processor factories")
+		} else {
+			processorFactories = append(processorFactories, abbottProcessorFactories...)
 		}
 	}
 
 	if s.ouraClient != nil {
-		s.Logger().Debug("Creating oura processor factories")
+		s.Logger().Debug("Creating oura data event work processor factory")
 
-		ouraDependencies := ouraWorkProcessors.Dependencies{
+		if processorFactory, err := ouraDataWorkEvent.NewProcessorFactory(ouraDataWork.Dependencies{
 			Dependencies:          dependencies,
 			ProviderSessionClient: s.AuthClient(),
 			DataSourceClient:      s.dataSourceClient,
 			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data event work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data historic work processor factory")
+
+		if processorFactory, err := ouraDataWorkHistoric.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data historic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data periodic work processor factory")
+
+		if processorFactory, err := ouraDataWorkPeriodic.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data periodic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data personal work processor factory")
+
+		if processorFactory, err := ouraDataWorkPersonal.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data personal work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura webhook work processor factory")
+
+		if processorFactory, err := ouraWebhookWorkSubscribe.NewProcessorFactory(ouraWebhookWorkSubscribe.Dependencies{
+			Dependencies: dependencies,
+			OuraClient:   s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura user revoke work processor factory")
+
+		if processorFactory, err := ouraUserWorkRevoke.NewProcessorFactory(ouraUserWorkRevoke.Dependencies{
+			Dependencies: dependencies,
+			OuraClient:   s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura user revoke work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura user setup work processor factory")
+
+		if processorFactory, err := ouraUserWorkSetup.NewProcessorFactory(ouraUserWorkSetup.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
 			DataSetClient:         s.dataClient,
 			OuraClient:            s.ouraClient,
-		}
-		ouraProcessorFactories, err := ouraWorkProcessors.NewProcessorFactories(ouraDependencies)
-		if err != nil {
-			return errors.Wrap(err, "unable to create oura processor factories")
-		}
-
-		s.Logger().Debug("Registering oura processor factories")
-
-		if err = s.workCoordinator.RegisterProcessorFactories(ouraProcessorFactories); err != nil {
-			return errors.Wrap(err, "unable to register oura processor factories")
-		}
-
-		s.Logger().Debug("Ensuring oura work")
-
-		ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
-		if err := ouraWorkProcessors.EnsureWork(ctx, ouraDependencies.WorkClient); err != nil {
-			return errors.Wrap(err, "unable to ensure oura work")
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura user setup work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
 		}
 	}
 
-	s.Logger().Debug("Creating notifications processor factories")
+	s.Logger().Debug("Registering work processor factories")
 
-	notificationsDependencies := notificationsWorkProcessors.Dependencies{
-		Dependencies:       dependencies,
-		ClinicClient:       s.clinicsClient,
-		ConfirmationClient: s.confirmationClient,
-		DataSourceClient:   s.dataSourceClient,
-		MailerClient:       s.mailerClient,
-		UserClient:         s.userClient,
-	}
-	notificationsProcessorFactories, err := notificationsWorkProcessors.NewProcessorFactories(notificationsDependencies)
-	if err != nil {
-		return errors.Wrap(err, "unable to create notifications processor factories")
+	if err := s.workCoordinator.RegisterProcessorFactories(processorFactories); err != nil {
+		return errors.Wrap(err, "unable to register work processor factories")
 	}
 
-	s.Logger().Debug("Registering notifications processor factories")
+	return nil
+}
 
-	if err := s.workCoordinator.RegisterProcessorFactories(notificationsProcessorFactories); err != nil {
-		return errors.Wrap(err, "unable to register notifications processor factories")
+func (s *Standard) initializeWorkSingletons() error {
+	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
+	defer cancel()
+
+	if s.ouraClient != nil {
+		s.Logger().Debug("Creating oura webhook subscribe work")
+
+		if workCreate, err := ouraWebhookWorkSubscribe.NewWorkCreate(); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work create")
+		} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work")
+		}
 	}
-
-	s.Logger().Debug("Starting work coordinator")
-
-	s.workCoordinator.Start()
 
 	return nil
 }
@@ -803,9 +931,9 @@ func (s *Standard) initializeWorkCoordinator() error {
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
 
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+	sarama.Logger = stdLog.New(os.Stdout, "SARAMA ", stdLog.LstdFlags|stdLog.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -832,7 +960,7 @@ func (s *Standard) initializeTwiistServiceAccountAuthorizer() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
+	newAPI, err := dataServiceApi.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
 		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient,
@@ -860,14 +988,14 @@ func (s *Standard) initializeAPI() error {
 func (s *Standard) initializeServer() error {
 	s.Logger().Debug("Loading server config")
 
-	serverConfig := server.NewConfig()
+	serverConfig := serviceServer.NewConfig()
 	if err := serverConfig.Load(s.ConfigReporter().WithScopes("server")); err != nil {
 		return errors.Wrap(err, "unable to load server config")
 	}
 
 	s.Logger().Debug("Creating server")
 
-	newServer, err := server.NewStandard(serverConfig, s.Logger(), s.api)
+	newServer, err := serviceServer.NewStandard(serverConfig, s.Logger(), s.api)
 	if err != nil {
 		return errors.Wrap(err, "unable to create server")
 	}

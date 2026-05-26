@@ -2,6 +2,7 @@ package event_test
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"slices"
 	"time"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/tidepool-org/platform/auth"
 	providerSessionTest "github.com/tidepool-org/platform/auth/providersession/test"
+	providerSessionWorkTest "github.com/tidepool-org/platform/auth/providersession/work/test"
 	authTest "github.com/tidepool-org/platform/auth/test"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	dataRawTest "github.com/tidepool-org/platform/data/raw/test"
@@ -28,12 +30,11 @@ import (
 	"github.com/tidepool-org/platform/net"
 	"github.com/tidepool-org/platform/oauth"
 	"github.com/tidepool-org/platform/oura"
+	ouraData "github.com/tidepool-org/platform/oura/data"
 	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
 	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
 	ouraDataWorkEventTest "github.com/tidepool-org/platform/oura/data/work/event/test"
 	ouraTest "github.com/tidepool-org/platform/oura/test"
-	ouraWebhook "github.com/tidepool-org/platform/oura/webhook"
-	ouraWebhookTest "github.com/tidepool-org/platform/oura/webhook/test"
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -71,8 +72,8 @@ var _ = Describe("processor", func() {
 			),
 			Entry("all",
 				func(datum *ouraDataWorkEvent.Metadata) {
-					datum.ProviderSessionID = pointer.From(authTest.RandomProviderSessionID())
-					datum.Event = ouraWebhookTest.RandomEvent()
+					datum.ProviderSessionMetadata = *providerSessionWorkTest.RandomMetadata()
+					datum.EventMetadata = *ouraTest.RandomEventMetadata()
 				},
 			),
 		)
@@ -119,10 +120,22 @@ var _ = Describe("processor", func() {
 				Entry("succeeds",
 					func(datum *ouraDataWorkEvent.Metadata) {},
 				),
+				Entry("provider session id missing",
+					func(datum *ouraDataWorkEvent.Metadata) {
+						datum.ProviderSessionID = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/providerSessionId"),
+				),
+				Entry("event missing",
+					func(datum *ouraDataWorkEvent.Metadata) {
+						datum.Event = nil
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/event"),
+				),
 				Entry("multiple errors",
 					func(datum *ouraDataWorkEvent.Metadata) {
 						datum.ProviderSessionID = pointer.From("")
-						datum.Event = ouraWebhookTest.RandomEvent()
+						datum.Event = ouraTest.RandomEvent()
 						datum.Event.EventTime = pointer.From(time.Time{})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerSessionId"),
@@ -140,7 +153,7 @@ var _ = Describe("processor", func() {
 		var mockDataSourceClient *dataSourceTest.MockClient
 		var mockDataRawClient *dataRawTest.MockClient
 		var mockOuraClient *ouraTest.MockClient
-		var dependencies ouraDataWorkEvent.Dependencies
+		var dependencies ouraDataWork.Dependencies
 
 		BeforeEach(func() {
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
@@ -150,7 +163,7 @@ var _ = Describe("processor", func() {
 			mockDataSourceClient = dataSourceTest.NewMockClient(mockController)
 			mockDataRawClient = dataRawTest.NewMockClient(mockController)
 			mockOuraClient = ouraTest.NewMockClient(mockController)
-			dependencies = ouraDataWorkEvent.Dependencies{
+			dependencies = ouraDataWork.Dependencies{
 				Dependencies: workBase.Dependencies{
 					WorkClient: mockWorkClient,
 				},
@@ -180,17 +193,17 @@ var _ = Describe("processor", func() {
 				var userID string
 				var providerSessionID string
 				var ouraUserID string
-				var event *ouraWebhook.Event
+				var event *oura.Event
 				var wrk *work.Work
 				var processor *ouraDataWorkEvent.Processor
 				var mockProcessingUpdater *workTest.MockProcessingUpdater
 
 				BeforeEach(func() {
-					now = time.Now()
+					now = time.Now().UTC()
 					userID = userTest.RandomUserID()
 					providerSessionID = authTest.RandomProviderSessionID()
 					ouraUserID = ouraTest.RandomUserID()
-					event = ouraWebhookTest.RandomEvent(test.AllowOptionals())
+					event = ouraTest.RandomEvent(test.AllowOptionals())
 					event.UserID = pointer.From(ouraUserID)
 				})
 
@@ -202,7 +215,7 @@ var _ = Describe("processor", func() {
 					processor, err = ouraDataWorkEvent.NewProcessor(dependencies)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(processor).ToNot(BeNil())
-					processor.Now = func() time.Time { return now }
+					processor.NowFunc = func() time.Time { return now }
 					mockProcessingUpdater = workTest.NewMockProcessingUpdater(mockController)
 				})
 
@@ -222,8 +235,8 @@ var _ = Describe("processor", func() {
 							providerSession.UserID = userID
 							providerSession.Type = oauth.ProviderType
 							providerSession.Name = oura.ProviderName
-							providerSession.OAuthToken.Scope = pointer.From(slices.DeleteFunc(oura.Scopes(), func(s string) bool {
-								return !slices.Contains(oura.DataTypesForScope(s), *event.DataType) && test.RandomBool()
+							providerSession.OAuthToken.Scope = pointer.From(slices.DeleteFunc(oura.Scopes(), func(scope string) bool {
+								return !oura.DataTypeInScope(*event.DataType, scope) && test.RandomBool()
 							}))
 							providerSession.ExternalID = pointer.From(ouraUserID)
 							mockProviderSessionClient.EXPECT().GetProviderSession(gomock.Not(gomock.Nil()), providerSessionID).Return(providerSession, nil)
@@ -255,141 +268,164 @@ var _ = Describe("processor", func() {
 
 							It("returns failing process result if data source data set id is missing", func() {
 								dataSrc.DataSetID = nil
-								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data set id is missing")))
+								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 							})
 
 							It("returns successfully if event data type is not in scope", func() {
-								providerSession.OAuthToken.Scope = pointer.From(slices.DeleteFunc(oura.Scopes(), func(s string) bool {
-									return slices.Contains(oura.DataTypesForScope(s), *event.DataType)
+								providerSession.OAuthToken.Scope = pointer.From(slices.DeleteFunc(oura.Scopes(), func(scope string) bool {
+									return oura.DataTypeInScope(*event.DataType, scope)
 								}))
 								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
 							})
 
-							withCreateDataRaw := func() {
-								Context("with create data raw", func() {
-									It("returns failing process result if create data raw fails", func() {
-										testErr := errorsTest.RandomError()
-										mockDataRawClient.EXPECT().
-											Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
-											DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
-												Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
-													"Metadata": Equal(map[string]any{
-														"scope": test.AsAnyArray(*providerSession.OAuthToken.Scope),
-														"event": ouraWebhookTest.NewObjectFromEvent(event, test.ObjectFormatJSON),
-													}),
-													"DigestMD5":      BeNil(),
-													"DigestSHA256":   BeNil(),
-													"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
-													"ArchivableTime": PointTo(BeTemporally("~", now)),
-												})))
-												bites, err := io.ReadAll(reader)
-												Expect(err).ToNot(HaveOccurred())
-												Expect(bites).ToNot(BeEmpty())
-												return nil, testErr
-											})
-										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-									})
+							Context("with expected datum", func() {
+								var expectedDatum oura.Datum
+								var expectedData oura.Data
 
-									Context("with successful create data raw", func() {
-										var createdDataRaw *dataRaw.Raw
-										var expectedDataSourceUpdate *dataSource.Update
+								BeforeEach(func() {
+									expectedDatum = ouraTest.RandomDatum(test.AllowOptionals())
+								})
 
-										BeforeEach(func() {
-											var err error
-											createdDataRaw, err = metadata.WithMetadata(
-												dataRawTest.RandomRaw(test.AllowOptionals()),
-												&ouraDataWork.Metadata{
-													Scope: providerSession.OAuthToken.Scope,
-													EventMetadata: ouraDataWorkEvent.EventMetadata{
-														Event: event,
-													},
-												},
-											)
-											Expect(err).ToNot(HaveOccurred())
-											Expect(createdDataRaw).ToNot(BeNil())
-											expectedDataSourceUpdate = &dataSource.Update{
-												Metadata:       metadataTest.PointerFromMetadataMap(dataSrc.Metadata),
-												LastImportTime: pointer.From(createdDataRaw.CreatedTime),
-											}
+								withCreateDataRaw := func() {
+									Context("with create data raw", func() {
+										It("returns failing process result if create data raw fails", func() {
+											testErr := errorsTest.RandomError()
 											mockDataRawClient.EXPECT().
 												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
 													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
 														"Metadata": Equal(map[string]any{
-															"scope": test.AsAnyArray(*providerSession.OAuthToken.Scope),
-															"event": ouraWebhookTest.NewObjectFromEvent(event, test.ObjectFormatJSON),
+															"dataType": *event.DataType,
+															"event":    ouraTest.NewObjectFromEvent(event, test.ObjectFormatJSON),
 														}),
 														"DigestMD5":      BeNil(),
 														"DigestSHA256":   BeNil(),
 														"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
-														"ArchivableTime": PointTo(BeTemporally("~", now)),
+														"ArchivableTime": PointTo(Equal(now)),
 													})))
 													bites, err := io.ReadAll(reader)
 													Expect(err).ToNot(HaveOccurred())
-													Expect(bites).ToNot(BeEmpty())
-													return createdDataRaw, nil
+													Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{*event.DataType: expectedData}))))
+													return nil, testErr
 												})
-										})
-
-										It("returns failing process result if update data source fails", func() {
-											testErr := errorsTest.RandomError()
-											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(nil, testErr)
 											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 										})
 
-										It("returns delete process result if successful", func() {
-											updatedDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
-											mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
-											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+										Context("with successful create data raw", func() {
+											var createdDataRaw *dataRaw.Raw
+											var expectedDataSourceUpdate *dataSource.Update
+
+											BeforeEach(func() {
+												var err error
+												createdDataRaw, err = metadata.WithMetadata(
+													dataRawTest.RandomRaw(test.AllowOptionals()),
+													&ouraData.Metadata{
+														DataType: *event.DataType,
+														EventMetadata: oura.EventMetadata{
+															Event: event,
+														},
+													},
+												)
+												Expect(err).ToNot(HaveOccurred())
+												Expect(createdDataRaw).ToNot(BeNil())
+												expectedDataSourceUpdate = &dataSource.Update{
+													Metadata:       metadataTest.PointerFromMetadataMap(dataSrc.Metadata),
+													LastImportTime: pointer.From(createdDataRaw.CreatedTime),
+												}
+												mockDataRawClient.EXPECT().
+													Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+													DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
+														Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
+															"Metadata": Equal(map[string]any{
+																"dataType": *event.DataType,
+																"event":    ouraTest.NewObjectFromEvent(event, test.ObjectFormatJSON),
+															}),
+															"DigestMD5":      BeNil(),
+															"DigestSHA256":   BeNil(),
+															"MediaType":      PointTo(Equal(net.MediaTypeJSON)),
+															"ArchivableTime": PointTo(Equal(now)),
+														})))
+														bites, err := io.ReadAll(reader)
+														Expect(err).ToNot(HaveOccurred())
+														Expect(bites).To(MatchJSON(test.Must(json.Marshal(oura.DataMap{*event.DataType: expectedData}))))
+														return createdDataRaw, nil
+													})
+											})
+
+											It("returns failing process result if update data source fails", func() {
+												testErr := errorsTest.RandomError()
+												mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(nil, testErr)
+												Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
+											})
+
+											Context("with successful update data source", func() {
+												BeforeEach(func() {
+													updatedDataSource := dataSourceTest.RandomSource(test.AllowOptionals())
+													mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), dataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
+												})
+
+												It("with missing scope returns delete process result if successful", func() {
+													providerSession.OAuthToken.Scope = nil
+													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+												})
+
+												It("with empty scope returns delete process result if successful", func() {
+													providerSession.OAuthToken.Scope = pointer.From([]string{})
+													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+												})
+
+												It("with existing scope returns delete process result if successful", func() {
+													Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchDeleteProcessResult())
+												})
+											})
 										})
 									})
-								})
-							}
+								}
 
-							withGetDatum := func() {
-								Context("with get datum", func() {
-									It("returns failing process result if get datum fails", func() {
-										testErr := errorsTest.RandomError()
-										mockOuraClient.EXPECT().GetDatum(gomock.Not(gomock.Nil()), *event.DataType, *event.ObjectID, gomock.Not(gomock.Nil())).Return(nil, testErr)
-										Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
-									})
-
-									Context("with successful get datum", func() {
-										var datum map[string]any
-
-										BeforeEach(func() {
-											datum = metadataTest.RandomMetadataMap()
-											mockOuraClient.EXPECT().GetDatum(gomock.Not(gomock.Nil()), *event.DataType, *event.ObjectID, gomock.Not(gomock.Nil())).Return(datum, nil)
+								withGetDatum := func() {
+									Context("with get datum", func() {
+										It("returns failing process result if get datum fails", func() {
+											testErr := errorsTest.RandomError()
+											mockOuraClient.EXPECT().GetDatum(gomock.Not(gomock.Nil()), *event.DataType, *event.ObjectID, gomock.Not(gomock.Nil())).Return(nil, testErr)
+											Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailingProcessResultError(MatchError(testErr)))
 										})
 
-										withCreateDataRaw()
+										Context("with successful get datum", func() {
+											BeforeEach(func() {
+												mockOuraClient.EXPECT().GetDatum(gomock.Not(gomock.Nil()), *event.DataType, *event.ObjectID, gomock.Not(gomock.Nil())).Return(expectedDatum, nil)
+											})
+
+											withCreateDataRaw()
+										})
 									})
-								})
-							}
+								}
 
-							Context("with event type create", func() {
-								BeforeEach(func() {
-									event.EventType = pointer.From(oura.EventTypeCreate)
+								Context("with event type create", func() {
+									BeforeEach(func() {
+										event.EventType = pointer.From(oura.EventTypeCreate)
+										expectedData = oura.Data{expectedDatum}
+									})
 
-								})
-
-								withGetDatum()
-							})
-
-							Context("with event type update", func() {
-								BeforeEach(func() {
-									event.EventType = pointer.From(oura.EventTypeUpdate)
+									withGetDatum()
 								})
 
-								withGetDatum()
-							})
+								Context("with event type update", func() {
+									BeforeEach(func() {
+										event.EventType = pointer.From(oura.EventTypeUpdate)
+										expectedData = oura.Data{expectedDatum}
+									})
 
-							Context("with event type delete", func() {
-								BeforeEach(func() {
-									event.EventType = pointer.From(oura.EventTypeDelete)
+									withGetDatum()
 								})
 
-								withCreateDataRaw()
+								Context("with event type delete", func() {
+									BeforeEach(func() {
+										event.EventType = pointer.From(oura.EventTypeDelete)
+										expectedData = oura.Data{}
+									})
+
+									withCreateDataRaw()
+								})
 							})
 						})
 					})

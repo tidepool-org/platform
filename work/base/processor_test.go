@@ -3,6 +3,7 @@ package base_test
 import (
 	"context"
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -143,8 +144,8 @@ var _ = Describe("processor", func() {
 					wrk.Metadata["mock"] = true
 					expectedProcessResult := workTest.RandomFailedProcessResult()
 					mockProcessResultBuilder.EXPECT().
-						Failed(gomock.Any(), wrk, gomock.Any()).
-						DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+						Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+						DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 							Expect(err).To(MatchError(ContainSubstring("unable to decode metadata")))
 							return expectedProcessResult
 						})
@@ -198,8 +199,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -210,12 +211,12 @@ var _ = Describe("processor", func() {
 					It("returns failing ProcessResult when processing update fails", func() {
 						expectedErr := errorsTest.RandomError()
 						mockProcessingUpdater.EXPECT().
-							ProcessingUpdate(gomock.Any(), work.ProcessingUpdate{Metadata: wrk.Metadata}).
+							ProcessingUpdate(gomock.Not(gomock.Nil()), work.ProcessingUpdate{Metadata: wrk.Metadata}).
 							Return(nil, expectedErr)
 
 						expectedProcessResult := workTest.RandomFailingProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failing(gomock.Any(), wrk, errorsTest.Matcher(fmt.Sprintf("unable to update work; %s", expectedErr.Error()))).
+							Failing(gomock.Not(gomock.Nil()), wrk, errorsTest.Matcher(fmt.Sprintf("unable to update work; %s", expectedErr.Error())), gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.ProcessingUpdate()).To(Equal(expectedProcessResult))
@@ -223,12 +224,12 @@ var _ = Describe("processor", func() {
 
 					It("returns failed ProcessResult when processing update returns nil work", func() {
 						mockProcessingUpdater.EXPECT().
-							ProcessingUpdate(gomock.Any(), work.ProcessingUpdate{Metadata: wrk.Metadata}).
+							ProcessingUpdate(gomock.Not(gomock.Nil()), work.ProcessingUpdate{Metadata: wrk.Metadata}).
 							Return(nil, nil)
 
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, errorsTest.Matcher("work is missing")).
+							Failed(gomock.Not(gomock.Nil()), wrk, errorsTest.Matcher("work is missing"), gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.ProcessingUpdate()).To(Equal(expectedProcessResult))
@@ -239,7 +240,7 @@ var _ = Describe("processor", func() {
 						expectedWork := workTest.RandomWork()
 						expectedWork.Metadata = expectedMockMetadata.AsObject()
 						mockProcessingUpdater.EXPECT().
-							ProcessingUpdate(gomock.Any(), work.ProcessingUpdate{Metadata: wrk.Metadata}).
+							ProcessingUpdate(gomock.Not(gomock.Nil()), work.ProcessingUpdate{Metadata: wrk.Metadata}).
 							Return(expectedWork, nil)
 
 						Expect(processor.ProcessingUpdate()).To(BeNil())
@@ -258,8 +259,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -270,7 +271,7 @@ var _ = Describe("processor", func() {
 					It("calls process result builder Pending", func() {
 						expectedProcessResult := workTest.RandomPendingProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Pending(gomock.Any(), wrk).
+							Pending(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.Pending()).To(Equal(expectedProcessResult))
@@ -282,8 +283,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -295,7 +296,7 @@ var _ = Describe("processor", func() {
 						expectedErr := errorsTest.RandomError()
 						expectedProcessResult := workTest.RandomFailingProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failing(gomock.Any(), wrk, expectedErr).
+							Failing(gomock.Not(gomock.Nil()), wrk, expectedErr, gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.Failing(expectedErr)).To(Equal(expectedProcessResult))
@@ -307,8 +308,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -320,7 +321,7 @@ var _ = Describe("processor", func() {
 						expectedErr := errorsTest.RandomError()
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, expectedErr).
+							Failed(gomock.Not(gomock.Nil()), wrk, expectedErr, gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.Failed(expectedErr)).To(Equal(expectedProcessResult))
@@ -332,8 +333,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -344,7 +345,7 @@ var _ = Describe("processor", func() {
 					It("calls process result builder Success", func() {
 						expectedProcessResult := workTest.RandomSuccessProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Success(gomock.Any(), wrk).
+							Success(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.Success()).To(Equal(expectedProcessResult))
@@ -356,8 +357,8 @@ var _ = Describe("processor", func() {
 						processor.Metadata().Any = func() {}
 						expectedProcessResult := workTest.RandomFailedProcessResult()
 						mockProcessResultBuilder.EXPECT().
-							Failed(gomock.Any(), wrk, gomock.Any()).
-							DoAndReturn(func(_ context.Context, _ *work.Work, err error) *work.ProcessResult {
+							Failed(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+							DoAndReturn(func(_ context.Context, _ *work.Work, err error, _ time.Time) *work.ProcessResult {
 								Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
 								return expectedProcessResult
 							})
@@ -368,7 +369,7 @@ var _ = Describe("processor", func() {
 					It("calls process result builder Delete", func() {
 						expectedProcessResult := work.NewProcessResultDelete()
 						mockProcessResultBuilder.EXPECT().
-							Delete(gomock.Any(), wrk).
+							Delete(gomock.Not(gomock.Nil()), wrk, gomock.Not(gomock.Nil())).
 							Return(expectedProcessResult)
 
 						Expect(processor.Delete()).To(Equal(expectedProcessResult))

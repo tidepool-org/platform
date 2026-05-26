@@ -19,4 +19,11 @@ var _ = Describe("work", func() {
 			Expect(ouraWork.GroupIDFromProviderSessionID(providerSessionID)).To(Equal(ouraWork.Domain + ":" + providerSessionID))
 		})
 	})
+
+	Context("SerialIDFromProviderSessionID", func() {
+		It("returns expected", func() {
+			providerSessionID := authTest.RandomProviderSessionID()
+			Expect(ouraWork.SerialIDFromProviderSessionID(providerSessionID)).To(Equal(ouraWork.Domain + ":" + providerSessionID))
+		})
+	})
 })

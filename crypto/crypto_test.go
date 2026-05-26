@@ -13,6 +13,28 @@ import (
 )
 
 var _ = Describe("Crypto", func() {
+	Context("RandomBool", func() {
+		It("returns both true and false", func() {
+			const attemptMaximum = 1000
+			results := map[bool]bool{}
+			for attempt := 0; attempt < attemptMaximum && len(results) < 2; attempt++ {
+				results[crypto.RandomBool()] = true
+			}
+			Expect(results[true]).To(BeTrue())
+			Expect(results[false]).To(BeTrue())
+		})
+	})
+
+	Context("RandomInt64N", func() {
+		It("returns a value between 0 and the limit", func() {
+			Expect(crypto.RandomInt64N(1)).To(Equal(int64(0)))
+			Expect(crypto.RandomInt64N(2)).To(BeNumerically(">=", 0))
+			Expect(crypto.RandomInt64N(2)).To(BeNumerically("<", 2))
+			Expect(crypto.RandomInt64N(10)).To(BeNumerically(">=", 0))
+			Expect(crypto.RandomInt64N(10)).To(BeNumerically("<", 10))
+		})
+	})
+
 	Context("Base64EncodedMD5Hash", func() {
 		DescribeTable("returns the expected result when the input",
 			func(value string, expectedResult string) {

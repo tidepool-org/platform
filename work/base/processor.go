@@ -2,6 +2,8 @@ package base
 
 import (
 	"context"
+	"maps"
+	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -29,10 +31,14 @@ func NewProcessorWithoutMetadata(dependencies Dependencies, processResultBuilder
 type Processor[W any] struct {
 	processResultBuilder work.ProcessResultBuilder
 	workClient           work.Client
-	context              context.Context
+	context              context.Context //nolint:containedctx // Temporarily store context while processing
+	contextFields        log.Fields
 	work                 *work.Work
 	processingUpdater    work.ProcessingUpdater
 	metadata             *W
+
+	// Testing
+	NowFunc func() time.Time
 }
 
 func NewProcessor[W any](dependencies Dependencies, processResultBuilder work.ProcessResultBuilder) (*Processor[W], error) {
@@ -78,25 +84,31 @@ func (p *Processor[W]) WorkClient() work.Client {
 }
 
 func (p *Processor[W]) Context() context.Context {
+	if len(p.contextFields) > 0 {
+		return log.ContextWithFields(p.context, p.contextFields)
+	}
 	return p.context
 }
 
 func (p *Processor[W]) AddFieldToContext(key string, value any) {
-	p.context = log.ContextWithField(p.context, key, value)
+	p.AddFieldsToContext(log.Fields{key: value})
 }
 
 func (p *Processor[W]) AddFieldsToContext(fields log.Fields) {
-	p.context = log.ContextWithFields(p.context, fields)
+	if p.contextFields == nil {
+		p.contextFields = log.Fields{}
+	}
+	maps.Copy(p.contextFields, fields)
 }
 
 func (p *Processor[W]) ProcessingUpdate() *work.ProcessResult {
-	log.LoggerFromContext(p.context).Debug("update work")
+	log.LoggerFromContext(p.Context()).Debug("update work")
 
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
 
-	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.context), work.ProcessingUpdate{Metadata: p.work.Metadata})
+	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.Context()), work.ProcessingUpdate{Metadata: p.work.Metadata})
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to update work"))
 	} else if wrk == nil {
@@ -117,40 +129,40 @@ func (p *Processor[W]) Pending() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Pending(p.context, p.work)
+	return p.processResultBuilder.Pending(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) Failing(err error) *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Failing(p.context, p.work, err)
+	return p.processResultBuilder.Failing(p.Context(), p.work, err, p.Now())
 }
 
 func (p *Processor[W]) Failed(err error) *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Failed(p.context, p.work, err)
+	return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now())
 }
 
 func (p *Processor[W]) Success() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Success(p.context, p.work)
+	return p.processResultBuilder.Success(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) Delete() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
-	return p.processResultBuilder.Delete(p.context, p.work)
+	return p.processResultBuilder.Delete(p.Context(), p.work, p.Now())
 }
 
 func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
-	if workMetadata, err := metadata.Decode[W](p.context, p.work.Metadata); err != nil {
-		return p.processResultBuilder.Failed(p.context, p.work, err) // Do not encode metadata if decoding fails (otherwise we potentially corrupt metadata)
+	if workMetadata, err := metadata.Decode[W](p.Context(), p.work.Metadata); err != nil {
+		return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now()) // Do not encode metadata if decoding fails (otherwise we potentially corrupt metadata)
 	} else if workMetadata != nil {
 		*p.metadata = *workMetadata
 	}
@@ -159,9 +171,16 @@ func (p *Processor[W]) decodeMetadata() *work.ProcessResult {
 
 func (p *Processor[W]) encodeMetadata() *work.ProcessResult {
 	if workMetadata, err := metadata.Encode(p.metadata); err != nil {
-		return p.processResultBuilder.Failed(p.context, p.work, err)
+		return p.processResultBuilder.Failed(p.Context(), p.work, err, p.Now())
 	} else if workMetadata != nil {
 		p.work.Metadata = workMetadata
 	}
 	return nil
+}
+
+func (p *Processor[W]) Now() time.Time {
+	if p.NowFunc != nil {
+		return p.NowFunc()
+	}
+	return time.Now().UTC()
 }

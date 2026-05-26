@@ -145,20 +145,20 @@ func (p *ProcessResult) Error() error {
 }
 
 type ProcessResultBuilder interface {
-	Pending(ctx context.Context, wrk *Work) *ProcessResult
-	Failing(ctx context.Context, wrk *Work, err error) *ProcessResult
-	Failed(ctx context.Context, wrk *Work, err error) *ProcessResult
-	Success(ctx context.Context, wrk *Work) *ProcessResult
-	Delete(ctx context.Context, wrk *Work) *ProcessResult
+	Pending(ctx context.Context, wrk *Work, tm time.Time) *ProcessResult
+	Failing(ctx context.Context, wrk *Work, err error, tm time.Time) *ProcessResult
+	Failed(ctx context.Context, wrk *Work, err error, tm time.Time) *ProcessResult
+	Success(ctx context.Context, wrk *Work, tm time.Time) *ProcessResult
+	Delete(ctx context.Context, wrk *Work, tm time.Time) *ProcessResult
 }
 
 type ProcessResultPendingBuilder interface {
-	ProcessingAvailableTime(ctx context.Context, wrk *Work, now time.Time) time.Time
+	ProcessingAvailableTime(ctx context.Context, wrk *Work, tm time.Time) time.Time
 }
 
 type ProcessResultFailingBuilder interface {
 	FailingRetryCount(ctx context.Context, wrk *Work, err error) int
-	FailingRetryTime(ctx context.Context, wrk *Work, err error, failingRetryCount int, now time.Time) time.Time
+	FailingRetryTime(ctx context.Context, wrk *Work, err error, failingRetryCount int, tm time.Time) time.Time
 }
 
 type ProcessPipelineFunc func() *ProcessResult

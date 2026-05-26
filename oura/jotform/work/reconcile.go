@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Type      = "org.tidepool.processors.oura.jotform.reconcile"
+	Type      = "org.tidepool.oura.jotform.reconcile"
 	Quantity  = 1
 	Frequency = time.Minute
 
@@ -89,8 +89,8 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	}, nil
 }
 
-func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
-	create, err := metadata.WithMetadata(
+func NewWorkCreate() (*work.Create, error) {
+	return metadata.WithMetadata(
 		&work.Create{
 			Type:              Type,
 			DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
@@ -100,13 +100,6 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 			LastProcessedSubmissionID: pointer.From(initialSubmissionID),
 		},
 	)
-	if err != nil {
-		return errors.Wrap(err, "unable to create work create")
-	}
-	if _, err := client.Create(ctx, create); err != nil {
-		return err
-	}
-	return nil
 }
 
 type Processor struct {
@@ -127,9 +120,7 @@ func (p *Processor) reconcile() *work.ProcessResult {
 
 	result, err := p.SubmissionProcessor.Reconcile(p.Context(), *p.Metadata().LastProcessedSubmissionID)
 	p.Metadata().LastProcessedSubmissionID = pointer.FromString(result.LastProcessedID)
-	p.AddFieldsToContext(log.Fields{
-		"processed": result.TotalProcessed,
-	})
+	p.AddFieldToContext("processed", result.TotalProcessed)
 
 	if err != nil {
 		return p.Failing(err)

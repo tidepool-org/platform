@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -56,11 +55,7 @@ func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	segments := []string{}
-	for _, path := range paths {
-		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
-	}
-	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
+	return ConstructURL(c.address, paths...)
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
@@ -264,4 +259,16 @@ func (s *SerializableErrorResponseParser) ParseErrorResponse(ctx context.Context
 		return nil
 	}
 	return serializable.Error
+}
+
+func ConstructURL(url string, paths ...string) string {
+	return strings.TrimRight(url, "/") + ConstructPath(paths...)
+}
+
+func ConstructPath(paths ...string) string {
+	segments := []string{}
+	for _, path := range paths {
+		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
+	}
+	return "/" + strings.Join(segments, "/")
 }

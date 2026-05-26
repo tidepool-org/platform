@@ -12,6 +12,13 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
+const (
+	PathParameterEventType = "eventType"
+	PathParameterDataType  = "dataType"
+
+	PartnerPathEvent = oura.PartnerPathPrefix + ouraWebhook.EventPath + "/:" + PathParameterEventType + "/:" + PathParameterDataType
+)
+
 type Dependencies struct {
 	AuthClient auth.Client
 	OuraClient oura.Client
@@ -46,10 +53,9 @@ func NewRouter(dependencies Dependencies) (*Router, error) {
 }
 
 func (r *Router) Routes() []*rest.Route {
-	webhookPath := oura.PartnerPathPrefix + ouraWebhook.EventPath
 	return []*rest.Route{
-		rest.Get(webhookPath, r.Subscription),
-		rest.Post(webhookPath, r.Event),
+		rest.Get(PartnerPathEvent, r.Subscription),
+		rest.Post(PartnerPathEvent, r.Event),
 	}
 }
 
@@ -57,10 +63,9 @@ func (r *Router) Routes() []*rest.Route {
 // FUTURE: Remove once all routes have been converted to new router style.
 
 func Routes() []dataService.Route {
-	webhookPath := oura.PartnerPathPrefix + ouraWebhook.EventPath
 	return []dataService.Route{
-		dataService.Get(webhookPath, Subscription),
-		dataService.Post(webhookPath, Event),
+		dataService.Get(PartnerPathEvent, Subscription),
+		dataService.Post(PartnerPathEvent, Event),
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	Type      = "org.tidepool.processors.oura.shopify.reconcile"
+	Type      = "org.tidepool.oura.shopify.reconcile"
 	Quantity  = 1
 	Frequency = time.Minute
 
@@ -111,11 +111,8 @@ func (p *Processor) reconcile() *work.ProcessResult {
 	return nil
 }
 
-func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) error {
-	if client == nil {
-		return errors.New("client is missing")
-	}
-	create, err := metadata.WithMetadata(
+func NewWorkCreate() (*work.Create, error) {
+	return metadata.WithMetadata(
 		&work.Create{
 			Type:              Type,
 			DeduplicationID:   pointer.FromString(work.DeduplicationIDSingleton),
@@ -125,10 +122,4 @@ func EnsureReconcilerWorkItemExists(ctx context.Context, client work.Client) err
 			UpdatedSince: time.Now(),
 		},
 	)
-	if err != nil {
-		return errors.Wrap(err, "unable to create work create")
-	} else if _, err := client.Create(ctx, create); err != nil {
-		return err
-	}
-	return nil
 }

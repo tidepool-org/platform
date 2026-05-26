@@ -32,8 +32,10 @@ type Mixin interface {
 	DataSetClient() dataSet.Client
 
 	HasDataSet() bool
+	EnsureDataSet() *work.ProcessResult
 	DataSet() *data.DataSet
 	SetDataSet(dataSet *data.DataSet) *work.ProcessResult
+	ClearDataSet()
 
 	FetchDataSet(dataSetID string) *work.ProcessResult
 	CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) *work.ProcessResult
@@ -96,6 +98,14 @@ func (m *mixin) HasDataSet() bool {
 	return m.dataSet != nil
 }
 
+func (m *mixin) EnsureDataSet() *work.ProcessResult {
+	if m.dataSet == nil {
+		return m.Failed(errors.New("data set is missing"))
+	} else {
+		return nil
+	}
+}
+
 func (m *mixin) DataSet() *data.DataSet {
 	return m.dataSet
 }
@@ -104,6 +114,11 @@ func (m *mixin) SetDataSet(dataSet *data.DataSet) *work.ProcessResult {
 	m.dataSet = dataSet
 	m.AddDataSetToContext()
 	return nil
+}
+
+func (m *mixin) ClearDataSet() {
+	m.dataSet = nil
+	m.AddDataSetToContext()
 }
 
 func (m *mixin) FetchDataSet(dataSetID string) *work.ProcessResult {
