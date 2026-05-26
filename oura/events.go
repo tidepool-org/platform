@@ -12,6 +12,7 @@ type OuraEligibilitySurveyCompletedData struct {
 	OuraEligibilitySurveyID       string `json:"oura_eligibility_survey_id"`
 	OuraEligibilitySurveyEligible bool   `json:"oura_eligibility_survey_eligible"`
 	OuraSizingKitDiscountCode     string `json:"oura_sizing_kit_discount_code,omitempty"`
+	OuraRingDiscountCode          string `json:"oura_ring_discount_code,omitempty"`
 }
 
 type OuraSizingKitOrderedData struct {
