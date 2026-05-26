@@ -1,9 +1,11 @@
 package jotform_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -213,6 +215,98 @@ var _ = Describe("SubmissionProcessor", func() {
 
 			err = processor.ProcessSubmission(ctx, submissionID)
 			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should create a ring discount code instead of a sizing kit discount code when the customer has oura_skip_sizing_kit set", func() {
+			submissionID := "6410095903544943563"
+			userID := "1aacb960-430c-4081-8b3b-a32688807dc5"
+
+			submission, err := ouraTest.LoadFixture("./test/fixtures/submission.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			jotformResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/submission/"+submissionID)},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: submission},
+			)
+
+			customer, err := ouraTest.LoadFixture("./test/fixtures/customer_skip_sizing_kit.json")
+			Expect(err).ToNot(HaveOccurred())
+
+			appAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{ouraTest.NewRequestMethodAndPathMatcher(http.MethodGet, "/v1/customers/"+userID+"/attributes")},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: customer},
+			)
+
+			var ringDiscountCode string
+			shopifyClnt.EXPECT().
+				CreateDiscountCode(gomock.Any(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, input shopify.DiscountCodeInput) error {
+					Expect(input.Title).To(Equal(shopify.OuraRingDiscountCodeTitle))
+					Expect(len(input.Code)).To(BeNumerically(">=", 12))
+					Expect(input.ProductID).To(Equal(shopify.OuraRingProductID))
+					ringDiscountCode = input.Code
+					return nil
+				})
+
+			// Capture every customer.io event so we can assert that the survey completed
+			// event carries no discount codes and that a separate sizing kit delivered
+			// event is sent with the generated ring discount code.
+			var eventBodies [][]byte
+			trackAPIResponses.AddResponse(
+				[]ouraTest.RequestMatcher{
+					ouraTest.NewRequestMethodAndPathMatcher(http.MethodPost, "/api/v1/customers/"+userID+"/events"),
+					func(r *http.Request) bool {
+						body, readErr := io.ReadAll(r.Body)
+						if readErr != nil {
+							return false
+						}
+						eventBodies = append(eventBodies, body)
+						r.Body = io.NopCloser(bytes.NewReader(body))
+						return true
+					},
+				},
+				ouraTest.Response{StatusCode: http.StatusOK, Body: "{}"},
+			)
+
+			usr := &user.User{UserID: &userID}
+			userClient.EXPECT().Get(gomock.Any(), userID).Return(usr, nil)
+
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "ripple").
+				Return(nil, nil)
+			consentService.EXPECT().GetActiveConsentRecord(gomock.Any(), userID, "big_data_donation_project").
+				Return(nil, nil)
+			consentService.EXPECT().ListConsents(ctx, gomock.Any(), gomock.Any()).
+				Return(&storeStructuredMongo.ListResult[consent.Consent]{
+					Count: 1,
+					Data: []consent.Consent{{
+						Type:    "big_data_donation_project",
+						Version: 2,
+					}},
+				}, nil)
+			consentService.EXPECT().CreateConsentRecords(gomock.Any(), userID, gomock.Any()).
+				Return([]*consent.Record{}, nil)
+
+			err = processor.ProcessSubmission(ctx, submissionID)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(ringDiscountCode).ToNot(BeEmpty())
+			Expect(eventBodies).To(HaveLen(2))
+
+			type capturedEvent struct {
+				Name string         `json:"name"`
+				Data map[string]any `json:"data"`
+			}
+
+			var surveyCompleted capturedEvent
+			Expect(json.Unmarshal(eventBodies[0], &surveyCompleted)).To(Succeed())
+			Expect(surveyCompleted.Name).To(Equal(oura.OuraEligibilitySurveyCompletedEventType))
+			Expect(surveyCompleted.Data).ToNot(HaveKey("oura_sizing_kit_discount_code"))
+			Expect(surveyCompleted.Data).ToNot(HaveKey("oura_ring_discount_code"))
+
+			var sizingKitDelivered capturedEvent
+			Expect(json.Unmarshal(eventBodies[1], &sizingKitDelivered)).To(Succeed())
+			Expect(sizingKitDelivered.Name).To(Equal(oura.OuraSizingKitDeliveredEventType))
+			Expect(sizingKitDelivered.Data["oura_ring_discount_code"]).To(Equal(ringDiscountCode))
 		})
 
 		It("should mark the survey is ineligible if date of birth is missing", func() {
