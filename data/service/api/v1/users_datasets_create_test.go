@@ -31,6 +31,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metric"
 	metricTest "github.com/tidepool-org/platform/metric/test"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
@@ -153,6 +154,10 @@ func (c *mockDataServiceContext) RespondWithInternalServerFailure(message string
 
 func (c *mockDataServiceContext) RespondWithStatusAndErrors(statusCode int, errors []*service.Error) {
 	panic("not implemented") // TODO: Implement
+}
+
+func (c *mockDataServiceContext) NotificationsHistoryRecorder() notificationsHistory.Recorder {
+	return nil
 }
 
 func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, object interface{}) {

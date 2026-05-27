@@ -12,6 +12,7 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -46,6 +47,7 @@ type Context interface {
 	DataSourceClient() dataSource.Client
 	OuraClient() oura.Client
 	WorkClient() work.Client
+	NotificationsHistoryRecorder() notificationsHistory.Recorder
 
 	AbbottServiceRequestAuthorizer() abbottService.RequestAuthorizer
 	TwiistServiceAccountAuthorizer() auth.ServiceAccountAuthorizer

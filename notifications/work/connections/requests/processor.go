@@ -9,6 +9,8 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -109,28 +111,30 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.fetchUser,
 		p.process,
 	).Process(p.Delete)
 }
 
-func (p *Processor) process() *work.ProcessResult {
-	if result := p.FetchUser(p.Metadata().UserID); result != nil {
-		return result
-	}
+func (p *Processor) fetchUser() *work.ProcessResult {
+	return p.FetchUser(p.Metadata().UserID)
+}
 
-	username := p.User().Username
-	if username == nil {
-		return p.Failed(errors.New("user username is missing"))
+func (p *Processor) process() *work.ProcessResult {
+	if p.User().Username == nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationGeneralError, errors.New("user email is missing"))
+		return p.Failed(errors.New("user email is missing"))
 	}
 
 	filter := &dataSource.Filter{
 		ProviderName: pointer.FromString(p.Metadata().ProviderName),
 		State:        pointer.FromString(dataSource.StateConnected),
 	}
-	dataSrcs, err := p.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
+	dataSrcs, err := p.DataSourceClient.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
 	if err != nil {
 		return p.Failing(err)
 	} else if len(dataSrcs) > 0 {
+		p.recordHistoryEntry(notificationsHistory.NotificationConditionsExpired)
 		return nil // User now has a connected dataSource so no email to send
 	}
 
@@ -142,20 +146,42 @@ func (p *Processor) process() *work.ProcessResult {
 		clinicName = clinic.Name
 	}
 
-	variables := map[string]string{
-		"ClinicName":        clinicName,
-		"PatientName":       p.Metadata().PatientName,
-		"ProviderName":      p.Metadata().ProviderName,
-		"RestrictedTokenId": p.Metadata().RestrictedTokenID,
-	}
+	p.recordHistoryEntry(notificationsHistory.NotificationAttempted)
+
 	templateEvent := events.SendEmailTemplateEvent{
-		Recipient: *username,
+		Recipient: *p.User().Username,
 		Template:  p.Metadata().EmailTemplate,
-		Variables: variables,
+		Variables: map[string]string{
+			"ClinicName":        clinicName,
+			"PatientName":       p.Metadata().PatientName,
+			"ProviderName":      p.Metadata().ProviderName,
+			"RestrictedTokenId": p.Metadata().RestrictedTokenID,
+		},
 	}
 	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
-		return p.Failing(err)
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationEmailError, errors.Wrap(err, "unable to send email for connection request"))
+		return p.Failing(errors.Wrap(err, "unable to send email for connection request"))
 	}
 
+	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
 	return nil
+}
+
+func (p *Processor) recordHistoryEntry(eventType string) {
+	p.recordHistoryEntryWithError(eventType, nil)
+}
+
+func (p *Processor) recordHistoryEntryWithError(eventType string, err error) {
+	entry := notificationsHistory.Entry{
+		EventType:     eventType,
+		ProcessorType: Type,
+		GroupID:       NewGroupID(p.Metadata().UserID, p.Metadata().ProviderName),
+		Metadata:      p.MetadataEncoded(),
+		UserID:        p.Metadata().UserID,
+		Email:         pointer.Default(p.User().Username, ""),
+		Error:         err,
+	}
+	if err := p.HistoryRecorder.Create(p.Context(), entry); err != nil {
+		log.LoggerFromContext(p.Context()).WithError(err).Error("unable to record history entry")
+	}
 }

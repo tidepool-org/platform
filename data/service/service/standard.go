@@ -37,6 +37,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/mailer"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	notificationsWorkClaims "github.com/tidepool-org/platform/notifications/work/claims"
 	notificationsWorkConnectionsIssues "github.com/tidepool-org/platform/notifications/work/connections/issues"
 	notificationsWorkConnectionsRequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
@@ -95,6 +96,7 @@ type Standard struct {
 	mailerClient                   mailer.Client
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
+	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
 	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
@@ -172,6 +174,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 		return err
 	}
 	if err := s.initializeOuraClient(); err != nil {
+		return err
+	}
+	if err := s.initializeNotificationsHistoryRecorder(); err != nil {
 		return err
 	}
 	if err := s.initializeWorkCoordinator(); err != nil {
@@ -715,6 +720,18 @@ func (s *Standard) initializeOuraClient() error {
 	return nil
 }
 
+func (s *Standard) initializeNotificationsHistoryRecorder() error {
+	s.Logger().Debug("Creating notifications history recorder")
+
+	notificationsHistoryRecorder := notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
+	if err := notificationsHistoryRecorder.EnsureIndexes(); err != nil {
+		return errors.Wrap(err, "unable to ensure notifications history indexes")
+	}
+	s.notificationsHistoryRecorder = notificationsHistoryRecorder
+
+	return nil
+}
+
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
@@ -756,6 +773,7 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		Dependencies:       dependencies,
 		ClinicClient:       s.clinicsClient,
 		ConfirmationClient: s.confirmationClient,
+		HistoryRecorder:    s.notificationsHistoryRecorder,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create notifications claims work processor factory")
 	} else {
@@ -765,9 +783,10 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 	s.Logger().Debug("Creating notifications connections issues work processor factory")
 
 	if processorFactory, err := notificationsWorkConnectionsIssues.NewProcessorFactory(notificationsWorkConnectionsIssues.Dependencies{
-		Dependencies: dependencies,
-		MailerClient: s.mailerClient,
-		UserClient:   s.userClient,
+		Dependencies:    dependencies,
+		HistoryRecorder: s.notificationsHistoryRecorder,
+		MailerClient:    s.mailerClient,
+		UserClient:      s.userClient,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create notifications connections issues work processor factory")
 	} else {
@@ -780,6 +799,7 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		Dependencies:     dependencies,
 		ClinicClient:     s.clinicsClient,
 		DataSourceClient: s.dataSourceClient,
+		HistoryRecorder:  s.notificationsHistoryRecorder,
 		MailerClient:     s.mailerClient,
 		UserClient:       s.userClient,
 	}); err != nil {
@@ -963,7 +983,7 @@ func (s *Standard) initializeAPI() error {
 	newAPI, err := dataServiceApi.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient, s.notificationsHistoryRecorder,
 		s.abbottClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")

@@ -9,6 +9,9 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/user"
 	userWork "github.com/tidepool-org/platform/user/work"
@@ -57,9 +60,8 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 
 func (m *Metadata) Validate(validator structure.Validator) {
 	validator.String("dataSourceState", &m.DataSourceState).OneOf(dataSource.States()...)
-	validator.String("dataSourceId", &m.DataSourceID).Using(dataSource.IDValidator)
+	validator.String("dataSourceId", &m.DataSourceID).NotEmpty() // NOTE: _id (not id, as expected)
 	validator.String("emailTemplate", &m.EmailTemplate).NotEmpty()
-	validator.String("fullName", &m.FullName).NotEmpty()
 	validator.String("providerName", &m.ProviderName).Using(auth.ProviderNameValidator)
 	validator.String("restrictedTokenId", &m.RestrictedTokenID).Using(auth.RestrictedTokenIDValidator)
 	validator.String("userId", &m.UserID).Using(user.IDValidator)
@@ -103,33 +105,57 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.fetchUser,
 		p.process,
 	).Process(p.Delete)
 }
 
+func (p *Processor) fetchUser() *work.ProcessResult {
+	return p.FetchUser(p.Metadata().UserID)
+}
+
 func (p *Processor) process() *work.ProcessResult {
-	if result := p.FetchUser(p.Metadata().UserID); result != nil {
-		return result
+	if p.User().Username == nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationGeneralError, errors.New("user email is missing"))
+		return p.Failed(errors.New("user email is missing"))
 	}
 
-	username := p.User().Username
-	if username == nil {
-		return p.Failed(errors.New("user username is missing"))
-	}
+	p.recordHistoryEntry(notificationsHistory.NotificationAttempted)
 
-	variables := map[string]string{
-		"RestrictedTokenId": p.Metadata().RestrictedTokenID,
-		"FullName":          p.Metadata().FullName,
-		"ProviderName":      p.Metadata().ProviderName,
-	}
 	templateEvent := events.SendEmailTemplateEvent{
-		Recipient: *username,
+		Recipient: *p.User().Username,
 		Template:  p.Metadata().EmailTemplate,
-		Variables: variables,
+		Variables: map[string]string{
+			"RestrictedTokenId": p.Metadata().RestrictedTokenID,
+			"FullName":          p.Metadata().FullName,
+			"ProviderName":      p.Metadata().ProviderName,
+		},
 	}
 	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
-		return p.Failing(err)
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationEmailError, errors.Wrap(err, "unable to send email for connection issue"))
+		return p.Failing(errors.Wrap(err, "unable to send email for connection issue"))
 	}
 
+	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
 	return nil
+}
+
+func (p *Processor) recordHistoryEntry(eventType string) {
+	p.recordHistoryEntryWithError(eventType, nil)
+}
+
+func (p *Processor) recordHistoryEntryWithError(eventType string, err error) {
+	entry := notificationsHistory.Entry{
+		EventType:     eventType,
+		ProcessorType: Type,
+		GroupID:       NewGroupID(p.Metadata().DataSourceID),
+		Metadata:      p.MetadataEncoded(),
+		UserID:        p.Metadata().UserID,
+		DataSourceID:  p.Metadata().DataSourceID,
+		Email:         pointer.Default(p.User().Username, ""),
+		Error:         err,
+	}
+	if err := p.Create(p.Context(), entry); err != nil {
+		log.LoggerFromContext(p.Context()).WithError(err).Error("unable to record history entry")
+	}
 }

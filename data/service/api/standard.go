@@ -15,6 +15,7 @@ import (
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/metric"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
@@ -35,6 +36,7 @@ type Standard struct {
 	dataSourceClient               dataSource.Client
 	workClient                     work.Client
 	ouraClient                     oura.Client
+	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer
 }
@@ -42,7 +44,7 @@ type Standard struct {
 func NewStandard(svc service.Service, metricClient metric.Client, permissionClient permission.Client,
 	dataDeduplicatorFactory dataDuplicator.Factory,
 	store dataStore.Store, syncTaskStore syncTaskStore.Store, dataClient dataClient.Client,
-	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client, ouraClient oura.Client,
+	dataRawClient dataRaw.Client, dataSourceClient dataSource.Client, workClient work.Client, ouraClient oura.Client, notificationsHistoryRecorder notificationsHistory.Recorder,
 	abbottServiceRequestAuthorizer abbottService.RequestAuthorizer,
 	twiistServiceAccountAuthorizer auth.ServiceAccountAuthorizer) (*Standard, error) {
 	if metricClient == nil {
@@ -72,6 +74,9 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 	if workClient == nil {
 		return nil, errors.New("work client is missing")
 	}
+	if notificationsHistoryRecorder == nil {
+		return nil, errors.New("notifications history recorder is missing")
+	}
 	if twiistServiceAccountAuthorizer == nil {
 		return nil, errors.New("twiist service account authorizer is missing")
 	}
@@ -91,6 +96,7 @@ func NewStandard(svc service.Service, metricClient metric.Client, permissionClie
 		dataClient:                     dataClient,
 		dataRawClient:                  dataRawClient,
 		dataSourceClient:               dataSourceClient,
+		notificationsHistoryRecorder:   notificationsHistoryRecorder,
 		workClient:                     workClient,
 		ouraClient:                     ouraClient,
 		abbottServiceRequestAuthorizer: abbottServiceRequestAuthorizer,
@@ -125,6 +131,6 @@ func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc
 	return dataServiceContext.WithContext(s.AuthClient(), s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient,
+		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient, s.notificationsHistoryRecorder,
 		s.abbottServiceRequestAuthorizer, s.twiistServiceAccountAuthorizer, handler)
 }

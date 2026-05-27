@@ -25,6 +25,7 @@ import (
 	source "github.com/tidepool-org/platform/data/source"
 	store "github.com/tidepool-org/platform/data/store"
 	metric "github.com/tidepool-org/platform/metric"
+	history "github.com/tidepool-org/platform/notifications/history"
 	oura "github.com/tidepool-org/platform/oura"
 	permission "github.com/tidepool-org/platform/permission"
 	service0 "github.com/tidepool-org/platform/service"
@@ -434,6 +435,44 @@ func (c *MockContextMetricClientCall) Do(f func() metric.Client) *MockContextMet
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockContextMetricClientCall) DoAndReturn(f func() metric.Client) *MockContextMetricClientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// NotificationsHistoryRecorder mocks base method.
+func (m *MockContext) NotificationsHistoryRecorder() history.Recorder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NotificationsHistoryRecorder")
+	ret0, _ := ret[0].(history.Recorder)
+	return ret0
+}
+
+// NotificationsHistoryRecorder indicates an expected call of NotificationsHistoryRecorder.
+func (mr *MockContextMockRecorder) NotificationsHistoryRecorder() *MockContextNotificationsHistoryRecorderCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotificationsHistoryRecorder", reflect.TypeOf((*MockContext)(nil).NotificationsHistoryRecorder))
+	return &MockContextNotificationsHistoryRecorderCall{Call: call}
+}
+
+// MockContextNotificationsHistoryRecorderCall wrap *gomock.Call
+type MockContextNotificationsHistoryRecorderCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockContextNotificationsHistoryRecorderCall) Return(arg0 history.Recorder) *MockContextNotificationsHistoryRecorderCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockContextNotificationsHistoryRecorderCall) Do(f func() history.Recorder) *MockContextNotificationsHistoryRecorderCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockContextNotificationsHistoryRecorderCall) DoAndReturn(f func() history.Recorder) *MockContextNotificationsHistoryRecorderCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

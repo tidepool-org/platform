@@ -4,7 +4,12 @@ import (
 	"context"
 	"time"
 
+	clinicClient "github.com/tidepool-org/clinic/client"
+
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
@@ -42,6 +47,7 @@ func (m *Metadata) Validate(validator structure.Validator) {
 type Processor struct {
 	*workBase.Processor[Metadata]
 	Dependencies
+	patient *clinicClient.Patient
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -69,28 +75,60 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.fetchPatient,
 		p.process,
 	).Process(p.Delete)
 }
 
-func (p *Processor) process() *work.ProcessResult {
-	patient, err := p.GetPatient(p.Context(), p.Metadata().ClinicID, p.Metadata().UserID)
-	if err != nil {
-		return p.Failing(err)
-	} else if patient == nil {
-		return p.Failing(errors.Newf("unable to find patient with user id %q", p.Metadata().UserID))
-	} else if patient.Email == nil || *patient.Email == "" {
-		return p.Failing(errors.Newf("unable to find email for patient with user id %q", p.Metadata().UserID))
-	}
+func (p *Processor) fetchPatient() *work.ProcessResult {
+	userID := p.Metadata().UserID
 
+	patient, err := p.GetPatient(p.Context(), p.Metadata().ClinicID, userID)
+	if err != nil {
+		return p.Failing(errors.Wrap(err, "unable to get patient"))
+	} else if patient == nil {
+		return p.Failed(errors.New("patient is missing"))
+	} else if patient.Email == nil || *patient.Email == "" {
+		return p.Failed(errors.New("patient email is missing"))
+	}
+	p.patient = patient
+
+	return nil
+}
+
+func (p *Processor) process() *work.ProcessResult {
 	// If user already claimed they will no longer have the custodian field set
-	if patient.Permissions == nil || patient.Permissions.Custodian == nil {
+	if p.patient.Permissions == nil || p.patient.Permissions.Custodian == nil {
+		p.recordHistoryEntry(notificationsHistory.NotificationConditionsExpired)
 		return nil
 	}
 
-	if _, err := p.ResendAccountSignupWithResponse(p.Context(), *patient.Email); err != nil {
-		return p.Failing(errors.New("unable to resend account signup email"))
+	p.recordHistoryEntry(notificationsHistory.NotificationAttempted)
+
+	if _, err := p.ResendAccountSignupWithResponse(p.Context(), *p.patient.Email); err != nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationEmailError, errors.Wrap(err, "unable to send email for account claim"))
+		return p.Failing(errors.Wrap(err, "unable to send email for account claim"))
 	}
 
+	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
 	return nil
+}
+
+func (p *Processor) recordHistoryEntry(eventType string) {
+	p.recordHistoryEntryWithError(eventType, nil)
+}
+
+func (p *Processor) recordHistoryEntryWithError(eventType string, err error) {
+	entry := notificationsHistory.Entry{
+		EventType:     eventType,
+		ProcessorType: Type,
+		GroupID:       NewGroupID(p.Metadata().UserID),
+		Metadata:      p.MetadataEncoded(),
+		UserID:        p.Metadata().UserID,
+		Email:         pointer.Default(p.patient.Email, ""),
+		Error:         err,
+	}
+	if err := p.Create(p.Context(), entry); err != nil {
+		log.LoggerFromContext(p.Context()).WithError(err).Error("unable to record history entry")
+	}
 }

@@ -125,6 +125,13 @@ func (p *Processor[W]) Metadata() *W {
 	return p.metadata
 }
 
+// NOTE: READ ONLY! Do NOT directly modify the encoded metadata. WILL RESULT IN DATA LOSS!
+// Use Metadata and ProcessingUpdate to modify the metadata instead. Any modified metadata will
+// be encoded and persisted when ProcessingUpdate is invoked or ProcessResult is returned.
+func (p *Processor[W]) MetadataEncoded() map[string]any {
+	return p.work.Metadata
+}
+
 func (p *Processor[W]) Pending() *work.ProcessResult {
 	if result := p.encodeMetadata(); result != nil {
 		return result

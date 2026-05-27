@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/mailer"
 	"github.com/tidepool-org/platform/metadata"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
@@ -17,7 +18,7 @@ import (
 )
 
 const (
-	Type              = "org.tidepool.processors.connections.requests"
+	Type              = "org.tidepool.user.notification.connection.request"
 	Quantity          = 1
 	Frequency         = 1 * time.Minute
 	ProcessingTimeout = 1 * time.Minute
@@ -26,6 +27,7 @@ const (
 type (
 	ClinicClient     = clinics.Client
 	DataSourceClient = dataSource.Client
+	HistoryRecorder  = notificationsHistory.Recorder
 	MailerClient     = mailer.Client
 	UserClient       = user.Client
 )
@@ -34,6 +36,7 @@ type Dependencies struct {
 	workBase.Dependencies
 	ClinicClient
 	DataSourceClient
+	HistoryRecorder
 	MailerClient
 	UserClient
 }
@@ -47,6 +50,9 @@ func (d Dependencies) Validate() error {
 	}
 	if d.DataSourceClient == nil {
 		return errors.New("data source client is missing")
+	}
+	if d.HistoryRecorder == nil {
+		return errors.New("history recorder is missing")
 	}
 	if d.MailerClient == nil {
 		return errors.New("mailer client is missing")
@@ -65,15 +71,26 @@ func NewProcessorFactory(dependencies Dependencies) (*workBase.ProcessorFactory,
 	return workBase.NewProcessorFactory(Type, Quantity, Frequency, processorFactory)
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, workMetadata Metadata) error {
-	if create, err := NewWorkCreate(workMetadata); err != nil {
+func AddWorkItem(ctx context.Context, workMetadata Metadata, workClient work.Client, historyRecorder notificationsHistory.Recorder) error {
+	if workClient == nil {
+		return errors.New("work client is missing")
+	} else if historyRecorder == nil {
+		return errors.New("history recorder is missing")
+	} else if create, err := NewWorkCreate(workMetadata); err != nil {
 		return errors.Wrap(err, "unable to create work create")
-	} else if _, err = client.DeleteAllByGroupID(ctx, *create.GroupID); err != nil {
+	} else if _, err = workClient.DeleteAllByGroupID(ctx, *create.GroupID); err != nil {
 		return errors.Wrapf(err, "unable to delete existing group with id %q", *create.GroupID)
-	} else if _, err := client.Create(ctx, create); err != nil {
-		return err
+	} else if wrk, err := workClient.Create(ctx, create); err != nil {
+		return errors.Wrap(err, "unable to create work")
 	} else {
-		return nil
+		entry := notificationsHistory.Entry{
+			EventType:     notificationsHistory.NotificationQueued,
+			ProcessorType: Type,
+			GroupID:       *wrk.GroupID,
+			UserID:        workMetadata.UserID,
+			Metadata:      wrk.Metadata,
+		}
+		return historyRecorder.Create(ctx, entry)
 	}
 }
 

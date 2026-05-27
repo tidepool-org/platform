@@ -22,8 +22,8 @@ func NotificationsRoutes() []dataService.Route {
 func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
 	var metadata notificationsWorkClaims.Metadata
 	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
@@ -31,7 +31,7 @@ func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := notificationsWorkClaims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
+	if err := notificationsWorkClaims.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -42,8 +42,8 @@ func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
 	var metadata notificationsWorkConnectionsRequests.Metadata
 	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
@@ -51,7 +51,7 @@ func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := notificationsWorkConnectionsRequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
+	if err := notificationsWorkConnectionsRequests.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -62,8 +62,8 @@ func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 func SendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
 	var metadata notificationsWorkConnectionsIssues.Metadata
 	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
@@ -71,7 +71,7 @@ func SendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := notificationsWorkConnectionsIssues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), metadata); err != nil {
+	if err := notificationsWorkConnectionsIssues.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
