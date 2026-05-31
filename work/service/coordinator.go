@@ -169,18 +169,9 @@ func (c *Coordinator) Stop() {
 
 func (c *Coordinator) startManager() {
 	c.managerWaitGroup.Go(func() {
-		// Delay before start to ensure other services available
-		select {
-		case <-c.managerContext.Done():
-			return
-		case <-time.After(durationWithJitter(CoordinatorDelayInitial, CoordinatorDelayJitter)):
-		}
-
-		// Start time to poll according to frequency
-		c.startTimer()
+		c.startTimerWithDuration(CoordinatorDelayInitial)
 		defer c.stopTimer()
 
-		// Loop until canceled
 		for {
 			select {
 			case <-c.managerContext.Done(): // Drain and complete any interrupted tasks
@@ -188,14 +179,17 @@ func (c *Coordinator) startManager() {
 					c.completeWork(completion)
 				}
 				return
-			case completion := <-c.workersCompletionChannel:
+			case completion, ok := <-c.workersCompletionChannel:
+				if !ok {
+					return
+				}
 				c.stopTimer()
 				c.completeWork(completion)
 				c.requestAndDispatchWork()
-				c.startTimer()
+				c.startTimerWithDuration(c.frequency)
 			case <-c.timer.C:
 				c.requestAndDispatchWork()
-				c.startTimer()
+				c.startTimerWithDuration(c.frequency)
 			}
 		}
 	})
@@ -355,12 +349,12 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	}
 }
 
-func (c *Coordinator) startTimer() {
-	frequencyWithJitter := durationWithJitter(c.frequency, CoordinatorDelayJitter)
+func (c *Coordinator) startTimerWithDuration(duration time.Duration) {
+	duration = durationWithJitter(duration, CoordinatorDelayJitter)
 	if c.timer == nil {
-		c.timer = time.NewTimer(frequencyWithJitter)
+		c.timer = time.NewTimer(duration)
 	} else {
-		c.timer.Reset(frequencyWithJitter)
+		c.timer.Reset(duration)
 	}
 }
 
