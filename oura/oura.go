@@ -385,9 +385,9 @@ func (e *Event) Validate(validator structure.Validator) {
 
 func (e *Event) Hash() (string, error) {
 	if bites, err := json.Marshal(e); err != nil {
-		return "", errors.Wrap(err, "unable to generate hash")
+		return "", errors.Wrap(err, "unable to generate JSON for hash")
 	} else if bites, err = jcs.Transform(bites); err != nil {
-		return "", errors.Wrap(err, "unable to canonicalize hash")
+		return "", errors.Wrap(err, "unable to canonicalize JSON for hash")
 	} else {
 		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}
@@ -442,9 +442,9 @@ func (p *PersonalInfo) Validate(validator structure.Validator) {
 
 func (p *PersonalInfo) Hash() (string, error) {
 	if bites, err := json.Marshal(p); err != nil {
-		return "", errors.Wrap(err, "unable to generate hash")
+		return "", errors.Wrap(err, "unable to generate JSON for hash")
 	} else if bites, err = jcs.Transform(bites); err != nil {
-		return "", errors.Wrap(err, "unable to canonicalize hash")
+		return "", errors.Wrap(err, "unable to canonicalize JSON for hash")
 	} else {
 		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}
