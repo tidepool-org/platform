@@ -30,8 +30,9 @@ import (
 )
 
 const (
-	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDuration        = 1 * time.Minute
+	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationMaximum = 24 * time.Hour
 )
 
 type ProviderSessionMetadata = providerSessionWork.Metadata
@@ -81,8 +82,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 	processResultBuilder := &workBase.ProcessResultBuilder{
 		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
-			Duration:       FailingRetryDuration,
-			DurationJitter: FailingRetryDurationJitter,
+			Duration:        FailingRetryDuration,
+			DurationJitter:  FailingRetryDurationJitter,
+			DurationMaximum: pointer.From(FailingRetryDurationMaximum),
 		},
 	}
 

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gowebpki/jcs"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/data"
@@ -202,12 +204,11 @@ func ScopesForDataType(dataType string) []string {
 }
 
 func DataTypeInScopes(dataType string, scopes *[]string) bool {
-	if scopes == nil || len(*scopes) == 0 {
-		return true
-	}
-	for _, scope := range *scopes {
-		if DataTypeInScope(dataType, scope) {
-			return true
+	if scopes != nil {
+		for _, scope := range *scopes {
+			if DataTypeInScope(dataType, scope) {
+				return true
+			}
 		}
 	}
 	return false
@@ -384,7 +385,9 @@ func (e *Event) Validate(validator structure.Validator) {
 
 func (e *Event) Hash() (string, error) {
 	if bites, err := json.Marshal(e); err != nil {
-		return "", errors.Wrap(err, "unable to generate hash")
+		return "", errors.Wrap(err, "unable to generate JSON for hash")
+	} else if bites, err = jcs.Transform(bites); err != nil {
+		return "", errors.Wrap(err, "unable to canonicalize JSON for hash")
 	} else {
 		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}
@@ -439,7 +442,9 @@ func (p *PersonalInfo) Validate(validator structure.Validator) {
 
 func (p *PersonalInfo) Hash() (string, error) {
 	if bites, err := json.Marshal(p); err != nil {
-		return "", errors.Wrap(err, "unable to generate hash")
+		return "", errors.Wrap(err, "unable to generate JSON for hash")
+	} else if bites, err = jcs.Transform(bites); err != nil {
+		return "", errors.Wrap(err, "unable to canonicalize JSON for hash")
 	} else {
 		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}

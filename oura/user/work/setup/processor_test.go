@@ -51,6 +51,10 @@ var _ = Describe("processor", func() {
 		Expect(ouraUserWorkSetup.FailingRetryDurationJitter).To(Equal(5 * time.Second))
 	})
 
+	It("FailingRetryDurationMaximum is expected", func() {
+		Expect(ouraUserWorkSetup.FailingRetryDurationMaximum).To(Equal(24 * time.Hour))
+	})
+
 	Context("Metadata", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *ouraUserWorkSetup.Metadata)) {

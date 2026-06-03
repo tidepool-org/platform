@@ -330,12 +330,12 @@ var _ = Describe("oura", func() {
 	})
 
 	Context("DataTypeInScopes", func() {
-		It("returns true if scopes is nil", func() {
-			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, nil)).To(BeTrue())
+		It("returns false if scopes is nil", func() {
+			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, nil)).To(BeFalse())
 		})
 
-		It("returns true if scopes is empty", func() {
-			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, &[]string{})).To(BeTrue())
+		It("returns false if scopes is empty", func() {
+			Expect(oura.DataTypeInScopes(oura.DataTypeDailyActivity, &[]string{})).To(BeFalse())
 		})
 
 		It("returns false if scopes does not include data type", func() {
@@ -1226,27 +1226,29 @@ var _ = Describe("oura", func() {
 		})
 
 		Context("with event", func() {
-			var eventTime, _ = time.ParseInLocation(time.RFC3339Nano, "2026-01-15T20:15:42.123Z", time.UTC)
+			Context("Hash", func() {
+				var eventTime, _ = time.ParseInLocation(time.RFC3339Nano, "2026-01-15T20:15:42.123Z", time.UTC)
 
-			DescribeTable("Hash returns expected string",
-				func(eventTime *time.Time, eventType *string, userID *string, objectID *string, dataType *string, expectedHash string) {
-					datum := &oura.Event{
-						EventTime: eventTime,
-						EventType: eventType,
-						UserID:    userID,
-						ObjectID:  objectID,
-						DataType:  dataType,
-					}
-					Expect(datum.Hash()).To(Equal(expectedHash))
-				},
-				Entry("all", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "r6tSfxM7nHw3VapPUw9I/LtnjFBzd+5NOfCBsUd9yM0="),
-				Entry("event_time missing", nil, pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "pfx/tnsxL/JWx1T/WZC6NIqTWwlIMJoLiAvRtK+B4vY="),
-				Entry("event_type missing", pointer.From(eventTime), nil, pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "sUkvKDFwLh28pjcVnt8VJY9CTjTwjoxqsRme4GX/PQE="),
-				Entry("user_id missing", pointer.From(eventTime), pointer.From("alpha"), nil, pointer.From("charlie"), pointer.From("delta"), "9lke8eMWiEZQ8ayKVlEqoeSdACnjR8PMpC8iWNQF7Os="),
-				Entry("object_id missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), nil, pointer.From("delta"), "QJ7dEqDastXbeO3LW1ZMVEygeU9tm+wOCLqVqWdAA44="),
-				Entry("data_type missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), nil, "ANvEmvnT7mSQuT+UoVdOIvSz2cEXg7geGU/lFq08vjc="),
-				Entry("all missing", nil, nil, nil, nil, nil, "RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o="),
-			)
+				DescribeTable("Hash returns expected string",
+					func(eventTime *time.Time, eventType *string, userID *string, objectID *string, dataType *string, expectedHash string) {
+						datum := &oura.Event{
+							EventTime: eventTime,
+							EventType: eventType,
+							UserID:    userID,
+							ObjectID:  objectID,
+							DataType:  dataType,
+						}
+						Expect(datum.Hash()).To(Equal(expectedHash))
+					},
+					Entry("all", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "WmARF+uCoGr7pgiFYrJszYy3c/7IiZJsNuOwL/ufGas="),
+					Entry("event_time missing", nil, pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "7Yer8F/5iqYHrWT6X5ygue3KsfB9o+SLvC70QgPp2E8="),
+					Entry("event_type missing", pointer.From(eventTime), nil, pointer.From("beta"), pointer.From("charlie"), pointer.From("delta"), "UoadT3+HLgJ74qdV0gcKvlolvWN5sRKpLSuaLyX43w8="),
+					Entry("user_id missing", pointer.From(eventTime), pointer.From("alpha"), nil, pointer.From("charlie"), pointer.From("delta"), "ApcWOcGez3+jAl96PQtBsrYWzdX+r/wF9bo97cczE0k="),
+					Entry("object_id missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), nil, pointer.From("delta"), "n749UjE4cGPUMCUipJrFPZC4roSuy6sEmBChfXD9J70="),
+					Entry("data_type missing", pointer.From(eventTime), pointer.From("alpha"), pointer.From("beta"), pointer.From("charlie"), nil, "BPaBo6T3TnAqHVX+4DJUN3FfZVtxnqPUkyoBMAloUE8="),
+					Entry("all missing", nil, nil, nil, nil, nil, "RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o="),
+				)
+			})
 		})
 	})
 
@@ -1466,13 +1468,13 @@ var _ = Describe("oura", func() {
 					}
 					Expect(datum.Hash()).To(Equal(expectedHash))
 				},
-				Entry("all", pointer.From("da349d70cc124d57bada133ce04f0513"), pointer.From(52), pointer.From(156.4), pointer.From(72.4), pointer.From("male"), pointer.From("bob@tidepool.io"), "yzFQ5RxZLgIzTnZxiAv3laIjSSn6+ktgVjfJDa8d/lQ="),
-				Entry("id missing", nil, pointer.From(41), pointer.From(152.7), pointer.From(64.0), pointer.From("female"), pointer.From("ann@tidepool.io"), "oTafvI7fAFUYapPCU6BI+gphl7634FLs6l+4tFYOvAs="),
-				Entry("age missing", pointer.From("e556b8b19d034cfc9f9d5b7dae9ed3c1"), nil, pointer.From(114.5), pointer.From(68.2), pointer.From(""), pointer.From("amy@tidepool.io"), "n37K1jw/lNmWF+IwmtJZgz2NrkrsGzLlmuRtbO/bOG4="),
-				Entry("weight missing", pointer.From("66249a46d97a4d409b1a7dee4be85069"), pointer.From(34), nil, pointer.From(69.2), pointer.From("other"), pointer.From("jim@tidepool.io"), "ojh/ltPFb6qyWpKgfUVKZEv32AoYuvCnLIl2bjFD5o4="),
-				Entry("height missing", pointer.From("a125b96ff4fb4c45aad383d0094d34e4"), pointer.From(45), pointer.From(179.4), nil, pointer.From("non-binary"), pointer.From("jane@tidepool.io"), "QpInH6ifkBDeCnj6fXXK0RHeET824jSupJ/P7HCONBk="),
-				Entry("biologicalSex missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), nil, pointer.From("jon@tidepool.io"), "o/76T/S37K186nvqG7ZVheKU6CkC4IjQfnklETlpduI="),
-				Entry("email missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), pointer.From("unspecified"), nil, "lUCGa4kv/0h02IEyM4cRAdQvE1rOGwj8OirKO/tLTQU="),
+				Entry("all", pointer.From("da349d70cc124d57bada133ce04f0513"), pointer.From(52), pointer.From(156.4), pointer.From(72.4), pointer.From("male"), pointer.From("bob@tidepool.io"), "V1kDa3hRMHNnVnSYsRuiF2Swc+Utoe8x+xwtA+uPMVA="),
+				Entry("id missing", nil, pointer.From(41), pointer.From(152.7), pointer.From(64.0), pointer.From("female"), pointer.From("ann@tidepool.io"), "ueokH1JXMnC+nbK8fx+B+vOQcquYlweF4KxYLufs1kw="),
+				Entry("age missing", pointer.From("e556b8b19d034cfc9f9d5b7dae9ed3c1"), nil, pointer.From(114.5), pointer.From(68.2), pointer.From(""), pointer.From("amy@tidepool.io"), "2sTtOYxXupS2eveyveYV/lRGCYeZ3FG3eN1FPuKXV5U="),
+				Entry("weight missing", pointer.From("66249a46d97a4d409b1a7dee4be85069"), pointer.From(34), nil, pointer.From(69.2), pointer.From("other"), pointer.From("jim@tidepool.io"), "rnCubbJI5FY1ZXQdDP4/+IXcqFMDDP2njYy0MiE3F1s="),
+				Entry("height missing", pointer.From("a125b96ff4fb4c45aad383d0094d34e4"), pointer.From(45), pointer.From(179.4), nil, pointer.From("non-binary"), pointer.From("jane@tidepool.io"), "ccmfXVVeGnJUIartDO/zWGJl+oSBtkSuOyi1aVWuCOg="),
+				Entry("biologicalSex missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), nil, pointer.From("jon@tidepool.io"), "UZyxuxLcyZHEMUh0VuZ9D5o2jyJ289YFl7DFC887xow="),
+				Entry("email missing", pointer.From("a9f95c54cda64041be1fbb2bfb8ce442"), pointer.From(26), pointer.From(213.2), pointer.From(56.4), pointer.From("unspecified"), nil, "lyU9RRe+3bg6Gpqu9a9v5B3O3NECzkhBR5bFJVpKBPU="),
 				Entry("all missing", nil, nil, nil, nil, nil, nil, "RBNvo1WzZ4oRRq0W9+hknpT7T8If536DEMBg9hyq/4o="),
 			)
 		})

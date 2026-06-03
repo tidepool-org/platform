@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/gowebpki/jcs"
+
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -83,7 +85,9 @@ func (t TimeRange) Date() TimeRange {
 
 func (t TimeRange) Hash() (string, error) {
 	if bites, err := json.Marshal(t); err != nil {
-		return "", errors.Wrap(err, "unable to generate hash")
+		return "", errors.Wrap(err, "unable to generate JSON for hash")
+	} else if bites, err = jcs.Transform(bites); err != nil {
+		return "", errors.Wrap(err, "unable to canonicalize JSON for hash")
 	} else {
 		return crypto.Base64EncodedSHA256Hash(bites), nil
 	}
