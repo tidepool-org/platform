@@ -106,7 +106,7 @@ var _ = Describe("string_time_map", func() {
 				Entry("length in range (upper)",
 					func(datum *dataWork.StringTimeMap) {
 						*datum = dataWork.StringTimeMap{}
-						for range dataWork.StringTimeMapLengthMaximum {
+						for len(*datum) < dataWork.StringTimeMapLengthMaximum {
 							(*datum)[dataWorkTest.RandomStringTimeMapReference()] = pointer.From(dataWorkTest.RandomStringTimeMapValue())
 						}
 					},
@@ -114,7 +114,7 @@ var _ = Describe("string_time_map", func() {
 				Entry("length out of range (upper)",
 					func(datum *dataWork.StringTimeMap) {
 						*datum = dataWork.StringTimeMap{}
-						for range dataWork.StringTimeMapLengthMaximum + 1 {
+						for len(*datum) < dataWork.StringTimeMapLengthMaximum+1 {
 							(*datum)[dataWorkTest.RandomStringTimeMapReference()] = pointer.From(dataWorkTest.RandomStringTimeMapValue())
 						}
 					},
@@ -148,7 +148,7 @@ var _ = Describe("string_time_map", func() {
 				Entry("multiple errors",
 					func(datum *dataWork.StringTimeMap) {
 						*datum = dataWork.StringTimeMap{}
-						for range dataWork.StringTimeMapLengthMaximum {
+						for len(*datum) < dataWork.StringTimeMapLengthMaximum {
 							(*datum)[dataWorkTest.RandomStringTimeMapReference()] = pointer.From(dataWorkTest.RandomStringTimeMapValue())
 						}
 						(*datum)[strings.Repeat("X", dataWork.StringTimeMapReferenceLengthMaximum+1)] = pointer.From(dataWorkTest.RandomStringTimeMapValue())
