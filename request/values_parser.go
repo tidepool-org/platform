@@ -55,7 +55,7 @@ func (v *Values) HasMeta() bool {
 	return v.base.HasMeta()
 }
 
-func (v *Values) Meta() interface{} {
+func (v *Values) Meta() any {
 	return v.base.Meta()
 }
 
@@ -198,7 +198,7 @@ func (v *Values) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
-func (v *Values) Object(reference string) *map[string]interface{} {
+func (v *Values) Object(reference string) *map[string]any {
 	rawValue, ok := v.raw(reference)
 	if !ok {
 		return nil
@@ -208,7 +208,7 @@ func (v *Values) Object(reference string) *map[string]interface{} {
 	return nil
 }
 
-func (v *Values) Array(reference string) *[]interface{} {
+func (v *Values) Array(reference string) *[]any {
 	rawValue, ok := v.raw(reference)
 	if !ok {
 		return nil
@@ -234,19 +234,37 @@ func (v *Values) JSON(reference string, target any) {
 	}
 }
 
-func (v *Values) Interface(reference string) *interface{} {
+func (v *Values) Interface(reference string) *any {
 	rawValue, ok := v.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	var rawInterface interface{} = rawValue
+	var rawInterface any = rawValue
 	return &rawInterface
 }
 
-func (v *Values) NotParsed() error {
+func (v *Values) NotParsed() map[string]any {
 	if v.values == nil {
-		return v.Error()
+		return nil
+	}
+
+	var unparsed map[string]any
+	for reference := range *v.values {
+		if v.parsed[reference] < len((*v.values)[reference]) {
+			if unparsed == nil {
+				unparsed = map[string]any{}
+			}
+			unparsed[reference] = (*v.values)[reference][v.parsed[reference]:]
+		}
+	}
+
+	return unparsed
+}
+
+func (v *Values) ReportNotParsed() {
+	if v.values == nil {
+		return
 	}
 
 	for reference := range *v.values {
@@ -254,8 +272,6 @@ func (v *Values) NotParsed() error {
 			v.base.WithReference(reference).ReportError(structureParser.ErrorNotParsed())
 		}
 	}
-
-	return v.Error()
 }
 
 func (v *Values) WithOrigin(origin structure.Origin) structure.ObjectParser {
@@ -274,7 +290,7 @@ func (v *Values) WithSource(source structure.Source) structure.ObjectParser {
 	}
 }
 
-func (v *Values) WithMeta(meta interface{}) structure.ObjectParser {
+func (v *Values) WithMeta(meta any) structure.ObjectParser {
 	return &Values{
 		base:   v.base.WithMeta(meta),
 		values: v.values,

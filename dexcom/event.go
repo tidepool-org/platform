@@ -1,6 +1,7 @@
 package dexcom
 
 import (
+	"slices"
 	"strconv"
 
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
@@ -149,7 +150,7 @@ func ParseEventsResponse(parser structure.ObjectParser) *EventsResponse {
 		return nil
 	}
 	datum := NewEventsResponse()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -186,7 +187,7 @@ func ParseEvents(parser structure.ArrayParser) *Events {
 		return nil
 	}
 	datum := NewEvents()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -219,7 +220,7 @@ func ParseEvent(parser structure.ObjectParser) *Event {
 		return nil
 	}
 	datum := NewEvent()
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -299,7 +300,6 @@ func (e *Event) Normalize(normalizer structure.Normalizer) {}
 func (e *Event) validateUnknown(validator structure.Validator) {}
 
 func (e *Event) validateInsulin(validator structure.Validator) {
-
 	// HACK: Dexcom - Fix missing or invalid unit or value
 	if e.Unit == nil || *e.Unit == "" {
 		validator.Logger().Warnf("Event has missing or invalid unit")
@@ -374,8 +374,9 @@ func (e *Event) validateExercise(validator structure.Validator) {
 }
 
 func (e *Event) validateHealth(validator structure.Validator) {
-	if e.Value != nil {
-		validator.Logger().Warnf("Event has invalid value")
+
+	// HACK: Dexcom - Ignore any value with empty string or "0.00"
+	if e.Value != nil && slices.Contains([]string{"", "0.00"}, *e.Value) {
 		e.Value = nil
 	}
 
@@ -385,10 +386,17 @@ func (e *Event) validateHealth(validator structure.Validator) {
 }
 
 func (e *Event) validateBloodGlucose(validator structure.Validator) {
+
+	// HACK: Dexcom - Fix missing or invalid unit
+	if e.Unit == nil || *e.Unit == "" {
+		validator.Logger().Warnf("Event has missing or invalid unit")
+		e.Unit = pointer.FromString(EventUnitBloodGlucoseMgdL)
+	}
+
 	validator.String("eventSubType", e.EventSubType).NotExists()
 	validator.String("unit", e.Unit).Exists().OneOf(EventUnitsBloodGlucose()...)
 	validator.String("value", e.Value).Exists().NotEmpty()
-	if e.Unit != nil {
+	if e.Unit != nil && e.Value != nil && *e.Value != "" {
 		switch *e.Unit {
 		case EventUnitBloodGlucoseMgdL:
 			validateValueAsFloat64AndInRange(validator, e.Value, EventValueBloodGlucoseMgdLMinimum, EventValueBloodGlucoseMgdLMaximum)

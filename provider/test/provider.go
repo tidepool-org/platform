@@ -18,15 +18,24 @@ type OnDeleteInput struct {
 	ProviderSession *auth.ProviderSession
 }
 
+type OnRefreshInput struct {
+	Context         context.Context
+	ProviderSession *auth.ProviderSession
+	Refresh         *auth.ProviderSessionRefresh
+}
+
 type Provider struct {
-	Type                string
-	Name                string
-	OnCreateInvocations int
-	OnCreateInputs      []OnCreateInput
-	OnCreateOutputs     []error
-	OnDeleteInvocations int
-	OnDeleteInputs      []OnDeleteInput
-	OnDeleteOutputs     []error
+	Type                 string
+	Name                 string
+	OnCreateInvocations  int
+	OnCreateInputs       []OnCreateInput
+	OnCreateOutputs      []error
+	OnDeleteInvocations  int
+	OnDeleteInputs       []OnDeleteInput
+	OnDeleteOutputs      []error
+	OnRefreshInvocations int
+	OnRefreshInputs      []OnRefreshInput
+	OnRefreshOutputs     []error
 }
 
 func NewProvider(typ string, name string) *Provider {
@@ -60,7 +69,20 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	return output
 }
 
+func (p *Provider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
+	p.OnRefreshInvocations++
+
+	p.OnRefreshInputs = append(p.OnRefreshInputs, OnRefreshInput{Context: ctx, ProviderSession: providerSession, Refresh: refresh})
+
+	gomega.Expect(p.OnRefreshOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.OnRefreshOutputs[0]
+	p.OnRefreshOutputs = p.OnRefreshOutputs[1:]
+	return output
+}
+
 func (p *Provider) Expectations() {
 	gomega.Expect(p.OnCreateOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.OnDeleteOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.OnRefreshOutputs).To(gomega.BeEmpty())
 }

@@ -453,6 +453,44 @@ func (c *MockProviderOnDeleteCall) DoAndReturn(f func(context.Context, *auth.Pro
 	return c
 }
 
+// OnRefresh mocks base method.
+func (m *MockProvider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "OnRefresh", ctx, providerSession, refresh)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// OnRefresh indicates an expected call of OnRefresh.
+func (mr *MockProviderMockRecorder) OnRefresh(ctx, providerSession, refresh any) *MockProviderOnRefreshCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "OnRefresh", reflect.TypeOf((*MockProvider)(nil).OnRefresh), ctx, providerSession, refresh)
+	return &MockProviderOnRefreshCall{Call: call}
+}
+
+// MockProviderOnRefreshCall wrap *gomock.Call
+type MockProviderOnRefreshCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockProviderOnRefreshCall) Return(arg0 error) *MockProviderOnRefreshCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockProviderOnRefreshCall) Do(f func(context.Context, *auth.ProviderSession, *auth.ProviderSessionRefresh) error) *MockProviderOnRefreshCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockProviderOnRefreshCall) DoAndReturn(f func(context.Context, *auth.ProviderSession, *auth.ProviderSessionRefresh) error) *MockProviderOnRefreshCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ParseToken mocks base method.
 func (m *MockProvider) ParseToken(token string, claims jwt.Claims) error {
 	m.ctrl.T.Helper()

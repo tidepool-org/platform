@@ -4,12 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/consent"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
@@ -85,6 +84,7 @@ func (p *ConsentRepository) List(ctx context.Context, filter *consent.Filter, pa
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consents")
 	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
 
 	result := storeStructuredMongo.ListResult[consent.Consent]{}
 	if cursor.Next(ctx) {

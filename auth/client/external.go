@@ -7,11 +7,8 @@ import (
 	"sync"
 	"time"
 
-	permissionClient "github.com/tidepool-org/platform/permission/client"
-
-	"go.uber.org/fx"
-
 	"github.com/kelseyhightower/envconfig"
+	"go.uber.org/fx"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
@@ -19,8 +16,10 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
+	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure"
 )
 
 const (
@@ -205,11 +204,8 @@ func (e *External) ValidateSessionToken(ctx context.Context, token string) (requ
 		return nil, errors.New("token is missing")
 	}
 
-	var result struct {
-		IsServer bool
-		UserID   string
-	}
-	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, &result); err != nil {
+	result := &TokenData{}
+	if err := e.client.RequestData(ctx, "GET", e.client.ConstructURL("auth", "token", token), nil, nil, result); err != nil {
 		return nil, err
 	}
 
@@ -311,27 +307,25 @@ func (e *External) refreshServerSessionToken() error {
 
 	requestMethod := "POST"
 	requestURL := e.client.ConstructURL("auth", "serverlogin")
-	request, err := http.NewRequest(requestMethod, requestURL, nil)
+	req, err := http.NewRequest(requestMethod, requestURL, nil)
 	if err != nil {
 		return errors.Wrapf(err, "unable to create new request for %s %s", requestMethod, requestURL)
 	}
 
-	request.Header.Add(TidepoolServerNameHeaderName, e.name)
-	request.Header.Add(TidepoolServerSecretHeaderName, e.serverSessionTokenSecret)
+	req.Header.Add(TidepoolServerNameHeaderName, e.name)
+	req.Header.Add(TidepoolServerSecretHeaderName, e.serverSessionTokenSecret)
 
-	response, err := e.client.HTTPClient().Do(request)
+	res, err := e.client.HTTPClient().Do(req)
 	if err != nil {
 		return errors.Wrap(err, "unable to refresh server session token")
 	}
-	if response.Body != nil {
-		defer response.Body.Close()
+	defer request.DrainAndClose(res.Body)
+
+	if res.StatusCode != http.StatusOK {
+		return errors.Newf("unexpected response status code %d while refreshing server session token", res.StatusCode)
 	}
 
-	if response.StatusCode != http.StatusOK {
-		return errors.Newf("unexpected response status code %d while refreshing server session token", response.StatusCode)
-	}
-
-	serverSessionTokenHeader := response.Header.Get(auth.TidepoolSessionTokenHeaderKey)
+	serverSessionTokenHeader := res.Header.Get(auth.TidepoolSessionTokenHeaderKey)
 	if serverSessionTokenHeader == "" {
 		return errors.New("server session token is missing")
 	}
@@ -427,4 +421,22 @@ func (l *externalEnvconfigLoader) Load(cfg *ExternalConfig) error {
 		return err
 	}
 	return nil
+}
+
+// TokenData represents the data contained in a session token. Specifically use Parse to ensure proper parsing.
+// NOTE: The struct tags for TokenData are intentionally incorrect due to the existing Shoreline implementation.
+type TokenData struct {
+	IsServer  bool           `json:"isserver"`
+	UserID    string         `json:"userid"`
+	NotParsed map[string]any `json:"notParsed,omitempty"`
+}
+
+func (t *TokenData) Parse(parser structure.ObjectParser) {
+	if ptr := parser.Bool("isserver"); ptr != nil {
+		t.IsServer = *ptr
+	}
+	if ptr := parser.String("userid"); ptr != nil {
+		t.UserID = *ptr
+	}
+	t.NotParsed = parser.NotParsed()
 }

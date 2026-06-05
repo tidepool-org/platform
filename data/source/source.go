@@ -145,9 +145,7 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
-		if serializable.Error != nil {
-			u.Error = serializable
-		}
+		u.Error = serializable
 	}
 	u.DataSetID = parser.String("dataSetId")
 	u.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
@@ -230,9 +228,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	if parser.ReferenceExists("error") {
 		serializable := &errors.Serializable{}
 		serializable.Parse("error", parser)
-		if serializable.Error != nil {
-			s.Error = serializable
-		}
+		s.Error = serializable
 	}
 	s.DataSetID = parser.String("dataSetId")
 	s.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
@@ -285,7 +281,7 @@ func (s *Source) Sanitize(details request.AuthDetails) error {
 
 	if details.IsUser() {
 		s.ProviderSessionID = nil
-		if s.Error != nil && s.Error.Error != nil {
+		if s.Error != nil && s.Error.HasError() {
 			// TODO: Is there a way to make this a more general use case?
 			// TODO: Check all production data source errors for examples.
 			if cause := errors.Cause(s.Error.Error); request.IsErrorUnauthenticated(cause) {
@@ -305,7 +301,7 @@ func (s *Source) EnsureMetadata() {
 }
 
 func (s *Source) HasError() bool {
-	return s.Error != nil && s.Error.Error != nil
+	return s.Error != nil && s.Error.HasError()
 }
 
 func (s *Source) GetError() error {

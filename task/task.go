@@ -304,7 +304,7 @@ func (t *Task) SetCompleted() {
 }
 
 func (t *Task) HasError() bool {
-	return t.Error != nil && t.Error.Error != nil
+	return t.Error != nil && t.Error.HasError()
 }
 
 func (t *Task) GetError() error {
@@ -338,4 +338,4 @@ func (t Tasks) Sanitize(details request.AuthDetails) error {
 	return nil
 }
 
-var AlreadyClaimedTask = errors.New("Task has already been claimed or is now unavailable.")
+var ErrTaskAlreadyClaimed = errors.New("Task has already been claimed or is now unavailable.")

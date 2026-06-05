@@ -164,22 +164,19 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 
 	// Perform aggregation
 	cursor, err := s.Aggregate(ctx, pipeline)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.WithField("pipeline", pipeline).Error("unable to aggregate poll work")
+		lgr.WithError(err).WithField("pipeline", pipeline).Error("unable to aggregate poll work")
 		return nil, errors.Wrap(err, "unable to aggregate poll work")
 	}
 	defer cursor.Close(ctx)
 
 	// Get identifiers (_id and revision), if nothing, then bail
 	var idAndRevisions []bson.M
-	err = cursor.All(ctx, &idAndRevisions)
-	lgr = lgr.WithError(err)
-	if err != nil {
+	if err = cursor.All(ctx, &idAndRevisions); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
-			lgr.Error("unable to get all poll work")
+			lgr.WithError(err).Error("unable to get all poll work")
 			return nil, errors.Wrap(err, "unable to get all poll work")
 		}
 	} else if len(idAndRevisions) == 0 {
@@ -206,11 +203,9 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	ctx = context.WithoutCancel(ctx)
 
 	// Update, if nothing, then bail
-	updateResult, err := s.UpdateMany(ctx, query, update)
-	lgr = lgr.WithError(err)
-	if err != nil {
-		lgr.Error("unable to update all poll work")
-		return nil, errors.Wrap(err, "unable to update all poll work")
+	if updateResult, updateErr := s.UpdateMany(ctx, query, update); updateErr != nil {
+		lgr.WithError(updateErr).Error("unable to update all poll work")
+		return nil, errors.Wrap(updateErr, "unable to update all poll work")
 	} else if updateResult.MatchedCount == 0 || updateResult.ModifiedCount == 0 {
 		return nil, nil
 	}
@@ -220,9 +215,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	opts := mongoOptions.Find().
 		SetSort(bson.M{"processingAvailableTime": 1})
 	documents, err := s.findMany(ctx, query, opts)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to list poll work")
+		lgr.WithError(err).Error("unable to list poll work")
 		return nil, errors.Wrap(err, "unable to list poll work")
 	} else if len(documents) == 0 {
 		return nil, nil
@@ -271,9 +265,8 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": 1})
 	documents, err := s.findMany(ctx, query, opts)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to list work")
+		lgr.WithError(err).Error("unable to list work")
 		return nil, errors.Wrap(err, "unable to list work")
 	} else if documents == nil {
 		return nil, nil
@@ -366,9 +359,8 @@ func (s *Store) Get(ctx context.Context, id string, condition *storeStructured.C
 	}
 
 	document, err := s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to get work")
+		lgr.WithError(err).Error("unable to get work")
 		return nil, errors.Wrap(err, "unable to get work")
 	} else if document == nil {
 		return nil, nil
@@ -407,9 +399,8 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	}
 
 	document, err := s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to get work before update")
+		lgr.WithError(err).Error("unable to get work before update")
 		return nil, errors.Wrap(err, "unable to get work before update")
 	} else if document == nil {
 		return nil, nil
@@ -500,22 +491,19 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	// From this point forward, the context should not be cancelable
 	ctx = context.WithoutCancel(ctx)
 
-	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset)).Decode(&document)
-	lgr = lgr.WithError(err)
-	if err != nil {
+	if err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, unset)).Decode(&document); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
-			lgr.Error("unable to update work")
+			lgr.WithError(err).Error("unable to update work")
 			return nil, errors.Wrap(err, "unable to update work")
 		}
 	}
 
 	query = bson.M{"_id": objectID}
 	document, err = s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to get work after update")
+		lgr.WithError(err).Error("unable to get work after update")
 		return nil, errors.Wrap(err, "unable to get work after update")
 	} else if document == nil {
 		return nil, nil
@@ -552,13 +540,11 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	ctx = context.WithoutCancel(ctx)
 
 	var document *Document
-	err = s.FindOneAndDelete(ctx, query).Decode(&document)
-	lgr = lgr.WithError(err)
-	if err != nil {
+	if err = s.FindOneAndDelete(ctx, query).Decode(&document); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
-			lgr.Error("unable to delete work")
+			lgr.WithError(err).Error("unable to delete work")
 			return nil, errors.Wrap(err, "unable to delete work")
 		}
 	}
@@ -584,9 +570,8 @@ func (s *Store) DeleteAllByGroupID(ctx context.Context, groupID string) (int, er
 	query := bson.M{"groupId": groupID}
 
 	deleteResult, err := s.DeleteMany(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to delete all by group id work")
+		lgr.WithError(err).Error("unable to delete all by group id work")
 		return 0, errors.Wrap(err, "unable to delete all by group id work")
 	}
 

@@ -10,7 +10,7 @@ func RandomBase64EncodedMD5Hash() string {
 }
 
 func RandomHexEncodedMD5Hash() string {
-	return crypto.HexEncodedMD5Hash(test.RandomString())
+	return crypto.HexEncodedMD5Hash(test.RandomBytes())
 }
 
 func RandomBase64EncodedSHA256Hash() string {
@@ -18,5 +18,5 @@ func RandomBase64EncodedSHA256Hash() string {
 }
 
 func RandomHexEncodedSHA256Hash() string {
-	return crypto.HexEncodedSHA256Hash(test.RandomString())
+	return crypto.HexEncodedSHA256Hash(test.RandomBytes())
 }

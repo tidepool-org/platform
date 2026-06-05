@@ -17,7 +17,7 @@ import (
 const (
 	DefaultUpdateAvailableAfterDurationMinimum = 20 * time.Second
 	DefaultUpdateAvailableAfterDurationMaximum = 30 * time.Second
-	UpdateTaskDurationMaximum                  = 2 * time.Minute
+	UpdateTaskDurationMaximum                  = 4 * time.Minute
 	DefaultUpdateWorkerBatchSize               = 250
 	UpdateWorkerCount                          = 10
 	UpdateType                                 = "org.tidepool.summary.update"

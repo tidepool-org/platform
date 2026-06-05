@@ -53,7 +53,6 @@ func DecodeRequestBody(req *http.Request, decodable any, decodeOptions ...Decode
 		return ErrorJSONNotFound()
 	}
 
-	defer req.Body.Close()
 	return DecodeStream(req.Context(), structure.NewPointerSource(), req.Body, decodable, decodeOptions...)
 }
 
@@ -65,7 +64,7 @@ func DecodeResponseBody(ctx context.Context, res *http.Response, decodable any, 
 		return ErrorJSONNotFound()
 	}
 
-	defer res.Body.Close()
+	defer DrainAndClose(res.Body)
 	return DecodeStream(ctx, structure.NewPointerSource(), res.Body, decodable, decodeOptions...)
 }
 
@@ -162,7 +161,7 @@ func ParseObjectParsable(ctx context.Context, source structure.Source, object ma
 	parser := structureParser.NewObject(log.LoggerFromContext(ctx), &object).WithSource(source)
 	objectParsable.Parse(parser)
 	if !DecodeOptions(decodeOptions).IgnoreNotParsed() {
-		parser.NotParsed()
+		parser.ReportNotParsed()
 	}
 	return parser.Error()
 }
@@ -186,7 +185,7 @@ func ParseArrayParsable(ctx context.Context, source structure.Source, array []an
 	parser := structureParser.NewArray(log.LoggerFromContext(ctx), &array).WithSource(source)
 	arrayParsable.Parse(parser)
 	if !DecodeOptions(decodeOptions).IgnoreNotParsed() {
-		parser.NotParsed()
+		parser.ReportNotParsed()
 	}
 	return parser.Error()
 }
@@ -281,7 +280,8 @@ func ParseValuesObjects(ctx context.Context, values map[string][]string, objectP
 	for _, objectParsable := range objectParsableObjects {
 		objectParsable.Parse(parser)
 	}
-	return parser.NotParsed()
+	parser.ReportNotParsed()
+	return parser.Error()
 }
 
 func ParseSingletonHeader(header http.Header, key string) (*string, error) {

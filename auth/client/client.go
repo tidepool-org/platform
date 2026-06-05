@@ -61,14 +61,14 @@ func NewClient(cfg *Config, authorizeAs platform.AuthorizeAs, name string, lgr l
 		return nil, err
 	}
 
-	extrnl, err := NewExternal(cfg.ExternalConfig, authorizeAs, name, lgr)
+	external, err := NewExternal(cfg.ExternalConfig, authorizeAs, name, lgr)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Client{
 		client:   clnt,
-		External: extrnl,
+		External: external,
 	}, nil
 }
 
@@ -184,6 +184,31 @@ func (c *Client) DeleteProviderSession(ctx context.Context, id string) error {
 
 	url := c.client.ConstructURL("v1", "provider_sessions", id)
 	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+}
+
+func (c *Client) RefreshProviderSession(ctx context.Context, id string, refresh *auth.ProviderSessionRefresh) (*auth.ProviderSession, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, errors.New("id is missing")
+	}
+	if refresh == nil {
+		refresh = &auth.ProviderSessionRefresh{}
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(refresh); err != nil {
+		return nil, errors.Wrap(err, "refresh is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "provider_sessions", id, "refresh")
+	providerSession := &auth.ProviderSession{}
+	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, refresh, providerSession); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return providerSession, nil
 }
 
 func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {

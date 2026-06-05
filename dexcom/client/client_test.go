@@ -20,6 +20,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	oauthTest "github.com/tidepool-org/platform/oauth/test"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -46,26 +47,32 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns an error when config is missing", func() {
-			clnt, err := dexcomClient.New(nil, tokenSourceSource)
+			clnt, err := dexcomClient.New(nil, tokenSourceSource, request.RetryNone)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error when config is invalid", func() {
 			config.Address = ""
-			clnt, err := dexcomClient.New(config, tokenSourceSource)
+			clnt, err := dexcomClient.New(config, tokenSourceSource, request.RetryNone)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error when token source source is missing", func() {
-			clnt, err := dexcomClient.New(config, nil)
+			clnt, err := dexcomClient.New(config, nil, request.RetryNone)
 			Expect(err).To(MatchError("token source source is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
+		It("returns an error when retrier is missing", func() {
+			clnt, err := dexcomClient.New(config, tokenSourceSource, nil)
+			Expect(err).To(MatchError("retrier is missing"))
+			Expect(clnt).To(BeNil())
+		})
+
 		It("returns successfully", func() {
-			Expect(dexcomClient.New(config, tokenSourceSource)).ToNot(BeNil())
+			Expect(dexcomClient.New(config, tokenSourceSource, request.RetryNone)).ToNot(BeNil())
 		})
 	})
 
@@ -86,7 +93,7 @@ var _ = Describe("Client", func() {
 		JustBeforeEach(func() {
 			config.Address = server.URL()
 			var err error
-			clnt, err = dexcomClient.New(config, tokenSourceSource)
+			clnt, err = dexcomClient.New(config, tokenSourceSource, request.RetryNone)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})

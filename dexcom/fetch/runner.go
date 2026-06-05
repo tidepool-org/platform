@@ -2,13 +2,13 @@ package fetch
 
 import (
 	"context"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -176,7 +176,7 @@ func (t *TaskRunner) Run(ctx context.Context) {
 	if err := t.run(); err == nil {
 		t.rescheduleTask()
 	} else if !t.task.HasError() {
-		t.rescheduleTaskWithResourceError(err)
+		_ = t.rescheduleTaskWithResourceError(err)
 	}
 }
 
@@ -278,12 +278,14 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, l
 		update.LatestDataTime = latestDataTime
 	}
 
+	update.Error = errors.NewSerializable(nil)
 	update.LastImportTime = pointer.FromTime(time.Now())
 	return t.updateDataSource(update)
 }
 
 func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
 	update := dataSource.NewUpdate()
+	update.Error = errors.NewSerializable(nil)
 	update.LastImportTime = pointer.FromTime(time.Now())
 	return t.updateDataSource(update)
 }
@@ -417,20 +419,18 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
 	}
 
-	return t.updateDataSourceWithLastImportTime()
+	return nil
 }
 
 func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
-
-	// HACK: Dexcom V3 (2024-05-30) - Can only use latest data time as last sync time if not
-	// older than 100 days, otherwise will return erroneous results. Use 30 days to be on
-	// the safe side.
-	var lastSyncTime *time.Time
-	if t.dataSource.LatestDataTime != nil && time.Now().Before(t.dataSource.LatestDataTime.AddDate(0, 0, DataRangeDaysMaximum)) {
-		lastSyncTime = t.dataSource.LatestDataTime
-	}
-
-	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t)
+	// NOTE: Per Dexcom support, the lastSyncTime parameter does not work as
+	// expected in all situations (e.g. signal loss, last data more than 100
+	// days ago). Dexcom support recommends to not specify the lastSyncTime
+	// parameter for any request. Since the code below clamps any date range
+	// to the data source latestDateTime and the current time, this will work
+	// as expected FOR NOW. If/when we add deduplication and support
+	// update and delete of OLDER data, we will need to revisit this logic.
+	response, err := t.DexcomClient().GetDataRange(t.context, nil, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
 	}
@@ -789,7 +789,7 @@ func (t *TaskRunner) handleDexcomClientError(err error) error {
 
 // Retry task if Dexcom authentication failure. Otherwise, reschedule task.
 func (t *TaskRunner) retryOrRescheduleTaskWithDexcomClientError(err error) error {
-	if request.IsErrorUnauthenticated(errors.Cause(err)) {
+	if request.IsErrorUnauthenticated(errors.LastCause(err)) {
 		return t.retryTaskWithError(ErrorAuthenticationFailureError(err))
 	} else {
 		return t.rescheduleTaskWithResourceError(err)
@@ -866,11 +866,7 @@ func (t *TaskRunner) UpdateToken(ctx context.Context) (bool, error) {
 }
 
 func (t *TaskRunner) ExpireToken(ctx context.Context) (bool, error) {
-	if expired, err := t.tokenSource.ExpireToken(ctx); err != nil || !expired {
-		return expired, err
-	} else {
-		return true, t.updateProviderSession()
-	}
+	return t.tokenSource.ExpireToken(ctx)
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {
@@ -903,7 +899,7 @@ func availableAfterDuration() time.Duration {
 }
 
 func availableAfterDurationWithFallbackFactor(fallbackFactor float64) time.Duration {
-	return time.Duration(float64(AvailableAfterDuration)*fallbackFactor) + time.Duration(rand.Int63n(int64(2*AvailableAfterDurationJitter))) - AvailableAfterDurationJitter
+	return time.Duration(float64(AvailableAfterDuration)*fallbackFactor) + time.Duration(crypto.RandomInt64N(int64(2*AvailableAfterDurationJitter))) - AvailableAfterDurationJitter
 }
 
 func fallbackFactorWithRetryCount(retryCount int) float64 {

@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
@@ -58,7 +59,7 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
+	lgr := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromString(p.Type())
@@ -71,12 +72,12 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	var source *dataSource.Source
 	if count := len(sources); count > 0 {
 		if count > 1 {
-			logger.WithField("count", count).Warn("unexpected number of data sources found")
+			lgr.WithField("count", count).Warn("unexpected number of data sources found")
 		}
 
 		for _, source := range sources {
 			if source.State != dataSource.StateDisconnected {
-				logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
+				lgr.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
 
 				update := dataSource.NewUpdate()
 				update.State = pointer.FromString(dataSource.StateDisconnected)
@@ -118,7 +119,7 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 
 		// Attempt to delete task if data source not marked as connected
 		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID); taskErr != nil {
-			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
+			lgr.WithError(taskErr).Error("Failure deleting task after failed data source update")
 		}
 
 		return errors.Wrap(err, "unable to update data source")
@@ -132,13 +133,13 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx)
+	lgr := log.LoggerFromContext(ctx)
 
 	taskFilter := task.NewTaskFilter()
 	taskFilter.Name = pointer.FromString(dexcomFetch.TaskName(providerSession.ID))
 	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
-		logger.WithError(err).Error("unable to list tasks while deleting provider session")
+		lgr.WithError(err).Error("unable to list tasks while deleting provider session")
 		return nil
 	}
 
@@ -148,11 +149,40 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 			update.State = pointer.FromString(dataSource.StateDisconnected)
 			_, err = p.dataSourceClient.Update(ctx, dataSourceID, nil, update)
 			if err != nil {
-				logger.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
+				lgr.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
 			}
 		}
 		if err = p.taskClient.DeleteTask(ctx, task.ID); err != nil {
-			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
+			lgr.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
+		}
+	}
+	return nil
+}
+
+func (p *Provider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
+	if providerSession == nil {
+		return errors.New("provider session is missing")
+	}
+
+	// NOTE: Currently ignores refresh time range. Just trigger the task to fetch from the latest data.
+
+	lgr := log.LoggerFromContext(ctx)
+
+	taskFilter := task.NewTaskFilter()
+	taskFilter.Name = pointer.FromString(dexcomFetch.TaskName(providerSession.ID))
+	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
+	if err != nil {
+		lgr.WithError(err).Error("unable to list tasks while refreshing provider session")
+		return nil
+	}
+
+	// Update all tasks (should just be one) to be available now
+	taskUpdate := &task.TaskUpdate{
+		AvailableTime: pointer.From(time.Now()),
+	}
+	for _, task := range tasks {
+		if _, err = p.taskClient.UpdateTask(ctx, task.ID, taskUpdate); err != nil {
+			lgr.WithError(err).WithField("taskId", task.ID).Error("unable to refresh task")
 		}
 	}
 	return nil

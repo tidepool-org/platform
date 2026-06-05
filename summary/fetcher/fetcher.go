@@ -10,16 +10,15 @@ import (
 )
 
 type DeviceDataCursor interface {
-	Decode(val interface{}) error
+	Decode(val any) error
 	RemainingBatchLength() int
 	Next(ctx context.Context) bool
-	Close(ctx context.Context) error
 	GetNextBatch(ctx context.Context) ([]data.Datum, error)
 	Err() error
 }
 
 type DeviceDataFetcher interface {
 	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
-	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
+	GetLastUpdatedForUser(ctx context.Context, userID string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
+	GetDataRange(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 }

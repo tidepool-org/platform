@@ -13,15 +13,15 @@ import (
 
 type Object struct {
 	base   *structureBase.Base
-	object *map[string]interface{}
+	object *map[string]any
 	parsed map[string]bool
 }
 
-func NewObject(logger log.Logger, object *map[string]interface{}) *Object {
+func NewObject(logger log.Logger, object *map[string]any) *Object {
 	return NewObjectParser(structureBase.New(logger).WithSource(structure.NewPointerSource()), object)
 }
 
-func NewObjectParser(base *structureBase.Base, object *map[string]interface{}) *Object {
+func NewObjectParser(base *structureBase.Base, object *map[string]any) *Object {
 	var parsed map[string]bool
 	if object != nil {
 		parsed = make(map[string]bool, len(*object))
@@ -54,7 +54,7 @@ func (o *Object) HasMeta() bool {
 	return o.base.HasMeta()
 }
 
-func (o *Object) Meta() interface{} {
+func (o *Object) Meta() any {
 	return o.base.Meta()
 }
 
@@ -181,7 +181,7 @@ func (o *Object) StringArray(reference string) *[]string {
 
 	stringArrayValue, stringArrayValueOk := rawValue.([]string)
 	if !stringArrayValueOk {
-		arrayValue, arrayValueOk := rawValue.([]interface{})
+		arrayValue, arrayValueOk := rawValue.([]any)
 		if !arrayValueOk {
 			o.base.WithReference(reference).ReportError(ErrorTypeNotArray(rawValue))
 			return nil
@@ -232,13 +232,13 @@ func (o *Object) Time(reference string, layout string) *time.Time {
 	return &timeValue
 }
 
-func (o *Object) Object(reference string) *map[string]interface{} {
+func (o *Object) Object(reference string) *map[string]any {
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	objectValue, ok := rawValue.(map[string]interface{})
+	objectValue, ok := rawValue.(map[string]any)
 	if !ok {
 		o.base.WithReference(reference).ReportError(ErrorTypeNotObject(rawValue))
 		return nil
@@ -247,13 +247,13 @@ func (o *Object) Object(reference string) *map[string]interface{} {
 	return &objectValue
 }
 
-func (o *Object) Array(reference string) *[]interface{} {
+func (o *Object) Array(reference string) *[]any {
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	arrayValue, ok := rawValue.([]interface{})
+	arrayValue, ok := rawValue.([]any)
 	if !ok {
 		o.base.WithReference(reference).ReportError(ErrorTypeNotArray(rawValue))
 		return nil
@@ -284,7 +284,7 @@ func (o *Object) JSON(reference string, target any) {
 	}
 }
 
-func (o *Object) Interface(reference string) *interface{} {
+func (o *Object) Interface(reference string) *any {
 	rawValue, ok := o.raw(reference)
 	if !ok {
 		return nil
@@ -293,9 +293,27 @@ func (o *Object) Interface(reference string) *interface{} {
 	return &rawValue
 }
 
-func (o *Object) NotParsed() error {
+func (o *Object) NotParsed() map[string]any {
 	if o.object == nil {
-		return o.Error()
+		return nil
+	}
+
+	var unparsed map[string]any
+	for reference := range *o.object {
+		if !o.parsed[reference] {
+			if unparsed == nil {
+				unparsed = map[string]any{}
+			}
+			unparsed[reference] = (*o.object)[reference]
+		}
+	}
+
+	return unparsed
+}
+
+func (o *Object) ReportNotParsed() {
+	if o.object == nil {
+		return
 	}
 
 	var references []string
@@ -311,8 +329,6 @@ func (o *Object) NotParsed() error {
 			o.base.WithReference(reference).ReportError(ErrorNotParsed())
 		}
 	}
-
-	return o.Error()
 }
 
 func (o *Object) WithOrigin(origin structure.Origin) structure.ObjectParser {
@@ -331,7 +347,7 @@ func (o *Object) WithSource(source structure.Source) structure.ObjectParser {
 	}
 }
 
-func (o *Object) WithMeta(meta interface{}) structure.ObjectParser {
+func (o *Object) WithMeta(meta any) structure.ObjectParser {
 	return &Object{
 		base:   o.base.WithMeta(meta),
 		object: o.object,
@@ -351,7 +367,7 @@ func (o *Object) WithReferenceErrorReporter(reference string) structure.ErrorRep
 	return o.base.WithReference(reference)
 }
 
-func (o *Object) raw(reference string) (interface{}, bool) {
+func (o *Object) raw(reference string) (any, bool) {
 	if o.object == nil {
 		return nil, false
 	}

@@ -43,7 +43,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 		}
 	}
 
-	var rawDatum map[string]interface{}
+	var rawDatum map[string]any
 	if err := dataServiceContext.Request().DecodeJsonPayload(&rawDatum); err != nil {
 		dataServiceContext.RespondWithError(service.ErrorJSONMalformed())
 		return
@@ -56,7 +56,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 
 	dataSet := data.ParseDataSet(parser)
 	if dataSet != nil {
-		parser.NotParsed()
+		parser.ReportNotParsed()
 	}
 
 	if err := parser.Error(); err != nil {
@@ -84,7 +84,7 @@ func UsersDataSetsCreate(dataServiceContext dataService.Context) {
 
 	dataSet.DataState = pointer.FromString("open") // TODO: Deprecated DataState (after data migration)
 	dataSet.State = pointer.FromString("open")
-	dataSet.Provenance = CollectProvenanceInfo(ctx, req, details)
+	dataSet.Provenance = GetProvenanceFromRequest(ctx, req, details)
 
 	if err := dataServiceContext.DataRepository().CreateDataSet(ctx, dataSet); err != nil {
 		dataServiceContext.RespondWithInternalServerFailure("Unable to insert data set", err)

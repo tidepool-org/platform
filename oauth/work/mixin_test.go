@@ -135,10 +135,6 @@ var _ = Describe("mixin", func() {
 				})
 
 				Context("HTTPClient", func() {
-
-					BeforeEach(func() {
-					})
-
 					It("returns an error when context is nil", func() {
 						httpClient, err := mixin.HTTPClient(context.Context(nil), tokenSourceSource)
 						Expect(err).To(MatchError("context is missing"))
@@ -230,18 +226,7 @@ var _ = Describe("mixin", func() {
 								providerSession.OAuthToken.ExpirationTime = test.RandomTimeAfterNow()
 							})
 
-							It("returns error if update provider session returns an error", func() {
-								failingProcessResult := workTest.RandomFailingProcessResult()
-								mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
-								mockProviderSessionMixin.EXPECT().UpdateProviderSession(MatchProviderSessionIgnoringExpirationTime(providerSession)).Return(failingProcessResult)
-								expired, err := mixin.ExpireToken(ctx)
-								errorsTest.ExpectEqual(err, failingProcessResult.Error())
-								Expect(expired).To(BeTrue())
-							})
-
 							It("returns successfully", func() {
-								mockProviderSessionMixin.EXPECT().ProviderSession().Return(providerSession)
-								mockProviderSessionMixin.EXPECT().UpdateProviderSession(MatchProviderSessionIgnoringExpirationTime(providerSession)).Return(nil)
 								expired, err := mixin.ExpireToken(ctx)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(expired).To(BeTrue())

@@ -121,9 +121,8 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 		SetSort(bson.M{"createdTime": 1}).
 		SetProjection(bson.M{"data": 0})
 	documents, err := s.findMany(ctx, query, opts)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to list raw")
+		lgr.WithError(err).Error("unable to list raw")
 		return nil, errors.Wrap(err, "unable to list raw")
 	} else if documents == nil {
 		return nil, nil
@@ -180,10 +179,8 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	}()
 
 	// Read all data (original and compressed data captured via HeadReader)
-	_, err := io.Copy(io.Discard, compressedHeadReader)
-	lgr = lgr.WithError(err)
-	if err != nil {
-		lgr.Error("unable to read data")
+	if _, err := io.Copy(io.Discard, compressedHeadReader); err != nil {
+		lgr.WithError(err).Error("unable to read data")
 		return nil, errors.Wrap(err, "unable to read data")
 	}
 
@@ -251,15 +248,14 @@ func (s *Store) Create(ctx context.Context, userID string, dataSetID string, cre
 	ctx = context.WithoutCancel(ctx)
 
 	result, err := s.InsertOne(ctx, document)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to create raw")
+		lgr.WithError(err).Error("unable to create raw")
 		return nil, errors.Wrap(err, "unable to create raw")
 	}
 
 	if insertedID, ok := result.InsertedID.(bsonPrimitive.ObjectID); !ok || insertedID.IsZero() {
-		lgr.WithError(err).Error("raw id is invalid")
-		return nil, errors.Wrap(err, "raw id is invalid")
+		lgr.Error("raw id is invalid")
+		return nil, errors.New("raw id is invalid")
 	} else {
 		document.ID = insertedID
 	}
@@ -294,9 +290,8 @@ func (s *Store) Get(ctx context.Context, id string, condition *storeStructured.C
 	opts := mongoOptions.FindOne().
 		SetProjection(bson.M{"data": 0})
 	document, err := s.findOne(ctx, query, opts)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to get raw")
+		lgr.WithError(err).Error("unable to get raw")
 		return nil, errors.Wrap(err, "unable to get raw")
 	} else if document == nil {
 		return nil, nil
@@ -330,9 +325,8 @@ func (s *Store) GetContent(ctx context.Context, id string, condition *storeStruc
 	}
 
 	document, err := s.findOne(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to get content")
+		lgr.WithError(err).Error("unable to get content")
 		return nil, errors.Wrap(err, "unable to get content")
 	} else if document == nil {
 		return nil, nil
@@ -389,20 +383,17 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 	// From this point forward, the context should not be cancelable
 	ctx = context.WithoutCancel(ctx)
 
-	var document *Document
-	err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, nil)).Decode(&document)
-	lgr = lgr.WithError(err)
-	if err != nil {
+	if err = s.FindOneAndUpdate(ctx, query, s.ConstructUpdate(set, nil)).Err(); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
-			lgr.Error("unable to update raw")
+			lgr.WithError(err).Error("unable to update raw")
 			return nil, errors.Wrap(err, "unable to update raw")
 		}
 	}
 
 	query = bson.M{"_id": objectID}
-	document, err = s.findOne(ctx, query)
+	document, err := s.findOne(ctx, query)
 	lgr = lgr.WithError(err)
 	if err != nil {
 		lgr.Error("unable to get raw after update")
@@ -439,13 +430,11 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	}
 
 	var document *Document
-	err = s.FindOneAndDelete(ctx, query, mongoOptions.FindOneAndDelete().SetProjection(bson.M{"data": 0})).Decode(&document)
-	lgr = lgr.WithError(err)
-	if err != nil {
+	if err = s.FindOneAndDelete(ctx, query, mongoOptions.FindOneAndDelete().SetProjection(bson.M{"data": 0})).Decode(&document); err != nil {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil, nil
 		} else {
-			lgr.Error("unable to delete raw")
+			lgr.WithError(err).Error("unable to delete raw")
 			return nil, errors.Wrap(err, "unable to delete raw")
 		}
 	}
@@ -474,9 +463,8 @@ func (s *Store) DeleteMultiple(ctx context.Context, ids []string) (int, error) {
 	query := bson.M{"_id": bson.M{"$in": objectIDs}}
 
 	deleteResult, err := s.DeleteMany(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to delete multiple raw")
+		lgr.WithError(err).Error("unable to delete multiple raw")
 		return 0, errors.Wrap(err, "unable to delete multiple raw")
 	}
 
@@ -510,9 +498,8 @@ func (s *Store) DeleteAllByDataSetID(ctx context.Context, userID string, dataSet
 	}
 
 	deleteResult, err := s.DeleteMany(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to delete all by data set id raw")
+		lgr.WithError(err).Error("unable to delete all by data set id raw")
 		return 0, errors.Wrap(err, "unable to delete all by data set id raw")
 	}
 
@@ -538,9 +525,8 @@ func (s *Store) DeleteAllByUserID(ctx context.Context, userID string) (int, erro
 	query := bson.M{"userId": userID}
 
 	deleteResult, err := s.DeleteMany(ctx, query)
-	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to delete all by user id raw")
+		lgr.WithError(err).Error("unable to delete all by user id raw")
 		return 0, errors.Wrap(err, "unable to delete all by user id raw")
 	}
 

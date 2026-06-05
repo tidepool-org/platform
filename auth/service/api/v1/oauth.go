@@ -228,8 +228,8 @@ func (r *Router) oauthProvider(req *rest.Request) (oauth.Provider, error) {
 		return nil, err
 	}
 
-	prvdr, err := r.ProviderFactory().Get(auth.ProviderTypeOAuth, name)
-	if err != nil {
+	prvdr := r.ProviderFactory().Get(auth.ProviderTypeOAuth, name)
+	if prvdr == nil {
 		return nil, request.ErrorResourceNotFoundWithID(name)
 	}
 	oauthProvider, ok := prvdr.(oauth.Provider)
@@ -405,6 +405,8 @@ const htmlOnError = `
 </html>
 `
 
-const unexpectedError = "Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help."
-const usedError = "This connection request has already been used and can only be used once. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."
-const expiredError = "This connection request has expired. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."
+const (
+	unexpectedError = "Looks like an unexpected error occurred. You can try again, or send an email to support@tidepool.org for help."
+	usedError       = "This connection request has already been used and can only be used once. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."
+	expiredError    = "This connection request has expired. If this doesn't sound right, please send an email to support@tidepool.org and we'll help you out."
+)

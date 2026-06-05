@@ -49,17 +49,17 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessSummaries {
 	}
 }
 
-func (r *Summaries[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
+func (r *Summaries[PP, PB, P, B]) GetSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userId == "" {
-		return nil, errors.New("userId is missing")
+	if userID == "" {
+		return nil, errors.New("user id is missing")
 	}
 
-	summary := types.Create[PP, PB](userId)
+	summary := types.Create[PP, PB](userID)
 	selector := bson.M{
-		"userId": userId,
+		"userId": userID,
 		"type":   summary.Type,
 	}
 
@@ -73,16 +73,16 @@ func (r *Summaries[PP, PB, P, B]) GetSummary(ctx context.Context, userId string)
 	return summary, nil
 }
 
-func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userId string) error {
+func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if userId == "" {
-		return errors.New("userId is missing")
+	if userID == "" {
+		return errors.New("user id is missing")
 	}
 
 	selector := bson.M{
-		"userId": userId,
+		"userId": userID,
 	}
 
 	_, err := r.DeleteMany(ctx, selector)
@@ -93,16 +93,16 @@ func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userId string) er
 	return nil
 }
 
-func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userId string) error {
+func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userID string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
-	if userId == "" {
-		return errors.New("userId is missing")
+	if userID == "" {
+		return errors.New("user id is missing")
 	}
 
 	selector := bson.M{
-		"userId": userId,
+		"userId": userID,
 		"type":   types.GetType[PP, PB, P, B](),
 	}
 
@@ -123,6 +123,7 @@ func (r *Summaries[PP, PB, P, B]) ReplaceSummary(ctx context.Context, userSummar
 	}
 
 	var expectedType = types.GetType[PP, PB]()
+
 	if userSummary.Type != expectedType {
 		return fmt.Errorf("invalid summary type '%v', expected '%v'", userSummary.Type, expectedType)
 	}
@@ -157,7 +158,7 @@ func (r *Summaries[PP, PB, P, B]) CreateSummaries(ctx context.Context, summaries
 	for i, userSummary := range summaries {
 		// we don't guard against duplicates, as they fail to insert safely, we only worry about unfilled fields
 		if userSummary.UserID == "" {
-			return 0, fmt.Errorf("userId is missing at index %d", i)
+			return 0, fmt.Errorf("user id is missing at index %d", i)
 		} else if userSummary.Type != expectedType {
 			return 0, fmt.Errorf("invalid summary type '%v', expected '%v' at index %d", userSummary.Type, expectedType, i)
 		}
@@ -183,23 +184,23 @@ func (r *Summaries[PP, PB, P, B]) CreateSummaries(ctx context.Context, summaries
 	return count, nil
 }
 
-func (r *Summaries[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (r *Summaries[PP, PB, P, B]) SetOutdated(ctx context.Context, userID, reason string) (*time.Time, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if userId == "" {
-		return nil, errors.New("userId is missing")
+	if userID == "" {
+		return nil, errors.New("user id is missing")
 	}
 
 	// we need to get the summary first, as there is multiple possible operations, and we do not want to replace
 	// the existing field, but also want to upsert if no summary exists.
-	userSummary, err := r.GetSummary(ctx, userId)
+	userSummary, err := r.GetSummary(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
 
 	if userSummary == nil {
-		userSummary = types.Create[PP, PB](userId)
+		userSummary = types.Create[PP, PB](userID)
 	}
 
 	userSummary.SetOutdated(reason)
@@ -212,13 +213,13 @@ func (r *Summaries[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reaso
 	update := bson.M{
 		"$set":      bson.M{"dates.outdatedSince": userSummary.Dates.OutdatedSince},
 		"$addToSet": bson.M{"dates.outdatedReason": reason},
-		//"$setOnInsert": userSummary,
+		// "$setOnInsert": userSummary,
 	}
 
 	_, err = r.UpdateOne(ctx, selector, update, opts)
 
 	if err != nil {
-		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userId, userSummary.Type, err)
+		return nil, fmt.Errorf("unable to update user %s outdatedSince date for type %s: %w", userID, userSummary.Type, err)
 	}
 
 	return userSummary.Dates.OutdatedSince, nil
@@ -259,6 +260,7 @@ func (r *Summaries[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, page *
 	if err != nil {
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
 
 	response := &types.OutdatedSummariesResponse{
 		UserIds: make([]string, 0, cursor.RemainingBatchLength()),

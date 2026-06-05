@@ -14,5 +14,5 @@ func CallbackURLForEvent(partnerURL string, eventType string, dataType string) s
 }
 
 func VerificationTokenForCallbackURL(callbackURL string, partnerSecret string) string {
-	return crypto.HexEncodedSHA256Hash(fmt.Sprintf("%s:%s", callbackURL, partnerSecret))
+	return crypto.HexEncodedSHA256Hash(fmt.Appendf(nil, "%s:%s", callbackURL, partnerSecret))
 }

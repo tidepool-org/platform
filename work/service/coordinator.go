@@ -310,7 +310,7 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 
 			// Create failed process result
 			processResult = work.NewProcessResultFailed(work.FailedUpdate{
-				FailedError: errors.Serializable{Error: errors.New("invalid process result")},
+				FailedError: errors.Serializable{Error: errors.New("process result is invalid")},
 				Metadata:    failedUpdateMetadata,
 			})
 		}

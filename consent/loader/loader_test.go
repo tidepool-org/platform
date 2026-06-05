@@ -6,17 +6,16 @@ import (
 	"io/fs"
 	"testing/fstest"
 
-	"github.com/tidepool-org/platform/log/test"
-
-	"github.com/tidepool-org/platform/log"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/consent/loader"
 	consentTest "github.com/tidepool-org/platform/consent/test"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log/test"
 )
 
 var _ = Describe("SeedConsents", func() {
@@ -201,7 +200,7 @@ var _ = Describe("SeedConsents", func() {
 
 		It("should return an error", func() {
 			serviceErr := errors.New("service error")
-			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(serviceErr).Times(1)
+			mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(serviceErr)
 
 			err := loader.SeedConsents(ctx, logger, mockService)
 			Expect(err).To(HaveOccurred())
@@ -221,7 +220,7 @@ var _ = Describe("SeedConsents", func() {
 				loader.SetContentFS(mockFS, ".")
 
 				if shouldMatch {
-					mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+					mockService.EXPECT().EnsureConsent(gomock.Any(), gomock.Any()).Return(nil)
 				}
 				// If shouldMatch is false, no expectations are set
 
