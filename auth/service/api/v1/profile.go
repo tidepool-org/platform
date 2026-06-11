@@ -25,7 +25,9 @@ type trustPermissions struct {
 func (r *Router) ProfileRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Get("/v1/users/:userId/profile", r.requireMembership("userId", r.GetProfile)),
-		rest.Get("/v1/users/:userId/users", r.requireMembership("userId", r.GetUsersWithProfiles)),
+
+		rest.Get("/users/:userId/users", r.requireCustodian("userId", r.GetUsersWithProfiles)),
+		rest.Get("/metadata/users/:userId/users", r.requireCustodian("userId", r.GetUsersWithProfiles)),
 
 		rest.Get("/v1/users/legacy/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
 		rest.Get("/metadata/:userId/profile", r.requireMembership("userId", r.GetLegacyProfile)),
@@ -112,8 +114,8 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			continue
 		}
 
-		if perms, ok := mergedUserPerms[userID]; !ok {
-			mergedUserPerms[userID] = perms
+		if _, ok := mergedUserPerms[userID]; !ok {
+			mergedUserPerms[userID] = &trustPermissions{}
 		}
 		clone := maps.Clone(perms)
 		mergedUserPerms[userID].TrusteePermissions = &clone

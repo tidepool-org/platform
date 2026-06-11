@@ -512,7 +512,7 @@ var _ = Describe("Router", func() {
 					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
 					req.Request = req.WithContext(ctx)
 					req.Method = http.MethodGet
-					req.URL.Path = fmt.Sprintf("/v1/users/%s/users", shareeUserID)
+					req.URL.Path = fmt.Sprintf("/users/%s/users", shareeUserID)
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
 					userProfile = user.Profile{
@@ -596,7 +596,7 @@ var _ = Describe("Router", func() {
 							}).AnyTimes()
 
 					permsClient.EXPECT().
-						HasMembershipRelationship(gomock.Any(), shareeUserID, userID).
+						HasCustodianPermissions(gomock.Any(), shareeUserID, userID).
 						Return(true, nil).AnyTimes()
 
 				})
@@ -644,13 +644,13 @@ var _ = Describe("Router", func() {
 							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							permsClient.EXPECT().
-								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 								Return(true, nil).AnyTimes()
 						})
 						It("returns sharer's user info w/ sharee.", func() {
 							userResults := []user.TrustUser{
 								{
-									User: *sanitizedUserDetails,
+									User: *userDetails,
 									TrustPermissions: user.TrustPermissions{
 										TrustorPermissions: &permission.Permission{
 											permission.Read: map[string]any{},
@@ -662,27 +662,15 @@ var _ = Describe("Router", func() {
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
 						})
-						It("excludes self and returns empty if nothing shared.", func() {
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-
-							userResults := []user.TrustUser{}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
-						})
 					})
 
 					Context("as user", func() {
 						BeforeEach(func() {
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", shareeUserID)
 							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							var s string
 							permsClient.EXPECT().
-								HasMembershipRelationship(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+								HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
 								DoAndReturn(
 									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
 										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
@@ -693,9 +681,6 @@ var _ = Describe("Router", func() {
 								{
 									User: *sanitizedUserDetails,
 									TrustPermissions: user.TrustPermissions{
-										TrusteePermissions: &permission.Permission{
-											permission.Read: struct{}{},
-										},
 										TrustorPermissions: &permission.Permission{
 											permission.Read: struct{}{},
 										},
@@ -708,7 +693,7 @@ var _ = Describe("Router", func() {
 						})
 						It("excludes self and returns empty if nothing shared.", func() {
 							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
 							userResults := []user.TrustUser{}
@@ -734,7 +719,9 @@ var _ = Describe("Router", func() {
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
-								userID: permission.Permission{},
+								userID: permission.Permission{
+									permission.Read: map[string]any{},
+								},
 							}, nil).AnyTimes()
 
 						permsClient.EXPECT().
@@ -761,7 +748,7 @@ var _ = Describe("Router", func() {
 							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							permsClient.EXPECT().
-								HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 								Return(true, nil).AnyTimes()
 						})
 						It("returns full sharer details if service", func() {
@@ -778,16 +765,6 @@ var _ = Describe("Router", func() {
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
 						})
-						It("excludes self and returns empty if nothing shared.", func() {
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-
-							userResults := []user.TrustUser{}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
-						})
 					})
 
 					Context("as user", func() {
@@ -796,7 +773,7 @@ var _ = Describe("Router", func() {
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							var s string
 							permsClient.EXPECT().
-								HasMembershipRelationship(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+								HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
 								DoAndReturn(
 									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
 										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
@@ -818,7 +795,9 @@ var _ = Describe("Router", func() {
 						})
 						It("excludes self and returns empty if nothing shared.", func() {
 							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
+							req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
+							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
 							userResults := []user.TrustUser{}
