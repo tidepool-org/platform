@@ -78,7 +78,7 @@ var _ = Describe("Router", func() {
 				var handlerFunc rest.HandlerFunc
 				var userID string
 				var details request.AuthDetails
-				var userProfile *user.UserProfile
+				var userProfile *user.Profile
 				var userRoles []string
 				var userDetails *user.User
 

@@ -34,11 +34,11 @@ func (c *Client) UpdateUserPermissions(ctx context.Context, requestUserID string
 	return c.ExternalAccessor.Client.UpdateUserPermissions(ctx, requestUserID, targetUserID, permissions)
 }
 
-func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
+func (c *Client) PermissionsGrantedToUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
 	return nil, nil
 }
 
-func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.Permissions, error) {
+func (c *Client) PermissionsGrantedByUser(ctx context.Context, sharerID string) (permission.Permissions, error) {
 	return nil, nil
 }
 
@@ -47,9 +47,5 @@ func (c *Client) HasMembershipRelationship(ctx context.Context, granteeUserID, g
 }
 
 func (c *Client) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
-	return false, nil
-}
-
-func (c *Client) HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	return false, nil
 }

@@ -20,8 +20,6 @@ var (
 
 	ErrUserNotFound        = errors.New("user not found")
 	ErrUserProfileNotFound = errors.New("profile not found")
-	ErrUserConflict        = errors.New("user already exists")
-	ErrEmailConflict       = errors.New("email already exists")
 	ErrUserNotMigrated     = errors.New("user has not been migrated")
 	ErrProfileNotMigrated  = errors.New("profile has not been migrated")
 
@@ -33,14 +31,14 @@ var (
 )
 
 type LegacyProfileAccessor interface {
-	FindUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error)
-	UpdateUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error
-	DeleteUserProfile(ctx context.Context, userID string) error
+	FindLegacyUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error)
+	UpdateLegacyUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error
 }
 
 type ProfileAccessor interface {
 	LegacyProfileAccessor
-	UpdateUserProfileV2(ctx context.Context, userID string, p *UserProfile) error
+	UpdateUserProfile(ctx context.Context, userID string, p *Profile) error
+	FindUserProfile(ctx context.Context, userID string) (*Profile, error)
 }
 
 type RoleGetter interface {

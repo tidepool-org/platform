@@ -45,7 +45,7 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 }
 
 func (r *Router) getProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
-	profile, err := r.ProfileAccessor().FindUserProfile(ctx, userID)
+	profile, err := r.ProfileAccessor().FindLegacyUserProfile(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	}
 
 	mergedUserPerms := map[string]*trustPermissions{}
-	trustorPerms, err := r.PermissionsClient().GroupsForUser(ctx, targetUserID)
+	trustorPerms, err := r.PermissionsClient().PermissionsGrantedToUser(ctx, targetUserID)
 	if err != nil {
 		responder.InternalServerError(err)
 		return
@@ -101,7 +101,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		}
 	}
 
-	trusteePerms, err := r.PermissionsClient().UsersInGroup(ctx, targetUserID)
+	trusteePerms, err := r.PermissionsClient().PermissionsGrantedByUser(ctx, targetUserID)
 	if err != nil {
 		responder.InternalServerError(err)
 		return
@@ -112,15 +112,15 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			continue
 		}
 
-		if _, ok := mergedUserPerms[userID]; !ok {
-			mergedUserPerms[userID] = &trustPermissions{}
+		if perms, ok := mergedUserPerms[userID]; !ok {
+			mergedUserPerms[userID] = perms
 		}
 		clone := maps.Clone(perms)
 		mergedUserPerms[userID].TrusteePermissions = &clone
 	}
 
 	lock := &sync.Mutex{}
-	results := make(user.UserArray, 0, len(mergedUserPerms))
+	results := user.TrustUserArray{}
 	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(20) // do up to 20 concurrent requests like seagull did
 	for userID, trustPerms := range mergedUserPerms {
@@ -141,18 +141,17 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 			if err != nil {
 				return err
 			}
-			trustorPerms := trustPerms.TrustorPermissions
-
 			profile := seagullProfile.ToUserProfile()
-			if trustorPerms == nil || len(*trustorPerms) == 0 {
-				profile = profile.ClearPatientInfo()
+			trustUser := &user.TrustUser{
+				User: *sharedUser,
+				TrustPermissions: user.TrustPermissions{
+					TrusteePermissions: trustPerms.TrusteePermissions,
+					TrustorPermissions: trustPerms.TrustorPermissions,
+				},
 			}
-			sharedUser.Profile = profile
-			sharedUser.TrusteePermissions = trustPerms.TrusteePermissions
-			sharedUser.TrustorPermissions = trustPerms.TrustorPermissions
-			// type UsersArray implements Sanitize to hide any properties for non service requests
+			trustUser.Profile = profile
 			lock.Lock()
-			results = append(results, sharedUser)
+			results = append(results, trustUser)
 			lock.Unlock()
 			return nil
 		})
@@ -162,6 +161,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 		return
 	}
 
+	// type TrustUserArray implements Sanitize to hide any properties for non service requests
 	responder.Data(http.StatusOK, results)
 }
 
@@ -189,11 +189,7 @@ func (r *Router) UpdateLegacyProfile(res rest.ResponseWriter, req *rest.Request)
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	if err := r.ProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
+	if err := r.ProfileAccessor().UpdateLegacyUserProfile(ctx, userID, profile); err != nil {
 		r.handleUserOrProfileErr(responder, err)
 		return
 	}
@@ -205,7 +201,7 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 	ctx := req.Context()
 	userID := req.PathParam("userId")
 
-	profile := &user.UserProfile{}
+	profile := &user.Profile{}
 	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
@@ -214,7 +210,7 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
-	if err := r.ProfileAccessor().UpdateUserProfileV2(ctx, userID, profile); err != nil {
+	if err := r.ProfileAccessor().UpdateUserProfile(ctx, userID, profile); err != nil {
 		r.handleUserOrProfileErr(responder, err)
 		return
 	}
@@ -223,15 +219,7 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 
 func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
-	ctx := req.Context()
-	userID := req.PathParam("userId")
-
-	err := r.ProfileAccessor().DeleteUserProfile(ctx, userID)
-	if err != nil {
-		r.handleUserOrProfileErr(responder, err)
-		return
-	}
-	responder.Empty(http.StatusOK)
+	responder.Empty(http.StatusNotImplemented)
 }
 
 func (r *Router) handleUserOrProfileErr(responder *request.Responder, err error) {

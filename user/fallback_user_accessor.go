@@ -26,13 +26,13 @@ func NewFallbackLegacyUserAccessor(seagullAccessor LegacyProfileAccessor, access
 	}
 }
 
-func (f *FallbackLegacyUserAccessor) FindUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
+func (f *FallbackLegacyUserAccessor) FindLegacyUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
 	profile, _, err := f.findUserProfile(ctx, userID)
 	return profile, err
 }
 
 func (f *FallbackLegacyUserAccessor) findUserProfile(ctx context.Context, userID string) (profile *LegacyUserProfile, retrievedFromSeagull bool, err error) {
-	seagullProfile, err := f.seagullLegacyAccessor.FindUserProfile(ctx, userID)
+	seagullProfile, err := f.seagullLegacyAccessor.FindLegacyUserProfile(ctx, userID)
 	// A not found error is OK to proceed as it may still exist in keycloak. Any
 	// other errors are unexpected.
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
@@ -45,7 +45,7 @@ func (f *FallbackLegacyUserAccessor) findUserProfile(ctx context.Context, userID
 		return seagullProfile, true, nil
 	}
 
-	profile, err = f.accessor.FindUserProfile(ctx, userID)
+	profile, err = f.accessor.FindLegacyUserProfile(ctx, userID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -55,7 +55,7 @@ func (f *FallbackLegacyUserAccessor) findUserProfile(ctx context.Context, userID
 	return profile, false, nil
 }
 
-func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, id string, profile *LegacyUserProfile) error {
+func (f *FallbackLegacyUserAccessor) UpdateLegacyUserProfile(ctx context.Context, id string, profile *LegacyUserProfile) error {
 	// retry any updates in case a migration happens sometime during this call -
 	// a migration should not take more than a few seconds so this is acceptable
 	// IMO.
@@ -70,11 +70,12 @@ func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, id s
 		if err != nil {
 			return err
 		}
+		break
 	}
 	return err
 }
 
-func (f *FallbackLegacyUserAccessor) UpdateUserProfileV2(ctx context.Context, userID string, profile *UserProfile) error {
+func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, userID string, profile *Profile) error {
 	prevProfile, retrievedFromSeagull, err := f.findUserProfile(ctx, userID)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
@@ -85,7 +86,7 @@ func (f *FallbackLegacyUserAccessor) UpdateUserProfileV2(ctx context.Context, us
 		return ErrProfileNotMigrated
 	}
 
-	return f.accessor.UpdateUserProfileV2(ctx, userID, profile)
+	return f.accessor.UpdateUserProfile(ctx, userID, profile)
 }
 
 func (f *FallbackLegacyUserAccessor) upsertUserProfile(ctx context.Context, userID string, update *LegacyUserProfile) error {
@@ -102,22 +103,11 @@ func (f *FallbackLegacyUserAccessor) upsertUserProfile(ctx context.Context, user
 	// to avoid possibly migrating the profile the same time as the migrator is
 	// running.
 	if existingProfile != nil && retrievedFromSeagull && existingProfile.MigrationStatus == MigrationUnmigrated {
-		return f.seagullLegacyAccessor.UpdateUserProfile(ctx, userID, update)
+		return f.seagullLegacyAccessor.UpdateLegacyUserProfile(ctx, userID, update)
 	}
 
 	// If we've reached this point, the profile has either been migrated to
 	// keycloak OR it was created AFTER the release of keycloak profiles or it
 	// just doesn't exist so upsert the profile into the non-legacy ProfileAccessor
-	return f.accessor.UpdateUserProfile(ctx, userID, update)
-}
-
-func (f *FallbackLegacyUserAccessor) DeleteUserProfile(ctx context.Context, userID string) error {
-	profile, retrievedFromSeagull, err := f.findUserProfile(ctx, userID)
-	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
-		return err
-	}
-	if profile != nil && retrievedFromSeagull && profile.MigrationStatus == MigrationUnmigrated {
-		return f.seagullLegacyAccessor.DeleteUserProfile(ctx, userID)
-	}
-	return f.accessor.DeleteUserProfile(ctx, userID)
+	return f.accessor.UpdateLegacyUserProfile(ctx, userID, update)
 }
