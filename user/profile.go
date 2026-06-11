@@ -57,10 +57,8 @@ var (
 // of a time.Time is to ignore timezones when marshaling.
 type Date string
 
-// UserProfile represents the user modifiable attributes of a user. It is named
-// somewhat redundantly as UserProfile instead of Profile because there already
-// exists a type Profile in this package.
-type UserProfile struct {
+// Profile represents the modifiable user profile attributes of a user.
+type Profile struct {
 	FullName       string   `json:"fullName,omitempty"` // Name of the patient, fake child, or clinician
 	Birthday       Date     `json:"birthday,omitempty"`
 	DiagnosisDate  Date     `json:"diagnosisDate,omitempty"`
@@ -98,20 +96,20 @@ func HasClinicOrClinicianRole(roles []string) bool {
 }
 
 // IsPatientProfile returns true if the profile is associated with a patient - note that this is not mutually exclusive w/ a clinician, as some users have both
-func (up *UserProfile) IsPatientProfile(roles []string) bool {
+func (up *Profile) IsPatientProfile(roles []string) bool {
 	return HasPatientRole(roles) || up.hasPatientFields() || !HasClinicOrClinicianRole(roles)
 }
 
-func (up *UserProfile) hasPatientFields() bool {
+func (up *Profile) hasPatientFields() bool {
 	return up.DiagnosisDate != "" || up.DiagnosisType != "" || len(up.TargetDevices) > 0 || up.MRN != "" || up.About != "" || up.BiologicalSex != "" || up.Birthday != "" || up.Custodian != nil
 }
 
 // IsClinicianProfile returns true if the profile is associated with a clinician - note that this is not mutually exclusive w/ a patient, as some users have both
-func (up *UserProfile) IsClinicianProfile(roles []string) bool {
+func (up *Profile) IsClinicianProfile(roles []string) bool {
 	return up.Clinic != nil || HasClinicOrClinicianRole(roles)
 }
 
-func (up *UserProfile) ToLegacyProfile(roles []string) *LegacyUserProfile {
+func (up *Profile) ToLegacyProfile(roles []string) *LegacyUserProfile {
 	legacyProfile := &LegacyUserProfile{
 		FullName:        up.FullName,
 		MigrationStatus: MigrationCompleted, // If we have a non legacy UserProfile, then that means the legacy version has been migrated from seagull (or it never existed which is equivalent for the new user profile purposes)
@@ -157,24 +155,8 @@ func (up *UserProfile) ToLegacyProfile(roles []string) *LegacyUserProfile {
 	return legacyProfile
 }
 
-// ClearPatientInfo makes a copy of up, clearing out certain patient information - this is called usually due to lack of permissions to the patient information
-func (up *UserProfile) ClearPatientInfo() *UserProfile {
-	// explicitly specifying the type to make sure it's a value instead of pointer
-	var newProfile UserProfile = *up
-	newProfile.Birthday = ""
-	newProfile.DiagnosisDate = ""
-	newProfile.TargetDevices = nil
-	newProfile.TargetTimezone = ""
-	newProfile.About = ""
-	newProfile.MRN = ""
-	newProfile.BiologicalSex = ""
-	newProfile.Custodian = nil
-	newProfile.Clinic = nil
-	return &newProfile
-}
-
-func (p *LegacyUserProfile) ToUserProfile() *UserProfile {
-	up := &UserProfile{
+func (p *LegacyUserProfile) ToUserProfile() *Profile {
+	up := &Profile{
 		FullName: p.FullName,
 		Clinic:   p.Clinic,
 	}
@@ -277,7 +259,7 @@ func (b *jsonBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (up *UserProfile) ToAttributes() map[string][]string {
+func (up *Profile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
 	if up.FullName != "" {
@@ -330,51 +312,54 @@ func (up *UserProfile) ToAttributes() map[string][]string {
 	return attributes
 }
 
-func ProfileFromAttributes(username string, attributes map[string][]string, roles []string) (profile *UserProfile, ok bool) {
-	up := &UserProfile{
+// ProfileFromAttributes returns a [Profile] if there exists at least one
+// profile attribute in the supplied attributes. Otherwise it returns nil.
+func ProfileFromAttributes(username string, attributes map[string][]string, roles []string) *Profile {
+	up := &Profile{
 		Email: username,
 	}
+	foundAnyProfileAttr := false
 	if val := getAttribute(attributes, "full_name"); val != "" {
 		up.FullName = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "custodian_full_name"); val != "" {
 		up.Custodian = &Custodian{
 			FullName: val,
 		}
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "birthday"); val != "" {
 		up.Birthday = Date(val)
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "diagnosis_date"); val != "" {
 		up.DiagnosisDate = Date(val)
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "diagnosis_type"); val != "" {
 		up.DiagnosisType = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if vals := getAttributes(attributes, "target_devices"); len(vals) > 0 {
 		up.TargetDevices = vals
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "target_timezone"); val != "" {
 		up.TargetTimezone = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "about"); val != "" {
 		up.About = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "mrn"); val != "" {
 		up.MRN = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 	if val := getAttribute(attributes, "biological_sex"); val != "" {
 		up.BiologicalSex = val
-		ok = true
+		foundAnyProfileAttr = true
 	}
 
 	var clinicProfile ClinicProfile
@@ -400,10 +385,13 @@ func ProfileFromAttributes(username string, attributes map[string][]string, role
 	}
 	if hasClinicProfile {
 		up.Clinic = &clinicProfile
-		ok = true
+		foundAnyProfileAttr = true
 	}
 
-	return up, ok
+	if foundAnyProfileAttr {
+		return up
+	}
+	return nil
 }
 
 func addAttribute(attributes map[string][]string, attribute, value string) (ok bool) {
@@ -467,7 +455,7 @@ func (d *Date) Normalize(normalizer structure.Normalizer) {
 	*d = Date(strings.TrimSpace(string(*d)))
 }
 
-func (up *UserProfile) Validate(v structure.Validator) {
+func (up *Profile) Validate(v structure.Validator) {
 	v.String("fullName", &up.FullName).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("diagnosisType", &up.DiagnosisType).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("targetTimezone", &up.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
@@ -482,7 +470,7 @@ func (up *UserProfile) Validate(v structure.Validator) {
 	}
 }
 
-func (up *UserProfile) Normalize(normalizer structure.Normalizer) {
+func (up *Profile) Normalize(normalizer structure.Normalizer) {
 	up.FullName = strings.TrimSpace(up.FullName)
 	up.DiagnosisType = strings.TrimSpace(up.DiagnosisType)
 	up.TargetTimezone = strings.TrimSpace(up.TargetTimezone)

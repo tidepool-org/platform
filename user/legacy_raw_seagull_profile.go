@@ -17,8 +17,7 @@ var (
 )
 
 // LegacySeagullDocument is the database model representation of the legacy
-// seagull collection object. The value is a raw stringified JSON blob. TODO:
-// delete once all profiles are migrated over
+// seagull collection object. The value is a raw stringified JSON blob.
 type LegacySeagullDocument struct {
 	UserID string `bson:"userId"`
 	Value  string `bson:"value"`

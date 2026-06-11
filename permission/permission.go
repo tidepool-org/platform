@@ -29,13 +29,16 @@ const (
 type Client interface {
 	GetUserPermissions(ctx context.Context, requestUserID string, targetUserID string) (Permissions, error)
 	UpdateUserPermissions(ctx context.Context, requestUserID string, targetUserID string, permissions Permissions) error
-	// GroupsForUser returns permissions that have been shared with granteeUserID. It is keyed by the user that has shared something with granteeUserID. It includes the user themself.
-	GroupsForUser(ctx context.Context, granteeUserID string) (Permissions, error)
-	// UsersInGroup returns permissions that the user with id sharerID has shared with others, keyed by user id. It includes the user themself.
-	UsersInGroup(ctx context.Context, sharerID string) (Permissions, error)
+	// PermissionsGrantedToUser returns permissions that have been shared with
+	// granteeUserID. It is keyed by the user that has shared something with
+	// granteeUserID. It includes the user themself.
+	PermissionsGrantedToUser(ctx context.Context, granteeUserID string) (Permissions, error)
+	// PermissionsGrantedByUser returns permissions that the user with id
+	// sharerID has shared with others, keyed by user id. It includes the user
+	// themself.
+	PermissionsGrantedByUser(ctx context.Context, sharerID string) (Permissions, error)
 	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
-	HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 }
 
 func FixOwnerPermissions(permissions Permissions) Permissions {

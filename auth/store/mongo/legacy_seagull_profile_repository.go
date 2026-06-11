@@ -112,18 +112,3 @@ func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, 
 	}
 	return nil
 }
-
-func (p *LegacySeagullProfileRepository) DeleteUserProfile(ctx context.Context, userID string) error {
-	if ctx == nil {
-		return errors.New("context is missing")
-	}
-	if userID == "" {
-		return errors.New("user id is missing")
-	}
-
-	_, err := p.DeleteOne(ctx, bson.M{"userId": userID})
-	if err != nil {
-		return errors.Wrap(err, "unable to delete user profile")
-	}
-	return nil
-}

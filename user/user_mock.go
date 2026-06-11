@@ -40,25 +40,26 @@ func (m *MockProfileAccessor) EXPECT() *MockProfileAccessorMockRecorder {
 	return m.recorder
 }
 
-// DeleteUserProfile mocks base method.
-func (m *MockProfileAccessor) DeleteUserProfile(ctx context.Context, userID string) error {
+// FindLegacyUserProfile mocks base method.
+func (m *MockProfileAccessor) FindLegacyUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUserProfile", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "FindLegacyUserProfile", ctx, userID)
+	ret0, _ := ret[0].(*LegacyUserProfile)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// DeleteUserProfile indicates an expected call of DeleteUserProfile.
-func (mr *MockProfileAccessorMockRecorder) DeleteUserProfile(ctx, userID any) *gomock.Call {
+// FindLegacyUserProfile indicates an expected call of FindLegacyUserProfile.
+func (mr *MockProfileAccessorMockRecorder) FindLegacyUserProfile(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).DeleteUserProfile), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLegacyUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).FindLegacyUserProfile), ctx, userID)
 }
 
 // FindUserProfile mocks base method.
-func (m *MockProfileAccessor) FindUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
+func (m *MockProfileAccessor) FindUserProfile(ctx context.Context, userID string) (*Profile, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindUserProfile", ctx, userID)
-	ret0, _ := ret[0].(*LegacyUserProfile)
+	ret0, _ := ret[0].(*Profile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -69,8 +70,22 @@ func (mr *MockProfileAccessorMockRecorder) FindUserProfile(ctx, userID any) *gom
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).FindUserProfile), ctx, userID)
 }
 
+// UpdateLegacyUserProfile mocks base method.
+func (m *MockProfileAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLegacyUserProfile", ctx, userID, p)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLegacyUserProfile indicates an expected call of UpdateLegacyUserProfile.
+func (mr *MockProfileAccessorMockRecorder) UpdateLegacyUserProfile(ctx, userID, p any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLegacyUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).UpdateLegacyUserProfile), ctx, userID, p)
+}
+
 // UpdateUserProfile mocks base method.
-func (m *MockProfileAccessor) UpdateUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error {
+func (m *MockProfileAccessor) UpdateUserProfile(ctx context.Context, userID string, p *Profile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserProfile", ctx, userID, p)
 	ret0, _ := ret[0].(error)
@@ -81,20 +96,6 @@ func (m *MockProfileAccessor) UpdateUserProfile(ctx context.Context, userID stri
 func (mr *MockProfileAccessorMockRecorder) UpdateUserProfile(ctx, userID, p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).UpdateUserProfile), ctx, userID, p)
-}
-
-// UpdateUserProfileV2 mocks base method.
-func (m *MockProfileAccessor) UpdateUserProfileV2(ctx context.Context, userID string, p *UserProfile) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserProfileV2", ctx, userID, p)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUserProfileV2 indicates an expected call of UpdateUserProfileV2.
-func (mr *MockProfileAccessorMockRecorder) UpdateUserProfileV2(ctx, userID, p any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfileV2", reflect.TypeOf((*MockProfileAccessor)(nil).UpdateUserProfileV2), ctx, userID, p)
 }
 
 // MockUserAccessor is a mock of UserAccessor interface.
@@ -121,18 +122,19 @@ func (m *MockUserAccessor) EXPECT() *MockUserAccessorMockRecorder {
 	return m.recorder
 }
 
-// DeleteUserProfile mocks base method.
-func (m *MockUserAccessor) DeleteUserProfile(ctx context.Context, userID string) error {
+// FindLegacyUserProfile mocks base method.
+func (m *MockUserAccessor) FindLegacyUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteUserProfile", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "FindLegacyUserProfile", ctx, userID)
+	ret0, _ := ret[0].(*LegacyUserProfile)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// DeleteUserProfile indicates an expected call of DeleteUserProfile.
-func (mr *MockUserAccessorMockRecorder) DeleteUserProfile(ctx, userID any) *gomock.Call {
+// FindLegacyUserProfile indicates an expected call of FindLegacyUserProfile.
+func (mr *MockUserAccessorMockRecorder) FindLegacyUserProfile(ctx, userID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).DeleteUserProfile), ctx, userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLegacyUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).FindLegacyUserProfile), ctx, userID)
 }
 
 // FindUser mocks base method.
@@ -166,10 +168,10 @@ func (mr *MockUserAccessorMockRecorder) FindUserById(ctx, id any) *gomock.Call {
 }
 
 // FindUserProfile mocks base method.
-func (m *MockUserAccessor) FindUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
+func (m *MockUserAccessor) FindUserProfile(ctx context.Context, userID string) (*Profile, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindUserProfile", ctx, userID)
-	ret0, _ := ret[0].(*LegacyUserProfile)
+	ret0, _ := ret[0].(*Profile)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -210,8 +212,22 @@ func (mr *MockUserAccessorMockRecorder) Roles(ctx, userID any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Roles", reflect.TypeOf((*MockUserAccessor)(nil).Roles), ctx, userID)
 }
 
+// UpdateLegacyUserProfile mocks base method.
+func (m *MockUserAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLegacyUserProfile", ctx, userID, p)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLegacyUserProfile indicates an expected call of UpdateLegacyUserProfile.
+func (mr *MockUserAccessorMockRecorder) UpdateLegacyUserProfile(ctx, userID, p any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLegacyUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).UpdateLegacyUserProfile), ctx, userID, p)
+}
+
 // UpdateUserProfile mocks base method.
-func (m *MockUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error {
+func (m *MockUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *Profile) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateUserProfile", ctx, userID, p)
 	ret0, _ := ret[0].(error)
@@ -222,18 +238,4 @@ func (m *MockUserAccessor) UpdateUserProfile(ctx context.Context, userID string,
 func (mr *MockUserAccessorMockRecorder) UpdateUserProfile(ctx, userID, p any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).UpdateUserProfile), ctx, userID, p)
-}
-
-// UpdateUserProfileV2 mocks base method.
-func (m *MockUserAccessor) UpdateUserProfileV2(ctx context.Context, userID string, p *UserProfile) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateUserProfileV2", ctx, userID, p)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UpdateUserProfileV2 indicates an expected call of UpdateUserProfileV2.
-func (mr *MockUserAccessorMockRecorder) UpdateUserProfileV2(ctx, userID, p any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserProfileV2", reflect.TypeOf((*MockUserAccessor)(nil).UpdateUserProfileV2), ctx, userID, p)
 }

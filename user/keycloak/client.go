@@ -16,12 +16,10 @@ import (
 	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/pointer"
-	userLib "github.com/tidepool-org/platform/user"
+	userlib "github.com/tidepool-org/platform/user"
 )
 
 const (
-	tokenPrefix            = "kc"
-	tokenPartsSeparator    = ":"
 	masterRealm            = "master"
 	termsAcceptedAttribute = "terms_and_conditions"
 )
@@ -41,24 +39,6 @@ type KeycloakConfig struct {
 
 func (c *KeycloakConfig) FromEnv() error {
 	return envconfig.Process("", c)
-}
-
-// keycloakUser is an intermediate user representation from FullModel to gocloak's model - though is this actually needed? Can it be removed entirely?
-type keycloakUser struct {
-	ID            string                 `json:"id"`
-	Username      string                 `json:"username,omitempty"`
-	Email         string                 `json:"email,omitempty"`
-	FirstName     string                 `json:"firstName,omitempty"`
-	LastName      string                 `json:"lastName,omitempty"`
-	Enabled       bool                   `json:"enabled,omitempty"`
-	EmailVerified bool                   `json:"emailVerified,omitempty"`
-	Roles         []string               `json:"roles,omitempty"`
-	Attributes    keycloakUserAttributes `json:"attributes"`
-}
-
-type keycloakUserAttributes struct {
-	TermsAcceptedDate []string             `json:"terms_and_conditions,omitempty"`
-	Profile           *userLib.UserProfile `json:"profile"`
 }
 
 type keycloakClient struct {
@@ -149,7 +129,7 @@ func (c *keycloakClient) RefreshToken(ctx context.Context, token oauth2.Token) (
 	return c.jwtToAccessToken(jwt), nil
 }
 
-func (c *keycloakClient) GetUserById(ctx context.Context, id string) (*keycloakUser, error) {
+func (c *keycloakClient) GetUserById(ctx context.Context, id string) (*userlib.User, error) {
 	if id == "" {
 		return nil, nil
 	}
@@ -162,7 +142,7 @@ func (c *keycloakClient) GetUserById(ctx context.Context, id string) (*keycloakU
 	return users[0], nil
 }
 
-func (c *keycloakClient) GetUserByEmail(ctx context.Context, email string) (*keycloakUser, error) {
+func (c *keycloakClient) GetUserByEmail(ctx context.Context, email string) (*userlib.User, error) {
 	if email == "" {
 		return nil, nil
 	}
@@ -182,28 +162,27 @@ func (c *keycloakClient) GetUserByEmail(ctx context.Context, email string) (*key
 	return c.GetUserById(ctx, *users[0].ID)
 }
 
-func (c *keycloakClient) UpdateUser(ctx context.Context, user *keycloakUser) error {
+func (c *keycloakClient) UpdateUser(ctx context.Context, user *userlib.User) error {
 	token, err := c.getAdminToken(ctx)
 	if err != nil {
 		return err
 	}
 
 	gocloakUser := gocloak.User{
-		ID:            &user.ID,
-		Username:      &user.Username,
+		ID:            user.UserID,
+		Username:      user.Username,
 		Enabled:       &user.Enabled,
-		EmailVerified: &user.EmailVerified,
-		FirstName:     &user.FirstName,
-		LastName:      &user.LastName,
-		Email:         &user.Email,
+		EmailVerified: user.EmailVerified,
+		Email:         user.Username,
 	}
 
-	attrs := map[string][]string{
-		termsAcceptedAttribute: user.Attributes.TermsAcceptedDate,
+	attrs := map[string][]string{}
+	if terms := pointer.ToString(user.TermsAccepted); terms != "" {
+		attrs[termsAcceptedAttribute] = []string{terms}
 	}
-	if user.Attributes.Profile != nil {
-		profileAttrs := user.Attributes.Profile.ToAttributes()
-		maps.Copy(attrs, profileAttrs)
+
+	if user.Profile != nil {
+		maps.Copy(attrs, user.Profile.ToAttributes())
 	}
 
 	gocloakUser.Attributes = &attrs
@@ -216,31 +195,19 @@ func (c *keycloakClient) UpdateUser(ctx context.Context, user *keycloakUser) err
 	return nil
 }
 
-func (c *keycloakClient) UpdateUserProfile(ctx context.Context, id string, p *userLib.UserProfile) error {
+func (c *keycloakClient) UpdateUserProfile(ctx context.Context, id string, p *userlib.Profile) error {
 	user, err := c.GetUserById(ctx, id)
 	if err != nil {
 		return err
 	}
 	if user == nil {
-		return userLib.ErrUserNotFound
+		return userlib.ErrUserNotFound
 	}
-	user.Attributes.Profile = p
+	user.Profile = p
 	return c.UpdateUser(ctx, user)
 }
 
-func (c *keycloakClient) DeleteUserProfile(ctx context.Context, id string) error {
-	user, err := c.GetUserById(ctx, id)
-	if err != nil {
-		return err
-	}
-	if user == nil {
-		return userLib.ErrUserNotFound
-	}
-	user.Attributes.Profile = nil
-	return c.UpdateUser(ctx, user)
-}
-
-func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (users []*keycloakUser, err error) {
+func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (users []*userlib.User, err error) {
 	const errMessage = "could not retrieve users by ids"
 
 	token, err := c.getAdminToken(ctx)
@@ -263,15 +230,15 @@ func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (us
 		return nil, err
 	}
 
-	users = make([]*keycloakUser, len(res))
+	users = make([]*userlib.User, len(res))
 	for i, u := range res {
-		users[i] = newKeycloakUser(u)
+		users[i] = newUserFromGocloakUser(u)
 	}
 
 	return users, nil
 }
 
-func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token) (*userLib.TokenIntrospectionResult, error) {
+func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token) (*userlib.TokenIntrospectionResult, error) {
 	clientId, clientSecret := c.getClientAndSecretFromToken(ctx, token)
 
 	rtr, err := c.keycloak.RetrospectToken(
@@ -285,11 +252,11 @@ func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token
 		return nil, err
 	}
 
-	result := &userLib.TokenIntrospectionResult{
+	result := &userlib.TokenIntrospectionResult{
 		Active: pointer.ToBool(rtr.Active),
 	}
 	if result.Active {
-		customClaims := &userLib.AccessTokenCustomClaims{}
+		customClaims := &userlib.AccessTokenCustomClaims{}
 		_, err := c.keycloak.DecodeAccessTokenCustomClaims(
 			ctx,
 			token.AccessToken,
@@ -302,7 +269,7 @@ func (c *keycloakClient) IntrospectToken(ctx context.Context, token oauth2.Token
 		result.Subject = customClaims.Subject
 		result.EmailVerified = customClaims.EmailVerified
 		result.ExpiresAt = customClaims.ExpiresAt.Unix()
-		result.RealmAccess = userLib.RealmAccess{
+		result.RealmAccess = userlib.RealmAccess{
 			Roles: customClaims.RealmAccess.Roles,
 		}
 		result.IdentityProvider = customClaims.IdentityProvider
@@ -373,11 +340,12 @@ func (c *keycloakClient) adminTokenIsExpired() bool {
 	return c.adminToken == nil || time.Now().After(c.adminTokenRefreshExpires)
 }
 
-func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakUser) error {
+func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *userlib.User) error {
 	token, err := c.getAdminToken(ctx)
 	if err != nil {
 		return err
 	}
+	userID := pointer.ToString(user.UserID)
 
 	realmRoles, err := c.keycloak.GetRealmRoles(ctx, token.AccessToken, c.cfg.Realm, gocloak.GetRoleParams{
 		Max: gocloak.IntP(1000),
@@ -385,7 +353,7 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 	if err != nil {
 		return err
 	}
-	currentUserRoles, err := c.keycloak.GetRealmRolesByUserID(ctx, token.AccessToken, c.cfg.Realm, user.ID)
+	currentUserRoles, err := c.keycloak.GetRealmRolesByUserID(ctx, token.AccessToken, c.cfg.Realm, userID)
 	if err != nil {
 		return err
 	}
@@ -394,8 +362,8 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 	var rolesToDelete []gocloak.Role
 
 	targetRoles := make(map[string]struct{})
-	if len(user.Roles) > 0 {
-		for _, targetRoleName := range user.Roles {
+	if user.Roles != nil && len(*user.Roles) > 0 {
+		for _, targetRoleName := range *user.Roles {
 			targetRoles[targetRoleName] = struct{}{}
 		}
 	}
@@ -415,7 +383,7 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 
 			if _, ok := targetRoles[*currentRole.Name]; !ok {
 				// Only remove roles managed by shoreline
-				if _, ok := userLib.ShorelineManagedRoles[*currentRole.Name]; ok {
+				if _, ok := userlib.ShorelineManagedRoles[*currentRole.Name]; ok {
 					rolesToDelete = append(rolesToDelete, *currentRole)
 				}
 			}
@@ -423,12 +391,12 @@ func (c *keycloakClient) updateRolesForUser(ctx context.Context, user *keycloakU
 	}
 
 	if len(rolesToAdd) > 0 {
-		if err = c.keycloak.AddRealmRoleToUser(ctx, token.AccessToken, c.cfg.Realm, user.ID, rolesToAdd); err != nil {
+		if err = c.keycloak.AddRealmRoleToUser(ctx, token.AccessToken, c.cfg.Realm, userID, rolesToAdd); err != nil {
 			return err
 		}
 	}
 	if len(rolesToDelete) > 0 {
-		if err = c.keycloak.DeleteRealmRoleFromUser(ctx, token.AccessToken, c.cfg.Realm, user.ID, rolesToDelete); err != nil {
+		if err = c.keycloak.DeleteRealmRoleFromUser(ctx, token.AccessToken, c.cfg.Realm, userID, rolesToDelete); err != nil {
 			return err
 		}
 	}
@@ -479,57 +447,30 @@ func (c *keycloakClient) getClientAndSecretFromToken(ctx context.Context, token 
 	return clientId, clientSecret
 }
 
-func newKeycloakUser(gocloakUser *gocloak.User) *keycloakUser {
-	if gocloakUser == nil {
-		return nil
-	}
-
-	user := &keycloakUser{
-		ID:            pointer.ToString(gocloakUser.ID),
-		Username:      pointer.ToString(gocloakUser.Username),
-		FirstName:     pointer.ToString(gocloakUser.FirstName),
-		LastName:      pointer.ToString(gocloakUser.LastName),
-		Email:         pointer.ToString(gocloakUser.Email),
-		EmailVerified: pointer.ToBool(gocloakUser.EmailVerified),
+func newUserFromGocloakUser(gocloakUser *gocloak.User) *userlib.User {
+	user := &userlib.User{
+		UserID:        gocloakUser.ID,
+		Username:      gocloakUser.Username,
+		Emails:        []string{},
+		Roles:         gocloakUser.RealmRoles,
+		EmailVerified: gocloakUser.EmailVerified,
+		IsMigrated:    true,
 		Enabled:       pointer.ToBool(gocloakUser.Enabled),
-	}
-	var roles []string
-	if gocloakUser.RealmRoles != nil {
-		roles = *gocloakUser.RealmRoles
-		user.Roles = *gocloakUser.RealmRoles
 	}
 	if gocloakUser.Attributes != nil {
 		attrs := *gocloakUser.Attributes
-		if ts, ok := attrs[termsAcceptedAttribute]; ok {
-			user.Attributes.TermsAcceptedDate = ts
+		if termsAttrs, ok := attrs[termsAcceptedAttribute]; ok && len(termsAttrs) > 0 {
+			if ts, err := userlib.UnixStringToTimestamp(termsAttrs[0]); err == nil {
+				user.TermsAccepted = &ts
+			}
 		}
-		if prof, ok := userLib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs, roles); ok {
-			user.Attributes.Profile = prof
+		var roles []string
+		if gocloakUser.RealmRoles != nil {
+			roles = *gocloakUser.RealmRoles
 		}
-	}
-
-	return user
-}
-
-func newUserFromKeycloakUser(keycloakUser *keycloakUser) *userLib.User {
-	var termsAcceptedDate *string
-	attrs := keycloakUser.Attributes
-	if len(attrs.TermsAcceptedDate) > 0 {
-		if ts, err := userLib.UnixStringToTimestamp(attrs.TermsAcceptedDate[0]); err == nil {
-			termsAcceptedDate = &ts
+		if profile := userlib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs, roles); profile != nil {
+			user.Profile = profile
 		}
-	}
-
-	user := &userLib.User{
-		UserID:        pointer.FromString(keycloakUser.ID),
-		Username:      pointer.FromString(keycloakUser.Username),
-		Emails:        []string{keycloakUser.Email},
-		Roles:         pointer.FromStringArray(keycloakUser.Roles),
-		TermsAccepted: termsAcceptedDate,
-		EmailVerified: pointer.FromBool(keycloakUser.EmailVerified),
-		IsMigrated:    true,
-		Enabled:       keycloakUser.Enabled,
-		Profile:       attrs.Profile,
 	}
 
 	// All non-custodial users have a password and it's important to set the hash to a non-empty value.
@@ -541,34 +482,6 @@ func newUserFromKeycloakUser(keycloakUser *keycloakUser) *userLib.User {
 	}
 
 	return user
-}
-
-func userToKeycloakUser(u *userLib.User) *keycloakUser {
-	keycloakUser := &keycloakUser{
-		ID:            pointer.ToString(u.UserID),
-		Username:      strings.ToLower(pointer.ToString(u.Username)),
-		Email:         strings.ToLower(u.Email()),
-		Enabled:       u.IsEnabled(),
-		EmailVerified: pointer.ToBool(u.EmailVerified),
-		Roles:         pointer.ToStringArray(u.Roles),
-		Attributes:    keycloakUserAttributes{},
-	}
-	if len(keycloakUser.Roles) == 0 {
-		keycloakUser.Roles = []string{userLib.RolePatient}
-	}
-	if !u.IsMigrated && u.PwHash == "" && !u.HasRole(userLib.RoleCustodialAccount) {
-		keycloakUser.Roles = append(keycloakUser.Roles, userLib.RoleCustodialAccount)
-	}
-	if u.TermsAccepted != nil {
-		if termsAccepted, err := userLib.TimestampToUnixString(*u.TermsAccepted); err == nil {
-			keycloakUser.Attributes.TermsAcceptedDate = []string{termsAccepted}
-		}
-	}
-	if u.Profile != nil {
-		keycloakUser.Attributes.Profile = u.Profile
-	}
-
-	return keycloakUser
 }
 
 func getRealmRoleByName(realmRoles []*gocloak.Role, name string) *gocloak.Role {
