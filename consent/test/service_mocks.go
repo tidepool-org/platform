@@ -13,11 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	consent "github.com/tidepool-org/platform/consent"
 	page "github.com/tidepool-org/platform/page"
 	mongo "github.com/tidepool-org/platform/store/structured/mongo"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockService is a mock of Service interface.

@@ -2,85 +2,77 @@ package keycloak
 
 import (
 	"context"
-	"time"
-
-	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/pointer"
-	userLib "github.com/tidepool-org/platform/user"
+	userlib "github.com/tidepool-org/platform/user"
 )
 
 type keycloakUserAccessor struct {
-	cfg                      *KeycloakConfig
-	adminToken               *oauth2.Token
-	adminTokenRefreshExpires time.Time
-	keycloakClient           *keycloakClient
+	keycloakClient *keycloakClient
 }
 
 func NewKeycloakUserAccessor(config *KeycloakConfig) *keycloakUserAccessor {
-	newKeycloakClient(config)
 	return &keycloakUserAccessor{
-		cfg:            config,
 		keycloakClient: newKeycloakClient(config),
 	}
 }
 
-func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *userLib.User) (*userLib.User, error) {
-	var keycloakUser *keycloakUser
+func (m *keycloakUserAccessor) FindUser(ctx context.Context, user *userlib.User) (*userlib.User, error) {
+	var foundUser *userlib.User
 	var err error
 
-	if userLib.IsValidUserID(pointer.ToString(user.UserID)) {
-		keycloakUser, err = m.keycloakClient.GetUserById(ctx, pointer.ToString(user.UserID))
+	if userlib.IsValidUserID(pointer.ToString(user.UserID)) {
+		foundUser, err = m.keycloakClient.GetUserById(ctx, pointer.ToString(user.UserID))
 	} else {
 		email := ""
 		if len(user.Emails) > 0 {
 			email = user.Emails[0]
 		}
-		keycloakUser, err = m.keycloakClient.GetUserByEmail(ctx, email)
+		foundUser, err = m.keycloakClient.GetUserByEmail(ctx, email)
 	}
 
-	if err != nil && err != userLib.ErrUserNotFound {
+	if err != nil && err != userlib.ErrUserNotFound {
 		return nil, err
-	} else if err == nil && keycloakUser != nil {
-		return newUserFromKeycloakUser(keycloakUser), nil
+	} else if err == nil && foundUser != nil {
+		return foundUser, nil
 	}
 	// All users should be migrated into keycloak by the time this code is released.
-	return nil, userLib.ErrUserNotMigrated
+	return nil, userlib.ErrUserNotMigrated
 }
 
-func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*userLib.User, error) {
-	if !userLib.IsValidUserID(id) {
-		return nil, userLib.ErrUserNotFound
+func (m *keycloakUserAccessor) FindUserById(ctx context.Context, id string) (*userlib.User, error) {
+	if !userlib.IsValidUserID(id) {
+		return nil, userlib.ErrUserNotFound
 	}
 
-	keycloakUser, err := m.keycloakClient.GetUserById(ctx, id)
+	user, err := m.keycloakClient.GetUserById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	if keycloakUser == nil {
-		return nil, userLib.ErrUserNotFound
+	if user == nil {
+		return nil, userlib.ErrUserNotFound
 	}
-	return newUserFromKeycloakUser(keycloakUser), nil
+	return user, nil
 }
 
-func (m *keycloakUserAccessor) FindUserProfile(ctx context.Context, id string) (*userLib.LegacyUserProfile, error) {
+func (m *keycloakUserAccessor) FindLegacyUserProfile(ctx context.Context, id string) (*userlib.LegacyUserProfile, error) {
 	user, err := m.FindUserById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if user == nil || user.Profile == nil {
-		return nil, userLib.ErrUserProfileNotFound
+		return nil, userlib.ErrUserProfileNotFound
 	}
 	return user.Profile.ToLegacyProfile(pointer.ToStringArray(user.Roles)), nil
 }
 
-func (m *keycloakUserAccessor) FindUserProfileV2(ctx context.Context, id string) (*userLib.UserProfile, error) {
+func (m *keycloakUserAccessor) FindUserProfile(ctx context.Context, id string) (*userlib.Profile, error) {
 	user, err := m.FindUserById(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if user == nil {
-		return nil, userLib.ErrUserProfileNotFound
+		return nil, userlib.ErrUserProfileNotFound
 	}
 	return user.Profile, nil
 }
@@ -89,33 +81,21 @@ func (m *keycloakUserAccessor) Roles(ctx context.Context, userID string) ([]stri
 	return m.keycloakClient.GetRolesForUser(ctx, userID)
 }
 
-func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*userLib.User, err error) {
-	keycloakUsers, err := m.keycloakClient.FindUsersWithIds(ctx, ids)
-	if err != nil {
-		return users, err
-	}
-
-	for _, user := range keycloakUsers {
-		users = append(users, newUserFromKeycloakUser(user))
-	}
-	return users, nil
+func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*userlib.User, err error) {
+	return m.keycloakClient.FindUsersWithIds(ctx, ids)
 }
 
-func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *userLib.LegacyUserProfile) error {
+func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *userlib.LegacyUserProfile) error {
 	roles, err := m.Roles(ctx, userID)
 	if err != nil {
 		return err
 	}
-	if !userLib.HasClinicOrClinicianRole(roles) && p.Clinic != nil {
+	if !userlib.HasClinicOrClinicianRole(roles) && p.Clinic != nil {
 		p.Clinic = nil
 	}
 	return m.keycloakClient.UpdateUserProfile(ctx, userID, p.ToUserProfile())
 }
 
-func (m *keycloakUserAccessor) UpdateUserProfileV2(ctx context.Context, userID string, p *userLib.UserProfile) error {
+func (m *keycloakUserAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *userlib.Profile) error {
 	return m.keycloakClient.UpdateUserProfile(ctx, userID, p)
-}
-
-func (m *keycloakUserAccessor) DeleteUserProfile(ctx context.Context, userId string) error {
-	return m.keycloakClient.DeleteUserProfile(ctx, userId)
 }

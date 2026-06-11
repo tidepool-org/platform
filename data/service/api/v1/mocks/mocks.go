@@ -87,11 +87,11 @@ func (p *Permission) UpdateUserPermissions(ctx context.Context, requestUserID st
 	panic("not implemented")
 }
 
-func (c *Permission) GroupsForUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
+func (c *Permission) PermissionsGrantedToUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
 	return nil, nil
 }
 
-func (c *Permission) UsersInGroup(ctx context.Context, sharerID string) (permission.Permissions, error) {
+func (c *Permission) PermissionsGrantedByUser(ctx context.Context, sharerID string) (permission.Permissions, error) {
 	return nil, nil
 }
 
@@ -100,9 +100,5 @@ func (c *Permission) HasMembershipRelationship(ctx context.Context, granteeUserI
 }
 
 func (c *Permission) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
-	return false, nil
-}
-
-func (c *Permission) HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	return false, nil
 }

@@ -40,10 +40,10 @@ var _ = Describe("User", func() {
 
 	Context("Profile", func() {
 		DescribeTable("ToLegacyProfile",
-			func(profile *user.UserProfile, legacyProfile *user.LegacyUserProfile, roles []string) {
+			func(profile *user.Profile, legacyProfile *user.LegacyUserProfile, roles []string) {
 				Expect(profile.ToLegacyProfile(roles)).To(BeComparableTo(legacyProfile))
 			},
-			Entry("Regular patient", &user.UserProfile{
+			Entry("Regular patient", &user.Profile{
 				FullName:       "Bob",
 				Birthday:       "2000-02-03",
 				About:          "About me",
@@ -64,7 +64,7 @@ var _ = Describe("User", func() {
 				},
 				[]string{user.RolePatient},
 			),
-			Entry("Fake child", &user.UserProfile{
+			Entry("Fake child", &user.Profile{
 				FullName:      "Child Name",
 				Birthday:      "2000-02-03",
 				DiagnosisDate: "2001-02-03",
@@ -86,7 +86,7 @@ var _ = Describe("User", func() {
 				},
 				[]string{user.RolePatient},
 			),
-			Entry("Clinic", &user.UserProfile{
+			Entry("Clinic", &user.Profile{
 				FullName: "Clinician Name",
 				Clinic: &user.ClinicProfile{
 					Name:      pointer.FromString("Clinic Name"),

@@ -64,9 +64,7 @@ func (c *Client) UpdateUserPermissions(ctx context.Context, sharerUserID string,
 	return err
 }
 
-// GroupsForUser returns what users have shared permissions with the user with an id of granteeUserID.
-// The GroupedPermissions are keyed by the id of the user who shared their permissions with granteeUserID.
-func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
+func (c *Client) PermissionsGrantedToUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -86,7 +84,7 @@ func (c *Client) GroupsForUser(ctx context.Context, granteeUserID string) (permi
 	return result, nil
 }
 
-func (c *Client) UsersInGroup(ctx context.Context, sharerID string) (permission.Permissions, error) {
+func (c *Client) PermissionsGrantedByUser(ctx context.Context, sharerID string) (permission.Permissions, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -131,24 +129,4 @@ func (c *Client) HasCustodianPermissions(ctx context.Context, granteeUserID, gra
 	}
 	_, ok := perms[permission.Custodian]
 	return ok, nil
-}
-
-func (c *Client) HasWritePermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
-	if granteeUserID != "" && granteeUserID == grantorUserID {
-		return true, nil
-	}
-	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
-	if err != nil {
-		return false, err
-	}
-	if _, ok := perms[permission.Custodian]; ok {
-		return true, nil
-	}
-	if _, ok := perms[permission.Write]; ok {
-		return true, nil
-	}
-	if _, ok := perms[permission.Owner]; ok {
-		return true, nil
-	}
-	return false, nil
 }
