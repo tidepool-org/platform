@@ -97,7 +97,7 @@ var _ = Describe("Router", func() {
 					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
 					req.Request = req.WithContext(ctx)
 
-					userProfile = &user.UserProfile{
+					userProfile = &user.Profile{
 						FullName:      "Some User Profile",
 						Birthday:      "2001-02-03",
 						DiagnosisDate: "2002-03-04",
@@ -138,14 +138,11 @@ var _ = Describe("Router", func() {
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
-								permsClient.EXPECT().
-									HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
-									Return(true, nil).AnyTimes()
 							})
 
 							It("it succeeds if the profile exists", func() {
 								profileAccessor.EXPECT().
-									FindUserProfile(gomock.Any(), userID).
+									FindLegacyUserProfile(gomock.Any(), userID).
 									Return(userProfile.ToLegacyProfile(userRoles), nil)
 
 								handlerFunc(res, req)
@@ -154,12 +151,12 @@ var _ = Describe("Router", func() {
 							})
 
 							It("it includes the clinician object if user is a clinic", func() {
-								userProfile = &user.UserProfile{
+								userProfile = &user.Profile{
 									FullName: "Some Clinician",
 								}
 								userRoles = []string{user.RoleClinic}
 								profileAccessor.EXPECT().
-									FindUserProfile(gomock.Any(), userID).
+									FindLegacyUserProfile(gomock.Any(), userID).
 									Return(userProfile.ToLegacyProfile(userRoles), nil)
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -176,7 +173,7 @@ var _ = Describe("Router", func() {
 
 							It("retrieves user's own profile", func() {
 								profileAccessor.EXPECT().
-									FindUserProfile(gomock.Any(), userID).
+									FindLegacyUserProfile(gomock.Any(), userID).
 									Return(userProfile.ToLegacyProfile(userRoles), nil)
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -209,7 +206,7 @@ var _ = Describe("Router", func() {
 										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
 										Return(true, nil).AnyTimes()
 									profileAccessor.EXPECT().
-										FindUserProfile(gomock.Any(), otherPersonID).
+										FindLegacyUserProfile(gomock.Any(), otherPersonID).
 										Return(otherProfile, nil).AnyTimes()
 									userAccessor.EXPECT().
 										FindUserById(gomock.Any(), otherPersonID).
@@ -267,11 +264,8 @@ var _ = Describe("Router", func() {
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
-								permsClient.EXPECT().
-									HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
-									Return(true, nil).AnyTimes()
 								profileAccessor.EXPECT().
-									UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+									UpdateLegacyUserProfile(gomock.Any(), userID, gomock.Any()).
 									Return(nil)
 							})
 
@@ -290,7 +284,7 @@ var _ = Describe("Router", func() {
 
 							It("successfully updates own profile", func() {
 								profileAccessor.EXPECT().
-									UpdateUserProfile(gomock.Any(), userID, gomock.Any()).
+									UpdateLegacyUserProfile(gomock.Any(), userID, gomock.Any()).
 									Return(nil)
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -334,14 +328,11 @@ var _ = Describe("Router", func() {
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
-								permsClient.EXPECT().
-									HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
-									Return(true, nil).AnyTimes()
 							})
 
 							It("it succeeds if the profile exists", func() {
 								profileAccessor.EXPECT().
-									FindUserProfile(gomock.Any(), userID).
+									FindLegacyUserProfile(gomock.Any(), userID).
 									Return(userProfile.ToLegacyProfile(userRoles), nil)
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -357,7 +348,7 @@ var _ = Describe("Router", func() {
 
 							It("retrieves user's own profile", func() {
 								profileAccessor.EXPECT().
-									FindUserProfile(gomock.Any(), userID).
+									FindLegacyUserProfile(gomock.Any(), userID).
 									Return(userProfile.ToLegacyProfile(userRoles), nil)
 								handlerFunc(res, req)
 								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -366,13 +357,13 @@ var _ = Describe("Router", func() {
 
 							Context("other persons profile", func() {
 								var otherPersonID string
-								var otherProfile *user.UserProfile
+								var otherProfile *user.Profile
 								var otherRoles []string
 								var otherDetails *user.User
 								BeforeEach(func() {
 									otherPersonID = userTest.RandomUserID()
 									req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", otherPersonID)
-									otherProfile = &user.UserProfile{
+									otherProfile = &user.Profile{
 										FullName:      "Someone Else's Profile",
 										Birthday:      "2002-03-04",
 										DiagnosisDate: "2003-04-05",
@@ -390,7 +381,7 @@ var _ = Describe("Router", func() {
 										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
 										Return(true, nil).AnyTimes()
 									profileAccessor.EXPECT().
-										FindUserProfile(gomock.Any(), otherPersonID).
+										FindLegacyUserProfile(gomock.Any(), otherPersonID).
 										Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
 									userAccessor.EXPECT().
 										FindUserById(gomock.Any(), otherPersonID).
@@ -412,12 +403,12 @@ var _ = Describe("Router", func() {
 					})
 
 					Context("UpdateProfile", func() {
-						var updatedProfile *user.UserProfile
+						var updatedProfile *user.Profile
 						BeforeEach(func() {
 							req.Method = http.MethodPost
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/profile", userID)
 
-							updatedProfile = &user.UserProfile{
+							updatedProfile = &user.Profile{
 								FullName:      "Updated User Profile",
 								Birthday:      "2000-01-02",
 								DiagnosisDate: "2001-02-03",
@@ -445,12 +436,9 @@ var _ = Describe("Router", func() {
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
-								permsClient.EXPECT().
-									HasWritePermissions(gomock.Any(), gomock.Any(), gomock.Any()).
-									Return(true, nil).AnyTimes()
 
 								profileAccessor.EXPECT().
-									UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
+									UpdateLegacyUserProfile(gomock.Any(), userID, updatedProfile).
 									Return(nil).AnyTimes()
 							})
 
@@ -466,7 +454,7 @@ var _ = Describe("Router", func() {
 								details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 								profileAccessor.EXPECT().
-									UpdateUserProfileV2(gomock.Any(), userID, updatedProfile).
+									UpdateUserProfile(gomock.Any(), userID, updatedProfile).
 									Return(nil).AnyTimes()
 							})
 
@@ -497,14 +485,15 @@ var _ = Describe("Router", func() {
 				var handlerFunc rest.HandlerFunc
 				var userID string
 				var details request.AuthDetails
-				var userProfile user.UserProfile
-				var userLimitedProfile user.UserProfile
+				var userProfile user.Profile
+				var limitedUserProfile user.Profile
 				var userRoles []string
 				var userDetails *user.User
-				var userLimitedDetails *user.User
+				var sanitizedUserDetails *user.User
+				var limitedUserDetails *user.User
 				var shareeUserID string
 				var shareeRoles []string
-				var shareeProfile user.UserProfile
+				var shareeProfile user.Profile
 				var shareeDetails *user.User
 
 				JustBeforeEach(func() {
@@ -526,35 +515,43 @@ var _ = Describe("Router", func() {
 					req.URL.Path = fmt.Sprintf("/v1/users/%s/users", shareeUserID)
 					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-					userProfile = user.UserProfile{
+					userProfile = user.Profile{
 						FullName:      "Some User Profile",
 						Birthday:      "2001-02-03",
 						DiagnosisDate: "2002-03-04",
 						About:         "About me",
 						MRN:           "11223344",
 					}
-					userLimitedProfile = user.UserProfile{
+					limitedUserProfile = user.Profile{
 						FullName: "Some User Profile",
 					}
 					userRoles = []string{user.RolePatient}
 					userDetails = &user.User{
-						UserID:             pointer.FromString(userID),
-						Username:           pointer.FromString("dev@tidepool.org"),
-						EmailVerified:      pointer.FromBool(true),
-						Roles:              &userRoles,
-						Emails:             []string{"dev@tidepool.org"},
-						Profile:            &userProfile,
-						TrustorPermissions: &permission.Permission{},
+						UserID:        pointer.FromString(userID),
+						Username:      pointer.FromString("dev@tidepool.org"),
+						EmailVerified: pointer.FromBool(true),
+						Roles:         &userRoles,
+						Emails:        []string{"dev@tidepool.org"},
+						Profile:       &userProfile,
 					}
-					userLimitedDetails = &user.User{
-						UserID:             pointer.FromString(userID),
-						Emails:             []string{"dev@tidepool.org"},
-						Profile:            &userLimitedProfile,
-						TrustorPermissions: &permission.Permission{},
-						TrusteePermissions: &permission.Permission{},
+					sanitizedUserDetails = &user.User{
+						UserID:        pointer.FromString(userID),
+						Username:      pointer.FromString("dev@tidepool.org"),
+						EmailVerified: pointer.FromBool(true),
+						Roles:         &userRoles,
+						Emails:        []string{"dev@tidepool.org"},
+						Profile:       &userProfile,
+					}
+					limitedUserDetails = &user.User{
+						UserID:        pointer.FromString(userID),
+						Username:      pointer.FromString("dev@tidepool.org"),
+						EmailVerified: pointer.FromBool(true),
+						Roles:         &userRoles,
+						Emails:        []string{"dev@tidepool.org"},
+						Profile:       &limitedUserProfile,
 					}
 
-					shareeProfile = user.UserProfile{
+					shareeProfile = user.Profile{
 						FullName:      "Someone Else's Profile",
 						Birthday:      "2002-03-04",
 						DiagnosisDate: "2003-04-05",
@@ -563,13 +560,12 @@ var _ = Describe("Router", func() {
 					}
 					shareeRoles = []string{user.RolePatient}
 					shareeDetails = &user.User{
-						UserID:             pointer.FromString(shareeUserID),
-						Username:           pointer.FromString("sharee@tidepool.org"),
-						EmailVerified:      pointer.FromBool(true),
-						Roles:              &shareeRoles,
-						Emails:             []string{"sharee@tidepool.org"},
-						Profile:            &shareeProfile,
-						TrustorPermissions: &permission.Permission{},
+						UserID:        pointer.FromString(shareeUserID),
+						Username:      pointer.FromString("sharee@tidepool.org"),
+						EmailVerified: pointer.FromBool(true),
+						Roles:         &shareeRoles,
+						Emails:        []string{"sharee@tidepool.org"},
+						Profile:       &shareeProfile,
 					}
 
 					var s string
@@ -587,7 +583,7 @@ var _ = Describe("Router", func() {
 							}).AnyTimes()
 
 					profileAccessor.EXPECT().
-						FindUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
+						FindLegacyUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
 						DoAndReturn(
 							func(ctx context.Context, id string) (*user.LegacyUserProfile, error) {
 								switch id {
@@ -611,14 +607,14 @@ var _ = Describe("Router", func() {
 				Context("with full trust permissions", func() {
 					BeforeEach(func() {
 						permsClient.EXPECT().
-							GroupsForUser(gomock.Any(), userID).
+							PermissionsGrantedToUser(gomock.Any(), userID).
 							Return(permission.Permissions{
 								userID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
 							}, nil).AnyTimes()
 						permsClient.EXPECT().
-							GroupsForUser(gomock.Any(), shareeUserID).
+							PermissionsGrantedToUser(gomock.Any(), shareeUserID).
 							Return(permission.Permissions{
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
@@ -629,20 +625,17 @@ var _ = Describe("Router", func() {
 							}, nil).AnyTimes()
 
 						permsClient.EXPECT().
-							UsersInGroup(gomock.Any(), userID).
+							PermissionsGrantedByUser(gomock.Any(), userID).
 							Return(permission.Permissions{
 								userID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
 							}, nil).AnyTimes()
 						permsClient.EXPECT().
-							UsersInGroup(gomock.Any(), shareeUserID).
+							PermissionsGrantedByUser(gomock.Any(), shareeUserID).
 							Return(permission.Permissions{
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
-								},
-								userID: permission.Permission{
-									permission.Read: map[string]any{},
 								},
 							}, nil).AnyTimes()
 					})
@@ -655,8 +648,15 @@ var _ = Describe("Router", func() {
 								Return(true, nil).AnyTimes()
 						})
 						It("returns sharer's user info w/ sharee.", func() {
-							userResults := user.UserArray{
-								userDetails,
+							userResults := []user.TrustUser{
+								{
+									User: *sanitizedUserDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrustorPermissions: &permission.Permission{
+											permission.Read: map[string]any{},
+										},
+									},
+								},
 							}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -667,7 +667,7 @@ var _ = Describe("Router", func() {
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-							userResults := user.UserArray{}
+							userResults := []user.TrustUser{}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
@@ -676,6 +676,8 @@ var _ = Describe("Router", func() {
 
 					Context("as user", func() {
 						BeforeEach(func() {
+							req.Method = http.MethodGet
+							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", shareeUserID)
 							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							var s string
@@ -686,9 +688,19 @@ var _ = Describe("Router", func() {
 										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
 									}).AnyTimes()
 						})
-						It("returns sharer's user info w/ sharee.", func() {
-							userResults := user.UserArray{
-								userDetails,
+						It("returns sharer's full user info w/ sharee.", func() {
+							userResults := []user.TrustUser{
+								{
+									User: *sanitizedUserDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrusteePermissions: &permission.Permission{
+											permission.Read: struct{}{},
+										},
+										TrustorPermissions: &permission.Permission{
+											permission.Read: struct{}{},
+										},
+									},
+								},
 							}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -699,7 +711,7 @@ var _ = Describe("Router", func() {
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-							userResults := user.UserArray{}
+							userResults := []user.TrustUser{}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
@@ -710,14 +722,14 @@ var _ = Describe("Router", func() {
 				Context("with limited trust permissions", func() {
 					BeforeEach(func() {
 						permsClient.EXPECT().
-							GroupsForUser(gomock.Any(), userID).
+							PermissionsGrantedToUser(gomock.Any(), userID).
 							Return(permission.Permissions{
 								userID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
 							}, nil).AnyTimes()
 						permsClient.EXPECT().
-							GroupsForUser(gomock.Any(), shareeUserID).
+							PermissionsGrantedToUser(gomock.Any(), shareeUserID).
 							Return(permission.Permissions{
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
@@ -726,14 +738,17 @@ var _ = Describe("Router", func() {
 							}, nil).AnyTimes()
 
 						permsClient.EXPECT().
-							UsersInGroup(gomock.Any(), userID).
+							PermissionsGrantedByUser(gomock.Any(), userID).
 							Return(permission.Permissions{
 								userID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
+								shareeUserID: permission.Permission{
+									permission.Read: map[string]any{},
+								},
 							}, nil).AnyTimes()
 						permsClient.EXPECT().
-							UsersInGroup(gomock.Any(), shareeUserID).
+							PermissionsGrantedByUser(gomock.Any(), shareeUserID).
 							Return(permission.Permissions{
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
@@ -750,8 +765,14 @@ var _ = Describe("Router", func() {
 								Return(true, nil).AnyTimes()
 						})
 						It("returns full sharer details if service", func() {
-							userResults := user.UserArray{
-								userDetails,
+							userResults := []user.TrustUser{
+								{
+									User: *userDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrusteePermissions: &permission.Permission{},
+										TrustorPermissions: &permission.Permission{},
+									},
+								},
 							}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -762,7 +783,7 @@ var _ = Describe("Router", func() {
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-							userResults := user.UserArray{}
+							userResults := []user.TrustUser{}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
@@ -782,8 +803,14 @@ var _ = Describe("Router", func() {
 									}).AnyTimes()
 						})
 						It("returns sharer's limited user info w/ sharee.", func() {
-							userResults := user.UserArray{
-								userLimitedDetails,
+							userResults := []user.TrustUser{
+								{
+									User: *limitedUserDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrusteePermissions: &permission.Permission{},
+										TrustorPermissions: &permission.Permission{},
+									},
+								},
 							}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -794,7 +821,7 @@ var _ = Describe("Router", func() {
 							req.URL.Path = fmt.Sprintf("/v1/users/%s/users", userID)
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-							userResults := user.UserArray{}
+							userResults := []user.TrustUser{}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
