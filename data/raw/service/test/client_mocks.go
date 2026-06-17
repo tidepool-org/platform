@@ -14,10 +14,11 @@ import (
 	io "io"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	raw "github.com/tidepool-org/platform/data/raw"
 	page "github.com/tidepool-org/platform/page"
 	structured "github.com/tidepool-org/platform/store/structured"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStore is a mock of Store interface.
