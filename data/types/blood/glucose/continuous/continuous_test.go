@@ -13,6 +13,8 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -588,6 +590,7 @@ var _ = Describe("Continuous", func() {
 					datum.Normalize(normalizer.WithOrigin(origin))
 					Expect(normalizer.Error()).To(BeNil())
 					Expect(normalizer.Data()).To(BeEmpty())
+					expectedDatum.Raw = metadataTest.CloneMetadata(datum.Raw)
 					if expectator != nil {
 						expectator(datum, expectedDatum, units, rateUnits)
 					}
@@ -650,17 +653,19 @@ var _ = Describe("Continuous", func() {
 		)
 
 		DescribeTable("normalizes the datum with origin external",
-			func(units *string, rateUnits *string, mutator func(datum *continuous.Continuous, units *string, rateUnits *string), expectator func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string)) {
+			func(units *string, rateUnits *string, mutator func(datum *continuous.Continuous, units *string, rateUnits *string), expectator func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string)) {
 				datum := RandomContinuous(units, rateUnits)
 				mutator(datum, units, rateUnits)
+				originalValue := pointer.CloneFloat64(datum.Value)
 				expectedDatum := CloneContinuous(datum)
 				normalizer := dataNormalizer.New(logTest.NewLogger())
 				Expect(normalizer).ToNot(BeNil())
 				datum.Normalize(normalizer.WithOrigin(structure.OriginExternal))
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
+				expectedDatum.Raw = metadataTest.CloneMetadata(datum.Raw)
 				if expectator != nil {
-					expectator(datum, expectedDatum, units, rateUnits)
+					expectator(datum, expectedDatum, units, originalValue, rateUnits)
 				}
 				Expect(datum).To(Equal(expectedDatum))
 			},
@@ -692,8 +697,9 @@ var _ = Describe("Continuous", func() {
 				pointer.FromString("mmol/l"),
 				pointer.FromString("mmol/L/minute"),
 				func(datum *continuous.Continuous, units *string, rateUnits *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mmol/l; value missing",
@@ -703,19 +709,21 @@ var _ = Describe("Continuous", func() {
 					datum.Value = nil
 					datum.TrendRate = nil
 				},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 			Entry("modifies the datum; units mg/dL",
 				pointer.FromString("mg/dL"),
 				pointer.FromString("mg/dL/minute"),
 				func(datum *continuous.Continuous, units *string, rateUnits *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					dataBloodGlucoseTest.ExpectNormalizedRateUnits(datum.TrendRateUnits, expectedDatum.TrendRateUnits)
 					dataBloodGlucoseTest.ExpectNormalizedRateValue(datum.TrendRate, expectedDatum.TrendRate, rateUnits)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mg/dL; value missing",
@@ -725,20 +733,22 @@ var _ = Describe("Continuous", func() {
 					datum.Value = nil
 					datum.TrendRate = nil
 				},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedRateUnits(datum.TrendRateUnits, expectedDatum.TrendRateUnits)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 			Entry("modifies the datum; units mg/dl",
 				pointer.FromString("mg/dl"),
 				pointer.FromString("mg/dL/minute"),
 				func(datum *continuous.Continuous, units *string, rateUnits *string) {},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedValue(datum.Value, expectedDatum.Value, units)
 					dataBloodGlucoseTest.ExpectNormalizedRateUnits(datum.TrendRateUnits, expectedDatum.TrendRateUnits)
 					dataBloodGlucoseTest.ExpectNormalizedRateValue(datum.TrendRate, expectedDatum.TrendRate, rateUnits)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": *value})
 				},
 			),
 			Entry("modifies the datum; units mg/dl; value missing",
@@ -748,9 +758,10 @@ var _ = Describe("Continuous", func() {
 					datum.Value = nil
 					datum.TrendRate = nil
 				},
-				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, rateUnits *string) {
+				func(datum *continuous.Continuous, expectedDatum *continuous.Continuous, units *string, value *float64, rateUnits *string) {
 					dataBloodGlucoseTest.ExpectNormalizedUnits(datum.Units, expectedDatum.Units)
 					dataBloodGlucoseTest.ExpectNormalizedRateUnits(datum.TrendRateUnits, expectedDatum.TrendRateUnits)
+					dataBloodGlucoseTest.ExpectRaw(datum.Raw, &metadata.Metadata{"units": *units, "value": nil})
 				},
 			),
 		)

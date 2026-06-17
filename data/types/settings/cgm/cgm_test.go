@@ -2,6 +2,7 @@ package cgm_test
 
 import (
 	"sort"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -594,6 +595,19 @@ var _ = Describe("CGM", func() {
 					nil,
 				),
 			)
+		})
+
+		Context("Legacy IdentityFields", func() {
+			It("returns the expected legacy identity fields", func() {
+				datum := dataTypesSettingsCgmTest.RandomCGM(pointer.FromString("mmol/l"))
+				datum.DeviceID = pointer.FromString("some-cgm-device")
+				t, err := time.Parse(dataTypes.TimeFormat, "2023-05-13T15:51:58Z")
+				Expect(err).ToNot(HaveOccurred())
+				datum.Time = pointer.FromTime(t)
+				legacyIdentityFields, err := datum.IdentityFields(dataTypes.LegacyIdentityFieldsVersion)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(legacyIdentityFields).To(Equal([]string{"cgmSettings", "2023-05-13T15:51:58.000Z", "some-cgm-device"}))
+			})
 		})
 	})
 

@@ -13,6 +13,7 @@ import (
 	dataTypesAlert "github.com/tidepool-org/platform/data/types/alert"
 	dataTypesBloodGlucoseContinuous "github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	dataTypesBloodGlucoseSelfMonitored "github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	dataTypesCommon "github.com/tidepool-org/platform/data/types/common"
 	dataTypesDeviceCalibration "github.com/tidepool-org/platform/data/types/device/calibration"
 	dataTypesFood "github.com/tidepool-org/platform/data/types/food"
 	dataTypesInsulin "github.com/tidepool-org/platform/data/types/insulin"
@@ -228,19 +229,19 @@ func translateAlertScheduleSettingsDaysOfWeekToScheduledAlertDays(daysOfWeek *[]
 func translateAlertScheduleSettingsDayOfWeekToScheduledAlertDay(dayOfWeek string) string {
 	switch dayOfWeek {
 	case dexcom.AlertScheduleSettingsDaySunday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysSunday
+		return dataTypesCommon.DaySunday
 	case dexcom.AlertScheduleSettingsDayMonday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysMonday
+		return dataTypesCommon.DayMonday
 	case dexcom.AlertScheduleSettingsDayTuesday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysTuesday
+		return dataTypesCommon.DayTuesday
 	case dexcom.AlertScheduleSettingsDayWednesday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysWednesday
+		return dataTypesCommon.DayWednesday
 	case dexcom.AlertScheduleSettingsDayThursday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysThursday
+		return dataTypesCommon.DayThursday
 	case dexcom.AlertScheduleSettingsDayFriday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysFriday
+		return dataTypesCommon.DayFriday
 	case dexcom.AlertScheduleSettingsDaySaturday:
-		return dataTypesSettingsCgm.ScheduledAlertDaysSaturday
+		return dataTypesCommon.DaySaturday
 	}
 	return ""
 }

@@ -104,3 +104,7 @@ func (f *Food) Normalize(normalizer data.Normalizer) {
 
 	f.Base.Normalize(normalizer)
 }
+
+func (f *Food) IdentityFields(version int) ([]string, error) {
+	return f.Base.IdentityFields(version)
+}

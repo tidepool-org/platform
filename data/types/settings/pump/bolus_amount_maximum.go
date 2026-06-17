@@ -9,7 +9,7 @@ import (
 
 const (
 	BolusAmountMaximumUnitsUnits        = "Units"
-	BolusAmountMaximumValueUnitsMaximum = 100.0
+	BolusAmountMaximumValueUnitsMaximum = 250.0
 	BolusAmountMaximumValueUnitsMinimum = 0.0
 )
 

@@ -13,7 +13,6 @@ import (
 const (
 	DeliveryType = "suspend" // TODO: Rename Type to "basal/suspended"; remove DeliveryType
 
-	DurationMaximum = 604800000
 	DurationMinimum = 0
 )
 
@@ -60,12 +59,12 @@ func (s *Suspend) Validate(validator structure.Validator) {
 		validator.String("deliveryType", &s.DeliveryType).EqualTo(DeliveryType)
 	}
 
-	validator.Int("duration", s.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
+	validator.Int("duration", s.Duration).Exists().GreaterThanOrEqualTo(DurationMinimum)
 	expectedDurationValidator := validator.Int("expectedDuration", s.DurationExpected)
-	if s.Duration != nil && *s.Duration >= DurationMinimum && *s.Duration <= DurationMaximum {
-		expectedDurationValidator.InRange(*s.Duration, DurationMaximum)
+	if s.Duration != nil && *s.Duration >= DurationMinimum {
+		expectedDurationValidator.GreaterThanOrEqualTo(*s.Duration)
 	} else {
-		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
+		expectedDurationValidator.GreaterThanOrEqualTo(DurationMinimum)
 	}
 	validateSuppressed(validator.WithReference("suppressed"), s.Suppressed)
 }

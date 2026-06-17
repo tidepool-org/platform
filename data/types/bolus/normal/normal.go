@@ -9,7 +9,7 @@ import (
 const (
 	SubType = "normal" // TODO: Rename Type to "bolus/normal"; remove SubType
 
-	NormalMaximum = 100.0
+	NormalMaximum = 250.0
 	NormalMinimum = 0.0
 )
 
@@ -51,9 +51,6 @@ func (n *Normal) Validate(validator structure.Validator) {
 	validator.Float64("normal", n.Normal).Exists().InRange(NormalMinimum, NormalMaximum)
 	normalExpectedValidator := validator.Float64("expectedNormal", n.NormalExpected)
 	if n.Normal != nil && *n.Normal >= NormalMinimum && *n.Normal <= NormalMaximum {
-		if *n.Normal == NormalMinimum {
-			normalExpectedValidator.Exists()
-		}
 		normalExpectedValidator.InRange(*n.Normal, NormalMaximum)
 	} else {
 		normalExpectedValidator.InRange(NormalMinimum, NormalMaximum)

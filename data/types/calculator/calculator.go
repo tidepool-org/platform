@@ -17,7 +17,7 @@ const (
 
 	CarbohydrateInputMaximum        = 1000.0
 	CarbohydrateInputMinimum        = 0.0
-	InsulinCarbohydrateRatioMaximum = 250.0
+	InsulinCarbohydrateRatioMaximum = 500.0
 	InsulinCarbohydrateRatioMinimum = 0.0
 	InsulinOnBoardMaximum           = 250.0
 	InsulinOnBoardMinimum           = 0.0
@@ -116,6 +116,10 @@ func (c *Calculator) Validate(validator structure.Validator) {
 	if c.CarbUnits != nil {
 		validator.String("carbUnits", c.CarbUnits).OneOf(CarbUnits()...)
 	}
+}
+
+func (c *Calculator) IdentityFields(version int) ([]string, error) {
+	return c.Base.IdentityFields(version)
 }
 
 func (c *Calculator) Normalize(normalizer data.Normalizer) {

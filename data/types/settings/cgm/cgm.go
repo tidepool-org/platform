@@ -6,6 +6,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
+	"github.com/tidepool-org/platform/data/types"
 	dataTypes "github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
@@ -154,6 +155,30 @@ func (c *CGM) Normalize(normalizer data.Normalizer) {
 	if c.RateAlerts != nil {
 		c.RateAlerts.Normalize(normalizer.WithReference("rateOfChangeAlerts"), units)
 	}
+}
+
+func (c *CGM) IdentityFields(version int) ([]string, error) {
+	identityFields := []string{}
+	var err error
+	if version == types.LegacyIdentityFieldsVersion {
+
+		identityFields, err = dataTypes.AppendIdentityFieldVal(identityFields, &c.Type, "type")
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = dataTypes.AppendLegacyTimeVal(identityFields, c.Time)
+		if err != nil {
+			return nil, err
+		}
+
+		identityFields, err = dataTypes.AppendIdentityFieldVal(identityFields, c.DeviceID, "device id")
+		if err != nil {
+			return nil, err
+		}
+		return identityFields, nil
+	}
+	return c.Base.IdentityFields(version)
 }
 
 func IsValidTransmitterID(value string) bool {

@@ -31,7 +31,7 @@ var _ = Describe("Automated", func() {
 	})
 
 	It("NormalMaximum is expected", func() {
-		Expect(dataTypesBolusAutomated.NormalMaximum).To(Equal(100.0))
+		Expect(dataTypesBolusAutomated.NormalMaximum).To(Equal(250.0))
 	})
 
 	It("NormalMinimum is expected", func() {
@@ -144,7 +144,7 @@ var _ = Describe("Automated", func() {
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal missing; normal expected in range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
@@ -156,54 +156,54 @@ var _ = Describe("Automated", func() {
 				Entry("normal missing; normal expected in range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = nil
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
 				),
 				Entry("normal missing; normal expected out of range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = nil
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected missing",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(-0.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected in range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(-0.1)
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (lower); normal expected out of range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(-0.1)
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected missing",
 					func(datum *dataTypesBolusAutomated.Automated) {
@@ -217,7 +217,7 @@ var _ = Describe("Automated", func() {
 						datum.Normal = pointer.FromFloat64(0.0)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (lower); normal expected in range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
@@ -228,96 +228,96 @@ var _ = Describe("Automated", func() {
 				Entry("normal in range (lower); normal expected in range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(0.0)
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
 				),
 				Entry("normal in range (lower); normal expected out of range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Normal = pointer.FromFloat64(0.0)
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (upper); normal expected missing",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.0)
+						datum.Normal = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 						datum.NormalExpected = nil
 					},
 				),
 				Entry("normal in range (upper); normal expected out of range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.0)
-						datum.NormalExpected = pointer.FromFloat64(99.9)
+						datum.Normal = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
+						datum.NormalExpected = pointer.FromFloat64(249.9)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(99.9, 100.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(249.9, dataTypesBolusAutomated.NormalMaximum, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal in range (upper); normal expected in range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.0)
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.Normal = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
 				),
 				Entry("normal in range (upper); normal expected in range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.0)
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.Normal = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
 				),
 				Entry("normal in range (upper); normal expected out of range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.0)
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.Normal = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 100.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, dataTypesBolusAutomated.NormalMaximum, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected missing",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.1)
+						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = nil
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.1)
+						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(-0.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (lower)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.1)
+						datum.Normal = pointer.FromFloat64(250.1)
 						datum.NormalExpected = pointer.FromFloat64(0.0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected in range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.1)
-						datum.NormalExpected = pointer.FromFloat64(100.0)
+						datum.Normal = pointer.FromFloat64(250.1)
+						datum.NormalExpected = pointer.FromFloat64(dataTypesBolusAutomated.NormalMaximum)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
 				),
 				Entry("normal out of range (upper); normal expected out of range (upper)",
 					func(datum *dataTypesBolusAutomated.Automated) {
-						datum.Normal = pointer.FromFloat64(100.1)
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.Normal = pointer.FromFloat64(250.1)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/normal", NewMeta()),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/normal", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", NewMeta()),
 				),
 				Entry("multiple errors",
 					func(datum *dataTypesBolusAutomated.Automated) {
 						datum.Type = "invalidType"
 						datum.SubType = "invalidSubType"
 						datum.Normal = nil
-						datum.NormalExpected = pointer.FromFloat64(100.1)
+						datum.NormalExpected = pointer.FromFloat64(250.1)
 					},
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidType", "bolus"), "/type", &dataTypesBolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotEqualTo("invalidSubType", "automated"), "/subType", &dataTypesBolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotExists(), "/normal", &dataTypesBolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(100.1, 0.0, 100.0), "/expectedNormal", &dataTypesBolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(dataTypesBolusAutomated.NormalMaximum+0.1, 0.0, dataTypesBolusAutomated.NormalMaximum), "/expectedNormal", &dataTypesBolus.Meta{Type: "invalidType", SubType: "invalidSubType"}),
 				),
 			)
 		})

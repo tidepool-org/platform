@@ -278,6 +278,10 @@ func (d *DataSetRepository) ListUserDataSets(ctx context.Context, userID string,
 	if filter.DeviceID != nil {
 		selector["deviceId"] = *filter.DeviceID
 	}
+	if filter.LegacyOnly != nil && *filter.LegacyOnly {
+		selector["_id"] = bson.M{"$not": bson.M{"$type": "objectId"}}
+	}
+
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := d.Find(ctx, selector, opts)
