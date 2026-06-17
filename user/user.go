@@ -59,25 +59,18 @@ type Client interface {
 }
 
 type User struct {
-	UserID               *string   `json:"userid,omitempty" bson:"userid,omitempty"`
-	Username             *string   `json:"username,omitempty" bson:"username,omitempty"`
-	EmailVerified        *bool     `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
-	TermsAccepted        *string   `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
-	Roles                *[]string `json:"roles,omitempty" bson:"roles,omitempty"`
-	Emails               []string  `json:"emails,omitempty" bson:"emails,omitempty"`
-	PwHash               string    `json:"-" bson:"pwhash,omitempty"`
-	Hash                 string    `json:"-" bson:"userhash,omitempty"`
-	IsMigrated           bool      `json:"-" bson:"-"`
-	IsUnclaimedCustodial bool      `json:"-" bson:"-"`
-	Enabled              bool      `json:"-" bson:"-"`
-	CreatedTime          string    `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID        string    `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	ModifiedTime         string    `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID       string    `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
-	DeletedTime          string    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID        string    `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
-	Profile              *Profile  `json:"profile,omitempty" bson:"-"`
-	PasswordExists       *bool     `json:"passwordExists,omitempty" bson:"-"`
+	UserID         *string             `json:"userid,omitempty" bson:"userid,omitempty"`
+	Username       *string             `json:"username,omitempty" bson:"username,omitempty"`
+	EmailVerified  *bool               `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
+	TermsAccepted  *string             `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
+	Roles          *[]string           `json:"roles,omitempty" bson:"roles,omitempty"`
+	Emails         []string            `json:"emails,omitempty" bson:"emails,omitempty"`
+	PwHash         string              `json:"-" bson:"pwhash,omitempty"`
+	Hash           string              `json:"-" bson:"userhash,omitempty"`
+	Enabled        bool                `json:"-" bson:"-"`
+	Profile        *Profile            `json:"profile,omitempty" bson:"-"`
+	PasswordExists *bool               `json:"passwordExists,omitempty" bson:"-"`
+	Attributes     map[string][]string `json:"-" bson:"-"`
 }
 
 // TrustUser is the user object returned for the /v1/users/:userId/users route.
@@ -157,15 +150,7 @@ func (u *TrustUser) Sanitize(details request.AuthDetails) error {
 		// Note that a TrustUser includes some fields in the user that [User.Sanitize] wouldn't.
 		u.PasswordExists = nil
 		if (u.TrustorPermissions == nil || len(*u.TrustorPermissions) == 0) && u.User.Profile != nil {
-			// Clear out patient fields
-			u.User.Profile.Birthday = ""
-			u.User.Profile.DiagnosisDate = ""
-			u.User.Profile.DiagnosisType = ""
-			u.User.Profile.TargetDevices = nil
-			u.User.Profile.TargetTimezone = ""
-			u.User.Profile.About = ""
-			u.User.Profile.MRN = ""
-			u.User.Profile.BiologicalSex = ""
+			u.User.Profile.Sanitize()
 		}
 	}
 	return nil
@@ -200,18 +185,6 @@ func (u *User) AreTermsAccepted() bool {
 	}
 	_, err := TimestampToUnixString(*u.TermsAccepted)
 	return err == nil
-}
-
-func (u *User) IsEnabled() bool {
-	if u.IsMigrated {
-		return u.Enabled
-	}
-	return u.PwHash != "" && !u.IsDeleted()
-}
-
-func (u *User) IsDeleted() bool {
-	// mdb only?
-	return u.DeletedTime != ""
 }
 
 type UserArray []*User

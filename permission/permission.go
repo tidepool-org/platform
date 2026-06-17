@@ -37,7 +37,7 @@ type Client interface {
 	// sharerID has shared with others, keyed by user id. It includes the user
 	// themself.
 	PermissionsGrantedByUser(ctx context.Context, sharerID string) (Permissions, error)
-	HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
+	UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 	HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error)
 }
 
