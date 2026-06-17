@@ -13,10 +13,11 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	page "github.com/tidepool-org/platform/page"
 	structured "github.com/tidepool-org/platform/store/structured"
 	work "github.com/tidepool-org/platform/work"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStore is a mock of Store interface.
