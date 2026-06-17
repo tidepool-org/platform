@@ -521,21 +521,6 @@ func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, gr
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
 }
 
-// HasMembershipRelationship mocks base method.
-func (m *MockClient) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasMembershipRelationship", ctx, granteeUserID, grantorUserID)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasMembershipRelationship indicates an expected call of HasMembershipRelationship.
-func (mr *MockClientMockRecorder) HasMembershipRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasMembershipRelationship", reflect.TypeOf((*MockClient)(nil).HasMembershipRelationship), ctx, granteeUserID, grantorUserID)
-}
-
 // ListProviderSessions mocks base method.
 func (m *MockClient) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	m.ctrl.T.Helper()
@@ -836,6 +821,21 @@ func (c *MockClientUpdateUserPermissionsCall) Do(f func(context.Context, string,
 func (c *MockClientUpdateUserPermissionsCall) DoAndReturn(f func(context.Context, string, string, permission.Permissions) error) *MockClientUpdateUserPermissionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
+}
+
+// UsersHaveSharingRelationship mocks base method.
+func (m *MockClient) UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UsersHaveSharingRelationship", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UsersHaveSharingRelationship indicates an expected call of UsersHaveSharingRelationship.
+func (mr *MockClientMockRecorder) UsersHaveSharingRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersHaveSharingRelationship", reflect.TypeOf((*MockClient)(nil).UsersHaveSharingRelationship), ctx, granteeUserID, grantorUserID)
 }
 
 // ValidateSessionToken mocks base method.

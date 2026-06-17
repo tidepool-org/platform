@@ -177,6 +177,7 @@ func (c *keycloakClient) UpdateUser(ctx context.Context, user *userlib.User) err
 	}
 
 	attrs := map[string][]string{}
+	maps.Copy(attrs, user.Attributes)
 	if terms := pointer.ToString(user.TermsAccepted); terms != "" {
 		attrs[termsAcceptedAttribute] = []string{terms}
 	}
@@ -454,7 +455,6 @@ func newUserFromGocloakUser(gocloakUser *gocloak.User) *userlib.User {
 		Emails:        []string{},
 		Roles:         gocloakUser.RealmRoles,
 		EmailVerified: gocloakUser.EmailVerified,
-		IsMigrated:    true,
 		Enabled:       pointer.ToBool(gocloakUser.Enabled),
 	}
 	if gocloakUser.Attributes != nil {
@@ -471,6 +471,7 @@ func newUserFromGocloakUser(gocloakUser *gocloak.User) *userlib.User {
 		if profile := userlib.ProfileFromAttributes(pointer.ToString(gocloakUser.Username), attrs, roles); profile != nil {
 			user.Profile = profile
 		}
+		user.Attributes = attrs
 	}
 
 	// All non-custodial users have a password and it's important to set the hash to a non-empty value.

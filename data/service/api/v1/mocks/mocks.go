@@ -95,7 +95,7 @@ func (c *Permission) PermissionsGrantedByUser(ctx context.Context, sharerID stri
 	return nil, nil
 }
 
-func (c *Permission) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
+func (c *Permission) UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	return false, nil
 }
 

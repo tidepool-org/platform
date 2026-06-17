@@ -70,21 +70,6 @@ func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, gr
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
 }
 
-// HasMembershipRelationship mocks base method.
-func (m *MockClient) HasMembershipRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HasMembershipRelationship", ctx, granteeUserID, grantorUserID)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// HasMembershipRelationship indicates an expected call of HasMembershipRelationship.
-func (mr *MockClientMockRecorder) HasMembershipRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasMembershipRelationship", reflect.TypeOf((*MockClient)(nil).HasMembershipRelationship), ctx, granteeUserID, grantorUserID)
-}
-
 // PermissionsGrantedByUser mocks base method.
 func (m *MockClient) PermissionsGrantedByUser(ctx context.Context, sharerID string) (Permissions, error) {
 	m.ctrl.T.Helper()
@@ -127,4 +112,19 @@ func (m *MockClient) UpdateUserPermissions(ctx context.Context, requestUserID, t
 func (mr *MockClientMockRecorder) UpdateUserPermissions(ctx, requestUserID, targetUserID, permissions any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserPermissions", reflect.TypeOf((*MockClient)(nil).UpdateUserPermissions), ctx, requestUserID, targetUserID, permissions)
+}
+
+// UsersHaveSharingRelationship mocks base method.
+func (m *MockClient) UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UsersHaveSharingRelationship", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UsersHaveSharingRelationship indicates an expected call of UsersHaveSharingRelationship.
+func (mr *MockClientMockRecorder) UsersHaveSharingRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersHaveSharingRelationship", reflect.TypeOf((*MockClient)(nil).UsersHaveSharingRelationship), ctx, granteeUserID, grantorUserID)
 }

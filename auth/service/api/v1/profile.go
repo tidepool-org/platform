@@ -10,10 +10,8 @@ import (
 	"github.com/ant0ine/go-json-rest/rest"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
-	structValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -57,12 +55,34 @@ func (r *Router) getProfile(ctx context.Context, userID string) (*user.LegacyUse
 	return profile, nil
 }
 
+func (r *Router) getSanitizedProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
+	profile, err := r.getProfile(ctx, userID)
+	if err != nil {
+		return profile, err
+	}
+	details := request.GetAuthDetails(ctx)
+	if details == nil {
+		return nil, request.ErrorUnauthenticated()
+	}
+	if details.IsService() || details.UserID() == userID {
+		return profile, nil
+	}
+	trustorPerms, err := r.PermissionsClient().GetUserPermissions(ctx, details.UserID(), userID)
+	if err != nil {
+		return nil, err
+	}
+	if len(trustorPerms) == 0 {
+		profile.Sanitize()
+	}
+	return profile, nil
+}
+
 // GetProfile returns the user's profile in the new, non seagull, format
 func (r *Router) GetProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	profile, err := r.getProfile(ctx, userID)
+	profile, err := r.getSanitizedProfile(ctx, userID)
 	if err != nil {
 		r.handleUserOrProfileErr(responder, err)
 		return
@@ -172,7 +192,7 @@ func (r *Router) GetLegacyProfile(res rest.ResponseWriter, req *rest.Request) {
 	responder := request.MustNewResponder(res, req)
 	ctx := req.Context()
 	userID := req.PathParam("userId")
-	profile, err := r.getProfile(ctx, userID)
+	profile, err := r.getSanitizedProfile(ctx, userID)
 	if err != nil {
 		r.handleUserOrProfileErr(responder, err)
 		return
@@ -205,10 +225,6 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 
 	profile := &user.Profile{}
 	if err := request.DecodeRequestBody(req.Request, profile); err != nil {
-		responder.Error(http.StatusBadRequest, err)
-		return
-	}
-	if err := structValidator.New(log.LoggerFromContext(ctx)).Validate(profile); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}

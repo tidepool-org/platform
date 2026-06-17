@@ -73,7 +73,6 @@ type Profile struct {
 	// The PRESENCE of a clinic object in a profile is used by blip to determine which page to show so this needs to be returned in the response.
 	// There are clinicians/legacy clinics with completely empty values within the clinic object but are still clinicians/clinics.
 	Clinic *ClinicProfile `json:"clinic,omitempty"`
-	Email  string         `json:"-"` // This is used when returning profiles in the legacy format. It is not stored in the profile, but is populated from the keycloak username and not returned in the new profiles route.
 }
 
 type ClinicProfile struct {
@@ -138,12 +137,6 @@ func (up *Profile) ToLegacyProfile(roles []string) *LegacyUserProfile {
 			MRN:            up.MRN,
 			BiologicalSex:  up.BiologicalSex,
 		}
-		if up.Email != "" && !IsUnclaimedCustodialEmail(up.Email) {
-			legacyProfile.Patient.Email = up.Email
-			legacyProfile.Patient.Emails = []string{up.Email}
-			legacyProfile.Email = up.Email
-			legacyProfile.Emails = []string{up.Email}
-		}
 	}
 	// only custodiaL fake child accounts have Patient.FullName set
 	if up.Custodian != nil {
@@ -193,6 +186,19 @@ func (p *LegacyUserProfile) ToUserProfile() *Profile {
 		}
 	}
 	return up
+
+}
+
+func (p *Profile) Sanitize() {
+	// Clear out patient fields
+	p.Birthday = ""
+	p.DiagnosisDate = ""
+	p.DiagnosisType = ""
+	p.TargetDevices = nil
+	p.TargetTimezone = ""
+	p.About = ""
+	p.MRN = ""
+	p.BiologicalSex = ""
 }
 
 // LegacyUserProfile represents the old seagull format for a profile.
@@ -201,9 +207,6 @@ type LegacyUserProfile struct {
 	Patient         *LegacyPatientProfile `json:"patient,omitempty"`
 	Clinic          *ClinicProfile        `json:"clinic,omitempty"`
 	MigrationStatus migrationStatus       `json:"-"`
-	// The Email and Emails fields are legacy properties that will be populated from the keycloak user if the profile is finished migrating, otherwise from the seagull collection
-	Email  string   `json:"email,omitempty"`
-	Emails []string `json:"emails,omitempty"`
 }
 
 type LegacyPatientProfile struct {
@@ -217,9 +220,6 @@ type LegacyPatientProfile struct {
 	IsOtherPerson  jsonBool `json:"isOtherPerson,omitempty"`
 	MRN            string   `json:"mrn,omitempty"`
 	BiologicalSex  string   `json:"biologicalSex,omitempty"`
-	// The Email and Emails fields are legacy properties that will be populated from the keycloak user if the profile is finished migrating, otherwise from the seagull collection
-	Email  string   `json:"email,omitempty"`
-	Emails []string `json:"emails,omitempty"`
 }
 
 func (l *LegacyPatientProfile) UnmarshalJSON(data []byte) error {
@@ -315,9 +315,7 @@ func (up *Profile) ToAttributes() map[string][]string {
 // ProfileFromAttributes returns a [Profile] if there exists at least one
 // profile attribute in the supplied attributes. Otherwise it returns nil.
 func ProfileFromAttributes(username string, attributes map[string][]string, roles []string) *Profile {
-	up := &Profile{
-		Email: username,
-	}
+	up := &Profile{}
 	foundAnyProfileAttr := false
 	if val := getAttribute(attributes, "full_name"); val != "" {
 		up.FullName = val
@@ -546,4 +544,18 @@ func (pp *LegacyPatientProfile) Normalize(normalizer structure.Normalizer) {
 	pp.About = strings.TrimSpace(pp.About)
 	pp.MRN = strings.TrimSpace(pp.MRN)
 	pp.BiologicalSex = strings.TrimSpace(pp.BiologicalSex)
+}
+
+func (p *LegacyUserProfile) Sanitize() {
+	// Clear out patient fields
+	if p.Patient != nil {
+		p.Patient.Birthday = ""
+		p.Patient.DiagnosisDate = ""
+		p.Patient.DiagnosisType = ""
+		p.Patient.TargetDevices = nil
+		p.Patient.TargetTimezone = ""
+		p.Patient.About = ""
+		p.Patient.MRN = ""
+		p.Patient.BiologicalSex = ""
+	}
 }
