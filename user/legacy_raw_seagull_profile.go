@@ -11,7 +11,6 @@ import (
 )
 
 var (
-	ErrSeagullFieldNotFound  = errors.New("seagull field not found within value object string")
 	ErrSeagullMarshalValue   = errors.New(`unable to encode seagull "value" to JSON`)
 	ErrSeagullUnmarshalValue = errors.New(`unable to decode seagull "value" from JSON`)
 )

@@ -38,7 +38,6 @@ type LegacyProfileAccessor interface {
 type ProfileAccessor interface {
 	LegacyProfileAccessor
 	UpdateUserProfile(ctx context.Context, userID string, p *Profile) error
-	FindUserProfile(ctx context.Context, userID string) (*Profile, error)
 }
 
 type RoleGetter interface {

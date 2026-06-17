@@ -133,7 +133,7 @@ var _ = Describe("Router", func() {
 								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 								permsClient.EXPECT().
-									HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+									UsersHaveSharingRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -183,6 +183,7 @@ var _ = Describe("Router", func() {
 							Context("other persons profile", func() {
 								var otherPersonID string
 								var otherProfile *user.LegacyUserProfile
+								var sanitizedOtherProfile *user.LegacyUserProfile
 								var otherDetails *user.User
 								BeforeEach(func() {
 									otherPersonID = userTest.RandomUserID()
@@ -196,38 +197,68 @@ var _ = Describe("Router", func() {
 											MRN:           "11223346",
 										},
 									}
+									sanitizedOtherProfile = &user.LegacyUserProfile{
+										FullName: "Someone Else's Profile",
+										Patient:  &user.LegacyPatientProfile{},
+									}
 									otherDetails = &user.User{
 										UserID:   pointer.FromString(otherPersonID),
 										Username: pointer.FromString("dev+other@tidepool.org"),
 									}
 								})
-								It("retrieves another person's profile if user has access", func() {
-									permsClient.EXPECT().
-										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
-										Return(true, nil).AnyTimes()
-									profileAccessor.EXPECT().
-										FindLegacyUserProfile(gomock.Any(), otherPersonID).
-										Return(otherProfile, nil).AnyTimes()
-									userAccessor.EXPECT().
-										FindUserById(gomock.Any(), otherPersonID).
-										Return(otherDetails, nil).AnyTimes()
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-									Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
-								})
 								It("fails to retrieve another person's profile if user does not have access", func() {
 									permsClient.EXPECT().
-										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+										UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
 										Return(false, nil).AnyTimes()
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									res.WriteOutputs = nil
 								})
+								Context("with trustor permissions", func() {
+									It("retrieves another person's profile if user has access", func() {
+										permsClient.EXPECT().
+											UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
+											Return(true, nil).AnyTimes()
+										permsClient.EXPECT().
+											GetUserPermissions(gomock.Any(), userID, otherPersonID).
+											Return(permission.Permissions{
+												permission.Read: permission.Permission{},
+											}, nil).AnyTimes()
+										profileAccessor.EXPECT().
+											FindLegacyUserProfile(gomock.Any(), otherPersonID).
+											Return(otherProfile, nil).AnyTimes()
+										userAccessor.EXPECT().
+											FindUserById(gomock.Any(), otherPersonID).
+											Return(otherDetails, nil).AnyTimes()
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+										Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
+									})
+								})
+								Context("without trustor permissions", func() {
+									It("retrieves another person's sanitized profile if user does not have trustor permissions", func() {
+										permsClient.EXPECT().
+											UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
+											Return(true, nil).AnyTimes()
+										permsClient.EXPECT().
+											GetUserPermissions(gomock.Any(), userID, otherPersonID).
+											Return(nil, nil).AnyTimes()
+										profileAccessor.EXPECT().
+											FindLegacyUserProfile(gomock.Any(), otherPersonID).
+											Return(otherProfile, nil).AnyTimes()
+										userAccessor.EXPECT().
+											FindUserById(gomock.Any(), otherPersonID).
+											Return(otherDetails, nil).AnyTimes()
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+										Expect(json.Marshal(sanitizedOtherProfile)).To(MatchJSON(res.WriteInputs[0]))
+									})
+								})
 							})
 						})
 					})
 
-					Context("UpdateProfile", func() {
+					Context("UpdateLegacyProfile", func() {
 						var updatedProfile *user.LegacyUserProfile
 						BeforeEach(func() {
 							req.Method = http.MethodPost
@@ -240,8 +271,6 @@ var _ = Describe("Router", func() {
 									DiagnosisDate: "2001-02-03",
 									About:         "Updated info",
 									MRN:           "11223345",
-									Email:         "",
-									Emails:        []string{},
 								},
 							}
 							bites, err := json.Marshal(updatedProfile)
@@ -259,7 +288,7 @@ var _ = Describe("Router", func() {
 								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 								permsClient.EXPECT().
-									HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+									UsersHaveSharingRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -323,7 +352,7 @@ var _ = Describe("Router", func() {
 								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 								permsClient.EXPECT().
-									HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+									UsersHaveSharingRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -358,6 +387,7 @@ var _ = Describe("Router", func() {
 							Context("other persons profile", func() {
 								var otherPersonID string
 								var otherProfile *user.Profile
+								var sanitizedOtherProfile *user.Profile
 								var otherRoles []string
 								var otherDetails *user.User
 								BeforeEach(func() {
@@ -370,33 +400,62 @@ var _ = Describe("Router", func() {
 										About:         "Not about me",
 										MRN:           "11223346",
 									}
+									sanitizedOtherProfile = &user.Profile{
+										FullName: "Someone Else's Profile",
+									}
 									otherDetails = &user.User{
 										UserID:   pointer.FromString(otherPersonID),
 										Username: pointer.FromString("dev+other@tidepool.org"),
 									}
 									otherRoles = []string{user.RolePatient}
 								})
-								It("retrieves another person's profile if user has access", func() {
-									permsClient.EXPECT().
-										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
-										Return(true, nil).AnyTimes()
-									profileAccessor.EXPECT().
-										FindLegacyUserProfile(gomock.Any(), otherPersonID).
-										Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
-									userAccessor.EXPECT().
-										FindUserById(gomock.Any(), otherPersonID).
-										Return(otherDetails, nil).AnyTimes()
-									handlerFunc(res, req)
-									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-									Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
-								})
 								It("fails to retrieve another person's profile if user does not have access", func() {
 									permsClient.EXPECT().
-										HasMembershipRelationship(gomock.Any(), userID, otherPersonID).
+										UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
 										Return(false, nil).AnyTimes()
 									handlerFunc(res, req)
 									Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusForbidden}))
 									res.WriteOutputs = nil
+								})
+								Context("with trustor permissions", func() {
+									It("retrieves another person's profile if user has access", func() {
+										permsClient.EXPECT().
+											UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
+											Return(true, nil).AnyTimes()
+										permsClient.EXPECT().
+											GetUserPermissions(gomock.Any(), userID, otherPersonID).
+											Return(permission.Permissions{
+												permission.Read: permission.Permission{},
+											}, nil).AnyTimes()
+										profileAccessor.EXPECT().
+											FindLegacyUserProfile(gomock.Any(), otherPersonID).
+											Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
+										userAccessor.EXPECT().
+											FindUserById(gomock.Any(), otherPersonID).
+											Return(otherDetails, nil).AnyTimes()
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+										Expect(json.Marshal(otherProfile)).To(MatchJSON(res.WriteInputs[0]))
+									})
+								})
+								Context("without trustor permissions", func() {
+									It("retrieves another person's profile if user has access", func() {
+										permsClient.EXPECT().
+											UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
+											Return(true, nil).AnyTimes()
+										permsClient.EXPECT().
+											GetUserPermissions(gomock.Any(), userID, otherPersonID).
+											Return(nil, nil).AnyTimes()
+										profileAccessor.EXPECT().
+											FindLegacyUserProfile(gomock.Any(), otherPersonID).
+											Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
+										userAccessor.EXPECT().
+											FindUserById(gomock.Any(), otherPersonID).
+											Return(otherDetails, nil).AnyTimes()
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+										Expect(json.Marshal(sanitizedOtherProfile)).To(MatchJSON(res.WriteInputs[0]))
+									})
 								})
 							})
 						})
@@ -431,14 +490,14 @@ var _ = Describe("Router", func() {
 								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
 								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 								permsClient.EXPECT().
-									HasMembershipRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
+									UsersHaveSharingRelationship(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
 								permsClient.EXPECT().
 									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 									Return(true, nil).AnyTimes()
 
 								profileAccessor.EXPECT().
-									UpdateLegacyUserProfile(gomock.Any(), userID, updatedProfile).
+									UpdateUserProfile(gomock.Any(), userID, updatedProfile).
 									Return(nil).AnyTimes()
 							})
 
@@ -478,7 +537,7 @@ var _ = Describe("Router", func() {
 				})
 			})
 
-			Context("v1/users/:userId/users", func() {
+			Context("users/:userId/users", func() {
 				var res *testRest.ResponseWriter
 				var req *rest.Request
 				var ctx context.Context
@@ -486,15 +545,15 @@ var _ = Describe("Router", func() {
 				var userID string
 				var details request.AuthDetails
 				var userProfile user.Profile
-				var limitedUserProfile user.Profile
 				var userRoles []string
 				var userDetails *user.User
 				var sanitizedUserDetails *user.User
-				var limitedUserDetails *user.User
 				var shareeUserID string
 				var shareeRoles []string
 				var shareeProfile user.Profile
+				var limitedShareeProfile user.Profile
 				var shareeDetails *user.User
+				var limitedShareeDetails *user.User
 
 				JustBeforeEach(func() {
 					app, err := rest.MakeRouter(rtr.Routes()...)
@@ -522,9 +581,6 @@ var _ = Describe("Router", func() {
 						About:         "About me",
 						MRN:           "11223344",
 					}
-					limitedUserProfile = user.Profile{
-						FullName: "Some User Profile",
-					}
 					userRoles = []string{user.RolePatient}
 					userDetails = &user.User{
 						UserID:        pointer.FromString(userID),
@@ -542,14 +598,6 @@ var _ = Describe("Router", func() {
 						Emails:        []string{"dev@tidepool.org"},
 						Profile:       &userProfile,
 					}
-					limitedUserDetails = &user.User{
-						UserID:        pointer.FromString(userID),
-						Username:      pointer.FromString("dev@tidepool.org"),
-						EmailVerified: pointer.FromBool(true),
-						Roles:         &userRoles,
-						Emails:        []string{"dev@tidepool.org"},
-						Profile:       &limitedUserProfile,
-					}
 
 					shareeProfile = user.Profile{
 						FullName:      "Someone Else's Profile",
@@ -557,6 +605,9 @@ var _ = Describe("Router", func() {
 						DiagnosisDate: "2003-04-05",
 						About:         "Not about me",
 						MRN:           "11223346",
+					}
+					limitedShareeProfile = user.Profile{
+						FullName: "Someone Else's Profile",
 					}
 					shareeRoles = []string{user.RolePatient}
 					shareeDetails = &user.User{
@@ -566,6 +617,14 @@ var _ = Describe("Router", func() {
 						Roles:         &shareeRoles,
 						Emails:        []string{"sharee@tidepool.org"},
 						Profile:       &shareeProfile,
+					}
+					limitedShareeDetails = &user.User{
+						UserID:        pointer.FromString(shareeUserID),
+						Username:      pointer.FromString("sharee@tidepool.org"),
+						EmailVerified: pointer.FromBool(true),
+						Roles:         &shareeRoles,
+						Emails:        []string{"sharee@tidepool.org"},
+						Profile:       &limitedShareeProfile,
 					}
 
 					var s string
@@ -604,7 +663,7 @@ var _ = Describe("Router", func() {
 					res.AssertOutputsEmpty()
 				})
 
-				Context("with full trust permissions", func() {
+				Context("with trustor permissions", func() {
 					BeforeEach(func() {
 						permsClient.EXPECT().
 							PermissionsGrantedToUser(gomock.Any(), userID).
@@ -704,7 +763,7 @@ var _ = Describe("Router", func() {
 					})
 				})
 
-				Context("with limited trust permissions", func() {
+				Context("with trustee permissions", func() {
 					BeforeEach(func() {
 						permsClient.EXPECT().
 							PermissionsGrantedToUser(gomock.Any(), userID).
@@ -740,7 +799,6 @@ var _ = Describe("Router", func() {
 								shareeUserID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
-								userID: permission.Permission{},
 							}, nil).AnyTimes()
 					})
 					Context("as service", func() {
@@ -756,8 +814,9 @@ var _ = Describe("Router", func() {
 								{
 									User: *userDetails,
 									TrustPermissions: user.TrustPermissions{
-										TrusteePermissions: &permission.Permission{},
-										TrustorPermissions: &permission.Permission{},
+										TrustorPermissions: &permission.Permission{
+											permission.Read: struct{}{},
+										},
 									},
 								},
 							}
@@ -782,10 +841,11 @@ var _ = Describe("Router", func() {
 						It("returns sharer's limited user info w/ sharee.", func() {
 							userResults := []user.TrustUser{
 								{
-									User: *limitedUserDetails,
+									User: *sanitizedUserDetails,
 									TrustPermissions: user.TrustPermissions{
-										TrusteePermissions: &permission.Permission{},
-										TrustorPermissions: &permission.Permission{},
+										TrustorPermissions: &permission.Permission{
+											permission.Read: struct{}{},
+										},
 									},
 								},
 							}
@@ -793,14 +853,23 @@ var _ = Describe("Router", func() {
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
 						})
-						It("excludes self and returns empty if nothing shared.", func() {
+						It("returns limited profile info of users if only has trusteePermissions", func() {
 							req.Method = http.MethodGet
 							req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
 							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
 							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
 
-							userResults := []user.TrustUser{}
+							userResults := []user.TrustUser{
+								{
+									User: *limitedShareeDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrusteePermissions: &permission.Permission{
+											permission.Read: struct{}{},
+										},
+									},
+								},
+							}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))

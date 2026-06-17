@@ -27,11 +27,11 @@ func NewFallbackLegacyUserAccessor(seagullAccessor LegacyProfileAccessor, access
 }
 
 func (f *FallbackLegacyUserAccessor) FindLegacyUserProfile(ctx context.Context, userID string) (*LegacyUserProfile, error) {
-	profile, _, err := f.findUserProfile(ctx, userID)
+	profile, _, err := f.findLegacyUserProfile(ctx, userID)
 	return profile, err
 }
 
-func (f *FallbackLegacyUserAccessor) findUserProfile(ctx context.Context, userID string) (profile *LegacyUserProfile, retrievedFromSeagull bool, err error) {
+func (f *FallbackLegacyUserAccessor) findLegacyUserProfile(ctx context.Context, userID string) (profile *LegacyUserProfile, retrievedFromSeagull bool, err error) {
 	seagullProfile, err := f.seagullLegacyAccessor.FindLegacyUserProfile(ctx, userID)
 	// A not found error is OK to proceed as it may still exist in keycloak. Any
 	// other errors are unexpected.
@@ -62,7 +62,7 @@ func (f *FallbackLegacyUserAccessor) UpdateLegacyUserProfile(ctx context.Context
 	arbritraryRetryLimit := 3
 	var err error
 	for i := range arbritraryRetryLimit {
-		err = f.upsertUserProfile(ctx, id, profile)
+		err = f.upsertLegacyUserProfile(ctx, id, profile)
 		if errors.Is(err, ErrUserProfileMigrationInProgress) {
 			time.Sleep(time.Second * time.Duration(i+1))
 			continue
@@ -76,21 +76,21 @@ func (f *FallbackLegacyUserAccessor) UpdateLegacyUserProfile(ctx context.Context
 }
 
 func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, userID string, profile *Profile) error {
-	prevProfile, retrievedFromSeagull, err := f.findUserProfile(ctx, userID)
+	legacyProfile, retrievedFromSeagull, err := f.findLegacyUserProfile(ctx, userID)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
 	}
 
 	// This is only meant to be called for migrated profiles so it will return an error if the profile exists unmigrated in seagull
-	if prevProfile != nil && retrievedFromSeagull && prevProfile.MigrationStatus == MigrationUnmigrated {
+	if legacyProfile != nil && retrievedFromSeagull && legacyProfile.MigrationStatus == MigrationUnmigrated {
 		return ErrProfileNotMigrated
 	}
 
 	return f.accessor.UpdateUserProfile(ctx, userID, profile)
 }
 
-func (f *FallbackLegacyUserAccessor) upsertUserProfile(ctx context.Context, userID string, update *LegacyUserProfile) error {
-	existingProfile, retrievedFromSeagull, err := f.findUserProfile(ctx, userID)
+func (f *FallbackLegacyUserAccessor) upsertLegacyUserProfile(ctx context.Context, userID string, update *LegacyUserProfile) error {
+	existingProfile, retrievedFromSeagull, err := f.findLegacyUserProfile(ctx, userID)
 	if err != nil && !errors.Is(err, ErrUserProfileNotFound) {
 		return err
 	}

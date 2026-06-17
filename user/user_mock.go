@@ -55,21 +55,6 @@ func (mr *MockProfileAccessorMockRecorder) FindLegacyUserProfile(ctx, userID any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLegacyUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).FindLegacyUserProfile), ctx, userID)
 }
 
-// FindUserProfile mocks base method.
-func (m *MockProfileAccessor) FindUserProfile(ctx context.Context, userID string) (*Profile, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUserProfile", ctx, userID)
-	ret0, _ := ret[0].(*Profile)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindUserProfile indicates an expected call of FindUserProfile.
-func (mr *MockProfileAccessorMockRecorder) FindUserProfile(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserProfile", reflect.TypeOf((*MockProfileAccessor)(nil).FindUserProfile), ctx, userID)
-}
-
 // UpdateLegacyUserProfile mocks base method.
 func (m *MockProfileAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *LegacyUserProfile) error {
 	m.ctrl.T.Helper()
@@ -165,21 +150,6 @@ func (m *MockUserAccessor) FindUserById(ctx context.Context, id string) (*User, 
 func (mr *MockUserAccessorMockRecorder) FindUserById(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserById", reflect.TypeOf((*MockUserAccessor)(nil).FindUserById), ctx, id)
-}
-
-// FindUserProfile mocks base method.
-func (m *MockUserAccessor) FindUserProfile(ctx context.Context, userID string) (*Profile, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUserProfile", ctx, userID)
-	ret0, _ := ret[0].(*Profile)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindUserProfile indicates an expected call of FindUserProfile.
-func (mr *MockUserAccessorMockRecorder) FindUserProfile(ctx, userID any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).FindUserProfile), ctx, userID)
 }
 
 // FindUsersWithIds mocks base method.

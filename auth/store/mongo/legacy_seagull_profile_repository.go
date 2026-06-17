@@ -39,7 +39,7 @@ func (p *LegacySeagullProfileRepository) EnsureIndexes() error {
 	return nil
 }
 
-func (p *LegacySeagullProfileRepository) FindUserProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
+func (p *LegacySeagullProfileRepository) FindLegacyUserProfile(ctx context.Context, userID string) (*user.LegacyUserProfile, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -60,7 +60,7 @@ func (p *LegacySeagullProfileRepository) FindUserProfile(ctx context.Context, us
 	return doc.ToLegacyProfile()
 }
 
-func (p *LegacySeagullProfileRepository) UpdateUserProfile(ctx context.Context, userID string, profile *user.LegacyUserProfile) error {
+func (p *LegacySeagullProfileRepository) UpdateLegacyUserProfile(ctx context.Context, userID string, profile *user.LegacyUserProfile) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}

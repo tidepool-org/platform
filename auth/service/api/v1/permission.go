@@ -69,7 +69,7 @@ func (r *Router) requireMembership(targetParamUserID string, handlerFunc rest.Ha
 				handlerFunc(res, req)
 				return
 			}
-			hasPerms, err := r.PermissionsClient().HasMembershipRelationship(ctx, details.UserID(), targetUserID)
+			hasPerms, err := r.PermissionsClient().UsersHaveSharingRelationship(ctx, details.UserID(), targetUserID)
 			if err != nil {
 				responder.InternalServerError(err)
 				return

@@ -66,17 +66,6 @@ func (m *keycloakUserAccessor) FindLegacyUserProfile(ctx context.Context, id str
 	return user.Profile.ToLegacyProfile(pointer.ToStringArray(user.Roles)), nil
 }
 
-func (m *keycloakUserAccessor) FindUserProfile(ctx context.Context, id string) (*userlib.Profile, error) {
-	user, err := m.FindUserById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return nil, userlib.ErrUserProfileNotFound
-	}
-	return user.Profile, nil
-}
-
 func (m *keycloakUserAccessor) Roles(ctx context.Context, userID string) ([]string, error) {
 	return m.keycloakClient.GetRolesForUser(ctx, userID)
 }
@@ -85,7 +74,7 @@ func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []strin
 	return m.keycloakClient.FindUsersWithIds(ctx, ids)
 }
 
-func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *userlib.LegacyUserProfile) error {
+func (m *keycloakUserAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *userlib.LegacyUserProfile) error {
 	roles, err := m.Roles(ctx, userID)
 	if err != nil {
 		return err
@@ -96,6 +85,6 @@ func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID str
 	return m.keycloakClient.UpdateUserProfile(ctx, userID, p.ToUserProfile())
 }
 
-func (m *keycloakUserAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *userlib.Profile) error {
+func (m *keycloakUserAccessor) UpdateUserProfile(ctx context.Context, userID string, p *userlib.Profile) error {
 	return m.keycloakClient.UpdateUserProfile(ctx, userID, p)
 }
