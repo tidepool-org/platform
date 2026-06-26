@@ -331,7 +331,7 @@ func (r *Router) canAccessPrescriptionsForRequestUserID(details request.AuthDeta
 	return details.IsService() || currentUserID == requestedUserID
 }
 
-func (r *Router) getClinicianOrRespondWithError(ctx context2.Context, clinicID, clinicianID string, responder *request.Responder) *clinic.Clinician {
+func (r *Router) getClinicianOrRespondWithError(ctx context2.Context, clinicID, clinicianID string, responder *request.Responder) *clinic.ClinicianV1 {
 	clinician, err := r.clinicsClient.GetClinician(ctx, clinicID, clinicianID)
 	if err != nil {
 		responder.InternalServerError(err)
