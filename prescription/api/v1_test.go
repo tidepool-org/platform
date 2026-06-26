@@ -118,14 +118,14 @@ var _ = Describe("V1", func() {
 			Context("with patient and clinician", func() {
 				var userID string
 				var clinicID string
-				var clinician *clinic.Clinician
+				var clinician *clinic.ClinicianV1
 
 				BeforeEach(func() {
 					userID = userTest.RandomUserID()
-					clinicianID := clinic.TidepoolUserId(userID)
-					clinician = &clinic.Clinician{
+					clinicianID := clinic.Tidepooluserid(userID)
+					clinician = &clinic.ClinicianV1{
 						Id:    &clinicianID,
-						Roles: clinic.ClinicianRoles{"PRESCRIBER"},
+						Roles: clinic.ClinicianRolesV1{"PRESCRIBER"},
 					}
 					clinicID = faker.Number().Hexadecimal(24)
 				})

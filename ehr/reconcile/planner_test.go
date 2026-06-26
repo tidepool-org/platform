@@ -33,7 +33,7 @@ var _ = Describe("Planner", func() {
 	})
 
 	Context("With random data", func() {
-		var clinics []api.Clinic
+		var clinics []api.ClinicV1
 		var tasks map[string]task.Task
 
 		BeforeEach(func() {
@@ -104,7 +104,7 @@ var _ = Describe("Planner", func() {
 			It("returns multiple clinics for deletion when multiple tasks don't exist", func() {
 				firstDeleted := clinics[1]
 				secondDeleted := clinics[2]
-				clinics = []api.Clinic{clinics[0]}
+				clinics = []api.ClinicV1{clinics[0]}
 
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)
 				setupEHRSettingsForClinics(clinicsClient, clinics)
@@ -170,7 +170,7 @@ var _ = Describe("Planner", func() {
 	})
 })
 
-func setupEHRSettingsForClinics(clinicsClient *clinicsTest.MockClient, clinics []api.Clinic) {
+func setupEHRSettingsForClinics(clinicsClient *clinicsTest.MockClient, clinics []api.ClinicV1) {
 	for _, clinic := range clinics {
 		clinicsClient.EXPECT().GetEHRSettings(gomock.Any(), *clinic.Id).Return(clinicsTest.NewRandomEHRSettings(), nil)
 	}
