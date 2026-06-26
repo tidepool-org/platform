@@ -10,8 +10,9 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 
 	"github.com/kelseyhightower/envconfig"
-	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
+
+	clinic "github.com/tidepool-org/clinic/client"
 
 	"github.com/tidepool-org/platform/auth"
 )
@@ -20,7 +21,7 @@ const ErrorCodeClinicClientFailure = "clinic-client-failure"
 
 var ClientModule = fx.Provide(NewClient)
 
-//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
+//go:generate go tool go.uber.org/mock/mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
 type Client interface {
 	GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error)
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)

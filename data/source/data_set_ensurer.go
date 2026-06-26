@@ -7,13 +7,13 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-//go:generate mockgen -source=data_set_ensurer.go -destination=test/data_set_ensurer_mocks.go -package=test DataSetEnsurerClient
+//go:generate go tool go.uber.org/mock/mockgen -source=data_set_ensurer.go -destination=test/data_set_ensurer_mocks.go -package=test DataSetEnsurerClient
 type DataSetEnsurerClient interface {
 	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)
 }
 
-//go:generate mockgen -source=data_set_ensurer.go -destination=test/data_set_ensurer_mocks.go -package=test DataSetEnsurerFactory
+//go:generate go tool go.uber.org/mock/mockgen -source=data_set_ensurer.go -destination=test/data_set_ensurer_mocks.go -package=test DataSetEnsurerFactory
 type DataSetEnsurerFactory interface {
 	NewDataSetCreate(dataSrc Source) data.DataSetCreate
 }

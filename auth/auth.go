@@ -14,7 +14,7 @@ const (
 	TidepoolRestrictedTokenParameterKey = "restricted_token"
 )
 
-//go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
+//go:generate go tool go.uber.org/mock/mockgen -source=auth.go -destination=test/auth_mocks.go -package=test Client
 type Client interface {
 	ProviderSessionAccessor
 	RestrictedTokenAccessor

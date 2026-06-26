@@ -35,7 +35,7 @@ func States() []string {
 	}
 }
 
-//go:generate mockgen -source=source.go -destination=test/source_mocks.go -package=test Client
+//go:generate go tool go.uber.org/mock/mockgen -source=source.go -destination=test/source_mocks.go -package=test Client
 type Client interface {
 	List(ctx context.Context, userID string, filter *Filter, pagination *page.Pagination) (SourceArray, error)
 	Create(ctx context.Context, userID string, create *Create) (*Source, error)

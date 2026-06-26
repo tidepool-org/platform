@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/go-common/events"
 )
 
-//go:generate mockgen -source=client.go -destination=test/mailer_mocks.go -package=test Mailer
+//go:generate go tool go.uber.org/mock/mockgen -source=client.go -destination=test/mailer_mocks.go -package=test Mailer
 type Mailer interface {
 	clients.MailerClient
 }

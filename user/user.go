@@ -46,7 +46,7 @@ func Roles() []string {
 	}
 }
 
-//go:generate mockgen -source=user.go -destination=test/user_mocks.go -package=test Client
+//go:generate go tool go.uber.org/mock/mockgen -source=user.go -destination=test/user_mocks.go -package=test Client
 type Client interface {
 	Get(ctx context.Context, id string) (*User, error)
 }

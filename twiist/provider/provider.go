@@ -23,20 +23,20 @@ import (
 
 const ProviderName = "twiist"
 
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test ProviderSessionClient
+//go:generate go tool go.uber.org/mock/mockgen -source=provider.go -destination=test/provider_mocks.go -package=test ProviderSessionClient
 type ProviderSessionClient interface {
 	UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
 }
 
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSourceClient
+//go:generate go tool go.uber.org/mock/mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSourceClient
 type DataSourceClient interface {
 	List(ctx context.Context, userID string, filter *dataSource.Filter, pagination *page.Pagination) (dataSource.SourceArray, error)
 	Create(ctx context.Context, userID string, create *dataSource.Create) (*dataSource.Source, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error)
 }
 
-//go:generate mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSetClient
+//go:generate go tool go.uber.org/mock/mockgen -source=provider.go -destination=test/provider_mocks.go -package=test DataSetClient
 type DataSetClient interface {
 	CreateUserDataSet(ctx context.Context, userID string, create *data.DataSetCreate) (*data.DataSet, error)
 	GetDataSet(ctx context.Context, id string) (*data.DataSet, error)

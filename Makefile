@@ -101,13 +101,6 @@ ifeq ($(shell which CompileDaemon),)
 		GOWORK=off go install github.com/githubnemo/CompileDaemon
 endif
 
-mockgen:
-ifeq ($(shell which mockgen),)
-	@cd $(ROOT_DIRECTORY) && \
-		echo "go install go.uber.org/mock/mockgen" && \
-		GOWORK=off go install go.uber.org/mock/mockgen
-endif
-
 ginkgo:
 ifeq ($(shell which ginkgo),)
 	@cd $(ROOT_DIRECTORY) && \
@@ -171,7 +164,7 @@ ci: ci-init ci-generate ci-build ci-test ci-docker
 
 init: go-mod-download
 
-ci-init: init mockgen goimports
+ci-init: init goimports
 
 go-mod-tidy:
 	@echo "go mod tidy"
@@ -183,7 +176,7 @@ go-mod-download:
 	@cd $(ROOT_DIRECTORY) && \
 		$(TIMING_CMD) go mod download
 
-go-generate: mockgen
+go-generate:
 	@echo "go generate ./..."
 	@cd $(ROOT_DIRECTORY) && \
 		GOWORK=off $(TIMING_CMD) go generate ./...
@@ -420,7 +413,7 @@ phony:
     CompileDaemon default docker docker-build docker-dump docker-login docker-push \
     format format-write format-write-changed generate ginkgo go-generate \
     go-mod-download go-mod-tidy goimports imports imports-write \
-    imports-write-changed init mockgen phony plugin-visibility \
+    imports-write-changed init phony plugin-visibility \
     plugin-visibility-private plugin-visibility-public plugins-visibility \
     plugins-visibility-private plugins-visibility-public pre-commit service-build \
     service-debug service-restart service-restart-all service-start test \

@@ -23,7 +23,7 @@ const (
 	ContentTypeMarkdown ContentType = "markdown"
 )
 
-//go:generate mockgen -source=consent.go -destination=test/service_mocks.go -package=test Service
+//go:generate go tool go.uber.org/mock/mockgen -source=consent.go -destination=test/service_mocks.go -package=test Service
 type Service interface {
 	ConsentAccessor
 	RecordAccessor
