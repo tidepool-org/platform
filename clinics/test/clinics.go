@@ -10,23 +10,19 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func RandomClinicID() string {
-	return bsonPrimitive.NewObjectID().String()
-}
-
-func NewRandomClinic() clinicClient.Clinic {
-	return clinicClient.Clinic{
+func NewRandomClinic() clinicClient.ClinicV1 {
+	return clinicClient.ClinicV1{
 		Address:          pointer.FromAny(faker.Address().StreetAddress()),
 		CanMigrate:       pointer.FromAny(test.RandomBool()),
 		City:             pointer.FromAny(faker.Address().City()),
-		ClinicType:       pointer.FromAny(test.RandomChoice([]clinicClient.ClinicClinicType{clinicClient.HealthcareSystem, clinicClient.VeterinaryClinic, clinicClient.Other})),
+		ClinicType:       pointer.FromAny(test.RandomChoice([]clinicClient.ClinicV1ClinicType{clinicClient.ClinicV1ClinicTypeHealthcareSystem, clinicClient.ClinicV1ClinicTypeVeterinaryClinic, clinicClient.ClinicV1ClinicTypeOther})),
 		Country:          pointer.FromAny(faker.Address().Country()),
 		CreatedTime:      pointer.FromAny(test.RandomTime()),
 		Id:               pointer.FromAny(bsonPrimitive.NewObjectIDFromTimestamp(test.RandomTime()).Hex()),
 		Name:             faker.Company().Name(),
-		PhoneNumbers:     pointer.FromAny([]clinicClient.PhoneNumber{{Number: faker.PhoneNumber().PhoneNumber()}}),
+		PhoneNumbers:     pointer.FromAny([]clinicClient.PhoneNumberV1{{Number: faker.PhoneNumber().PhoneNumber()}}),
 		PostalCode:       pointer.FromAny(faker.Address().ZipCode()),
-		PreferredBgUnits: test.RandomChoice([]clinicClient.ClinicPreferredBgUnits{clinicClient.MgdL, clinicClient.MmolL}),
+		PreferredBgUnits: test.RandomChoice([]clinicClient.ClinicV1PreferredBgUnits{clinicClient.ClinicV1PreferredBgUnitsMgdL, clinicClient.ClinicV1PreferredBgUnitsMmolL}),
 		ShareCode:        pointer.FromAny(faker.RandomString(15)),
 		State:            pointer.FromAny(faker.Address().State()),
 		Tier:             pointer.FromAny(test.RandomChoice([]string{"tier1000", "tier2000"})),
@@ -36,26 +32,26 @@ func NewRandomClinic() clinicClient.Clinic {
 	}
 }
 
-func NewRandomEHRSettings() *clinicClient.EHRSettings {
-	return &clinicClient.EHRSettings{
-		DestinationIds: &clinicClient.EHRDestinationIds{
+func NewRandomEHRSettings() *clinicClient.EhrSettingsV1 {
+	return &clinicClient.EhrSettingsV1{
+		DestinationIds: &clinicClient.EhrDestinationsV1{
 			Flowsheet: faker.RandomString(16),
 			Notes:     faker.RandomString(16),
 			Results:   faker.RandomString(16),
 		},
 		Enabled:   true,
 		MrnIdType: "MRN",
-		ProcedureCodes: clinicClient.EHRProcedureCodes{
+		ProcedureCodes: clinicClient.EhrProceduresV1{
 			CreateAccount:                 pointer.FromAny(faker.RandomString(5)),
 			CreateAccountAndEnableReports: pointer.FromAny(faker.RandomString(5)),
 			DisableSummaryReports:         pointer.FromAny(faker.RandomString(5)),
 			EnableSummaryReports:          pointer.FromAny(faker.RandomString(5)),
 		},
 		Provider: "redox",
-		ScheduledReports: clinicClient.ScheduledReports{
+		ScheduledReports: clinicClient.ScheduledReportsV1{
 			Cadence:               clinicClient.N14d,
 			OnUploadEnabled:       true,
-			OnUploadNoteEventType: pointer.FromAny(clinicClient.ScheduledReportsOnUploadNoteEventTypeNew),
+			OnUploadNoteEventType: pointer.FromAny(clinicClient.ScheduledReportsV1OnUploadNoteEventTypeNew),
 		},
 		SourceId: faker.RandomString(16),
 	}
