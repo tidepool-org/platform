@@ -6,7 +6,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 )
 
-//go:generate mockgen -source=repository.go -destination=test/repository_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=repository.go -destination=test/repository_mocks.go -package=test -typed
 
 var (
 	ErrDuplicateKeyId = errors.New("duplicate key id")

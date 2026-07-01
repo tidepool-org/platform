@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-//go:generate mockgen -source=consent.go -destination=test/consent_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=consent.go -destination=test/consent_mocks.go -package=test -typed
 
 const (
 	TypeMinLength = 1

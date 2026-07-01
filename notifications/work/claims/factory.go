@@ -16,7 +16,7 @@ import (
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
-//go:generate mockgen -destination=test/confirmation_mocks.go -package=test -typed -mock_names=ClientWithResponsesInterface=MockConfirmationClient github.com/tidepool-org/hydrophone/client ClientWithResponsesInterface
+//go:generate go tool go.uber.org/mock/mockgen -destination=test/confirmation_mocks.go -package=test -typed -mock_names=ClientWithResponsesInterface=MockConfirmationClient github.com/tidepool-org/hydrophone/client ClientWithResponsesInterface
 
 const (
 	Type              = "org.tidepool.user.notification.account.claim"

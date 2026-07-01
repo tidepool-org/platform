@@ -18,7 +18,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
-//go:generate mockgen -source=source.go -destination=test/source_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=source.go -destination=test/source_mocks.go -package=test -typed
 
 const (
 	MetadataSizeMaximum = 4 * 1024

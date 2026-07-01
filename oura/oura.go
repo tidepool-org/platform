@@ -21,7 +21,7 @@ import (
 	"github.com/tidepool-org/platform/times"
 )
 
-//go:generate mockgen -source=oura.go -destination=test/oura_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=oura.go -destination=test/oura_mocks.go -package=test -typed
 
 const (
 	DataSetClientName    = "org.tidepool.oura.api"

@@ -5,18 +5,16 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/tidepool-org/platform/errors"
-
-	"github.com/tidepool-org/platform/pointer"
-
 	"github.com/kelseyhightower/envconfig"
-	clinic "github.com/tidepool-org/clinic/client"
 	"go.uber.org/fx"
 
+	clinic "github.com/tidepool-org/clinic/client"
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/pointer"
 )
 
-//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
 
 const ErrorCodeClinicClientFailure = "clinic-client-failure"
 

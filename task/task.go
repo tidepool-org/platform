@@ -16,7 +16,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-//go:generate mockgen -source=task.go -destination=test/task_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=task.go -destination=test/task_mocks.go -package=test -typed
 
 type Client interface {
 	TaskAccessor

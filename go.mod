@@ -135,3 +135,5 @@ require (
 )
 
 replace github.com/tidepool-org/platform-plugin-abbott => ./plugin/abbott
+
+tool go.uber.org/mock/mockgen
