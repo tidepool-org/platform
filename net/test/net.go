@@ -25,6 +25,10 @@ func RandomDigestMD5() string {
 	return cryptoTest.RandomBase64EncodedMD5Hash()
 }
 
+func RandomDigestSHA256() string {
+	return cryptoTest.RandomBase64EncodedSHA256Hash()
+}
+
 func RandomMediaType() string {
 	return fmt.Sprintf("%s/%s", test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType), test.RandomStringFromRangeAndCharset(1, 32, CharsetMediaType))
 }

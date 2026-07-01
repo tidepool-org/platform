@@ -68,7 +68,7 @@ func NewObjectFromScheduledAlert(datum *dataTypesSettingsCgm.ScheduledAlert, obj
 		object["name"] = test.NewObjectFromString(*datum.Name, objectFormat)
 	}
 	if datum.Days != nil {
-		object["days"] = test.NewObjectFromStringArray(*datum.Days, objectFormat)
+		object["days"] = test.NewArrayFromStringArray(*datum.Days, objectFormat)
 	}
 	if datum.Start != nil {
 		object["start"] = test.NewObjectFromInt(*datum.Start, objectFormat)

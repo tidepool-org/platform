@@ -12,7 +12,23 @@ import (
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
 
-var _ = Describe("Validate", func() {
+var _ = Describe("Net", func() {
+	It("MediaTypeJSON is expected", func() {
+		Expect(net.MediaTypeJSON).To(Equal("application/json; charset=utf-8"))
+	})
+
+	Context("DigestMD5", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(net.DigestMD5([]byte(value))).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "1B2M2Y8AsgTpgAmY7PhCfg=="),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "w/zT12GS5AB9+0lsymfhOw=="),
+			Entry("is whitespace", "        ", "e7Dt2Y8iQwoDtn+FPoPCyg=="),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "+V8+B6cToORNU71pST2SeQ=="),
+		)
+	})
+
 	Context("IsValidDigestMD5, DigestMD5Validator, and ValidateDigestMD5", func() {
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
@@ -27,6 +43,35 @@ var _ = Describe("Validate", func() {
 			Entry("is valid Base64 encoded and byte length is out of range (lower)", "QUJDREVGSElKS0xNTk9Q", net.ErrorValueStringAsDigestMD5NotValid("QUJDREVGSElKS0xNTk9Q")),
 			Entry("is valid Base64 encoded and byte length is in range", "QUJDREVGSElKS0xNTk9QUQ=="),
 			Entry("is valid Base64 encoded and byte length is out of range (upper)", "QUJDREVGSElKS0xNTk9QUVI=", net.ErrorValueStringAsDigestMD5NotValid("QUJDREVGSElKS0xNTk9QUVI=")),
+		)
+	})
+
+	Context("DigestSHA256", func() {
+		DescribeTable("returns the expected result when the input",
+			func(value string, expectedResult string) {
+				Expect(net.DigestSHA256([]byte(value))).To(Equal(expectedResult))
+			},
+			Entry("is empty", "", "47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU="),
+			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "ccSA35PWri8e+tFEfGbJUl4xYhjPUfyNntgy8trxi3M="),
+			Entry("is whitespace", "        ", "i2+gExPOUa/AnmEPgZJQ2lAXeK02PLpPnjEqbsgj1Co="),
+			Entry("includes non-ASCII", "abcABC123 !\"#_😁😂😃ΨΪΫ", "FBpCHgyT00Gc61TIERs02m6WCdLB9z6v1C5DGMMf8X8="),
+		)
+	})
+
+	Context("IsValidDigestSHA256, DigestSHA256Validator, and ValidateDigestSHA256", func() {
+		DescribeTable("return the expected results when the input",
+			func(value string, expectedErrors ...error) {
+				Expect(net.IsValidDigestSHA256(value)).To(Equal(len(expectedErrors) == 0))
+				errorReporter := structureTest.NewErrorReporter()
+				net.DigestSHA256Validator(value, errorReporter)
+				errorsTest.ExpectEqual(errorReporter.Error(), expectedErrors...)
+				errorsTest.ExpectEqual(net.ValidateDigestSHA256(value), expectedErrors...)
+			},
+			Entry("is empty", "", structureValidator.ErrorValueEmpty()),
+			Entry("is not valid Base64 encoded", "Mylfd9FyN4JNmrXnB/WCAySsVYMYMGssUxxsPWBC8q4=$", net.ErrorValueStringAsDigestSHA256NotValid("Mylfd9FyN4JNmrXnB/WCAySsVYMYMGssUxxsPWBC8q4=$")),
+			Entry("is valid Base64 encoded and byte length is out of range (lower)", "ujwNNmdOWZEh+F1a78I8jBSJM0CF6tOBWhFkgjn90g==", net.ErrorValueStringAsDigestSHA256NotValid("ujwNNmdOWZEh+F1a78I8jBSJM0CF6tOBWhFkgjn90g==")),
+			Entry("is valid Base64 encoded and byte length is in range", "SJ0r9WRIOLtidvXAXCzeV49w076LW/6fy4BuK5+wPnE="),
+			Entry("is valid Base64 encoded and byte length is out of range (upper)", "R5Q5Eeb0FswBwDLzTXXCpxpjZf6AK/TG2vGa4vQcIjwy", net.ErrorValueStringAsDigestSHA256NotValid("R5Q5Eeb0FswBwDLzTXXCpxpjZf6AK/TG2vGa4vQcIjwy")),
 		)
 	})
 
@@ -163,6 +208,10 @@ var _ = Describe("Validate", func() {
 	Context("Errors", func() {
 		DescribeTable("have expected details when error",
 			errorsTest.ExpectErrorDetails,
+			Entry("is ErrorValueStringAsDigestMD5NotValid with empty string", net.ErrorValueStringAsDigestMD5NotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as md5 digest`),
+			Entry("is ErrorValueStringAsDigestMD5NotValid with non-empty string", net.ErrorValueStringAsDigestMD5NotValid("1234567890"), "value-not-valid", "value is not valid", `value "1234567890" is not valid as md5 digest`),
+			Entry("is ErrorValueStringAsDigestSHA256NotValid with empty string", net.ErrorValueStringAsDigestSHA256NotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as sha256 digest`),
+			Entry("is ErrorValueStringAsDigestSHA256NotValid with non-empty string", net.ErrorValueStringAsDigestSHA256NotValid("1234567890"), "value-not-valid", "value is not valid", `value "1234567890" is not valid as sha256 digest`),
 			Entry("is ErrorValueStringAsMediaTypeNotValid with empty string", net.ErrorValueStringAsMediaTypeNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as media type`),
 			Entry("is ErrorValueStringAsMediaTypeNotValid with non-empty string", net.ErrorValueStringAsMediaTypeNotValid("text/plain"), "value-not-valid", "value is not valid", `value "text/plain" is not valid as media type`),
 			Entry("is ErrorValueStringAsReverseDomainNotValid with empty string", net.ErrorValueStringAsReverseDomainNotValid(""), "value-not-valid", "value is not valid", `value "" is not valid as reverse domain`),

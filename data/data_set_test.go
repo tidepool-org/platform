@@ -60,6 +60,10 @@ var _ = Describe("DataSet", func() {
 		Expect(data.DataSetStateOpen).To(Equal("open"))
 	})
 
+	It("DeviceTagActivityMonitor is expected", func() {
+		Expect(data.DeviceTagActivityMonitor).To(Equal("activity-monitor"))
+	})
+
 	It("DeviceTagBGM is expected", func() {
 		Expect(data.DeviceTagBGM).To(Equal("bgm"))
 	})
@@ -109,7 +113,7 @@ var _ = Describe("DataSet", func() {
 	})
 
 	It("DeviceTags returns expected", func() {
-		Expect(data.DeviceTags()).To(Equal([]string{"bgm", "cgm", "insulin-pump"}))
+		Expect(data.DeviceTags()).To(Equal([]string{"activity-monitor", "bgm", "cgm", "insulin-pump"}))
 	})
 
 	It("TimeProcessings returns expected", func() {
@@ -444,7 +448,7 @@ var _ = Describe("DataSet", func() {
 					Entry("device tags elements single invalid",
 						func(datum *data.DataSet) { datum.DeviceTags = pointer.FromStringArray([]string{"invalid"}) },
 						structure.Origins(),
-						errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"bgm", "cgm", "insulin-pump"}), "/deviceTags/0"),
+						errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"activity-monitor", "bgm", "cgm", "insulin-pump"}), "/deviceTags/0"),
 					),
 					Entry("device tags elements single bgm",
 						func(datum *data.DataSet) { datum.DeviceTags = pointer.FromStringArray([]string{"bgm"}) },
@@ -465,7 +469,7 @@ var _ = Describe("DataSet", func() {
 							datum.DeviceTags = pointer.FromStringArray([]string{"bgm", "invalid", "insulin-pump"})
 						},
 						structure.Origins(),
-						errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"bgm", "cgm", "insulin-pump"}), "/deviceTags/1"),
+						errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", []string{"activity-monitor", "bgm", "cgm", "insulin-pump"}), "/deviceTags/1"),
 					),
 					Entry("device tags elements multiple valid",
 						func(datum *data.DataSet) {

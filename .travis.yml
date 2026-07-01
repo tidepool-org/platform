@@ -42,4 +42,3 @@ addons:
 script:
   - export TIMING_CMD='time -p'
   - make "plugins-visibility-${PLUGINS_VISIBILITY}" && make ci
-

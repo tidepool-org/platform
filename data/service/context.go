@@ -9,10 +9,11 @@ import (
 	dataClient "github.com/tidepool-org/platform/data/client"
 	"github.com/tidepool-org/platform/data/deduplicator"
 	dataRaw "github.com/tidepool-org/platform/data/raw"
-	dataSourceService "github.com/tidepool-org/platform/data/source/service"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	"github.com/tidepool-org/platform/metric"
 	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/oura"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/summary"
@@ -20,6 +21,8 @@ import (
 	syncTaskStore "github.com/tidepool-org/platform/synctask/store"
 	"github.com/tidepool-org/platform/work"
 )
+
+//go:generate mockgen -source=context.go -destination=test/context_mocks.go -package=test -typed
 
 type Context interface {
 	service.Context
@@ -41,7 +44,8 @@ type Context interface {
 
 	ClinicsClient() clinics.Client
 	DataRawClient() dataRaw.Client
-	DataSourceClient() dataSourceService.Client
+	DataSourceClient() dataSource.Client
+	OuraClient() oura.Client
 	WorkClient() work.Client
 	NotificationsHistoryRecorder() notificationsHistory.Recorder
 

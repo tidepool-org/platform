@@ -72,7 +72,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, mockUploadID)
 		conf := &Config{}
-		err := request.DecodeObject(context.Background(), nil, buf, conf)
+		err := request.DecodeStream(context.Background(), nil, buf, conf)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(conf.UserID).To(Equal(mockUserID1))
 		Expect(conf.FollowedUserID).To(Equal(mockUserID2))
@@ -358,7 +358,7 @@ var _ = Describe("Config", func() {
 		It("validates threshold units", func() {
 			buf := buff(`{"urgentLow": {"threshold": {"units":"%s","value":42}}`, "garbage")
 			threshold := &Threshold{}
-			err := request.DecodeObject(context.Background(), nil, buf, threshold)
+			err := request.DecodeStream(context.Background(), nil, buf, threshold)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 		It("validates repeat minutes (negative)", func() {
@@ -376,7 +376,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, mockUploadID, glucose.MgdL)
 			cfg := &Config{}
-			err := request.DecodeObject(context.Background(), nil, buf, cfg)
+			err := request.DecodeStream(context.Background(), nil, buf, cfg)
 			Expect(err).To(MatchError("value -11m0s is not greater than or equal to 15m0s"))
 		})
 		It("validates repeat minutes (string)", func() {
@@ -393,7 +393,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, glucose.MgdL)
 			cfg := &Config{}
-			err := request.DecodeObject(context.Background(), nil, buf, cfg)
+			err := request.DecodeStream(context.Background(), nil, buf, cfg)
 			Expect(err).To(MatchError("json is malformed"))
 		})
 	})
@@ -414,7 +414,7 @@ var _ = Describe("Config", func() {
   }
 }`, mockUserID1, mockUserID2, mockUploadID)
 			conf := &Config{}
-			err := request.DecodeObject(context.Background(), nil, buf, conf)
+			err := request.DecodeStream(context.Background(), nil, buf, conf)
 			Expect(err).To(Succeed())
 			Expect(conf.Low.Repeat).To(Equal(DurationMinutes(0)))
 		})
@@ -458,7 +458,7 @@ var _ = Describe("Threshold", func() {
 	It("accepts mg/dL", func() {
 		buf := buff(`{"units":"%s","value":42}`, glucose.MgdL)
 		threshold := &Threshold{}
-		err := request.DecodeObject(context.Background(), nil, buf, threshold)
+		err := request.DecodeStream(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
 		Expect(threshold.Units).To(Equal(glucose.MgdL))
@@ -466,25 +466,25 @@ var _ = Describe("Threshold", func() {
 	It("accepts mmol/L", func() {
 		buf := buff(`{"units":"%s","value":42}`, glucose.MmolL)
 		threshold := &Threshold{}
-		err := request.DecodeObject(context.Background(), nil, buf, threshold)
+		err := request.DecodeStream(context.Background(), nil, buf, threshold)
 		Expect(err).To(BeNil())
 		Expect(threshold.Value).To(Equal(42.0))
 		Expect(threshold.Units).To(Equal(glucose.MmolL))
 	})
 	It("rejects lb/gal", func() {
 		buf := buff(`{"units":"%s","value":42}`, "lb/gal")
-		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
+		err := request.DecodeStream(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("rejects blank units", func() {
 		buf := buff(`{"units":"","value":42}`)
-		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
+		err := request.DecodeStream(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 	It("is case-sensitive with respect to Units", func() {
 		badUnits := strings.ToUpper(glucose.MmolL)
 		buf := buff(`{"units":"%s","value":42}`, badUnits)
-		err := request.DecodeObject(context.Background(), nil, buf, &Threshold{})
+		err := request.DecodeStream(context.Background(), nil, buf, &Threshold{})
 		Expect(err).Should(HaveOccurred())
 	})
 

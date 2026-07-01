@@ -335,8 +335,8 @@ func (m *MinMax) CalculateDelta(current *MinMax, previous *MinMax) {
 }
 
 type GlucoseBucket struct {
-	GlucoseRanges `json:",inline" bson:",inline"`
-	MinMax        `json:",inline" bson:",inline"`
+	GlucoseRanges `bson:",inline"`
+	MinMax        `bson:",inline"`
 
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
 }
@@ -380,8 +380,8 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 }
 
 type GlucosePeriod struct {
-	GlucoseRanges `json:",inline" bson:",inline"`
-	MinMax        `json:",inline" bson:",inline"`
+	GlucoseRanges `bson:",inline"`
+	MinMax        `bson:",inline"`
 
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`

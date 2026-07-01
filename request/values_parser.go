@@ -168,7 +168,7 @@ func (v *Values) StringArray(reference string) *[]string {
 		return nil
 	}
 
-	index, _ := v.parsed[reference]
+	index := v.parsed[reference]
 	if index >= len(values) {
 		return nil
 	}
@@ -189,7 +189,7 @@ func (v *Values) Time(reference string, layout string) *time.Time {
 		return nil
 	}
 
-	timeValue, err := time.Parse(layout, rawValue)
+	timeValue, err := time.ParseInLocation(layout, rawValue, time.UTC)
 	if err != nil {
 		v.base.WithReference(reference).ReportError(structureParser.ErrorValueTimeNotParsable(rawValue, layout))
 		return nil
@@ -304,7 +304,7 @@ func (v *Values) raw(reference string) (string, bool) {
 		return "", false
 	}
 
-	index, _ := v.parsed[reference]
+	index := v.parsed[reference]
 	if index >= len(values) {
 		return "", false
 	}

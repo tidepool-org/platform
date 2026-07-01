@@ -2,20 +2,21 @@ package service
 
 import (
 	"context"
-	"log"
+	stdLog "log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
+	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
+	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottClient "github.com/tidepool-org/platform-plugin-abbott/abbott/client"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
-
-	confirmationClient "github.com/tidepool-org/hydrophone/client"
 
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
@@ -25,7 +26,7 @@ import (
 	dataEvents "github.com/tidepool-org/platform/data/events"
 	dataRawService "github.com/tidepool-org/platform/data/raw/service"
 	dataRawStoreStructuredMongo "github.com/tidepool-org/platform/data/raw/store/structured/mongo"
-	"github.com/tidepool-org/platform/data/service/api"
+	dataServiceApi "github.com/tidepool-org/platform/data/service/api"
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	dataSourceServiceClient "github.com/tidepool-org/platform/data/source/service/client"
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
@@ -33,69 +34,84 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
-	logInternal "github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/mailer"
 	metricClient "github.com/tidepool-org/platform/metric/client"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
+	notificationsWorkClaims "github.com/tidepool-org/platform/notifications/work/claims"
+	notificationsWorkConnectionsIssues "github.com/tidepool-org/platform/notifications/work/connections/issues"
+	notificationsWorkConnectionsRequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
+	"github.com/tidepool-org/platform/oura"
+	ouraClient "github.com/tidepool-org/platform/oura/client"
+	ouraDataWork "github.com/tidepool-org/platform/oura/data/work"
+	ouraDataWorkEvent "github.com/tidepool-org/platform/oura/data/work/event"
+	ouraDataWorkHistoric "github.com/tidepool-org/platform/oura/data/work/historic"
+	ouraDataWorkPeriodic "github.com/tidepool-org/platform/oura/data/work/periodic"
+	ouraDataWorkPersonal "github.com/tidepool-org/platform/oura/data/work/personal"
+	ouraProvider "github.com/tidepool-org/platform/oura/provider"
+	ouraUserWorkRevoke "github.com/tidepool-org/platform/oura/user/work/revoke"
+	ouraUserWorkSetup "github.com/tidepool-org/platform/oura/user/work/setup"
+	ouraWebhookWorkSubscribe "github.com/tidepool-org/platform/oura/webhook/work/subscribe"
 	"github.com/tidepool-org/platform/permission"
 	permissionClient "github.com/tidepool-org/platform/permission/client"
 	"github.com/tidepool-org/platform/platform"
-	"github.com/tidepool-org/platform/service/server"
-	"github.com/tidepool-org/platform/service/service"
+	serviceServer "github.com/tidepool-org/platform/service/server"
+	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
 	summaryClient "github.com/tidepool-org/platform/summary/client"
-	syncTaskMongo "github.com/tidepool-org/platform/synctask/store/mongo"
+	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
 	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
-
-	notifications "github.com/tidepool-org/platform/notifications"
-	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
-	"github.com/tidepool-org/platform/notifications/work/claims"
-	connissues "github.com/tidepool-org/platform/notifications/work/connections/issues"
-	connreqs "github.com/tidepool-org/platform/notifications/work/connections/requests"
 )
 
+type confirmationClientConfig struct {
+	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
+}
+
+func (c *confirmationClientConfig) Load() error {
+	return envconfig.Process("", c)
+}
+
 type Standard struct {
-	*service.DEPRECATEDService
+	*serviceService.DEPRECATEDService
 	metricClient                   *metricClient.Client
 	permissionClient               *permissionClient.Client
 	dataStore                      *dataStoreMongo.Store
 	dataRawStructuredStore         *dataRawStoreStructuredMongo.Store
 	dataSourceStructuredStore      *dataSourceStoreStructuredMongo.Store
-	syncTaskStore                  *syncTaskMongo.Store
+	syncTaskStore                  *synctaskStoreMongo.Store
 	workStructuredStore            *workStoreStructuredMongo.Store
 	dataDeduplicatorFactory        *dataDeduplicatorFactory.Factory
 	clinicsClient                  clinics.Client
 	dataClient                     *Client
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
-	mailerClient                   mailer.Mailer
+	mailerClient                   mailer.Client
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
-	historyRecorder                notificationsHistory.Recorder
+	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
+	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
 	workCoordinator                *workService.Coordinator
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
-	api                            *api.Standard
-	server                         *server.Standard
+	api                            *dataServiceApi.Standard
+	server                         *serviceServer.Standard
 }
 
 func NewStandard() *Standard {
 	return &Standard{
-		DEPRECATEDService: service.NewDEPRECATEDService(),
+		DEPRECATEDService: serviceService.NewDEPRECATEDService(),
 	}
-}
-
-type confirmationClientConfig struct {
-	ServiceAddress string `envconfig:"TIDEPOOL_CONFIRMATION_CLIENT_ADDRESS"`
 }
 
 func (s *Standard) Initialize(provider application.Provider) error {
@@ -157,6 +173,12 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeAbbottClient(); err != nil {
 		return err
 	}
+	if err := s.initializeOuraClient(); err != nil {
+		return err
+	}
+	if err := s.initializeNotificationsHistoryRecorder(); err != nil {
+		return err
+	}
 	if err := s.initializeWorkCoordinator(); err != nil {
 		return err
 	}
@@ -182,7 +204,7 @@ func (s *Standard) Terminate() {
 	s.api = nil
 	s.twiistServiceAccountAuthorizer = nil
 	if s.userEventsHandler != nil {
-		s.Logger().Info("Terminating the userEventsHandler")
+		s.Logger().Debug("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
 			s.Logger().Errorf("Error while terminating the userEventsHandler: %v", err)
 		}
@@ -192,6 +214,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator.Stop()
 		s.workCoordinator = nil
 	}
+	s.ouraClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
 	s.summaryClient = nil
@@ -391,7 +414,7 @@ func (s *Standard) initializeSyncTaskStore() error {
 
 	s.Logger().Debug("Creating sync task store")
 
-	str, err := syncTaskMongo.NewStore(cfg)
+	str, err := synctaskStoreMongo.NewStore(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create sync task store")
 	}
@@ -545,7 +568,7 @@ func (s *Standard) initializeDataSourceClient() error {
 
 func (s *Standard) initializeMailerClient() error {
 	s.Logger().Debug("Initializing mailer client")
-	client, err := mailer.Client()
+	client, err := mailer.NewClient()
 	if err != nil {
 		return errors.Wrap(err, "unable to create mailer client")
 	}
@@ -567,10 +590,6 @@ func (s *Standard) initializeUserClient() error {
 	return nil
 }
 
-func (c *confirmationClientConfig) Load() error {
-	return envconfig.Process("", c)
-}
-
 func (s *Standard) initializeConfirmationClient() error {
 	s.Logger().Debug("Initializing confirmation client")
 
@@ -585,7 +604,7 @@ func (s *Standard) initializeConfirmationClient() error {
 			return err
 		}
 
-		req.Header.Add(auth.TidepoolSessionTokenHeaderKey, token)
+		req.Header.Set(auth.TidepoolSessionTokenHeaderKey, token)
 		return nil
 	})
 
@@ -635,7 +654,7 @@ func (s *Standard) initializeAbbottClient() error {
 	s.Logger().Debug("Loading abbott provider")
 
 	// Abbott
-	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbottProvider.ProviderName))
+	abbottJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", abbott.ProviderName))
 	if err != nil {
 		return errors.Wrap(err, "unable to create abbott jwks")
 	}
@@ -653,8 +672,7 @@ func (s *Standard) initializeAbbottClient() error {
 
 		cfg := abbottClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
-		reporter := s.ConfigReporter().WithScopes("abbott", "client")
-		if err = cfg.LoadFromConfigReporter(reporter); err != nil {
+		if err = cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("abbott", "client")); err != nil {
 			return errors.Wrap(err, "unable to load abbott client config")
 		}
 
@@ -673,64 +691,66 @@ func (s *Standard) initializeAbbottClient() error {
 
 	return nil
 }
+
+func (s *Standard) initializeOuraClient() error {
+	s.Logger().Debug("Loading oura provider")
+
+	configReporter := s.ConfigReporter().WithScopes("provider")
+
+	// Oura
+	if cfg, err := ouraProvider.NewConfigWithConfigReporter(configReporter.WithScopes(oura.ProviderName)); err != nil {
+		return errors.Wrap(err, "unable to create oura provider config")
+	} else if err = cfg.Validate(); err != nil {
+		s.Logger().WithError(err).Warn("Unable to create oura provider")
+	} else {
+		cfg.ClientConfig.UserAgent = s.UserAgent()
+		dependencies := ouraProvider.Dependencies{
+			Config:                *cfg,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			WorkClient:            s.workClient,
+		}
+		if prvdr, err := ouraProvider.New(dependencies); err != nil {
+			return errors.Wrap(err, "unable to create oura provider")
+		} else {
+			s.ouraClient = prvdr.Client()
+		}
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeNotificationsHistoryRecorder() error {
+	s.Logger().Debug("Creating notifications history recorder")
+
+	notificationsHistoryRecorder := notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
+	if err := notificationsHistoryRecorder.EnsureIndexes(); err != nil {
+		return errors.Wrap(err, "unable to ensure notifications history indexes")
+	}
+	s.notificationsHistoryRecorder = notificationsHistoryRecorder
+
+	return nil
+}
+
 func (s *Standard) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
-	coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient)
-	if err != nil {
+	if coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient); err != nil {
 		return errors.Wrap(err, "unable to create work coordinator")
-	}
-	s.workCoordinator = coordinator
-
-	s.Logger().Debug("Creating abbott processors")
-
-	abbottProcessorDependencies := abbottWork.ProcessorDependencies{
-		DataDeduplicatorFactory: s.dataDeduplicatorFactory,
-		DataSetClient:           s.dataClient,
-		DataSourceClient:        s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		SummaryClient:           s.summaryClient,
-		ProviderSessionClient:   s.AuthClient(),
-		DataRawClient:           s.dataRawClient,
-		AbbottClient:            s.abbottClient,
-		WorkClient:              s.workClient,
-	}
-	abbottProcessors, err := abbottWork.NewProcessors(abbottProcessorDependencies)
-	if err != nil {
-		return errors.Wrap(err, "unable to create abbott processors")
+	} else {
+		s.workCoordinator = coordinator
 	}
 
-	s.Logger().Debug("Registering abbott processors")
+	s.Logger().Debug("Creating work processor factories")
 
-	if err = s.workCoordinator.RegisterProcessors(abbottProcessors); err != nil {
-		return errors.Wrap(err, "unable to register abbott processors")
+	if err := s.initializeWorkProcessorFactories(); err != nil {
+		return errors.Wrap(err, "unable to create work processor factories")
 	}
 
-	s.Logger().Debug("Creating email notifications history store")
-	historyRecorder := notificationsHistory.NewHistoryRepository(s.dataRawStructuredStore.Store)
-	if err := historyRecorder.EnsureIndexes(); err != nil {
-		return errors.Wrap(err, "unable to ensure notifications history indexes")
-	}
-	s.historyRecorder = historyRecorder
+	s.Logger().Debug("Creating work singletons")
 
-	notificationsDependencies := notifications.Dependencies{
-		Auth:         s.AuthClient(),
-		Clinics:      s.clinicsClient,
-		Confirmation: s.confirmationClient,
-		DataSources:  s.dataSourceStructuredStore.NewDataSourcesRepository(),
-		Recorder:     s.historyRecorder,
-		Mailer:       s.mailerClient,
-		Users:        s.userClient,
-		Worker:       s.workClient,
-	}
-	notificationProcessors := []work.Processor{
-		claims.NewProcessor(notificationsDependencies),
-		connreqs.NewProcessor(notificationsDependencies),
-		connissues.NewProcessor(notificationsDependencies),
-	}
-	s.Logger().Debug("Creating and registering email notifications processors")
-
-	if err = s.workCoordinator.RegisterProcessors(notificationProcessors); err != nil {
-		return errors.Wrap(err, "unable to register email notifications processors")
+	if err := s.initializeWorkSingletons(); err != nil {
+		return errors.Wrap(err, "unable to create work singletons")
 	}
 
 	s.Logger().Debug("Starting work coordinator")
@@ -740,12 +760,200 @@ func (s *Standard) initializeWorkCoordinator() error {
 	return nil
 }
 
+func (s *Standard) initializeWorkProcessorFactories() error {
+	var processorFactories []work.ProcessorFactory
+
+	dependencies := workBase.Dependencies{
+		WorkClient: s.workClient,
+	}
+
+	s.Logger().Debug("Creating notifications claims work processor factory")
+
+	if processorFactory, err := notificationsWorkClaims.NewProcessorFactory(notificationsWorkClaims.Dependencies{
+		Dependencies:       dependencies,
+		ClinicClient:       s.clinicsClient,
+		ConfirmationClient: s.confirmationClient,
+		HistoryRecorder:    s.notificationsHistoryRecorder,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications claims work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating notifications connections issues work processor factory")
+
+	if processorFactory, err := notificationsWorkConnectionsIssues.NewProcessorFactory(notificationsWorkConnectionsIssues.Dependencies{
+		Dependencies:    dependencies,
+		HistoryRecorder: s.notificationsHistoryRecorder,
+		MailerClient:    s.mailerClient,
+		UserClient:      s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications connections issues work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating notifications connections requests work processor factory")
+
+	if processorFactory, err := notificationsWorkConnectionsRequests.NewProcessorFactory(notificationsWorkConnectionsRequests.Dependencies{
+		Dependencies:     dependencies,
+		ClinicClient:     s.clinicsClient,
+		DataSourceClient: s.dataSourceClient,
+		HistoryRecorder:  s.notificationsHistoryRecorder,
+		MailerClient:     s.mailerClient,
+		UserClient:       s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create notifications connections requests work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	if s.abbottClient != nil {
+		s.Logger().Debug("Creating abbott processor factories")
+
+		abbottProcessorDependencies := abbottWork.ProcessorDependencies{
+			Dependencies:            dependencies,
+			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
+			DataSetClient:           s.dataClient,
+			DataSourceClient:        s.dataSourceClient,
+			SummaryClient:           s.summaryClient,
+			ProviderSessionClient:   s.AuthClient(),
+			DataRawClient:           s.dataRawClient,
+			AbbottClient:            s.abbottClient,
+		}
+		if abbottProcessorFactories, err := abbottWork.NewProcessorFactories(abbottProcessorDependencies); err != nil {
+			return errors.Wrap(err, "unable to create abbott processor factories")
+		} else {
+			processorFactories = append(processorFactories, abbottProcessorFactories...)
+		}
+	}
+
+	if s.ouraClient != nil {
+		s.Logger().Debug("Creating oura data event work processor factory")
+
+		if processorFactory, err := ouraDataWorkEvent.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data event work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data historic work processor factory")
+
+		if processorFactory, err := ouraDataWorkHistoric.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data historic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data periodic work processor factory")
+
+		if processorFactory, err := ouraDataWorkPeriodic.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data periodic work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura data personal work processor factory")
+
+		if processorFactory, err := ouraDataWorkPersonal.NewProcessorFactory(ouraDataWork.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataRawClient:         s.dataRawClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura data personal work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura webhook work processor factory")
+
+		if processorFactory, err := ouraWebhookWorkSubscribe.NewProcessorFactory(ouraWebhookWorkSubscribe.Dependencies{
+			Dependencies: dependencies,
+			OuraClient:   s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura user revoke work processor factory")
+
+		if processorFactory, err := ouraUserWorkRevoke.NewProcessorFactory(ouraUserWorkRevoke.Dependencies{
+			Dependencies: dependencies,
+			OuraClient:   s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura user revoke work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+
+		s.Logger().Debug("Creating oura user setup work processor factory")
+
+		if processorFactory, err := ouraUserWorkSetup.NewProcessorFactory(ouraUserWorkSetup.Dependencies{
+			Dependencies:          dependencies,
+			ProviderSessionClient: s.AuthClient(),
+			DataSourceClient:      s.dataSourceClient,
+			DataSetClient:         s.dataClient,
+			OuraClient:            s.ouraClient,
+		}); err != nil {
+			return errors.Wrap(err, "unable to create oura user setup work processor factory")
+		} else {
+			processorFactories = append(processorFactories, processorFactory)
+		}
+	}
+
+	s.Logger().Debug("Registering work processor factories")
+
+	if err := s.workCoordinator.RegisterProcessorFactories(processorFactories); err != nil {
+		return errors.Wrap(err, "unable to register work processor factories")
+	}
+
+	return nil
+}
+
+func (s *Standard) initializeWorkSingletons() error {
+	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
+	defer cancel()
+
+	if s.ouraClient != nil {
+		s.Logger().Debug("Creating oura webhook subscribe work")
+
+		if workCreate, err := ouraWebhookWorkSubscribe.NewWorkCreate(); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work create")
+		} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+			return errors.Wrap(err, "unable to create oura webhook subscribe work")
+		}
+	}
+
+	return nil
+}
+
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
 
-	sarama.Logger = log.New(os.Stdout, "SARAMA ", log.LstdFlags|log.Lshortfile)
+	sarama.Logger = stdLog.New(os.Stdout, "SARAMA ", stdLog.LstdFlags|stdLog.Lshortfile)
 
-	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
+	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
 	runner := events.NewRunner(handlers)
@@ -772,10 +980,10 @@ func (s *Standard) initializeTwiistServiceAccountAuthorizer() error {
 func (s *Standard) initializeAPI() error {
 	s.Logger().Debug("Creating api")
 
-	newAPI, err := api.NewStandard(s, s.metricClient, s.permissionClient,
+	newAPI, err := dataServiceApi.NewStandard(s, s.metricClient, s.permissionClient,
 		s.dataDeduplicatorFactory,
 		s.dataStore, s.syncTaskStore, s.dataClient,
-		s.dataRawClient, s.dataSourceClient, s.workClient, s.historyRecorder,
+		s.dataRawClient, s.dataSourceClient, s.workClient, s.ouraClient, s.notificationsHistoryRecorder,
 		s.abbottClient, s.twiistServiceAccountAuthorizer)
 	if err != nil {
 		return errors.Wrap(err, "unable to create api")
@@ -800,14 +1008,14 @@ func (s *Standard) initializeAPI() error {
 func (s *Standard) initializeServer() error {
 	s.Logger().Debug("Loading server config")
 
-	serverConfig := server.NewConfig()
+	serverConfig := serviceServer.NewConfig()
 	if err := serverConfig.Load(s.ConfigReporter().WithScopes("server")); err != nil {
 		return errors.Wrap(err, "unable to load server config")
 	}
 
 	s.Logger().Debug("Creating server")
 
-	newServer, err := server.NewStandard(serverConfig, s.Logger(), s.api)
+	newServer, err := serviceServer.NewStandard(serverConfig, s.Logger(), s.api)
 	if err != nil {
 		return errors.Wrap(err, "unable to create server")
 	}

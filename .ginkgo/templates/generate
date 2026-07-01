@@ -1,0 +1,15 @@
+{{.BuildTags}}
+package {{.Package}}
+
+import (
+	{{.GinkgoImport}}
+	{{.GomegaImport}}
+	. "github.com/onsi/gomega/gstruct"
+
+	{{if .ImportPackage}}"{{.PackageImportPath}}"{{end}}
+	"github.com/tidepool-org/platform/test"
+)
+
+var _ = {{.GinkgoPackage}}Describe("{{.Subject}}", func() {
+	// TODO
+})

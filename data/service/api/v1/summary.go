@@ -79,7 +79,7 @@ func GetSummary[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.
 	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.GetSummary(ctx, id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 	} else if userSummary == nil {
 		responder.Error(http.StatusNotFound, fmt.Errorf("no %s summary found for user %s", types.GetType[PP, PB](), id))
 	} else {
@@ -122,7 +122,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 			res := errors.Meta(err).(*http.Response)
 			responder.Reader(res.StatusCode, res.Body)
 		} else {
-			responder.Error(http.StatusInternalServerError, err)
+			responder.InternalServerError(err)
 		}
 		return
 	}
@@ -146,7 +146,7 @@ func UpdateSummary[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P typ
 	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userSummary, err := summarizer.UpdateSummary(ctx, id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 	} else {
 		responder.Data(http.StatusOK, userSummary)
 	}
@@ -173,7 +173,7 @@ func GetOutdatedUserIDs[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], 
 	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	response, err := summarizer.GetOutdatedUserIDs(ctx, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -201,7 +201,7 @@ func GetMigratableUserIDs[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B]
 	summarizer := summary.GetSummarizer[PP, PB](dataServiceContext.SummarizerRegistry())
 	userIDs, err := summarizer.GetMigratableUserIDs(ctx, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

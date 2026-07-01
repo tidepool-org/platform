@@ -2,34 +2,24 @@ package claims
 
 import (
 	"context"
-	"fmt"
 	"time"
+
+	clinicClient "github.com/tidepool-org/clinic/client"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/notifications"
-	"github.com/tidepool-org/platform/notifications/history"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const (
-	Type                     = "org.tidepool.user.notification.account.claim"
-	quantity                 = 2
-	frequency                = time.Minute
-	processingTimeoutSeconds = 60
+	FailingRetryDuration       = 1 * time.Minute
+	FailingRetryDurationJitter = 5 * time.Second
 )
-
-// NewGroupID returns a string suitable for [work.Work.GroupID] that is meant
-// to group related claim account notifications together so they can all be
-// deleted if the condition to send them is no longer active. For example, if a
-// user has already claimed their account but there is a pending notification
-// that hasn't been processed yetm the processor should delete all work items
-// of the same group id when it is time to process the item.
-func NewGroupID(userID string) string {
-	return fmt.Sprintf("%s:%s", Type, userID)
-}
 
 type Metadata struct {
 	ClinicID   string    `json:"clinicId,omitempty"`
@@ -37,183 +27,108 @@ type Metadata struct {
 	WhenToSend time.Time `json:"whenToSend,omitzero"`
 }
 
-func (d *Metadata) Parse(parser structure.ObjectParser) {
-	d.ClinicID = pointer.ToString(parser.String("clinicId"))
-	d.UserID = pointer.ToString(parser.String("userId"))
-	d.WhenToSend = pointer.ToTime(parser.Time("whenToSend", time.RFC3339Nano))
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clinicId"); ptr != nil {
+		m.ClinicID = *ptr
+	}
+	if ptr := parser.String("userId"); ptr != nil {
+		m.UserID = *ptr
+	}
+	if ptr := parser.Time("whenToSend", time.RFC3339Nano); ptr != nil {
+		m.WhenToSend = *ptr
+	}
 }
 
-func (d *Metadata) Validate(validator structure.Validator) {
-	validator.String("clinicId", &d.ClinicID).NotEmpty()
-	validator.String("userId", &d.UserID).NotEmpty()
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.String("clinicId", &m.ClinicID).NotEmpty()
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
-	whenToSend := metadata.WhenToSend
-	if whenToSend.IsZero() {
-		whenToSend = time.Now().Add(time.Hour * 24 * 7)
+type Processor struct {
+	*workBase.Processor[Metadata]
+	Dependencies
+	patient *clinicClient.Patient
+}
+
+func NewProcessor(dependencies Dependencies) (*Processor, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
-	create := newWorkCreate(whenToSend, metadata)
-	groupID := pointer.DefaultString(create.GroupID, "")
-	if groupID != "" {
-		// Delete any other work items with the same group id because if a new reminder is added, any older ones would be too early since the last reminder of the same group id.
-		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
-			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
-		}
+
+	processResultBuilder := &workBase.ProcessResultBuilder{
+		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
+			Duration:       FailingRetryDuration,
+			DurationJitter: FailingRetryDurationJitter,
+		},
 	}
-	wrk, err := client.Create(ctx, create)
+
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "unable to create processor")
 	}
-	entry := history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		EventType:     history.NotificationQueued,
-		GroupID:       groupID,
-		UserID:        metadata.UserID,
+
+	return &Processor{
+		Processor:    processor,
+		Dependencies: dependencies,
+	}, nil
+}
+
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.fetchPatient,
+		p.process,
+	).Process(p.Delete)
+}
+
+func (p *Processor) fetchPatient() *work.ProcessResult {
+	userID := p.Metadata().UserID
+
+	patient, err := p.GetPatient(p.Context(), p.Metadata().ClinicID, userID)
+	if err != nil {
+		return p.Failing(errors.Wrap(err, "unable to get patient"))
+	} else if patient == nil {
+		return p.Failed(errors.New("patient is missing"))
+	} else if patient.Email == nil || *patient.Email == "" {
+		return p.Failed(errors.New("patient email is missing"))
 	}
-	if err := recorder.Create(ctx, entry); err != nil {
-		return err
-	}
+	p.patient = patient
+
 	return nil
 }
 
-func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
-	return &work.Create{
-		Type:                    Type,
-		SerialID:                pointer.FromString(metadata.UserID),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID)),
-		ProcessingTimeout:       processingTimeoutSeconds,
-		ProcessingAvailableTime: notBefore,
-		Metadata:                fromClaimAccountData(metadata),
-	}
-}
-
-type processor struct {
-	dependencies notifications.Dependencies
-}
-
-func NewProcessor(dependencies notifications.Dependencies) *processor {
-	return &processor{
-		dependencies: dependencies,
-	}
-}
-
-func (p *processor) Type() string {
-	return Type
-}
-
-func (p *processor) Quantity() int {
-	return quantity
-}
-
-func (p *processor) Frequency() time.Duration {
-	return frequency
-}
-
-func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
-	data, err := toClaimAccountData(wrk)
-	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-
-	patient, err := p.dependencies.Clinics.GetPatient(ctx, data.ClinicID, data.UserID)
-	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-	if patient == nil {
-		return notifications.NewFailingResult(errors.Newf(`unable to find patient with userId "%v"`, data.UserID), wrk)
-	}
-	if pointer.ToString(patient.Email) == "" {
-		return notifications.NewFailingResult(errors.Newf(`unable to find email for patient with userId "%v"`, data.UserID), wrk)
-	}
+func (p *Processor) process() *work.ProcessResult {
 	// If user already claimed they will no longer have the custodian field set
-	if patient != nil && (patient.Permissions == nil || patient.Permissions.Custodian == nil) {
-		entry := history.Entry{
-			Metadata:      wrk.Metadata,
-			ProcessorType: Type,
-			Email:         pointer.DefaultString(patient.Email, ""),
-			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-			EventType:     history.NotificationConditionsExpired,
-			UserID:        data.UserID,
-		}
-		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-			if lgr := log.LoggerFromContext(ctx); lgr != nil {
-				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification conditions expired event.")
-			}
-		}
-
-		return *work.NewProcessResultDelete()
+	if p.patient.Permissions == nil || p.patient.Permissions.Custodian == nil {
+		p.recordHistoryEntry(notificationsHistory.NotificationConditionsExpired)
+		return nil
 	}
 
-	entry := history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		Email:         pointer.DefaultString(patient.Email, ""),
-		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-		EventType:     history.NotificationAttempted,
-		UserID:        data.UserID,
-	}
-	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-		if lgr := log.LoggerFromContext(ctx); lgr != nil {
-			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification attempted event.")
-		}
+	p.recordHistoryEntry(notificationsHistory.NotificationAttempted)
+
+	if _, err := p.ResendAccountSignupWithResponse(p.Context(), *p.patient.Email); err != nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationEmailError, errors.Wrap(err, "unable to send email for account claim"))
+		return p.Failing(errors.Wrap(err, "unable to send email for account claim"))
 	}
 
-	if _, err := p.dependencies.Confirmation.ResendAccountSignupWithResponse(ctx, *patient.Email); err != nil {
-		entry := history.Entry{
-			Metadata:      wrk.Metadata,
-			ProcessorType: Type,
-			Email:         pointer.DefaultString(patient.Email, ""),
-			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-			EventType:     history.NotificationEmailError,
-			UserID:        data.UserID,
-			Error:         errors.Wrap(err, "unable to resend account signup"),
-		}
-		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-			if lgr := log.LoggerFromContext(ctx); lgr != nil {
-				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email send error event.")
-			}
-		}
-
-		return notifications.NewFailingResult(errors.Newf(`unable to resend account signup email`), wrk)
-	}
-	entry = history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		Email:         pointer.DefaultString(patient.Email, ""),
-		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-		EventType:     history.NotificationEmailSent,
-		UserID:        data.UserID,
-	}
-	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-		if lgr := log.LoggerFromContext(ctx); lgr != nil {
-			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
-		}
-	}
-
-	return *work.NewProcessResultDelete()
+	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
+	return nil
 }
 
-func toClaimAccountData(wrk *work.Work) (*Metadata, error) {
-	wrk.EnsureMetadata()
-	var data Metadata
-	if userID, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserID = userID
-	} else {
-		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
-	}
-	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
-		data.ClinicID = clinicID
-	} else {
-		return nil, errors.Newf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
-	}
-	return &data, nil
+func (p *Processor) recordHistoryEntry(eventType string) {
+	p.recordHistoryEntryWithError(eventType, nil)
 }
 
-func fromClaimAccountData(data Metadata) map[string]any {
-	return map[string]any{
-		"userId":   data.UserID,
-		"clinicId": data.ClinicID,
+func (p *Processor) recordHistoryEntryWithError(eventType string, err error) {
+	entry := notificationsHistory.Entry{
+		EventType:     eventType,
+		ProcessorType: Type,
+		GroupID:       NewGroupID(p.Metadata().UserID),
+		Metadata:      p.MetadataEncoded(),
+		UserID:        p.Metadata().UserID,
+		Email:         pointer.Default(p.patient.Email, ""),
+		Error:         err,
+	}
+	if err := p.Create(p.Context(), entry); err != nil {
+		log.LoggerFromContext(p.Context()).WithError(err).Error("unable to record history entry")
 	}
 }

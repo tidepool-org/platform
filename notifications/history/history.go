@@ -66,9 +66,9 @@ type Entry struct {
 	UserID        string    `bson:"userId,omitempty"`
 }
 
-func (l *Entry) Validate(validator structure.Validator) {
-	validator.String("processorType", &l.ProcessorType).NotEmpty()
-	validator.String("eventType", (*string)(&l.EventType)).NotEmpty()
-	validator.String("userId", &l.UserID).NotEmpty()
-	validator.Time("createdTime", &l.CreatedTime).NotZero()
+func (e *Entry) Validate(validator structure.Validator) {
+	validator.String("processorType", &e.ProcessorType).NotEmpty()
+	validator.String("eventType", (*string)(&e.EventType)).NotEmpty()
+	validator.String("userId", &e.UserID).NotEmpty()
+	validator.Time("createdTime", &e.CreatedTime).NotZero()
 }

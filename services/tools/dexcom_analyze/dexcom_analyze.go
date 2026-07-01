@@ -20,7 +20,6 @@ import (
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
 	dexcomFetch "github.com/tidepool-org/platform/dexcom/fetch"
-	dexcomProvider "github.com/tidepool-org/platform/dexcom/provider"
 	"github.com/tidepool-org/platform/errors"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/task"
@@ -57,11 +56,10 @@ const (
 	Issue_DataSource_ProviderSessionID_DoesNotExist                      = "data source provider session id does not exist"
 	Issue_DataSource_ProviderSessionID_Empty                             = "data source provider session id empty"
 	Issue_DataSource_UserID_Empty                                        = "data source user id empty"
-	Issue_DataSource_UserID_Missing                                      = "data source user id missing"
-	Issue_DataSource_With_DataSetIDs_DataSetIDs_Length_Invalid           = "data source with data set ids data set ids length invalid"
-	Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing            = "data source with data set ids earliest data time missing"
-	Issue_DataSource_With_DataSetIDs_LastImportTime_Missing              = "data source with data set ids last import time missing"
-	Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing              = "data source with data set ids latest data time missing"
+	Issue_DataSource_With_DataSetID_DataSetID_Length_Invalid             = "data source with data set id data set id length invalid"
+	Issue_DataSource_With_DataSetID_EarliestDataTime_Missing             = "data source with data set id earliest data time missing"
+	Issue_DataSource_With_DataSetID_LastImportTime_Missing               = "data source with data set id last import time missing"
+	Issue_DataSource_With_DataSetID_LatestDataTime_Missing               = "data source with data set id latest data time missing"
 	Issue_DataSource_With_State_Connected_Error_Present                  = "data source with state connected error present"
 	Issue_DataSource_With_State_Connected_ProviderSession_Missing        = "data source with state connected provider session missing"
 	Issue_DataSource_With_State_Connected_ProviderSessionID_Missing      = "data source with state connected provider session id missing"
@@ -74,8 +72,8 @@ const (
 	Issue_DataSource_With_State_Error_ProviderSession_Missing            = "data source with state error provider session missing"
 	Issue_DataSource_With_State_Error_ProviderSessionID_Missing          = "data source with state error provider session id missing"
 	Issue_DataSource_With_State_Error_Task_Missing                       = "data source with state error task missing"
-	Issue_DataSource_Without_DataSetIDs_EarliestDataTime_Present         = "data source without data set ids earliest data time present"
-	Issue_DataSource_Without_DataSetIDs_LatestDataTime_Present           = "data source without data set ids latest data time present"
+	Issue_DataSource_Without_DataSetID_EarliestDataTime_Present          = "data source without data set id earliest data time present"
+	Issue_DataSource_Without_DataSetID_LatestDataTime_Present            = "data source without data set id latest data time present"
 	Issue_ProviderSession_Task_Missing                                   = "provider session task missing"
 	Issue_ProviderSession_UserID_Empty                                   = "provider session user id empty"
 	Issue_Task_Data_Missing                                              = "task data missing"
@@ -90,7 +88,7 @@ const (
 	Issue_Task_ProviderSessionID_DoesNotExist                            = "task provider session id does not exist"
 	Issue_Task_ProviderSessionID_Empty                                   = "task provider session id empty"
 	Issue_Task_ProviderSessionID_Missing                                 = "task provider session id missing"
-	Issue_Task_With_DeviceHashes_And_DataSource_DataSetIDs_Missing       = "task with device hashes and data source data set ids missing"
+	Issue_Task_With_DeviceHashes_And_DataSource_DataSetID_Missing        = "task with device hashes and data source data set id missing"
 	Issue_Task_With_DeviceHashes_And_DataSource_EarliestDataTime_Missing = "task with device hashes and data source earliest data time missing"
 	Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing   = "task with device hashes and data source last import time missing"
 	Issue_Task_With_DeviceHashes_And_DataSource_LatestDataTime_Missing   = "task with device hashes and data source latest data time missing"
@@ -129,11 +127,10 @@ func Issues() []string {
 		Issue_DataSource_ProviderSessionID_DoesNotExist,
 		Issue_DataSource_ProviderSessionID_Empty,
 		Issue_DataSource_UserID_Empty,
-		Issue_DataSource_UserID_Missing,
-		Issue_DataSource_With_DataSetIDs_DataSetIDs_Length_Invalid,
-		Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing,
-		Issue_DataSource_With_DataSetIDs_LastImportTime_Missing,
-		Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing,
+		Issue_DataSource_With_DataSetID_DataSetID_Length_Invalid,
+		Issue_DataSource_With_DataSetID_EarliestDataTime_Missing,
+		Issue_DataSource_With_DataSetID_LastImportTime_Missing,
+		Issue_DataSource_With_DataSetID_LatestDataTime_Missing,
 		Issue_DataSource_With_State_Connected_Error_Present,
 		Issue_DataSource_With_State_Connected_ProviderSessionID_Missing,
 		Issue_DataSource_With_State_Connected_Task_Missing,
@@ -143,8 +140,8 @@ func Issues() []string {
 		Issue_DataSource_With_State_Error_Error_Missing,
 		Issue_DataSource_With_State_Error_ProviderSessionID_Missing,
 		Issue_DataSource_With_State_Error_Task_Missing,
-		Issue_DataSource_Without_DataSetIDs_EarliestDataTime_Present,
-		Issue_DataSource_Without_DataSetIDs_LatestDataTime_Present,
+		Issue_DataSource_Without_DataSetID_EarliestDataTime_Present,
+		Issue_DataSource_Without_DataSetID_LatestDataTime_Present,
 		Issue_ProviderSession_Task_Missing,
 		Issue_ProviderSession_UserID_Empty,
 		Issue_Task_Data_Missing,
@@ -158,7 +155,7 @@ func Issues() []string {
 		Issue_Task_ProviderSessionID_DoesNotExist,
 		Issue_Task_ProviderSessionID_Empty,
 		Issue_Task_ProviderSessionID_Missing,
-		Issue_Task_With_DeviceHashes_And_DataSource_DataSetIDs_Missing,
+		Issue_Task_With_DeviceHashes_And_DataSource_DataSetID_Missing,
 		Issue_Task_With_DeviceHashes_And_DataSource_EarliestDataTime_Missing,
 		Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing,
 		Issue_Task_With_DeviceHashes_And_DataSource_LatestDataTime_Missing,
@@ -339,7 +336,7 @@ type DataSources []*dataSource.Source
 func (d DataSources) IDs() IDs {
 	var ids IDs
 	for _, dataSource := range d {
-		ids = append(ids, *dataSource.ID)
+		ids = append(ids, dataSource.ID)
 	}
 	slices.Sort(ids)
 	return ids
@@ -483,7 +480,7 @@ func (p *ProviderSession) SetDataSource(dataSource *DataSource) {
 			p.user.SetDataSource(dataSource)
 		}
 	} else if p.dataSource != dataSource {
-		p.AppendIssuef(IssueFormat_ProviderSession_DataSource_Mismatch, *p.dataSource.ID, *dataSource.ID)
+		p.AppendIssuef(IssueFormat_ProviderSession_DataSource_Mismatch, p.dataSource.ID, dataSource.ID)
 	}
 }
 
@@ -586,7 +583,7 @@ func (t *Task) SetDataSource(dataSource *DataSource) {
 			t.user.SetDataSource(dataSource)
 		}
 	} else if t.dataSource != dataSource {
-		t.AppendIssuef(IssueFormat_Task_DataSource_Mismatch, *t.dataSource.ID, *dataSource.ID)
+		t.AppendIssuef(IssueFormat_Task_DataSource_Mismatch, t.dataSource.ID, dataSource.ID)
 	}
 }
 func (t *Task) SetProviderSession(providerSession *ProviderSession) {
@@ -681,7 +678,7 @@ func (u *User) SetDataSource(dataSource *DataSource) {
 			u.task.SetDataSource(dataSource)
 		}
 	} else if u.dataSource != dataSource {
-		u.AppendIssuef(IssueFormat_User_DataSource_Mismatch, *u.dataSource.ID, *dataSource.ID)
+		u.AppendIssuef(IssueFormat_User_DataSource_Mismatch, u.dataSource.ID, dataSource.ID)
 	}
 }
 
@@ -848,8 +845,8 @@ func (t *Tool) load() error {
 	}
 	dataSourcesMap := map[string]*DataSource{}
 	for _, dataSource := range dataSources {
-		if dataSource.ProviderType != nil && *dataSource.ProviderType == auth.ProviderTypeOAuth && dataSource.ProviderName != nil && *dataSource.ProviderName == dexcomProvider.ProviderName {
-			dataSourcesMap[*dataSource.ID] = dataSource
+		if dataSource.ProviderType == auth.ProviderTypeOAuth && dataSource.ProviderName == dexcom.ProviderName {
+			dataSourcesMap[dataSource.ID] = dataSource
 		}
 	}
 
@@ -859,7 +856,7 @@ func (t *Tool) load() error {
 	}
 	providerSessionsMap := map[string]*ProviderSession{}
 	for _, providerSession := range providerSessions {
-		if providerSession.Type == auth.ProviderTypeOAuth && providerSession.Name == dexcomProvider.ProviderName {
+		if providerSession.Type == auth.ProviderTypeOAuth && providerSession.Name == dexcom.ProviderName {
 			providerSessionsMap[providerSession.ID] = providerSession
 		}
 	}
@@ -907,19 +904,15 @@ func (t *Tool) analyzeAssociations() {
 	}
 
 	for _, record := range t.dataSourcesMap {
-		if userID := record.UserID; userID != nil {
-			if *userID != "" {
-				user, ok := t.usersMap[*userID]
-				if !ok {
-					user = &User{UserData: UserData{ID: *userID}}
-					t.usersMap[*userID] = user
-				}
-				record.SetUser(user)
-			} else {
-				record.AppendIssue(Issue_DataSource_UserID_Empty)
+		if userID := record.UserID; userID != "" {
+			user, ok := t.usersMap[userID]
+			if !ok {
+				user = &User{UserData: UserData{ID: userID}}
+				t.usersMap[userID] = user
 			}
+			record.SetUser(user)
 		} else {
-			record.AppendIssue(Issue_DataSource_UserID_Missing)
+			record.AppendIssue(Issue_DataSource_UserID_Empty)
 		}
 
 		if providerSessionID := record.ProviderSessionID; providerSessionID != nil {
@@ -983,7 +976,7 @@ func (t *Tool) analyzeDataSources() {
 			}
 		}
 
-		switch *record.State {
+		switch record.State {
 		case dataSource.StateConnected:
 			if record.ProviderSessionID == nil {
 				record.AppendIssue(Issue_DataSource_With_State_Connected_ProviderSessionID_Missing)
@@ -1025,25 +1018,22 @@ func (t *Tool) analyzeDataSources() {
 			}
 		}
 
-		if record.DataSetIDs != nil {
-			if len(*record.DataSetIDs) != 1 {
-				record.AppendIssue(Issue_DataSource_With_DataSetIDs_DataSetIDs_Length_Invalid)
-			}
+		if record.DataSetID != nil {
 			if record.LastImportTime == nil {
-				record.AppendIssue(Issue_DataSource_With_DataSetIDs_LastImportTime_Missing)
+				record.AppendIssue(Issue_DataSource_With_DataSetID_LastImportTime_Missing)
 			}
 			if record.LatestDataTime == nil {
-				record.AppendIssue(Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing)
+				record.AppendIssue(Issue_DataSource_With_DataSetID_LatestDataTime_Missing)
 			}
 			if record.EarliestDataTime == nil {
-				record.AppendIssue(Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing)
+				record.AppendIssue(Issue_DataSource_With_DataSetID_EarliestDataTime_Missing)
 			}
 		} else {
 			if record.LatestDataTime != nil {
-				record.AppendIssue(Issue_DataSource_Without_DataSetIDs_LatestDataTime_Present)
+				record.AppendIssue(Issue_DataSource_Without_DataSetID_LatestDataTime_Present)
 			}
 			if record.EarliestDataTime != nil {
-				record.AppendIssue(Issue_DataSource_Without_DataSetIDs_EarliestDataTime_Present)
+				record.AppendIssue(Issue_DataSource_Without_DataSetID_EarliestDataTime_Present)
 			}
 		}
 	}
@@ -1097,8 +1087,8 @@ func (t *Tool) analyzeTasks() {
 				}
 
 				if record.dataSource != nil {
-					if len(*record.dataSource.DataSetIDs) == 0 {
-						record.AppendIssue(Issue_Task_With_DeviceHashes_And_DataSource_DataSetIDs_Missing)
+					if record.dataSource.DataSetID == nil {
+						record.AppendIssue(Issue_Task_With_DeviceHashes_And_DataSource_DataSetID_Missing)
 					}
 					if record.dataSource.LastImportTime == nil {
 						record.AppendIssue(Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing)
@@ -1200,31 +1190,30 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		return
 	case Issue_DataSource_ProviderSessionID_Empty:
 	case Issue_DataSource_UserID_Empty:
-	case Issue_DataSource_UserID_Missing:
-	case Issue_DataSource_With_DataSetIDs_DataSetIDs_Length_Invalid:
-	case Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing, Issue_DataSource_With_DataSetIDs_LastImportTime_Missing, Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing:
+	case Issue_DataSource_With_DataSetID_DataSetID_Length_Invalid:
+	case Issue_DataSource_With_DataSetID_EarliestDataTime_Missing, Issue_DataSource_With_DataSetID_LastImportTime_Missing, Issue_DataSource_With_DataSetID_LatestDataTime_Missing:
 		t.outputResolutionHeader("FIXED with BACK-3113. Will keep occurring until deployed. Will need to manually fix.")
 		// NOTE: Uncomment this block to see further details.
 		//
 		// t.outputMongoReadOperationsHeader()
 		//
 		// var earliestDataTimeIDs IDs
-		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing]; ok {
+		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetID_EarliestDataTime_Missing]; ok {
 		// 	earliestDataTimeIDs = otherMarshable.DataSources().IDs()
 		// }
 		//
 		// var lastImportTimeIDs IDs
-		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_LastImportTime_Missing]; ok {
+		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetID_LastImportTime_Missing]; ok {
 		// 	lastImportTimeIDs = otherMarshable.DataSources().IDs()
 		// }
 		//
 		// var latestDataTimeIDs IDs
-		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing]; ok {
+		// if otherMarshable, ok := issueMarshalableMap[Issue_DataSource_With_DataSetID_LatestDataTime_Missing]; ok {
 		// 	latestDataTimeIDs = otherMarshable.DataSources().IDs()
 		// }
 		//
 		// switch issue {
-		// case Issue_DataSource_With_DataSetIDs_EarliestDataTime_Missing:
+		// case Issue_DataSource_With_DataSetID_EarliestDataTime_Missing:
 		// 	t.outputDescription("ALL:")
 		// 	t.outputMongoDataSourcesAggregation(earliestDataTimeIDs)
 		// 	t.outputDescription("AND latest data time PRESENT:")
@@ -1240,7 +1229,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		// 	t.outputDescription("DATA TYPE COUNT PER DATASET WITHOUT CGMSETTINGS:")
 		// 	t.outputMongoOperation("use data")
 		// 	t.outputMongoOperation("db.deviceData.aggregate([{$match: {uploadId: {$in: ids}, type: {$ne: 'cgmSettings'}}}, {$group: {_id: {uploadId: '$uploadId', type: '$type'}, count: {$sum: 1}}}, {$group: {_id: '$_id.uploadId', types: {$addToSet: {type: '$_id.type', count: {$sum: '$count'}}}}}])")
-		// case Issue_DataSource_With_DataSetIDs_LastImportTime_Missing:
+		// case Issue_DataSource_With_DataSetID_LastImportTime_Missing:
 		// 	t.outputDescription("ALL:")
 		// 	t.outputMongoDataSourcesAggregation(lastImportTimeIDs)
 		// 	t.outputDescription("AND earliest data time OR latest data time PRESENT")
@@ -1256,7 +1245,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		// 	t.outputDescription("DATA TYPE COUNT PER DATASET WITHOUT CGMSETTINGS:")
 		// 	t.outputMongoOperation("use data")
 		// 	t.outputMongoOperation("db.deviceData.aggregate([{$match: {uploadId: {$in: ids}, type: {$ne: 'cgmSettings'}}}, {$group: {_id: {uploadId: '$uploadId', type: '$type'}, count: {$sum: 1}}}, {$group: {_id: '$_id.uploadId', types: {$addToSet: {type: '$_id.type', count: {$sum: '$count'}}}}}])")
-		// case Issue_DataSource_With_DataSetIDs_LatestDataTime_Missing:
+		// case Issue_DataSource_With_DataSetID_LatestDataTime_Missing:
 		// 	t.outputDescription("ALL:")
 		// 	t.outputMongoDataSourcesAggregation(latestDataTimeIDs)
 		// 	t.outputDescription("AND last import time PRESENT:")
@@ -1296,8 +1285,8 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		// t.outputMongoDataSourcesAggregation(marshalables.DataSources().IDs())
 		return
 	case Issue_DataSource_With_State_Error_Task_Missing:
-	case Issue_DataSource_Without_DataSetIDs_EarliestDataTime_Present:
-	case Issue_DataSource_Without_DataSetIDs_LatestDataTime_Present:
+	case Issue_DataSource_Without_DataSetID_EarliestDataTime_Present:
+	case Issue_DataSource_Without_DataSetID_LatestDataTime_Present:
 	case Issue_ProviderSession_Task_Missing:
 	case Issue_ProviderSession_UserID_Empty:
 	case Issue_Task_Data_Missing:
@@ -1324,7 +1313,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		return
 	case Issue_Task_ProviderSessionID_Empty:
 	case Issue_Task_ProviderSessionID_Missing:
-	case Issue_Task_With_DeviceHashes_And_DataSource_DataSetIDs_Missing:
+	case Issue_Task_With_DeviceHashes_And_DataSource_DataSetID_Missing:
 		t.outputResolutionHeader("Examine each to determine why it is missing")
 		t.outputMongoReadOperationsHeader()
 		t.outputMongoTasksAggregation(marshalables.Tasks().IDs())

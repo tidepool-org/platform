@@ -59,7 +59,7 @@ func NewObjectFromDevice(datum *dataTypesSettingsController.Device, objectFormat
 		object["hardwareVersion"] = test.NewObjectFromString(*datum.HardwareVersion, objectFormat)
 	}
 	if datum.Manufacturers != nil {
-		object["manufacturers"] = test.NewObjectFromStringArray(*datum.Manufacturers, objectFormat)
+		object["manufacturers"] = test.NewArrayFromStringArray(*datum.Manufacturers, objectFormat)
 	}
 	if datum.Model != nil {
 		object["model"] = test.NewObjectFromString(*datum.Model, objectFormat)

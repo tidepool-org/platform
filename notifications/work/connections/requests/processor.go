@@ -2,32 +2,28 @@ package requests
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/tidepool-org/go-common/events"
 
-	"github.com/tidepool-org/platform/data/source"
+	"github.com/tidepool-org/platform/auth"
+	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/notifications"
-	"github.com/tidepool-org/platform/notifications/history"
+	notificationsHistory "github.com/tidepool-org/platform/notifications/history"
+	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
+	"github.com/tidepool-org/platform/user"
+	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
+	workBase "github.com/tidepool-org/platform/work/base"
 )
 
 const (
-	Type                     = "org.tidepool.user.notification.connection.request"
-	quantity                 = 2
-	frequency                = time.Minute
-	processingTimeoutSeconds = 60
+	FailingRetryDuration       = 1 * time.Minute
+	FailingRetryDurationJitter = 5 * time.Second
 )
-
-// NewGroupID returns a string suitable for [work.Work.GroupID] for batch deletions.
-func NewGroupID(userID, providerName string) string {
-	return fmt.Sprintf("%s:%s:%s", Type, userID, providerName)
-}
 
 type Metadata struct {
 	ClinicID          string    `json:"clinicId,omitempty"`
@@ -40,238 +36,152 @@ type Metadata struct {
 	WhenToSend        time.Time `json:"whenToSend,omitzero"`
 }
 
-type processor struct {
-	dependencies notifications.Dependencies
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	if ptr := parser.String("clinicId"); ptr != nil {
+		m.ClinicID = *ptr
+	}
+	if ptr := parser.String("email"); ptr != nil {
+		m.Email = *ptr
+	}
+	if ptr := parser.String("emailTemplate"); ptr != nil {
+		m.EmailTemplate = *ptr
+	}
+	if ptr := parser.String("patientName"); ptr != nil {
+		m.PatientName = *ptr
+	}
+	if ptr := parser.String("providerName"); ptr != nil {
+		m.ProviderName = *ptr
+	}
+	if ptr := parser.String("restrictedTokenId"); ptr != nil {
+		m.RestrictedTokenID = *ptr
+	}
+	if ptr := parser.String("userId"); ptr != nil {
+		m.UserID = *ptr
+	}
+	if ptr := parser.Time("whenToSend", time.RFC3339Nano); ptr != nil {
+		m.WhenToSend = *ptr
+	}
 }
 
-func AddWorkItem(ctx context.Context, client work.Client, recorder history.Recorder, metadata Metadata) error {
-	whenToSend := metadata.WhenToSend
-	if whenToSend.IsZero() {
-		whenToSend = time.Now().Add(time.Hour * 24 * 7)
+func (m *Metadata) Validate(validator structure.Validator) {
+	validator.String("clinicId", &m.ClinicID).NotEmpty()
+	validator.String("email", &m.Email).NotEmpty()
+	validator.String("emailTemplate", &m.EmailTemplate).NotEmpty()
+	validator.String("patientName", &m.PatientName).NotEmpty()
+	validator.String("providerName", &m.ProviderName).Using(auth.ProviderNameValidator)
+	validator.String("restrictedTokenId", &m.RestrictedTokenID).Using(auth.RestrictedTokenIDValidator)
+	validator.String("userId", &m.UserID).Using(user.IDValidator)
+}
+
+type UserMixin = userWork.Mixin
+
+type Processor struct {
+	*workBase.Processor[Metadata]
+	UserMixin
+	Dependencies
+}
+
+func NewProcessor(dependencies Dependencies) (*Processor, error) {
+	if err := dependencies.Validate(); err != nil {
+		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
-	create := newWorkCreate(whenToSend, metadata)
-	groupID := pointer.DefaultString(create.GroupID, "")
-	if groupID != "" {
-		if _, err := client.DeleteAllByGroupID(ctx, groupID); err != nil {
-			return errors.Wrapf(err, `unable to delete existing groups by id "%s"`, groupID)
-		}
+
+	processResultBuilder := &workBase.ProcessResultBuilder{
+		ProcessResultFailingBuilder: &workBase.ExponentialProcessResultFailingBuilder{
+			Duration:       FailingRetryDuration,
+			DurationJitter: FailingRetryDurationJitter,
+		},
 	}
-	wrk, err := client.Create(ctx, create)
+
+	processor, err := workBase.NewProcessor[Metadata](dependencies.Dependencies, processResultBuilder)
 	if err != nil {
-		return err
+		return nil, errors.Wrap(err, "unable to create processor")
 	}
-	entry := history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		EventType:     history.NotificationQueued,
-		GroupID:       groupID,
-		UserID:        metadata.UserID,
-	}
-	if err := recorder.Create(ctx, entry); err != nil {
-		return err
-	}
-	return nil
-}
-
-func newWorkCreate(notBefore time.Time, metadata Metadata) *work.Create {
-	return &work.Create{
-		Type:                    Type,
-		SerialID:                pointer.FromString(metadata.UserID),
-		GroupID:                 pointer.FromString(NewGroupID(metadata.UserID, metadata.ProviderName)),
-		ProcessingTimeout:       processingTimeoutSeconds,
-		ProcessingAvailableTime: notBefore,
-		Metadata:                fromConnectAccountData(metadata),
-	}
-}
-
-func (d *Metadata) Parse(parser structure.ObjectParser) {
-	d.ClinicID = pointer.ToString(parser.String("clinicId"))
-	d.Email = pointer.ToString(parser.String("email"))
-	d.EmailTemplate = pointer.ToString(parser.String("emailTemplate"))
-	d.PatientName = pointer.ToString(parser.String("patientName"))
-	d.ProviderName = pointer.ToString(parser.String("providerName"))
-	d.RestrictedTokenID = pointer.ToString(parser.String("restrictedTokenId"))
-	d.UserID = pointer.ToString(parser.String("userId"))
-	d.WhenToSend = pointer.ToTime(parser.Time("whenToSend", time.RFC3339Nano))
-}
-
-func (d *Metadata) Validate(validator structure.Validator) {
-	validator.String("clinicId", &d.ClinicID).NotEmpty()
-	validator.String("email", &d.Email).NotEmpty()
-	validator.String("emailTemplate", &d.EmailTemplate).NotEmpty()
-	validator.String("patientName", &d.PatientName).NotEmpty()
-	validator.String("providerName", &d.ProviderName).NotEmpty()
-	validator.String("restrictedTokenId", &d.RestrictedTokenID).NotEmpty()
-	validator.String("userId", &d.UserID).NotEmpty()
-}
-
-func NewProcessor(dependencies notifications.Dependencies) *processor {
-	return &processor{
-		dependencies: dependencies,
-	}
-}
-
-func (p *processor) Type() string {
-	return Type
-}
-
-func (p *processor) Quantity() int {
-	return quantity
-}
-
-func (p *processor) Frequency() time.Duration {
-	return frequency
-}
-
-func (p *processor) Process(ctx context.Context, wrk *work.Work, updater work.ProcessingUpdater) work.ProcessResult {
-	data, err := toConnectAccountData(wrk)
+	userMixin, err := userWork.NewMixin(processor, dependencies.UserClient)
 	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
+		return nil, errors.Wrap(err, "unable to create user mixin")
 	}
 
-	user, err := p.dependencies.Users.Get(ctx, data.UserID)
+	return &Processor{
+		Processor:    processor,
+		UserMixin:    userMixin,
+		Dependencies: dependencies,
+	}, nil
+}
+
+func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
+	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.fetchUser,
+		p.process,
+	).Process(p.Delete)
+}
+
+func (p *Processor) fetchUser() *work.ProcessResult {
+	return p.FetchUser(p.Metadata().UserID)
+}
+
+func (p *Processor) process() *work.ProcessResult {
+	if p.User().Username == nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationGeneralError, errors.New("user email is missing"))
+		return p.Failed(errors.New("user email is missing"))
+	}
+
+	filter := &dataSource.Filter{
+		ProviderName: pointer.FromString(p.Metadata().ProviderName),
+		State:        pointer.FromString(dataSource.StateConnected),
+	}
+	dataSrcs, err := p.DataSourceClient.List(p.Context(), *p.User().UserID, filter, page.NewPaginationMinimum())
 	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-	if user == nil || user.Username == nil {
-		return notifications.NewFailingResult(errors.Newf(`unable to find user for userId "%s"`, data.UserID), wrk)
-	}
-	filter := source.NewFilter()
-	filter.ProviderName = pointer.FromStringArray([]string{data.ProviderName})
-	filter.State = pointer.FromStringArray([]string{source.StateConnected})
-	connectedDataSources, err := p.dependencies.DataSources.List(ctx, data.UserID, filter, nil)
-	if err != nil {
-		return notifications.NewFailingResult(err, wrk)
-	}
-	if len(connectedDataSources) > 0 {
-		// User now has a connected dataSource so no email to send.
-		entry := history.Entry{
-			Metadata:      wrk.Metadata,
-			ProcessorType: Type,
-			Email:         pointer.DefaultString(user.Username, ""),
-			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-			EventType:     history.NotificationConditionsExpired,
-			UserID:        data.UserID,
-		}
-		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-			if lgr := log.LoggerFromContext(ctx); lgr != nil {
-				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification conditions expired event.")
-			}
-		}
-		return *work.NewProcessResultDelete()
+		return p.Failing(err)
+	} else if len(dataSrcs) > 0 {
+		p.recordHistoryEntry(notificationsHistory.NotificationConditionsExpired)
+		return nil // User now has a connected dataSource so no email to send
 	}
 
 	var clinicName string
-	clinic, err := p.dependencies.Clinics.GetClinic(ctx, data.ClinicID)
+	clinic, err := p.GetClinic(p.Context(), p.Metadata().ClinicID)
 	if err != nil {
-		return notifications.NewFailingResult(errors.Wrapf(err, `error getting clinic`), wrk)
-	}
-	if clinic != nil {
+		return p.Failing(errors.Wrapf(err, "error getting clinic"))
+	} else if clinic != nil {
 		clinicName = clinic.Name
 	}
-	emailVars := map[string]string{
-		"ClinicName":        clinicName,
-		"PatientName":       data.PatientName,
-		"ProviderName":      data.ProviderName,
-		"RestrictedTokenId": data.RestrictedTokenID,
-	}
+
+	p.recordHistoryEntry(notificationsHistory.NotificationAttempted)
+
 	templateEvent := events.SendEmailTemplateEvent{
-		Recipient: *user.Username,
-		Template:  data.EmailTemplate,
-		Variables: emailVars,
+		Recipient: *p.User().Username,
+		Template:  p.Metadata().EmailTemplate,
+		Variables: map[string]string{
+			"ClinicName":        clinicName,
+			"PatientName":       p.Metadata().PatientName,
+			"ProviderName":      p.Metadata().ProviderName,
+			"RestrictedTokenId": p.Metadata().RestrictedTokenID,
+		},
 	}
-	entry := history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		Email:         pointer.DefaultString(user.Username, ""),
-		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-		EventType:     history.NotificationAttempted,
-		UserID:        data.UserID,
-	}
-	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-		if lgr := log.LoggerFromContext(ctx); lgr != nil {
-			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email attempted event.")
-		}
+	if err := p.SendEmailTemplate(p.Context(), templateEvent); err != nil {
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationEmailError, errors.Wrap(err, "unable to send email for connection request"))
+		return p.Failing(errors.Wrap(err, "unable to send email for connection request"))
 	}
 
-	if err := p.dependencies.Mailer.SendEmailTemplate(ctx, templateEvent); err != nil {
-		entry = history.Entry{
-			Metadata:      wrk.Metadata,
-			ProcessorType: Type,
-			Email:         pointer.DefaultString(user.Username, ""),
-			GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-			EventType:     history.NotificationEmailError,
-			UserID:        data.UserID,
-			Error:         errors.Wrap(err, "unable to send email template for connection request"),
-		}
-		if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-			if lgr := log.LoggerFromContext(ctx); lgr != nil {
-				lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email send error event.")
-			}
-		}
-
-		return notifications.NewFailingResult(err, wrk)
-	}
-	entry = history.Entry{
-		Metadata:      wrk.Metadata,
-		ProcessorType: Type,
-		Email:         pointer.DefaultString(user.Username, ""),
-		GroupID:       pointer.DefaultString(wrk.GroupID, ""),
-		EventType:     history.NotificationEmailSent,
-		UserID:        data.UserID,
-	}
-	if err := p.dependencies.Recorder.Create(ctx, entry); err != nil {
-		if lgr := log.LoggerFromContext(ctx); lgr != nil {
-			lgr.WithFields(wrk.Metadata).Warn("unable to to record notification email sent event.")
-		}
-	}
-
-	return *work.NewProcessResultDelete()
+	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
+	return nil
 }
 
-func toConnectAccountData(wrk *work.Work) (*Metadata, error) {
-	wrk.EnsureMetadata()
-	var data Metadata
-	if clinicID, ok := wrk.Metadata["clinicId"].(string); ok {
-		data.ClinicID = clinicID
-	} else {
-		return nil, errors.Newf(`expected field "clinicId" to exist and be a string, received %T`, wrk.Metadata["clinicId"])
-	}
-	if userID, ok := wrk.Metadata["userId"].(string); ok {
-		data.UserID = userID
-	} else {
-		return nil, errors.Newf(`expected field "userId" to exist and be a string, received %T`, wrk.Metadata["userId"])
-	}
-	if providerName, ok := wrk.Metadata["providerName"].(string); ok {
-		data.ProviderName = providerName
-	} else {
-		return nil, errors.Newf(`expected field "providerName" to exist and be a string, received %T`, wrk.Metadata["providerName"])
-	}
-	if patientName, ok := wrk.Metadata["patientName"].(string); ok {
-		data.PatientName = patientName
-	} else {
-		return nil, errors.Newf(`expected field "patientName" to exist and be a string, received %T`, wrk.Metadata["patientName"])
-	}
-	if restrictedTokenID, ok := wrk.Metadata["restrictedTokenId"].(string); ok {
-		data.RestrictedTokenID = restrictedTokenID
-	} else {
-		return nil, errors.Newf(`expected field "restrictedTokenId" to exist and be a string, received %T`, wrk.Metadata["restrictedTokenId"])
-	}
-	if emailTemplate, ok := wrk.Metadata["emailTemplate"].(string); ok {
-		data.EmailTemplate = emailTemplate
-	} else {
-		return nil, errors.Newf(`expected field "emailTemplate" to exist and be a string, received %T`, wrk.Metadata["emailTemplate"])
-	}
-	return &data, nil
+func (p *Processor) recordHistoryEntry(eventType string) {
+	p.recordHistoryEntryWithError(eventType, nil)
 }
 
-func fromConnectAccountData(data Metadata) map[string]any {
-	return map[string]any{
-		"clinicId":          data.ClinicID,
-		"userId":            data.UserID,
-		"providerName":      data.ProviderName,
-		"patientName":       data.PatientName,
-		"restrictedTokenId": data.RestrictedTokenID,
-		"emailTemplate":     data.EmailTemplate,
+func (p *Processor) recordHistoryEntryWithError(eventType string, err error) {
+	entry := notificationsHistory.Entry{
+		EventType:     eventType,
+		ProcessorType: Type,
+		GroupID:       NewGroupID(p.Metadata().UserID, p.Metadata().ProviderName),
+		Metadata:      p.MetadataEncoded(),
+		UserID:        p.Metadata().UserID,
+		Email:         pointer.Default(p.User().Username, ""),
+		Error:         err,
+	}
+	if err := p.HistoryRecorder.Create(p.Context(), entry); err != nil {
+		log.LoggerFromContext(p.Context()).WithError(err).Error("unable to record history entry")
 	}
 }

@@ -50,7 +50,7 @@ func (rs *ContinuousRanges) Finalize() {
 }
 
 type ContinuousBucket struct {
-	ContinuousRanges `json:",inline" bson:",inline"`
+	ContinuousRanges `bson:",inline"`
 }
 
 func (b *ContinuousBucket) Update(r data.Datum, _ *time.Time) (bool, error) {
@@ -72,7 +72,7 @@ func (b *ContinuousBucket) Update(r data.Datum, _ *time.Time) (bool, error) {
 }
 
 type ContinuousPeriod struct {
-	ContinuousRanges `json:",inline" bson:",inline"`
+	ContinuousRanges `bson:",inline"`
 
 	AverageDailyRecords float64 `json:"averageDailyRecords" bson:"averageDailyRecords"`
 

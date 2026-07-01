@@ -4,6 +4,7 @@ import (
 	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
 
 	"github.com/tidepool-org/platform/data/service"
+	ouraServiceApiV1 "github.com/tidepool-org/platform/oura/service/api/v1"
 	"github.com/tidepool-org/platform/service/api"
 )
 
@@ -35,6 +36,7 @@ func Routes() []service.Route {
 	routes = append(routes, AlertsRoutes()...)
 	routes = append(routes, NotificationsRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
+	routes = append(routes, ouraServiceApiV1.Routes()...)
 
 	return routes
 }

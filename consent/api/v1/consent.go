@@ -25,7 +25,7 @@ func (r *Router) ListConsents(res rest.ResponseWriter, req *rest.Request) {
 
 	consents, err := r.service.ListConsents(req.Context(), filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -47,7 +47,7 @@ func (r *Router) GetConsentByType(res rest.ResponseWriter, req *rest.Request) {
 
 	consents, err := r.service.ListConsents(req.Context(), filter, nil)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -78,7 +78,7 @@ func (r *Router) GetConsentVersions(res rest.ResponseWriter, req *rest.Request) 
 
 	consents, err := r.service.ListConsents(req.Context(), filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

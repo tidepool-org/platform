@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -73,7 +74,7 @@ func NewCollectionPrefix() string {
 }
 
 func generateUniqueName(base string) string {
-	return fmt.Sprintf("test_%s_%s_%s", time.Now().Format("20060102150405"), test.RandomStringFromRangeAndCharset(4, 4, test.CharsetNumeric), base)
+	return fmt.Sprintf("test_%s_%s_%s", strings.ReplaceAll(time.Now().Format("20060102150405.000000"), ".", ""), test.RandomStringFromRangeAndCharset(8, 8, test.CharsetNumeric), base)
 }
 
 // MongoIndex models the output of the mongo driver Index().List() function

@@ -22,8 +22,8 @@ type ConsentRecordRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func (p *ConsentRecordRepository) EnsureIndexes() error {
-	return p.CreateAllIndexes(context.Background(), []mongo.IndexModel{
+func (c *ConsentRecordRepository) EnsureIndexes() error {
+	return c.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		{
 			Keys: bson.D{
 				{Key: "userId", Value: 1},
@@ -57,14 +57,14 @@ func (p *ConsentRecordRepository) EnsureIndexes() error {
 	})
 }
 
-func (p *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID string, id string) (*consent.Record, error) {
+func (c *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID string, id string) (*consent.Record, error) {
 	selector := bson.M{
 		"userId": userID,
 		"id":     id,
 	}
 
 	consentRecord := &consent.Record{}
-	err := p.FindOne(ctx, selector).Decode(consentRecord)
+	err := c.FindOne(ctx, selector).Decode(consentRecord)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
@@ -74,7 +74,7 @@ func (p *ConsentRecordRepository) GetConsentRecord(ctx context.Context, userID s
 	return consentRecord, nil
 }
 
-func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
+func (c *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID string, filter *consent.RecordFilter, pagination *page.Pagination) (*storeStructuredMongo.ListResult[consent.Record], error) {
 	if filter == nil {
 		filter = consent.NewRecordFilter()
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(filter); err != nil {
@@ -117,7 +117,7 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 		pipeline = listAllConsentRecordsPipeline(selector, sort, *pagination)
 	}
 
-	cursor, err := p.Aggregate(ctx, pipeline)
+	cursor, err := c.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consent records")
 	}
@@ -134,7 +134,7 @@ func (p *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	return &result, nil
 }
 
-func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
+func (c *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userID string, create *consent.RecordCreate) (*consent.Record, error) {
 	consentRecord, err := consent.NewRecord(ctx, userID, create)
 	if err != nil {
 		return nil, err
@@ -144,25 +144,38 @@ func (p *ConsentRecordRepository) CreateConsentRecord(ctx context.Context, userI
 
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"userId": userID, "create": create})
 
-	result, err := p.ListConsentRecords(ctx, userID, &consent.RecordFilter{
-		Type:   pointer.FromAny(create.Type),
+	existing, err := c.GetActiveConsentRecord(ctx, userID, consentRecord.Type)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get existing active consent record")
+	} else if existing != nil {
+		return nil, errors.Newf("active consent record with type %s already exists", consentRecord.Type)
+	}
+
+	_, err = c.InsertOne(ctx, consentRecord)
+	logger.WithFields(log.Fields{"id": consentRecord.ID}).WithError(err).Debug("CreateConsentRecord")
+
+	return consentRecord, err
+}
+
+func (c *ConsentRecordRepository) GetActiveConsentRecord(ctx context.Context, userID string, typ string) (*consent.Record, error) {
+	records, err := c.ListConsentRecords(ctx, userID, &consent.RecordFilter{
+		Type:   pointer.FromAny(typ),
 		Latest: pointer.FromAny(true),
 		Status: pointer.FromAny(consent.RecordStatusActive),
 	}, &page.Pagination{Page: 0, Size: 1})
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list existing active consent records for type")
 	}
-	if len(result.Data) > 0 {
-		return nil, errors.Newf("active consent record with type %s already exists", consentRecord.Type)
+
+	var record *consent.Record
+	if records.Count > 0 {
+		record = &records.Data[0]
 	}
 
-	_, err = p.InsertOne(ctx, consentRecord)
-	logger.WithFields(log.Fields{"id": consentRecord.ID}).WithError(err).Debug("CreateConsentRecord")
-
-	return consentRecord, err
+	return record, nil
 }
 
-func (p *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userID string, revoke *consent.RecordRevoke) error {
+func (c *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userID string, revoke *consent.RecordRevoke) error {
 	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(revoke); err != nil {
 		return errors.Wrap(err, "revoke is invalid")
 	}
@@ -185,7 +198,7 @@ func (p *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userI
 		},
 	}
 
-	result, err := p.UpdateOne(ctx, selector, update)
+	result, err := c.UpdateOne(ctx, selector, update)
 	if err != nil {
 		return errors.Wrap(err, "unable to revoke existing consent record")
 	}
@@ -197,7 +210,7 @@ func (p *ConsentRecordRepository) RevokeConsentRecord(ctx context.Context, userI
 	return nil
 }
 
-func (p *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, consentRecord *consent.Record) (*consent.Record, error) {
+func (c *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, consentRecord *consent.Record) (*consent.Record, error) {
 	if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(consentRecord); err != nil {
 		return nil, errors.Wrap(err, "consent record is invalid")
 	}
@@ -213,7 +226,7 @@ func (p *ConsentRecordRepository) UpdateConsentRecord(ctx context.Context, conse
 		"$set": consentRecord,
 	}
 
-	result, err := p.UpdateOne(ctx, selector, update)
+	result, err := c.UpdateOne(ctx, selector, update)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to update existing consent record")
 	}
@@ -234,9 +247,12 @@ func listLatestConsentRecordsPipeline(selector bson.M, sort bson.M, pagination p
 		},
 		{
 			"$group": bson.M{
-				"_id":        bson.M{"type": "$type"},
+				"_id":        "$type",
 				"mostRecent": bson.M{"$first": "$$ROOT"},
 			},
+		},
+		{
+			"$sort": bson.M{"_id": 1},
 		},
 		{
 			"$replaceRoot": bson.M{"newRoot": "$mostRecent"},

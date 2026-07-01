@@ -7,8 +7,6 @@ import (
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 )
 
-const ProviderName = "abbott"
-
 type ProviderSessionClient any
 
 type DataSourceClient any

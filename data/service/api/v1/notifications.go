@@ -4,12 +4,11 @@ import (
 	"net/http"
 
 	dataService "github.com/tidepool-org/platform/data/service"
+	notificationsWorkClaims "github.com/tidepool-org/platform/notifications/work/claims"
+	notificationsWorkConnectionsIssues "github.com/tidepool-org/platform/notifications/work/connections/issues"
+	notificationsWorkConnectionsRequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 	"github.com/tidepool-org/platform/request"
 	serviceApi "github.com/tidepool-org/platform/service/api"
-
-	"github.com/tidepool-org/platform/notifications/work/claims"
-	connissues "github.com/tidepool-org/platform/notifications/work/connections/issues"
-	connrequests "github.com/tidepool-org/platform/notifications/work/connections/requests"
 )
 
 func NotificationsRoutes() []dataService.Route {
@@ -23,16 +22,16 @@ func NotificationsRoutes() []dataService.Route {
 func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
-	var data claims.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkClaims.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := claims.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
+	if err := notificationsWorkClaims.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -43,16 +42,16 @@ func QueueClaimAccountNotification(dataServiceContext dataService.Context) {
 func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
-	var data connrequests.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkConnectionsRequests.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := connrequests.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
+	if err := notificationsWorkConnectionsRequests.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
@@ -63,16 +62,16 @@ func QueueConnectAccountNotification(dataServiceContext dataService.Context) {
 func SendDeviceIssuesNotification(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
-
 	responder := request.MustNewResponder(res, req)
+	ctx := req.Context()
 
-	var data connissues.Metadata
-	if err := request.DecodeRequestBody(req.Request, &data); err != nil {
+	var metadata notificationsWorkConnectionsIssues.Metadata
+	if err := request.DecodeRequestBody(req.Request, &metadata); err != nil {
 		request.MustNewResponder(res, req).Error(http.StatusBadRequest, err)
 		return
 	}
 
-	if err := connissues.AddWorkItem(req.Context(), dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder(), data); err != nil {
+	if err := notificationsWorkConnectionsIssues.AddWorkItem(ctx, metadata, dataServiceContext.WorkClient(), dataServiceContext.NotificationsHistoryRecorder()); err != nil {
 		responder.Error(http.StatusInternalServerError, err)
 		return
 	}
