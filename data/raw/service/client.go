@@ -11,7 +11,7 @@ import (
 	storeStructured "github.com/tidepool-org/platform/store/structured"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Store interface {
 	List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination) ([]*dataRaw.Raw, error)

@@ -6,7 +6,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 )
 
-//go:generate mockgen -source=deduplicator.go -destination=test/deduplicator_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=deduplicator.go -destination=test/deduplicator_mocks.go -package=test -typed
 
 type Factory interface {
 	New(ctx context.Context, dataSet *data.DataSet) (Deduplicator, error)

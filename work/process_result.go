@@ -9,7 +9,7 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-//go:generate mockgen -source=process_result.go -destination=test/process_result_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=process_result.go -destination=test/process_result_mocks.go -package=test -typed
 
 const (
 	ResultPending = "pending"

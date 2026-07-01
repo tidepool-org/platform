@@ -24,7 +24,7 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-//go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=runner.go -destination=test/runner_mocks.go -package=test -typed
 
 const (
 	AvailableAfterDuration       = 120 * time.Minute

@@ -12,7 +12,7 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-//go:generate mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=mixin.go -destination=test/mixin_mocks.go -package=test -typed
 
 const MetadataKeyProviderSessionID = "providerSessionId"
 

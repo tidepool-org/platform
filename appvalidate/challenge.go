@@ -5,7 +5,7 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
-//go:generate mockgen -source=challenge.go -destination=test/challenge_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=challenge.go -destination=test/challenge_mocks.go -package=test -typed
 
 // ChallengeCreate is the expected request body used to create an attestation
 // or assertion challenge.
