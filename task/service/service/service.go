@@ -239,7 +239,7 @@ func (s *Service) initializeDexcomClient() error {
 
 		s.Logger().Debug("Creating dexcom client")
 
-		clnt, clntErr := dexcomClient.New(cfg, dxcmPrvdr)
+		clnt, clntErr := dexcomClient.New(cfg, dxcmPrvdr, dexcomClient.Retrier)
 		if clntErr != nil {
 			return errors.Wrap(clntErr, "unable to create dexcom client")
 		}

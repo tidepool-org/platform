@@ -198,10 +198,11 @@ var _ = Describe("Array", func() {
 			Expect(parser.Interface(9)).To(BeNil())
 		})
 
-		It("NotParsed only returns existing errors", func() {
+		It("ReportNotParsed only returns existing errors", func() {
 			err := errorsTest.RandomError()
 			base.ReportError(err)
-			Expect(parser.NotParsed()).To(Equal(errors.Normalize(err)))
+			parser.ReportNotParsed()
+			Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 		})
 
 		Context("WithSource", func() {
@@ -247,7 +248,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{})
+			parser = structureParser.NewArrayParser(base, &[]any{})
 			Expect(parser).ToNot(BeNil())
 		})
 
@@ -295,7 +296,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				"exists",
 				"exists",
 			})
@@ -311,7 +312,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				"exists",
 			})
 			Expect(parser).ToNot(BeNil())
@@ -330,7 +331,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				"not a boolean",
 				true,
 			})
@@ -365,7 +366,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
 				3,
 				4.0,
@@ -416,7 +417,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
 				3,
 				4.0,
@@ -466,7 +467,7 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
 				"this is a string",
 			})
@@ -501,17 +502,17 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
 				[]string{
 					"one",
 					"two",
 				},
-				[]interface{}{
+				[]any{
 					"three",
 					"four",
 				},
-				[]interface{}{
+				[]any{
 					"five",
 					6,
 				},
@@ -564,7 +565,7 @@ var _ = Describe("Array", func() {
 
 		BeforeEach(func() {
 			now = time.Now()
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
 				"abc",
 				now.Format(time.RFC3339Nano),
@@ -630,9 +631,9 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
-				map[string]interface{}{
+				map[string]any{
 					"1": "2",
 				},
 			})
@@ -658,7 +659,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with object type returns value", func() {
 			value := parser.Object(1)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
+			Expect(*value).To(Equal(map[string]any{"1": "2"}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -667,9 +668,9 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
-				[]interface{}{
+				[]any{
 					"1",
 					false,
 				},
@@ -696,7 +697,7 @@ var _ = Describe("Array", func() {
 		It("with index parameter with object array type returns value", func() {
 			value := parser.Array(1)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal([]interface{}{"1", false}))
+			Expect(*value).To(Equal([]any{"1", false}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -705,12 +706,12 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
-				map[string]interface{}{
+				map[string]any{
 					"1": "2",
 				},
-				[]interface{}{
+				[]any{
 					"1",
 					false,
 				},
@@ -739,14 +740,14 @@ var _ = Describe("Array", func() {
 		It("with index parameter with object type returns value", func() {
 			value := parser.Interface(1)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
+			Expect(*value).To(Equal(map[string]any{"1": "2"}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with index parameter with array type returns value", func() {
 			value := parser.Interface(2)
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal([]interface{}{"1", false}))
+			Expect(*value).To(Equal([]any{"1", false}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
@@ -760,7 +761,28 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
+				1,
+				"two",
+				3,
+			})
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("returns the unparsed references", func() {
+			parser.String(1)
+			Expect(parser.NotParsed()).To(Equal(map[string]any{
+				"0": 1,
+				"2": 3,
+			}))
+		})
+	})
+
+	Context("ReportNotParsed", func() {
+		var parser *structureParser.Array
+
+		BeforeEach(func() {
+			parser = structureParser.NewArrayParser(base, &[]any{
 				1,
 				"two",
 				3,
@@ -769,7 +791,7 @@ var _ = Describe("Array", func() {
 		})
 
 		It("without anything parsed reports all unparsed as errors", func() {
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errors.Append(
 				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
@@ -780,7 +802,7 @@ var _ = Describe("Array", func() {
 
 		It("with some items parsed reports all unparsed as errors", func() {
 			parser.String(1)
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errors.Append(
 				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/0"),
@@ -792,7 +814,7 @@ var _ = Describe("Array", func() {
 			parser.Int(0)
 			parser.String(1)
 			parser.Int(2)
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -850,9 +872,9 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
-				map[string]interface{}{
+				map[string]any{
 					"1": "2",
 				},
 			})
@@ -894,9 +916,9 @@ var _ = Describe("Array", func() {
 		var parser *structureParser.Array
 
 		BeforeEach(func() {
-			parser = structureParser.NewArrayParser(base, &[]interface{}{
+			parser = structureParser.NewArrayParser(base, &[]any{
 				false,
-				[]interface{}{
+				[]any{
 					"1",
 					false,
 				},

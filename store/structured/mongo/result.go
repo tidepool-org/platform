@@ -1,8 +1,12 @@
 package mongo
 
 import (
-	"go.mongodb.org/mongo-driver/bson"
+	"context"
 
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo"
+
+	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 )
 
@@ -89,5 +93,19 @@ func BSONToAny(input any) any {
 		return BSONToArray(output)
 	default:
 		return output
+	}
+}
+
+func CloseCursor(ctx context.Context, cursor *mongo.Cursor) {
+	if cursor == nil {
+		return
+	}
+	if ctx != nil {
+		ctx = context.WithoutCancel(ctx)
+	}
+	if err := cursor.Close(ctx); err != nil {
+		if lgr := log.LoggerFromContext(ctx); lgr != nil {
+			lgr.WithError(err).Warn("Unable to close cursor")
+		}
 	}
 }

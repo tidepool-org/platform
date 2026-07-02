@@ -2,7 +2,6 @@ package queue
 
 import (
 	"context"
-	"math/rand"
 	"runtime/debug"
 	"strconv"
 	"sync"
@@ -11,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
@@ -67,7 +67,6 @@ func (c *Config) Validate() error {
 }
 
 type Runner interface {
-
 	// The type of tasks that the runner supports.
 	GetRunnerType() string
 
@@ -246,12 +245,12 @@ func (q *queue) startManager(ctx context.Context) {
 	go func() {
 		defer q.managerWaitGroup.Done()
 
-		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
+		q.startTimer(time.Duration(crypto.RandomInt64N(int64(q.delay)) + 1))
 		defer q.stopTimer()
 
 		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
 		// time, it is not an error condition if it does, but could stress the db if the collection gets large
-		nextUnstickTime := time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15))))
+		nextUnstickTime := time.Now().Add(time.Duration(crypto.RandomInt64N(int64(q.delay * 15))))
 
 		for {
 			if nextUnstickTime.Before(time.Now()) {
@@ -279,13 +278,10 @@ func (q *queue) startManager(ctx context.Context) {
 }
 
 func (q *queue) unstickTasks(ctx context.Context) {
-	repository := q.store.NewTaskRepository()
-	count, err := repository.UnstickTasks(ctx)
-	if err != nil {
-		q.logger.WithError(err).Error("Failure in unsticking tasks")
-	}
-	if count > 0 {
-		q.logger.WithField("unstickCount", count).Warn("Unstuck tasks")
+	if unstuckTasks, err := q.store.NewTaskRepository().UnstickTasks(ctx); err != nil {
+		q.logger.WithField("unstuckTasks", unstuckTasks).WithError(err).Error("Unable to unstick tasks")
+	} else if len(unstuckTasks) > 0 {
+		q.logger.WithField("unstuckTasks", unstuckTasks).Info("Unstuck tasks")
 	}
 }
 
@@ -294,14 +290,14 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 	for q.workersAvailable > 0 {
 		iter, err := q.startPendingIterator(ctx)
 		if err != nil {
-			q.logger.WithError(err).Error("Failure starting pending iterator")
+			q.logger.WithError(err).Error("Unable to start pending iterator")
 			return q.delay
 		}
 
 		tsk := &task.Task{}
 		if iter.Next(ctx) {
 			if err := iter.Decode(tsk); err != nil {
-				q.logger.WithError(err).Error("Failure iterating tasks")
+				q.logger.WithError(err).Error("Unable to iterate tasks")
 				return q.delay
 			}
 			q.dispatchTask(ctx, tsk)
@@ -314,8 +310,6 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 }
 
 func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
-	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
-
 	repository := q.store.NewTaskRepository()
 
 	tsk.State = task.TaskStateRunning
@@ -328,24 +322,20 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	}
 
 	var err error
-	tsk, err = repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStatePending)
-	if err != nil {
-		if errors.Is(err, task.AlreadyClaimedTask) {
-			log.LoggerFromContext(ctx).Warnf("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
-			return
+	if tsk, err = repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStatePending); err != nil {
+		lgr := log.LoggerFromContext(ctx).WithField("task", tsk)
+		if errors.Is(err, task.ErrTaskAlreadyClaimed) {
+			lgr.Warnf("Unable to claim task as it is already in progress or is no longer available")
+		} else {
+			lgr.WithError(err).Error("Unable to update state during dispatch task")
 		}
-
-		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update state during dispatch task")
-		return
+	} else {
+		q.workersAvailable--
+		q.dispatchChannel <- tsk
 	}
-
-	q.workersAvailable--
-	q.dispatchChannel <- tsk
 }
 
 func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
-	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
-
 	q.workersAvailable++
 
 	repository := q.store.NewTaskRepository()
@@ -360,14 +350,13 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
 	}
 
-	// Without cancel to ensure task is updated in the database
-	_, err := repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStateRunning)
-	if err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update state during complete task")
+	if tsk.HasError() {
+		log.LoggerFromContext(ctx).WithField("task", tsk).Error("Error occurred while running task")
 	}
 
-	if tsk.HasError() {
-		log.LoggerFromContext(ctx).WithError(tsk.Error.Error).Error("Error occurred while running task")
+	// Without cancel to ensure task is updated in the database
+	if tsk, err := repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStateRunning); err != nil {
+		log.LoggerFromContext(ctx).WithField("task", tsk).WithError(err).Error("Unable to update state during complete task")
 	}
 }
 

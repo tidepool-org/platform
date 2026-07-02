@@ -11,22 +11,17 @@ type GetInput struct {
 	Name string
 }
 
-type GetOutput struct {
-	Provider provider.Provider
-	Error    error
-}
-
 type Factory struct {
 	GetInvocations int
 	GetInputs      []GetInput
-	GetOutputs     []GetOutput
+	GetOutputs     []provider.Provider
 }
 
 func NewFactory() *Factory {
 	return &Factory{}
 }
 
-func (f *Factory) Get(typ string, name string) (provider.Provider, error) {
+func (f *Factory) Get(typ string, name string) provider.Provider {
 	f.GetInvocations++
 
 	f.GetInputs = append(f.GetInputs, GetInput{Type: typ, Name: name})
@@ -35,7 +30,7 @@ func (f *Factory) Get(typ string, name string) (provider.Provider, error) {
 
 	output := f.GetOutputs[0]
 	f.GetOutputs = f.GetOutputs[1:]
-	return output.Provider, output.Error
+	return output
 }
 
 func (f *Factory) Expectations() {

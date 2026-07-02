@@ -107,7 +107,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	defer drainAndClose(body)
+	defer request.DrainAndClose(body)
 
 	if responseBody == nil {
 		return nil
@@ -171,14 +171,14 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 	if request.IsStatusCodeSuccess(res.StatusCode) {
 		switch res.StatusCode {
 		case http.StatusNoContent, http.StatusResetContent:
-			drainAndClose(res.Body)
+			defer request.DrainAndClose(res.Body)
 			return nil, nil
 		default:
 			return res.Body, nil
 		}
 	}
 
-	defer drainAndClose(res.Body)
+	defer request.DrainAndClose(res.Body)
 
 	bites, err := io.ReadAll(io.LimitReader(res.Body, ResponseBodyLimit))
 	if err != nil {
@@ -240,11 +240,6 @@ func responseBodyFromBytes(bites []byte) interface{} {
 		return string(bites)
 	}
 	return bites
-}
-
-func drainAndClose(reader io.ReadCloser) {
-	io.Copy(io.Discard, reader)
-	reader.Close()
 }
 
 func NewSerializableErrorResponseParser() *SerializableErrorResponseParser {

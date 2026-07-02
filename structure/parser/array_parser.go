@@ -12,15 +12,15 @@ import (
 
 type Array struct {
 	base   *structureBase.Base
-	array  *[]interface{}
+	array  *[]any
 	parsed []bool
 }
 
-func NewArray(logger log.Logger, array *[]interface{}) *Array {
+func NewArray(logger log.Logger, array *[]any) *Array {
 	return NewArrayParser(structureBase.New(logger).WithSource(structure.NewPointerSource()), array)
 }
 
-func NewArrayParser(base *structureBase.Base, array *[]interface{}) *Array {
+func NewArrayParser(base *structureBase.Base, array *[]any) *Array {
 	var parsed []bool
 	if array != nil {
 		parsed = make([]bool, len(*array))
@@ -53,7 +53,7 @@ func (a *Array) HasMeta() bool {
 	return a.base.HasMeta()
 }
 
-func (a *Array) Meta() interface{} {
+func (a *Array) Meta() any {
 	return a.base.Meta()
 }
 
@@ -75,7 +75,8 @@ func (a *Array) Exists() bool {
 
 func (a *Array) Parse(arrayParsable structure.ArrayParsable) error {
 	arrayParsable.Parse(a)
-	return a.NotParsed()
+	a.ReportNotParsed()
+	return a.Error()
 }
 
 func (a *Array) References() []int {
@@ -179,7 +180,7 @@ func (a *Array) StringArray(reference int) *[]string {
 
 	stringArrayValue, stringArrayValueOk := rawValue.([]string)
 	if !stringArrayValueOk {
-		arrayValue, arrayValueOk := rawValue.([]interface{})
+		arrayValue, arrayValueOk := rawValue.([]any)
 		if !arrayValueOk {
 			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
 			return nil
@@ -230,13 +231,13 @@ func (a *Array) Time(reference int, layout string) *time.Time {
 	return &timeValue
 }
 
-func (a *Array) Object(reference int) *map[string]interface{} {
+func (a *Array) Object(reference int) *map[string]any {
 	rawValue, ok := a.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	objectValue, ok := rawValue.(map[string]interface{})
+	objectValue, ok := rawValue.(map[string]any)
 	if !ok {
 		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotObject(rawValue))
 		return nil
@@ -245,13 +246,13 @@ func (a *Array) Object(reference int) *map[string]interface{} {
 	return &objectValue
 }
 
-func (a *Array) Array(reference int) *[]interface{} {
+func (a *Array) Array(reference int) *[]any {
 	rawValue, ok := a.raw(reference)
 	if !ok {
 		return nil
 	}
 
-	arrayValue, ok := rawValue.([]interface{})
+	arrayValue, ok := rawValue.([]any)
 	if !ok {
 		a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotArray(rawValue))
 		return nil
@@ -260,7 +261,7 @@ func (a *Array) Array(reference int) *[]interface{} {
 	return &arrayValue
 }
 
-func (a *Array) Interface(reference int) *interface{} {
+func (a *Array) Interface(reference int) *any {
 	rawValue, ok := a.raw(reference)
 	if !ok {
 		return nil
@@ -269,9 +270,27 @@ func (a *Array) Interface(reference int) *interface{} {
 	return &rawValue
 }
 
-func (a *Array) NotParsed() error {
+func (a *Array) NotParsed() map[string]any {
 	if a.array == nil {
-		return a.Error()
+		return nil
+	}
+
+	var unparsed map[string]any
+	for reference := range *a.array {
+		if !a.parsed[reference] {
+			if unparsed == nil {
+				unparsed = map[string]any{}
+			}
+			unparsed[strconv.Itoa(reference)] = (*a.array)[reference]
+		}
+	}
+
+	return unparsed
+}
+
+func (a *Array) ReportNotParsed() {
+	if a.array == nil {
+		return
 	}
 
 	for reference := range *a.array {
@@ -279,8 +298,6 @@ func (a *Array) NotParsed() error {
 			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorNotParsed())
 		}
 	}
-
-	return a.Error()
 }
 
 func (a *Array) WithOrigin(origin structure.Origin) structure.ArrayParser {
@@ -299,7 +316,7 @@ func (a *Array) WithSource(source structure.Source) structure.ArrayParser {
 	}
 }
 
-func (a *Array) WithMeta(meta interface{}) structure.ArrayParser {
+func (a *Array) WithMeta(meta any) structure.ArrayParser {
 	return &Array{
 		base:   a.base.WithMeta(meta),
 		array:  a.array,
@@ -319,7 +336,7 @@ func (a *Array) WithReferenceErrorReporter(reference int) structure.ErrorReporte
 	return a.base.WithReference(strconv.Itoa(reference))
 }
 
-func (a *Array) raw(reference int) (interface{}, bool) {
+func (a *Array) raw(reference int) (any, bool) {
 	if a.array == nil {
 		return nil, false
 	}

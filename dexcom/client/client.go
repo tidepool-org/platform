@@ -13,11 +13,22 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
+const (
+	RequestDurationMaximum = 1 * time.Minute
+)
+
+var Retrier = request.NewRetrier(4, 2*time.Second, 0.1)
+
 type Client struct {
-	client *oauthClient.Client
+	client  *oauthClient.Client
+	retrier request.Retrier
 }
 
-func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
+func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource, retrier request.Retrier) (*Client, error) {
+	if retrier == nil {
+		return nil, errors.New("retrier is missing")
+	}
+
 	baseClient, err := client.New(cfg)
 	if err != nil {
 		return nil, err
@@ -29,7 +40,8 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	}
 
 	return &Client{
-		client: clnt,
+		client:  clnt,
+		retrier: retrier,
 	}, nil
 }
 
@@ -44,7 +56,7 @@ func (c *Client) GetDataRange(ctx context.Context, lastSyncTime *time.Time, toke
 		})
 	}
 
-	if err := c.sendDexcomRequest(ctx, "GET", url, dataRangeResponse, tokenSource); err != nil {
+	if err := c.sendDexcomRequestWithRetry(ctx, "GET", url, dataRangeResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get data range")
 	}
 
@@ -105,26 +117,34 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 	return eventsResponse, nil
 }
 
-func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
+func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody any, tokenSource oauth.TokenSource) error {
 	url = c.client.AppendURLQuery(url, map[string]string{
 		"startDate": startTime.UTC().Format(dexcom.DateRangeTimeFormat),
 		"endDate":   endTime.UTC().Format(dexcom.DateRangeTimeFormat),
 	})
-	return c.sendDexcomRequest(ctx, method, url, responseBody, tokenSource)
+	return c.sendDexcomRequestWithRetry(ctx, method, url, responseBody, tokenSource)
 }
 
-func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
+func (c *Client) sendDexcomRequestWithRetry(ctx context.Context, method string, url string, responseBody any, tokenSource oauth.TokenSource) error {
+	if tokenSource == nil {
+		return errors.New("token source is missing")
+	}
+
+	return request.RetryError(ctx, c.retrier, func(ctx context.Context) error {
+		return c.sendDexcomRequest(ctx, method, url, responseBody, tokenSource)
+	})
+}
+
+func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody any, tokenSource oauth.TokenSource) error {
 	startTime := time.Now()
 
 	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
 
-	if requestDuration := time.Since(startTime); requestDuration > requestDurationMaximum {
+	if requestDuration := time.Since(startTime); requestDuration > RequestDurationMaximum {
 		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
 	}
 
 	return err
 }
-
-const requestDurationMaximum = 30 * time.Second
 
 var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspector("tidepool_dexcom_api_client_requests", "Dexcom API client requests")

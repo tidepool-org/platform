@@ -6,6 +6,7 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -85,6 +86,20 @@ func (o *OAuthToken) Normalize(normalizer structure.Normalizer) {
 	if o.Scope != nil {
 		sort.Strings(*o.Scope)
 	}
+}
+
+func (o *OAuthToken) Redacted() *OAuthToken {
+	redacted := &OAuthToken{
+		AccessToken:    crypto.Base64EncodedSHA256Hash([]byte(o.AccessToken)),
+		TokenType:      o.TokenType,
+		RefreshToken:   crypto.Base64EncodedSHA256Hash([]byte(o.RefreshToken)),
+		ExpirationTime: o.ExpirationTime,
+		Scope:          o.Scope,
+	}
+	if o.IDToken != nil {
+		redacted.IDToken = pointer.From(crypto.Base64EncodedSHA256Hash([]byte(*o.IDToken)))
+	}
+	return redacted
 }
 
 func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {

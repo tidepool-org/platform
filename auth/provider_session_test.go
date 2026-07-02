@@ -1,17 +1,122 @@
 package auth_test
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/tidepool-org/platform/auth"
+	authTest "github.com/tidepool-org/platform/auth/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/pointer"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/times"
+	timesTest "github.com/tidepool-org/platform/times/test"
 )
 
 var _ = Describe("ProviderSession", func() {
+	Context("ProviderSessionRefresh", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *auth.ProviderSessionRefresh)) {
+				datum := authTest.RandomProviderSessionRefresh(test.AllowOptionals())
+				mutator(datum)
+				test.ExpectSerializedObjectJSON(datum, authTest.NewObjectFromProviderSessionRefresh(datum, test.ObjectFormatJSON))
+				test.ExpectSerializedObjectBSON(datum, authTest.NewObjectFromProviderSessionRefresh(datum, test.ObjectFormatBSON))
+			},
+			Entry("succeeds",
+				func(datum *auth.ProviderSessionRefresh) {},
+			),
+			Entry("empty",
+				func(datum *auth.ProviderSessionRefresh) {
+					*datum = auth.ProviderSessionRefresh{}
+				},
+			),
+			Entry("all",
+				func(datum *auth.ProviderSessionRefresh) {
+					datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
+				},
+			),
+		)
+
+		Context("Parse", func() {
+			DescribeTable("parses the datum",
+				func(mutator func(object map[string]any, expectedDatum *auth.ProviderSessionRefresh), expectedErrors ...error) {
+					expectedDatum := authTest.RandomProviderSessionRefresh(test.AllowOptionals())
+					object := authTest.NewObjectFromProviderSessionRefresh(expectedDatum, test.ObjectFormatJSON)
+					mutator(object, expectedDatum)
+					result := &auth.ProviderSessionRefresh{}
+					errorsTest.ExpectEqual(structureParser.NewObject(logTest.NewLogger(), &object).Parse(result), expectedErrors...)
+					Expect(result).To(Equal(expectedDatum))
+				},
+				Entry("succeeds",
+					func(object map[string]any, expectedDatum *auth.ProviderSessionRefresh) {},
+				),
+				Entry("empty",
+					func(object map[string]any, expectedDatum *auth.ProviderSessionRefresh) {
+						clear(object)
+						*expectedDatum = auth.ProviderSessionRefresh{}
+					},
+				),
+				Entry("multiple errors",
+					func(object map[string]any, expectedDatum *auth.ProviderSessionRefresh) {
+						object["timeRange"] = true
+						expectedDatum.TimeRange = nil
+					},
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/timeRange"),
+				),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the datum",
+				func(mutator func(datum *auth.ProviderSessionRefresh), expectedErrors ...error) {
+					datum := authTest.RandomProviderSessionRefresh(test.AllowOptionals())
+					mutator(datum)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(datum), expectedErrors...)
+				},
+				Entry("succeeds",
+					func(datum *auth.ProviderSessionRefresh) {},
+				),
+				Entry("time range missing",
+					func(datum *auth.ProviderSessionRefresh) {
+						datum.TimeRange = nil
+					},
+				),
+				Entry("time range empty",
+					func(datum *auth.ProviderSessionRefresh) {
+						datum.TimeRange = &times.TimeRange{}
+					},
+				),
+				Entry("time range invalid",
+					func(datum *auth.ProviderSessionRefresh) {
+						datum.TimeRange = &times.TimeRange{
+							From: pointer.From(time.Time{}),
+						}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timeRange/from"),
+				),
+				Entry("time range valid",
+					func(datum *auth.ProviderSessionRefresh) {
+						datum.TimeRange = timesTest.RandomTimeRange(test.AllowOptionals())
+					},
+				),
+				Entry("multiple errors",
+					func(datum *auth.ProviderSessionRefresh) {
+						datum.TimeRange = &times.TimeRange{
+							From: pointer.From(time.Time{}),
+						}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/timeRange/from"),
+				),
+			)
+		})
+	})
+
 	Context("NewProviderSessionID", func() {
 		It("returns a string of 32 lowercase hexadecimal characters", func() {
 			Expect(auth.NewProviderSessionID()).To(MatchRegexp("^[0-9a-f]{32}$"))

@@ -184,7 +184,8 @@ var _ = Describe("Errors", func() {
 	Context("NewSerializable", func() {
 		It("returns nil if the error is nil", func() {
 			serializable := errors.NewSerializable(nil)
-			Expect(serializable).To(BeNil())
+			Expect(serializable).ToNot(BeNil())
+			Expect(serializable.Error).To(BeNil())
 		})
 
 		It("returns a serializable if the error is not nil", func() {
@@ -196,7 +197,6 @@ var _ = Describe("Errors", func() {
 	})
 
 	Context("Serializable", func() {
-
 		DescribeTable("parses, validates, and normalizes successfully",
 			func(inputJSON string) {
 				serializableJSON := `{"error": ` + inputJSON + `}`
@@ -234,12 +234,12 @@ var _ = Describe("Errors", func() {
 						{
 							"code": "ñnホôÓ6😀🍕",
 							"title": "🦖þ\":;💔🏄VFb",
-							"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+							"detail": "Üg🍕60🧠{XźsYฝuGטnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
 							"source": {
 								"parameter": "b🏄วは",
 								"pointer": ",øูLAn"
 							},
-							"meta": "supermeta",
+							"meta": "super-meta",
 							"caller": {
 								"package": "github.com/tidepool-org/platform/errors/test",
 								"function": "RandomError",
@@ -325,7 +325,7 @@ var _ = Describe("Errors", func() {
 								"pointer": true,
 								"extra": true
 							},
-							"meta": "supermeta",
+							"meta": "super-meta",
 							"caller": {
 								"package": true,
 								"function": true,
@@ -365,7 +365,7 @@ var _ = Describe("Errors", func() {
 							"pointer": true,
 							"extra": true
 						},
-						"meta": "supermeta",
+						"meta": "super-meta",
 						"caller": {
 							"package": true,
 							"function": true,
@@ -406,12 +406,12 @@ var _ = Describe("Errors", func() {
 						{
 							"code": "ñnホôÓ6😀🍕",
 							"title": "🦖þ\":;💔🏄VFb",
-							"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+							"detail": "Üg🍕60🧠{XźsYฝuGטnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
 							"source": {
 								"parameter": "",
 								"pointer": ""
 							},
-							"meta": "supermeta",
+							"meta": "super-meta",
 							"caller": {
 								"package": "",
 								"function": "",
@@ -443,12 +443,12 @@ var _ = Describe("Errors", func() {
 					{
 						"code": "ñnホôÓ6😀🍕",
 						"title": "🦖þ\":;💔🏄VFb",
-						"detail": "Üg🍕60🧠{XźsYฝuGטíñnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
+						"detail": "Üg🍕60🧠{XźsYฝuGטnホôÓ6😀🍕,øูLAn🦖þ\":;💔🏄VFb🏄วは",
 						"source": {
 							"parameter": "",
 							"pointer": ""
 						},
-						"meta": "supermeta",
+						"meta": "super-meta",
 						"caller": {
 							"package": "",
 							"function": "",

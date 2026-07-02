@@ -22,12 +22,10 @@ import (
 	"github.com/tidepool-org/platform/task/store"
 )
 
-var (
-	TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_state_total",
-		Help: "The total number of tasks sorted by state and type",
-	}, []string{"state", "type"})
-)
+var TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_task_tasks_state_total",
+	Help: "The total number of tasks sorted by state and type",
+}, []string{"state", "type"})
 
 const MaxTaskCreationDuration = 30 * time.Second
 
@@ -278,7 +276,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(tsk); err != nil {
 		return nil, errors.Wrap(err, "task is invalid")
 	}
-	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
+	if err = t.assertType(t.typeFilter, &tsk.Type); err != nil {
 		return nil, err
 	}
 
@@ -310,7 +308,7 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 
 	selector := bson.M{"id": id}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 
 	err := t.FindOne(ctx, selector).Decode(&task)
@@ -359,7 +357,7 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 
 	selector := bson.M{"id": id}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 
 	changeInfo, err := t.UpdateMany(ctx, selector, t.ConstructUpdate(set, bson.M{}))
@@ -384,7 +382,7 @@ func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 
 	selector := bson.M{"id": id}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 
 	changeInfo, err := t.DeleteOne(ctx, selector)
@@ -398,7 +396,7 @@ func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 
 // TODO: Consider using an "update only specific fields" approach, as above
 
-func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error) {
+func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, fromState string) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -407,16 +405,16 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"task": log.Fields{"id": tsk.ID, "state": tsk.State}, "fromState": fromState})
 
 	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Millisecond))
 
 	selector := bson.M{
 		"id":    tsk.ID,
-		"state": state,
+		"state": fromState,
 	}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 	result, err := t.ReplaceOne(ctx, selector, tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
@@ -424,33 +422,66 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 		return nil, errors.Wrap(err, "unable to update from state")
 	}
 	if result.ModifiedCount != 1 {
-		return nil, task.AlreadyClaimedTask
+		return nil, task.ErrTaskAlreadyClaimed
 	}
 
 	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
 	return tsk, nil
 }
 
-func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
+func (t *TaskRepository) UnstickTasks(ctx context.Context) (task.Tasks, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	lgr := log.LoggerFromContext(ctx)
+
+	now := time.Now()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("UnstickTasks") }()
+
 	selector := bson.M{
 		"state":        task.TaskStateRunning,
-		"deadlineTime": bson.M{"$lt": time.Now()},
+		"deadlineTime": bson.M{"$lt": now},
 	}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 
-	update := bson.M{
-		"$set":   bson.M{"state": task.TaskStatePending},
-		"$unset": bson.M{"deadlineTime": ""},
-	}
-
-	result, err := t.UpdateMany(ctx, selector, update)
+	opts := options.Find().SetSort(bson.M{"deadlineTime": 1})
+	cursor, err := t.Find(ctx, selector, opts)
 	if err != nil {
-		return 0, err
+		return nil, errors.Wrap(err, "unable to list tasks")
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
+
+	var tsks task.Tasks
+	for cursor.Next(ctx) {
+		var tsk *task.Task
+		if err = cursor.Decode(&tsk); err != nil {
+			return tsks, errors.Wrap(err, "unable to decode task")
+		}
+
+		selector = bson.M{
+			"id":           tsk.ID,
+			"deadlineTime": tsk.DeadlineTime,
+		}
+
+		set := bson.M{
+			"state":         task.TaskStatePending,
+			"availableTime": now,
+			"modifiedTime":  now,
+		}
+		unset := bson.M{
+			"deadlineTime": 1,
+		}
+		if result, updateErr := t.UpdateOne(ctx, selector, t.ConstructUpdate(set, unset)); updateErr != nil {
+			return tsks, updateErr
+		} else if result.ModifiedCount > 0 {
+			tsks = append(tsks, tsk)
+		}
 	}
 
-	return result.ModifiedCount, err
+	return tsks, cursor.Err()
 }
 
 func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {
@@ -490,7 +521,7 @@ func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, err
 		},
 	}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
 	opts := options.Find().SetSort(bson.M{"priority": -1})
 	return t.Find(ctx, selector, opts)

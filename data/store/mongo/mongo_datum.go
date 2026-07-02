@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/tidepool-org/platform/summary/types"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -22,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/summary/types"
 )
 
 type DatumRepository struct {
@@ -115,7 +114,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 				SetName("UserIdOriginId"),
 		},
 		// Future optimization after release.
-		// Rebuild index to to move _active
+		// Rebuild index to move _active
 		// before type for better compression and more
 		// closely follow ESR
 		{
@@ -437,7 +436,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 
 	var updateInfo *mongo.UpdateResult
 
-	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
+	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
 	selector := bson.M{
 		"_userId":            dataSet.UserID,
 		"uploadId":           dataSet.UploadID,
@@ -505,6 +504,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 		},
 	}
 	cursor, _ := d.Aggregate(ctx, pipeline)
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
 
 	var overallUpdateInfo mongo.UpdateResult
 	var overallErr error
@@ -579,7 +579,7 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 // origin.time to time.Time and add additional qualifiers to the database selector that document origin.time must be
 // greater than or equal to the incoming selector origin.time. For now, we can only query on id and origin.id.
 // See: https://tidepool.atlassian.net/browse/BACK-3548
-func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (filter bson.M, hasOriginID bool, err error) {
+func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selectors) (bson.M, bool, error) {
 	if selectors == nil {
 		return bson.M{}, false, nil
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(selectors); err != nil {
@@ -622,42 +622,40 @@ func validateAndTranslateSelectors(ctx context.Context, selectors *data.Selector
 	}
 }
 
-func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
+func (d *DatumRepository) GetDataRange(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
-	if userId == "" {
-		return nil, errors.New("userId is empty")
+	if userID == "" {
+		return nil, errors.New("user id is empty")
 	}
-
 	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
 
 	// quit early if range is 0
 	if status.FirstData.Equal(status.LastData) {
-		return nil, fmt.Errorf("FirstData (%s) equals LastData (%s) for user %s", status.FirstData, status.LastData, userId)
+		return nil, fmt.Errorf("FirstData (%s) equals LastData (%s) for user %s", status.FirstData, status.LastData, userID)
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
 	if status.FirstData.After(status.LastData) {
-		return nil, fmt.Errorf("FirstData (%s) after LastData (%s) for user %s", status.FirstData, status.LastData, userId)
+		return nil, fmt.Errorf("FirstData (%s) after LastData (%s) for user %s", status.FirstData, status.LastData, userID)
 	}
 
 	// quit early if range is 0
 	if status.LastUpdated.Equal(status.NextLastUpdated) {
-		return nil, fmt.Errorf("LastUpdated (%s) equals NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
+		return nil, fmt.Errorf("LastUpdated (%s) equals NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userID)
 	}
 
 	// return error if ranges are inverted, as this can produce unexpected results
 	if status.LastUpdated.After(status.NextLastUpdated) {
-		return nil, fmt.Errorf("LastUpdated (%s) after NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userId)
+		return nil, fmt.Errorf("LastUpdated (%s) after NextLastUpdated (%s) for user %s", status.LastUpdated, status.NextLastUpdated, userID)
 	}
 
 	selector := bson.M{
 		"_active": true,
-		"_userId": userId,
+		"_userId": userID,
 		"time": bson.M{
 			"$gt":  status.FirstData,
 			"$lte": status.LastData,
@@ -671,10 +669,10 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 	}
 
 	// we have everything we need to pull only modified records, but other areas are not ready for this yet
-	//selector["modifiedTime"]= bson.M{
-	//	"$gt":  status.LastUpdated,
-	//	"$lte": status.NextLastUpdated,
-	//}
+	// selector["modifiedTime"]= bson.M{
+	//   "$gt":  status.LastUpdated,
+	//   "$lte": status.NextLastUpdated,
+	// }
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{Key: "time", Value: 1}})
@@ -688,9 +686,7 @@ func (d *DatumRepository) GetDataRange(ctx context.Context, userId string, typ [
 	return cursor, nil
 }
 
-func (d *DatumRepository) GetAlertableData(ctx context.Context,
-	params store.AlertableParams) (*store.AlertableResponse, error) {
-
+func (d *DatumRepository) GetAlertableData(ctx context.Context, params store.AlertableParams) (*store.AlertableResponse, error) {
 	if params.End.IsZero() {
 		params.End = time.Now()
 	}
@@ -700,7 +696,7 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context,
 		return nil, err
 	}
 	dosingDecisions := []*dosingdecision.DosingDecision{}
-	if err := cursor.All(ctx, &dosingDecisions); err != nil {
+	if err = cursor.All(ctx, &dosingDecisions); err != nil {
 		return nil, platerrors.Wrap(err, "Unable to load alertable dosing documents")
 	}
 	cursor, err = d.getAlertableData(ctx, params, continuous.Type)
@@ -719,9 +715,7 @@ func (d *DatumRepository) GetAlertableData(ctx context.Context,
 	return response, nil
 }
 
-func (d *DatumRepository) getAlertableData(ctx context.Context,
-	params store.AlertableParams, typ string) (*mongo.Cursor, error) {
-
+func (d *DatumRepository) getAlertableData(ctx context.Context, params store.AlertableParams, typ string) (*mongo.Cursor, error) {
 	selector := bson.M{
 		"_active":  true,
 		"uploadId": params.UploadID,
@@ -738,7 +732,7 @@ func (d *DatumRepository) getAlertableData(ctx context.Context,
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
+func (d *DatumRepository) getTimeRange(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
 	timestamp := time.Now().UTC()
 	futureCutoff := timestamp.AddDate(0, 0, 1)
 	pastCutoff := timestamp.AddDate(-2, 0, 0)
@@ -746,7 +740,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	// get latest active record
 	selector := bson.M{
 		"_active": true,
-		"_userId": userId,
+		"_userId": userID,
 		"time": bson.M{
 			"$gte": pastCutoff,
 			"$lte": futureCutoff,
@@ -764,8 +758,7 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	findOptions.SetSort(bson.D{{Key: "time", Value: -1}})
 	findOptions.SetLimit(1)
 
-	var cursor *mongo.Cursor
-	cursor, err = d.Find(ctx, selector, findOptions)
+	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
 		return fmt.Errorf("unable to get last %s time: %w", typ, err)
 	}
@@ -784,10 +777,10 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userId string, typ [
 	return nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
+func (d *DatumRepository) populateLastUpload(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
 	// get latest modified record
 	selector := bson.M{
-		"_userId": userId,
+		"_userId": userID,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
 			"$gte": status.FirstData,
@@ -808,8 +801,7 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	findOptions.SetLimit(1)
 	findOptions.SetSort(bson.D{{Key: "modifiedTime", Value: -1}})
 
-	var cursor *mongo.Cursor
-	cursor, err = d.Find(ctx, selector, findOptions)
+	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
 		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
 	}
@@ -833,10 +825,10 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userId string,
 	return nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (err error) {
+func (d *DatumRepository) populateEarliestModified(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
 	// get earliest modified record which is newer than LastUpdated
 	selector := bson.M{
-		"_userId": userId,
+		"_userId": userID,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
 			"$gte": status.FirstData,
@@ -868,8 +860,7 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 		}
 	}
 
-	var cursor *mongo.Cursor
-	cursor, err = d.Find(ctx, selector, findOptions)
+	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
 		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
 	}
@@ -887,15 +878,13 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userId s
 	return nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
+func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-
-	if userId == "" {
-		return nil, errors.New("userId is empty")
+	if userID == "" {
+		return nil, errors.New("user id is empty")
 	}
-
 	if len(typ) == 0 {
 		return nil, errors.New("typ is empty")
 	}
@@ -905,7 +894,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
 	}
 
-	err := d.getTimeRange(ctx, userId, typ, status)
+	err := d.getTimeRange(ctx, userID, typ, status)
 	if err != nil {
 		return nil, err
 	}
@@ -915,12 +904,12 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userId stri
 		return nil, nil
 	}
 
-	err = d.populateLastUpload(ctx, userId, typ, status)
+	err = d.populateLastUpload(ctx, userID, typ, status)
 	if err != nil {
 		return nil, err
 	}
 
-	err = d.populateEarliestModified(ctx, userId, typ, status)
+	err = d.populateEarliestModified(ctx, userID, typ, status)
 	if err != nil {
 		return nil, err
 	}

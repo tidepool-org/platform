@@ -10,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/clinics"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/summary"
 	"github.com/tidepool-org/platform/summary/types"
@@ -32,7 +33,7 @@ func NewReporter(registry *summary.SummarizerRegistry) *PatientRealtimeDaysRepor
 	}
 }
 
-func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicId string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
+func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Context, clinicsClient clinics.Client, clinicID string, token string, startTime time.Time, endTime time.Time, patientFilters map[string]any) (*PatientsRealtimeDaysResponse, error) {
 	injectedParams := map[string][]string{}
 	for p, v := range patientFilters {
 		var finalParam []string
@@ -55,7 +56,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 
 	injectedParams["limit"] = []string{fmt.Sprintf("%d", realtimePatientsLengthLimit+1)}
 
-	patients, err := clinicsClient.GetPatients(ctx, clinicId, token, nil, injectedParams)
+	patients, err := clinicsClient.GetPatients(ctx, clinicID, token, nil, injectedParams)
 	if err != nil {
 		return nil, err
 	}
@@ -106,7 +107,7 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 	return &PatientsRealtimeDaysResponse{
 		Config: PatientsRealtimeDaysConfigResponse{
 			Code:      realtimePatientsInsuranceCode,
-			ClinicId:  clinicId,
+			ClinicId:  clinicID,
 			StartDate: startTime,
 			EndDate:   endTime,
 		},
@@ -114,13 +115,14 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForPatients(ctx context.Con
 	}, nil
 }
 
-func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets *mongo.Cursor) (count int, err error) {
+func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx context.Context, buckets *mongo.Cursor) (int, error) {
 	tomorrow := time.Time{}
 	previousBucketTime := time.Time{}
 
+	var count int
 	for buckets.Next(ctx) {
 		bucket := types.Bucket[*types.ContinuousBucket, types.ContinuousBucket]{}
-		if err = buckets.Decode(&bucket); err != nil {
+		if err := buckets.Decode(&bucket); err != nil {
 			return 0, err
 		}
 
@@ -175,19 +177,25 @@ func (r *PatientRealtimeDaysReporter) GetRealtimeDaysForUsers(ctx context.Contex
 
 	realtimeUsers := make(map[string]int)
 
-	for _, userId := range userIds {
-		buckets, err := r.summarizer.GetBucketsRange(ctx, userId, startTime, endTime)
-		if err != nil {
+	for _, userID := range userIds {
+		if realtimeDays, err := r.getRealtimeDaysForUser(ctx, userID, startTime, endTime); err != nil {
 			return nil, err
-		}
-
-		realtimeUsers[userId], err = r.GetNumberOfDaysWithRealtimeData(ctx, buckets)
-		if err != nil {
-			return nil, err
+		} else {
+			realtimeUsers[userID] = realtimeDays
 		}
 	}
 
 	return realtimeUsers, nil
+}
+
+func (r *PatientRealtimeDaysReporter) getRealtimeDaysForUser(ctx context.Context, userID string, startTime time.Time, endTime time.Time) (int, error) {
+	buckets, err := r.summarizer.GetBucketsRange(ctx, userID, startTime, endTime)
+	if err != nil {
+		return 0, err
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, buckets)
+
+	return r.GetNumberOfDaysWithRealtimeData(ctx, buckets)
 }
 
 type PatientsRealtimeDaysResponse struct {

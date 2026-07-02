@@ -6,6 +6,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
+	timesTest "github.com/tidepool-org/platform/times/test"
 	userTest "github.com/tidepool-org/platform/user/test"
 )
 
@@ -23,6 +24,32 @@ func RandomProviderName() string {
 
 func RandomProviderExternalID() string {
 	return test.RandomStringFromRangeAndCharset(1, auth.ProviderExternalIDLengthMaximum, test.CharsetAlphaNumeric)
+}
+
+func RandomProviderSessionRefresh(options ...test.Option) *auth.ProviderSessionRefresh {
+	datum := &auth.ProviderSessionRefresh{}
+	datum.TimeRange = test.RandomOptionalPointerWithOptions(timesTest.RandomTimeRange, options...)
+	return datum
+}
+
+func CloneProviderSessionRefresh(datum *auth.ProviderSessionRefresh) *auth.ProviderSessionRefresh {
+	if datum == nil {
+		return nil
+	}
+	clone := &auth.ProviderSessionRefresh{}
+	clone.TimeRange = timesTest.CloneTimeRange(datum.TimeRange)
+	return clone
+}
+
+func NewObjectFromProviderSessionRefresh(datum *auth.ProviderSessionRefresh, objectFormat test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.TimeRange != nil {
+		object["timeRange"] = timesTest.NewObjectFromTimeRange(datum.TimeRange, objectFormat)
+	}
+	return object
 }
 
 func RandomProviderSession(options ...test.Option) *auth.ProviderSession {

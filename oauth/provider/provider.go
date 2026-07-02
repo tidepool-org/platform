@@ -78,6 +78,10 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	return nil
 }
 
+func (p *Provider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
+	return nil
+}
+
 func (p *Provider) AllowUserInitiatedAction(ctx context.Context, userID string, action string) (bool, error) {
 	return true, nil
 }
@@ -127,7 +131,7 @@ func (p *Provider) CookieDisabled() bool {
 
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
 	if !p.CookieDisabled() {
-		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
+		return crypto.HexEncodedMD5Hash(fmt.Appendf(nil, "%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
 	} else {
 		return restrictedToken
 	}

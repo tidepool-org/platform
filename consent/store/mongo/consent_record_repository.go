@@ -4,16 +4,15 @@ import (
 	"context"
 	"time"
 
-	"github.com/tidepool-org/platform/consent"
-	"github.com/tidepool-org/platform/pointer"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
+	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/pointer"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -121,6 +120,7 @@ func (c *ConsentRecordRepository) ListConsentRecords(ctx context.Context, userID
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to list consent records")
 	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
 
 	result := storeStructuredMongo.ListResult[consent.Record]{}
 	if cursor.Next(ctx) {

@@ -29,16 +29,17 @@ type ObjectParser interface {
 	Time(reference string, layout string) *time.Time
 	JSON(reference string, target any)
 
-	Object(reference string) *map[string]interface{}
-	Array(reference string) *[]interface{}
+	Object(reference string) *map[string]any
+	Array(reference string) *[]any
 
-	Interface(reference string) *interface{}
+	Interface(reference string) *any
 
-	NotParsed() error
+	NotParsed() map[string]any
+	ReportNotParsed()
 
 	WithOrigin(origin Origin) ObjectParser
 	WithSource(source Source) ObjectParser
-	WithMeta(meta interface{}) ObjectParser
+	WithMeta(meta any) ObjectParser
 	WithReferenceObjectParser(reference string) ObjectParser
 	WithReferenceArrayParser(reference string) ArrayParser
 	WithReferenceErrorReporter(reference string) ErrorReporter
@@ -70,16 +71,17 @@ type ArrayParser interface {
 	StringArray(reference int) *[]string
 	Time(reference int, layout string) *time.Time
 
-	Object(reference int) *map[string]interface{}
-	Array(reference int) *[]interface{}
+	Object(reference int) *map[string]any
+	Array(reference int) *[]any
 
-	Interface(reference int) *interface{}
+	Interface(reference int) *any
 
-	NotParsed() error
+	NotParsed() map[string]any
+	ReportNotParsed()
 
 	WithOrigin(origin Origin) ArrayParser
 	WithSource(source Source) ArrayParser
-	WithMeta(meta interface{}) ArrayParser
+	WithMeta(meta any) ArrayParser
 	WithReferenceObjectParser(reference int) ObjectParser
 	WithReferenceArrayParser(reference int) ArrayParser
 	WithReferenceErrorReporter(reference int) ErrorReporter

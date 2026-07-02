@@ -38,8 +38,7 @@ var _ = Describe("Dexcom", func() {
 	})
 
 	Context("IsValidTransmitterID, TransmitterIDValidator, and ValidateTransmitterID", func() {
-
-		const validTransmitterId = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"
+		const validTransmitterID = "6f1c584eb070e0e7ec3f8a9af313c34028374eee50928be47d807f333891369f"
 
 		DescribeTable("return the expected results when the input",
 			func(value string, expectedErrors ...error) {
@@ -50,12 +49,12 @@ var _ = Describe("Dexcom", func() {
 				errorsTest.ExpectEqual(dexcom.ValidateTransmitterID(value), expectedErrors...)
 			},
 			Entry("is an empty string", ""),
-			Entry("has string length in range", validTransmitterId),
-			Entry("has string length out of range (lower)", validTransmitterId[:40], dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId[:40])),
-			Entry("has string length out of range (upper)", validTransmitterId+"a", dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterId+"a")),
-			Entry("has uppercase characters", strings.ToUpper(validTransmitterId), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ToUpper(validTransmitterId))),
-			Entry("has symbols", strings.ReplaceAll(validTransmitterId, "a", "$"), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterId, "a", "$"))),
-			Entry("has whitespace", strings.ReplaceAll(validTransmitterId, "a", " "), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterId, "a", " "))),
+			Entry("has string length in range", validTransmitterID),
+			Entry("has string length out of range (lower)", validTransmitterID[:40], dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterID[:40])),
+			Entry("has string length out of range (upper)", validTransmitterID+"a", dexcom.ErrorValueStringAsTransmitterIDNotValid(validTransmitterID+"a")),
+			Entry("has uppercase characters", strings.ToUpper(validTransmitterID), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ToUpper(validTransmitterID))),
+			Entry("has symbols", strings.ReplaceAll(validTransmitterID, "a", "$"), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterID, "a", "$"))),
+			Entry("has whitespace", strings.ReplaceAll(validTransmitterID, "a", " "), dexcom.ErrorValueStringAsTransmitterIDNotValid(strings.ReplaceAll(validTransmitterID, "a", " "))),
 		)
 	})
 

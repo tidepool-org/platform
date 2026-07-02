@@ -20,6 +20,11 @@ func Is(err error, target error) bool {
 	return errors.Is(err, target)
 }
 
+// NOTE: Should only be used with standard library or third-party library errors
+func As(err error, target any) bool {
+	return errors.As(err, target)
+}
+
 type Source interface {
 	Parameter() string
 	Pointer() string
@@ -54,7 +59,7 @@ func New(detail string) error {
 	}
 }
 
-func Newf(format string, a ...interface{}) error {
+func Newf(format string, a ...any) error {
 	return &object{
 		Detail: fmt.Sprintf(format, a...),
 		Caller: GetCaller(1),
@@ -75,7 +80,7 @@ func Wrap(err error, detail string) error {
 	}
 }
 
-func Wrapf(err error, format string, a ...interface{}) error {
+func Wrapf(err error, format string, a ...any) error {
 	var cause *Serializable
 	if err != nil {
 		cause = &Serializable{
@@ -98,7 +103,7 @@ func Prepared(code string, title string, detail string) error { // TODO: Rename 
 	}
 }
 
-func Preparedf(code string, title string, format string, a ...interface{}) error { // TODO: Rename to NewDetailedf
+func Preparedf(code string, title string, format string, a ...any) error { // TODO: Rename to NewDetailedf
 	return &object{
 		Code:   code,
 		Title:  title,
@@ -123,7 +128,7 @@ func WrapPrepared(err error, code string, title string, detail string) error { /
 	}
 }
 
-func WrapPreparedf(err error, code string, title string, format string, a ...interface{}) error { // TODO: Rename to WrapDetailedf
+func WrapPreparedf(err error, code string, title string, format string, a ...any) error { // TODO: Rename to WrapDetailedf
 	var cause *Serializable
 	if err != nil {
 		cause = &Serializable{
@@ -156,15 +161,7 @@ func WithSource(err error, src Source) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
 	} else if objectErr, objectOK := err.(*object); objectOK {
-		return &object{
-			Code:   objectErr.Code,
-			Title:  objectErr.Title,
-			Detail: objectErr.Detail,
-			Source: s,
-			Meta:   objectErr.Meta,
-			Caller: objectErr.Caller,
-			Cause:  objectErr.Cause,
-		}
+		return objectErr.withSource(s)
 	} else if err != nil {
 		return &object{
 			Detail: err.Error(),
@@ -196,19 +193,11 @@ func (s *sourceWrapper) Pointer() string {
 	return s.source.Pointer
 }
 
-func WithMeta(err error, meta interface{}) error {
+func WithMeta(err error, meta any) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
 	} else if objectErr, objectOK := err.(*object); objectOK {
-		return &object{
-			Code:   objectErr.Code,
-			Title:  objectErr.Title,
-			Detail: objectErr.Detail,
-			Source: objectErr.Source,
-			Meta:   meta,
-			Caller: objectErr.Caller,
-			Cause:  objectErr.Cause,
-		}
+		return objectErr.withMeta(meta)
 	} else if err != nil {
 		return &object{
 			Detail: err.Error(),
@@ -230,6 +219,16 @@ func Cause(err error) error {
 		return Cause(objectErr.Cause.Error)
 	}
 	return err
+}
+
+func LastCause(err error) error {
+	if last := Last(err); last != err {
+		return LastCause(last)
+	} else if cause := Cause(err); cause != err {
+		return LastCause(cause)
+	} else {
+		return err
+	}
 }
 
 func Append(errs ...error) error {
@@ -315,27 +314,28 @@ type Serializable struct {
 }
 
 func NewSerializable(err error) *Serializable {
-	if err == nil {
-		return nil
-	}
 	return &Serializable{
 		Error: err,
 	}
 }
 
+func (s *Serializable) HasError() bool {
+	return s.Error != nil
+}
+
 func (s *Serializable) Parse(reference string, parser structure.ObjectParser) {
 	if iface := parser.Interface(reference); iface != nil {
-		if _, arrayOK := (*iface).([]interface{}); arrayOK {
+		if _, arrayOK := (*iface).([]any); arrayOK {
 			arrayErr := &array{}
 			arrayParser := parser.WithReferenceArrayParser(reference)
 			arrayErr.Parse(arrayParser)
-			arrayParser.NotParsed()
+			arrayParser.ReportNotParsed()
 			s.Error = arrayErr
-		} else if _, objectOK := (*iface).(map[string]interface{}); objectOK {
+		} else if _, objectOK := (*iface).(map[string]any); objectOK {
 			objectErr := &object{}
 			objectParser := parser.WithReferenceObjectParser(reference)
 			objectErr.Parse(objectParser)
-			objectParser.NotParsed()
+			objectParser.ReportNotParsed()
 			s.Error = objectErr
 		} else if ptr := parser.String(reference); ptr != nil {
 			s.Error = errors.New(*ptr)
@@ -363,11 +363,15 @@ func (s Serializable) MarshalJSON() ([]byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
 		return json.Marshal(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return json.Marshal(objectErr)
+		bites, err := json.Marshal(objectErr)
+		if err != nil && objectErr.Meta != nil { // If failure to marshal with meta, then remove meta and try again; likely unmarshallable value within meta
+			bites, err = json.Marshal(objectErr.withMeta(nil))
+		}
+		return bites, err
 	} else if s.Error != nil {
 		return []byte(strconv.Quote(s.Error.Error())), nil
 	}
-	return nil, nil
+	return []byte("null"), nil
 }
 
 func (s *Serializable) UnmarshalJSON(bites []byte) error {
@@ -399,56 +403,68 @@ func (s Serializable) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
 		return bson.MarshalValue(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return bson.MarshalValue(objectErr)
+		bsonType, bites, err := bson.MarshalValue(objectErr)
+		if err != nil && objectErr.Meta != nil { // If failure to marshal with meta, then remove meta and try again; likely unmarshallable value within meta
+			bsonType, bites, err = bson.MarshalValue(objectErr.withMeta(nil))
+		}
+		return bsonType, bites, err
 	} else if s.Error != nil {
-		return bsontype.String, bsoncore.AppendString(nil, s.Error.Error()), nil
+		return bson.TypeString, bsoncore.AppendString(nil, s.Error.Error()), nil
 	}
-	return bsontype.Null, nil, nil
+	return bson.TypeNull, nil, nil
 }
 
 func (s *Serializable) UnmarshalBSONValue(t bsontype.Type, data []byte) error {
 	switch t {
-	case bsontype.String:
+	case bson.TypeString:
 		v, _, success := bsoncore.ReadString(data)
 		if !success {
 			return errors.New("couldn't parse error string")
 		}
 		s.Error = errors.New(v)
-	case bsontype.Array:
+	case bson.TypeArray:
 		var errs []error
 		elements, err := bsoncore.Document(data).Elements()
 		if err != nil {
 			return err
 		}
 		for _, elem := range elements {
-			rawval := elem.Value()
-			switch rawval.Type {
-			case bsontype.EmbeddedDocument:
+			rawValue := elem.Value()
+			switch rawValue.Type {
+			case bson.TypeEmbeddedDocument:
 				e := &object{}
-				if err := bson.Unmarshal(rawval.Document(), e); err != nil {
+				if err := bson.Unmarshal(rawValue.Document(), e); err != nil {
 					return err
 				}
 				errs = append(errs, e)
-			case bsontype.String:
-				v, _, success := bsoncore.ReadString(data)
+			case bson.TypeString:
+				v, _, success := bsoncore.ReadString(rawValue.Data)
 				if !success {
 					return errors.New("couldn't parse error string")
 				}
 				errs = append(errs, errors.New(v))
-			default:
-				return errors.New("invalid error type: " + rawval.Type.String())
+			case bson.TypeArray, bson.TypeDouble, bson.TypeBinary, bson.TypeUndefined, bson.TypeObjectID,
+				bson.TypeBoolean, bson.TypeDateTime, bson.TypeNull, bson.TypeRegex,
+				bson.TypeDBPointer, bson.TypeJavaScript, bson.TypeSymbol, bson.TypeCodeWithScope,
+				bson.TypeInt32, bson.TypeTimestamp, bson.TypeInt64, bson.TypeDecimal128,
+				bson.TypeMinKey, bson.TypeMaxKey:
+				return errors.New("invalid error type: " + rawValue.Type.String())
 			}
 		}
 		if len(errs) > 0 {
 			s.Error = &array{Errors: errs}
 		}
-	case bsontype.EmbeddedDocument:
+	case bson.TypeEmbeddedDocument:
 		errObject := &object{}
 		if err := bson.Unmarshal(data, errObject); err != nil {
 			return err
 		}
 		s.Error = errObject
-	default:
+	case bson.TypeDouble, bson.TypeBinary, bson.TypeUndefined, bson.TypeObjectID,
+		bson.TypeBoolean, bson.TypeDateTime, bson.TypeNull, bson.TypeRegex,
+		bson.TypeDBPointer, bson.TypeJavaScript, bson.TypeSymbol, bson.TypeCodeWithScope,
+		bson.TypeInt32, bson.TypeTimestamp, bson.TypeInt64, bson.TypeDecimal128,
+		bson.TypeMinKey, bson.TypeMaxKey:
 		return fmt.Errorf("invalid bson type %v", t)
 	}
 
@@ -498,7 +514,7 @@ func (a *array) Parse(parser structure.ArrayParser) {
 		objectErr := &object{}
 		objectParser := parser.WithReferenceObjectParser(reference)
 		objectErr.Parse(objectParser)
-		objectParser.NotParsed()
+		objectParser.ReportNotParsed()
 		a.Errors = append(a.Errors, objectErr)
 	}
 }
@@ -522,8 +538,8 @@ func (a *array) Normalize(normalizer structure.Normalizer) {
 func (a *array) Sanitize() error {
 	var errors []error
 	for _, err := range a.Errors {
-		if sanitizedable, ok := err.(Sanitizable); ok {
-			err = sanitizedable.Sanitize()
+		if sanitizable, ok := err.(Sanitizable); ok {
+			err = sanitizable.Sanitize()
 		}
 		if err != nil {
 			errors = append(errors, err)
@@ -553,7 +569,7 @@ type object struct {
 	Title  string        `json:"title,omitempty" bson:"title,omitempty"`
 	Detail string        `json:"detail" bson:"detail"`
 	Source *source       `json:"source,omitempty" bson:"source,omitempty"`
-	Meta   interface{}   `json:"meta,omitempty" bson:"meta,omitempty"`
+	Meta   any           `json:"meta,omitempty" bson:"meta,omitempty"`
 	Caller *Caller       `json:"caller,omitempty" bson:"caller,omitempty"`
 	Cause  *Serializable `json:"cause,omitempty" bson:"cause,omitempty"`
 }
@@ -614,7 +630,7 @@ func (o *object) Parse(parser structure.ObjectParser) {
 	if sourceParser := parser.WithReferenceObjectParser("source"); sourceParser.Exists() {
 		o.Source = &source{}
 		o.Source.Parse(sourceParser)
-		sourceParser.NotParsed()
+		sourceParser.ReportNotParsed()
 	}
 	if ptr := parser.Interface("meta"); ptr != nil {
 		o.Meta = *ptr
@@ -622,7 +638,7 @@ func (o *object) Parse(parser structure.ObjectParser) {
 	if callerParser := parser.WithReferenceObjectParser("caller"); callerParser.Exists() {
 		o.Caller = &Caller{}
 		o.Caller.Parse(callerParser)
-		callerParser.NotParsed()
+		callerParser.ReportNotParsed()
 	}
 	if parser.ReferenceExists("cause") {
 		o.Cause = &Serializable{}
@@ -668,6 +684,30 @@ func (o *object) Is(target error) bool {
 	return o.Cause != nil && o.Cause.Error == target
 }
 
+func (o *object) withSource(src *source) *object {
+	return &object{
+		Code:   o.Code,
+		Title:  o.Title,
+		Detail: o.Detail,
+		Source: src,
+		Meta:   o.Meta,
+		Caller: o.Caller,
+		Cause:  o.Cause,
+	}
+}
+
+func (o *object) withMeta(meta any) *object {
+	return &object{
+		Code:   o.Code,
+		Title:  o.Title,
+		Detail: o.Detail,
+		Source: o.Source,
+		Meta:   meta,
+		Caller: o.Caller,
+		Cause:  o.Cause,
+	}
+}
+
 type contextKey string
 
 const errorContextKey contextKey = "error"
@@ -685,7 +725,7 @@ func ErrorFromContext(ctx context.Context) error {
 	return nil
 }
 
-func Meta(err error) interface{} {
+func Meta(err error) any {
 	if objectErr, objectOK := err.(*object); objectOK {
 		return objectErr.Meta
 	}

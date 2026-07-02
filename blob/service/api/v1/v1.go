@@ -5,15 +5,13 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/permission"
-
 	"github.com/ant0ine/go-json-rest/rest"
 
 	"github.com/tidepool-org/platform/auth"
-
 	"github.com/tidepool-org/platform/blob"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/user"
@@ -205,7 +203,7 @@ func (r *Router) ListDeviceLogs(res rest.ResponseWriter, req *rest.Request) {
 	}
 	filter := blob.NewDeviceLogsFilter()
 	pagination := page.NewPagination()
-	if err := request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
+	if err = request.DecodeRequestQuery(req.Request, filter, pagination); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
@@ -287,7 +285,7 @@ func (r *Router) GetDeviceLogsContent(res rest.ResponseWriter, req *rest.Request
 		responder.RespondIfError(request.ErrorResourceNotFoundWithID(deviceLogID))
 		return
 	}
-	defer content.Body.Close()
+	defer request.DrainAndClose(content.Body)
 
 	mutators := []request.ResponseMutator{}
 	if content.DigestMD5 != nil {
@@ -375,7 +373,7 @@ func (r *Router) GetContent(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	defer content.Body.Close()
+	defer request.DrainAndClose(content.Body)
 
 	mutators := []request.ResponseMutator{}
 	if content.DigestMD5 != nil {
