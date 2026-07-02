@@ -22,9 +22,10 @@ import (
 )
 
 const (
-	EligibleField    = "eligible"
-	NameField        = "name"
-	DateOfBirthField = "dateOfBirth"
+	EligibleField            = "eligible"
+	EligibleFieldTruthyValue = "Yes"
+	NameField                = "name"
+	DateOfBirthField         = "dateOfBirth"
 
 	UserIDField        = "userId"
 	ParticipantIDField = "participantId"
@@ -242,7 +243,7 @@ func (s *SubmissionProcessor) handleSurveyCompleted(ctx context.Context, custome
 
 	surveyCompletedData := oura.OuraEligibilitySurveyCompletedData{
 		OuraEligibilitySurveyID:       submission.Content.ID,
-		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == "true",
+		OuraEligibilitySurveyEligible: submission.Content.Answers.GetAnswerTextByName(EligibleField) == EligibleFieldTruthyValue,
 	}
 
 	v := validator.New(s.logger)

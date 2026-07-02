@@ -55,7 +55,7 @@
         "order": "6",
         "text": "eligible",
         "type": "control_textbox",
-        "answer": "true"
+        "answer": "Yes"
       },
       "9": {
         "name": "dateOfBirth",
