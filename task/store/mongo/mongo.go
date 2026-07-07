@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -407,7 +408,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 	}
 
 	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
+	logger := log.LoggerFromContext(ctx).WithFields(taskToFields(tsk)).WithField("state", state)
 
 	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Millisecond))
 
@@ -429,6 +430,27 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 
 	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
 	return tsk, nil
+}
+
+func taskToFields(tsk *task.Task) log.Fields {
+	fields := log.Fields{
+		"id":    tsk.ID,
+		"type":  tsk.Type,
+		"state": tsk.State,
+	}
+	if tsk.Error != nil && tsk.Error.Error != nil {
+		if _, err := json.Marshal(tsk.Error); err == nil {
+			fields["error"] = tsk.Error
+		} else {
+			tsk.Error.Error = errors.WithMeta(tsk.Error.Error, nil)
+			if _, err := json.Marshal(tsk.Error); err == nil {
+				fields["error"] = tsk.Error
+			} else {
+				fields["error"] = "unable to marshal error"
+			}
+		}
+	}
+	return fields
 }
 
 func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
