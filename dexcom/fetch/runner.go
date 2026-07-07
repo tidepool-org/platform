@@ -27,8 +27,8 @@ import (
 //go:generate mockgen -source=runner.go -destination=test/runner_mocks.go -package=test -typed
 
 const (
-	AvailableAfterDuration       = 120 * time.Minute
-	AvailableAfterDurationJitter = 15 * time.Minute
+	AvailableAfterDuration       = 1 * time.Minute
+	AvailableAfterDurationJitter = 5 * time.Second
 	DataSetSize                  = 2000
 	TaskDurationMaximum          = 15 * time.Minute
 	TaskRetryCountMaximum        = 4  // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
