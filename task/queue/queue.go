@@ -291,7 +291,12 @@ func (q *queue) unstickTasks(ctx context.Context) {
 
 func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 	defer q.stopPendingIterator(ctx)
+
+	q.logger.WithField("workersAvailable", q.workersAvailable).Debug("Dispatching tasks")
+
 	for q.workersAvailable > 0 {
+
+		q.logger.WithField("workersAvailable", q.workersAvailable).Debug("Start pending iterator")
 		iter, err := q.startPendingIterator(ctx)
 		if err != nil {
 			q.logger.WithError(err).Error("Failure starting pending iterator")
@@ -306,14 +311,18 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 			}
 			q.dispatchTask(ctx, tsk)
 		} else {
+			q.logger.Debug("Dispatched tasks")
 			return q.delay
 		}
 	}
 
+	q.logger.Debug("Dispatched tasks")
 	return q.delay
 }
 
 func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
+	q.logger.WithField("task", tsk.Fields()).Debug("Dispatching task")
+
 	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
 
 	repository := q.store.NewTaskRepository()

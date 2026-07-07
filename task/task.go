@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"regexp"
 	"time"
@@ -275,6 +276,27 @@ func (t *Task) Sanitize(details request.AuthDetails) error {
 		return nil
 	}
 	return errors.New("unable to sanitize")
+}
+
+func (t *Task) Fields() log.Fields {
+	fields := log.Fields{
+		"id":    t.ID,
+		"type":  t.Type,
+		"state": t.State,
+	}
+	if t.Error != nil && t.Error.Error != nil {
+		if _, err := json.Marshal(t.Error); err == nil {
+			fields["error"] = t.Error
+		} else {
+			t.Error.Error = errors.Wrap(errors.WithMeta(t.Error.Error, nil), "unable to marshal error")
+			if _, err := json.Marshal(t.Error); err == nil {
+				fields["error"] = t.Error
+			} else {
+				fields["error"] = "unable to marshal error"
+			}
+		}
+	}
+	return fields
 }
 
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
