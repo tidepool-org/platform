@@ -111,7 +111,7 @@ func (r *Runner) GetRunnerType() string {
 }
 
 func (r *Runner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(TaskDurationMaximum * 3)
+	return time.Date(2027, time.January, 1, 0, 0, 0, 0, time.UTC)
 }
 
 func (r *Runner) GetRunnerTimeout() time.Duration {

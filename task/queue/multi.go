@@ -30,7 +30,7 @@ func (m *MultiQueue) RegisterRunner(runner Runner) error {
 	}
 
 	str := m.str.WithTypeFilter(typ)
-	q, err := New(m.cfg, m.lgr, str)
+	q, err := New(m.cfg, m.lgr.WithField("typeFilter", typ), str)
 	if err != nil {
 		return err
 	}
