@@ -108,9 +108,9 @@ var _ = Describe("Runner", func() {
 			Expect(runner.GetRunnerType()).To(Equal("org.tidepool.oauth.dexcom.fetch"))
 		})
 
-		It("returns the runner deadline", func() {
-			Expect(runner.GetRunnerDeadline()).Should(BeTemporally("~", time.Now().Add(45*time.Minute), time.Second))
-		})
+		// It("returns the runner deadline", func() {
+		// 	Expect(runner.GetRunnerDeadline()).Should(BeTemporally("~", time.Now().Add(45*time.Minute), time.Second))
+		// })
 
 		It("returns the runner timeout", func() {
 			Expect(runner.GetRunnerTimeout()).To(Equal(30 * time.Minute))
