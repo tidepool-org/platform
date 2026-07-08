@@ -213,9 +213,10 @@ func (q *queue) startWorker(ctx context.Context) {
 			case tsk := <-q.dispatchChannel:
 				debugLogger.WithField("task", tsk.Fields()).Warn("Running task")
 				q.runTask(ctx, tsk)
-				debugLogger.WithField("task", tsk.Fields()).Warn("Ran task; sending to completion channel")
+				taskFields := tsk.Fields()
+				debugLogger.WithField("task", taskFields).Warn("Ran task; sending to completion channel")
 				q.completionChannel <- tsk
-				debugLogger.WithField("task", tsk.Fields()).Warn("Sent to completion channel")
+				debugLogger.WithField("task", taskFields).Warn("Sent to completion channel")
 			}
 		}
 	}()
@@ -387,10 +388,12 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 		return
 	}
 
+	taskFields := tsk.Fields()
+
 	q.workersAvailable--
-	debugLogger.WithField("task", tsk.Fields()).WithField("workersAvailable", q.workersAvailable).Debug("Decremented workers available")
+	debugLogger.WithField("task", taskFields).WithField("workersAvailable", q.workersAvailable).Debug("Decremented workers available")
 	q.dispatchChannel <- tsk
-	debugLogger.WithField("task", tsk.Fields()).Debug("Dispatched task")
+	debugLogger.WithField("task", taskFields).Debug("Dispatched task")
 }
 
 func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
