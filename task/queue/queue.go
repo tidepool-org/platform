@@ -13,6 +13,7 @@ import (
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/store"
@@ -99,6 +100,7 @@ type Queue interface {
 type queue struct {
 	logger            log.Logger
 	store             store.Store
+	typeFilter        string
 	workers           int
 	delay             time.Duration
 	runners           map[string]Runner
@@ -114,7 +116,7 @@ type queue struct {
 	iterator          *mongo.Cursor
 }
 
-func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
+func New(cfg *Config, lgr log.Logger, str store.Store, typeFilter string) (Queue, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -123,6 +125,9 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	}
 	if str == nil {
 		return nil, errors.New("store is missing")
+	}
+	if typeFilter == "" {
+		return nil, errors.New("type filter is empty")
 	}
 
 	if err := cfg.Validate(); err != nil {
@@ -135,6 +140,7 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 	return &queue{
 		logger:            lgr,
 		store:             str,
+		typeFilter:        typeFilter,
 		workers:           workers,
 		delay:             delay,
 		runners:           make(map[string]Runner),
@@ -197,13 +203,19 @@ func (q *queue) startWorker(ctx context.Context) {
 	go func() {
 		defer q.workersWaitGroup.Done()
 
+		debugLogger := q.debugLogger()
+
 		for {
 			select {
 			case <-ctx.Done():
+				debugLogger.Warn("Worker context done, exiting")
 				return
 			case tsk := <-q.dispatchChannel:
+				debugLogger.WithField("task", tsk.Fields()).Warn("Running task")
 				q.runTask(ctx, tsk)
+				debugLogger.WithField("task", tsk.Fields()).Warn("Ran task; sending to completion channel")
 				q.completionChannel <- tsk
+				debugLogger.WithField("task", tsk.Fields()).Warn("Sent to completion channel")
 			}
 		}
 	}()
@@ -212,8 +224,11 @@ func (q *queue) startWorker(ctx context.Context) {
 func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
 
+	debugLogger := q.debugLogger()
+
 	defer func() {
 		if err := recover(); err != nil {
+			debugLogger.WithField("task", tsk.Fields()).Error("Unhandled panic")
 			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": string(debug.Stack())}).Error("Unhandled panic")
 			tsk.AppendError(errors.New("unhandled panic"))
 		}
@@ -229,12 +244,15 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 		startTime := time.Now()
 
 		// Run the task via the runner
+		debugLogger.WithField("task", tsk.Fields()).Error("Actual running task")
 		runner.Run(ctx, tsk)
+		debugLogger.WithField("task", tsk.Fields()).Error("Actual ran task")
 
 		if taskDuration := time.Since(startTime); taskDuration > runner.GetRunnerDurationMaximum() {
 			log.LoggerFromContext(ctx).WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 		}
 	} else {
+		debugLogger.WithField("task", tsk.Fields()).Error("Runner not found for task")
 		tsk.AppendError(errors.New("runner not found for task"))
 		tsk.SetFailed()
 	}
@@ -246,6 +264,8 @@ func (q *queue) startManager(ctx context.Context) {
 	go func() {
 		defer q.managerWaitGroup.Done()
 
+		debugLogger := q.debugLogger()
+
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
 		defer q.stopTimer()
 
@@ -255,23 +275,30 @@ func (q *queue) startManager(ctx context.Context) {
 
 		for {
 			if nextUnstickTime.Before(time.Now()) {
+				debugLogger.Warn("Unsticking tasks")
 				q.unstickTasks(ctx)
+				debugLogger.Warn("Unstuck tasks")
 				nextUnstickTime = time.Now().Add(q.delay * 15)
 			}
 
 			select {
 			case <-ctx.Done(): // Drain and complete any interrupted tasks
+				debugLogger.Warn("Manager context cancelled")
 				for tsk := range q.completionChannel {
 					q.completeTask(ctx, tsk)
 				}
 				return
 			case tsk := <-q.completionChannel:
 				if tsk != nil {
+					debugLogger.WithField("task", tsk.Fields()).Warn("Task received from completion channel")
 					q.stopTimer()
 					q.completeTask(ctx, tsk)
 					q.startTimer(q.dispatchTasks(ctx))
+				} else {
+					debugLogger.Warn("Null task received from completion channel")
 				}
 			case <-q.timer.C:
+				debugLogger.Warn("Timer fired")
 				q.startTimer(q.dispatchTasks(ctx))
 			}
 		}
@@ -289,14 +316,24 @@ func (q *queue) unstickTasks(ctx context.Context) {
 	}
 }
 
+func (q *queue) debugLogger() log.Logger {
+	if q.typeFilter == "org.tidepool.oauth.dexcom.fetch" {
+		return q.logger.WithField("typeFilter", q.typeFilter)
+	} else {
+		return logNull.NewLogger()
+	}
+}
+
 func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 	defer q.stopPendingIterator(ctx)
 
-	q.logger.WithField("workersAvailable", q.workersAvailable).Debug("Dispatching tasks")
+	debugLogger := q.debugLogger()
+
+	debugLogger.WithField("workersAvailable", q.workersAvailable).Debug("Dispatching tasks")
 
 	for q.workersAvailable > 0 {
 
-		q.logger.WithField("workersAvailable", q.workersAvailable).Debug("Start pending iterator")
+		debugLogger.WithField("workersAvailable", q.workersAvailable).Debug("Start pending iterator")
 		iter, err := q.startPendingIterator(ctx)
 		if err != nil {
 			q.logger.WithError(err).Error("Failure starting pending iterator")
@@ -311,17 +348,19 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 			}
 			q.dispatchTask(ctx, tsk)
 		} else {
-			q.logger.Debug("Dispatched tasks")
+			debugLogger.Debug("Dispatched tasks; no tasks")
 			return q.delay
 		}
 	}
 
-	q.logger.Debug("Dispatched tasks")
+	debugLogger.Debug("Dispatched tasks; no workers")
 	return q.delay
 }
 
 func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
-	q.logger.WithField("task", tsk.Fields()).Debug("Dispatching task")
+	debugLogger := q.debugLogger()
+
+	debugLogger.Debug("Dispatching task")
 
 	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
 
@@ -349,17 +388,25 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	}
 
 	q.workersAvailable--
+	debugLogger.WithField("task", tsk.Fields()).WithField("workersAvailable", q.workersAvailable).Debug("Decremented workers available")
 	q.dispatchChannel <- tsk
+	debugLogger.WithField("task", tsk.Fields()).Debug("Dispatched task")
 }
 
 func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
 
+	debugLogger := q.debugLogger()
+
+	debugLogger.WithField("workersAvailable", q.workersAvailable).Debug("Incrementing workers available")
 	q.workersAvailable++
+	debugLogger.WithField("workersAvailable", q.workersAvailable).Debug("Incremented workers available")
 
 	repository := q.store.NewTaskRepository()
 
+	debugLogger.WithField("task", tsk.Fields()).Debug("Computing state")
 	q.computeState(tsk)
+	debugLogger.WithField("task", tsk.Fields()).Debug("Computed state")
 
 	if tsk.State != task.TaskStatePending {
 		tsk.AvailableTime = nil
@@ -372,10 +419,14 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	// Without cancel to ensure task is updated in the database
 	_, err := repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStateRunning)
 	if err != nil {
+		debugLogger.Error("Failure to update state during complete task")
+		debugLogger.WithError(err).Error("Failure to update state during complete task")
 		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update state during complete task")
 	}
 
 	if tsk.HasError() {
+		debugLogger.Error("Failure to update state during complete task")
+		debugLogger.WithError(tsk.Error.Error).Error("Failure to update state during complete task")
 		log.LoggerFromContext(ctx).WithError(tsk.Error.Error).Error("Error occurred while running task")
 	}
 }

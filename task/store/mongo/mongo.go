@@ -430,6 +430,7 @@ func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, st
 	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
 	return tsk, nil
 }
+
 func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
 	selector := bson.M{
 		"state":        task.TaskStateRunning,
