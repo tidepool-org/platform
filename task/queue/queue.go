@@ -242,9 +242,9 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 		startTime := time.Now()
 
 		// Run the task via the runner
-		debugLogger.WithField("task", tsk.Fields()).Error("Actual running task")
+		debugLogger.WithField("task", tsk.Fields()).Warn("Actual running task")
 		runner.Run(ctx, tsk)
-		debugLogger.WithField("task", tsk.Fields()).Error("Actual ran task")
+		debugLogger.WithField("task", tsk.Fields()).Warn("Actual ran task")
 
 		if taskDuration := time.Since(startTime); taskDuration > runner.GetRunnerDurationMaximum() {
 			log.LoggerFromContext(ctx).WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
