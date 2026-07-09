@@ -199,10 +199,7 @@ func (q *queue) startWorkers(ctx context.Context) {
 }
 
 func (q *queue) startWorker(ctx context.Context) {
-	q.workersWaitGroup.Add(1)
-	go func() {
-		defer q.workersWaitGroup.Done()
-
+	q.workersWaitGroup.Go(func() {
 		debugLogger := q.debugLogger()
 
 		for {
@@ -219,7 +216,7 @@ func (q *queue) startWorker(ctx context.Context) {
 				debugLogger.WithField("task", taskFields).Warn("Sent to completion channel")
 			}
 		}
-	}()
+	})
 }
 
 func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
@@ -260,11 +257,7 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 }
 
 func (q *queue) startManager(ctx context.Context) {
-	q.managerWaitGroup.Add(1)
-
-	go func() {
-		defer q.managerWaitGroup.Done()
-
+	q.managerWaitGroup.Go(func() {
 		debugLogger := q.debugLogger()
 
 		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
@@ -303,7 +296,7 @@ func (q *queue) startManager(ctx context.Context) {
 				q.startTimer(q.dispatchTasks(ctx))
 			}
 		}
-	}()
+	})
 }
 
 func (q *queue) unstickTasks(ctx context.Context) {
@@ -361,7 +354,17 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	debugLogger := q.debugLogger()
 
-	debugLogger.Debug("Dispatching task")
+	originalTaskFields := tsk.Fields()
+
+	defer func() {
+		if err := recover(); err != nil {
+			debugLogger.WithField("originalTask", originalTaskFields).Error("Unhandled panic in dispatchTask")
+			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": string(debug.Stack())}).Error("Unhandled panic in dispatchTask")
+			tsk.AppendError(errors.New("unhandled panic in dispatchTask"))
+		}
+	}()
+
+	debugLogger.WithField("task", tsk.Fields()).Debug("Dispatching task")
 
 	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
 
