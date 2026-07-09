@@ -383,6 +383,7 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
 	tsk, err = repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStatePending)
 	if err != nil {
 		if errors.Is(err, task.AlreadyClaimedTask) {
+			debugLogger.WithField("updatedTask", tsk).Warn("Task already claimed")
 			log.LoggerFromContext(ctx).Warnf("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
 			return
 		}
