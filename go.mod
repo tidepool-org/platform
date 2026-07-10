@@ -27,7 +27,7 @@ require (
 	github.com/prometheus/client_model v0.6.1
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/solworktech/md2pdf/v2 v2.2.18
-	github.com/tidepool-org/clinic/client v0.0.0-20260618195642-26c9acdc62c1
+	github.com/tidepool-org/clinic/client v0.0.0-20260819084822-3c7c8873dac6
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55
 	github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093

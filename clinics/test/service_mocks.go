@@ -352,3 +352,41 @@ func (c *MockClientSyncEHRDataCall) DoAndReturn(f func(context.Context, string) 
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
+
+// UpdateDeviceIssues mocks base method.
+func (m *MockClient) UpdateDeviceIssues(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDeviceIssues", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateDeviceIssues indicates an expected call of UpdateDeviceIssues.
+func (mr *MockClientMockRecorder) UpdateDeviceIssues(ctx any) *MockClientUpdateDeviceIssuesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDeviceIssues", reflect.TypeOf((*MockClient)(nil).UpdateDeviceIssues), ctx)
+	return &MockClientUpdateDeviceIssuesCall{Call: call}
+}
+
+// MockClientUpdateDeviceIssuesCall wrap *gomock.Call
+type MockClientUpdateDeviceIssuesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientUpdateDeviceIssuesCall) Return(arg0 error) *MockClientUpdateDeviceIssuesCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientUpdateDeviceIssuesCall) Do(f func(context.Context) error) *MockClientUpdateDeviceIssuesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientUpdateDeviceIssuesCall) DoAndReturn(f func(context.Context) error) *MockClientUpdateDeviceIssuesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}

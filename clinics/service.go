@@ -9,6 +9,7 @@ import (
 	"go.uber.org/fx"
 
 	clinic "github.com/tidepool-org/clinic/client"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -27,6 +28,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.ClinicV1, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
+	UpdateDeviceIssues(ctx context.Context) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
 }
@@ -192,6 +194,21 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 		return err
 	}
 	if response.StatusCode() != http.StatusAccepted {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+func (d *defaultClient) UpdateDeviceIssues(ctx context.Context) error {
+	response, err := d.httpClient.UpdateDeviceIssuesWithResponse(ctx)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() < http.StatusOK || response.StatusCode() >= http.StatusMultipleChoices {
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
 			"Unexpected status code from clinic service",
 			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
