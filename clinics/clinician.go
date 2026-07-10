@@ -6,7 +6,7 @@ import (
 	api "github.com/tidepool-org/clinic/client"
 )
 
-func IsPrescriber(clinician *api.Clinician) bool {
+func IsPrescriber(clinician *api.ClinicianV1) bool {
 	if clinician == nil {
 		return false
 	}

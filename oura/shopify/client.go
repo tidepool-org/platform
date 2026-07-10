@@ -18,7 +18,7 @@ type Config struct {
 	ClientSecret string `envconfig:"TIDEPOOL_OURA_SHOPIFY_CLIENT_SECRET"`
 }
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Client interface {
 	CreateDiscountCode(ctx context.Context, discountCodeInput DiscountCodeInput) error

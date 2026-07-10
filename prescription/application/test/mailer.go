@@ -8,7 +8,7 @@ import (
 	"github.com/tidepool-org/platform/mailer"
 )
 
-//go:generate mockgen -source=mailer.go -destination=mailer_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=mailer.go -destination=mailer_mocks.go -package=test -typed
 
 type NoopMailer struct{}
 

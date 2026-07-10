@@ -8,7 +8,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 )
 
-//go:generate mockgen -source=bddp.go -destination=test/bddp_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=bddp.go -destination=test/bddp_mocks.go -package=test -typed
 
 type BigDataDonationProjectConfig struct {
 	Disabled        bool   `envconfig:"TIDEPOOL_BIG_DATA_DONATION_PROJECT_SHARING_DISABLED"`

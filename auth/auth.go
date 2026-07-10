@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-//go:generate mockgen -source=auth.go -destination=test/auth_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=auth.go -destination=test/auth_mocks.go -package=test -typed
 
 const (
 	TidepoolServiceSecretHeaderKey      = "X-Tidepool-Service-Secret"

@@ -21,6 +21,7 @@ import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/clinics"
+	clinicsWorkDeviceIssues "github.com/tidepool-org/platform/clinics/work/deviceissues"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataDeduplicatorFactory "github.com/tidepool-org/platform/data/deduplicator/factory"
 	dataEvents "github.com/tidepool-org/platform/data/events"
@@ -808,6 +809,17 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
+	s.Logger().Debug("Creating clinic device issues work processor factory")
+
+	if processorFactory, err := clinicsWorkDeviceIssues.NewProcessorFactory(clinicsWorkDeviceIssues.Dependencies{
+		Dependencies: dependencies,
+		ClinicClient: s.clinicsClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create clinic device issues work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
 	if s.abbottClient != nil {
 		s.Logger().Debug("Creating abbott processor factories")
 
@@ -934,6 +946,14 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 func (s *Standard) initializeWorkSingletons() error {
 	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
 	defer cancel()
+
+	s.Logger().Debug("Creating clinic device issues work")
+
+	if workCreate, err := clinicsWorkDeviceIssues.NewWorkCreate(); err != nil {
+		return errors.Wrap(err, "unable to create clinic device issues work create")
+	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create clinic device issues work")
+	}
 
 	if s.ouraClient != nil {
 		s.Logger().Debug("Creating oura webhook subscribe work")

@@ -14,7 +14,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-//go:generate mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=oauth.go -destination=test/oauth_mocks.go -package=test -typed
 
 const (
 	ProviderType = "oauth"
