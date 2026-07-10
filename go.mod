@@ -136,4 +136,6 @@ require (
 
 replace github.com/tidepool-org/platform-plugin-abbott => ./plugin/abbott
 
+replace github.com/tidepool-org/clinic/client => github.com/tidepool-org/clinic/client v0.0.0-20260708111210-494cd57669fa
+
 tool go.uber.org/mock/mockgen
