@@ -63,7 +63,7 @@ func NewClientWithErrorResponseParser(cfg *Config, authorizeAs AuthorizeAs, erro
 		Client:        clnt,
 		authorizeAs:   authorizeAs,
 		serviceSecret: cfg.ServiceSecret,
-		httpClient:    http.DefaultClient,
+		httpClient:    &http.Client{Timeout: cfg.Config.Timeout},
 	}, nil
 }
 

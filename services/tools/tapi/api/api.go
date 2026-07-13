@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"time"
 
 	homedir "github.com/mitchellh/go-homedir"
 )
@@ -43,7 +44,7 @@ func NewAPI(name string, endpoint string, proxy string) (*API, error) {
 		return nil, errors.New("End point is missing")
 	}
 
-	client := &http.Client{}
+	client := &http.Client{Timeout: 60 * time.Second}
 	if proxy != "" {
 		proxyURL, err := url.Parse(proxy)
 		if err != nil {
