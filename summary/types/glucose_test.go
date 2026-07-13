@@ -1484,6 +1484,66 @@ var _ = Describe("Glucose", func() {
 				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
 				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
 			})
+
+			It("isolates a bucket separated by a large gap to the correct period", func() {
+				// 24 dense hourly buckets near the newest time, then a gap, then a single
+				// bucket at ~20 days old. The gapped bucket sits strictly between the 14d
+				// and 30d boundaries, so it belongs to the 30d period only. A single bucket
+				// must close off every boundary it has crossed before being counted,
+				// otherwise it leaks into 7d/14d.
+				//
+				// This is a fix for BACK-4510, if it's failing, this could be a regression.
+				s := GlucosePeriods{}
+				s.Init()
+
+				recent := CreateGlucoseBuckets(bucketTime, 24, 1, true)
+				t0 := bucketTime.Add(24 * time.Hour)
+				oldStart := t0.AddDate(0, 0, -20).Add(-time.Hour)
+				old := CreateGlucoseBuckets(oldStart, 1, 1, true)
+				buckets := append(recent, old...)
+
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24))
+				Expect(s["14d"].Total.Records).To(Equal(24))
+				Expect(s["30d"].Total.Records).To(Equal(25))
+			})
+
+			It("isolates a gapped bucket to the correct offset period", func() {
+				// Same setup as the regular-period test above: 24 dense hourly buckets near
+				// the newest time, then a gap, then a single bucket ~20 days old. That
+				// gapped bucket falls in the 14d *offset* window (t0-28d, t0-14d], so it
+				// must be counted only into the 14d offset period. The offset loop must
+				// close every offset boundary the bucket has crossed before counting it,
+				// otherwise it leaks into the 7d offset window. Offset periods are only
+				// observable through the delta (delta = current - offset).
+				//
+				// This is a fix for BACK-4510, if it's failing, this could be a regression.
+				s := GlucosePeriods{}
+				s.Init()
+
+				recent := CreateGlucoseBuckets(bucketTime, 24, 1, true)
+				t0 := bucketTime.Add(24 * time.Hour)
+				oldStart := t0.AddDate(0, 0, -20).Add(-time.Hour)
+				old := CreateGlucoseBuckets(oldStart, 1, 1, true)
+				buckets := append(recent, old...)
+
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s["1d"].Delta.Total.Records).To(Equal(24))
+				Expect(s["7d"].Delta.Total.Records).To(Equal(24))
+				Expect(s["14d"].Delta.Total.Records).To(Equal(23))
+				Expect(s["30d"].Delta.Total.Records).To(Equal(25))
+			})
 		})
 
 		Context("CalculateDelta", func() {
