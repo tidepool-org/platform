@@ -536,12 +536,15 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 			panic("bucket exists with 0 records")
 		}
 
-		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
+		// Close off every period boundary this bucket has crossed. A single bucket can be
+		// past multiple boundaries at once when there is a large gap between buckets, so
+		// this must be a loop, not a single check.
+		for len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
 			st.CalculatePeriod(periodLengths[nextStopPoint], period)
 			nextStopPoint++
 		}
 
-		if len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
+		for len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
 			CalculateOffsetPeriod(offsetPeriods, periodLengths[nextOffsetStopPoint], offsetPeriod)
 			offsetPeriod = GlucosePeriod{}
 			nextOffsetStopPoint++
