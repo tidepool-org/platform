@@ -2,7 +2,6 @@ package types
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
+	"github.com/tidepool-org/platform/errors"
 )
 
 const (
@@ -24,6 +24,8 @@ const (
 
 type Glucose interface {
 	NormalizedValue() float64
+	Value() float64
+	Units() string
 	Type() string
 	Time() *time.Time
 	CreatedTime() *time.Time
@@ -53,6 +55,20 @@ func (s SelfMonitoredGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(s.datum.Value, s.datum.Units)
 }
 
+func (s SelfMonitoredGlucoseAdapter) Units() string {
+	if s.datum == nil || s.datum.Units == nil {
+		return ""
+	}
+	return *s.datum.Units
+}
+
+func (s SelfMonitoredGlucoseAdapter) Value() float64 {
+	if s.datum == nil || s.datum.Value == nil {
+		return 0
+	}
+	return *s.datum.Value
+}
+
 func (s SelfMonitoredGlucoseAdapter) Type() string {
 	return s.datum.GetType()
 }
@@ -77,6 +93,20 @@ type ContinuousGlucoseAdapter struct {
 
 func (c ContinuousGlucoseAdapter) NormalizedValue() float64 {
 	return *glucose.NormalizeValueForUnits(c.datum.Value, c.datum.Units)
+}
+
+func (c ContinuousGlucoseAdapter) Units() string {
+	if c.datum == nil || c.datum.Units == nil {
+		return ""
+	}
+	return *c.datum.Units
+}
+
+func (c ContinuousGlucoseAdapter) Value() float64 {
+	if c.datum == nil || c.datum.Value == nil {
+		return 0
+	}
+	return *c.datum.Value
 }
 
 func (c ContinuousGlucoseAdapter) Type() string {
@@ -262,24 +292,38 @@ func (rs *GlucoseRanges) Finalize(days int) {
 	}
 }
 
-func (rs *GlucoseRanges) Update(record Glucose) {
-	normalizedValue := record.NormalizedValue()
+const (
+	veryLowBloodGlucoseMgdL     int = 54
+	lowBloodGlucoseMgdL         int = 70
+	highBloodGlucoseMgdL        int = 180
+	veryHighBloodGlucoseMgdL    int = 250
+	extremeHighBloodGlucoseMgdL int = 350
+)
 
-	if normalizedValue < veryLowBloodGlucose {
+var (
+	veryLowBloodGlucose  = glucose.MmolLRounded(float64(veryLowBloodGlucoseMgdL), glucose.MmolL)
+	lowBloodGlucose      = glucose.MmolLRounded(float64(lowBloodGlucoseMgdL), glucose.MmolL)
+	highBloodGlucose     = glucose.MmolLRounded(float64(highBloodGlucoseMgdL), glucose.MmolL)
+	veryHighBloodGlucose = glucose.MmolLRounded(float64(veryHighBloodGlucoseMgdL), glucose.MmolL)
+)
+
+func (rs *GlucoseRanges) Update(record Glucose) {
+	mgdLRounded := glucose.MgdLRounded(record.Value(), record.Units())
+	if mgdLRounded < veryLowBloodGlucoseMgdL {
 		rs.VeryLow.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > veryHighBloodGlucose {
+	} else if mgdLRounded > veryHighBloodGlucoseMgdL {
 		rs.VeryHigh.Update(record)
 		rs.AnyHigh.Update(record)
 
 		// VeryHigh is inclusive of extreme high, this is intentional
-		if normalizedValue >= extremeHighBloodGlucose {
+		if mgdLRounded >= extremeHighBloodGlucoseMgdL {
 			rs.ExtremeHigh.Update(record)
 		}
-	} else if normalizedValue < lowBloodGlucose {
+	} else if mgdLRounded < lowBloodGlucoseMgdL {
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > highBloodGlucose {
+	} else if mgdLRounded > highBloodGlucoseMgdL {
 		rs.AnyHigh.Update(record)
 		rs.High.Update(record)
 	} else {
