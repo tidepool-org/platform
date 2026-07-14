@@ -259,6 +259,7 @@ func (r *Summaries[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, page *
 	if err != nil {
 		return nil, fmt.Errorf("unable to get outdated summaries: %w", err)
 	}
+	defer cursor.Close(ctx)
 
 	response := &types.OutdatedSummariesResponse{
 		UserIds: make([]string, 0, cursor.RemainingBatchLength()),
@@ -275,6 +276,9 @@ func (r *Summaries[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, page *
 		if response.Start.IsZero() {
 			response.Start = *userSummary.Dates.OutdatedSince
 		}
+	}
+	if err = cursor.Err(); err != nil {
+		return nil, fmt.Errorf("unable to iterate outdated summaries: %w", err)
 	}
 
 	// if we saw at least one summary
