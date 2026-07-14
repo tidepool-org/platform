@@ -564,6 +564,9 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 			}
 		}
 	}
+	if err := bucketsCursor.Err(); err != nil {
+		return err
+	}
 
 	// the cursor was empty, all buckets may have been invalidated since the last update,
 	// any previously calculated periods are no longer backed by data

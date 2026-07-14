@@ -166,6 +166,9 @@ func (s *ContinuousPeriods) Update(ctx context.Context, bucketsCursor *mongo.Cur
 			}
 		}
 	}
+	if err := bucketsCursor.Err(); err != nil {
+		return err
+	}
 
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
