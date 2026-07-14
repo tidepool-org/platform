@@ -1366,6 +1366,28 @@ var _ = Describe("Glucose", func() {
 				Expect(s["30d"].Total.Records).To(Equal(24))
 			})
 
+			It("Update with pre-existing periods and an empty buckets cursor", func() {
+				s := GlucosePeriods{}
+				s.Init()
+
+				// populate the periods map, as an incremental update on a stored summary would see
+				buckets := CreateGlucoseBuckets(bucketTime, 24, 1, true)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(s).ToNot(BeEmpty())
+
+				// all buckets have since been invalidated, the next update sees an empty cursor
+				emptyCursor, err := mongo.NewCursorFromDocuments([]interface{}{}, nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, emptyCursor)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(s).To(BeEmpty())
+			})
+
 			It("CalculateSummary 2d", func() {
 				s := GlucosePeriods{}
 				s.Init()

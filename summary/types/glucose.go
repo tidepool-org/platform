@@ -565,6 +565,13 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 		}
 	}
 
+	// the cursor was empty, all buckets may have been invalidated since the last update,
+	// any previously calculated periods are no longer backed by data
+	if stopPoints == nil {
+		st.Init()
+		return nil
+	}
+
 	// fill in periods we never reached
 	for i := nextStopPoint; i < len(stopPoints); i++ {
 		st.CalculatePeriod(periodLengths[i], period)
