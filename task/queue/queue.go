@@ -306,6 +306,9 @@ func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
 			}
 			q.dispatchTask(ctx, tsk)
 		} else {
+			if err := iter.Err(); err != nil {
+				q.logger.WithError(err).Error("Failure iterating pending tasks")
+			}
 			return q.delay
 		}
 	}

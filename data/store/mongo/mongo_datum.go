@@ -504,7 +504,10 @@ func (d *DatumRepository) UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.
 			},
 		},
 	}
-	cursor, _ := d.Aggregate(ctx, pipeline)
+	cursor, err := d.Aggregate(ctx, pipeline)
+	if err != nil {
+		return fmt.Errorf("unable to aggregate archived device data: %w", err)
+	}
 
 	var overallUpdateInfo mongo.UpdateResult
 	var overallErr error
