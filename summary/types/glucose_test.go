@@ -1388,6 +1388,19 @@ var _ = Describe("Glucose", func() {
 				Expect(s).To(BeEmpty())
 			})
 
+			It("handles cursors that fail mid-iteration", func() {
+				s := GlucosePeriods{}
+				s.Init()
+
+				buckets := CreateGlucoseBuckets(bucketTime, 24, 1, true)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(
+					ConvertToIntArray(buckets), fmt.Errorf("batch fetch failed"), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).To(MatchError("batch fetch failed"))
+			})
+
 			It("CalculateSummary 2d", func() {
 				s := GlucosePeriods{}
 				s.Init()

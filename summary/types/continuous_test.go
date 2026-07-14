@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -281,6 +282,19 @@ var _ = Describe("Continuous", func() {
 		})
 
 		Context("Update", func() {
+
+			It("handles cursors that fail mid-iteration", func() {
+				s := ContinuousPeriods{}
+				s.Init()
+
+				buckets := CreateContinuousBuckets(bucketTime, 24, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(
+					ConvertToIntArray(buckets), fmt.Errorf("batch fetch failed"), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).To(MatchError("batch fetch failed"))
+			})
 
 			It("Update 1d", func() {
 				s := ContinuousPeriods{}
