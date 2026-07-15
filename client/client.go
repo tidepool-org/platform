@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -56,11 +55,7 @@ func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	segments := []string{}
-	for _, path := range paths {
-		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
-	}
-	return fmt.Sprintf("%s/%s", strings.TrimRight(c.address, "/"), strings.Join(segments, "/"))
+	return ConstructURL(c.address, paths...)
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
@@ -118,7 +113,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	return request.DecodeObject(ctx, structure.NewPointerSource(), body, responseBody)
+	return request.DecodeStream(ctx, structure.NewPointerSource(), body, responseBody)
 }
 
 func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
@@ -152,12 +147,10 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		}
 	}
 
-	req, err := http.NewRequest(method, url, body)
+	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to create request to %s %s", method, url)
 	}
-
-	req = req.WithContext(ctx)
 
 	for _, mutator := range mutators {
 		if err = mutator.MutateRequest(req); err != nil {
@@ -266,4 +259,16 @@ func (s *SerializableErrorResponseParser) ParseErrorResponse(ctx context.Context
 		return nil
 	}
 	return serializable.Error
+}
+
+func ConstructURL(url string, paths ...string) string {
+	return strings.TrimRight(url, "/") + ConstructPath(paths...)
+}
+
+func ConstructPath(paths ...string) string {
+	segments := []string{}
+	for _, path := range paths {
+		segments = append(segments, url.PathEscape(strings.Trim(path, "/")))
+	}
+	return "/" + strings.Join(segments, "/")
 }

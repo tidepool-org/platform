@@ -59,7 +59,7 @@ func (r *Router) ListTasks(res rest.ResponseWriter, req *rest.Request) {
 
 	tsks, err := r.TaskClient().ListTasks(req.Context(), filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (r *Router) CreateTask(res rest.ResponseWriter, req *rest.Request) {
 
 	tsk, err := r.TaskClient().CreateTask(req.Context(), create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (r *Router) GetTask(res rest.ResponseWriter, req *rest.Request) {
 
 	tsk, err := r.TaskClient().GetTask(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if tsk == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -122,7 +122,7 @@ func (r *Router) UpdateTask(res rest.ResponseWriter, req *rest.Request) {
 
 	tsk, err := r.TaskClient().UpdateTask(req.Context(), id, update)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if tsk == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -143,7 +143,7 @@ func (r *Router) DeleteTask(res rest.ResponseWriter, req *rest.Request) {
 
 	err := r.TaskClient().DeleteTask(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

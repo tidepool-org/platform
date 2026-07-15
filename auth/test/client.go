@@ -1,21 +1,21 @@
 package test
 
 type Client struct {
-	*ProviderSessionAccessor
+	*ProviderSessionClient
 	*RestrictedTokenAccessor
 	*ExternalAccessor
 }
 
 func NewClient() *Client {
 	return &Client{
-		ProviderSessionAccessor: NewProviderSessionAccessor(),
+		ProviderSessionClient:   NewProviderSessionClient(),
 		RestrictedTokenAccessor: NewRestrictedTokenAccessor(),
 		ExternalAccessor:        NewExternalAccessor(),
 	}
 }
 
 func (c *Client) AssertOutputsEmpty() {
-	c.ProviderSessionAccessor.Expectations()
+	c.ProviderSessionClient.Expectations()
 	c.RestrictedTokenAccessor.Expectations()
 	c.ExternalAccessor.AssertOutputsEmpty()
 }

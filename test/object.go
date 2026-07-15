@@ -15,6 +15,7 @@ type ObjectFormat int
 const (
 	ObjectFormatBSON ObjectFormat = iota
 	ObjectFormatJSON
+	ObjectFormatConfig
 )
 
 func ExpectSerializedObjectBSON(object interface{}, expected interface{}) {

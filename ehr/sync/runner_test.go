@@ -17,18 +17,14 @@ import (
 )
 
 var _ = Describe("Runner", func() {
-	var clinicsCtrl *gomock.Controller
+	var mockController *gomock.Controller
 	var clinicsClient *clinicsTest.MockClient
 	var logger log.Logger
 
 	BeforeEach(func() {
-		clinicsCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		clinicsClient = clinicsTest.NewMockClient(mockController)
 		logger = null.NewLogger()
-	})
-
-	AfterEach(func() {
-		clinicsCtrl.Finish()
 	})
 
 	Describe("NewRunner", func() {

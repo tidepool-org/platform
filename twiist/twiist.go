@@ -7,6 +7,8 @@ import (
 const (
 	DataSetClientName    = "com.sequelmedtech.tidepool-service"
 	DataSetClientVersion = "3.0.0"
+
+	ProviderName = "twiist"
 )
 
 var (

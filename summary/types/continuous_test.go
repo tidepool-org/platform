@@ -155,6 +155,29 @@ var _ = Describe("Continuous", func() {
 			Expect(period.Total.Records).To(Equal(1))
 		})
 
+		It("Add two buckets to an empty period in reverse order", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			period = ContinuousPeriod{}
+
+			// Add the newer bucket first (reverse chronological, matching real usage)
+			bucketTwo := NewBucket[*ContinuousBucket](userId, bucketTime.Add(time.Hour), SummaryTypeCGM)
+			err = bucketTwo.Update(NewRealtimeGlucose(datumTime.Add(time.Hour), InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = period.Update(bucketTwo)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Total.Records).To(Equal(1))
+
+			// Then add the older bucket
+			bucketOne := NewBucket[*ContinuousBucket](userId, bucketTime, SummaryTypeCGM)
+			err = bucketOne.Update(NewRealtimeGlucose(datumTime, InTargetBloodGlucose))
+			Expect(err).ToNot(HaveOccurred())
+
+			err = period.Update(bucketOne)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(period.Total.Records).To(Equal(2))
+		})
+
 		It("Add duplicate buckets to a period", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			period = ContinuousPeriod{}

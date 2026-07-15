@@ -40,7 +40,7 @@ func (r *Router) ListConsentRecords(res rest.ResponseWriter, req *rest.Request) 
 
 	consents, err := r.service.ListConsentRecords(req.Context(), userID, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (r *Router) GetConsentRecord(res rest.ResponseWriter, req *rest.Request) {
 
 	consentRecord, err := r.service.GetConsentRecord(req.Context(), userID, id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (r *Router) CreateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 
 	consentRecord, err := r.service.CreateConsentRecord(req.Context(), userID, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (r *Router) UpdateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 
 	consentRecord, err := r.service.GetConsentRecord(req.Context(), userID, id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if consentRecord == nil {
 		responder.Empty(http.StatusNotFound)
@@ -147,7 +147,7 @@ func (r *Router) UpdateConsentRecord(res rest.ResponseWriter, req *rest.Request)
 
 	consentRecord, err = r.service.UpdateConsentRecord(req.Context(), update.ToRecord())
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func (r *Router) RevokeConsentRecord(res rest.ResponseWriter, req *rest.Request)
 
 	err := r.service.RevokeConsentRecord(req.Context(), userID, revoke)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

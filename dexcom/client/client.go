@@ -23,7 +23,7 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 		return nil, err
 	}
 
-	clnt, err := oauthClient.New(baseClient, tknSrcSrc)
+	clnt, err := oauthClient.NewWithClient(baseClient, tknSrcSrc)
 	if err != nil {
 		return nil, err
 	}

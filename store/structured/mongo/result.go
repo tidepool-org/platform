@@ -58,3 +58,36 @@ func PaginationFacetPipelineStages(pagination page.Pagination) []bson.M {
 		},
 	}
 }
+
+func BSONToMap(input bson.M) map[string]any {
+	if input == nil {
+		return nil
+	}
+	output := make(map[string]any, len(input))
+	for key, value := range input {
+		output[key] = BSONToAny(value)
+	}
+	return output
+}
+
+func BSONToArray(input bson.A) []any {
+	if input == nil {
+		return nil
+	}
+	output := make([]any, len(input))
+	for index, value := range input {
+		output[index] = BSONToAny(value)
+	}
+	return output
+}
+
+func BSONToAny(input any) any {
+	switch output := input.(type) {
+	case bson.M:
+		return BSONToMap(output)
+	case bson.A:
+		return BSONToArray(output)
+	default:
+		return output
+	}
+}

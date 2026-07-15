@@ -21,29 +21,18 @@ import (
 )
 
 var _ = Describe("Runner", func() {
-	var authCtrl *gomock.Controller
-	var clinicsCtrl *gomock.Controller
-	var taskCtrl *gomock.Controller
-
+	var mockController *gomock.Controller
 	var authClient *authTest.MockClient
 	var clinicsClient *clinicsTest.MockClient
 	var taskClient *taskTest.MockClient
 	var logger log.Logger
 
 	BeforeEach(func() {
-		authCtrl = gomock.NewController(GinkgoT())
-		clinicsCtrl = gomock.NewController(GinkgoT())
-		taskCtrl = gomock.NewController(GinkgoT())
-		authClient = authTest.NewMockClient(authCtrl)
-		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
-		taskClient = taskTest.NewMockClient(taskCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		authClient = authTest.NewMockClient(mockController)
+		clinicsClient = clinicsTest.NewMockClient(mockController)
+		taskClient = taskTest.NewMockClient(mockController)
 		logger = null.NewLogger()
-	})
-
-	AfterEach(func() {
-		authCtrl.Finish()
-		clinicsCtrl.Finish()
-		taskCtrl.Finish()
 	})
 
 	Context("With random data", func() {

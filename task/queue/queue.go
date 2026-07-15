@@ -375,8 +375,8 @@ func (q *queue) computeState(tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
 		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
-			tsk.AppendError(errors.New("pending task requires future available time"))
-			tsk.SetFailed()
+			// This used to error out here, but was considered too defensive.
+			tsk.AvailableTime = pointer.FromAny(time.Now())
 		}
 	case task.TaskStateRunning:
 		if tsk.HasError() {

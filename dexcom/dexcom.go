@@ -17,6 +17,8 @@ const (
 	DataKeyDeviceHashes      = "deviceHashes"
 	DataKeyProviderSessionID = "providerSessionId"
 	DataKeyRetryCount        = "retryCount"
+
+	ProviderName = "dexcom"
 )
 
 func IsValidTransmitterID(value string) bool {

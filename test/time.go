@@ -33,11 +33,11 @@ func MustTime(value time.Time, err error) time.Time {
 }
 
 func RandomTimeBeforeNow() time.Time {
-	return RandomTimeBefore(time.Now())
+	return RandomTimeBefore(now)
 }
 
 func RandomTimeAfterNow() time.Time {
-	return RandomTimeAfter(time.Now())
+	return RandomTimeAfter(now)
 }
 
 func RandomTimeBefore(value time.Time) time.Time {
@@ -82,7 +82,11 @@ func RandomTimeMinimum() time.Time {
 
 func NewObjectFromTime(value time.Time, objectFormat ObjectFormat) interface{} {
 	switch objectFormat {
+	case ObjectFormatBSON:
+		return value
 	case ObjectFormatJSON:
+		return value.Format(time.RFC3339Nano)
+	case ObjectFormatConfig:
 		return value.Format(time.RFC3339Nano)
 	}
 	return value
@@ -94,7 +98,7 @@ func PinnedTime(value time.Time) time.Time {
 	} else if value.After(RandomTimeMaximum()) {
 		return RandomTimeMaximum()
 	} else {
-		return value.Truncate(time.Millisecond)
+		return normalizeLocation(value.Truncate(time.Millisecond))
 	}
 }
 
@@ -105,4 +109,11 @@ func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {
 	return gomegaGstruct.PointTo(gomega.BeTemporally("==", *datum))
 }
 
-var now = time.Now().Truncate(time.Millisecond).UTC()
+func normalizeLocation(value time.Time) time.Time {
+	if value.Location() == time.Local && time.Local.String() == "UTC" {
+		value = value.In(time.UTC)
+	}
+	return value
+}
+
+var now = normalizeLocation(time.Now().Truncate(time.Millisecond).UTC())

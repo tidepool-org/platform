@@ -3,20 +3,51 @@ package pointer_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Default", func() {
+	Context("Default", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
+			defaultValue := test.RandomString()
+			result := pointer.Default(nil, defaultValue)
+			Expect(result).To(Equal(defaultValue))
+		})
+
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
+			value := test.RandomString()
+			defaultValue := test.RandomString()
+			result := pointer.Default(&value, defaultValue)
+			Expect(result).To(Equal(value))
+		})
+	})
+
+	Context("DefaultPointer", func() {
+		It("returns a pointer to the the default value if the pointer to the value is nil", func() {
+			defaultValue := test.RandomString()
+			result := pointer.DefaultPointer(nil, &defaultValue)
+			Expect(result).To(PointTo(Equal(defaultValue)))
+		})
+
+		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+			value := test.RandomString()
+			defaultValue := test.RandomString()
+			result := pointer.DefaultPointer(&value, &defaultValue)
+			Expect(result).To(PointTo(Equal(value)))
+		})
+	})
+
 	Context("DefaultBool", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomBool()
 			result := pointer.DefaultBool(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomBool()
 			defaultValue := test.RandomBool()
 			result := pointer.DefaultBool(&value, defaultValue)
@@ -25,13 +56,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultDuration", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomDuration()
 			result := pointer.DefaultDuration(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomDuration()
 			defaultValue := test.RandomDuration()
 			result := pointer.DefaultDuration(&value, defaultValue)
@@ -40,13 +71,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultFloat64", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomFloat64()
 			result := pointer.DefaultFloat64(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomFloat64()
 			defaultValue := test.RandomFloat64()
 			result := pointer.DefaultFloat64(&value, defaultValue)
@@ -55,13 +86,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultInt", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomInt()
 			result := pointer.DefaultInt(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomInt()
 			defaultValue := test.RandomInt()
 			result := pointer.DefaultInt(&value, defaultValue)
@@ -70,13 +101,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultString", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomString()
 			result := pointer.DefaultString(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomString()
 			defaultValue := test.RandomString()
 			result := pointer.DefaultString(&value, defaultValue)
@@ -85,27 +116,27 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultStringArray", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultStringArray(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil with nil value", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil with nil value", func() {
 			var value []string
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultStringArray(&value, defaultValue)
 			Expect(result).To(Equal(value))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil with empty value", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil with empty value", func() {
 			value := []string{}
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultStringArray(&value, defaultValue)
 			Expect(result).To(Equal(value))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil with non-empty value", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil with non-empty value", func() {
 			value := test.RandomStringArray()
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultStringArray(&value, defaultValue)
@@ -114,13 +145,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultTime", func() {
-		It("returns a pointer to the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the pointer to the value is nil", func() {
 			defaultValue := test.RandomTime()
 			result := pointer.DefaultTime(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
 			value := test.RandomTime()
 			defaultValue := test.RandomTime()
 			result := pointer.DefaultTime(&value, defaultValue)

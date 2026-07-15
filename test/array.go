@@ -9,6 +9,14 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 )
 
+func AsAnyArray[T any, U ~[]T](array U) []any {
+	anyArray := make([]any, len(array))
+	for index, element := range array {
+		anyArray[index] = element
+	}
+	return anyArray
+}
+
 func MatchArray(elements ...interface{}) gomegaTypes.GomegaMatcher {
 	return &MatchArrayMatcher{
 		Elements: elements,
