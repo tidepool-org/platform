@@ -16,6 +16,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 
 	page "github.com/tidepool-org/platform/page"
+	request "github.com/tidepool-org/platform/request"
 	task "github.com/tidepool-org/platform/task"
 )
 
@@ -83,17 +84,17 @@ func (c *MockClientCreateTaskCall) DoAndReturn(f func(context.Context, *task.Tas
 }
 
 // DeleteTask mocks base method.
-func (m *MockClient) DeleteTask(ctx context.Context, id string) error {
+func (m *MockClient) DeleteTask(ctx context.Context, id string, condition *request.Condition) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteTask", ctx, id)
+	ret := m.ctrl.Call(m, "DeleteTask", ctx, id, condition)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteTask indicates an expected call of DeleteTask.
-func (mr *MockClientMockRecorder) DeleteTask(ctx, id any) *MockClientDeleteTaskCall {
+func (mr *MockClientMockRecorder) DeleteTask(ctx, id, condition any) *MockClientDeleteTaskCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTask", reflect.TypeOf((*MockClient)(nil).DeleteTask), ctx, id)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTask", reflect.TypeOf((*MockClient)(nil).DeleteTask), ctx, id, condition)
 	return &MockClientDeleteTaskCall{Call: call}
 }
 
@@ -109,30 +110,30 @@ func (c *MockClientDeleteTaskCall) Return(arg0 error) *MockClientDeleteTaskCall 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientDeleteTaskCall) Do(f func(context.Context, string) error) *MockClientDeleteTaskCall {
+func (c *MockClientDeleteTaskCall) Do(f func(context.Context, string, *request.Condition) error) *MockClientDeleteTaskCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientDeleteTaskCall) DoAndReturn(f func(context.Context, string) error) *MockClientDeleteTaskCall {
+func (c *MockClientDeleteTaskCall) DoAndReturn(f func(context.Context, string, *request.Condition) error) *MockClientDeleteTaskCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetTask mocks base method.
-func (m *MockClient) GetTask(ctx context.Context, id string) (*task.Task, error) {
+func (m *MockClient) GetTask(ctx context.Context, id string, condition *request.Condition) (*task.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTask", ctx, id)
+	ret := m.ctrl.Call(m, "GetTask", ctx, id, condition)
 	ret0, _ := ret[0].(*task.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetTask indicates an expected call of GetTask.
-func (mr *MockClientMockRecorder) GetTask(ctx, id any) *MockClientGetTaskCall {
+func (mr *MockClientMockRecorder) GetTask(ctx, id, condition any) *MockClientGetTaskCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockClient)(nil).GetTask), ctx, id)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockClient)(nil).GetTask), ctx, id, condition)
 	return &MockClientGetTaskCall{Call: call}
 }
 
@@ -148,13 +149,13 @@ func (c *MockClientGetTaskCall) Return(arg0 *task.Task, arg1 error) *MockClientG
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientGetTaskCall) Do(f func(context.Context, string) (*task.Task, error)) *MockClientGetTaskCall {
+func (c *MockClientGetTaskCall) Do(f func(context.Context, string, *request.Condition) (*task.Task, error)) *MockClientGetTaskCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientGetTaskCall) DoAndReturn(f func(context.Context, string) (*task.Task, error)) *MockClientGetTaskCall {
+func (c *MockClientGetTaskCall) DoAndReturn(f func(context.Context, string, *request.Condition) (*task.Task, error)) *MockClientGetTaskCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -199,18 +200,18 @@ func (c *MockClientListTasksCall) DoAndReturn(f func(context.Context, *task.Task
 }
 
 // UpdateTask mocks base method.
-func (m *MockClient) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
+func (m *MockClient) UpdateTask(ctx context.Context, id string, condition *request.Condition, update *task.TaskUpdate) (*task.Task, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateTask", ctx, id, update)
+	ret := m.ctrl.Call(m, "UpdateTask", ctx, id, condition, update)
 	ret0, _ := ret[0].(*task.Task)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateTask indicates an expected call of UpdateTask.
-func (mr *MockClientMockRecorder) UpdateTask(ctx, id, update any) *MockClientUpdateTaskCall {
+func (mr *MockClientMockRecorder) UpdateTask(ctx, id, condition, update any) *MockClientUpdateTaskCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTask", reflect.TypeOf((*MockClient)(nil).UpdateTask), ctx, id, update)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTask", reflect.TypeOf((*MockClient)(nil).UpdateTask), ctx, id, condition, update)
 	return &MockClientUpdateTaskCall{Call: call}
 }
 
@@ -226,231 +227,13 @@ func (c *MockClientUpdateTaskCall) Return(arg0 *task.Task, arg1 error) *MockClie
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockClientUpdateTaskCall) Do(f func(context.Context, string, *task.TaskUpdate) (*task.Task, error)) *MockClientUpdateTaskCall {
+func (c *MockClientUpdateTaskCall) Do(f func(context.Context, string, *request.Condition, *task.TaskUpdate) (*task.Task, error)) *MockClientUpdateTaskCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockClientUpdateTaskCall) DoAndReturn(f func(context.Context, string, *task.TaskUpdate) (*task.Task, error)) *MockClientUpdateTaskCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// MockTaskAccessor is a mock of TaskAccessor interface.
-type MockTaskAccessor struct {
-	ctrl     *gomock.Controller
-	recorder *MockTaskAccessorMockRecorder
-	isgomock struct{}
-}
-
-// MockTaskAccessorMockRecorder is the mock recorder for MockTaskAccessor.
-type MockTaskAccessorMockRecorder struct {
-	mock *MockTaskAccessor
-}
-
-// NewMockTaskAccessor creates a new mock instance.
-func NewMockTaskAccessor(ctrl *gomock.Controller) *MockTaskAccessor {
-	mock := &MockTaskAccessor{ctrl: ctrl}
-	mock.recorder = &MockTaskAccessorMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockTaskAccessor) EXPECT() *MockTaskAccessorMockRecorder {
-	return m.recorder
-}
-
-// CreateTask mocks base method.
-func (m *MockTaskAccessor) CreateTask(ctx context.Context, create *task.TaskCreate) (*task.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateTask", ctx, create)
-	ret0, _ := ret[0].(*task.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateTask indicates an expected call of CreateTask.
-func (mr *MockTaskAccessorMockRecorder) CreateTask(ctx, create any) *MockTaskAccessorCreateTaskCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTask", reflect.TypeOf((*MockTaskAccessor)(nil).CreateTask), ctx, create)
-	return &MockTaskAccessorCreateTaskCall{Call: call}
-}
-
-// MockTaskAccessorCreateTaskCall wrap *gomock.Call
-type MockTaskAccessorCreateTaskCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockTaskAccessorCreateTaskCall) Return(arg0 *task.Task, arg1 error) *MockTaskAccessorCreateTaskCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockTaskAccessorCreateTaskCall) Do(f func(context.Context, *task.TaskCreate) (*task.Task, error)) *MockTaskAccessorCreateTaskCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockTaskAccessorCreateTaskCall) DoAndReturn(f func(context.Context, *task.TaskCreate) (*task.Task, error)) *MockTaskAccessorCreateTaskCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// DeleteTask mocks base method.
-func (m *MockTaskAccessor) DeleteTask(ctx context.Context, id string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteTask", ctx, id)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// DeleteTask indicates an expected call of DeleteTask.
-func (mr *MockTaskAccessorMockRecorder) DeleteTask(ctx, id any) *MockTaskAccessorDeleteTaskCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteTask", reflect.TypeOf((*MockTaskAccessor)(nil).DeleteTask), ctx, id)
-	return &MockTaskAccessorDeleteTaskCall{Call: call}
-}
-
-// MockTaskAccessorDeleteTaskCall wrap *gomock.Call
-type MockTaskAccessorDeleteTaskCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockTaskAccessorDeleteTaskCall) Return(arg0 error) *MockTaskAccessorDeleteTaskCall {
-	c.Call = c.Call.Return(arg0)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockTaskAccessorDeleteTaskCall) Do(f func(context.Context, string) error) *MockTaskAccessorDeleteTaskCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockTaskAccessorDeleteTaskCall) DoAndReturn(f func(context.Context, string) error) *MockTaskAccessorDeleteTaskCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// GetTask mocks base method.
-func (m *MockTaskAccessor) GetTask(ctx context.Context, id string) (*task.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetTask", ctx, id)
-	ret0, _ := ret[0].(*task.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetTask indicates an expected call of GetTask.
-func (mr *MockTaskAccessorMockRecorder) GetTask(ctx, id any) *MockTaskAccessorGetTaskCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockTaskAccessor)(nil).GetTask), ctx, id)
-	return &MockTaskAccessorGetTaskCall{Call: call}
-}
-
-// MockTaskAccessorGetTaskCall wrap *gomock.Call
-type MockTaskAccessorGetTaskCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockTaskAccessorGetTaskCall) Return(arg0 *task.Task, arg1 error) *MockTaskAccessorGetTaskCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockTaskAccessorGetTaskCall) Do(f func(context.Context, string) (*task.Task, error)) *MockTaskAccessorGetTaskCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockTaskAccessorGetTaskCall) DoAndReturn(f func(context.Context, string) (*task.Task, error)) *MockTaskAccessorGetTaskCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// ListTasks mocks base method.
-func (m *MockTaskAccessor) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListTasks", ctx, filter, pagination)
-	ret0, _ := ret[0].(task.Tasks)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ListTasks indicates an expected call of ListTasks.
-func (mr *MockTaskAccessorMockRecorder) ListTasks(ctx, filter, pagination any) *MockTaskAccessorListTasksCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListTasks", reflect.TypeOf((*MockTaskAccessor)(nil).ListTasks), ctx, filter, pagination)
-	return &MockTaskAccessorListTasksCall{Call: call}
-}
-
-// MockTaskAccessorListTasksCall wrap *gomock.Call
-type MockTaskAccessorListTasksCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockTaskAccessorListTasksCall) Return(arg0 task.Tasks, arg1 error) *MockTaskAccessorListTasksCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockTaskAccessorListTasksCall) Do(f func(context.Context, *task.TaskFilter, *page.Pagination) (task.Tasks, error)) *MockTaskAccessorListTasksCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockTaskAccessorListTasksCall) DoAndReturn(f func(context.Context, *task.TaskFilter, *page.Pagination) (task.Tasks, error)) *MockTaskAccessorListTasksCall {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// UpdateTask mocks base method.
-func (m *MockTaskAccessor) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateTask", ctx, id, update)
-	ret0, _ := ret[0].(*task.Task)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// UpdateTask indicates an expected call of UpdateTask.
-func (mr *MockTaskAccessorMockRecorder) UpdateTask(ctx, id, update any) *MockTaskAccessorUpdateTaskCall {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTask", reflect.TypeOf((*MockTaskAccessor)(nil).UpdateTask), ctx, id, update)
-	return &MockTaskAccessorUpdateTaskCall{Call: call}
-}
-
-// MockTaskAccessorUpdateTaskCall wrap *gomock.Call
-type MockTaskAccessorUpdateTaskCall struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockTaskAccessorUpdateTaskCall) Return(arg0 *task.Task, arg1 error) *MockTaskAccessorUpdateTaskCall {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockTaskAccessorUpdateTaskCall) Do(f func(context.Context, string, *task.TaskUpdate) (*task.Task, error)) *MockTaskAccessorUpdateTaskCall {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockTaskAccessorUpdateTaskCall) DoAndReturn(f func(context.Context, string, *task.TaskUpdate) (*task.Task, error)) *MockTaskAccessorUpdateTaskCall {
+func (c *MockClientUpdateTaskCall) DoAndReturn(f func(context.Context, string, *request.Condition, *task.TaskUpdate) (*task.Task, error)) *MockClientUpdateTaskCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

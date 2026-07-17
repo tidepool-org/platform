@@ -34,10 +34,8 @@ type UpdateRunner struct {
 func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
 	typ := UpdateType + "." + summaryType
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(typ),
-		Type:          typ,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Name: pointer.FromAny(typ),
+		Type: typ,
 		Data: map[string]any{
 			ConfigMinInterval: int32(DefaultUpdateAvailableAfterDurationMinimum.Seconds()),
 			ConfigMaxInterval: int32(DefaultUpdateAvailableAfterDurationMaximum.Seconds()),
@@ -69,8 +67,8 @@ func (r *UpdateRunner) GetRunnerType() string {
 	return UpdateType + "." + r.summaryType
 }
 
-func (r *UpdateRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(UpdateTaskDurationMaximum * 3)
+func (r *UpdateRunner) GetRunnerDeadline() time.Duration {
+	return UpdateTaskDurationMaximum * 3
 }
 
 func (r *UpdateRunner) GetRunnerTimeout() time.Duration {

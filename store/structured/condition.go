@@ -13,6 +13,12 @@ func NewCondition() *Condition {
 	return &Condition{}
 }
 
+func NewConditionWithRevision(revision *int) *Condition {
+	return &Condition{
+		Revision: revision,
+	}
+}
+
 func MapCondition(condition *request.Condition) *Condition {
 	if condition == nil {
 		return nil

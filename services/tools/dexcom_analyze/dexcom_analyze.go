@@ -95,13 +95,10 @@ const (
 	Issue_Task_With_State_Failed_AvailableTime_Present                   = "task with state failed available time present"
 	Issue_Task_With_State_Failed_DeadlineTime_Present                    = "task with state failed deadline time present"
 	Issue_Task_With_State_Failed_Error_Missing                           = "task with state failed error missing"
-	Issue_Task_With_State_Failed_ExpirationTime_Present                  = "task with state failed expiration time present"
 	Issue_Task_With_State_Pending_DeadlineTime_Present                   = "task with state pending deadline time present"
-	Issue_Task_With_State_Pending_ExpirationTime_Present                 = "task with state pending expiration time present"
 	Issue_Task_With_State_Running_AvailableTime_Present                  = "task with state running available time present"
 	Issue_Task_With_State_Running_DeadlineTime_Missing                   = "task with state running deadline time missing"
 	Issue_Task_With_State_Running_Error_Present                          = "task with state running error present"
-	Issue_Task_With_State_Running_ExpirationTime_Present                 = "task with state running expiration time present"
 
 	IssueFormat_DataSource_Invalid                          = "data source invalid ('%s', '%s')"
 	IssueFormat_DataSource_ProviderSession_Mismatch         = "data source provider session mismatch ('%s', '%s')"
@@ -162,13 +159,10 @@ func Issues() []string {
 		Issue_Task_With_State_Failed_AvailableTime_Present,
 		Issue_Task_With_State_Failed_DeadlineTime_Present,
 		Issue_Task_With_State_Failed_Error_Missing,
-		Issue_Task_With_State_Failed_ExpirationTime_Present,
 		Issue_Task_With_State_Pending_DeadlineTime_Present,
-		Issue_Task_With_State_Pending_ExpirationTime_Present,
 		Issue_Task_With_State_Running_AvailableTime_Present,
 		Issue_Task_With_State_Running_DeadlineTime_Missing,
 		Issue_Task_With_State_Running_Error_Present,
-		Issue_Task_With_State_Running_ExpirationTime_Present,
 	}
 }
 
@@ -1108,9 +1102,6 @@ func (t *Tool) analyzeTasks() {
 			if record.DeadlineTime != nil {
 				record.AppendIssue(Issue_Task_With_State_Pending_DeadlineTime_Present)
 			}
-			if record.ExpirationTime != nil {
-				record.AppendIssue(Issue_Task_With_State_Pending_ExpirationTime_Present)
-			}
 		case task.TaskStateRunning:
 			if record.AvailableTime != nil {
 				record.AppendIssue(Issue_Task_With_State_Running_AvailableTime_Present)
@@ -1121,9 +1112,6 @@ func (t *Tool) analyzeTasks() {
 			if record.Error != nil {
 				record.AppendIssue(Issue_Task_With_State_Running_Error_Present)
 			}
-			if record.ExpirationTime != nil {
-				record.AppendIssue(Issue_Task_With_State_Running_ExpirationTime_Present)
-			}
 		case task.TaskStateFailed:
 			if record.AvailableTime != nil {
 				record.AppendIssue(Issue_Task_With_State_Failed_AvailableTime_Present)
@@ -1133,9 +1121,6 @@ func (t *Tool) analyzeTasks() {
 			}
 			if record.Error == nil {
 				record.AppendIssue(Issue_Task_With_State_Failed_Error_Missing)
-			}
-			if record.ExpirationTime != nil {
-				record.AppendIssue(Issue_Task_With_State_Failed_ExpirationTime_Present)
 			}
 		case task.TaskStateCompleted:
 			record.AppendIssuef(IssueFormat_Task_State_Invalid, record.State)
@@ -1353,9 +1338,7 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		t.outputMongoOperationf("db.tasks.updateMany({state: 'failed', deadlineTime: {$exists: true}}, {$unset: {deadlineTime: true}})")
 		return
 	case Issue_Task_With_State_Failed_Error_Missing:
-	case Issue_Task_With_State_Failed_ExpirationTime_Present:
 	case Issue_Task_With_State_Pending_DeadlineTime_Present:
-	case Issue_Task_With_State_Pending_ExpirationTime_Present:
 	case Issue_Task_With_State_Running_AvailableTime_Present:
 		t.outputResolutionHeader("FIXED with BACK-3116. Will keep occurring until deployed. Will need to manually update failed tasks post-deploy.")
 		// NOTE: Uncomment this block to see further details.
@@ -1375,7 +1358,6 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		t.outputMongoReadOperationsHeader()
 		t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
 		return
-	case Issue_Task_With_State_Running_ExpirationTime_Present:
 	default:
 		t.analyzeIssueFormat(issue, marshalables)
 		return

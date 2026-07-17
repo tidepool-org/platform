@@ -2,31 +2,96 @@ package queue
 
 import (
 	"context"
-	"math/rand"
 	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/task/store"
+	taskStore "github.com/tidepool-org/platform/task/store"
+)
+
+var (
+	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout without
+	// returning, sorted by type. A non-zero value indicates a runner that does not honor context
+	// cancellation, which leaves its worker blocked until the process restarts.
+	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_runner_timeout_exceeded_total",
+		Help: "The total number of task runs that exceeded the runner timeout without returning, sorted by type",
+	}, []string{"type"})
+
+	// RunDurationSeconds observes how long each task run took, sorted by type. Use it to track
+	// run latency percentiles and to alert when durations approach the runner timeout.
+	RunDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "tidepool_task_run_duration_seconds",
+		Help:    "The duration of task runs in seconds, sorted by type",
+		Buckets: prometheus.ExponentialBuckets(0.1, 2, 15),
+	}, []string{"type"})
+
+	// RunPanicTotal counts task runs that panicked and were recovered, sorted by type.
+	RunPanicTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_run_panic_total",
+		Help: "The total number of task runs that panicked, sorted by type",
+	}, []string{"type"})
+
+	// WorkersAvailable reports the number of idle workers per queue. A value pinned at zero
+	// indicates a saturated queue or workers wedged in non-cooperative runners.
+	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_available",
+		Help: "The number of idle task queue workers, sorted by queue",
+	}, []string{"queue"})
+
+	// WorkersTotal reports the configured number of workers per queue.
+	WorkersTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_total",
+		Help: "The configured number of task queue workers, sorted by queue",
+	}, []string{"queue"})
+)
+
+const (
+	WorkersDefault      = 5
+	DelayDefault        = time.Minute
+	DelayInitialDefault = time.Minute
+	DelayUnstickDefault = 5 * time.Minute
+
+	// StopWaitTimeoutDefault bounds how long Stop waits for in-flight tasks to observe
+	// cancellation and exit before abandoning them (they are recovered by the deadline
+	// and unstick mechanism). Kept under the typical Kubernetes termination grace period
+	// since we could use it up to twice (once for workers and once for manager) and we
+	// still want to leave time for the store to flush any pending writes.
+	StopWaitTimeoutDefault = 10 * time.Second
+
+	DurationJitterFactor = 0.2
+
+	// TaskDeadlineDefault bounds how long a task is allowed to run before being forcefully
+	// reset if a runner for the task type is not registered.
+	TaskDeadlineDefault = time.Minute
 )
 
 type Config struct {
-	Workers int
-	Delay   time.Duration
+	Workers         int
+	Delay           time.Duration
+	DelayInitial    time.Duration
+	DelayUnstick    time.Duration
+	StopWaitTimeout time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Workers: 1,
-		Delay:   60 * time.Second,
+		Workers:         WorkersDefault,
+		Delay:           DelayDefault,
+		DelayInitial:    DelayInitialDefault,
+		DelayUnstick:    DelayUnstickDefault,
+		StopWaitTimeout: StopWaitTimeoutDefault,
 	}
 }
 
@@ -36,20 +101,39 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 
 	if workersString, err := configReporter.Get("workers"); err == nil {
-		var workers int64
-		workers, err = strconv.ParseInt(workersString, 10, 0)
-		if err != nil {
+		if workers, parseErr := strconv.ParseInt(workersString, 10, 0); parseErr != nil {
 			return errors.New("workers is invalid")
+		} else {
+			c.Workers = int(workers)
 		}
-		c.Workers = int(workers)
 	}
 	if delayString, err := configReporter.Get("delay"); err == nil {
-		var delay int64
-		delay, err = strconv.ParseInt(delayString, 10, 0)
-		if err != nil {
+		if delay, parseErr := strconv.ParseInt(delayString, 10, 0); parseErr != nil {
 			return errors.New("delay is invalid")
+		} else {
+			c.Delay = time.Duration(delay) * time.Second
 		}
-		c.Delay = time.Duration(delay) * time.Second
+	}
+	if delayInitialString, err := configReporter.Get("delay_initial"); err == nil {
+		if delayInitial, parseErr := strconv.ParseInt(delayInitialString, 10, 0); parseErr != nil {
+			return errors.New("delay initial is invalid")
+		} else {
+			c.DelayInitial = time.Duration(delayInitial) * time.Second
+		}
+	}
+	if delayUnstickString, err := configReporter.Get("delay_unstick"); err == nil {
+		if delayUnstick, parseErr := strconv.ParseInt(delayUnstickString, 10, 0); parseErr != nil {
+			return errors.New("delay unstick is invalid")
+		} else {
+			c.DelayUnstick = time.Duration(delayUnstick) * time.Second
+		}
+	}
+	if stopWaitTimeoutString, err := configReporter.Get("stop_wait_timeout"); err == nil {
+		if stopWaitTimeout, parseErr := strconv.ParseInt(stopWaitTimeoutString, 10, 0); parseErr != nil {
+			return errors.New("stop wait timeout is invalid")
+		} else {
+			c.StopWaitTimeout = time.Duration(stopWaitTimeout) * time.Second
+		}
 	}
 
 	return nil
@@ -59,62 +143,84 @@ func (c *Config) Validate() error {
 	if c.Workers < 1 {
 		return errors.New("workers is invalid")
 	}
-	if c.Delay < 0 {
+	if c.Delay <= 0 {
 		return errors.New("delay is invalid")
 	}
-
+	if c.DelayInitial <= 0 {
+		return errors.New("delay initial is invalid")
+	}
+	if c.DelayUnstick <= 0 {
+		return errors.New("delay unstick is invalid")
+	}
+	if c.StopWaitTimeout <= 0 {
+		return errors.New("stop wait timeout is invalid")
+	}
 	return nil
 }
 
 type Runner interface {
-
 	// The type of tasks that the runner supports.
 	GetRunnerType() string
 
-	// The time after which the task manager will forcefully reset the task back to pending
-	// and available. This is calculated based upon the current time and a duration significantly
-	// longer that the task duration maximum. Normally this would only be used on a task that
-	// is in the running state even though it is not running (likely due to a system crash or interruption).
-	GetRunnerDeadline() time.Time
+	// The duration after which the task manager will forcefully reset the task back to pending
+	// and available. This is a duration significantly longer than the task duration maximum. Normally,
+	// this would only be used on a task that is in the running state even though it is not running
+	// (likely due to a system crash or interruption). Must exceed the runner timeout, or a task
+	// could be unstuck and re-claimed while the original run is still executing.
+	GetRunnerDeadline() time.Duration
 
 	// The duration of a task where the task manager will forcefully cancel the task context to interrupt
 	// the task and force completion. This is typically a duration somewhat longer than the task
-	// duration maximum.
+	// duration maximum. Must exceed the runner duration maximum.
 	GetRunnerTimeout() time.Duration
 
 	// The typical duration maximum of the task after which a warning will be displayed.
+	// Must be positive.
 	GetRunnerDurationMaximum() time.Duration
 
 	// Execute the specified task within the specified context. The context will be forcefully
-	// canceled after a duration specified by GetRunnerTimeout.
+	// canceled after a duration specified by GetRunnerTimeout. Before returning, the runner
+	// must move the task out of the running state (typically pending via RepeatAvailableAt or
+	// RepeatAvailableAfter to run again, or completed, or failed); a task left running when
+	// the runner returns is marked failed, unless the run was interrupted by queue shutdown,
+	// in which case it is reverted to pending.
 	Run(ctx context.Context, tsk *task.Task)
 }
 
+// Queue runs tasks via runners provided at construction. A queue is single-use: it may be
+// started at most once and stopped at most once, and once stopped it cannot be restarted
+// (create a new queue instead). Start after Stop, a second Start, and a second Stop are
+// all no-ops.
 type Queue interface {
-	RegisterRunner(Runner) error
 	Start()
 	Stop()
 }
 
+// The queue's fields are all immutable after New, except the lifecycle fields, which are
+// guarded by the lifecycle mutex, and workersAvailable, which is owned exclusively by the
+// manager goroutine. The workers and manager therefore read the channels and runners map
+// freely, without synchronization.
 type queue struct {
+	name              string
+	config            *Config
 	logger            log.Logger
-	store             store.Store
-	workers           int
-	delay             time.Duration
+	repository        taskStore.TaskRepository
 	runners           map[string]Runner
-	workersCancelFunc context.CancelFunc
-	workersWaitGroup  sync.WaitGroup
-	managerCancelFunc context.CancelFunc
-	managerWaitGroup  sync.WaitGroup
-	workersAvailable  int
 	dispatchChannel   chan *task.Task
 	completionChannel chan *task.Task
-	timer             *time.Timer
-	taskRepository    store.TaskRepository
-	iterator          *mongo.Cursor
+	lifecycleMutex    sync.Mutex
+	started           bool
+	stopped           bool
+	cancelFunc        context.CancelFunc
+	workersWaitGroup  sync.WaitGroup
+	managerWaitGroup  sync.WaitGroup
+	workersAvailable  int
 }
 
-func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
+func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners ...Runner) (Queue, error) {
+	if name == "" {
+		return nil, errors.New("name is missing")
+	}
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	}
@@ -129,311 +235,465 @@ func New(cfg *Config, lgr log.Logger, str store.Store) (Queue, error) {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	workers := cfg.Workers
-	delay := cfg.Delay
+	runnerMap := make(map[string]Runner, len(runners))
+	for _, runner := range runners {
+		if runner == nil {
+			return nil, errors.New("runner is missing")
+		}
+		if _, ok := runnerMap[runner.GetRunnerType()]; ok {
+			return nil, errors.New("runner type already registered")
+		}
+		if err := validateRunner(runner); err != nil {
+			return nil, err
+		}
+		runnerMap[runner.GetRunnerType()] = runner
+	}
 
 	return &queue{
-		logger:            lgr,
-		store:             str,
-		workers:           workers,
-		delay:             delay,
-		runners:           make(map[string]Runner),
-		dispatchChannel:   make(chan *task.Task, workers),
-		completionChannel: make(chan *task.Task, workers),
+		name:       name,
+		config:     cfg,
+		logger:     lgr.WithField("queue", name),
+		repository: str.NewTaskRepository(),
+		runners:    runnerMap,
+
+		// NOT buffered so a task is only handed off when a worker is ready to receive it. This ensures a dispatched task is never
+		// stranded in a buffer during shutdown.
+		dispatchChannel: make(chan *task.Task),
+
+		// Buffered so that a worker can complete a task and hand it off to the manager even if the manager is busy dispatching other tasks.
+		completionChannel: make(chan *task.Task, cfg.Workers),
 	}, nil
 }
 
-func (q *queue) RegisterRunner(runner Runner) error {
-	if runner == nil {
-		return errors.New("runner is missing")
-	}
-
-	q.runners[runner.GetRunnerType()] = runner
-	return nil
-}
-
 func (q *queue) Start() {
-	backgroundCtx := log.NewContextWithLogger(context.Background(), q.logger)
-	if q.workersCancelFunc == nil {
-		ctx, workersCancelFunc := context.WithCancel(backgroundCtx)
-		q.workersCancelFunc = workersCancelFunc
+	q.lifecycleMutex.Lock()
+	defer q.lifecycleMutex.Unlock()
 
-		q.startWorkers(ctx)
+	if q.started || q.stopped {
+		return
 	}
-	if q.managerCancelFunc == nil {
-		ctx, managerCancelFunc := context.WithCancel(backgroundCtx)
-		q.managerCancelFunc = managerCancelFunc
+	q.started = true
 
-		q.startManager(ctx)
-	}
+	ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
+	q.cancelFunc = cancelFunc
+
+	q.startWorkers(ctx)
+	q.startManager(ctx)
 }
 
 func (q *queue) Stop() {
-	if q.workersCancelFunc != nil {
-		q.workersCancelFunc()
-		q.workersCancelFunc = nil
-	}
-	q.workersWaitGroup.Wait()
+	// Hold the mutex for the entire stop, including the waits, so a concurrent Start cannot
+	// observe a partially stopped queue.
+	q.lifecycleMutex.Lock()
+	defer q.lifecycleMutex.Unlock()
 
+	if q.stopped {
+		return
+	}
+	q.stopped = true
+
+	// Never started, so nothing to stop; the stopped flag ensures it never will be.
+	if !q.started {
+		return
+	}
+
+	lgr := q.logger.WithField("stopWaitTimeout", q.config.StopWaitTimeout)
+
+	// Cancel the manager, so it stops dispatching new tasks and begins draining completions
+	// from the workers, and the workers, to interrupt any in-flight task.
+	q.cancelFunc()
+
+	// Wait for all workers to exit, but only up to a bounded timeout so a runner that does
+	// not honor cancellation cannot block shutdown forever. If a worker is still running we
+	// must NOT close the channels: a stuck worker that later finishes would panic sending on
+	// a closed completion channel. Instead we leave the goroutines orphaned (reaped at process
+	// exit); the abandoned task stays running and is recovered by the deadline/unstick mechanism.
+	if !waitWithTimeout(&q.workersWaitGroup, q.config.StopWaitTimeout) {
+		lgr.Error("Task queue workers did not stop within timeout; abandoning in-flight tasks")
+		return
+	}
+
+	// All workers have exited, so completion channel can be closed.
 	close(q.completionChannel)
 
-	if q.managerCancelFunc != nil {
-		q.managerCancelFunc()
-		q.managerCancelFunc = nil
+	// Wait for manager to exit. This should be prompt now that the completion channel is
+	// closed, but bound it too in case a completion write is slow.
+	if !waitWithTimeout(&q.managerWaitGroup, q.config.StopWaitTimeout) {
+		lgr.Error("Task queue manager did not stop within timeout")
+		return
 	}
-	q.managerWaitGroup.Wait()
 
+	// Manager has exited, so no further tasks will be dispatched. Because the
+	// dispatch channel is not buffered, no dispatched task can be stranded in it; any
+	// task the manager could not hand off was reverted to pending during dispatch.
 	close(q.dispatchChannel)
 }
 
 func (q *queue) startWorkers(ctx context.Context) {
-	for q.workersAvailable = 0; q.workersAvailable < q.workers; q.workersAvailable++ {
-		q.startWorker(ctx)
+	for q.workersAvailable = 0; q.workersAvailable < q.config.Workers; q.workersAvailable++ {
+		q.startWorker(log.ContextWithField(ctx, "worker", q.workersAvailable))
 	}
+	WorkersAvailable.WithLabelValues(q.name).Set(float64(q.workersAvailable))
+	WorkersTotal.WithLabelValues(q.name).Set(float64(q.config.Workers))
 }
 
 func (q *queue) startWorker(ctx context.Context) {
-	q.workersWaitGroup.Add(1)
-	go func() {
-		defer q.workersWaitGroup.Done()
+	q.workersWaitGroup.Go(func() {
+		lgr := log.LoggerFromContext(ctx)
+
+		lgr.Debug("Task queue worker started")
 
 		for {
-			select {
-			case <-ctx.Done():
+			if err := q.executeWorker(ctx); err != nil {
+				lgr.WithError(err).Debug("Task queue worker stopped")
 				return
-			case tsk := <-q.dispatchChannel:
-				q.runTask(ctx, tsk)
-				q.completionChannel <- tsk
 			}
 		}
-	}()
+	})
+}
+
+func (q *queue) executeWorker(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	default:
+	}
+
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case tsk := <-q.dispatchChannel:
+		if tsk != nil {
+			q.runTask(ctx, tsk)
+			q.completionChannel <- tsk
+		}
+	}
+
+	return nil
 }
 
 func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
-	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
+	runner, ok := q.runners[tsk.Type]
+	if !ok {
+		tsk.AppendError(errors.New("runner not found for task"))
+		tsk.SetFailed()
+		return
+	}
+
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
 	defer func() {
 		if err := recover(); err != nil {
-			log.LoggerFromContext(ctx).WithFields(log.Fields{"error": err, "stack": string(debug.Stack())}).Error("Unhandled panic")
+			lgr.WithFields(log.Fields{"error": err, "stack": string(debug.Stack())}).Error("Unhandled panic while running task")
 			tsk.AppendError(errors.New("unhandled panic"))
+			RunPanicTotal.WithLabelValues(tsk.Type).Inc()
 		}
 	}()
 
-	if runner, ok := q.runners[tsk.Type]; ok {
+	startTime := time.Now()
 
-		// If runner does not respect its own maximum duration, then enforce a context-based timeout.
-		// This forces the task to cancel via the context.
-		ctx, cancel := context.WithTimeout(ctx, runner.GetRunnerTimeout())
-		defer cancel()
+	// If runner does not respect its own maximum duration, then enforce a context-based timeout.
+	// This forces the task to cancel via the context.
+	runnerContext, cancel := context.WithTimeoutCause(ctx, runner.GetRunnerTimeout(), errors.New("task runner timeout exceeded"))
+	defer cancel()
 
-		startTime := time.Now()
+	// Watchdog for a runner that ignores cancellation. Go cannot preempt a goroutine, so if the
+	// runner blows past its timeout without returning, this worker stays blocked until the
+	// process restarts (the task itself is recovered by the deadline/unstick mechanism). We
+	// cannot unblock the worker, but we surface the condition via a log and metric so a
+	// non-cooperative runner is detectable rather than silent.
+	runnerWatchdog := time.AfterFunc(runner.GetRunnerTimeout(), func() {
+		lgr.Error("Task runner exceeded timeout without returning; worker is blocked until it returns")
+		RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType()).Inc()
+	})
+	defer runnerWatchdog.Stop()
 
-		// Run the task via the runner
-		runner.Run(ctx, tsk)
+	// Run the task via the runner
+	runner.Run(runnerContext, tsk)
 
-		if taskDuration := time.Since(startTime); taskDuration > runner.GetRunnerDurationMaximum() {
-			log.LoggerFromContext(ctx).WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
+	// If the runner left the task running, reconcile its state based on why the run ended.
+	if tsk.State == task.TaskStateRunning {
+		switch {
+		case context.Cause(ctx) != nil:
+			// The parent (worker) context was canceled by shutdown; make the task available
+			// again for retry rather than treating the interruption as a completion.
+			tsk.RepeatAvailableAfter(0)
+		case context.Cause(runnerContext) != nil:
+			// The runner exceeded its timeout; record the cause so the failure is attributed
+			// to the timeout rather than the generic missing terminal state error.
+			tsk.AppendError(context.Cause(runnerContext))
 		}
-	} else {
-		tsk.AppendError(errors.New("runner not found for task"))
-		tsk.SetFailed()
+	}
+
+	taskDuration := time.Since(startTime)
+	RunDurationSeconds.WithLabelValues(runner.GetRunnerType()).Observe(taskDuration.Seconds())
+	if taskDuration > runner.GetRunnerDurationMaximum() {
+		lgr.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
 	}
 }
 
 func (q *queue) startManager(ctx context.Context) {
-	q.managerWaitGroup.Add(1)
+	q.managerWaitGroup.Go(func() {
+		lgr := log.LoggerFromContext(ctx)
 
-	go func() {
-		defer q.managerWaitGroup.Done()
+		lgr.Info("Task queue manager started")
 
-		q.startTimer(time.Duration(rand.Int63n(int64(q.delay)) + 1))
-		defer q.stopTimer()
+		// Start at a random future time to help prevent thundering herd problem
+		select {
+		case <-ctx.Done():
+			lgr.WithError(context.Cause(ctx)).Debug("Task queue manager stopped before dispatching tasks")
+			return
+		case <-time.After(randomDuration(q.config.DelayInitial)):
+			lgr.Debug("Task queue manager initial delay complete")
+		}
 
-		// pick a starting random time in a future cycle to ensure multiple daemons don't do this exactly at the same
-		// time, it is not an error condition if it does, but could stress the db if the collection gets large
-		nextUnstickTime := time.Now().Add(time.Duration(rand.Int63n(int64(q.delay * 15))))
+		// Start at a random future time to help prevent thundering herd problem
+		unstickTime := time.Now().Add(randomDuration(q.config.DelayUnstick))
 
 		for {
-			if nextUnstickTime.Before(time.Now()) {
-				q.unstickTasks(ctx)
-				nextUnstickTime = time.Now().Add(q.delay * 15)
+			if err := q.executeManager(ctx); err != nil {
+				lgr.WithError(err).Debug("Task queue manager stopping")
+
+				// Complete any remaining tasks concurrently so the total drain time is
+				// bounded by a single slow completion write rather than the sum across
+				// all workers' tasks, keeping shutdown within the stop wait timeout.
+				var completionWaitGroup sync.WaitGroup
+				for tsk := range q.completionChannel {
+					if tsk != nil {
+						completionWaitGroup.Go(func() { q.completeTask(ctx, tsk) })
+					}
+				}
+				completionWaitGroup.Wait()
+
+				lgr.WithError(err).Debug("Task queue manager stopped")
+				return
 			}
 
-			select {
-			case <-ctx.Done(): // Drain and complete any interrupted tasks
-				for tsk := range q.completionChannel {
-					q.completeTask(ctx, tsk)
-				}
-				return
-			case tsk := <-q.completionChannel:
-				if tsk != nil {
-					q.stopTimer()
-					q.completeTask(ctx, tsk)
-					q.startTimer(q.dispatchTasks(ctx))
-				}
-			case <-q.timer.C:
-				q.startTimer(q.dispatchTasks(ctx))
+			if unstickTime.Before(time.Now()) {
+				q.unstickTasks(ctx)
+				unstickTime = time.Now().Add(durationWithJitter(q.config.DelayUnstick))
 			}
 		}
-	}()
+	})
+}
+
+func (q *queue) executeManager(ctx context.Context) error {
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	default:
+	}
+
+	select {
+	case <-ctx.Done():
+		return context.Cause(ctx)
+	case tsk := <-q.completionChannel:
+		if tsk != nil {
+			q.completeTask(ctx, tsk)
+			q.workersAvailable++
+			WorkersAvailable.WithLabelValues(q.name).Set(float64(q.workersAvailable))
+			q.dispatchTasks(ctx)
+		}
+	case <-time.After(durationWithJitter(q.config.Delay)):
+		q.dispatchTasks(ctx)
+	}
+
+	return nil
 }
 
 func (q *queue) unstickTasks(ctx context.Context) {
-	repository := q.store.NewTaskRepository()
-	count, err := repository.UnstickTasks(ctx)
-	if err != nil {
-		q.logger.WithError(err).Error("Failure in unsticking tasks")
+	ids, err := q.repository.UnstickTasks(ctx)
+	if count := len(ids); count > 0 {
+		log.LoggerFromContext(ctx).WithFields(log.Fields{"count": count, "ids": ids}).Info("Unstuck tasks")
 	}
-	if count > 0 {
-		q.logger.WithField("unstickCount", count).Warn("Unstuck tasks")
+
+	// Log error unless context was canceled
+	if err != nil {
+		if context.Cause(ctx) == nil {
+			log.LoggerFromContext(ctx).WithError(err).Error("Unable to unstick tasks")
+		}
 	}
 }
 
-func (q *queue) dispatchTasks(ctx context.Context) time.Duration {
-	defer q.stopPendingIterator(ctx)
-	for q.workersAvailable > 0 {
-		iter, err := q.startPendingIterator(ctx)
-		if err != nil {
-			q.logger.WithError(err).Error("Failure starting pending iterator")
-			return q.delay
-		}
-
-		tsk := &task.Task{}
-		if iter.Next(ctx) {
-			if err := iter.Decode(tsk); err != nil {
-				q.logger.WithError(err).Error("Failure iterating tasks")
-				return q.delay
-			}
-			q.dispatchTask(ctx, tsk)
-		} else {
-			if err := iter.Err(); err != nil {
-				q.logger.WithError(err).Error("Failure iterating pending tasks")
-			}
-			return q.delay
-		}
-	}
-
-	return q.delay
-}
-
-func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) {
-	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
-
-	repository := q.store.NewTaskRepository()
-
-	tsk.State = task.TaskStateRunning
-	tsk.AvailableTime = nil
-	tsk.RunTime = pointer.FromAny(time.Now())
-
-	// we don't error here if missing, as the task will be failed during runTask
-	if runner, ok := q.runners[tsk.Type]; ok {
-		tsk.DeadlineTime = pointer.FromAny(runner.GetRunnerDeadline())
-	}
-
-	var err error
-	tsk, err = repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStatePending)
-	if err != nil {
-		if errors.Is(err, task.AlreadyClaimedTask) {
-			log.LoggerFromContext(ctx).Warnf("Failure to claim task %s (%s) as it is already in progress or is no longer available.", tsk.Name, tsk.ID)
-			return
-		}
-
-		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update state during dispatch task")
+func (q *queue) dispatchTasks(ctx context.Context) {
+	if q.workersAvailable < 1 {
 		return
 	}
 
-	q.workersAvailable--
-	q.dispatchChannel <- tsk
+	lgr := log.LoggerFromContext(ctx)
+
+	// Iterate across all pending tasks
+	cursor, err := q.repository.IteratePending(ctx)
+	if err != nil {
+		if context.Cause(ctx) == nil {
+			lgr.WithError(err).Error("Unable to open task iterator")
+		}
+		return
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
+
+	// Loop until no more workers available or no more pending tasks
+	for q.workersAvailable > 0 && cursor.Next(ctx) {
+		tsk := &task.Task{}
+		if err = cursor.Decode(tsk); err != nil {
+			lgr.WithError(err).Error("Unable to decode task")
+		} else if err = q.dispatchTask(ctx, tsk); err != nil {
+			lgr.WithError(err).Error("Unable to dispatch task")
+			return
+		}
+	}
+
+	// Log cursor error unless context was canceled
+	if err := cursor.Err(); err != nil {
+		if context.Cause(ctx) == nil {
+			lgr.WithError(err).Error("Unable to iterate tasks")
+		}
+	}
 }
 
-func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
-	ctx = log.ContextWithField(ctx, "taskId", tsk.ID)
+func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
-	q.workersAvailable++
-
-	repository := q.store.NewTaskRepository()
-
-	q.computeState(tsk)
-
-	if tsk.State != task.TaskStatePending {
-		tsk.AvailableTime = nil
-	}
-	tsk.DeadlineTime = nil
-	if tsk.RunTime != nil {
-		tsk.Duration = pointer.FromFloat64(time.Since(*tsk.RunTime).Truncate(time.Millisecond).Seconds())
+	// we don't error here if missing, as the task will be failed during runTask, which persists error to database
+	var deadline time.Duration
+	if runner, ok := q.runners[tsk.Type]; ok {
+		deadline = runner.GetRunnerDeadline()
+	} else {
+		deadline = TaskDeadlineDefault
 	}
 
-	// Without cancel to ensure task is updated in the database
-	_, err := repository.UpdateFromState(context.WithoutCancel(ctx), tsk, task.TaskStateRunning)
+	// StartTask completes regardless of context cancellation, so its outcome is definitive:
+	// a non-nil startedTask means the claim committed with a known state lock.
+	startedTask, err := q.repository.StartTask(ctx, tsk.ID, tsk.Revision, deadline)
 	if err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("Failure to update state during complete task")
+		return errors.Wrap(err, "unable to start task")
+	} else if startedTask == nil {
+		lgr.Info("Task no longer available to start")
+		return nil
+	}
+
+	// Hand the task off to a worker. If the queue is shutting down before a worker can
+	// receive it, revert the task to pending rather than blocking the manager. The revert
+	// uses the started task state lock so it reliably matches.
+	select {
+	case <-ctx.Done():
+		if err := q.repository.StopTask(ctx, startedTask.ID, startedTask.StateLock, task.TaskStatePending, nil, nil); err != nil {
+			return errors.Wrap(err, "unable to revert task to pending")
+		}
+	case q.dispatchChannel <- startedTask:
+		q.workersAvailable--
+		WorkersAvailable.WithLabelValues(q.name).Set(float64(q.workersAvailable))
+	}
+
+	return nil
+}
+
+// completeTask persists the task's completion. It deliberately does not touch
+// workersAvailable (the caller accounts for the freed worker where relevant), so it is safe
+// to call concurrently during the manager's shutdown drain.
+func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
+
+	q.computeState(ctx, tsk)
+
+	var duration *time.Duration
+	if tsk.RunTime != nil {
+		// Clamp to a zero minimum: the run time round-trips through the database without a
+		// monotonic reading, so a backwards wall clock step could yield a non-positive elapsed
+		// time, which StopTask would reject, losing the completion.
+		duration = pointer.From(max(time.Since(*tsk.RunTime), 0))
 	}
 
 	if tsk.HasError() {
-		log.LoggerFromContext(ctx).WithError(tsk.Error.Error).Error("Error occurred while running task")
+		lgr.Error("Error occurred while running task")
+	}
+
+	// Data and Error use non-nil wrappers so that a task whose data or error was cleared during
+	// the run has the corresponding field unset in the database, rather than left stale (a nil
+	// wrapper means "leave unchanged" to StopTask).
+	update := &task.TaskUpdate{
+		Data:          pointer.From(tsk.Data),
+		AvailableTime: tsk.AvailableTime,
+		Error:         &errors.Serializable{Error: tsk.GetError()},
+	}
+	if err := q.repository.StopTask(ctx, tsk.ID, tsk.StateLock, tsk.State, duration, update); err != nil {
+		lgr.WithError(err).Error("Unable to complete task")
 	}
 }
 
-func (q *queue) computeState(tsk *task.Task) {
+func (q *queue) computeState(ctx context.Context, tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
-		if tsk.AvailableTime == nil || time.Now().After(*tsk.AvailableTime) {
-			// This used to error out here, but was considered too defensive.
-			tsk.AvailableTime = pointer.FromAny(time.Now())
+		now := time.Now().UTC()
+		if tsk.AvailableTime == nil {
+			log.LoggerFromContext(ctx).Warn("Available time missing for pending task")
+			tsk.AvailableTime = pointer.FromTime(now)
+		} else if tsk.AvailableTime.Before(now) {
+			if tsk.AvailableTime.Before(now.Add(-time.Minute)) { // Allow some leeway to prevent spurious warnings
+				log.LoggerFromContext(ctx).Warn("Available time significantly before now for pending task")
+			}
+			tsk.AvailableTime = pointer.FromTime(now)
 		}
 	case task.TaskStateRunning:
-		if tsk.HasError() {
-			tsk.SetFailed()
-		} else {
-			tsk.SetCompleted()
+		// The runner returned without moving the task out of the running state, violating
+		// the runner contract; fail the task rather than guessing whether it succeeded.
+		if !tsk.HasError() {
+			tsk.AppendError(errors.New("runner failed to set terminal task state"))
 		}
+		tsk.SetFailed()
 	case task.TaskStateFailed, task.TaskStateCompleted:
 	default:
-		tsk.AppendError(errors.New("unknown state"))
+		tsk.AppendError(errors.New("unknown task state"))
 		tsk.SetFailed()
 	}
 }
 
-func (q *queue) startTimer(delay time.Duration) {
-	if delay > 0 {
-		if q.timer == nil {
-			q.timer = time.NewTimer(delay)
-		} else {
-			q.timer.Reset(delay)
-		}
+// validateRunner enforces the runner duration contract, deadline > timeout > duration maximum > 0,
+// so that a misconfigured runner fails queue construction rather than causing subtle runtime
+// misbehavior (a non-positive deadline prevents the task from ever starting, while a deadline
+// that does not exceed the timeout allows the unstick mechanism to reset a task that is still
+// running).
+func validateRunner(runner Runner) error {
+	if durationMaximum := runner.GetRunnerDurationMaximum(); durationMaximum <= 0 {
+		return errors.New("runner duration maximum is invalid")
+	} else if timeout := runner.GetRunnerTimeout(); timeout <= durationMaximum {
+		return errors.New("runner timeout is invalid")
+	} else if runner.GetRunnerDeadline() <= timeout {
+		return errors.New("runner deadline is invalid")
+	} else {
+		return nil
 	}
 }
 
-func (q *queue) stopTimer() {
-	if q.timer != nil {
-		if !q.timer.Stop() {
-			<-q.timer.C
-		}
+// waitWithTimeout waits for the wait group to complete, returning true if it completed within
+// the timeout and false otherwise. On timeout the internal waiter goroutine is left running
+// until the wait group eventually completes (or the process exits).
+func waitWithTimeout(waitGroup *sync.WaitGroup, timeout time.Duration) bool {
+	done := make(chan struct{})
+	go func() {
+		waitGroup.Wait()
+		close(done)
+	}()
+
+	select {
+	case <-done:
+		return true
+	case <-time.After(timeout):
+		return false
 	}
 }
 
-func (q *queue) startPendingIterator(ctx context.Context) (*mongo.Cursor, error) {
-	if q.taskRepository == nil {
-		q.taskRepository = q.store.NewTaskRepository()
+func randomDuration(duration time.Duration) time.Duration {
+	if duration <= 0 {
+		return 0
 	}
-	if q.iterator == nil {
-		if iterator, err := q.taskRepository.IteratePending(ctx); err != nil {
-			return nil, err
-		} else {
-			q.iterator = iterator
-		}
-	}
-	return q.iterator, nil
+	return time.Duration(crypto.RandomInt64N(int64(duration)))
 }
 
-func (q *queue) stopPendingIterator(ctx context.Context) {
-	if q.iterator != nil {
-		if err := q.iterator.Close(context.WithoutCancel(ctx)); err != nil {
-			q.logger.WithError(err).Warn("failure closing pending iterator")
-		}
-		q.iterator = nil
+func durationWithJitter(duration time.Duration) time.Duration {
+	if duration <= 0 {
+		return 0
 	}
-	if q.taskRepository != nil {
-		q.taskRepository = nil
-	}
+	jitter := time.Duration(float64(duration) * DurationJitterFactor)
+	return duration + (randomDuration(jitter*2) - jitter)
 }

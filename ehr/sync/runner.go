@@ -31,8 +31,8 @@ func (r *Runner) GetRunnerType() string {
 	return Type
 }
 
-func (r *Runner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(TaskDurationMaximum * 3)
+func (r *Runner) GetRunnerDeadline() time.Duration {
+	return TaskDurationMaximum * 3
 }
 
 func (r *Runner) GetRunnerTimeout() time.Duration {

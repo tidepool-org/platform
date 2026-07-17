@@ -10,7 +10,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
-	"github.com/tidepool-org/platform/request"
 )
 
 type Client struct {
@@ -114,17 +113,9 @@ func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime t
 }
 
 func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	startTime := time.Now()
-
-	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
-
-	if requestDuration := time.Since(startTime); requestDuration > requestDurationMaximum {
-		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
-	}
-
-	return err
+	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
+		return c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, nil, tokenSource)
+	})
 }
 
-const requestDurationMaximum = 30 * time.Second
-
-var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspector("tidepool_dexcom_api_client_requests", "Dexcom API client requests")
+const requestDurationMaximum = 60 * time.Second

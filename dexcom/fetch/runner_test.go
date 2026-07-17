@@ -109,7 +109,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("returns the runner deadline", func() {
-			Expect(runner.GetRunnerDeadline()).Should(BeTemporally("~", time.Now().Add(45*time.Minute), time.Second))
+			Expect(runner.GetRunnerDeadline()).To(Equal(45 * time.Minute))
 		})
 
 		It("returns the runner timeout", func() {

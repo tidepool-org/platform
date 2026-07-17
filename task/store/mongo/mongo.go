@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"slices"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -10,26 +11,42 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
-	"github.com/tidepool-org/platform/ehr/reconcile"
+	ehrReconcile "github.com/tidepool-org/platform/ehr/reconcile"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	storeStructured "github.com/tidepool-org/platform/store/structured"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/task/store"
+	taskStore "github.com/tidepool-org/platform/task/store"
 )
 
-var (
-	TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_state_total",
-		Help: "The total number of tasks sorted by state and type",
-	}, []string{"state", "type"})
-)
+var TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_task_tasks_state_total",
+	Help: "The total number of tasks sorted by state and type",
+}, []string{"state", "type"})
 
-const MaxTaskCreationDuration = 30 * time.Second
+// TasksLostCompletionTotal counts task completions dropped because the compare-and-swap in
+// StopTask missed (the running claim was concurrently modified, unstuck, or deleted). The task
+// is recovered by the deadline/unstick mechanism, but the intended terminal state is lost. The
+// type label is populated only when the repository is type-filtered (as it is for each queue in
+// a MultiQueue); otherwise it is empty.
+var TasksLostCompletionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_task_lost_completion_total",
+	Help: "The total number of task completions dropped because the state-lock compare-and-swap missed, sorted by type",
+}, []string{"type"})
+
+const (
+	MaxTaskCreationDuration = 30 * time.Second
+
+	// TransitionTimeout bounds a task state-transition write (start or stop) that must
+	// complete regardless of the caller's context being canceled (e.g. during shutdown).
+	TransitionTimeout = 10 * time.Second
+)
 
 type Store struct {
 	*storeStructuredMongo.Store
@@ -47,14 +64,14 @@ func NewStore(config *storeStructuredMongo.Config) (*Store, error) {
 	}, nil
 }
 
-func (s *Store) WithTypeFilter(typeFilter string) store.Store {
+func (s *Store) WithTypeFilter(typeFilter string) taskStore.Store {
 	return &Store{
 		Store:      s.Store,
 		typeFilter: &typeFilter,
 	}
 }
 
-func (s *Store) NewTaskRepository() store.TaskRepository {
+func (s *Store) NewTaskRepository() taskStore.TaskRepository {
 	repo := s.TaskRepository()
 	repo.typeFilter = s.typeFilter
 	return repo
@@ -91,22 +108,6 @@ func (s *Store) EnsureDefaultTasks() error {
 	return nil
 }
 
-func (s *Store) EnsureSummaryMigrationTask() error {
-	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
-	defer cancel()
-
-	repository := s.TaskRepository()
-	return repository.EnsureSummaryMigrationTask(ctx)
-}
-
-func (s *Store) EnsureEHRReconcileTask() error {
-	ctx, cancel := context.WithTimeout(context.Background(), MaxTaskCreationDuration)
-	defer cancel()
-
-	repository := s.TaskRepository()
-	return repository.EnsureEHRReconcileTask(ctx)
-}
-
 type TaskRepository struct {
 	*storeStructuredMongo.Repository
 	typeFilter *string
@@ -133,17 +134,7 @@ func (t *TaskRepository) EnsureIndexes() error {
 				SetBackground(true),
 		},
 		{
-			Keys: bson.D{{Key: "priority", Value: 1}},
-			Options: options.Index().
-				SetBackground(true),
-		},
-		{
 			Keys: bson.D{{Key: "availableTime", Value: 1}},
-			Options: options.Index().
-				SetBackground(true),
-		},
-		{
-			Keys: bson.D{{Key: "expirationTime", Value: 1}},
 			Options: options.Index().
 				SetBackground(true),
 		},
@@ -178,7 +169,7 @@ func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
 }
 
 func (t *TaskRepository) EnsureEHRReconcileTask(ctx context.Context) error {
-	create := reconcile.NewTaskCreate()
+	create := ehrReconcile.NewTaskCreate()
 	return t.ensureTask(ctx, create)
 }
 
@@ -189,30 +180,14 @@ func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate
 	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(tsk); err != nil {
 		return errors.Wrap(err, "task is invalid")
 	}
-	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
-		return err
+
+	if result, err := t.UpdateOne(ctx, bson.M{"name": tsk.Name}, bson.M{"$setOnInsert": tsk}, options.Update().SetUpsert(true)); err != nil {
+		return errors.Wrap(err, "unable to create task")
+	} else if result.UpsertedCount > 0 {
+		TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
 	}
 
-	upsert := true
-	after := options.After
-	opts := options.FindOneAndUpdateOptions{
-		ReturnDocument: &after,
-		Upsert:         &upsert,
-	}
-
-	res := t.FindOneAndUpdate(ctx,
-		bson.M{"name": tsk.Name},
-		bson.M{"$setOnInsert": tsk},
-		&opts,
-	)
-
-	if res.Err() != nil && !errors.Is(res.Err(), mongo.ErrNoDocuments) {
-		return errors.Wrap(res.Err(), "unable to create task")
-	}
-
-	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
-
-	return res.Err()
+	return nil
 }
 
 func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter, pagination *page.Pagination) (task.Tasks, error) {
@@ -233,7 +208,7 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 		return nil, err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"filter": filter, "pagination": pagination})
 
 	tasks := task.Tasks{}
@@ -248,15 +223,20 @@ func (t *TaskRepository) ListTasks(ctx context.Context, filter *task.TaskFilter,
 	if filter.State != nil {
 		selector["state"] = *filter.State
 	}
+	if t.typeFilter != nil {
+		selector["type"] = *t.typeFilter
+	}
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": -1})
 	cursor, err := t.Find(ctx, selector, opts)
-	logger.WithFields(log.Fields{"count": len(tasks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
 	if err != nil {
+		logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("ListTasks")
 		return nil, errors.Wrap(err, "unable to list tasks")
 	}
 
-	if err = cursor.All(ctx, &tasks); err != nil {
+	err = cursor.All(ctx, &tasks)
+	logger.WithFields(log.Fields{"count": len(tasks), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("ListTasks")
+	if err != nil {
 		return nil, errors.Wrap(err, "unable to decode tasks")
 	}
 
@@ -278,15 +258,15 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(tsk); err != nil {
 		return nil, errors.Wrap(err, "task is invalid")
 	}
-	if err := t.assertType(t.typeFilter, &tsk.Type); err != nil {
+	if err = t.assertType(t.typeFilter, &tsk.Type); err != nil {
 		return nil, err
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"create": create})
 
 	_, err = t.InsertOne(ctx, tsk)
-	logger.WithFields(log.Fields{"id": tsk.ID, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateTask")
+	logger.WithFields(log.Fields{"task": tsk.LogFields(), "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("CreateTask")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create task")
 	}
@@ -295,25 +275,24 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 	return tsk, nil
 }
 
-func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, error) {
+func (t *TaskRepository) GetTask(ctx context.Context, id string, condition *storeStructured.Condition) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
 	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
-
-	var task *task.Task
-
-	selector := bson.M{"id": id}
-	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+	if condition == nil {
+		condition = &storeStructured.Condition{}
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
-	err := t.FindOne(ctx, selector).Decode(&task)
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition})
+
+	tsk := &task.Task{}
+	err := t.FindOne(ctx, t.selector(id, condition)).Decode(tsk)
 	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("GetTask")
 
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -322,15 +301,20 @@ func (t *TaskRepository) GetTask(ctx context.Context, id string) (*task.Task, er
 		return nil, errors.Wrap(err, "unable to get task")
 	}
 
-	return task, nil
+	return tsk, nil
 }
 
-func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
+func (t *TaskRepository) UpdateTask(ctx context.Context, id string, condition *storeStructured.Condition, update *task.TaskUpdate) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
+	}
+	if condition == nil {
+		condition = &storeStructured.Condition{}
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
@@ -338,56 +322,42 @@ func (t *TaskRepository) UpdateTask(ctx context.Context, id string, update *task
 		return nil, errors.Wrap(err, "update is invalid")
 	}
 
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "update": update})
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "condition": condition, "update": update})
 
-	set := bson.M{
-		"modifiedTime": now,
-	}
-	if update.Priority != nil {
-		set["priority"] = *update.Priority
-	}
-	if update.Data != nil {
-		set["data"] = *update.Data
-	}
-	if update.AvailableTime != nil {
-		set["availableTime"] = *update.AvailableTime
-	}
-	if update.ExpirationTime != nil {
-		set["expirationTime"] = *update.ExpirationTime
-	}
+	set, unset := t.parseUpdate(update)
+	set["modifiedTime"] = now
 
-	selector := bson.M{"id": id}
-	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
-	}
-
-	changeInfo, err := t.UpdateMany(ctx, selector, t.ConstructUpdate(set, bson.M{}))
-	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("UpdateTask")
-	if err != nil {
+	updatedTask := &task.Task{}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := t.FindOneAndUpdate(ctx, t.selector(id, condition), t.ConstructUpdate(set, unset), opts).Decode(updatedTask)
+	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateTask")
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
 		return nil, errors.Wrap(err, "unable to update task")
 	}
 
-	return t.GetTask(ctx, id)
+	return updatedTask, nil
 }
 
-func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
+func (t *TaskRepository) DeleteTask(ctx context.Context, id string, condition *storeStructured.Condition) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if id == "" {
 		return errors.New("id is missing")
 	}
-
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithField("id", id)
-
-	selector := bson.M{"id": id}
-	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+	if condition == nil {
+		condition = &storeStructured.Condition{}
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return errors.Wrap(err, "condition is invalid")
 	}
 
-	changeInfo, err := t.DeleteOne(ctx, selector)
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithField("id", id)
+
+	changeInfo, err := t.DeleteOne(ctx, t.selector(id, condition))
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DeleteTask")
 	if err != nil {
 		return errors.Wrap(err, "unable to delete task")
@@ -396,104 +366,258 @@ func (t *TaskRepository) DeleteTask(ctx context.Context, id string) error {
 	return nil
 }
 
-// TODO: Consider using an "update only specific fields" approach, as above
-
-func (t *TaskRepository) UpdateFromState(ctx context.Context, tsk *task.Task, state string) (*task.Task, error) {
+func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int, deadline time.Duration) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if tsk == nil {
-		return nil, errors.New("task is missing")
+	if id == "" {
+		return nil, errors.New("id is missing")
+	} else if !task.IsValidID(id) {
+		return nil, errors.New("id is invalid")
+	}
+	if deadline <= 0 {
+		return nil, errors.New("deadline is invalid")
 	}
 
-	now := time.Now()
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": tsk.ID, "state": state})
+	// Add a timeout, but ignore cancel from the parent context so the claim write completes
+	// and its outcome is known. A write abandoned mid-flight (e.g. on shutdown) can still
+	// commit in the database, leaving the task running with no reliable way to revert it.
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), TransitionTimeout)
+	defer cancel()
 
-	tsk.ModifiedTime = pointer.FromTime(now.Truncate(time.Millisecond))
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "revision": revision, "deadline": deadline})
 
-	selector := bson.M{
-		"id":    tsk.ID,
-		"state": state,
+	set := bson.M{
+		"state":        task.TaskStateRunning,
+		"runTime":      now,
+		"deadlineTime": now.Add(deadline),
+		"modifiedTime": now,
+		"stateLock":    newStateLock(),
 	}
-	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
-	}
-	result, err := t.ReplaceOne(ctx, selector, tsk)
-	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("UpdateFromState")
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to update from state")
-	}
-	if result.ModifiedCount != 1 {
-		return nil, task.AlreadyClaimedTask
+	unset := bson.M{
+		"duration": 1,
 	}
 
-	TasksStateTotal.WithLabelValues(tsk.State, tsk.Type).Inc()
+	selector := t.selector(id, storeStructured.NewConditionWithRevision(&revision))
+	selector["state"] = task.TaskStatePending
+
+	tsk := &task.Task{}
+	opts := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	err := t.FindOneAndUpdate(ctx, selector, t.ConstructUpdate(set, unset), opts).Decode(tsk)
+	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("StartTask")
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
+		return nil, errors.Wrap(err, "unable to start task")
+	}
+
+	TasksStateTotal.WithLabelValues(task.TaskStateRunning, tsk.Type).Inc()
 	return tsk, nil
 }
 
-func (t *TaskRepository) UnstickTasks(ctx context.Context) (int64, error) {
-	selector := bson.M{
+// Will only timeout after 10 seconds even if parent context is canceled.
+func (t *TaskRepository) StopTask(ctx context.Context, id string, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if id == "" {
+		return errors.New("id is missing")
+	} else if !task.IsValidID(id) {
+		return errors.New("id is invalid")
+	}
+	if stateLock == nil {
+		return errors.New("state lock is missing")
+	} else if *stateLock == "" {
+		return errors.New("state lock is invalid")
+	}
+	if state == "" {
+		return errors.New("state is missing")
+	} else if !slices.Contains(task.TaskStates(), state) {
+		return errors.New("state is invalid")
+	}
+	if duration != nil && *duration < 0 {
+		return errors.New("duration is invalid")
+	}
+	if update != nil {
+		if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(update); err != nil {
+			return errors.Wrap(err, "update is invalid")
+		}
+	}
+
+	// Add a timeout, but ignore cancel from parent context to ensure we stop task even exiting
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), TransitionTimeout)
+	defer cancel()
+
+	now := time.Now().UTC()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "stateLock": stateLock, "state": state, "duration": duration, "update": update})
+
+	set, unset := t.parseUpdate(update)
+	set["modifiedTime"] = now
+	set["state"] = state
+	unset["deadlineTime"] = 1
+	unset["stateLock"] = 1
+	if duration != nil {
+		set["duration"] = duration.Truncate(time.Millisecond).Seconds()
+	} else {
+		// A nil duration means no run actually happened (e.g. a claimed task whose dispatch
+		// was reverted during shutdown), so also clear the run time recorded by StartTask,
+		// keeping the runTime/duration pair describing only the last actual run.
+		unset["duration"] = 1
+		unset["runTime"] = 1
+	}
+
+	selector := t.selector(id, nil)
+	selector["state"] = task.TaskStateRunning
+	selector["stateLock"] = stateLock
+
+	tsk := &task.Task{}
+	err := t.FindOneAndUpdate(ctx, selector, t.ConstructUpdate(set, unset)).Decode(tsk)
+	logger.WithField("duration", time.Since(now)/time.Microsecond).WithError(err).Debug("StopTask")
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		// The compare-and-swap missed: no running task matched the expected state lock
+		// (it was concurrently modified, unstuck, or deleted since it started).
+		// The state transition is dropped; the deadline and unstick mechanism will
+		// recover the task if it was left running. This is logged and counted so lost
+		// completions are observable rather than silently swallowed.
+		logger.Warn("Unable to stop task; no running task matched the expected condition")
+		TasksLostCompletionTotal.WithLabelValues(pointer.Default(t.typeFilter, "<none>")).Inc()
+		return nil
+	} else if err != nil {
+		return errors.Wrap(err, "unable to stop task")
+	}
+
+	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
+	return nil
+}
+
+func (t *TaskRepository) UnstickTasks(ctx context.Context) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	lgr := log.LoggerFromContext(ctx)
+
+	now := time.Now().UTC()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("UnstickTasks") }()
+
+	findSelector := bson.M{
 		"state":        task.TaskStateRunning,
-		"deadlineTime": bson.M{"$lt": time.Now()},
+		"deadlineTime": bson.M{"$lt": now},
 	}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		findSelector["type"] = *t.typeFilter
 	}
 
-	update := bson.M{
-		"$set":   bson.M{"state": task.TaskStatePending},
-		"$unset": bson.M{"deadlineTime": ""},
-	}
-
-	result, err := t.UpdateMany(ctx, selector, update)
+	opts := options.Find().SetSort(bson.M{"deadlineTime": 1})
+	cursor, err := t.Find(ctx, findSelector, opts)
 	if err != nil {
-		return 0, err
+		return nil, errors.Wrap(err, "unable to list tasks")
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
+
+	var ids []string
+	for cursor.Next(ctx) {
+		tsk := &task.Task{}
+		if err = cursor.Decode(tsk); err != nil {
+			log.LoggerFromContext(ctx).WithError(err).Error("Unable to decode task")
+			continue
+		}
+
+		// The state clause is defensive: a matching deadline time already implies the same
+		// running claim (every stop clears the deadline time and any re-claim records a
+		// strictly later one), but including it keeps the invariant local to this update.
+		updateSelector := bson.M{
+			"id":           tsk.ID,
+			"state":        task.TaskStateRunning,
+			"deadlineTime": tsk.DeadlineTime,
+		}
+		set := bson.M{
+			"state":         task.TaskStatePending,
+			"availableTime": now,
+			"modifiedTime":  now,
+		}
+		unset := bson.M{
+			"deadlineTime": 1,
+			"stateLock":    1,
+		}
+		if result, updateErr := t.UpdateOne(ctx, updateSelector, t.ConstructUpdate(set, unset)); updateErr != nil {
+			return ids, updateErr
+		} else if result.ModifiedCount > 0 {
+			ids = append(ids, tsk.ID)
+		}
 	}
 
-	return result.ModifiedCount, err
+	return ids, cursor.Err()
 }
 
 func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	selector := bson.M{
 		"state": task.TaskStatePending,
-		"$and": []bson.M{
+		"$or": []bson.M{
 			{
-				"$or": []bson.M{
-					{
-						"availableTime": bson.M{
-							"$exists": false,
-						},
-					},
-					{
-						"availableTime": bson.M{
-							"$lte": now,
-						},
-					},
+				"availableTime": bson.M{
+					"$exists": false,
 				},
 			},
 			{
-				"$or": []bson.M{
-					{
-						"expirationTime": bson.M{
-							"$exists": false,
-						},
-					},
-					{
-						"expirationTime": bson.M{
-							"$gt": now,
-						},
-					},
+				"availableTime": bson.M{
+					"$lte": now,
 				},
 			},
 		},
 	}
 	if t.typeFilter != nil {
-		selector["type"] = t.typeFilter
+		selector["type"] = *t.typeFilter
 	}
-	opts := options.Find().SetSort(bson.M{"priority": -1})
+	opts := options.Find().SetSort(bson.D{{Key: "availableTime", Value: 1}})
 	return t.Find(ctx, selector, opts)
+}
+
+func (t *TaskRepository) selector(id string, condition *storeStructured.Condition) bson.M {
+	selector := bson.M{"id": id}
+	if condition != nil {
+		if condition.Revision != nil {
+			if *condition.Revision == 0 {
+				selector["revision"] = bson.M{"$in": bson.A{0, nil}}
+			} else {
+				selector["revision"] = *condition.Revision
+			}
+		}
+	}
+	if t.typeFilter != nil {
+		selector["type"] = *t.typeFilter
+	}
+	return selector
+}
+
+func (t *TaskRepository) parseUpdate(update *task.TaskUpdate) (bson.M, bson.M) {
+	set := bson.M{}
+	unset := bson.M{}
+
+	if update != nil {
+		if update.Data != nil {
+			if *update.Data != nil {
+				set["data"] = *update.Data
+			} else {
+				unset["data"] = true
+			}
+		}
+		if update.AvailableTime != nil {
+			set["availableTime"] = *update.AvailableTime
+		}
+		if update.Error != nil {
+			if update.Error.Error != nil {
+				set["error"] = *update.Error
+			} else {
+				unset["error"] = true
+			}
+		}
+	}
+
+	return set, unset
 }
 
 // assertType return an error if the expected type doesn't match the actual type
@@ -502,4 +626,8 @@ func (t *TaskRepository) assertType(expected *string, actual *string) error {
 		return errors.Newf("expected task type %s but got %s", *expected, *actual)
 	}
 	return nil
+}
+
+func newStateLock() string {
+	return id.Must(id.New(16))
 }

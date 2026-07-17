@@ -9,6 +9,10 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 )
 
+func Now() time.Time {
+	return now
+}
+
 func PastFarTime() time.Time {
 	return now.AddDate(-30, 0, 0)
 }

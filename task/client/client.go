@@ -71,17 +71,22 @@ func (c *Client) CreateTask(ctx context.Context, create *task.TaskCreate) (*task
 	return tsk, nil
 }
 
-func (c *Client) GetTask(ctx context.Context, id string) (*task.Task, error) {
+func (c *Client) GetTask(ctx context.Context, id string, condition *request.Condition) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
 	}
+	if condition == nil {
+		condition = request.NewCondition()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return nil, errors.Wrap(err, "condition is invalid")
+	}
 
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
-	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, tsk); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{condition}, nil, tsk); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
@@ -91,12 +96,17 @@ func (c *Client) GetTask(ctx context.Context, id string) (*task.Task, error) {
 	return tsk, nil
 }
 
-func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpdate) (*task.Task, error) {
+func (c *Client) UpdateTask(ctx context.Context, id string, condition *request.Condition, update *task.TaskUpdate) (*task.Task, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
 	if id == "" {
 		return nil, errors.New("id is missing")
+	}
+	if condition == nil {
+		condition = request.NewCondition()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return nil, errors.Wrap(err, "condition is invalid")
 	}
 	if update == nil {
 		return nil, errors.New("update is missing")
@@ -106,7 +116,7 @@ func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpd
 
 	url := c.client.ConstructURL("v1", "tasks", id)
 	tsk := &task.Task{}
-	if err := c.client.RequestData(ctx, http.MethodPut, url, nil, update, tsk); err != nil {
+	if err := c.client.RequestData(ctx, http.MethodPut, url, []request.RequestMutator{condition}, update, tsk); err != nil {
 		if request.IsErrorResourceNotFound(err) {
 			return nil, nil
 		}
@@ -116,14 +126,19 @@ func (c *Client) UpdateTask(ctx context.Context, id string, update *task.TaskUpd
 	return tsk, nil
 }
 
-func (c *Client) DeleteTask(ctx context.Context, id string) error {
+func (c *Client) DeleteTask(ctx context.Context, id string, condition *request.Condition) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 	if id == "" {
 		return errors.New("id is missing")
 	}
+	if condition == nil {
+		condition = request.NewCondition()
+	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+		return errors.Wrap(err, "condition is invalid")
+	}
 
 	url := c.client.ConstructURL("v1", "tasks", id)
-	return c.client.RequestData(ctx, http.MethodDelete, url, nil, nil, nil)
+	return c.client.RequestData(ctx, http.MethodDelete, url, []request.RequestMutator{condition}, nil, nil)
 }

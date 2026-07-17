@@ -33,10 +33,8 @@ type MigrationRunner struct {
 func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 	typ := MigrationType + "." + summaryType
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(typ),
-		Type:          typ,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Name: pointer.FromAny(typ),
+		Type: typ,
 		Data: map[string]any{
 			ConfigMinInterval: int32(DefaultMigrationAvailableAfterDurationMinimum.Seconds()),
 			ConfigMaxInterval: int32(DefaultMigrationAvailableAfterDurationMaximum.Seconds()),
@@ -71,8 +69,8 @@ func (r *MigrationRunner) GetRunnerType() string {
 	return MigrationType + "." + r.summaryType
 }
 
-func (r *MigrationRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(MigrationTaskDurationMaximum * 3)
+func (r *MigrationRunner) GetRunnerDeadline() time.Duration {
+	return MigrationTaskDurationMaximum * 3
 }
 
 func (r *MigrationRunner) GetRunnerTimeout() time.Duration {

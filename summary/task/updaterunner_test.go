@@ -57,8 +57,6 @@ var _ = Describe("update runner tasks", func() {
 			Expect(t.Name).ToNot(BeNil())
 			Expect(*t.Name).To(Equal("org.tidepool.summary.update.cgm"))
 			Expect(t.Type).To(Equal("org.tidepool.summary.update.cgm"))
-			Expect(t.AvailableTime).ToNot(BeNil())
-			Expect(t.AvailableTime.IsZero()).ToNot(BeTrue())
 
 			batch, ok := t.Data[ConfigBatch].(int32)
 			Expect(ok).To(BeTrue())

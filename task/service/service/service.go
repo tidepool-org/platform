@@ -136,7 +136,7 @@ func (s *Service) initializeTaskStore() error {
 func (s *Service) terminateTaskStore() {
 	if s.taskStore != nil {
 		s.Logger().Debug("Closing task store")
-		s.taskStore.Terminate(context.Background())
+		_ = s.taskStore.Terminate(context.Background())
 
 		s.Logger().Debug("Destroying task store")
 		s.taskStore = nil
@@ -283,15 +283,6 @@ func (s *Service) initializeTaskQueue() error {
 		return errors.Wrap(err, "unable to load task queue config")
 	}
 
-	s.Logger().Debug("Creating task queue")
-
-	taskQueue, err := queue.NewMultiQueue(cfg, s.Logger(), s.TaskStore())
-	if err != nil {
-		return errors.Wrap(err, "unable to create task queue")
-	}
-
-	s.taskQueue = taskQueue
-
 	var runners []queue.Runner
 
 	if s.dexcomClient != nil {
@@ -327,12 +318,14 @@ func (s *Service) initializeTaskQueue() error {
 	}
 	runners = append(runners, ehrSyncRnnr)
 
-	for _, r := range runners {
-		r := r
-		if err := taskQueue.RegisterRunner(r); err != nil {
-			return errors.Wrapf(err, "unable to register runner %s", r.GetRunnerType())
-		}
+	s.Logger().Debug("Creating task queue")
+
+	taskQueue, err := queue.NewMultiQueue(cfg, s.Logger(), s.TaskStore(), runners...)
+	if err != nil {
+		return errors.Wrap(err, "unable to create task queue")
 	}
+
+	s.taskQueue = taskQueue
 
 	s.Logger().Debug("Starting task queue")
 	s.taskQueue.Start()
