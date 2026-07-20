@@ -662,6 +662,7 @@ func (q *queue) computeState(ctx context.Context, tsk *task.Task) {
 		}
 		tsk.SetFailed()
 	case task.TaskStateFailed, task.TaskStateCompleted:
+		tsk.AvailableTime = nil
 	default:
 		tsk.AppendError(errors.New("unknown task state"))
 		tsk.SetFailed()

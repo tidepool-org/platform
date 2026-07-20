@@ -214,10 +214,12 @@ var _ = Describe("Mongo", func() {
 			Context("StopTask", func() {
 				It("clears the run time and duration when stopping without a duration", func() {
 					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					Expect(pendingTask.AvailableTime).ToNot(BeNil())
 
 					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
 					Expect(startedTask).ToNot(BeNil())
 					Expect(startedTask.RunTime).ToNot(BeNil())
+					Expect(startedTask.AvailableTime).To(BeNil())
 
 					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.StateLock, task.TaskStatePending, nil, nil)).To(Succeed())
 
@@ -228,10 +230,12 @@ var _ = Describe("Mongo", func() {
 					Expect(actualTask.Duration).To(BeNil())
 					Expect(actualTask.StateLock).To(BeNil())
 					Expect(actualTask.DeadlineTime).To(BeNil())
+					Expect(actualTask.AvailableTime).To(BeNil())
 				})
 
 				It("retains the run time when stopping with a duration", func() {
 					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					Expect(pendingTask.AvailableTime).ToNot(BeNil())
 
 					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
 					Expect(startedTask).ToNot(BeNil())
@@ -247,6 +251,7 @@ var _ = Describe("Mongo", func() {
 					Expect(actualTask.Duration).To(PointTo(Equal(duration.Seconds())))
 					Expect(actualTask.StateLock).To(BeNil())
 					Expect(actualTask.DeadlineTime).To(BeNil())
+					Expect(actualTask.AvailableTime).To(BeNil())
 				})
 			})
 

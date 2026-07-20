@@ -396,7 +396,8 @@ func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int,
 		"stateLock":    newStateLock(),
 	}
 	unset := bson.M{
-		"duration": 1,
+		"availableTime": 1,
+		"duration":      1,
 	}
 
 	selector := t.selector(id, storeStructured.NewConditionWithRevision(&revision))
