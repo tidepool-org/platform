@@ -59,7 +59,7 @@ func (c *Client) CreateTask(ctx context.Context, create *task.TaskCreate) (*task
 	if create == nil {
 		return nil, errors.New("create is missing")
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(create); err != nil {
-		return nil, errors.New("create is invalid")
+		return nil, errors.Wrap(err, "create is invalid")
 	}
 
 	url := c.client.ConstructURL("v1", "tasks")

@@ -160,9 +160,9 @@ var _ = Describe("Mongo", func() {
 						actualStuckTask := &task.Task{}
 						Expect(collection.FindOne(ctx, bson.M{"id": stuckTask.ID}).Decode(actualStuckTask)).To(Succeed())
 						Expect(actualStuckTask.State).To(Equal(task.TaskStatePending))
-						Expect(actualStuckTask.DeadlineTime).To(BeNil())
 						Expect(actualStuckTask.AvailableTime).To(PointTo(BeTemporally("~", test.Now(), time.Second)))
 						Expect(actualStuckTask.ModifiedTime).To(PointTo(BeTemporally("~", test.Now(), time.Second)))
+						Expect(actualStuckTask.DeadlineTime).To(BeNil())
 					})
 
 					It("does not unstick a running task with a deadline in the future", func() {

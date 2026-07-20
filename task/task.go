@@ -178,7 +178,6 @@ type Task struct {
 	Type          string               `json:"type" bson:"type"`
 	Data          map[string]any       `json:"data,omitempty" bson:"data,omitempty"`
 	AvailableTime *time.Time           `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
-	DeadlineTime  *time.Time           `json:"deadlineTime,omitempty" bson:"deadlineTime,omitempty"`
 	State         string               `json:"state" bson:"state"`
 	Error         *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
 	RunTime       *time.Time           `json:"runTime,omitempty" bson:"runTime,omitempty"`
@@ -190,7 +189,8 @@ type Task struct {
 	// Database only
 
 	// Use to enforce only one state transition at a time. This is a unique value that changes on every update.
-	StateLock *string `json:"-" bson:"stateLock,omitempty"`
+	StateLock    *string    `json:"-" bson:"stateLock,omitempty"`
+	DeadlineTime *time.Time `json:"-" bson:"deadlineTime,omitempty"`
 }
 
 func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
@@ -280,7 +280,6 @@ func (t *Task) Sanitize(details request.AuthDetails) error {
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.State = TaskStatePending
 	t.AvailableTime = pointer.FromTime(availableTime)
-	t.DeadlineTime = nil
 }
 
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {

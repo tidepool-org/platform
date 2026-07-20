@@ -114,7 +114,7 @@ type TaskRepository struct {
 }
 
 func (t *TaskRepository) EnsureIndexes() error {
-	// Repositories operation only a subset of the tasks shouldn't invoke this method
+	// Repositories operating on a subset of the tasks shouldn't invoke this method
 	if t.typeFilter != nil {
 		return errors.New("calling EnsureIndexes() on a partitioned repository is not allowed")
 	}

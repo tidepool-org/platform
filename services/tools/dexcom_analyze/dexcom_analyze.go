@@ -10,7 +10,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/urfave/cli"
 	"golang.org/x/exp/maps"
@@ -93,11 +92,8 @@ const (
 	Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing   = "task with device hashes and data source last import time missing"
 	Issue_Task_With_DeviceHashes_And_DataSource_LatestDataTime_Missing   = "task with device hashes and data source latest data time missing"
 	Issue_Task_With_State_Failed_AvailableTime_Present                   = "task with state failed available time present"
-	Issue_Task_With_State_Failed_DeadlineTime_Present                    = "task with state failed deadline time present"
 	Issue_Task_With_State_Failed_Error_Missing                           = "task with state failed error missing"
-	Issue_Task_With_State_Pending_DeadlineTime_Present                   = "task with state pending deadline time present"
 	Issue_Task_With_State_Running_AvailableTime_Present                  = "task with state running available time present"
-	Issue_Task_With_State_Running_DeadlineTime_Missing                   = "task with state running deadline time missing"
 	Issue_Task_With_State_Running_Error_Present                          = "task with state running error present"
 
 	IssueFormat_DataSource_Invalid                          = "data source invalid ('%s', '%s')"
@@ -157,11 +153,8 @@ func Issues() []string {
 		Issue_Task_With_DeviceHashes_And_DataSource_LastImportTime_Missing,
 		Issue_Task_With_DeviceHashes_And_DataSource_LatestDataTime_Missing,
 		Issue_Task_With_State_Failed_AvailableTime_Present,
-		Issue_Task_With_State_Failed_DeadlineTime_Present,
 		Issue_Task_With_State_Failed_Error_Missing,
-		Issue_Task_With_State_Pending_DeadlineTime_Present,
 		Issue_Task_With_State_Running_AvailableTime_Present,
-		Issue_Task_With_State_Running_DeadlineTime_Missing,
 		Issue_Task_With_State_Running_Error_Present,
 	}
 }
@@ -1099,15 +1092,9 @@ func (t *Tool) analyzeTasks() {
 
 		switch record.State {
 		case task.TaskStatePending:
-			if record.DeadlineTime != nil {
-				record.AppendIssue(Issue_Task_With_State_Pending_DeadlineTime_Present)
-			}
 		case task.TaskStateRunning:
 			if record.AvailableTime != nil {
 				record.AppendIssue(Issue_Task_With_State_Running_AvailableTime_Present)
-			}
-			if record.DeadlineTime == nil {
-				record.AppendIssue(Issue_Task_With_State_Running_DeadlineTime_Missing)
 			}
 			if record.Error != nil {
 				record.AppendIssue(Issue_Task_With_State_Running_Error_Present)
@@ -1115,9 +1102,6 @@ func (t *Tool) analyzeTasks() {
 		case task.TaskStateFailed:
 			if record.AvailableTime != nil {
 				record.AppendIssue(Issue_Task_With_State_Failed_AvailableTime_Present)
-			}
-			if record.DeadlineTime != nil {
-				record.AppendIssue(Issue_Task_With_State_Failed_DeadlineTime_Present)
 			}
 			if record.Error == nil {
 				record.AppendIssue(Issue_Task_With_State_Failed_Error_Missing)
@@ -1330,28 +1314,12 @@ func (t *Tool) outputIssue(issue string, marshalables Marshalables, issueMarshal
 		t.outputMongoWriteOperationsHeader()
 		t.outputMongoOperationf("db.tasks.updateMany({state: 'failed', availableTime: {$exists: true}}, {$unset: {availableTime: true}})")
 		return
-	case Issue_Task_With_State_Failed_DeadlineTime_Present:
-		t.outputResolutionHeader("FIXED with BACK-3116. Will keep occurring until deployed. Will need to manually update failed tasks post-deploy.")
-		t.outputMongoReadOperationsHeader()
-		t.outputMongoOperationf("db.tasks.countDocuments({state: 'failed', deadlineTime: {$exists: true}})")
-		t.outputMongoWriteOperationsHeader()
-		t.outputMongoOperationf("db.tasks.updateMany({state: 'failed', deadlineTime: {$exists: true}}, {$unset: {deadlineTime: true}})")
-		return
 	case Issue_Task_With_State_Failed_Error_Missing:
-	case Issue_Task_With_State_Pending_DeadlineTime_Present:
 	case Issue_Task_With_State_Running_AvailableTime_Present:
 		t.outputResolutionHeader("FIXED with BACK-3116. Will keep occurring until deployed. Will need to manually update failed tasks post-deploy.")
 		// NOTE: Uncomment this block to see further details.
 		// t.outputMongoReadOperationsHeader()
 		// t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
-		return
-	case Issue_Task_With_State_Running_DeadlineTime_Missing:
-		t.outputResolutionHeader("Examine each to determine why it is missing.")
-		t.outputMongoReadOperationsHeader()
-		t.outputMongoTasksAggregation(marshalables.Tasks().IDs())
-		t.outputMongoOperationf("db.tasks.find({id: {$in: [%s]}})", mongoIDs(marshalables.Tasks().IDs()))
-		t.outputMongoWriteOperationsHeader()
-		t.outputMongoOperationf("db.tasks.updateMany({id: {$in: [%s]}}, {$set: {deadlineTime: ISODate('%s')}})", mongoIDs(marshalables.Tasks().IDs()), time.Now().Format(time.RFC3339))
 		return
 	case Issue_Task_With_State_Running_Error_Present:
 		t.outputResolutionHeader("Examine each to determine why it is present.")

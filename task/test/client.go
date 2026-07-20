@@ -147,4 +147,5 @@ func (t *Client) Expectations() {
 	gomega.Expect(t.CreateTaskOutputs).To(gomega.BeEmpty())
 	gomega.Expect(t.GetTaskOutputs).To(gomega.BeEmpty())
 	gomega.Expect(t.UpdateTaskOutputs).To(gomega.BeEmpty())
+	gomega.Expect(t.DeleteTaskOutputs).To(gomega.BeEmpty())
 }

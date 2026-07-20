@@ -75,23 +75,31 @@ const (
 	// TaskDeadlineDefault bounds how long a task is allowed to run before being forcefully
 	// reset if a runner for the task type is not registered.
 	TaskDeadlineDefault = time.Minute
+
+	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the
+	// watchdog waits before reporting a runner as blocked. The runner context is still canceled
+	// at the runner timeout; the grace period only gives a cooperative runner time to observe
+	// that cancellation and return before the watchdog reports it as non-cooperative.
+	RunnerWatchdogGracePeriodDefault = 5 * time.Second
 )
 
 type Config struct {
-	Workers         int
-	Delay           time.Duration
-	DelayInitial    time.Duration
-	DelayUnstick    time.Duration
-	StopWaitTimeout time.Duration
+	Workers                   int
+	Delay                     time.Duration
+	DelayInitial              time.Duration
+	DelayUnstick              time.Duration
+	StopWaitTimeout           time.Duration
+	RunnerWatchdogGracePeriod time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Workers:         WorkersDefault,
-		Delay:           DelayDefault,
-		DelayInitial:    DelayInitialDefault,
-		DelayUnstick:    DelayUnstickDefault,
-		StopWaitTimeout: StopWaitTimeoutDefault,
+		Workers:                   WorkersDefault,
+		Delay:                     DelayDefault,
+		DelayInitial:              DelayInitialDefault,
+		DelayUnstick:              DelayUnstickDefault,
+		StopWaitTimeout:           StopWaitTimeoutDefault,
+		RunnerWatchdogGracePeriod: RunnerWatchdogGracePeriodDefault,
 	}
 }
 
@@ -135,6 +143,13 @@ func (c *Config) Load(configReporter config.Reporter) error {
 			c.StopWaitTimeout = time.Duration(stopWaitTimeout) * time.Second
 		}
 	}
+	if runnerWatchdogGracePeriodString, err := configReporter.Get("runner_watchdog_grace_period"); err == nil {
+		if runnerWatchdogGracePeriod, parseErr := strconv.ParseInt(runnerWatchdogGracePeriodString, 10, 0); parseErr != nil {
+			return errors.New("runner watchdog grace period is invalid")
+		} else {
+			c.RunnerWatchdogGracePeriod = time.Duration(runnerWatchdogGracePeriod) * time.Second
+		}
+	}
 
 	return nil
 }
@@ -154,6 +169,9 @@ func (c *Config) Validate() error {
 	}
 	if c.StopWaitTimeout <= 0 {
 		return errors.New("stop wait timeout is invalid")
+	}
+	if c.RunnerWatchdogGracePeriod <= 0 {
+		return errors.New("runner watchdog grace period is invalid")
 	}
 	return nil
 }
@@ -401,8 +419,10 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 	// runner blows past its timeout without returning, this worker stays blocked until the
 	// process restarts (the task itself is recovered by the deadline/unstick mechanism). We
 	// cannot unblock the worker, but we surface the condition via a log and metric so a
-	// non-cooperative runner is detectable rather than silent.
-	runnerWatchdog := time.AfterFunc(runner.GetRunnerTimeout(), func() {
+	// non-cooperative runner is detectable rather than silent. The grace period keeps a
+	// cooperative runner that returns promptly after the timeout cancellation from being
+	// falsely reported.
+	runnerWatchdog := time.AfterFunc(runner.GetRunnerTimeout()+q.config.RunnerWatchdogGracePeriod, func() {
 		lgr.Error("Task runner exceeded timeout without returning; worker is blocked until it returns")
 		RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType()).Inc()
 	})

@@ -48,6 +48,10 @@ var _ = Describe("Queue", func() {
 		Expect(taskQueue.StopWaitTimeoutDefault).To(Equal(10 * time.Second))
 	})
 
+	It("RunnerWatchdogGracePeriodDefault is expected", func() {
+		Expect(taskQueue.RunnerWatchdogGracePeriodDefault).To(Equal(5 * time.Second))
+	})
+
 	It("DurationJitterFactor is expected", func() {
 		Expect(taskQueue.DurationJitterFactor).To(Equal(0.2))
 	})
@@ -71,6 +75,7 @@ var _ = Describe("Queue", func() {
 				Expect(cfg.DelayInitial).To(Equal(taskQueue.DelayInitialDefault))
 				Expect(cfg.DelayUnstick).To(Equal(taskQueue.DelayUnstickDefault))
 				Expect(cfg.StopWaitTimeout).To(Equal(taskQueue.StopWaitTimeoutDefault))
+				Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(taskQueue.RunnerWatchdogGracePeriodDefault))
 			})
 		})
 
@@ -117,6 +122,11 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Load(configReporter)).To(MatchError("stop wait timeout is invalid"))
 				})
 
+				It("returns an error when runner watchdog grace period is not parsable", func() {
+					configReporter.Config["runner_watchdog_grace_period"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("runner watchdog grace period is invalid"))
+				})
+
 				It("uses existing workers if not set", func() {
 					Expect(cfg.Load(configReporter)).To(Succeed())
 					Expect(cfg.Workers).To(Equal(taskQueue.WorkersDefault))
@@ -142,18 +152,25 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.StopWaitTimeout).To(Equal(taskQueue.StopWaitTimeoutDefault))
 				})
 
+				It("uses existing runner watchdog grace period if not set", func() {
+					Expect(cfg.Load(configReporter)).To(Succeed())
+					Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(taskQueue.RunnerWatchdogGracePeriodDefault))
+				})
+
 				It("returns successfully and uses values from the config reporter", func() {
 					configReporter.Config["workers"] = "5"
 					configReporter.Config["delay"] = "30"
 					configReporter.Config["delay_initial"] = "45"
 					configReporter.Config["delay_unstick"] = "60"
 					configReporter.Config["stop_wait_timeout"] = "15"
+					configReporter.Config["runner_watchdog_grace_period"] = "20"
 					Expect(cfg.Load(configReporter)).To(Succeed())
 					Expect(cfg.Workers).To(Equal(5))
 					Expect(cfg.Delay).To(Equal(30 * time.Second))
 					Expect(cfg.DelayInitial).To(Equal(45 * time.Second))
 					Expect(cfg.DelayUnstick).To(Equal(60 * time.Second))
 					Expect(cfg.StopWaitTimeout).To(Equal(15 * time.Second))
+					Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(20 * time.Second))
 				})
 			})
 
@@ -181,6 +198,11 @@ var _ = Describe("Queue", func() {
 				It("returns an error when stop wait timeout is invalid", func() {
 					cfg.StopWaitTimeout = 0
 					Expect(cfg.Validate()).To(MatchError("stop wait timeout is invalid"))
+				})
+
+				It("returns an error when runner watchdog grace period is invalid", func() {
+					cfg.RunnerWatchdogGracePeriod = 0
+					Expect(cfg.Validate()).To(MatchError("runner watchdog grace period is invalid"))
 				})
 
 				It("returns successfully", func() {
@@ -348,7 +370,7 @@ var _ = Describe("Queue", func() {
 				countingRunner = taskQueueTest.NewCountingRunner(taskTest.RandomType())
 				panicRunner = taskQueueTest.NewPanicRunner(taskTest.RandomType())
 
-				cfg = &taskQueue.Config{Workers: 2, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault}
+				cfg = &taskQueue.Config{Workers: 2, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: taskQueue.RunnerWatchdogGracePeriodDefault}
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, countingRunner, panicRunner))
 			})
 
@@ -526,15 +548,15 @@ var _ = Describe("Queue", func() {
 					ID:           task.NewID(),
 					Type:         countingRunner.GetRunnerType(),
 					State:        task.TaskStateRunning,
-					DeadlineTime: pointer.FromTime(time.Now().Add(-time.Minute)),
 					StateLock:    pointer.FromString(taskTest.RandomType()),
 					CreatedTime:  time.Now(),
 					Revision:     1,
+					DeadlineTime: pointer.FromTime(time.Now().Add(-time.Minute)),
 				}
 				_, err := str.GetCollection("tasks").InsertOne(ctx, stuckTask)
 				Expect(err).ToNot(HaveOccurred())
 
-				unstickConfig := &taskQueue.Config{Workers: 2, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: time.Millisecond, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault}
+				unstickConfig := &taskQueue.Config{Workers: 2, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: time.Millisecond, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: taskQueue.RunnerWatchdogGracePeriodDefault}
 				que = test.Must(taskQueue.New(taskTest.RandomType(), unstickConfig, lgr, str, countingRunner))
 
 				que.Start()
@@ -677,7 +699,7 @@ var _ = Describe("Queue", func() {
 			BeforeEach(func() {
 				blockingRunner = taskQueueTest.NewBlockingRunner(taskTest.RandomType(), time.Minute)
 
-				cfg := &taskQueue.Config{Workers: 1, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: 250 * time.Millisecond}
+				cfg := &taskQueue.Config{Workers: 1, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: 250 * time.Millisecond, RunnerWatchdogGracePeriod: taskQueue.RunnerWatchdogGracePeriodDefault}
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, blockingRunner))
 			})
 
@@ -710,11 +732,12 @@ var _ = Describe("Queue", func() {
 			var que taskQueue.Queue
 
 			BeforeEach(func() {
-				// A short duration maximum yields a short runner timeout (3x), so the watchdog fires
-				// quickly while the runner is still blocked, without an unstick reclaiming the task.
+				// A short duration maximum yields a short runner timeout (3x), and a short grace
+				// period keeps the watchdog prompt, so the watchdog fires quickly while the runner
+				// is still blocked, without an unstick reclaiming the task.
 				blockingRunner = taskQueueTest.NewBlockingRunner(taskTest.RandomType(), 20*time.Millisecond)
 
-				cfg := &taskQueue.Config{Workers: 1, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: 250 * time.Millisecond}
+				cfg := &taskQueue.Config{Workers: 1, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: taskQueue.DelayUnstickDefault, StopWaitTimeout: 250 * time.Millisecond, RunnerWatchdogGracePeriod: 50 * time.Millisecond}
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, blockingRunner))
 			})
 
@@ -759,7 +782,7 @@ var _ = Describe("Queue", func() {
 			BeforeEach(func() {
 				runner = taskQueueTest.NewRepeatRunner(taskTest.RandomType())
 
-				cfg := &taskQueue.Config{Workers: workersCount, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: time.Millisecond, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault}
+				cfg := &taskQueue.Config{Workers: workersCount, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: time.Millisecond, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: taskQueue.RunnerWatchdogGracePeriodDefault}
 				ques = make([]taskQueue.Queue, queueCount)
 				for index := range len(ques) {
 					ques[index] = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))

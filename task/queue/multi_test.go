@@ -40,7 +40,7 @@ var _ = Describe("multi queue", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(str).ToNot(BeNil())
 		lgr = null.NewLogger()
-		queueConfig = &queue.Config{Workers: 10, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: queue.DelayUnstickDefault, StopWaitTimeout: queue.StopWaitTimeoutDefault}
+		queueConfig = &queue.Config{Workers: 10, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: queue.DelayUnstickDefault, StopWaitTimeout: queue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: queue.RunnerWatchdogGracePeriodDefault}
 		multi = nil
 	})
 

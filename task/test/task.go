@@ -56,36 +56,36 @@ func RandomTask(options ...test.Option) *task.Task {
 	switch tsk.State {
 	case task.TaskStatePending:
 		tsk.AvailableTime = pointer.From(test.RandomTimeAfterNow())
-		tsk.DeadlineTime = nil
 		tsk.ModifiedTime = test.RandomOptional(func() time.Time { return test.RandomTimeFromRange(tsk.CreatedTime, now) }, options...)
 		if tsk.ModifiedTime != nil {
 			tsk.Error = test.RandomOptionalPointer(errorsTest.RandomSerializable, options...)
 			tsk.RunTime = tsk.ModifiedTime
 			tsk.Duration = pointer.From(test.RandomFloat64FromRange(0, 10))
 		}
+		tsk.DeadlineTime = nil
 	case task.TaskStateRunning:
 		tsk.AvailableTime = pointer.From(test.RandomTimeFromRange(tsk.CreatedTime, now))
-		tsk.DeadlineTime = pointer.From(test.RandomTimeAfterNow())
 		tsk.ModifiedTime = pointer.From(test.RandomTimeFromRange(*tsk.AvailableTime, now))
 		if test.RandomBool() {
 			tsk.Error = test.RandomOptionalPointer(errorsTest.RandomSerializable, options...)
 			tsk.RunTime = pointer.From(test.RandomTimeFromRange(tsk.CreatedTime, *tsk.AvailableTime))
 			tsk.Duration = pointer.From(test.RandomFloat64FromRange(0, 10))
 		}
+		tsk.DeadlineTime = pointer.From(test.RandomTimeAfterNow())
 	case task.TaskStateFailed:
 		tsk.AvailableTime = pointer.From(test.RandomTimeFromRange(tsk.CreatedTime, now))
-		tsk.DeadlineTime = nil
 		tsk.ModifiedTime = pointer.From(test.RandomTimeFromRange(*tsk.AvailableTime, now))
 		tsk.Error = errorsTest.RandomSerializable()
 		tsk.RunTime = tsk.ModifiedTime
 		tsk.Duration = pointer.From(test.RandomFloat64FromRange(0, 10))
+		tsk.DeadlineTime = nil
 	case task.TaskStateCompleted:
 		tsk.AvailableTime = pointer.From(test.RandomTimeFromRange(tsk.CreatedTime, now))
-		tsk.DeadlineTime = nil
 		tsk.ModifiedTime = pointer.From(test.RandomTimeFromRange(*tsk.AvailableTime, now))
 		tsk.Error = test.RandomOptionalPointer(errorsTest.RandomSerializable, options...)
 		tsk.RunTime = tsk.ModifiedTime
 		tsk.Duration = pointer.From(test.RandomFloat64FromRange(0, 10))
+		tsk.DeadlineTime = nil
 	}
 
 	return tsk
