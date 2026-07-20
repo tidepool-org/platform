@@ -89,7 +89,9 @@ func (d *authDetails) Method() Method {
 }
 
 func (d *authDetails) IsService() bool {
-	return d.method == MethodServiceSecret || (d.method == MethodSessionToken && d.userID == "")
+	return d.method == MethodServiceSecret ||
+		(d.method == MethodSessionToken && d.userID == "") ||
+		(d.method == MethodAccessToken && d.userID == "")
 }
 
 func (d *authDetails) IsUser() bool {
