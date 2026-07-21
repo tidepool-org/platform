@@ -48,9 +48,6 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.Wrap(err, "unable to create provider config")
 	}
 
-	// Attach prometheus round tripper to default client transport
-	prometheusRequestMetricsRoundTripper.WithRoundTripper(http.DefaultClient.Transport)
-
 	// Create http client
 	httpClient := &http.Client{
 		Transport:     prometheusRequestMetricsRoundTripper,

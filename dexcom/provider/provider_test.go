@@ -17,7 +17,7 @@ import (
 )
 
 var _ = Describe("Provider", func() {
-	It("PathPatternAny is expected", func() {
+	It("RequestTimeHeaderName is expected", func() {
 		Expect(dexcomProvider.RequestTimeHeaderName).To(Equal("request-time"))
 	})
 

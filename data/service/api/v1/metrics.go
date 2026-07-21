@@ -14,6 +14,7 @@ func MetricsRoutes() []dataService.Route {
 		dataService.Get("/v1/metrics", PrometheusMetrics),
 	}
 }
+
 func PrometheusMetrics(dataServiceContext dataService.Context) {
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()

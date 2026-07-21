@@ -67,9 +67,6 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	// Attach prometheus round tripper to default client transport
-	prometheusRequestMetricsRoundTripper.WithRoundTripper(http.DefaultClient.Transport)
-
 	// Create http client
 	httpClient := &http.Client{
 		Transport:     prometheusRequestMetricsRoundTripper,

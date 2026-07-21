@@ -26,13 +26,13 @@ var _ = Describe("Default", func() {
 	})
 
 	Context("DefaultArray", func() {
-		It("returns the default value if the pointer to the value is nil", func() {
+		It("returns the default value if the value is nil", func() {
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultArray(nil, defaultValue)
 			Expect(result).To(Equal(defaultValue))
 		})
 
-		It("returns the dereferenced pointer to the value if the pointer to the value is not nil", func() {
+		It("returns the value if it is not nil", func() {
 			value := test.RandomStringArray()
 			defaultValue := test.RandomStringArray()
 			result := pointer.DefaultArray(value, defaultValue)
