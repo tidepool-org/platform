@@ -58,9 +58,8 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
 	clinicId, err := GetClinicId(tsk.Data)
 	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get clinicId from task data"))
 		// Unrecoverable condition, move the task to failed state so it won't be retried
-		tsk.SetFailed()
+		tsk.SetFailedWithError(errors.Wrap(err, "unable to get clinicId from task data"))
 		return
 	}
 

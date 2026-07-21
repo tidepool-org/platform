@@ -20,47 +20,10 @@ import (
 	taskStore "github.com/tidepool-org/platform/task/store"
 )
 
-var (
-	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout without
-	// returning, sorted by type. A non-zero value indicates a runner that does not honor context
-	// cancellation, which leaves its worker blocked until the process restarts.
-	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_runner_timeout_exceeded_total",
-		Help: "The total number of task runs that exceeded the runner timeout without returning, sorted by type",
-	}, []string{"type"})
-
-	// RunDurationSeconds observes how long each task run took, sorted by type. Use it to track
-	// run latency percentiles and to alert when durations approach the runner timeout.
-	RunDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
-		Name:    "tidepool_task_run_duration_seconds",
-		Help:    "The duration of task runs in seconds, sorted by type",
-		Buckets: prometheus.ExponentialBuckets(0.1, 2, 15),
-	}, []string{"type"})
-
-	// RunPanicTotal counts task runs that panicked and were recovered, sorted by type.
-	RunPanicTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_run_panic_total",
-		Help: "The total number of task runs that panicked, sorted by type",
-	}, []string{"type"})
-
-	// WorkersAvailable reports the number of idle workers per queue. A value pinned at zero
-	// indicates a saturated queue or workers wedged in non-cooperative runners.
-	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "tidepool_task_workers_available",
-		Help: "The number of idle task queue workers, sorted by queue",
-	}, []string{"queue"})
-
-	// WorkersTotal reports the configured number of workers per queue.
-	WorkersTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "tidepool_task_workers_total",
-		Help: "The configured number of task queue workers, sorted by queue",
-	}, []string{"queue"})
-)
-
 const (
 	WorkersDefault      = 5
-	DelayDefault        = time.Minute
-	DelayInitialDefault = time.Minute
+	DelayDefault        = 1 * time.Minute
+	DelayInitialDefault = 1 * time.Minute
 	DelayUnstickDefault = 5 * time.Minute
 
 	// StopWaitTimeoutDefault bounds how long Stop waits for in-flight tasks to observe
@@ -74,7 +37,7 @@ const (
 
 	// TaskDeadlineDefault bounds how long a task is allowed to run before being forcefully
 	// reset if a runner for the task type is not registered.
-	TaskDeadlineDefault = time.Minute
+	TaskDeadlineDefault = 1 * time.Minute
 
 	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the
 	// watchdog waits before reporting a runner as blocked. The runner context is still canceled
@@ -82,6 +45,11 @@ const (
 	// that cancellation and return before the watchdog reports it as non-cooperative.
 	RunnerWatchdogGracePeriodDefault = 5 * time.Second
 )
+
+// ErrRunnerTimeout is the cancellation cause set on the Run context when a run exceeds the
+// runner timeout. A runner distinguishes a timeout from a shutdown with
+// errors.Is(context.Cause(ctx), ErrRunnerTimeout); a shutdown instead cancels with context.Canceled.
+var ErrRunnerTimeout = errors.New("task runner timeout exceeded")
 
 type Config struct {
 	Workers                   int
@@ -176,49 +144,11 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-type Runner interface {
-	// The type of tasks that the runner supports.
-	GetRunnerType() string
-
-	// The duration after which the task manager will forcefully reset the task back to pending
-	// and available. This is a duration significantly longer than the task duration maximum. Normally,
-	// this would only be used on a task that is in the running state even though it is not running
-	// (likely due to a system crash or interruption). Must exceed the runner timeout, or a task
-	// could be unstuck and re-claimed while the original run is still executing.
-	GetRunnerDeadline() time.Duration
-
-	// The duration of a task where the task manager will forcefully cancel the task context to interrupt
-	// the task and force completion. This is typically a duration somewhat longer than the task
-	// duration maximum. Must exceed the runner duration maximum.
-	GetRunnerTimeout() time.Duration
-
-	// The typical duration maximum of the task after which a warning will be displayed.
-	// Must be positive.
-	GetRunnerDurationMaximum() time.Duration
-
-	// Execute the specified task within the specified context. The context will be forcefully
-	// canceled after a duration specified by GetRunnerTimeout. Before returning, the runner
-	// must move the task out of the running state (typically pending via RepeatAvailableAt or
-	// RepeatAvailableAfter to run again, or completed, or failed); a task left running when
-	// the runner returns is marked failed, unless the run was interrupted by queue shutdown,
-	// in which case it is reverted to pending.
-	Run(ctx context.Context, tsk *task.Task)
-}
-
-// Queue runs tasks via runners provided at construction. A queue is single-use: it may be
-// started at most once and stopped at most once, and once stopped it cannot be restarted
-// (create a new queue instead). Start after Stop, a second Start, and a second Stop are
-// all no-ops.
-type Queue interface {
-	Start()
-	Stop()
-}
-
-// The queue's fields are all immutable after New, except the lifecycle fields, which are
+// The Queue's fields are all immutable after New, except the lifecycle fields, which are
 // guarded by the lifecycle mutex, and workersAvailable, which is owned exclusively by the
 // manager goroutine. The workers and manager therefore read the channels and runners map
 // freely, without synchronization.
-type queue struct {
+type Queue struct {
 	name              string
 	config            *Config
 	logger            log.Logger
@@ -235,7 +165,7 @@ type queue struct {
 	workersAvailable  int
 }
 
-func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners ...Runner) (Queue, error) {
+func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners ...Runner) (*Queue, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -267,7 +197,7 @@ func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners 
 		runnerMap[runner.GetRunnerType()] = runner
 	}
 
-	return &queue{
+	return &Queue{
 		name:       name,
 		config:     cfg,
 		logger:     lgr.WithField("queue", name),
@@ -283,7 +213,7 @@ func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners 
 	}, nil
 }
 
-func (q *queue) Start() {
+func (q *Queue) Start() {
 	q.lifecycleMutex.Lock()
 	defer q.lifecycleMutex.Unlock()
 
@@ -292,14 +222,18 @@ func (q *queue) Start() {
 	}
 	q.started = true
 
+	q.logger.Info("Task queue starting")
+
 	ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
 	q.cancelFunc = cancelFunc
 
 	q.startWorkers(ctx)
 	q.startManager(ctx)
+
+	q.logger.Info("Task queue started")
 }
 
-func (q *queue) Stop() {
+func (q *Queue) Stop() {
 	// Hold the mutex for the entire stop, including the waits, so a concurrent Start cannot
 	// observe a partially stopped queue.
 	q.lifecycleMutex.Lock()
@@ -315,6 +249,8 @@ func (q *queue) Stop() {
 		return
 	}
 
+	q.logger.Info("Task queue stopping")
+
 	lgr := q.logger.WithField("stopWaitTimeout", q.config.StopWaitTimeout)
 
 	// Cancel the manager, so it stops dispatching new tasks and begins draining completions
@@ -327,7 +263,7 @@ func (q *queue) Stop() {
 	// a closed completion channel. Instead we leave the goroutines orphaned (reaped at process
 	// exit); the abandoned task stays running and is recovered by the deadline/unstick mechanism.
 	if !waitWithTimeout(&q.workersWaitGroup, q.config.StopWaitTimeout) {
-		lgr.Error("Task queue workers did not stop within timeout; abandoning in-flight tasks")
+		lgr.Error("Task queue workers did not stop within timeout; abandoning in-flight tasks; will be fixed with UnstickTasks later")
 		return
 	}
 
@@ -345,9 +281,11 @@ func (q *queue) Stop() {
 	// dispatch channel is not buffered, no dispatched task can be stranded in it; any
 	// task the manager could not hand off was reverted to pending during dispatch.
 	close(q.dispatchChannel)
+
+	q.logger.Info("Task queue stopped")
 }
 
-func (q *queue) startWorkers(ctx context.Context) {
+func (q *Queue) startWorkers(ctx context.Context) {
 	for q.workersAvailable = 0; q.workersAvailable < q.config.Workers; q.workersAvailable++ {
 		q.startWorker(log.ContextWithField(ctx, "worker", q.workersAvailable))
 	}
@@ -355,7 +293,7 @@ func (q *queue) startWorkers(ctx context.Context) {
 	WorkersTotal.WithLabelValues(q.name).Set(float64(q.config.Workers))
 }
 
-func (q *queue) startWorker(ctx context.Context) {
+func (q *Queue) startWorker(ctx context.Context) {
 	q.workersWaitGroup.Go(func() {
 		lgr := log.LoggerFromContext(ctx)
 
@@ -370,7 +308,7 @@ func (q *queue) startWorker(ctx context.Context) {
 	})
 }
 
-func (q *queue) executeWorker(ctx context.Context) error {
+func (q *Queue) executeWorker(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return context.Cause(ctx)
@@ -390,15 +328,18 @@ func (q *queue) executeWorker(ctx context.Context) error {
 	return nil
 }
 
-func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
+func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
+	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
+
 	runner, ok := q.runners[tsk.Type]
 	if !ok {
-		tsk.AppendError(errors.New("runner not found for task"))
-		tsk.SetFailed()
+		// A whole task type is unprocessable by this queue; surface it distinctly (a configuration
+		// problem) rather than letting it blend in with ordinary per-task failures downstream.
+		lgr.Error("Runner not found for task; task cannot be processed")
+		tsk.SetFailedWithError(errors.New("runner not found for task"))
+		RunnerNotFoundTotal.WithLabelValues(tsk.Type).Inc()
 		return
 	}
-
-	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -412,24 +353,27 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 
 	// If runner does not respect its own maximum duration, then enforce a context-based timeout.
 	// This forces the task to cancel via the context.
-	runnerContext, cancel := context.WithTimeoutCause(ctx, runner.GetRunnerTimeout(), errors.New("task runner timeout exceeded"))
+	runnerContext, cancel := context.WithTimeoutCause(ctx, runner.GetRunnerTimeout(), ErrRunnerTimeout)
 	defer cancel()
 
 	// Watchdog for a runner that ignores cancellation. Go cannot preempt a goroutine, so if the
 	// runner blows past its timeout without returning, this worker stays blocked until the
 	// process restarts (the task itself is recovered by the deadline/unstick mechanism). We
 	// cannot unblock the worker, but we surface the condition via a log and metric so a
-	// non-cooperative runner is detectable rather than silent. The grace period keeps a
-	// cooperative runner that returns promptly after the timeout cancellation from being
-	// falsely reported.
+	// non-cooperative runner is detectable rather than silent. The grace period lets a cooperative
+	// runner that returns promptly after the timeout cancellation avoid being reported as blocked
+	// here; such a run is instead logged and counted as "recovered" during reconciliation.
 	runnerWatchdog := time.AfterFunc(runner.GetRunnerTimeout()+q.config.RunnerWatchdogGracePeriod, func() {
 		lgr.Error("Task runner exceeded timeout without returning; worker is blocked until it returns")
-		RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType()).Inc()
+		RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType(), "blocked").Inc()
 	})
 	defer runnerWatchdog.Stop()
 
 	// Run the task via the runner
 	runner.Run(runnerContext, tsk)
+
+	// Immediate stop the runner watchdog
+	runnerWatchdog.Stop()
 
 	// If the runner left the task running, reconcile its state based on why the run ended.
 	if tsk.State == task.TaskStateRunning {
@@ -439,9 +383,11 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 			// again for retry rather than treating the interruption as a completion.
 			tsk.RepeatAvailableAfter(0)
 		case context.Cause(runnerContext) != nil:
-			// The runner exceeded its timeout; record the cause so the failure is attributed
-			// to the timeout rather than the generic missing terminal state error.
+			// The runner exceeded its timeout but returned; record the cause so the failure is
+			// attributed to the timeout rather than the generic missing terminal state error.
+			lgr.Warn("Task runner exceeded timeout; task will be failed")
 			tsk.AppendError(context.Cause(runnerContext))
+			RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType(), "recovered").Inc()
 		}
 	}
 
@@ -452,11 +398,13 @@ func (q *queue) runTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-func (q *queue) startManager(ctx context.Context) {
+func (q *Queue) startManager(ctx context.Context) {
 	q.managerWaitGroup.Go(func() {
 		lgr := log.LoggerFromContext(ctx)
 
-		lgr.Info("Task queue manager started")
+		lgr.Debug("Task queue manager started")
+
+		lgr.Debug("Task queue manager initial delay initiated")
 
 		// Start at a random future time to help prevent thundering herd problem
 		select {
@@ -497,7 +445,7 @@ func (q *queue) startManager(ctx context.Context) {
 	})
 }
 
-func (q *queue) executeManager(ctx context.Context) error {
+func (q *Queue) executeManager(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return context.Cause(ctx)
@@ -521,7 +469,7 @@ func (q *queue) executeManager(ctx context.Context) error {
 	return nil
 }
 
-func (q *queue) unstickTasks(ctx context.Context) {
+func (q *Queue) unstickTasks(ctx context.Context) {
 	ids, err := q.repository.UnstickTasks(ctx)
 	if count := len(ids); count > 0 {
 		log.LoggerFromContext(ctx).WithFields(log.Fields{"count": count, "ids": ids}).Info("Unstuck tasks")
@@ -535,7 +483,7 @@ func (q *queue) unstickTasks(ctx context.Context) {
 	}
 }
 
-func (q *queue) dispatchTasks(ctx context.Context) {
+func (q *Queue) dispatchTasks(ctx context.Context) {
 	if q.workersAvailable < 1 {
 		return
 	}
@@ -571,7 +519,7 @@ func (q *queue) dispatchTasks(ctx context.Context) {
 	}
 }
 
-func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
+func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
 	// we don't error here if missing, as the task will be failed during runTask, which persists error to database
@@ -611,10 +559,8 @@ func (q *queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 // completeTask persists the task's completion. It deliberately does not touch
 // workersAvailable (the caller accounts for the freed worker where relevant), so it is safe
 // to call concurrently during the manager's shutdown drain.
-func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
+func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
-
-	q.computeState(ctx, tsk)
 
 	var duration *time.Duration
 	if tsk.RunTime != nil {
@@ -624,8 +570,16 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 		duration = pointer.From(max(time.Since(*tsk.RunTime), 0))
 	}
 
-	if tsk.HasError() {
-		lgr.Error("Error occurred while running task")
+	q.computeState(ctx, tsk)
+
+	// computeState has already settled the terminal state. A failed task is a genuine problem
+	// worth an error; a task that errored but will run again (e.g. reverted to pending for
+	// retry) is an expected, recoverable outcome, so log it at warning to avoid error-level
+	// noise from routine retries.
+	if err := tsk.GetError(); tsk.State == task.TaskStateFailed {
+		lgr.WithError(err).Error("Task failed while running")
+	} else if err != nil {
+		lgr.WithError(err).Warn("Error occurred while running task that did not fail")
 	}
 
 	// Data and Error use non-nil wrappers so that a task whose data or error was cleared during
@@ -641,7 +595,7 @@ func (q *queue) completeTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-func (q *queue) computeState(ctx context.Context, tsk *task.Task) {
+func (q *Queue) computeState(ctx context.Context, tsk *task.Task) {
 	switch tsk.State {
 	case task.TaskStatePending:
 		now := time.Now().UTC()
@@ -657,15 +611,15 @@ func (q *queue) computeState(ctx context.Context, tsk *task.Task) {
 	case task.TaskStateRunning:
 		// The runner returned without moving the task out of the running state, violating
 		// the runner contract; fail the task rather than guessing whether it succeeded.
-		if !tsk.HasError() {
-			tsk.AppendError(errors.New("runner failed to set terminal task state"))
+		if tsk.HasError() {
+			tsk.SetFailed()
+		} else {
+			tsk.SetFailedWithError(errors.New("runner failed to set state"))
 		}
-		tsk.SetFailed()
 	case task.TaskStateFailed, task.TaskStateCompleted:
 		tsk.AvailableTime = nil
 	default:
-		tsk.AppendError(errors.New("unknown task state"))
-		tsk.SetFailed()
+		tsk.SetFailedWithError(errors.New("unknown task state"))
 	}
 }
 
@@ -718,3 +672,51 @@ func durationWithJitter(duration time.Duration) time.Duration {
 	jitter := time.Duration(float64(duration) * DurationJitterFactor)
 	return duration + (randomDuration(jitter*2) - jitter)
 }
+
+var (
+	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout, sorted by type
+	// and disposition:
+	//   - "blocked" - for runs the watchdog caught still running past the grace period (the worker is
+	// wedged until the runner eventually returns or the process restarts, so this is the severe case)
+	//   - "recovered" - for runs that exceeded the timeout, but returned once their context was
+	// canceled (the timeout mechanism worked as designed)
+	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_runner_timeout_exceeded_total",
+		Help: "The total number of task runs that exceeded the runner timeout, sorted by type and disposition",
+	}, []string{"type", "disposition"})
+
+	// RunnerNotFoundTotal counts task runs for which no runner is registered for the task's type,
+	// sorted by type. A non-zero value indicates pending tasks of a type this queue cannot process
+	// (a configuration problem); such tasks are failed immediately.
+	RunnerNotFoundTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_runner_not_found_total",
+		Help: "The total number of task runs with no registered runner for the task type, sorted by type",
+	}, []string{"type"})
+
+	// RunDurationSeconds observes how long each task run took, sorted by type. Use it to track
+	// run latency percentiles and to alert when durations approach the runner timeout.
+	RunDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
+		Name:    "tidepool_task_run_duration_seconds",
+		Help:    "The duration of task runs in seconds, sorted by type",
+		Buckets: prometheus.ExponentialBuckets(0.1, 2, 15),
+	}, []string{"type"})
+
+	// RunPanicTotal counts task runs that panicked and were recovered, sorted by type.
+	RunPanicTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_run_panic_total",
+		Help: "The total number of task runs that panicked, sorted by type",
+	}, []string{"type"})
+
+	// WorkersAvailable reports the number of idle workers per queue. A value pinned at zero
+	// indicates a saturated queue or workers wedged in non-cooperative runners.
+	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_available",
+		Help: "The number of idle task queue workers, sorted by queue",
+	}, []string{"queue"})
+
+	// WorkersTotal reports the configured number of workers per queue.
+	WorkersTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_total",
+		Help: "The configured number of task queue workers, sorted by queue",
+	}, []string{"queue"})
+)

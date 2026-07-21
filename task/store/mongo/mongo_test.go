@@ -84,23 +84,31 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("id")),
-						"Background": Equal(true),
-						"Unique":     Equal(true),
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("id")),
+						"Unique": Equal(true),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("name")),
-						"Background": Equal(true),
-						"Unique":     Equal(true),
-						"Sparse":     Equal(true),
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("name")),
+						"Unique": Equal(true),
+						"Sparse": Equal(true),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("availableTime")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("availableTime")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("state")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("state")),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("type", "availableTime")),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "state", Value: task.TaskStatePending},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("type", "deadlineTime")),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "state", Value: task.TaskStateRunning},
+						}),
 					}),
 				))
 			})

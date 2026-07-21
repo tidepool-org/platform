@@ -116,7 +116,7 @@ func NewPrometheusRequestMetricsRoundTripperWithPathPatternsAndDurationBuckets(n
 
 func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
 	start := time.Now()
-	res, err := p.ResolvedRoundTripper().RoundTrip(req)
+	res, err := p.PrometheusRequestRoundTripper.RoundTrip(req)
 	duration := time.Since(start)
 
 	if labels := p.Labels(req, res); labels != nil {

@@ -36,7 +36,7 @@ type Service struct {
 	dataClient       dataClient.Client
 	dataSourceClient dataSource.Client
 	dexcomClient     dexcom.Client
-	taskQueue        queue.Queue
+	taskQueue        *queue.MultiQueue
 	clinicsClient    clinics.Client
 }
 

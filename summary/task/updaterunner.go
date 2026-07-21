@@ -171,17 +171,17 @@ func (t *UpdateTaskRunner) run() error {
 	t.logger.Debugf("Starting User %s Summary Update", typ)
 
 	for i := 1; i <= IterLimit; i++ {
-		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
+		t.logger.Debugf("Searching for User %s Summaries requiring Update", typ)
 		outdated, err := t.dataClient.GetOutdatedUserIDs(t.context, typ, pagination)
 		if err != nil {
 			return err
 		}
 		if len(outdated.UserIds) == 0 {
-			t.logger.Infof("No %s Summaries requiring updates found", typ)
+			t.logger.Debugf("No %s Summaries requiring updates found", typ)
 			return nil
 		}
 
-		t.logger.Infof("Found batch of %d %s Summaries to Update", len(outdated.UserIds), typ)
+		t.logger.Debugf("Found batch of %d %s Summaries to Update", len(outdated.UserIds), typ)
 
 		err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdated.UserIds, UpdateWorkerCount, t.deadline, "Updating")
 		if err != nil {

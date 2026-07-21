@@ -2,14 +2,12 @@ package provider
 
 import (
 	"context"
-	"net/http"
 	"time"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 
 	"github.com/tidepool-org/platform/auth"
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
@@ -67,15 +65,7 @@ func New(providerDependencies ProviderDependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "unable to create provider config")
 	}
 
-	// Create http client
-	httpClient := &http.Client{
-		Transport:     prometheusRequestMetricsRoundTripper,
-		CheckRedirect: http.DefaultClient.CheckRedirect,
-		Jar:           http.DefaultClient.Jar,
-		Timeout:       2 * time.Minute,
-	}
-
-	prvdr, err := oauthProvider.New(twiist.ProviderName, cfg, httpClient, providerDependencies.JWKS)
+	prvdr, err := oauthProvider.New(twiist.ProviderName, cfg, providerDependencies.JWKS)
 	if err != nil {
 		return nil, err
 	}
@@ -289,5 +279,3 @@ func NewDataSetCreate() *data.DataSetCreate {
 		TimeProcessing:      pointer.FromString(data.TimeProcessingNone),
 	}
 }
-
-var prometheusRequestMetricsRoundTripper = client.NewPrometheusRequestMetricsRoundTripper("tidepool_twiist_api", "Tidepool twiist API")

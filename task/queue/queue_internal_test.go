@@ -24,7 +24,7 @@ var _ = Describe("Queue", func() {
 			lgr := logTest.NewLogger()
 			ctx := log.NewContextWithLogger(context.Background(), lgr)
 			cfg := NewConfig()
-			que := &queue{
+			que := &Queue{
 				name:             taskTest.RandomType(),
 				config:           cfg,
 				logger:           lgr,
@@ -39,7 +39,7 @@ var _ = Describe("Queue", func() {
 			lgr := logTest.NewLogger()
 			ctx := log.NewContextWithLogger(context.Background(), lgr)
 			cfg := NewConfig()
-			que := &queue{
+			que := &Queue{
 				name:             taskTest.RandomType(),
 				config:           cfg,
 				logger:           lgr,
@@ -54,13 +54,13 @@ var _ = Describe("Queue", func() {
 	Context("computeState", func() {
 		It("clears the available time for a completed task", func() {
 			completedTask := &task.Task{State: task.TaskStateCompleted, AvailableTime: pointer.FromTime(test.RandomTimeBeforeNow())}
-			(&queue{}).computeState(context.Background(), completedTask)
+			(&Queue{}).computeState(context.Background(), completedTask)
 			Expect(completedTask.AvailableTime).To(BeNil())
 		})
 
 		It("clears the available time for a failed task", func() {
 			failedTask := &task.Task{State: task.TaskStateFailed, AvailableTime: pointer.FromTime(test.RandomTimeBeforeNow())}
-			(&queue{}).computeState(context.Background(), failedTask)
+			(&Queue{}).computeState(context.Background(), failedTask)
 			Expect(failedTask.AvailableTime).To(BeNil())
 		})
 	})

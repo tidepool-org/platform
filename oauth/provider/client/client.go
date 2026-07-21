@@ -28,11 +28,11 @@ func NewWithErrorParser(name string, config *Config, httpClient *http.Client, jw
 		return nil, errors.Wrap(err, "config is invalid")
 	}
 
-	prvdr, err := oauthProvider.New(name, config.ProviderConfig, httpClient, jwks)
+	prvdr, err := oauthProvider.New(name, config.ProviderConfig, jwks)
 	if err != nil {
 		return nil, err
 	}
-	clnt, err := oauthClient.NewWithErrorParser(config.ClientConfig, prvdr, errorResponseParser)
+	clnt, err := oauthClient.NewWithErrorParser(config.ClientConfig, httpClient, prvdr, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}

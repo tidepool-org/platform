@@ -3,7 +3,6 @@ package provider
 import (
 	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -19,12 +18,11 @@ import (
 type Provider struct {
 	name         string
 	config       Config
-	httpClient   *http.Client
 	jwks         jwk.Set
 	oauth2Config *oauth2.Config
 }
 
-func New(name string, config *Config, httpClient *http.Client, jwks jwk.Set) (*Provider, error) {
+func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -32,9 +30,6 @@ func New(name string, config *Config, httpClient *http.Client, jwks jwk.Set) (*P
 		return nil, errors.New("config is missing")
 	} else if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
-	}
-	if httpClient == nil {
-		return nil, errors.New("http client is missing")
 	}
 
 	oauth2Config := &oauth2.Config{
@@ -54,7 +49,6 @@ func New(name string, config *Config, httpClient *http.Client, jwks jwk.Set) (*P
 	return &Provider{
 		name:         name,
 		config:       *config,
-		httpClient:   httpClient,
 		jwks:         jwks,
 		oauth2Config: oauth2Config,
 	}, nil
@@ -119,7 +113,7 @@ func (p *Provider) TokenSource(ctx context.Context, token *auth.OAuthToken) (oau
 		return nil, errors.New("token is missing")
 	}
 
-	tknSrc := p.oauth2Config.TokenSource(context.WithValue(ctx, oauth2.HTTPClient, p.httpClient), token.RawToken())
+	tknSrc := p.oauth2Config.TokenSource(ctx, token.RawToken())
 	if tknSrc == nil {
 		return nil, errors.New("unable to create token source")
 	}

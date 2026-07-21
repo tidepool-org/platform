@@ -2,15 +2,8 @@ package provider
 
 import (
 	"context"
-	"fmt"
-	"net/http"
-	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
@@ -48,15 +41,7 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.Wrap(err, "unable to create provider config")
 	}
 
-	// Create http client
-	httpClient := &http.Client{
-		Transport:     prometheusRequestMetricsRoundTripper,
-		CheckRedirect: http.DefaultClient.CheckRedirect,
-		Jar:           http.DefaultClient.Jar,
-		Timeout:       2 * time.Minute,
-	}
-
-	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, httpClient, nil)
+	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -172,44 +157,3 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 	}
 	return nil
 }
-
-// Some Dexcom API responses include a "request-time" header with, supposedly, the internal duration of the request.
-// This could be useful for debugging connection issues if compared against the calculated request duration.
-// See client/prometheus.go for details on how the request duration is calculated and recorded.
-
-const RequestTimeHeaderName = "request-time"
-
-type PrometheusRequestMetricsRoundTripper struct {
-	*client.PrometheusRequestMetricsRoundTripper
-	requestTimeHistogramVec *prometheus.HistogramVec
-}
-
-func NewPrometheusRequestMetricsRoundTripper(name string, help string) *PrometheusRequestMetricsRoundTripper {
-	return &PrometheusRequestMetricsRoundTripper{
-		PrometheusRequestMetricsRoundTripper: client.NewPrometheusRequestMetricsRoundTripper(name, help),
-		requestTimeHistogramVec: promauto.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name:    fmt.Sprintf("%s_request_time_seconds", name),
-				Help:    fmt.Sprintf("%s request time (seconds)", help),
-				Buckets: client.DurationBucketsDefault,
-			},
-			client.PrometheusLabelNames(),
-		),
-	}
-}
-
-func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	res, err := p.ResolvedRoundTripper().RoundTrip(req)
-
-	if res != nil {
-		if labels := p.Labels(req, res); labels != nil {
-			if requestTime, parseErr := time.ParseDuration(res.Header.Get(RequestTimeHeaderName)); parseErr == nil {
-				p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
-			}
-		}
-	}
-
-	return res, err
-}
-
-var prometheusRequestMetricsRoundTripper = NewPrometheusRequestMetricsRoundTripper("tidepool_dexcom_api", "Tidepool Dexcom API")

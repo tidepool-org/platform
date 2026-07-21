@@ -13,7 +13,7 @@ import (
 // that runner's type. Like Queue, it is single-use. The queues map is immutable after
 // NewMultiQueue, so no synchronization is required.
 type MultiQueue struct {
-	queues map[string]Queue
+	queues map[string]*Queue
 }
 
 func NewMultiQueue(cfg *Config, lgr log.Logger, str store.Store, runners ...Runner) (*MultiQueue, error) {
@@ -27,7 +27,7 @@ func NewMultiQueue(cfg *Config, lgr log.Logger, str store.Store, runners ...Runn
 		return nil, errors.New("store is missing")
 	}
 
-	queues := make(map[string]Queue, len(runners))
+	queues := make(map[string]*Queue, len(runners))
 	for _, runner := range runners {
 		if runner == nil {
 			return nil, errors.New("runner is missing")
@@ -69,8 +69,6 @@ func (m *MultiQueue) Stop() {
 
 // GetQueues returns a copy of the type-to-queue map so callers cannot mutate the
 // internal map. The queue values are shared references, not copies.
-func (m *MultiQueue) GetQueues() map[string]Queue {
+func (m *MultiQueue) GetQueues() map[string]*Queue {
 	return maps.Clone(m.queues)
 }
-
-var _ Queue = &MultiQueue{}

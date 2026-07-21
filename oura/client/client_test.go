@@ -61,7 +61,7 @@ var _ = Describe("client", func() {
 			mockTokenSourceSource = oauthTest.NewMockTokenSourceSource(mockController)
 			mockProvider = ouraClientTest.NewMockProvider(mockController)
 			server = NewServer()
-			baseClient, err = oauthClient.NewWithErrorParser(&client.Config{Address: server.URL()}, mockTokenSourceSource, &ouraClient.ErrorResponseParser{})
+			baseClient, err = oauthClient.NewWithErrorParser(&client.Config{Address: server.URL()}, nil, mockTokenSourceSource, &ouraClient.ErrorResponseParser{})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(baseClient).ToNot(BeNil())
 		})

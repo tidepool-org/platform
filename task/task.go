@@ -294,6 +294,11 @@ func (t *Task) SetFailed() {
 	t.State = TaskStateFailed
 }
 
+func (t *Task) SetFailedWithError(err error) {
+	t.State = TaskStateFailed
+	t.AppendError(err)
+}
+
 func (t *Task) IsCompleted() bool {
 	return t.State == TaskStateCompleted
 }

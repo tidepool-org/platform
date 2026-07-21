@@ -169,17 +169,17 @@ func (t *MigrationTaskRunner) run() error {
 	pagination.Size = t.GetBatch()
 	typ := t.summaryType
 
-	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
+	t.logger.Debugf("Searching for User %s Summaries requiring Migration", typ)
 	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, typ, pagination)
 	if err != nil {
 		return err
 	}
 	if len(outdatedUserIds) == 0 {
-		t.logger.Infof("No %s Summaries requiring migrations found", typ)
+		t.logger.Debugf("No %s Summaries requiring migrations found", typ)
 		return nil
 	}
 
-	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
+	t.logger.Debugf("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
 	err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount, t.deadline, "Migrating")

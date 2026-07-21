@@ -411,13 +411,14 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 
 		// If past deadline (based upon runner maximum duration), then bail
 		if time.Now().After(t.deadline) {
-			return t.rescheduleTaskWithResourceError(context.DeadlineExceeded)
+			t.rescheduleTaskNow()
+			return nil
 		}
 
 		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
 	}
 
-	return t.updateDataSourceWithLastImportTime()
+	return nil
 }
 
 func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
@@ -777,8 +778,8 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 	return latestDataTime != nil && (t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime))
 }
 
-// Handle potential dexcom client error. Update provider session with latest token.
-// If error, then retry or reschedule. Otherwise, reset retry count.
+// Handle potential dexcom client error. If error, then retry or reschedule.
+// Otherwise, reset retry count.
 func (t *TaskRunner) handleDexcomClientError(err error) error {
 	if err != nil {
 		return t.retryOrRescheduleTaskWithDexcomClientError(err)
@@ -821,6 +822,10 @@ func (t *TaskRunner) rescheduleTaskWithError(err error) error {
 	return err
 }
 
+func (t *TaskRunner) rescheduleTaskNow() {
+	t.task.RepeatAvailableAfter(0)
+}
+
 func (t *TaskRunner) rescheduleTask() {
 	t.task.RepeatAvailableAfter(availableAfterDuration())
 }
@@ -832,8 +837,7 @@ func (t *TaskRunner) failTaskWithInvalidStateError(err error) error {
 // Fail task immediately and permanently. Do not reschedule. For situations where any future attempt is
 // also guaranteed to fail. For example, when the task data is missing information. Should not normally happen.
 func (t *TaskRunner) failTaskWithError(err error) error {
-	t.task.AppendError(err)
-	t.task.SetFailed()
+	t.task.SetFailedWithError(err)
 	return err
 }
 
@@ -844,7 +848,7 @@ func (t *TaskRunner) incrementTaskRetryCount() int {
 			retryCount = int(value) + 1
 		}
 	}
-	t.task.Data[dexcom.DataKeyRetryCount] = retryCount
+	t.task.Data[dexcom.DataKeyRetryCount] = int32(retryCount)
 	return retryCount
 }
 

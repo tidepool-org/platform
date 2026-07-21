@@ -33,11 +33,11 @@ var _ = Describe("Queue", func() {
 	})
 
 	It("DelayDefault is expected", func() {
-		Expect(taskQueue.DelayDefault).To(Equal(time.Minute))
+		Expect(taskQueue.DelayDefault).To(Equal(1 * time.Minute))
 	})
 
 	It("DelayInitialDefault is expected", func() {
-		Expect(taskQueue.DelayInitialDefault).To(Equal(time.Minute))
+		Expect(taskQueue.DelayInitialDefault).To(Equal(1 * time.Minute))
 	})
 
 	It("DelayUnstickDefault is expected", func() {
@@ -57,7 +57,7 @@ var _ = Describe("Queue", func() {
 	})
 
 	It("TaskDeadlineDefault is expected", func() {
-		Expect(taskQueue.TaskDeadlineDefault).To(Equal(time.Minute))
+		Expect(taskQueue.TaskDeadlineDefault).To(Equal(1 * time.Minute))
 	})
 
 	Context("Config", func() {
@@ -302,7 +302,7 @@ var _ = Describe("Queue", func() {
 	})
 
 	Context("with a new queue", func() {
-		var que taskQueue.Queue
+		var que *taskQueue.Queue
 
 		BeforeEach(func() {
 			cfg := taskQueue.NewConfig()
@@ -364,7 +364,7 @@ var _ = Describe("Queue", func() {
 			var countingRunner *taskQueueTest.CountingRunner
 			var panicRunner *taskQueueTest.PanicRunner
 			var cfg *taskQueue.Config
-			var que taskQueue.Queue
+			var que *taskQueue.Queue
 
 			BeforeEach(func() {
 				countingRunner = taskQueueTest.NewCountingRunner(taskTest.RandomType())
@@ -442,7 +442,7 @@ var _ = Describe("Queue", func() {
 				// The completion's compare-and-swap misses, which is logged rather than silently swallowed.
 				Eventually(func() bool {
 					defer func() { _ = recover() }()
-					lgr.AssertWarn("Unable to stop task; no running task matched the expected condition")
+					lgr.AssertError("Unable to stop task; no running task matched the expected condition")
 					return true
 				}, "5s", "100ms").To(BeTrue())
 
@@ -472,7 +472,8 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("fails a pending task that does not match any registered runner", func() {
-				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: taskTest.RandomType()}))
+				unregisteredType := taskTest.RandomType()
+				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: unregisteredType}))
 
 				que.Start()
 
@@ -486,6 +487,9 @@ var _ = Describe("Queue", func() {
 				Expect(actualTask.State).To(Equal(task.TaskStateFailed))
 				Expect(actualTask.Error).ToNot(BeNil())
 				Expect(actualTask.Error.Error).To(MatchError("runner not found for task"))
+
+				lgr.AssertError("Runner not found for task; task cannot be processed")
+				Expect(testutil.ToFloat64(taskQueue.RunnerNotFoundTotal.WithLabelValues(unregisteredType))).To(Equal(float64(1)))
 			})
 
 			It("fails a task whose runner leaves it in an unknown state", func() {
@@ -630,7 +634,7 @@ var _ = Describe("Queue", func() {
 				actualTask := test.Must(str.NewTaskRepository().GetTask(ctx, createdTask.ID, nil))
 				Expect(actualTask.State).To(Equal(task.TaskStateFailed))
 				Expect(actualTask.Error).ToNot(BeNil())
-				Expect(actualTask.Error.Error).To(MatchError("runner failed to set terminal task state"))
+				Expect(actualTask.Error.Error).To(MatchError("runner failed to set state"))
 			})
 
 			It("fails a task that exceeds its timeout without setting its own state", func() {
@@ -649,6 +653,12 @@ var _ = Describe("Queue", func() {
 				Expect(actualTask.State).To(Equal(task.TaskStateFailed))
 				Expect(actualTask.Error).ToNot(BeNil())
 				Expect(actualTask.Error.Error).To(MatchError("task runner timeout exceeded"))
+
+				// The runner returns after its timeout (well within the watchdog grace period), so
+				// the timeout is logged and counted as "recovered" during reconciliation rather than
+				// caught as "blocked" by the watchdog.
+				lgr.AssertWarn("Task runner exceeded timeout; task will be failed")
+				Expect(testutil.ToFloat64(taskQueue.RunnerTimeoutExceededTotal.WithLabelValues(hangingRunner.GetRunnerType(), "recovered"))).To(Equal(float64(1)))
 			})
 
 			It("logs a warning if a task that exceeds its maximum duration", func() {
@@ -694,7 +704,7 @@ var _ = Describe("Queue", func() {
 
 		Context("with a blocking runner", func() {
 			var blockingRunner *taskQueueTest.BlockingRunner
-			var que taskQueue.Queue
+			var que *taskQueue.Queue
 
 			BeforeEach(func() {
 				blockingRunner = taskQueueTest.NewBlockingRunner(taskTest.RandomType(), time.Minute)
@@ -723,13 +733,13 @@ var _ = Describe("Queue", func() {
 				}()
 				Eventually(stopped, "5s").Should(BeClosed())
 
-				lgr.AssertError("Task queue workers did not stop within timeout; abandoning in-flight tasks")
+				lgr.AssertError("Task queue workers did not stop within timeout; abandoning in-flight tasks; will be fixed with UnstickTasks later")
 			})
 		})
 
 		Context("with a runner that exceeds its timeout without returning", func() {
 			var blockingRunner *taskQueueTest.BlockingRunner
-			var que taskQueue.Queue
+			var que *taskQueue.Queue
 
 			BeforeEach(func() {
 				// A short duration maximum yields a short runner timeout (3x), and a short grace
@@ -754,9 +764,9 @@ var _ = Describe("Queue", func() {
 					return test.Must(str.NewTaskRepository().GetTask(ctx, createdTask.ID, nil)).State
 				}, "5s", "50ms").To(Equal(task.TaskStateRunning))
 
-				// The watchdog fires after the runner timeout, recording the stuck run.
+				// The watchdog fires after the runner timeout, recording the stuck run as blocked.
 				Eventually(func() float64 {
-					return testutil.ToFloat64(taskQueue.RunnerTimeoutExceededTotal.WithLabelValues(runnerType))
+					return testutil.ToFloat64(taskQueue.RunnerTimeoutExceededTotal.WithLabelValues(runnerType, "blocked"))
 				}, "5s", "50ms").Should(BeNumerically(">=", float64(1)))
 				lgr.AssertError("Task runner exceeded timeout without returning; worker is blocked until it returns")
 
@@ -777,13 +787,13 @@ var _ = Describe("Queue", func() {
 			const taskCount = 2 * queueCount * workersCount
 
 			var runner *taskQueueTest.RepeatRunner
-			var ques []taskQueue.Queue
+			var ques []*taskQueue.Queue
 
 			BeforeEach(func() {
 				runner = taskQueueTest.NewRepeatRunner(taskTest.RandomType())
 
 				cfg := &taskQueue.Config{Workers: workersCount, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: time.Millisecond, StopWaitTimeout: taskQueue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: taskQueue.RunnerWatchdogGracePeriodDefault}
-				ques = make([]taskQueue.Queue, queueCount)
+				ques = make([]*taskQueue.Queue, queueCount)
 				for index := range len(ques) {
 					ques[index] = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 				}

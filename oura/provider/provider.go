@@ -67,12 +67,15 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	// Create http client
+	if dependencies.Config.ClientConfig.Timeout == 0 {
+		dependencies.Config.ClientConfig.Timeout = 1 * time.Minute
+	}
+
 	httpClient := &http.Client{
 		Transport:     prometheusRequestMetricsRoundTripper,
 		CheckRedirect: http.DefaultClient.CheckRedirect,
 		Jar:           http.DefaultClient.Jar,
-		Timeout:       2 * time.Minute,
+		Timeout:       http.DefaultClient.Timeout,
 	}
 
 	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, httpClient, nil, &ouraClient.ErrorResponseParser{})

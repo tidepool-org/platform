@@ -4,11 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
+
+	"go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -20,6 +23,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	oauthTest "github.com/tidepool-org/platform/oauth/test"
 	"github.com/tidepool-org/platform/pointer"
+	prometheusTest "github.com/tidepool-org/platform/prometheus/test"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -27,17 +31,15 @@ import (
 var _ = Describe("Client", func() {
 	var userAgent string
 	var config *client.Config
-	var tokenSourceSource *oauthTest.TokenSourceSource
+	var mockController *gomock.Controller
+	var mockTokenSourceSource *oauthTest.MockTokenSourceSource
 
 	BeforeEach(func() {
 		userAgent = testHttp.NewUserAgent()
 		config = client.NewConfig()
 		config.UserAgent = userAgent
-		tokenSourceSource = oauthTest.NewTokenSourceSource()
-	})
-
-	AfterEach(func() {
-		tokenSourceSource.AssertOutputsEmpty()
+		mockController = gomock.NewController(GinkgoT())
+		mockTokenSourceSource = oauthTest.NewMockTokenSourceSource(mockController)
 	})
 
 	Context("New", func() {
@@ -46,14 +48,14 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns an error when config is missing", func() {
-			clnt, err := dexcomClient.New(nil, tokenSourceSource)
+			clnt, err := dexcomClient.New(nil, mockTokenSourceSource)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(clnt).To(BeNil())
 		})
 
 		It("returns an error when config is invalid", func() {
 			config.Address = ""
-			clnt, err := dexcomClient.New(config, tokenSourceSource)
+			clnt, err := dexcomClient.New(config, mockTokenSourceSource)
 			Expect(err).To(MatchError("config is invalid; address is missing"))
 			Expect(clnt).To(BeNil())
 		})
@@ -65,7 +67,7 @@ var _ = Describe("Client", func() {
 		})
 
 		It("returns successfully", func() {
-			Expect(dexcomClient.New(config, tokenSourceSource)).ToNot(BeNil())
+			Expect(dexcomClient.New(config, mockTokenSourceSource)).ToNot(BeNil())
 		})
 	})
 
@@ -73,20 +75,20 @@ var _ = Describe("Client", func() {
 		var server *Server
 		var responseHeaders http.Header
 		var ctx context.Context
-		var tokenSource *oauthTest.TokenSource
+		var mockTokenSource *oauthTest.MockTokenSource
 		var clnt *dexcomClient.Client
 
 		BeforeEach(func() {
 			server = NewServer()
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
 			ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
-			tokenSource = oauthTest.NewTokenSource()
+			mockTokenSource = oauthTest.NewMockTokenSource(mockController)
 		})
 
 		JustBeforeEach(func() {
 			config.Address = server.URL()
 			var err error
-			clnt, err = dexcomClient.New(config, tokenSourceSource)
+			clnt, err = dexcomClient.New(config, mockTokenSourceSource)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(clnt).ToNot(BeNil())
 		})
@@ -95,7 +97,6 @@ var _ = Describe("Client", func() {
 			if server != nil {
 				server.Close()
 			}
-			tokenSource.AssertOutputsEmpty()
 		})
 
 		Context("GetDataRange", func() {
@@ -104,6 +105,8 @@ var _ = Describe("Client", func() {
 			var responseDataRangesResponse *dexcom.DataRangesResponse
 
 			BeforeEach(func() {
+				lastSyncTime = nil
+				requestQuery = ""
 				responseDataRangesResponse = dexcomTest.RandomDataRangesResponse()
 			})
 
@@ -114,23 +117,28 @@ var _ = Describe("Client", func() {
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
+			It("returns error when context is missing", func() {
+				dataRangeResponse, err := clnt.GetDataRange(context.Context(nil), lastSyncTime, mockTokenSource)
+				Expect(err).To(MatchError("unable to get data range; context is missing"))
+				Expect(dataRangeResponse).To(BeNil())
+				Expect(server.ReceivedRequests()).To(BeEmpty())
+			})
+
 			It("returns error when token source returns an error", func() {
 				responseErr := errorsTest.RandomError()
-				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+				mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 				Expect(err).To(MatchError(fmt.Sprintf("unable to get data range; %s", responseErr)))
 				Expect(dataRangeResponse).To(BeNil())
-				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
 			It("returns error when token source returns that indicates an oauth token failure", func() {
 				responseErr := errors.New(`oauth2: "invalid_grant"`)
-				tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+				mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+				dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 				Expect(err).To(MatchError(`unable to get data range; oauth2: "invalid_grant"; authentication token is invalid`))
 				Expect(dataRangeResponse).To(BeNil())
-				Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 				Expect(server.ReceivedRequests()).To(BeEmpty())
 			})
 
@@ -139,26 +147,16 @@ var _ = Describe("Client", func() {
 
 				BeforeEach(func() {
 					httpClient = http.DefaultClient
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-					tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-				})
-
-				It("returns error when context is missing", func() {
-					ctx = nil
-					dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
-					Expect(err).To(MatchError("unable to get data range; context is missing"))
-					Expect(dataRangeResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+					mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 				})
 
 				It("returns error when the server is not reachable", func() {
 					server.Close()
 					server = nil
-					dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+					dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 					Expect(err.Error()).To(MatchRegexp("unable to get data range; unable to perform request to .*: connect: connection refused"))
 					Expect(dataRangeResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 				})
 
 				requestAssertions := func() {
@@ -175,7 +173,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(MatchError("unable to get data range; bad request"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -194,7 +192,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(MatchError("unable to get data range; authentication token is not authorized for requested action"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -213,7 +211,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(MatchError("unable to get data range; resource not found"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -232,7 +230,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(HaveOccurred())
 							Expect(err.Error()).To(MatchRegexp("unable to get data range; unexpected response status code 500 from"))
 							Expect(dataRangeResponse).To(BeNil())
@@ -252,7 +250,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(MatchError("unable to get data range; json is malformed"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -271,7 +269,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns success", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(dataRangeResponse).To(Equal(responseDataRangesResponse))
 						})
@@ -285,8 +283,6 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
 					})
 
@@ -295,8 +291,6 @@ var _ = Describe("Client", func() {
 
 				When("the server responds directly to the one request without last sync time", func() {
 					AfterEach(func() {
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 						Expect(server.ReceivedRequests()).To(HaveLen(1))
 					})
 
@@ -305,9 +299,9 @@ var _ = Describe("Client", func() {
 
 				When("the server responds with unauthorized, the token is expired and the request retried", func() {
 					BeforeEach(func() {
-						tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-						tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+						mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 						server.AppendHandlers(
 							CombineHandlers(
 								VerifyRequest("GET", "/v3/users/self/dataRange", requestQuery),
@@ -319,8 +313,6 @@ var _ = Describe("Client", func() {
 					})
 
 					AfterEach(func() {
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 						Expect(server.ReceivedRequests()).To(HaveLen(2))
 					})
 
@@ -339,7 +331,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error", func() {
-							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, tokenSource)
+							dataRangeResponse, err := clnt.GetDataRange(ctx, lastSyncTime, mockTokenSource)
 							Expect(err).To(MatchError("unable to get data range; authentication token is invalid"))
 							Expect(dataRangeResponse).To(BeNil())
 						})
@@ -373,23 +365,28 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
+				It("returns error when context is missing", func() {
+					alertsResponse, err := clnt.GetAlerts(context.Context(nil), startTime, endTime, mockTokenSource)
+					Expect(err).To(MatchError("unable to get alerts; context is missing"))
+					Expect(alertsResponse).To(BeNil())
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
 				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(fmt.Sprintf("unable to get alerts; %s", responseErr)))
 					Expect(alertsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
 				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(`unable to get alerts; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(alertsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -398,26 +395,16 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
-						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-					})
-
-					It("returns error when context is missing", func() {
-						ctx = nil
-						alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
-						Expect(err).To(MatchError("unable to get alerts; context is missing"))
-						Expect(alertsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(server.ReceivedRequests()).To(BeEmpty())
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+						alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 						Expect(err.Error()).To(MatchRegexp("unable to get alerts; unable to perform request to .*: connect: connection refused"))
 						Expect(alertsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					})
 
 					requestAssertions := func() {
@@ -434,7 +421,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get alerts; bad request"))
 								Expect(alertsResponse).To(BeNil())
 							})
@@ -453,7 +440,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get alerts; authentication token is not authorized for requested action"))
 								Expect(alertsResponse).To(BeNil())
 							})
@@ -472,7 +459,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get alerts; resource not found"))
 								Expect(alertsResponse).To(BeNil())
 							})
@@ -491,7 +478,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(HaveOccurred())
 								Expect(err.Error()).To(MatchRegexp("unable to get alerts; unexpected response status code 500 from"))
 								Expect(alertsResponse).To(BeNil())
@@ -511,7 +498,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get alerts; json is malformed"))
 								Expect(alertsResponse).To(BeNil())
 							})
@@ -530,7 +517,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns success", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(alertsResponse).To(Equal(responseAlertsResponse))
 							})
@@ -539,8 +526,6 @@ var _ = Describe("Client", func() {
 
 					When("the server responds directly to the one request", func() {
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 						requestAssertions()
@@ -548,9 +533,9 @@ var _ = Describe("Client", func() {
 
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
-							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+							mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+							mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+							mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/alerts", requestQuery),
@@ -562,8 +547,6 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 
@@ -582,7 +565,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, tokenSource)
+								alertsResponse, err := clnt.GetAlerts(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get alerts; authentication token is invalid"))
 								Expect(alertsResponse).To(BeNil())
 							})
@@ -605,23 +588,28 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
+				It("returns error when context is missing", func() {
+					calibrationsResponse, err := clnt.GetCalibrations(context.Context(nil), startTime, endTime, mockTokenSource)
+					Expect(err).To(MatchError("unable to get calibrations; context is missing"))
+					Expect(calibrationsResponse).To(BeNil())
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
 				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(fmt.Sprintf("unable to get calibrations; %s", responseErr)))
 					Expect(calibrationsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
 				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(`unable to get calibrations; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(calibrationsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -630,26 +618,16 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
-						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-					})
-
-					It("returns error when context is missing", func() {
-						ctx = nil
-						calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
-						Expect(err).To(MatchError("unable to get calibrations; context is missing"))
-						Expect(calibrationsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(server.ReceivedRequests()).To(BeEmpty())
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+						calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 						Expect(err.Error()).To(MatchRegexp("unable to get calibrations; unable to perform request to .*: connect: connection refused"))
 						Expect(calibrationsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					})
 
 					requestAssertions := func() {
@@ -666,7 +644,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get calibrations; bad request"))
 								Expect(calibrationsResponse).To(BeNil())
 							})
@@ -685,7 +663,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get calibrations; authentication token is not authorized for requested action"))
 								Expect(calibrationsResponse).To(BeNil())
 							})
@@ -704,7 +682,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get calibrations; resource not found"))
 								Expect(calibrationsResponse).To(BeNil())
 							})
@@ -723,7 +701,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(HaveOccurred())
 								Expect(err.Error()).To(MatchRegexp("unable to get calibrations; unexpected response status code 500 from"))
 								Expect(calibrationsResponse).To(BeNil())
@@ -743,7 +721,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get calibrations; json is malformed"))
 								Expect(calibrationsResponse).To(BeNil())
 							})
@@ -762,7 +740,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns success", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(calibrationsResponse).To(Equal(responseCalibrationsResponse))
 							})
@@ -771,8 +749,6 @@ var _ = Describe("Client", func() {
 
 					When("the server responds directly to the one request", func() {
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 
@@ -781,9 +757,9 @@ var _ = Describe("Client", func() {
 
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
-							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+							mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+							mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+							mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/calibrations", requestQuery),
@@ -795,8 +771,6 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 
@@ -815,7 +789,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, tokenSource)
+								calibrationsResponse, err := clnt.GetCalibrations(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get calibrations; authentication token is invalid"))
 								Expect(calibrationsResponse).To(BeNil())
 							})
@@ -838,23 +812,28 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
+				It("returns error when context is missing", func() {
+					devicesResponse, err := clnt.GetDevices(context.Context(nil), startTime, endTime, mockTokenSource)
+					Expect(err).To(MatchError("unable to get devices; context is missing"))
+					Expect(devicesResponse).To(BeNil())
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
 				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(fmt.Sprintf("unable to get devices; %s", responseErr)))
 					Expect(devicesResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
 				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(`unable to get devices; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(devicesResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -863,26 +842,16 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
-						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-					})
-
-					It("returns error when context is missing", func() {
-						ctx = nil
-						devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
-						Expect(err).To(MatchError("unable to get devices; context is missing"))
-						Expect(devicesResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(server.ReceivedRequests()).To(BeEmpty())
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+						devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 						Expect(err.Error()).To(MatchRegexp("unable to get devices; unable to perform request to .*: connect: connection refused"))
 						Expect(devicesResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					})
 
 					requestAssertions := func() {
@@ -899,7 +868,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get devices; bad request"))
 								Expect(devicesResponse).To(BeNil())
 							})
@@ -918,7 +887,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get devices; authentication token is not authorized for requested action"))
 								Expect(devicesResponse).To(BeNil())
 							})
@@ -937,7 +906,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get devices; resource not found"))
 								Expect(devicesResponse).To(BeNil())
 							})
@@ -956,7 +925,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(HaveOccurred())
 								Expect(err.Error()).To(MatchRegexp("unable to get devices; unexpected response status code 500 from"))
 								Expect(devicesResponse).To(BeNil())
@@ -976,7 +945,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get devices; json is malformed"))
 								Expect(devicesResponse).To(BeNil())
 							})
@@ -995,7 +964,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns success", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(devicesResponse).To(Equal(responseDevicesResponse))
 							})
@@ -1004,8 +973,6 @@ var _ = Describe("Client", func() {
 
 					When("the server responds directly to the one request", func() {
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 
@@ -1014,9 +981,9 @@ var _ = Describe("Client", func() {
 
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
-							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+							mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+							mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+							mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/devices", requestQuery),
@@ -1028,8 +995,6 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 
@@ -1048,7 +1013,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, tokenSource)
+								devicesResponse, err := clnt.GetDevices(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get devices; authentication token is invalid"))
 								Expect(devicesResponse).To(BeNil())
 							})
@@ -1071,23 +1036,28 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
+				It("returns error when context is missing", func() {
+					egvsResponse, err := clnt.GetEGVs(context.Context(nil), startTime, endTime, mockTokenSource)
+					Expect(err).To(MatchError("unable to get egvs; context is missing"))
+					Expect(egvsResponse).To(BeNil())
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
 				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(fmt.Sprintf("unable to get egvs; %s", responseErr)))
 					Expect(egvsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
 				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(`unable to get egvs; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(egvsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -1096,26 +1066,16 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
-						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-					})
-
-					It("returns error when context is missing", func() {
-						ctx = nil
-						egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
-						Expect(err).To(MatchError("unable to get egvs; context is missing"))
-						Expect(egvsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(server.ReceivedRequests()).To(BeEmpty())
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+						egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 						Expect(err.Error()).To(MatchRegexp("unable to get egvs; unable to perform request to .*: connect: connection refused"))
 						Expect(egvsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					})
 
 					requestAssertions := func() {
@@ -1132,7 +1092,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get egvs; bad request"))
 								Expect(egvsResponse).To(BeNil())
 							})
@@ -1151,7 +1111,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get egvs; authentication token is not authorized for requested action"))
 								Expect(egvsResponse).To(BeNil())
 							})
@@ -1170,7 +1130,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get egvs; resource not found"))
 								Expect(egvsResponse).To(BeNil())
 							})
@@ -1189,7 +1149,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(HaveOccurred())
 								Expect(err.Error()).To(MatchRegexp("unable to get egvs; unexpected response status code 500 from"))
 								Expect(egvsResponse).To(BeNil())
@@ -1209,7 +1169,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get egvs; json is malformed"))
 								Expect(egvsResponse).To(BeNil())
 							})
@@ -1228,7 +1188,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns success", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(egvsResponse).To(Equal(responseEGVsResponse))
 							})
@@ -1237,8 +1197,6 @@ var _ = Describe("Client", func() {
 
 					When("the server responds directly to the one request", func() {
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 
@@ -1247,9 +1205,9 @@ var _ = Describe("Client", func() {
 
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
-							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+							mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+							mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+							mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/egvs", requestQuery),
@@ -1261,8 +1219,6 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 
@@ -1281,7 +1237,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, tokenSource)
+								egvsResponse, err := clnt.GetEGVs(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get egvs; authentication token is invalid"))
 								Expect(egvsResponse).To(BeNil())
 							})
@@ -1304,23 +1260,28 @@ var _ = Describe("Client", func() {
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
+				It("returns error when context is missing", func() {
+					eventsResponse, err := clnt.GetEvents(context.Context(nil), startTime, endTime, mockTokenSource)
+					Expect(err).To(MatchError("unable to get events; context is missing"))
+					Expect(eventsResponse).To(BeNil())
+					Expect(server.ReceivedRequests()).To(BeEmpty())
+				})
+
 				It("returns error when token source returns an error", func() {
 					responseErr := errorsTest.RandomError()
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(fmt.Sprintf("unable to get events; %s", responseErr)))
 					Expect(eventsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
 				It("returns error when token source returns that indicates an oauth token failure", func() {
 					responseErr := errors.New(`oauth2: "invalid_grant"`)
-					tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: nil, Error: responseErr}}
-					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(nil, responseErr)
+					eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 					Expect(err).To(MatchError(`unable to get events; oauth2: "invalid_grant"; authentication token is invalid`))
 					Expect(eventsResponse).To(BeNil())
-					Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					Expect(server.ReceivedRequests()).To(BeEmpty())
 				})
 
@@ -1329,26 +1290,16 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						httpClient = http.DefaultClient
-						tokenSource.HTTPClientOutputs = []oauthTest.HTTPClientOutput{{HTTPClient: httpClient, Error: nil}}
-						tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-					})
-
-					It("returns error when context is missing", func() {
-						ctx = nil
-						eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
-						Expect(err).To(MatchError("unable to get events; context is missing"))
-						Expect(eventsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-						Expect(server.ReceivedRequests()).To(BeEmpty())
+						mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+						mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
 					})
 
 					It("returns error when the server is not reachable", func() {
 						server.Close()
 						server = nil
-						eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+						eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 						Expect(err.Error()).To(MatchRegexp("unable to get events; unable to perform request to .*: connect: connection refused"))
 						Expect(eventsResponse).To(BeNil())
-						Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
 					})
 
 					requestAssertions := func() {
@@ -1365,7 +1316,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get events; bad request"))
 								Expect(eventsResponse).To(BeNil())
 							})
@@ -1384,7 +1335,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get events; authentication token is not authorized for requested action"))
 								Expect(eventsResponse).To(BeNil())
 							})
@@ -1403,7 +1354,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get events; resource not found"))
 								Expect(eventsResponse).To(BeNil())
 							})
@@ -1422,7 +1373,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(HaveOccurred())
 								Expect(err.Error()).To(MatchRegexp("unable to get events; unexpected response status code 500 from"))
 								Expect(eventsResponse).To(BeNil())
@@ -1442,7 +1393,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get events; json is malformed"))
 								Expect(eventsResponse).To(BeNil())
 							})
@@ -1461,7 +1412,7 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns success", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).ToNot(HaveOccurred())
 								Expect(eventsResponse).To(Equal(responseEventsResponse))
 							})
@@ -1470,8 +1421,6 @@ var _ = Describe("Client", func() {
 
 					When("the server responds directly to the one request", func() {
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(0))
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 
@@ -1480,9 +1429,9 @@ var _ = Describe("Client", func() {
 
 					When("the server responds with unauthorized, the token is expired and the request retried", func() {
 						BeforeEach(func() {
-							tokenSource.HTTPClientOutputs = append(tokenSource.HTTPClientOutputs, oauthTest.HTTPClientOutput{HTTPClient: httpClient, Error: nil})
-							tokenSource.UpdateTokenOutputs = append(tokenSource.UpdateTokenOutputs, oauthTest.UpdateTokenOutput{Updated: true, Error: nil})
-							tokenSource.ExpireTokenOutputs = append(tokenSource.ExpireTokenOutputs, oauthTest.ExpireTokenOutput{Expired: true, Error: nil})
+							mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).Return(httpClient, nil)
+							mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(true, nil)
+							mockTokenSource.EXPECT().ExpireToken(gomock.Not(gomock.Nil())).Return(true, nil)
 							server.AppendHandlers(
 								CombineHandlers(
 									VerifyRequest("GET", "/v3/users/self/events", requestQuery),
@@ -1494,8 +1443,6 @@ var _ = Describe("Client", func() {
 						})
 
 						AfterEach(func() {
-							Expect(tokenSource.HTTPClientInputs).To(Equal([]oauthTest.HTTPClientInput{{Context: ctx, TokenSourceSource: tokenSourceSource}, {Context: ctx, TokenSourceSource: tokenSourceSource}}))
-							Expect(tokenSource.ExpireTokenInvocations).To(Equal(1))
 							Expect(server.ReceivedRequests()).To(HaveLen(2))
 						})
 
@@ -1514,13 +1461,107 @@ var _ = Describe("Client", func() {
 							})
 
 							It("returns an error", func() {
-								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, tokenSource)
+								eventsResponse, err := clnt.GetEvents(ctx, startTime, endTime, mockTokenSource)
 								Expect(err).To(MatchError("unable to get events; authentication token is invalid"))
 								Expect(eventsResponse).To(BeNil())
 							})
 						})
 					})
 				})
+			})
+		})
+	})
+
+	It("RequestTimeHeaderName is expected", func() {
+		Expect(dexcomClient.RequestTimeHeaderName).To(Equal("request-time"))
+	})
+
+	Context("PrometheusRequestMetricsRoundTripper", func() {
+		Context("NewPrometheusRequestMetricsRoundTripper", func() {
+			It("returns successfully", func() {
+				roundTripper := dexcomClient.NewPrometheusRequestMetricsRoundTripper(prometheusTest.RandomMetricName(), prometheusTest.RandomMetricHelp())
+				Expect(roundTripper).ToNot(BeNil())
+				Expect(roundTripper.PrometheusRequestMetricsRoundTripper).ToNot(BeNil())
+			})
+		})
+
+		Context("RoundTrip", func() {
+			var testRoundTripper *testHttp.RoundTripper
+			var name string
+			var roundTripper *dexcomClient.PrometheusRequestMetricsRoundTripper
+			var request *http.Request
+
+			BeforeEach(func() {
+				testRoundTripper = testHttp.NewRoundTripper()
+				name = prometheusTest.RandomMetricName()
+				roundTripper = dexcomClient.NewPrometheusRequestMetricsRoundTripper(name, prometheusTest.RandomMetricHelp())
+				roundTripper.WithRoundTripper(testRoundTripper)
+				request = testHttp.NewRequest()
+			})
+
+			It("returns the response from the resolved round tripper", func() {
+				testRoundTripper.Response = &http.Response{StatusCode: testHttp.NewStatusCode()}
+
+				result := test.Must(roundTripper.RoundTrip(request))
+				Expect(result).To(BeIdenticalTo(testRoundTripper.Response))
+				Expect(testRoundTripper.Request).To(BeIdenticalTo(request))
+			})
+
+			It("returns the error from the resolved round tripper", func() {
+				testErr := errorsTest.RandomError()
+				testRoundTripper.Error = testErr
+
+				result, err := roundTripper.RoundTrip(request)
+				Expect(err).To(Equal(testErr))
+				Expect(result).To(BeNil())
+			})
+
+			It("does not record a request time metric when the resolved round tripper returns an error", func() {
+				testRoundTripper.Error = errorsTest.RandomError()
+
+				_, _ = roundTripper.RoundTrip(request)
+
+				Expect(prometheusTest.MetricFamilyFromName(name + "_request_time_seconds")).To(BeNil())
+			})
+
+			It("records a request time metric when the response has a valid request-time header", func() {
+				statusCode := testHttp.NewStatusCode()
+				requestTime := time.Duration(test.RandomIntFromRange(1, 60*1000)) * time.Millisecond
+				header := http.Header{}
+				header.Set(dexcomClient.RequestTimeHeaderName, requestTime.String())
+				testRoundTripper.Response = &http.Response{StatusCode: statusCode, Header: header}
+
+				_ = test.Must(roundTripper.RoundTrip(request))
+
+				family := prometheusTest.MetricFamilyFromName(name + "_request_time_seconds")
+				Expect(family).ToNot(BeNil())
+				Expect(family.GetMetric()).To(HaveLen(1))
+				metric := family.GetMetric()[0]
+				Expect(metric.GetHistogram().GetSampleCount()).To(Equal(uint64(1)))
+				Expect(metric.GetHistogram().GetSampleSum()).To(Equal(requestTime.Seconds()))
+				Expect(prometheusTest.LabelPairsToMap(metric.GetLabel())).To(Equal(map[string]string{
+					client.PrometheusLabelNameMethod: request.Method,
+					client.PrometheusLabelNamePath:   request.URL.Path,
+					client.PrometheusLabelNameStatus: strconv.Itoa(statusCode),
+				}))
+			})
+
+			It("does not record a request time metric when the response does not have a request-time header", func() {
+				testRoundTripper.Response = &http.Response{StatusCode: testHttp.NewStatusCode(), Header: http.Header{}}
+
+				_ = test.Must(roundTripper.RoundTrip(request))
+
+				Expect(prometheusTest.MetricFamilyFromName(name + "_request_time_seconds")).To(BeNil())
+			})
+
+			It("does not record a request time metric when the request-time header is not a valid duration", func() {
+				header := http.Header{}
+				header.Set(dexcomClient.RequestTimeHeaderName, test.RandomString())
+				testRoundTripper.Response = &http.Response{StatusCode: testHttp.NewStatusCode(), Header: header}
+
+				_ = test.Must(roundTripper.RoundTrip(request))
+
+				Expect(prometheusTest.MetricFamilyFromName(name + "_request_time_seconds")).To(BeNil())
 			})
 		})
 	})

@@ -2,6 +2,9 @@ package client
 
 import (
 	"context"
+	"net/http"
+
+	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
@@ -12,23 +15,24 @@ import (
 
 type Client struct {
 	baseClient        *client.Client
+	httpClient        *http.Client
 	tokenSourceSource oauth.TokenSourceSource
 }
 
-func New(config *client.Config, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
-	return NewWithErrorParser(config, tokenSourceSource, nil)
+func New(config *client.Config, httpClient *http.Client, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
+	return NewWithErrorParser(config, httpClient, tokenSourceSource, nil)
 }
 
-func NewWithErrorParser(config *client.Config, tokenSourceSource oauth.TokenSourceSource, errorResponseParser client.ErrorResponseParser) (*Client, error) {
+func NewWithErrorParser(config *client.Config, httpClient *http.Client, tokenSourceSource oauth.TokenSourceSource, errorResponseParser client.ErrorResponseParser) (*Client, error) {
 	baseClient, err := client.NewWithErrorParser(config, errorResponseParser)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewWithClient(baseClient, tokenSourceSource)
+	return NewWithClient(baseClient, httpClient, tokenSourceSource)
 }
 
-func NewWithClient(baseClient *client.Client, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
+func NewWithClient(baseClient *client.Client, httpClient *http.Client, tokenSourceSource oauth.TokenSourceSource) (*Client, error) {
 	if baseClient == nil {
 		return nil, errors.New("base client is missing")
 	}
@@ -39,6 +43,7 @@ func NewWithClient(baseClient *client.Client, tokenSourceSource oauth.TokenSourc
 	return &Client{
 		baseClient:        baseClient,
 		tokenSourceSource: tokenSourceSource,
+		httpClient:        httpClient,
 	}, nil
 }
 
@@ -81,6 +86,14 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 }
 
 func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+
+	if c.httpClient != nil {
+		ctx = context.WithValue(ctx, oauth2.HTTPClient, c.httpClient)
+	}
+
 	httpClient, err := tokenSource.HTTPClient(ctx, c.tokenSourceSource)
 	if err != nil {
 		return err
