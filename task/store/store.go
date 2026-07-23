@@ -27,7 +27,7 @@ type TaskRepository interface {
 	UnstickTasks(ctx context.Context) ([]string, error)
 
 	StartTask(ctx context.Context, id string, revision int, deadline time.Duration) (*task.Task, error)
-	StopTask(ctx context.Context, id string, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error
+	StopTask(ctx context.Context, id string, revision int, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error
 
 	IteratePending(ctx context.Context) (*mongo.Cursor, error)
 }

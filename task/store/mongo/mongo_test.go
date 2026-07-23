@@ -229,7 +229,7 @@ var _ = Describe("Mongo", func() {
 					Expect(startedTask.RunTime).ToNot(BeNil())
 					Expect(startedTask.AvailableTime).To(BeNil())
 
-					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.StateLock, task.TaskStatePending, nil, nil)).To(Succeed())
+					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.StateLock, task.TaskStatePending, nil, nil)).To(Succeed())
 
 					actualTask := &task.Task{}
 					Expect(collection.FindOne(ctx, bson.M{"id": startedTask.ID}).Decode(actualTask)).To(Succeed())
@@ -250,7 +250,7 @@ var _ = Describe("Mongo", func() {
 					Expect(startedTask.RunTime).ToNot(BeNil())
 
 					duration := time.Second
-					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.StateLock, task.TaskStateCompleted, &duration, nil)).To(Succeed())
+					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.StateLock, task.TaskStateCompleted, &duration, nil)).To(Succeed())
 
 					actualTask := &task.Task{}
 					Expect(collection.FindOne(ctx, bson.M{"id": startedTask.ID}).Decode(actualTask)).To(Succeed())
@@ -265,7 +265,7 @@ var _ = Describe("Mongo", func() {
 
 			Context("EnsureEHRReconcileTask", func() {
 				BeforeEach(func() {
-					taskStoreMongo.TasksStateTotal.Reset()
+					taskStoreMongo.TypeStateTotal.Reset()
 				})
 
 				It("creates the task and increments the pending metric only on the initial insert", func() {
@@ -273,10 +273,10 @@ var _ = Describe("Mongo", func() {
 					Expect(repository).ToNot(BeNil())
 
 					Expect(repository.EnsureEHRReconcileTask(ctx)).To(Succeed())
-					Expect(testutil.ToFloat64(taskStoreMongo.TasksStateTotal)).To(Equal(1.0))
+					Expect(testutil.ToFloat64(taskStoreMongo.TypeStateTotal)).To(Equal(1.0))
 
 					Expect(repository.EnsureEHRReconcileTask(ctx)).To(Succeed())
-					Expect(testutil.ToFloat64(taskStoreMongo.TasksStateTotal)).To(Equal(1.0))
+					Expect(testutil.ToFloat64(taskStoreMongo.TypeStateTotal)).To(Equal(1.0))
 
 					count := test.Must(collection.CountDocuments(context.Background(), bson.M{"type": reconcile.Type}))
 					Expect(count).To(Equal(int64(1)))

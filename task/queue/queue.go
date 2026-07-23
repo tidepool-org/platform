@@ -222,7 +222,7 @@ func (q *Queue) Start() {
 	}
 	q.started = true
 
-	q.logger.Info("Task queue starting")
+	q.logger.Debug("Task queue starting")
 
 	ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
 	q.cancelFunc = cancelFunc
@@ -230,7 +230,7 @@ func (q *Queue) Start() {
 	q.startWorkers(ctx)
 	q.startManager(ctx)
 
-	q.logger.Info("Task queue started")
+	q.logger.Debug("Task queue started")
 }
 
 func (q *Queue) Stop() {
@@ -335,8 +335,8 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	if !ok {
 		// A whole task type is unprocessable by this queue; surface it distinctly (a configuration
 		// problem) rather than letting it blend in with ordinary per-task failures downstream.
-		lgr.Error("Runner not found for task; task cannot be processed")
-		tsk.SetFailedWithError(errors.New("runner not found for task"))
+		lgr.Error("Runner not found for task type; task cannot be processed")
+		tsk.SetFailedWithError(errors.New("runner not found for task type"))
 		RunnerNotFoundTotal.WithLabelValues(tsk.Type).Inc()
 		return
 	}
@@ -348,8 +348,6 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 			RunPanicTotal.WithLabelValues(tsk.Type).Inc()
 		}
 	}()
-
-	startTime := time.Now()
 
 	// If runner does not respect its own maximum duration, then enforce a context-based timeout.
 	// This forces the task to cancel via the context.
@@ -370,7 +368,9 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	defer runnerWatchdog.Stop()
 
 	// Run the task via the runner
+	startTime := time.Now()
 	runner.Run(runnerContext, tsk)
+	duration := time.Since(startTime).Truncate(time.Millisecond)
 
 	// Immediate stop the runner watchdog
 	runnerWatchdog.Stop()
@@ -391,10 +391,9 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		}
 	}
 
-	taskDuration := time.Since(startTime)
-	RunDurationSeconds.WithLabelValues(runner.GetRunnerType()).Observe(taskDuration.Seconds())
-	if taskDuration > runner.GetRunnerDurationMaximum() {
-		lgr.WithField("taskDuration", taskDuration.Truncate(time.Millisecond).Seconds()).Warn("Task duration exceeds maximum")
+	RunDurationSeconds.WithLabelValues(runner.GetRunnerType()).Observe(duration.Seconds())
+	if duration > runner.GetRunnerDurationMaximum() {
+		lgr.WithField("duration", duration.Seconds()).Warn("Task duration exceeds maximum")
 	}
 }
 
@@ -545,7 +544,7 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 	// uses the started task state lock so it reliably matches.
 	select {
 	case <-ctx.Done():
-		if err := q.repository.StopTask(ctx, startedTask.ID, startedTask.StateLock, task.TaskStatePending, nil, nil); err != nil {
+		if err := q.repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.StateLock, task.TaskStatePending, nil, nil); err != nil {
 			return errors.Wrap(err, "unable to revert task to pending")
 		}
 	case q.dispatchChannel <- startedTask:
@@ -590,7 +589,7 @@ func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 		AvailableTime: tsk.AvailableTime,
 		Error:         &errors.Serializable{Error: tsk.GetError()},
 	}
-	if err := q.repository.StopTask(ctx, tsk.ID, tsk.StateLock, tsk.State, duration, update); err != nil {
+	if err := q.repository.StopTask(ctx, tsk.ID, tsk.Revision, tsk.StateLock, tsk.State, duration, update); err != nil {
 		lgr.WithError(err).Error("Unable to complete task")
 	}
 }
@@ -674,16 +673,18 @@ func durationWithJitter(duration time.Duration) time.Duration {
 }
 
 var (
-	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout, sorted by type
-	// and disposition:
-	//   - "blocked" - for runs the watchdog caught still running past the grace period (the worker is
-	// wedged until the runner eventually returns or the process restarts, so this is the severe case)
-	//   - "recovered" - for runs that exceeded the timeout, but returned once their context was
-	// canceled (the timeout mechanism worked as designed)
-	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_runner_timeout_exceeded_total",
-		Help: "The total number of task runs that exceeded the runner timeout, sorted by type and disposition",
-	}, []string{"type", "disposition"})
+	// WorkersTotal reports the configured number of workers, per queue.
+	WorkersTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_total",
+		Help: "The configured number of task queue workers, sorted by queue",
+	}, []string{"queue"})
+
+	// WorkersAvailable reports the number of available workers, per queue. A value pinned at zero
+	// indicates a saturated queue or workers wedged in non-cooperative runners.
+	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "tidepool_task_workers_available",
+		Help: "The number of available task queue workers, sorted by queue",
+	}, []string{"queue"})
 
 	// RunnerNotFoundTotal counts task runs for which no runner is registered for the task's type,
 	// sorted by type. A non-zero value indicates pending tasks of a type this queue cannot process
@@ -697,26 +698,24 @@ var (
 	// run latency percentiles and to alert when durations approach the runner timeout.
 	RunDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "tidepool_task_run_duration_seconds",
-		Help:    "The duration of task runs in seconds, sorted by type",
+		Help:    "The duration of task runs, in seconds, sorted by type",
 		Buckets: prometheus.ExponentialBuckets(0.1, 2, 15),
 	}, []string{"type"})
 
-	// RunPanicTotal counts task runs that panicked and were recovered, sorted by type.
+	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout, sorted by type
+	// and disposition, where disposition can be:
+	//   - "blocked" - for runs the watchdog caught still running past the grace period (the worker is
+	// wedged until the runner eventually returns or the process restarts, so this is the severe case)
+	//   - "recovered" - for runs that exceeded the timeout, but returned once their context was
+	// canceled (the timeout mechanism worked as designed)
+	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_runner_timeout_exceeded_total",
+		Help: "The total number of task runs that exceeded the runner timeout, sorted by type and disposition",
+	}, []string{"type", "disposition"})
+
+	// RunPanicTotal counts task runs that panicked and were recovered and failed, sorted by type.
 	RunPanicTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_run_panic_total",
 		Help: "The total number of task runs that panicked, sorted by type",
 	}, []string{"type"})
-
-	// WorkersAvailable reports the number of idle workers per queue. A value pinned at zero
-	// indicates a saturated queue or workers wedged in non-cooperative runners.
-	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "tidepool_task_workers_available",
-		Help: "The number of idle task queue workers, sorted by queue",
-	}, []string{"queue"})
-
-	// WorkersTotal reports the configured number of workers per queue.
-	WorkersTotal = promauto.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "tidepool_task_workers_total",
-		Help: "The configured number of task queue workers, sorted by queue",
-	}, []string{"queue"})
 )

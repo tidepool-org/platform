@@ -99,14 +99,14 @@ func NewPrometheusRequestMetricsRoundTripperWithPathPatternsAndDurationBuckets(n
 		requestCountCounterVec: promauto.NewCounterVec(
 			prometheus.CounterOpts{
 				Name: fmt.Sprintf("%s_request_count", name),
-				Help: fmt.Sprintf("%s request count", help),
+				Help: fmt.Sprintf("%s request count, sorted by method, path, and status", help),
 			},
 			PrometheusLabelNames(),
 		),
 		requestDurationHistogramVec: promauto.NewHistogramVec(
 			prometheus.HistogramOpts{
 				Name:    fmt.Sprintf("%s_request_duration_seconds", name),
-				Help:    fmt.Sprintf("%s request duration (seconds)", help),
+				Help:    fmt.Sprintf("%s request duration, in seconds, sorted by method, path, and status", help),
 				Buckets: pointer.DefaultArray(durationBuckets, DurationBucketsDefault),
 			},
 			PrometheusLabelNames(),

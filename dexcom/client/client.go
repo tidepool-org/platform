@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -142,7 +143,8 @@ func (c *Client) sendDexcomRequest(ctx context.Context, method string, url strin
 
 // Some Dexcom API responses include a "request-time" header with, supposedly, the internal duration of the request.
 // This could be useful for debugging connection issues if compared against the calculated request duration.
-// See client/prometheus.go for details on how the request duration is calculated and recorded.
+// See client/prometheus.go for details on how the request duration is calculated and recorded. The format for
+// this header is non-standard duration (e.g. "1234 ms") and the space needs to be removed for Golang to parse.
 
 const RequestTimeHeaderName = "request-time"
 
@@ -170,8 +172,10 @@ func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*ht
 
 	if res != nil {
 		if labels := p.Labels(req, res); labels != nil {
-			if requestTime, parseErr := time.ParseDuration(res.Header.Get(RequestTimeHeaderName)); parseErr == nil {
-				p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
+			if requestTimeHeader := strings.ReplaceAll(res.Header.Get(RequestTimeHeaderName), " ", ""); requestTimeHeader != "" {
+				if requestTime, parseErr := time.ParseDuration(requestTimeHeader); parseErr == nil {
+					p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
+				}
 			}
 		}
 	}

@@ -177,7 +177,7 @@ func (t *TaskRepository) ensureTask(ctx context.Context, create *task.TaskCreate
 	if result, err := t.UpdateOne(ctx, bson.M{"name": tsk.Name}, bson.M{"$setOnInsert": tsk}, options.Update().SetUpsert(true)); err != nil {
 		return errors.Wrap(err, "unable to create task")
 	} else if result.UpsertedCount > 0 {
-		TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+		TypeStateTotal.WithLabelValues(create.Type, task.TaskStatePending).Inc()
 	}
 
 	return nil
@@ -275,7 +275,7 @@ func (t *TaskRepository) CreateTask(ctx context.Context, create *task.TaskCreate
 
 	logger = logger.WithField("task", tsk.LogFields())
 
-	TasksStateTotal.WithLabelValues(task.TaskStatePending, create.Type).Inc()
+	TypeStateTotal.WithLabelValues(create.Type, task.TaskStatePending).Inc()
 	return tsk, nil
 }
 
@@ -425,12 +425,12 @@ func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int,
 		return nil, errors.Wrap(err, "unable to start task")
 	}
 
-	TasksStateTotal.WithLabelValues(task.TaskStateRunning, tsk.Type).Inc()
+	TypeStateTotal.WithLabelValues(tsk.Type, task.TaskStateRunning).Inc()
 	return tsk, nil
 }
 
 // Will only timeout after 10 seconds even if parent context is canceled.
-func (t *TaskRepository) StopTask(ctx context.Context, id string, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error {
+func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -462,7 +462,7 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, stateLock *str
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), TransitionTimeout)
 	defer cancel()
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "stateLock": stateLock, "state": state, "duration": duration, "update": update})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "revision": revision, "stateLock": stateLock, "state": state, "duration": duration, "update": update})
 
 	now := time.Now().UTC()
 	defer func() { logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("StopTask") }()
@@ -495,14 +495,23 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, stateLock *str
 		// recover the task if it was left running. This is logged and counted so lost
 		// completions are observable rather than silently swallowed.
 		logger.Error("Unable to stop task; no running task matched the expected condition")
-		TasksLostCompletionTotal.WithLabelValues(pointer.Default(t.typeFilter, "<none>")).Inc()
+		TypeLostCompletionTotal.WithLabelValues(pointer.Default(t.typeFilter, "")).Inc()
 		return nil
 	} else if err != nil {
 		logger = logger.WithError(err)
 		return errors.Wrap(err, "unable to stop task")
 	}
 
-	TasksStateTotal.WithLabelValues(state, tsk.Type).Inc()
+	// If the on-disk task revision does not match the runner task revision, then either:
+	//   - the runner did not follow the Runner contract; i.e. the runner updated the task during
+	//     run, but it did not use the updated task, or,
+	//   - the task was concurrently modified outside of the runner while the task was running.
+	if tsk.Revision != revision {
+		logger.WithField("revision", log.Fields{"expected": revision, "actual": tsk.Revision}).Warn("Database task revision does not match running task revision; Runner contract broken or concurrent update")
+		TypeRevisionMismatchTotal.WithLabelValues(tsk.Type).Inc()
+	}
+
+	TypeStateTotal.WithLabelValues(tsk.Type, state).Inc()
 	return nil
 }
 
@@ -658,18 +667,28 @@ func newStateLock() string {
 }
 
 var (
-	TasksStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_tasks_state_total",
-		Help: "The total number of tasks sorted by state and type",
-	}, []string{"state", "type"})
+	// TypeStateTotal counts the total number of tasks run, sorted by type and state.
+	TypeStateTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_type_state_total",
+		Help: "The total number of tasks run, sorted by type and state",
+	}, []string{"type", "state"})
 
-	// TasksLostCompletionTotal counts task completions dropped because the compare-and-swap in
-	// StopTask missed (the running claim was concurrently modified, unstuck, or deleted). The task
+	// TypeLostCompletionTotal counts task completions dropped because the compare-and-swap in
+	// StopTask missed (task state lock was concurrently modified, task unstuck, or task deleted). The task
 	// is recovered by the deadline/unstick mechanism, but the intended terminal state is lost. The
 	// type label is populated only when the repository is type-filtered (as it is for each queue in
 	// a MultiQueue); otherwise it is empty.
-	TasksLostCompletionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
-		Name: "tidepool_task_lost_completion_total",
+	TypeLostCompletionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_type_lost_completion_total",
 		Help: "The total number of task completions dropped because the state-lock compare-and-swap missed, sorted by type",
+	}, []string{"type"})
+
+	// TypeRevisionMismatchTotal counts task completions where the task revision does not match
+	// the task revision in the database. This only occurs if the task runner does not follow the Runner
+	// contract when updating a task during run, or if there is a concurrent modification outside of
+	// the expected Runner behavior.
+	TypeRevisionMismatchTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_type_revision_mismatch_total",
+		Help: "The total number of task revisions that do not match the task revision in the database, sorted by type",
 	}, []string{"type"})
 )
