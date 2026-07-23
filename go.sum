@@ -264,8 +264,8 @@ github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb h1:SgtVs9
 github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb/go.mod h1:xuQ8k0mLR1ZyEmwe/m0v2BuXctqQuCZeR43urSQpTUM=
 github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55 h1:xgYwNbURhgZRig2gTyNyt/4KDiF/PT0Qlmkc76Usz2M=
 github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55/go.mod h1:v93bMGDHiHcltQY5s7LYTTEe3u9CiGWqBFKah6C0650=
-github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677 h1:P3C1YTvLHu7NFHOeh6NDPo5ieVXcF9a+SY4FTToR8B4=
-github.com/tidepool-org/hydrophone/client v0.0.0-20250317164837-a8cd51fd6677/go.mod h1:gon+x+jAh8DZZ2hD23fBWqrYwOizVSwIBbxEsuXCbZ4=
+github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093 h1:yuyVTZbXoO+uSIKNDjDjVc65x/q+lQXU1oUovnsT1RE=
+github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093/go.mod h1:gon+x+jAh8DZZ2hD23fBWqrYwOizVSwIBbxEsuXCbZ4=
 github.com/tidwall/gjson v1.18.0 h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=
 github.com/tidwall/gjson v1.18.0/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/match v1.1.1 h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=
