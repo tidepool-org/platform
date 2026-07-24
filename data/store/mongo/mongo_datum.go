@@ -437,7 +437,7 @@ func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Co
 
 	var updateInfo *mongo.UpdateResult
 
-	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
+	// Note that the "DeduplicatorHash" index is NOT used here as the fields in the query don't match the index definition. On average an upload only has one device anyways (P90 ~ 1). However the "DeduplicatorHash" index is still useful for the UpdateMany operation that follows.
 	selector := bson.M{
 		"_userId":            dataSet.UserID,
 		"uploadId":           dataSet.UploadID,

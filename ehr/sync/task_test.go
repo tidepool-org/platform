@@ -19,7 +19,6 @@ var _ = Describe("Task", func() {
 			Expect(create).ToNot(BeNil())
 			Expect(create.Name).To(PointTo(Equal(sync.TaskName(*clinic.Id))))
 			Expect(create.Type).To(Equal(sync.Type))
-			Expect(create.AvailableTime).ToNot(BeNil())
 		})
 
 		It("stores the clinic id in the data", func() {

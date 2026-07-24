@@ -34,10 +34,8 @@ type UpdateRunner struct {
 func NewDefaultUpdateTaskCreate(summaryType string) *task.TaskCreate {
 	typ := UpdateType + "." + summaryType
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(typ),
-		Type:          typ,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Name: pointer.FromAny(typ),
+		Type: typ,
 		Data: map[string]any{
 			ConfigMinInterval: int32(DefaultUpdateAvailableAfterDurationMinimum.Seconds()),
 			ConfigMaxInterval: int32(DefaultUpdateAvailableAfterDurationMaximum.Seconds()),
@@ -69,8 +67,8 @@ func (r *UpdateRunner) GetRunnerType() string {
 	return UpdateType + "." + r.summaryType
 }
 
-func (r *UpdateRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(UpdateTaskDurationMaximum * 3)
+func (r *UpdateRunner) GetRunnerDeadline() time.Duration {
+	return UpdateTaskDurationMaximum * 3
 }
 
 func (r *UpdateRunner) GetRunnerTimeout() time.Duration {
@@ -173,17 +171,17 @@ func (t *UpdateTaskRunner) run() error {
 	t.logger.Debugf("Starting User %s Summary Update", typ)
 
 	for i := 1; i <= IterLimit; i++ {
-		t.logger.Infof("Searching for User %s Summaries requiring Update", typ)
+		t.logger.Debugf("Searching for User %s Summaries requiring Update", typ)
 		outdated, err := t.dataClient.GetOutdatedUserIDs(t.context, typ, pagination)
 		if err != nil {
 			return err
 		}
 		if len(outdated.UserIds) == 0 {
-			t.logger.Infof("No %s Summaries requiring updates found", typ)
+			t.logger.Debugf("No %s Summaries requiring updates found", typ)
 			return nil
 		}
 
-		t.logger.Infof("Found batch of %d %s Summaries to Update", len(outdated.UserIds), typ)
+		t.logger.Debugf("Found batch of %d %s Summaries to Update", len(outdated.UserIds), typ)
 
 		err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdated.UserIds, UpdateWorkerCount, t.deadline, "Updating")
 		if err != nil {

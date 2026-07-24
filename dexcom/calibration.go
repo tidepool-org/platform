@@ -161,7 +161,7 @@ func (c *Calibration) Validate(validator structure.Validator) {
 		logger.Warnf("Unit is '%s'", *c.Unit)
 	}
 	if c.TransmitterID != nil && *c.TransmitterID == "" {
-		logger.Warnf("TransmitterID is empty", *c.TransmitterID)
+		logger.Warn("TransmitterID is empty")
 	}
 	if c.DisplayDevice != nil && *c.DisplayDevice == DeviceDisplayDeviceUnknown {
 		logger.Warnf("DisplayDevice is '%s'", *c.DisplayDevice)

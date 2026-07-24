@@ -218,6 +218,15 @@ func DataTypeInScope(dataType string, scope string) bool {
 	return slices.Contains(ScopesForDataType(dataType), scope)
 }
 
+func DataTypeToPath(dataType string) string {
+	switch dataType {
+	case DataTypeVO2Max:
+		return "vO2_max" // Capitalization inconsistency
+	default:
+		return dataType
+	}
+}
+
 type BaseClient interface {
 	ClientID() string
 	ClientSecret() string

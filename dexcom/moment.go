@@ -50,10 +50,10 @@ func (m *Moment) SystemTimeRaw() *time.Time {
 
 type Moments []*Moment
 
-func (m Moments) Compact() Moments {
+func (m Moments) CompactBySystemTimeRaw() Moments {
 	var moments Moments
 	for _, moment := range m {
-		if moment != nil {
+		if systemTimeRaw(moment) != nil {
 			moments = append(moments, moment)
 		}
 	}

@@ -2,7 +2,13 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -10,7 +16,6 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
-	"github.com/tidepool-org/platform/request"
 )
 
 type Client struct {
@@ -18,12 +23,29 @@ type Client struct {
 }
 
 func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
+	if cfg == nil {
+		return nil, errors.New("config is missing")
+	} else if err := cfg.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
+	}
+
+	if cfg.Timeout == 0 {
+		cfg.Timeout = 1 * time.Minute
+	}
+
+	httpClient := &http.Client{
+		Transport:     prometheusRequestMetricsRoundTripper,
+		CheckRedirect: http.DefaultClient.CheckRedirect,
+		Jar:           http.DefaultClient.Jar,
+		Timeout:       http.DefaultClient.Timeout,
+	}
+
 	baseClient, err := client.New(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	clnt, err := oauthClient.NewWithClient(baseClient, tknSrcSrc)
+	clnt, err := oauthClient.NewWithClient(baseClient, httpClient, tknSrcSrc)
 	if err != nil {
 		return nil, err
 	}
@@ -114,17 +136,53 @@ func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime t
 }
 
 func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	startTime := time.Now()
-
-	err := c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
-
-	if requestDuration := time.Since(startTime); requestDuration > requestDurationMaximum {
-		log.LoggerFromContext(ctx).WithField("requestDuration", requestDuration.Truncate(time.Millisecond).Seconds()).Warn("Request duration exceeds maximum")
-	}
-
-	return err
+	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
+		return c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, nil, tokenSource)
+	})
 }
 
-const requestDurationMaximum = 30 * time.Second
+// Some Dexcom API responses include a "request-time" header with, supposedly, the internal duration of the request.
+// This could be useful for debugging connection issues if compared against the calculated request duration.
+// See client/prometheus.go for details on how the request duration is calculated and recorded. The format for
+// this header is non-standard duration (e.g. "1234 ms") and the space needs to be removed for Golang to parse.
 
-var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspector("tidepool_dexcom_api_client_requests", "Dexcom API client requests")
+const RequestTimeHeaderName = "request-time"
+
+type PrometheusRequestMetricsRoundTripper struct {
+	*client.PrometheusRequestMetricsRoundTripper
+	requestTimeHistogramVec *prometheus.HistogramVec
+}
+
+func NewPrometheusRequestMetricsRoundTripper(name string, help string) *PrometheusRequestMetricsRoundTripper {
+	return &PrometheusRequestMetricsRoundTripper{
+		PrometheusRequestMetricsRoundTripper: client.NewPrometheusRequestMetricsRoundTripper(name, help),
+		requestTimeHistogramVec: promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    fmt.Sprintf("%s_request_time_seconds", name),
+				Help:    fmt.Sprintf("%s request time (seconds)", help),
+				Buckets: client.DurationBucketsDefault,
+			},
+			client.PrometheusLabelNames(),
+		),
+	}
+}
+
+func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	res, err := p.PrometheusRequestMetricsRoundTripper.RoundTrip(req)
+
+	if res != nil {
+		if labels := p.Labels(req, res); labels != nil {
+			if requestTimeHeader := strings.ReplaceAll(res.Header.Get(RequestTimeHeaderName), " ", ""); requestTimeHeader != "" {
+				if requestTime, parseErr := time.ParseDuration(requestTimeHeader); parseErr == nil {
+					p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
+				}
+			}
+		}
+	}
+
+	return res, err
+}
+
+const requestDurationMaximum = 60 * time.Second
+
+var prometheusRequestMetricsRoundTripper = NewPrometheusRequestMetricsRoundTripper("tidepool_dexcom_api", "Tidepool Dexcom API")

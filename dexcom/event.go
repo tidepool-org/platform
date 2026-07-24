@@ -287,7 +287,7 @@ func (e *Event) Validate(validator structure.Validator) {
 		logger.Warnf("EventType is '%s'", *e.EventType)
 	}
 	if e.TransmitterID != nil && *e.TransmitterID == "" {
-		logger.Warnf("TransmitterID is empty", *e.TransmitterID)
+		logger.Warn("TransmitterID is empty")
 	}
 	if e.DisplayDevice != nil && *e.DisplayDevice == DeviceDisplayDeviceUnknown {
 		logger.Warnf("DisplayDevice is '%s'", *e.DisplayDevice)

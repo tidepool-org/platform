@@ -156,15 +156,7 @@ func WithSource(err error, src Source) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
 	} else if objectErr, objectOK := err.(*object); objectOK {
-		return &object{
-			Code:   objectErr.Code,
-			Title:  objectErr.Title,
-			Detail: objectErr.Detail,
-			Source: s,
-			Meta:   objectErr.Meta,
-			Caller: objectErr.Caller,
-			Cause:  objectErr.Cause,
-		}
+		return objectErr.withSource(s)
 	} else if err != nil {
 		return &object{
 			Detail: err.Error(),
@@ -200,15 +192,7 @@ func WithMeta(err error, meta interface{}) error {
 	if _, arrayOK := err.(*array); arrayOK {
 		return err
 	} else if objectErr, objectOK := err.(*object); objectOK {
-		return &object{
-			Code:   objectErr.Code,
-			Title:  objectErr.Title,
-			Detail: objectErr.Detail,
-			Source: objectErr.Source,
-			Meta:   meta,
-			Caller: objectErr.Caller,
-			Cause:  objectErr.Cause,
-		}
+		return objectErr.withMeta(meta)
 	} else if err != nil {
 		return &object{
 			Detail: err.Error(),
@@ -315,9 +299,6 @@ type Serializable struct {
 }
 
 func NewSerializable(err error) *Serializable {
-	if err == nil {
-		return nil
-	}
 	return &Serializable{
 		Error: err,
 	}
@@ -363,11 +344,15 @@ func (s Serializable) MarshalJSON() ([]byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
 		return json.Marshal(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return json.Marshal(objectErr)
+		bites, err := json.Marshal(objectErr)
+		if err != nil && objectErr.Meta != nil { // If failure to marshal with meta, then remove meta and try again; likely unmarshallable value within meta
+			bites, err = json.Marshal(objectErr.withMeta(nil))
+		}
+		return bites, err
 	} else if s.Error != nil {
 		return []byte(strconv.Quote(s.Error.Error())), nil
 	}
-	return nil, nil
+	return []byte("null"), nil
 }
 
 func (s *Serializable) UnmarshalJSON(bites []byte) error {
@@ -399,7 +384,11 @@ func (s Serializable) MarshalBSONValue() (bsontype.Type, []byte, error) {
 	if arrayErr, arrayOK := s.Error.(*array); arrayOK {
 		return bson.MarshalValue(arrayErr.Errors)
 	} else if objectErr, objectOK := s.Error.(*object); objectOK {
-		return bson.MarshalValue(objectErr)
+		bsonType, bites, err := bson.MarshalValue(objectErr)
+		if err != nil && objectErr.Meta != nil { // If failure to marshal with meta, then remove meta and try again; likely unmarshallable value within meta
+			bsonType, bites, err = bson.MarshalValue(objectErr.withMeta(nil))
+		}
+		return bsonType, bites, err
 	} else if s.Error != nil {
 		return bsontype.String, bsoncore.AppendString(nil, s.Error.Error()), nil
 	}
@@ -666,6 +655,30 @@ func (o *object) Sanitize() error {
 
 func (o *object) Is(target error) bool {
 	return o.Cause != nil && o.Cause.Error == target
+}
+
+func (o *object) withSource(src *source) *object {
+	return &object{
+		Code:   o.Code,
+		Title:  o.Title,
+		Detail: o.Detail,
+		Source: src,
+		Meta:   o.Meta,
+		Caller: o.Caller,
+		Cause:  o.Cause,
+	}
+}
+
+func (o *object) withMeta(meta any) *object {
+	return &object{
+		Code:   o.Code,
+		Title:  o.Title,
+		Detail: o.Detail,
+		Source: o.Source,
+		Meta:   meta,
+		Caller: o.Caller,
+		Cause:  o.Cause,
+	}
 }
 
 type contextKey string

@@ -242,6 +242,39 @@ var _ = Describe("DataRange", func() {
 				}
 				Expect(datum.DataRange()).To(Equal(expectedDataRange))
 			})
+
+			It("returns data range excluding moments without a system time", func() {
+				datum := dexcomTest.RandomDataRangesResponse()
+				datum.Calibrations.Start = dexcomTest.RandomMomentFromTime(time.Unix(1730000000, 0))
+				datum.Calibrations.End = dexcomTest.RandomMomentFromTime(time.Unix(1790000000, 0))
+				datum.EGVs.Start = dexcomTest.RandomMomentFromTime(time.Unix(1710000000, 0))
+				datum.EGVs.End = dexcomTest.RandomMomentFromTime(time.Unix(1780000000, 0))
+				datum.Events.Start = dexcomTest.RandomMomentFromTime(time.Unix(1750000000, 0))
+				datum.Events.End = dexcomTest.RandomMomentFromTime(time.Unix(1770000000, 0))
+				datum.EGVs.Start.SystemTime = nil
+				datum.Calibrations.End.SystemTime = nil
+				expectedDataRange := &dexcom.DataRange{
+					Start: datum.Calibrations.Start,
+					End:   datum.EGVs.End,
+				}
+				Expect(datum.DataRange()).To(Equal(expectedDataRange))
+			})
+
+			It("returns nil if no start moments have a system time", func() {
+				datum := dexcomTest.RandomDataRangesResponse()
+				datum.Calibrations.Start.SystemTime = nil
+				datum.EGVs.Start.SystemTime = nil
+				datum.Events.Start.SystemTime = nil
+				Expect(datum.DataRange()).To(BeNil())
+			})
+
+			It("returns nil if no end moments have a system time", func() {
+				datum := dexcomTest.RandomDataRangesResponse()
+				datum.Calibrations.End.SystemTime = nil
+				datum.EGVs.End.SystemTime = nil
+				datum.Events.End.SystemTime = nil
+				Expect(datum.DataRange()).To(BeNil())
+			})
 		})
 	})
 

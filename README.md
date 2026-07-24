@@ -159,3 +159,47 @@ Review all pending changes to all dependencies. If any changes could have a nega
 Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
 
 If you previously noted any changes or issues of concern, perform any explicit tests necessary.
+
+## Prometheus Metrics
+
+See source files for further details about and usage of each metric.
+
+### Summary Store
+
+* `tidepool_summary_queue_lag` - (histogram) - the current summary queue lag, in minutes
+* `tidepool_summary_queue_length` - (gauge) - the current summary queue length, in number of summaries
+
+### C2C
+
+#### Abbott
+
+* `tidepool_abbott_api_request_count` - (counter) - Abbott API request count, sorted by method, path, and status
+* `tidepool_abbott_api_request_duration_seconds` - (histogram) - Abbott API duration of each request, in seconds, sorted by method, path, and status
+
+#### Dexcom
+
+* `tidepool_dexcom_api_request_count` - (counter) - Dexcom API request count, sorted by method, path, and status
+* `tidepool_dexcom_api_request_duration_seconds` - (histogram) - Dexcom API duration of each request, in seconds, sorted by method, path, and status
+* `tidepool_dexcom_api_request_time_seconds` - (histogram) - Dexcom API duration of each request, as reported in the "request-time" response header from Dexcom, in seconds, sorted by method, path, and status
+
+#### Oura
+
+* `tidepool_oura_api_request_count` - (counter) - Oura API request count, sorted by method, path, and status
+* `tidepool_oura_api_request_duration_seconds` - (histogram) - Oura API duration of each request, in seconds, sorted by method, path, and status
+
+### Task
+
+#### Queue
+
+* `tidepool_task_workers_total` - (gauge) - configured number of task queue workers, sorted by queue (5, per config)
+* `tidepool_task_workers_available` - (gauge) - number of available task queue workers, sorted by queue (5, per config)
+* `tidepool_task_runner_not_found_total` - (counter) - total number of task runs with no registered runner for the task type, sorted by type (ideally zero)
+* `tidepool_task_run_duration_seconds` - (histogram) - duration of task runs in seconds, sorted by type
+* `tidepool_task_runner_timeout_exceeded_total` - (counter) - total number of task runs that exceeded the runner timeout, sorted by type and disposition ("blocked", "recovered") (ideally zero)
+* `tidepool_task_run_panic_total` - (counter) - total number of task runs that panicked, sorted by type (ideally 0)
+
+#### Store
+
+* `tidepool_task_type_state_total` - (counter) - total number of tasks run, sorted by type and state
+* `tidepool_task_type_lost_completion_total` - (counter) - total number of task completions dropped because the state-lock compare-and-swap missed, sorted by type (ideally low-ish)
+* `tidepool_task_type_revision_mismatch_total` - (counter) - total number of task revisions that do not match the task revision in the database, sorted by type (ideally zero)

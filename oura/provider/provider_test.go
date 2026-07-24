@@ -257,4 +257,30 @@ var _ = Describe("provider", func() {
 			})
 		})
 	})
+
+	Context("PrometheusCodePathPatterns", func() {
+		It("returns expected patterns", func() {
+			Expect(ouraProvider.PrometheusPathPatterns()).To(Equal([]string{
+				"/v2/usercollection/daily_activity/{document_id}",
+				"/v2/usercollection/daily_cardiovascular_age/{document_id}",
+				"/v2/usercollection/daily_cycle_phases/{document_id}",
+				"/v2/usercollection/daily_readiness/{document_id}",
+				"/v2/usercollection/daily_resilience/{document_id}",
+				"/v2/usercollection/daily_sleep/{document_id}",
+				"/v2/usercollection/daily_spo2/{document_id}",
+				"/v2/usercollection/daily_stress/{document_id}",
+				"/v2/usercollection/enhanced_tag/{document_id}",
+				"/v2/usercollection/rest_mode_period/{document_id}",
+				"/v2/usercollection/ring_configuration/{document_id}",
+				"/v2/usercollection/session/{document_id}",
+				"/v2/usercollection/sleep/{document_id}",
+				"/v2/usercollection/sleep_time/{document_id}",
+				"/v2/usercollection/vO2_max/{document_id}",
+				"/v2/usercollection/workout/{document_id}",
+				"/v2/webhook/subscription/{id}",
+				"/v2/webhook/subscription/renew/{id}",
+				"/",
+			}))
+		})
+	})
 })

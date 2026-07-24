@@ -31,8 +31,7 @@ type ErrorResponseParser interface {
 }
 
 type Client struct {
-	address             string
-	userAgent           string
+	config              Config
 	errorResponseParser ErrorResponseParser
 }
 
@@ -48,14 +47,13 @@ func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*
 	}
 
 	return &Client{
-		address:             cfg.Address,
-		userAgent:           cfg.UserAgent,
+		config:              *cfg,
 		errorResponseParser: errorResponseParser,
 	}, nil
 }
 
 func (c *Client) ConstructURL(paths ...string) string {
-	return ConstructURL(c.address, paths...)
+	return ConstructURL(c.config.Address, paths...)
 }
 
 func (c *Client) AppendURLQuery(urlString string, query map[string]string) string {
@@ -85,6 +83,12 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
 	if err != nil {
 		return nil, err
+	}
+
+	if c.config.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, c.config.Timeout)
+		defer cancel()
 	}
 
 	res, err := httpClient.Do(req)
@@ -127,8 +131,8 @@ func (c *Client) createRequest(ctx context.Context, method string, url string, m
 		return nil, errors.New("url is missing")
 	}
 
-	if c.userAgent != "" {
-		mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.userAgent))
+	if c.config.UserAgent != "" {
+		mutators = append(mutators, request.NewHeaderMutator("User-Agent", c.config.UserAgent))
 	}
 
 	var body io.Reader
