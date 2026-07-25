@@ -14,6 +14,8 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
+//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
+
 type Service interface {
 	service.Service
 

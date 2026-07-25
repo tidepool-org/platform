@@ -13,6 +13,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -147,7 +148,7 @@ func (pt *PalmTreeSecrets) GetSecret(ctx context.Context, partnerDataRaw []byte)
 	if err != nil {
 		return nil, fmt.Errorf("unable to issue PalmTree API request: %w", err)
 	}
-	defer res.Body.Close()
+	defer request.DrainAndClose(res.Body)
 
 	if res.StatusCode < 200 || res.StatusCode >= 300 {
 		var body map[string]any

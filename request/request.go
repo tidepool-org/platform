@@ -2,6 +2,7 @@ package request
 
 import (
 	"context"
+	"io"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -224,5 +225,12 @@ func GetErrorFromContext(ctx context.Context) error {
 func SetErrorToContext(ctx context.Context, err error) {
 	if contextError := ContextErrorFromContext(ctx); contextError != nil {
 		contextError.Set(err)
+	}
+}
+
+func DrainAndClose(reader io.ReadCloser) {
+	if reader != nil {
+		_, _ = io.Copy(io.Discard, reader)
+		reader.Close()
 	}
 }

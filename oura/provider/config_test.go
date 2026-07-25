@@ -16,7 +16,6 @@ var _ = Describe("config", func() {
 
 	BeforeEach(func() {
 		expectedConfig = ouraProviderTest.RandomConfig()
-		expectedConfig.AuthStyleInParams = true
 		expectedConfig.CookieDisabled = true
 		configReporter = configTest.NewReporter()
 		configReporter.Config = ouraProviderTest.NewObjectFromConfig(expectedConfig, test.ObjectFormatConfig)

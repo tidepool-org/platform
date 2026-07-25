@@ -3,25 +3,30 @@ package provider
 import (
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 )
 
+const ClientTimeoutDefault = 60 * time.Second
+
 type Config struct {
-	ClientID          string   `json:"client_id,omitempty"`
-	ClientSecret      string   `json:"-"`
-	AcceptURL         *string  `json:"accept_url,omitempty"`
-	AuthorizeURL      string   `json:"authorize_url,omitempty"`
-	RedirectURL       string   `json:"redirect_url,omitempty"`
-	TokenURL          string   `json:"token_url,omitempty"`
-	RevokeURL         *string  `json:"revoke_url,omitempty"`
-	Scopes            []string `json:"scopes,omitempty"`
-	AuthStyleInParams bool     `json:"auth_style_in_params,omitempty"`
-	CookieDisabled    bool     `json:"cookie_disabled,omitempty"`
-	StateSalt         *string  `json:"state_salt,omitempty"`
+	ClientID          string        `json:"client_id,omitempty"`
+	ClientSecret      string        `json:"-"`
+	AcceptURL         *string       `json:"accept_url,omitempty"`
+	AuthorizeURL      string        `json:"authorize_url,omitempty"`
+	RedirectURL       string        `json:"redirect_url,omitempty"`
+	TokenURL          string        `json:"token_url,omitempty"`
+	RevokeURL         *string       `json:"revoke_url,omitempty"`
+	Scopes            []string      `json:"scopes,omitempty"`
+	AuthStyleInParams bool          `json:"auth_style_in_params,omitempty"`
+	CookieDisabled    bool          `json:"cookie_disabled,omitempty"`
+	StateSalt         *string       `json:"state_salt,omitempty"`
+	ClientTimeout     time.Duration `json:"client_timeout,omitempty"`
 }
 
 func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error) {
@@ -33,7 +38,9 @@ func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error
 }
 
 func NewConfig() *Config {
-	return &Config{}
+	return &Config{
+		ClientTimeout: ClientTimeoutDefault,
+	}
 }
 
 func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
@@ -71,6 +78,11 @@ func (c *Config) LoadFromConfigReporter(configReporter config.Reporter) error {
 	if stateSalt, err := configReporter.Get("state_salt"); err == nil && stateSalt != "" {
 		c.StateSalt = pointer.FromString(stateSalt)
 	}
+	if clientTimeout, parseErr := duration.Parse(configReporter.GetWithDefault("client_timeout", c.ClientTimeout.String()), time.Second); parseErr != nil {
+		return errors.New("client timeout is invalid")
+	} else {
+		c.ClientTimeout = clientTimeout
+	}
 	return nil
 }
 
@@ -106,6 +118,9 @@ func (c *Config) Validate() error {
 		} else if *c.StateSalt == "" {
 			return errors.New("state salt is empty")
 		}
+	}
+	if c.ClientTimeout <= 0 {
+		return errors.New("client timeout is invalid")
 	}
 	return nil
 }

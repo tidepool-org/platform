@@ -988,10 +988,21 @@ var _ = Describe("Event", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/unit"),
 				),
+				Entry("value empty",
+					func(datum *dexcom.Event) {
+						datum.Value = pointer.FromString("")
+					},
+				),
+				Entry("value zero",
+					func(datum *dexcom.Event) {
+						datum.Value = pointer.FromString("0.00")
+					},
+				),
 				Entry("value present",
 					func(datum *dexcom.Event) {
 						datum.Value = pointer.FromString(test.RandomString())
 					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/value"),
 				),
 				Entry("multiple errors",
 					func(datum *dexcom.Event) {
@@ -1025,7 +1036,6 @@ var _ = Describe("Event", func() {
 					func(datum *dexcom.Event) {
 						datum.Unit = nil
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/unit"),
 				),
 				Entry("unit invalid",
 					func(datum *dexcom.Event) {

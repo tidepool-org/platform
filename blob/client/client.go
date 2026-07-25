@@ -214,12 +214,12 @@ func (c *Client) GetContent(ctx context.Context, id string) (*blob.Content, erro
 
 	digestMD5, err := request.ParseDigestMD5Header(headersInspector.Headers, "Digest")
 	if err != nil {
-		body.Close()
+		request.DrainAndClose(body)
 		return nil, err
 	}
 	mediaType, err := request.ParseMediaTypeHeader(headersInspector.Headers, "Content-Type")
 	if err != nil {
-		body.Close()
+		request.DrainAndClose(body)
 		return nil, err
 	}
 
@@ -271,12 +271,12 @@ func (c *Client) GetDeviceLogsContent(ctx context.Context, deviceLogID string) (
 
 	digestMD5, err := request.ParseDigestMD5Header(headersInspector.Headers, "Digest")
 	if err != nil {
-		body.Close()
+		request.DrainAndClose(body)
 		return nil, err
 	}
 	mediaType, err := request.ParseMediaTypeHeader(headersInspector.Headers, "Content-Type")
 	if err != nil {
-		body.Close()
+		request.DrainAndClose(body)
 		return nil, err
 	}
 	startAt, err := request.ParseTimeHeader(headersInspector.Headers, "Start-At", time.RFC3339Nano)

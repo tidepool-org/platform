@@ -14,6 +14,7 @@ import (
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 )
@@ -53,6 +54,14 @@ func NewWithErrorParser(cfg *Config, errorResponseParser ErrorResponseParser) (*
 	}, nil
 }
 
+func (c *Client) ClientTimeout() time.Duration {
+	return c.config.ClientTimeout
+}
+
+func (c *Client) ResponseTimeout() time.Duration {
+	return c.config.ResponseTimeout
+}
+
 func (c *Client) ConstructURL(paths ...string) string {
 	return ConstructURL(c.config.Address, paths...)
 }
@@ -76,17 +85,22 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return urlString
 }
 
-func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) (io.ReadCloser, error) {
+func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, inspectors []request.ResponseInspector, httpClient *http.Client) (io.ReadCloser, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
-	if httpClient == nil {
-		return nil, errors.New("http client is missing")
+
+	// Ensure the HTTP client. If no timeout, then use timeout from config.
+	httpClient = pointer.From(pointer.Default(httpClient, *http.DefaultClient))
+	if httpClient.Timeout == 0 {
+		if clientTimeout := c.ClientTimeout(); clientTimeout > 0 {
+			httpClient.Timeout = clientTimeout
+		}
 	}
 
-	// The request must carry a cancelable context for the timeout to reach the transport. A deadline on that context
-	// cannot be used, though, as it would also abort any read of the returned response body, so instead cancel via a
-	// timer that is stopped once the response headers arrive. The cause preserves the deadline exceeded error.
+	// The request must carry a cancelable context for the response timeout to reach the transport. A deadline on that
+	// context cannot be used, though, as it would also abort any read of the returned response body, so instead cancel
+	// via a timer that is stopped once the response headers arrive. The cause preserves the deadline exceeded error.
 	ctx, cancel := context.WithCancelCause(ctx)
 
 	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
@@ -95,9 +109,11 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 		return nil, err
 	}
 
+	// Use timer to tracker timeout for response headers. If the timeout is reached, then cancel the context with a
+	// cause of deadline exceeded.
 	var timer *time.Timer
-	if c.config.Timeout > 0 {
-		timer = time.AfterFunc(c.config.Timeout, func() { cancel(context.DeadlineExceeded) })
+	if responseTimeout := c.ResponseTimeout(); responseTimeout > 0 {
+		timer = time.AfterFunc(responseTimeout, func() { cancel(context.DeadlineExceeded) })
 	}
 
 	res, err := httpClient.Do(req)
@@ -127,7 +143,7 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 	}, err
 }
 
-func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
+func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, inspectors []request.ResponseInspector, httpClient *http.Client) error {
 	body, err := c.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 	if err != nil {
 		return err
@@ -135,7 +151,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 		return nil
 	}
 
-	defer drainAndClose(body)
+	defer request.DrainAndClose(body)
 
 	if responseBody == nil {
 		return nil
@@ -144,7 +160,7 @@ func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, u
 	return request.DecodeStream(ctx, structure.NewPointerSource(), body, responseBody)
 }
 
-func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}) (*http.Request, error) {
+func (c *Client) createRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any) (*http.Request, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -199,14 +215,14 @@ func (c *Client) handleResponse(ctx context.Context, res *http.Response, req *ht
 	if request.IsStatusCodeSuccess(res.StatusCode) {
 		switch res.StatusCode {
 		case http.StatusNoContent, http.StatusResetContent:
-			drainAndClose(res.Body)
+			defer request.DrainAndClose(res.Body)
 			return nil, nil
 		default:
 			return res.Body, nil
 		}
 	}
 
-	defer drainAndClose(res.Body)
+	defer request.DrainAndClose(res.Body)
 
 	bites, err := io.ReadAll(io.LimitReader(res.Body, ResponseBodyLimit))
 	if err != nil {
@@ -263,16 +279,11 @@ func errorFromStatusCode(res *http.Response, req *http.Request) error {
 	}
 }
 
-func responseBodyFromBytes(bites []byte) interface{} {
+func responseBodyFromBytes(bites []byte) any {
 	if utf8.Valid(bites) {
 		return string(bites)
 	}
 	return bites
-}
-
-func drainAndClose(reader io.ReadCloser) {
-	io.Copy(io.Discard, reader)
-	reader.Close()
 }
 
 type ReadCloserWithCancelCause struct {

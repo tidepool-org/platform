@@ -10,6 +10,7 @@ import (
 )
 
 type DatumCreator func(typ string) (data.Datum, error)
+
 type DataCursorFactory func(cursor *mongo.Cursor) DeviceDataCursor
 
 type datumType struct {
@@ -44,12 +45,8 @@ func (d *DefaultCursor) Next(ctx context.Context) bool {
 	return !d.isExhausted
 }
 
-func (d *DefaultCursor) Close(ctx context.Context) error {
-	return d.c.Close(ctx)
-}
-
 func (d *DefaultCursor) GetNextBatch(ctx context.Context) ([]data.Datum, error) {
-	if d.isExhausted == true {
+	if d.isExhausted {
 		return nil, ErrCursorExhausted
 	}
 

@@ -42,7 +42,7 @@ var _ = Describe("processor", func() {
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {
-		Expect(ouraWebhookWorkSubscribe.FailingRetryDurationJitter).To(Equal(10 * time.Second))
+		Expect(ouraWebhookWorkSubscribe.FailingRetryDurationJitter).To(Equal(0.1))
 	})
 
 	It("FailingRetryDurationMaximum is expected", func() {

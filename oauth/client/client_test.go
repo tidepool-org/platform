@@ -6,18 +6,21 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
 	"go.uber.org/mock/gomock"
+	"golang.org/x/oauth2"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
 	oauthTest "github.com/tidepool-org/platform/oauth/test"
 	"github.com/tidepool-org/platform/request"
@@ -650,6 +653,116 @@ var _ = Describe("Client", func() {
 							Expect(server.ReceivedRequests()).To(HaveLen(1))
 						})
 					})
+				})
+			})
+		})
+
+		Context("SendOAuthRequest with a client timeout", func() {
+			var clientTimeout time.Duration
+			var responseBody *ResponseBody
+
+			BeforeEach(func() {
+				clientTimeout = test.RandomDurationFromRange(time.Minute, time.Hour)
+				baseConfig.ClientTimeout = clientTimeout
+				responseBody = &ResponseBody{}
+			})
+
+			Context("with the http client injected into the context for the token request", func() {
+				var contextHTTPClient *http.Client
+
+				BeforeEach(func() {
+					contextHTTPClient = nil
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).DoAndReturn(
+						func(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+							contextHTTPClient, _ = ctx.Value(oauth2.HTTPClient).(*http.Client)
+							return http.DefaultClient, nil
+						})
+					mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+					server.AppendHandlers(RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders))
+				})
+
+				sendOAuthRequestWithHTTPClient := func(providedHTTPClient *http.Client) {
+					clntWithTimeout := test.Must(oauthClient.New(baseConfig, providedHTTPClient, mockTokenSourceSource))
+					Expect(clntWithTimeout.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, nil, mockTokenSource)).To(Succeed())
+				}
+
+				It("sends the token source a copy of the provided http client with the client timeout when the provided http client has no timeout", func() {
+					providedHTTPClient := &http.Client{}
+					sendOAuthRequestWithHTTPClient(providedHTTPClient)
+					Expect(contextHTTPClient).ToNot(BeNil())
+					Expect(contextHTTPClient).ToNot(BeIdenticalTo(providedHTTPClient))
+					Expect(contextHTTPClient.Timeout).To(Equal(clientTimeout))
+					Expect(providedHTTPClient.Timeout).To(BeZero())
+				})
+
+				It("sends the token source a copy of the provided http client keeping its timeout when shorter than the client timeout", func() {
+					shorterTimeout := clientTimeout / 2
+					providedHTTPClient := &http.Client{Timeout: shorterTimeout}
+					sendOAuthRequestWithHTTPClient(providedHTTPClient)
+					Expect(contextHTTPClient).ToNot(BeNil())
+					Expect(contextHTTPClient).ToNot(BeIdenticalTo(providedHTTPClient))
+					Expect(contextHTTPClient.Timeout).To(Equal(shorterTimeout))
+					Expect(providedHTTPClient.Timeout).To(Equal(shorterTimeout))
+				})
+
+				It("sends the token source a copy of the provided http client keeping its timeout when longer than the client timeout", func() {
+					longerTimeout := clientTimeout * 2
+					providedHTTPClient := &http.Client{Timeout: longerTimeout}
+					sendOAuthRequestWithHTTPClient(providedHTTPClient)
+					Expect(contextHTTPClient).ToNot(BeNil())
+					Expect(contextHTTPClient).ToNot(BeIdenticalTo(providedHTTPClient))
+					Expect(contextHTTPClient.Timeout).To(Equal(longerTimeout))
+					Expect(providedHTTPClient.Timeout).To(Equal(longerTimeout))
+				})
+
+				It("sends the token source an http client with the client timeout when an http client is not provided", func() {
+					sendOAuthRequestWithHTTPClient(nil)
+					Expect(contextHTTPClient).ToNot(BeNil())
+					Expect(contextHTTPClient.Timeout).To(Equal(clientTimeout))
+				})
+
+				It("sends the token source a copy of the default http client without a timeout when neither a client timeout is configured nor an http client provided", func() {
+					baseConfig.ClientTimeout = 0
+					sendOAuthRequestWithHTTPClient(nil)
+					Expect(contextHTTPClient).ToNot(BeNil())
+					Expect(contextHTTPClient).ToNot(BeIdenticalTo(http.DefaultClient))
+					Expect(contextHTTPClient.Timeout).To(BeZero())
+				})
+			})
+
+			Context("with the http client returned by the token source for the API request", func() {
+				var tokenSourceHTTPClient *http.Client
+
+				BeforeEach(func() {
+					server.AppendHandlers(CombineHandlers(
+						func(res http.ResponseWriter, req *http.Request) { time.Sleep(500 * time.Millisecond) },
+						RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
+					))
+					mockTokenSource.EXPECT().HTTPClient(gomock.Not(gomock.Nil()), gomock.Eq(mockTokenSourceSource)).DoAndReturn(
+						func(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
+							return tokenSourceHTTPClient, nil
+						})
+					mockTokenSource.EXPECT().UpdateToken(gomock.Not(gomock.Nil())).Return(false, nil)
+				})
+
+				sendOAuthRequestExpectingTimeout := func() {
+					clntWithTimeout := test.Must(oauthClient.New(baseConfig, nil, mockTokenSourceSource))
+					err := clntWithTimeout.SendOAuthRequest(ctx, method, url, mutators, nil, responseBody, nil, mockTokenSource)
+					Expect(err).To(MatchError(ContainSubstring("Client.Timeout exceeded")))
+				}
+
+				It("overrides the timeout of a copy of the token source http client with the client timeout", func() {
+					baseConfig.ClientTimeout = 100 * time.Millisecond
+					tokenSourceHTTPClient = &http.Client{Timeout: time.Hour}
+					sendOAuthRequestExpectingTimeout()
+					Expect(tokenSourceHTTPClient.Timeout).To(Equal(time.Hour))
+				})
+
+				It("uses the token source http client with its own timeout when a client timeout is not configured", func() {
+					baseConfig.ClientTimeout = 0
+					tokenSourceHTTPClient = &http.Client{Timeout: 100 * time.Millisecond}
+					sendOAuthRequestExpectingTimeout()
+					Expect(tokenSourceHTTPClient.Timeout).To(Equal(100 * time.Millisecond))
 				})
 			})
 		})

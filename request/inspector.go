@@ -16,6 +16,18 @@ type ResponseInspector interface {
 	InspectResponse(res *http.Response)
 }
 
+type StatusCodeInspector struct {
+	StatusCode int
+}
+
+func NewStatusCodeInspector() *StatusCodeInspector {
+	return &StatusCodeInspector{}
+}
+
+func (s *StatusCodeInspector) InspectResponse(res *http.Response) {
+	s.StatusCode = res.StatusCode
+}
+
 type HeadersInspector struct {
 	Headers http.Header
 }

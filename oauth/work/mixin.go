@@ -78,10 +78,8 @@ func (m *mixin) UpdateToken(ctx context.Context) (bool, error) {
 func (m *mixin) ExpireToken(ctx context.Context) (bool, error) {
 	if m.tokenSource == nil {
 		return false, errors.New("token source is missing")
-	} else if expired, err := m.tokenSource.ExpireToken(ctx); err != nil || !expired {
-		return expired, err
 	} else {
-		return true, m.updateProviderSessionFromTokenSource()
+		return m.tokenSource.ExpireToken(ctx) // Do not persist, allows future retries
 	}
 }
 

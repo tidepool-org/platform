@@ -240,13 +240,19 @@ var _ = Describe("process_result", func() {
 
 			BeforeEach(func() {
 				builder = &workBase.ExponentialProcessResultFailingBuilder{
-					Duration:       test.RandomDurationFromRange(0, time.Hour),
-					DurationJitter: test.RandomDurationFromRange(0, time.Minute),
+					Duration: test.RandomDurationFromRange(0, time.Hour),
+					// Bounded well below one so that the largest exponent below stays within the absolute maximum
+					DurationJitter: test.RandomFloat64FromRange(0, 0.25),
 				}
 			})
 
-			It("returns now for failing retry count less than 1", func() {
-				Expect(builder.FailingRetryTime(ctx, nil, err, 0, tm)).To(Equal(tm))
+			assertFailingRetryTimeWithinJitter := func(failingRetryCount int, expectedDuration time.Duration) {
+				expectedJitter := time.Duration(float64(expectedDuration) * builder.DurationJitter)
+				Expect(builder.FailingRetryTime(ctx, nil, err, failingRetryCount, tm)).To(And(BeTemporally(">=", tm.Add(expectedDuration-expectedJitter)), BeTemporally("<=", tm.Add(expectedDuration+expectedJitter))))
+			}
+
+			It("returns duration within duration jitter after now for failing retry count less than 1", func() {
+				assertFailingRetryTimeWithinJitter(0, builder.Duration)
 			})
 
 			It("returns duration after now for failing retry count of 1", func() {
@@ -255,14 +261,12 @@ var _ = Describe("process_result", func() {
 			})
 
 			It("returns duration within duration jitter after now for failing retry count of 1", func() {
-				Expect(builder.FailingRetryTime(ctx, nil, err, 1, tm)).To(And(BeTemporally(">=", tm.Add(builder.Duration-builder.DurationJitter)), BeTemporally("<=", tm.Add(builder.Duration+builder.DurationJitter))))
+				assertFailingRetryTimeWithinJitter(1, builder.Duration)
 			})
 
 			It("calculates exponential duration", func() {
 				for index := range 17 {
-					duration := time.Duration(int64(builder.Duration) * (int64(1) << index))
-					durationJitter := time.Duration(int64(builder.DurationJitter) * (int64(1) << index))
-					Expect(builder.FailingRetryTime(ctx, nil, err, index+1, tm)).To(And(BeTemporally(">=", tm.Add(duration-durationJitter)), BeTemporally("<=", tm.Add(duration+durationJitter))))
+					assertFailingRetryTimeWithinJitter(index+1, time.Duration(int64(builder.Duration)*(int64(1)<<index)))
 				}
 			})
 		})

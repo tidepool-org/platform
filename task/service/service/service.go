@@ -231,6 +231,8 @@ func (s *Service) initializeDexcomClient() error {
 
 		cfg := client.NewConfig()
 		cfg.UserAgent = s.UserAgent()
+		cfg.ClientTimeout = dxcmPrvdr.ClientTimeout() * 3   // token + request + response headers + response body
+		cfg.ResponseTimeout = dxcmPrvdr.ClientTimeout() * 2 // token + request + response headers
 		reporter := s.ConfigReporter().WithScopes("dexcom", "client")
 		loader := client.NewConfigReporterLoader(reporter)
 		if err = cfg.Load(loader); err != nil {
@@ -239,7 +241,7 @@ func (s *Service) initializeDexcomClient() error {
 
 		s.Logger().Debug("Creating dexcom client")
 
-		clnt, clntErr := dexcomClient.New(cfg, dxcmPrvdr)
+		clnt, clntErr := dexcomClient.New(cfg, dxcmPrvdr.HTTPClient(), dxcmPrvdr, dexcomClient.Retrier)
 		if clntErr != nil {
 			return errors.Wrap(clntErr, "unable to create dexcom client")
 		}

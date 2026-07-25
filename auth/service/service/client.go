@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	authClient "github.com/tidepool-org/platform/auth/client"
@@ -63,9 +64,9 @@ func (c *Client) CreateProviderSession(ctx context.Context, create *auth.Provide
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
-	prvdr, err := c.providerFactory.Get(create.Type, create.Name)
-	if err != nil {
-		return nil, err
+	prvdr := c.providerFactory.Get(create.Type, create.Name)
+	if prvdr == nil {
+		return nil, errors.New("unable to get provider for provider session")
 	}
 
 	repository := c.authStore.NewProviderSessionRepository()
@@ -83,13 +84,19 @@ func (c *Client) CreateProviderSession(ctx context.Context, create *auth.Provide
 		"externalId": providerSession.ExternalID,
 	})
 
-	// From this point forward, the context should not be cancelable
-	ctx = context.WithoutCancel(ctx)
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	createContext, createCancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer createCancel()
 
-	if err = prvdr.OnCreate(ctx, providerSession); err != nil {
-		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
-		if deleteErr := c.deleteProviderSession(ctx, repository, providerSession); deleteErr != nil {
-			log.LoggerFromContext(ctx).WithError(deleteErr).Warn("Unable to delete provider session")
+	if err = prvdr.OnCreate(createContext, providerSession); err != nil {
+		log.LoggerFromContext(createContext).WithError(err).Error("Unable to finalize creation of provider session")
+
+		// Use a different context for the delete so that it is not interrupted by the create context timing out
+		deleteContext, deleteCancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer deleteCancel()
+
+		if deleteErr := c.deleteProviderSession(deleteContext, repository, providerSession); deleteErr != nil {
+			log.LoggerFromContext(deleteContext).WithError(deleteErr).Warn("Unable to delete provider session")
 		}
 		return nil, err
 	}
@@ -115,8 +122,8 @@ func (c *Client) DeleteProviderSessions(ctx context.Context, filter *auth.Provid
 			return repository.ListProviderSessions(ctx, filter, &pagination)
 		},
 		func(providerSession *auth.ProviderSession) (*auth.ProviderSession, error) {
-			ctx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
-			if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
+			processCtx, logger := log.ContextAndLoggerWithField(ctx, "providerSessionId", providerSession.ID)
+			if err := c.deleteProviderSession(processCtx, repository, providerSession); err != nil {
 				logger.WithError(err).Warn("Unable to delete provider session")
 			}
 			return providerSession, nil
@@ -163,20 +170,53 @@ func (c *Client) deleteProviderSession(ctx context.Context, repository authStore
 		"externalId": providerSession.ExternalID,
 	})
 
-	prvdr, err := c.providerFactory.Get(providerSession.Type, providerSession.Name)
-	if err != nil {
-		logger.WithError(err).Warn("Unable to get provider")
-	} else if prvdr != nil {
-		if err = prvdr.OnDelete(ctx, providerSession); err != nil {
+	prvdr := c.providerFactory.Get(providerSession.Type, providerSession.Name)
+	if prvdr != nil {
+		if err := prvdr.OnDelete(ctx, providerSession); err != nil {
 			logger.WithError(err).Warn("Unable to finalize deletion of provider session")
 			return err
 		}
+	} else {
+		logger.Warn("Unable to get provider for provider session")
 	}
 
-	// From this point forward, the context should not be cancelable
-	ctx = context.WithoutCancel(ctx)
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
 
 	return repository.DeleteProviderSession(ctx, providerSession.ID)
+}
+
+func (c *Client) RefreshProviderSession(ctx context.Context, id string, refresh *auth.ProviderSessionRefresh) (*auth.ProviderSession, error) {
+	logger := log.LoggerFromContext(ctx).WithField("providerSessionId", id)
+
+	providerSession, err := c.GetProviderSession(ctx, id)
+	if err != nil {
+		logger.WithError(err).Warn("Unable to get provider session")
+		return nil, err
+	} else if providerSession == nil {
+		return nil, nil
+	}
+
+	ctx, logger = log.ContextAndLoggerWithFields(ctx, log.Fields{
+		"providerSessionType":       providerSession.Type,
+		"providerSessionName":       providerSession.Name,
+		"providerSessionExternalId": providerSession.ExternalID,
+		"userId":                    providerSession.UserID,
+	})
+
+	prvdr := c.providerFactory.Get(providerSession.Type, providerSession.Name)
+	if prvdr == nil {
+		logger.Warn("Unable to get provider for provider session")
+		return nil, errors.New("unable to get provider for provider session")
+	}
+
+	if err = prvdr.OnRefresh(ctx, providerSession, refresh); err != nil {
+		logger.WithError(err).Warn("Unable to refresh provider session")
+		return nil, err
+	}
+
+	return providerSession, nil
 }
 
 func (c *Client) ListUserRestrictedTokens(ctx context.Context, userID string, filter *auth.RestrictedTokenFilter, pagination *page.Pagination) (auth.RestrictedTokens, error) {

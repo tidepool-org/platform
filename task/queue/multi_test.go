@@ -44,7 +44,7 @@ var _ = Describe("multi queue", func() {
 		queueConfig = taskQueue.NewConfig()
 		queueConfig.Workers = 10
 		queueConfig.StartManagerDelay = time.Millisecond
-		queueConfig.DispatchTasksDelay = time.Millisecond
+		queueConfig.DispatchTasksInterval = time.Millisecond
 		multi = nil
 	})
 
