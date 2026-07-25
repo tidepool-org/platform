@@ -24,10 +24,13 @@ type TaskRepository interface {
 	UpdateTask(ctx context.Context, id string, condition *storeStructured.Condition, update *task.TaskUpdate) (*task.Task, error)
 	DeleteTask(ctx context.Context, id string, condition *storeStructured.Condition) error
 
-	UnstickTasks(ctx context.Context) ([]string, error)
+	// Queue use only below
 
 	StartTask(ctx context.Context, id string, revision int, deadline time.Duration) (*task.Task, error)
-	StopTask(ctx context.Context, id string, revision int, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error
+	StopTask(ctx context.Context, id string, revision int, claimToken *string, state string, duration *time.Duration, update *task.TaskUpdate) error
+
+	UnstickTasks(ctx context.Context, availabilityDelay time.Duration) ([]string, error)
+	GetTaskClaimToken(ctx context.Context, id string) (*string, bool, error)
 
 	IteratePending(ctx context.Context) (*mongo.Cursor, error)
 }

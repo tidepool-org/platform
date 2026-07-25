@@ -99,7 +99,7 @@ var _ = Describe("Task", func() {
 					"CreatedTime":   BeTemporally("~", time.Now(), time.Second),
 					"ModifiedTime":  BeNil(),
 					"Revision":      Equal(1),
-					"StateLock":     BeNil(),
+					"ClaimToken":    BeNil(),
 				})))
 			})
 
@@ -122,11 +122,11 @@ var _ = Describe("Task", func() {
 			It("returns the id, type, and state as log fields", func() {
 				tsk := taskTest.RandomTask()
 				Expect(tsk.LogFields()).To(Equal(log.Fields{
-					"id":        tsk.ID,
-					"type":      tsk.Type,
-					"state":     tsk.State,
-					"revision":  tsk.Revision,
-					"stateLock": tsk.StateLock,
+					"id":         tsk.ID,
+					"type":       tsk.Type,
+					"state":      tsk.State,
+					"revision":   tsk.Revision,
+					"claimToken": tsk.ClaimToken,
 				}))
 			})
 		})

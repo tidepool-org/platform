@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"fmt"
 	"slices"
 	"time"
 
@@ -28,8 +29,8 @@ import (
 const (
 	MaxTaskCreationDuration = 30 * time.Second
 
-	// TransitionTimeout bounds a task state-transition write (start or stop) that must
-	// complete regardless of the caller's context being canceled (e.g. during shutdown).
+	// TransitionTimeout bounds a task state-transition write (start or stop) that must complete regardless of the
+	// caller's context being canceled (e.g. during shutdown).
 	TransitionTimeout = 10 * time.Second
 )
 
@@ -123,15 +124,15 @@ func (t *TaskRepository) EnsureIndexes() error {
 			Keys: bson.D{{Key: "state", Value: 1}},
 		},
 		{
-			// Used by IteratePending; type equality, then availableTime for range and sort; partial
-			// on pending since that is the only state it queries.
+			// Used by IteratePending; type equality, then availableTime for range and sort; partial on pending since
+			// that is the only state it queries.
 			Keys: bson.D{{Key: "type", Value: 1}, {Key: "availableTime", Value: 1}},
 			Options: options.Index().
 				SetPartialFilterExpression(bson.D{{Key: "state", Value: task.TaskStatePending}}),
 		},
 		{
-			// Used by UnstickTasks; type equality, then deadlineTime for range and sort; partial
-			// on running since that is the only state it queries.
+			// Used by UnstickTasks; type equality, then deadlineTime for range and sort; partial on running since that
+			// is the only state it queries.
 			Keys: bson.D{{Key: "type", Value: 1}, {Key: "deadlineTime", Value: 1}},
 			Options: options.Index().
 				SetPartialFilterExpression(bson.D{{Key: "state", Value: task.TaskStateRunning}}),
@@ -389,9 +390,9 @@ func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int,
 		return nil, errors.New("deadline is invalid")
 	}
 
-	// Add a timeout, but ignore cancel from the parent context so the claim write completes
-	// and its outcome is known. A write abandoned mid-flight (e.g. on shutdown) can still
-	// commit in the database, leaving the task running with no reliable way to revert it.
+	// Add a timeout, but ignore cancel from the parent context so the claim write completes and its outcome is known. A
+	// write abandoned mid-flight (e.g. on shutdown) can still commit in the database, leaving the task running with no
+	// reliable way to revert it.
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), TransitionTimeout)
 	defer cancel()
 
@@ -405,7 +406,7 @@ func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int,
 		"runTime":      now,
 		"deadlineTime": now.Add(deadline),
 		"modifiedTime": now,
-		"stateLock":    newStateLock(),
+		"claimToken":   newClaimTokenWithRevision(revision),
 	}
 	unset := bson.M{
 		"availableTime": 1,
@@ -430,7 +431,7 @@ func (t *TaskRepository) StartTask(ctx context.Context, id string, revision int,
 }
 
 // Will only timeout after 10 seconds even if parent context is canceled.
-func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, stateLock *string, state string, duration *time.Duration, update *task.TaskUpdate) error {
+func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, claimToken *string, state string, duration *time.Duration, update *task.TaskUpdate) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -439,10 +440,10 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, 
 	} else if !task.IsValidID(id) {
 		return errors.New("id is invalid")
 	}
-	if stateLock == nil {
-		return errors.New("state lock is missing")
-	} else if *stateLock == "" {
-		return errors.New("state lock is invalid")
+	if claimToken == nil {
+		return errors.New("claim token is missing")
+	} else if *claimToken == "" {
+		return errors.New("claim token is invalid")
 	}
 	if state == "" {
 		return errors.New("state is missing")
@@ -462,7 +463,7 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, 
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), TransitionTimeout)
 	defer cancel()
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "revision": revision, "stateLock": stateLock, "state": state, "duration": duration, "update": update})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id, "revision": revision, "claimToken": claimToken, "state": state, "duration": duration, "update": update})
 
 	now := time.Now().UTC()
 	defer func() { logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("StopTask") }()
@@ -471,30 +472,30 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, 
 	set["modifiedTime"] = now
 	set["state"] = state
 	unset["deadlineTime"] = 1
-	unset["stateLock"] = 1
+	unset["claimToken"] = 1
 	if duration != nil {
 		set["duration"] = duration.Truncate(time.Millisecond).Seconds()
 	} else {
-		// A nil duration means no run actually happened (e.g. a claimed task whose dispatch
-		// was reverted during shutdown), so also clear the run time recorded by StartTask,
-		// keeping the runTime/duration pair describing only the last actual run.
+		// A nil duration means no run actually happened (e.g. a claimed task whose dispatch was reverted during
+		// shutdown), so also clear the run time recorded by StartTask, keeping the runTime/duration pair describing
+		// only the last actual run.
 		unset["duration"] = 1
 		unset["runTime"] = 1
 	}
 
 	selector := t.selector(id, nil)
 	selector["state"] = task.TaskStateRunning
-	selector["stateLock"] = stateLock
+	selector["claimToken"] = claimToken
 
-	tsk := &task.Task{}
-	err := t.FindOneAndUpdate(ctx, selector, t.ConstructUpdate(set, unset)).Decode(tsk)
+	partial := &task.Task{}
+	opts := options.FindOneAndUpdate().SetProjection(bson.M{"_id": 0, "type": 1, "revision": 1})
+	err := t.FindOneAndUpdate(ctx, selector, t.ConstructUpdate(set, unset), opts).Decode(partial)
 	if errors.Is(err, mongo.ErrNoDocuments) {
-		// The compare-and-swap missed: no running task matched the expected state lock
-		// (it was concurrently modified, unstuck, or deleted since it started).
-		// The state transition is dropped; the deadline and unstick mechanism will
-		// recover the task if it was left running. This is logged and counted so lost
-		// completions are observable rather than silently swallowed.
-		logger.Error("Unable to stop task; no running task matched the expected condition")
+		// The compare-and-swap missed: no running task matched the expected claim token (it was concurrently modified,
+		// unstuck, or deleted since it started). The state transition is dropped; the deadline and unstick mechanism
+		// will recover the task if it was left running. This is logged and counted so lost completions are observable
+		// rather than silently swallowed.
+		logger.Error("Unable to stop task; no running task matched the id and claim token")
 		TypeLostCompletionTotal.WithLabelValues(pointer.Default(t.typeFilter, "")).Inc()
 		return nil
 	} else if err != nil {
@@ -503,21 +504,27 @@ func (t *TaskRepository) StopTask(ctx context.Context, id string, revision int, 
 	}
 
 	// If the on-disk task revision does not match the runner task revision, then either:
-	//   - the runner did not follow the Runner contract; i.e. the runner updated the task during
-	//     run, but it did not use the updated task, or,
+	//   - the runner did not follow the Runner contract; i.e. the runner updated the task during run, but it did not
+	//     use the updated task, or,
 	//   - the task was concurrently modified outside of the runner while the task was running.
-	if tsk.Revision != revision {
-		logger.WithField("revision", log.Fields{"expected": revision, "actual": tsk.Revision}).Warn("Database task revision does not match running task revision; Runner contract broken or concurrent update")
-		TypeRevisionMismatchTotal.WithLabelValues(tsk.Type).Inc()
+	if partial.Revision != revision {
+		logger.WithField("revision", log.Fields{"expected": revision, "actual": partial.Revision}).Warn("Database task revision does not match running task revision; Runner contract broken or concurrent update")
+		TypeRevisionMismatchTotal.WithLabelValues(partial.Type).Inc()
 	}
 
-	TypeStateTotal.WithLabelValues(tsk.Type, state).Inc()
+	TypeStateTotal.WithLabelValues(partial.Type, state).Inc()
 	return nil
 }
 
-func (t *TaskRepository) UnstickTasks(ctx context.Context) ([]string, error) {
+// UnstickTasks resets tasks still running past their deadline back to pending, making each available again
+// availabilityDelay in the future - long enough for the (possibly still running) previous run to observe its claim loss
+// and exit before the task is re-dispatched.
+func (t *TaskRepository) UnstickTasks(ctx context.Context, availabilityDelay time.Duration) ([]string, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
+	}
+	if availabilityDelay < 0 {
+		return nil, errors.New("availability delay is invalid")
 	}
 
 	logger := log.LoggerFromContext(ctx)
@@ -533,7 +540,9 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context) ([]string, error) {
 		findSelector["type"] = *t.typeFilter
 	}
 
-	opts := options.Find().SetSort(bson.M{"deadlineTime": 1})
+	opts := options.Find().
+		SetProjection(bson.M{"_id": 0, "id": 1, "deadlineTime": 1}).
+		SetSort(bson.M{"deadlineTime": 1})
 	cursor, err := t.Find(ctx, findSelector, opts)
 	if err != nil {
 		logger = logger.WithError(err)
@@ -543,35 +552,35 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context) ([]string, error) {
 
 	var ids []string
 	for cursor.Next(ctx) {
-		tsk := &task.Task{}
-		if err = cursor.Decode(tsk); err != nil {
+		partial := &task.Task{}
+		if err = cursor.Decode(partial); err != nil {
 			logger = logger.WithError(err)
 			log.LoggerFromContext(ctx).WithError(err).Error("Unable to decode task")
 			continue
 		}
 
-		// The state clause is defensive: a matching deadline time already implies the same
-		// running claim (every stop clears the deadline time and any re-claim records a
-		// strictly later one), but including it keeps the invariant local to this update.
+		// The state clause is defensive: a matching deadline time already implies the same running claim (every stop
+		// clears the deadline time and any re-claim records a strictly later one), but including it keeps the invariant
+		// local to this update.
 		updateSelector := bson.M{
-			"id":           tsk.ID,
+			"id":           partial.ID,
 			"state":        task.TaskStateRunning,
-			"deadlineTime": tsk.DeadlineTime,
+			"deadlineTime": partial.DeadlineTime,
 		}
 		set := bson.M{
 			"state":         task.TaskStatePending,
-			"availableTime": now,
+			"availableTime": now.Add(availabilityDelay),
 			"modifiedTime":  now,
 		}
 		unset := bson.M{
 			"deadlineTime": 1,
-			"stateLock":    1,
+			"claimToken":   1,
 		}
 		if result, updateErr := t.UpdateOne(ctx, updateSelector, t.ConstructUpdate(set, unset)); updateErr != nil {
 			logger = logger.WithError(updateErr)
-			return ids, updateErr
+			return ids, errors.Wrap(updateErr, "unable to update task")
 		} else if result.ModifiedCount > 0 {
-			ids = append(ids, tsk.ID)
+			ids = append(ids, partial.ID)
 		}
 	}
 
@@ -583,6 +592,32 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context) ([]string, error) {
 	}
 
 	return ids, nil
+}
+
+func (t *TaskRepository) GetTaskClaimToken(ctx context.Context, id string) (*string, bool, error) {
+	if ctx == nil {
+		return nil, false, errors.New("context is missing")
+	}
+	if id == "" {
+		return nil, false, errors.New("id is missing")
+	}
+
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id})
+
+	now := time.Now().UTC()
+	defer func() { logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetTaskClaimToken") }()
+
+	partial := &task.Task{}
+	opts := options.FindOne().SetProjection(bson.M{"_id": 0, "claimToken": 1})
+	err := t.FindOne(ctx, t.selector(id, nil), opts).Decode(partial)
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, false, nil
+	} else if err != nil {
+		logger = logger.WithError(err)
+		return nil, false, errors.Wrap(err, "unable to get task claim token")
+	}
+
+	return partial.ClaimToken, true, nil
 }
 
 func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {
@@ -657,13 +692,16 @@ func (t *TaskRepository) parseUpdate(update *task.TaskUpdate) (bson.M, bson.M) {
 // assertType return an error if the expected type doesn't match the actual type
 func (t *TaskRepository) assertType(expected *string, actual *string) error {
 	if expected != nil && actual != nil && *expected != *actual {
-		return errors.Newf("expected task type %s but got %s", *expected, *actual)
+		return errors.Newf("expected task type %q, but got %q", *expected, *actual)
 	}
 	return nil
 }
 
-func newStateLock() string {
-	return id.Must(id.New(16))
+// newClaimTokenWithRevision embeds the claimed revision so successive claims of the same task can never collide
+// (revision is strictly monotonic per document); the random suffix distinguishes claims across tasks. The token is
+// opaque everywhere else.
+func newClaimTokenWithRevision(revision int) string {
+	return fmt.Sprintf("%d:%s", revision, id.Must(id.New(16)))
 }
 
 var (
@@ -673,20 +711,18 @@ var (
 		Help: "The total number of tasks run, sorted by type and state",
 	}, []string{"type", "state"})
 
-	// TypeLostCompletionTotal counts task completions dropped because the compare-and-swap in
-	// StopTask missed (task state lock was concurrently modified, task unstuck, or task deleted). The task
-	// is recovered by the deadline/unstick mechanism, but the intended terminal state is lost. The
-	// type label is populated only when the repository is type-filtered (as it is for each queue in
-	// a MultiQueue); otherwise it is empty.
+	// TypeLostCompletionTotal counts task completions dropped because the compare-and-swap in StopTask missed (task
+	// claim token was concurrently modified, task unstuck, or task deleted). The task is recovered by the
+	// deadline/unstick mechanism, but the intended terminal state is lost. The type label is populated only when the
+	// repository is type-filtered (as it is for each queue in a MultiQueue); otherwise it is empty.
 	TypeLostCompletionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_type_lost_completion_total",
-		Help: "The total number of task completions dropped because the state-lock compare-and-swap missed, sorted by type",
+		Help: "The total number of task completions dropped because the claim-token compare-and-swap missed, sorted by type",
 	}, []string{"type"})
 
-	// TypeRevisionMismatchTotal counts task completions where the task revision does not match
-	// the task revision in the database. This only occurs if the task runner does not follow the Runner
-	// contract when updating a task during run, or if there is a concurrent modification outside of
-	// the expected Runner behavior.
+	// TypeRevisionMismatchTotal counts task completions where the task revision does not match the task revision in the
+	// database. This only occurs if the task runner does not follow the Runner contract when updating a task during
+	// run, or if there is a concurrent modification outside of the expected Runner behavior.
 	TypeRevisionMismatchTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_type_revision_mismatch_total",
 		Help: "The total number of task revisions that do not match the task revision in the database, sorted by type",

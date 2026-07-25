@@ -9,9 +9,8 @@ import (
 	"github.com/tidepool-org/platform/task/store"
 )
 
-// MultiQueue runs a queue per runner provided at construction, each processing only tasks of
-// that runner's type. Like Queue, it is single-use. The queues map is immutable after
-// NewMultiQueue, so no synchronization is required.
+// MultiQueue runs a queue per runner provided at construction, each processing only tasks of that runner's type. Like
+// Queue, it is single-use. The queues map is immutable after NewMultiQueue, so no synchronization is required.
 type MultiQueue struct {
 	queues map[string]*Queue
 }
@@ -58,8 +57,8 @@ func (m *MultiQueue) Start() {
 }
 
 func (m *MultiQueue) Stop() {
-	// Stop the queues concurrently so total shutdown latency is bounded by a single
-	// queue's stop timeout rather than the sum across every queue.
+	// Stop the queues concurrently so total shutdown latency is bounded by a single queue's stop timeout rather than
+	// the sum across every queue.
 	var waitGroup sync.WaitGroup
 	for _, q := range m.queues {
 		waitGroup.Go(q.Stop)
@@ -67,8 +66,8 @@ func (m *MultiQueue) Stop() {
 	waitGroup.Wait()
 }
 
-// GetQueues returns a copy of the type-to-queue map so callers cannot mutate the
-// internal map. The queue values are shared references, not copies.
+// GetQueues returns a copy of the type-to-queue map so callers cannot mutate the internal map. The queue values are
+// shared references, not copies.
 func (m *MultiQueue) GetQueues() map[string]*Queue {
 	return maps.Clone(m.queues)
 }

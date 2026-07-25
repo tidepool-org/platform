@@ -22,11 +22,6 @@ type Client interface {
 	ListTasks(ctx context.Context, filter *TaskFilter, pagination *page.Pagination) (Tasks, error)
 	CreateTask(ctx context.Context, create *TaskCreate) (*Task, error)
 	GetTask(ctx context.Context, id string, condition *request.Condition) (*Task, error)
-	// UpdateTask applies the update and returns the resulting task. A runner that updates its
-	// own running task (for example, to persist progress in Data) must replace its in-memory
-	// task with the returned task: the update changes fields such as the revision, and the
-	// queue writes the in-memory task's fields back when it completes the task, so a stale
-	// in-memory copy would overwrite the update.
 	UpdateTask(ctx context.Context, id string, condition *request.Condition, update *TaskUpdate) (*Task, error)
 	DeleteTask(ctx context.Context, id string, condition *request.Condition) error
 }
@@ -188,8 +183,9 @@ type Task struct {
 
 	// Database only
 
-	// Use to enforce only one state transition at a time. This is a unique value that changes on every update.
-	StateLock    *string    `json:"-" bson:"stateLock,omitempty"`
+	// ClaimToken fences state transitions: a unique value set each time a run claims the task, which a later stop must
+	// match, so stale writers miss.
+	ClaimToken   *string    `json:"-" bson:"claimToken,omitempty"`
 	DeadlineTime *time.Time `json:"-" bson:"deadlineTime,omitempty"`
 }
 
@@ -292,11 +288,12 @@ func (t *Task) IsFailed() bool {
 
 func (t *Task) SetFailed() {
 	t.State = TaskStateFailed
+	t.AvailableTime = nil
 }
 
 func (t *Task) SetFailedWithError(err error) {
-	t.State = TaskStateFailed
 	t.AppendError(err)
+	t.SetFailed()
 }
 
 func (t *Task) IsCompleted() bool {
@@ -333,11 +330,11 @@ func (t *Task) ClearError() {
 
 func (t *Task) LogFields() log.Fields {
 	return log.Fields{
-		"id":        t.ID,
-		"type":      t.Type,
-		"state":     t.State,
-		"revision":  t.Revision,
-		"stateLock": t.StateLock,
+		"id":         t.ID,
+		"type":       t.Type,
+		"state":      t.State,
+		"revision":   t.Revision,
+		"claimToken": t.ClaimToken,
 	}
 }
 

@@ -8,17 +8,18 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
 	"go.mongodb.org/mongo-driver/bson"
 
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/log/null"
+	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
 	"github.com/tidepool-org/platform/task"
-	"github.com/tidepool-org/platform/task/queue"
-	"github.com/tidepool-org/platform/task/queue/test"
-	"github.com/tidepool-org/platform/task/store/mongo"
+	taskQueue "github.com/tidepool-org/platform/task/queue"
+	taskQueueTest "github.com/tidepool-org/platform/task/queue/test"
+	taskStoreMongo "github.com/tidepool-org/platform/task/store/mongo"
 )
 
 var (
@@ -28,19 +29,22 @@ var (
 
 var _ = Describe("multi queue", func() {
 	var config *storeStructuredMongo.Config
-	var queueConfig *queue.Config
+	var queueConfig *taskQueue.Config
 	var lgr log.Logger
-	var str *mongo.Store
-	var multi *queue.MultiQueue
+	var str *taskStoreMongo.Store
+	var multi *taskQueue.MultiQueue
 
 	BeforeEach(func() {
 		config = storeStructuredMongoTest.NewConfig()
 		var err error
-		str, err = mongo.NewStore(config)
+		str, err = taskStoreMongo.NewStore(config)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(str).ToNot(BeNil())
-		lgr = null.NewLogger()
-		queueConfig = &queue.Config{Workers: 10, Delay: time.Millisecond, DelayInitial: time.Millisecond, DelayUnstick: queue.DelayUnstickDefault, StopWaitTimeout: queue.StopWaitTimeoutDefault, RunnerWatchdogGracePeriod: queue.RunnerWatchdogGracePeriodDefault}
+		lgr = logNull.NewLogger()
+		queueConfig = taskQueue.NewConfig()
+		queueConfig.Workers = 10
+		queueConfig.StartManagerDelay = time.Millisecond
+		queueConfig.DispatchTasksDelay = time.Millisecond
 		multi = nil
 	})
 
@@ -53,13 +57,13 @@ var _ = Describe("multi queue", func() {
 
 	Describe("NewMultiQueue", func() {
 		It("creates a new queue for each runner type", func() {
-			runners := make([]queue.Runner, 0, len(types))
+			runners := make([]taskQueue.Runner, 0, len(types))
 			for _, typ := range types {
-				runners = append(runners, test.NewCountingRunner(typ))
+				runners = append(runners, taskQueueTest.NewCountingRunner(typ))
 			}
 
 			var err error
-			multi, err = queue.NewMultiQueue(queueConfig, lgr, str, runners...)
+			multi, err = taskQueue.NewMultiQueue(queueConfig, lgr, str, runners...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(multi).ToNot(BeNil())
 
@@ -71,38 +75,38 @@ var _ = Describe("multi queue", func() {
 		})
 
 		It("returns an error when the config is missing", func() {
-			invalidMulti, err := queue.NewMultiQueue(nil, lgr, str)
+			invalidMulti, err := taskQueue.NewMultiQueue(nil, lgr, str)
 			Expect(err).To(MatchError("config is missing"))
 			Expect(invalidMulti).To(BeNil())
 		})
 
 		It("returns an error when the logger is missing", func() {
-			invalidMulti, err := queue.NewMultiQueue(queueConfig, nil, str)
+			invalidMulti, err := taskQueue.NewMultiQueue(queueConfig, nil, str)
 			Expect(err).To(MatchError("logger is missing"))
 			Expect(invalidMulti).To(BeNil())
 		})
 
 		It("returns an error when the store is missing", func() {
-			invalidMulti, err := queue.NewMultiQueue(queueConfig, lgr, nil)
+			invalidMulti, err := taskQueue.NewMultiQueue(queueConfig, lgr, nil)
 			Expect(err).To(MatchError("store is missing"))
 			Expect(invalidMulti).To(BeNil())
 		})
 
 		It("returns an error when a runner is missing", func() {
-			invalidMulti, err := queue.NewMultiQueue(queueConfig, lgr, str, nil)
+			invalidMulti, err := taskQueue.NewMultiQueue(queueConfig, lgr, str, nil)
 			Expect(err).To(MatchError("runner is missing"))
 			Expect(invalidMulti).To(BeNil())
 		})
 
 		It("returns an error when two runners have the same type", func() {
-			invalidMulti, err := queue.NewMultiQueue(queueConfig, lgr, str, test.NewCountingRunner(types[0]), test.NewCountingRunner(types[0]))
+			invalidMulti, err := taskQueue.NewMultiQueue(queueConfig, lgr, str, taskQueueTest.NewCountingRunner(types[0]), taskQueueTest.NewCountingRunner(types[0]))
 			Expect(err).To(MatchError("runner type already registered"))
 			Expect(invalidMulti).To(BeNil())
 		})
 
 		It("returns an error when a runner has invalid durations", func() {
-			runner := test.NewSleepRunner(types[0], 2*time.Minute, 2*time.Minute, time.Minute, 0)
-			invalidMulti, err := queue.NewMultiQueue(queueConfig, lgr, str, runner)
+			runner := taskQueueTest.NewSleepRunner(types[0], 2*time.Minute, 2*time.Minute, time.Minute, 0)
+			invalidMulti, err := taskQueue.NewMultiQueue(queueConfig, lgr, str, runner)
 			Expect(err).To(MatchError("runner deadline is invalid"))
 			Expect(invalidMulti).To(BeNil())
 		})
@@ -117,13 +121,13 @@ var _ = Describe("multi queue", func() {
 		It("Are partitioned correctly", func() {
 			ctx := log.NewContextWithLogger(context.Background(), lgr)
 			creates := make([]*task.TaskCreate, 0, len(types)*tasksPerType)
-			countingRunners := make([]*test.CountingRunner, 0, len(types))
-			runners := make([]queue.Runner, 0, len(types))
+			countingRunners := make([]*taskQueueTest.CountingRunner, 0, len(types))
+			runners := make([]taskQueue.Runner, 0, len(types))
 			now := time.Now()
 
 			// Create tasks and runners for each task type
 			for _, typ := range types {
-				runner := test.NewCountingRunner(typ)
+				runner := taskQueueTest.NewCountingRunner(typ)
 				countingRunners = append(countingRunners, runner)
 				runners = append(runners, runner)
 
@@ -146,7 +150,7 @@ var _ = Describe("multi queue", func() {
 			}
 
 			var err error
-			multi, err = queue.NewMultiQueue(queueConfig, lgr, str, runners...)
+			multi, err = taskQueue.NewMultiQueue(queueConfig, lgr, str, runners...)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(multi).ToNot(BeNil())
 
@@ -154,10 +158,9 @@ var _ = Describe("multi queue", func() {
 
 			nonTerminalStates := []string{task.TaskStatePending, task.TaskStateRunning}
 
-			// Wait until completion, within limits. On my local laptop, this typically
-			// takes < 15 seconds when run via Gingko (no parallel), but under Go test
-			// (parallel via package) it takes around 35 seconds. Who knows how long it
-			// would take running in parallel on a CI host. So give it plenty of time.
+			// Wait until completion, within limits. On my local laptop, this typically takes < 15 seconds when run via
+			// Gingko (no parallel), but under Go test (parallel via package) it takes around 35 seconds. Who knows how
+			// long it would take running in parallel on a CI host. So give it plenty of time.
 			tCtx, cancel := context.WithTimeout(ctx, 5*time.Minute)
 			defer cancel()
 

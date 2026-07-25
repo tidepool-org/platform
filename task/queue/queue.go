@@ -21,53 +21,68 @@ import (
 )
 
 const (
-	WorkersDefault      = 5
-	DelayDefault        = 1 * time.Minute
-	DelayInitialDefault = 1 * time.Minute
-	DelayUnstickDefault = 5 * time.Minute
+	// WorkersDefault is the default number of workers for the queue.
+	WorkersDefault = 5
 
-	// StopWaitTimeoutDefault bounds how long Stop waits for in-flight tasks to observe
-	// cancellation and exit before abandoning them (they are recovered by the deadline
-	// and unstick mechanism). Kept under the typical Kubernetes termination grace period
-	// since we could use it up to twice (once for workers and once for manager) and we
-	// still want to leave time for the store to flush any pending writes.
+	// StartManagerDelayDefault is the default upper bound on the randomized delay the manager waits before it begins
+	// dispatching tasks, spreading startup across instances.
+	StartManagerDelayDefault = 1 * time.Minute
+
+	// DispatchTasksDelayDefault is the default delay, jittered, between polls for pending tasks to dispatch. Completing
+	// a task also dispatches immediately, without waiting for the poll.
+	DispatchTasksDelayDefault = 1 * time.Minute
+
+	// MonitorTaskDelayDefault is the default interval between checks that each in-flight task's claim is still held
+	// (the task exists and its claim token is unchanged); a run whose claim is lost is canceled with ErrClaimLost.
+	MonitorTaskDelayDefault = 1 * time.Minute
+
+	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the watchdog waits before
+	// reporting a runner as blocked. The runner context is still canceled at the runner timeout; the grace period only
+	// gives a cooperative runner time to observe that cancellation and return before the watchdog reports it as
+	// non-cooperative.
+	RunnerWatchdogGracePeriodDefault = 5 * time.Second
+
+	// UnstickTasksDelayDefault is the default delay, jittered, between attempts to unstick tasks. The first attempt is
+	// made after a randomized delay of at most this duration.
+	UnstickTasksDelayDefault = 5 * time.Minute
+
+	// UnstickTasksAvailableGracePeriodDefault is the default grace period added to the claim monitor delay and the
+	// runner watchdog grace period to form the delay after a task is unstuck before it is made available for
+	// re-dispatch. This ensures that any still-running tasks have likely been canceled and exited before being
+	// re-dispatched.
+	UnstickTasksAvailableGracePeriodDefault = 1 * time.Minute
+
+	// StopWaitTimeoutDefault bounds how long Stop waits for in-flight tasks to observe cancellation and exit before
+	// abandoning them (they are recovered by the deadline and unstick mechanism). Kept under the typical Kubernetes
+	// termination grace period since we could use it up to twice (once for workers and once for manager) and we still
+	// want to leave time for the store to flush any pending writes.
 	StopWaitTimeoutDefault = 10 * time.Second
 
+	TaskDeadlineDefault  = 1 * time.Minute
 	DurationJitterFactor = 0.2
-
-	// TaskDeadlineDefault bounds how long a task is allowed to run before being forcefully
-	// reset if a runner for the task type is not registered.
-	TaskDeadlineDefault = 1 * time.Minute
-
-	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the
-	// watchdog waits before reporting a runner as blocked. The runner context is still canceled
-	// at the runner timeout; the grace period only gives a cooperative runner time to observe
-	// that cancellation and return before the watchdog reports it as non-cooperative.
-	RunnerWatchdogGracePeriodDefault = 5 * time.Second
 )
 
-// ErrRunnerTimeout is the cancellation cause set on the Run context when a run exceeds the
-// runner timeout. A runner distinguishes a timeout from a shutdown with
-// errors.Is(context.Cause(ctx), ErrRunnerTimeout); a shutdown instead cancels with context.Canceled.
-var ErrRunnerTimeout = errors.New("task runner timeout exceeded")
-
 type Config struct {
-	Workers                   int
-	Delay                     time.Duration
-	DelayInitial              time.Duration
-	DelayUnstick              time.Duration
-	StopWaitTimeout           time.Duration
-	RunnerWatchdogGracePeriod time.Duration
+	Workers                          int
+	StartManagerDelay                time.Duration
+	DispatchTasksDelay               time.Duration
+	MonitorTaskDelay                 time.Duration
+	RunnerWatchdogGracePeriod        time.Duration
+	UnstickTasksDelay                time.Duration
+	UnstickTasksAvailableGracePeriod time.Duration
+	StopWaitTimeout                  time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
-		Workers:                   WorkersDefault,
-		Delay:                     DelayDefault,
-		DelayInitial:              DelayInitialDefault,
-		DelayUnstick:              DelayUnstickDefault,
-		StopWaitTimeout:           StopWaitTimeoutDefault,
-		RunnerWatchdogGracePeriod: RunnerWatchdogGracePeriodDefault,
+		Workers:                          WorkersDefault,
+		StartManagerDelay:                StartManagerDelayDefault,
+		DispatchTasksDelay:               DispatchTasksDelayDefault,
+		MonitorTaskDelay:                 MonitorTaskDelayDefault,
+		RunnerWatchdogGracePeriod:        RunnerWatchdogGracePeriodDefault,
+		UnstickTasksDelay:                UnstickTasksDelayDefault,
+		UnstickTasksAvailableGracePeriod: UnstickTasksAvailableGracePeriodDefault,
+		StopWaitTimeout:                  StopWaitTimeoutDefault,
 	}
 }
 
@@ -76,46 +91,60 @@ func (c *Config) Load(configReporter config.Reporter) error {
 		return errors.New("config reporter is missing")
 	}
 
-	if workersString, err := configReporter.Get("workers"); err == nil {
-		if workers, parseErr := strconv.ParseInt(workersString, 10, 0); parseErr != nil {
+	if valueString, err := configReporter.Get("workers"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
 			return errors.New("workers is invalid")
 		} else {
-			c.Workers = int(workers)
+			c.Workers = int(value)
 		}
 	}
-	if delayString, err := configReporter.Get("delay"); err == nil {
-		if delay, parseErr := strconv.ParseInt(delayString, 10, 0); parseErr != nil {
-			return errors.New("delay is invalid")
+	if valueString, err := configReporter.Get("start_manager_delay"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("start manager delay is invalid")
 		} else {
-			c.Delay = time.Duration(delay) * time.Second
+			c.StartManagerDelay = time.Duration(value) * time.Second
 		}
 	}
-	if delayInitialString, err := configReporter.Get("delay_initial"); err == nil {
-		if delayInitial, parseErr := strconv.ParseInt(delayInitialString, 10, 0); parseErr != nil {
-			return errors.New("delay initial is invalid")
+	if valueString, err := configReporter.Get("dispatch_tasks_delay"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("dispatch tasks delay is invalid")
 		} else {
-			c.DelayInitial = time.Duration(delayInitial) * time.Second
+			c.DispatchTasksDelay = time.Duration(value) * time.Second
 		}
 	}
-	if delayUnstickString, err := configReporter.Get("delay_unstick"); err == nil {
-		if delayUnstick, parseErr := strconv.ParseInt(delayUnstickString, 10, 0); parseErr != nil {
-			return errors.New("delay unstick is invalid")
+	if valueString, err := configReporter.Get("monitor_task_delay"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("monitor task delay is invalid")
 		} else {
-			c.DelayUnstick = time.Duration(delayUnstick) * time.Second
+			c.MonitorTaskDelay = time.Duration(value) * time.Second
 		}
 	}
-	if stopWaitTimeoutString, err := configReporter.Get("stop_wait_timeout"); err == nil {
-		if stopWaitTimeout, parseErr := strconv.ParseInt(stopWaitTimeoutString, 10, 0); parseErr != nil {
-			return errors.New("stop wait timeout is invalid")
-		} else {
-			c.StopWaitTimeout = time.Duration(stopWaitTimeout) * time.Second
-		}
-	}
-	if runnerWatchdogGracePeriodString, err := configReporter.Get("runner_watchdog_grace_period"); err == nil {
-		if runnerWatchdogGracePeriod, parseErr := strconv.ParseInt(runnerWatchdogGracePeriodString, 10, 0); parseErr != nil {
+	if valueString, err := configReporter.Get("runner_watchdog_grace_period"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
 			return errors.New("runner watchdog grace period is invalid")
 		} else {
-			c.RunnerWatchdogGracePeriod = time.Duration(runnerWatchdogGracePeriod) * time.Second
+			c.RunnerWatchdogGracePeriod = time.Duration(value) * time.Second
+		}
+	}
+	if valueString, err := configReporter.Get("unstick_tasks_delay"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("unstick tasks delay is invalid")
+		} else {
+			c.UnstickTasksDelay = time.Duration(value) * time.Second
+		}
+	}
+	if valueString, err := configReporter.Get("unstick_tasks_available_grace_period"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("unstick tasks available grace period is invalid")
+		} else {
+			c.UnstickTasksAvailableGracePeriod = time.Duration(value) * time.Second
+		}
+	}
+	if valueString, err := configReporter.Get("stop_wait_timeout"); err == nil {
+		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
+			return errors.New("stop wait timeout is invalid")
+		} else {
+			c.StopWaitTimeout = time.Duration(value) * time.Second
 		}
 	}
 
@@ -126,28 +155,34 @@ func (c *Config) Validate() error {
 	if c.Workers < 1 {
 		return errors.New("workers is invalid")
 	}
-	if c.Delay <= 0 {
-		return errors.New("delay is invalid")
+	if c.StartManagerDelay <= 0 {
+		return errors.New("start manager delay is invalid")
 	}
-	if c.DelayInitial <= 0 {
-		return errors.New("delay initial is invalid")
+	if c.DispatchTasksDelay <= 0 {
+		return errors.New("dispatch tasks delay is invalid")
 	}
-	if c.DelayUnstick <= 0 {
-		return errors.New("delay unstick is invalid")
-	}
-	if c.StopWaitTimeout <= 0 {
-		return errors.New("stop wait timeout is invalid")
+	if c.MonitorTaskDelay <= 0 {
+		return errors.New("monitor task delay is invalid")
 	}
 	if c.RunnerWatchdogGracePeriod <= 0 {
 		return errors.New("runner watchdog grace period is invalid")
 	}
+	if c.UnstickTasksDelay <= 0 {
+		return errors.New("unstick tasks delay is invalid")
+	}
+	if c.UnstickTasksAvailableGracePeriod <= 0 {
+		return errors.New("unstick tasks available grace period is invalid")
+	}
+	if c.StopWaitTimeout <= 0 {
+		return errors.New("stop wait timeout is invalid")
+	}
 	return nil
 }
 
-// The Queue's fields are all immutable after New, except the lifecycle fields, which are
-// guarded by the lifecycle mutex, and workersAvailable, which is owned exclusively by the
-// manager goroutine. The workers and manager therefore read the channels and runners map
-// freely, without synchronization.
+// The Queue's fields are all immutable after New, except the lifecycle fields, which are guarded by the lifecycle
+// mutex, and workersAvailable, which is initialized by Start before the manager exists and thereafter owned exclusively
+// by the manager goroutine. The workers and manager therefore read the channels and runners map freely, without
+// synchronization.
 type Queue struct {
 	name              string
 	config            *Config
@@ -204,11 +239,12 @@ func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners 
 		repository: str.NewTaskRepository(),
 		runners:    runnerMap,
 
-		// NOT buffered so a task is only handed off when a worker is ready to receive it. This ensures a dispatched task is never
-		// stranded in a buffer during shutdown.
+		// NOT buffered so a task is only handed off when a worker is ready to receive it. This ensures a dispatched
+		// task is never stranded in a buffer during shutdown.
 		dispatchChannel: make(chan *task.Task),
 
-		// Buffered so that a worker can complete a task and hand it off to the manager even if the manager is busy dispatching other tasks.
+		// Buffered so that a worker can complete a task and hand it off to the manager even if the manager is busy
+		// dispatching other tasks.
 		completionChannel: make(chan *task.Task, cfg.Workers),
 	}, nil
 }
@@ -234,8 +270,8 @@ func (q *Queue) Start() {
 }
 
 func (q *Queue) Stop() {
-	// Hold the mutex for the entire stop, including the waits, so a concurrent Start cannot
-	// observe a partially stopped queue.
+	// Hold the mutex for the entire stop, including the waits, so a concurrent Start cannot observe a partially stopped
+	// queue.
 	q.lifecycleMutex.Lock()
 	defer q.lifecycleMutex.Unlock()
 
@@ -253,15 +289,14 @@ func (q *Queue) Stop() {
 
 	lgr := q.logger.WithField("stopWaitTimeout", q.config.StopWaitTimeout)
 
-	// Cancel the manager, so it stops dispatching new tasks and begins draining completions
-	// from the workers, and the workers, to interrupt any in-flight task.
+	// Cancel the manager, so it stops dispatching new tasks and begins draining completions from the workers, and the
+	// workers, to interrupt any in-flight task.
 	q.cancelFunc()
 
-	// Wait for all workers to exit, but only up to a bounded timeout so a runner that does
-	// not honor cancellation cannot block shutdown forever. If a worker is still running we
-	// must NOT close the channels: a stuck worker that later finishes would panic sending on
-	// a closed completion channel. Instead we leave the goroutines orphaned (reaped at process
-	// exit); the abandoned task stays running and is recovered by the deadline/unstick mechanism.
+	// Wait for all workers to exit, but only up to a bounded timeout so a runner that does not honor cancellation
+	// cannot block shutdown forever. If a worker is still running we must NOT close the channels: a stuck worker that
+	// later finishes would panic sending on a closed completion channel. Instead we leave the goroutines orphaned
+	// (reaped at process exit); the abandoned task stays running and is recovered by the deadline/unstick mechanism.
 	if !waitWithTimeout(&q.workersWaitGroup, q.config.StopWaitTimeout) {
 		lgr.Error("Task queue workers did not stop within timeout; abandoning in-flight tasks; will be fixed with UnstickTasks later")
 		return
@@ -270,16 +305,16 @@ func (q *Queue) Stop() {
 	// All workers have exited, so completion channel can be closed.
 	close(q.completionChannel)
 
-	// Wait for manager to exit. This should be prompt now that the completion channel is
-	// closed, but bound it too in case a completion write is slow.
+	// Wait for manager to exit. This should be prompt now that the completion channel is closed, but bound it too in
+	// case a completion write is slow.
 	if !waitWithTimeout(&q.managerWaitGroup, q.config.StopWaitTimeout) {
 		lgr.Error("Task queue manager did not stop within timeout")
 		return
 	}
 
-	// Manager has exited, so no further tasks will be dispatched. Because the
-	// dispatch channel is not buffered, no dispatched task can be stranded in it; any
-	// task the manager could not hand off was reverted to pending during dispatch.
+	// Manager has exited, so no further tasks will be dispatched. Because the dispatch channel is not buffered, no
+	// dispatched task can be stranded in it; any task the manager could not hand off was reverted to pending during
+	// dispatch.
 	close(q.dispatchChannel)
 
 	q.logger.Info("Task queue stopped")
@@ -333,13 +368,27 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 
 	runner, ok := q.runners[tsk.Type]
 	if !ok {
-		// A whole task type is unprocessable by this queue; surface it distinctly (a configuration
-		// problem) rather than letting it blend in with ordinary per-task failures downstream.
+		// A whole task type is unprocessable by this queue; surface it distinctly (a configuration problem) rather than
+		// letting it blend in with ordinary per-task failures downstream.
 		lgr.Error("Runner not found for task type; task cannot be processed")
 		tsk.SetFailedWithError(errors.New("runner not found for task type"))
 		RunnerNotFoundTotal.WithLabelValues(tsk.Type).Inc()
 		return
 	}
+
+	// The claim context is canceled with ErrClaimLost by the task claim monitor when the task is deleted or re-claimed
+	// mid-run. Claim loss is irreversible for this run (every claim gets a fresh token), so once canceled the outcome
+	// can never be persisted.
+	claimContext, claimCancel := context.WithCancelCause(ctx)
+	defer claimCancel(nil)
+
+	// Clearing the claim token marks the outcome as unpersistable, which completeTask discards. Done in a defer, after
+	// the recover below, so a panicking runner is also reconciled correctly.
+	defer func() {
+		if errors.Is(context.Cause(claimContext), ErrClaimLost) {
+			tsk.ClaimToken = nil
+		}
+	}()
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -349,51 +398,91 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		}
 	}()
 
-	// If runner does not respect its own maximum duration, then enforce a context-based timeout.
-	// This forces the task to cancel via the context.
-	runnerContext, cancel := context.WithTimeoutCause(ctx, runner.GetRunnerTimeout(), ErrRunnerTimeout)
+	// If runner does not respect its own maximum duration, then enforce a context-based timeout. This forces the task
+	// to cancel via the context.
+	runnerContext, cancel := context.WithTimeoutCause(claimContext, runner.GetRunnerTimeout(), ErrRunnerTimeoutExceeded)
 	defer cancel()
 
-	// Watchdog for a runner that ignores cancellation. Go cannot preempt a goroutine, so if the
-	// runner blows past its timeout without returning, this worker stays blocked until the
-	// process restarts (the task itself is recovered by the deadline/unstick mechanism). We
-	// cannot unblock the worker, but we surface the condition via a log and metric so a
-	// non-cooperative runner is detectable rather than silent. The grace period lets a cooperative
-	// runner that returns promptly after the timeout cancellation avoid being reported as blocked
-	// here; such a run is instead logged and counted as "recovered" during reconciliation.
+	// Watchdog for a runner that ignores cancellation. Go cannot preempt a goroutine, so if the runner blows past its
+	// timeout without returning, this worker stays blocked until the process restarts (the task itself is recovered by
+	// the deadline/unstick mechanism). We cannot unblock the worker, but we surface the condition via a log and metric
+	// so a non-cooperative runner is detectable rather than silent. The grace period lets a cooperative runner that
+	// returns promptly after the timeout cancellation avoid being reported as blocked here; such a run is instead
+	// logged and counted as "recovered" during reconciliation.
 	runnerWatchdog := time.AfterFunc(runner.GetRunnerTimeout()+q.config.RunnerWatchdogGracePeriod, func() {
 		lgr.Error("Task runner exceeded timeout without returning; worker is blocked until it returns")
 		RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType(), "blocked").Inc()
 	})
 	defer runnerWatchdog.Stop()
 
+	// Watch the claim for the duration of the run. The task is owned by the runner while it runs, so the watch gets its
+	// own copies of everything it needs rather than reading tsk.
+	go func(id string, typ string, claimToken string) {
+		if reason := q.monitorTaskForLostClaim(claimContext, id, claimToken); reason != nil {
+			log.LoggerFromContext(claimContext).Warnf("Task %s; canceling task run", *reason)
+			RunClaimLostTotal.WithLabelValues(typ, *reason).Inc()
+			claimCancel(ErrClaimLost)
+		}
+	}(tsk.ID, tsk.Type, *tsk.ClaimToken)
+
 	// Run the task via the runner
 	startTime := time.Now()
 	runner.Run(runnerContext, tsk)
 	duration := time.Since(startTime).Truncate(time.Millisecond)
 
-	// Immediate stop the runner watchdog
+	// Immediately stop the runner watchdog
 	runnerWatchdog.Stop()
+
+	RunDurationSeconds.WithLabelValues(runner.GetRunnerType()).Observe(duration.Seconds())
+	if duration > runner.GetRunnerDurationMaximum() {
+		lgr.WithField("duration", duration.Seconds()).Warn("Task duration exceeds maximum")
+	}
+
+	// The claim was lost mid-run; any write-back would miss the claim token, so skip state reconciliation. The outcome
+	// is discarded during completion.
+	if errors.Is(context.Cause(claimContext), ErrClaimLost) {
+		return
+	}
 
 	// If the runner left the task running, reconcile its state based on why the run ended.
 	if tsk.State == task.TaskStateRunning {
 		switch {
 		case context.Cause(ctx) != nil:
-			// The parent (worker) context was canceled by shutdown; make the task available
-			// again for retry rather than treating the interruption as a completion.
+			// The parent (worker) context was canceled by shutdown; make the task available again for retry rather than
+			// treating the interruption as a completion.
 			tsk.RepeatAvailableAfter(0)
 		case context.Cause(runnerContext) != nil:
-			// The runner exceeded its timeout but returned; record the cause so the failure is
-			// attributed to the timeout rather than the generic missing terminal state error.
+			// The runner exceeded its timeout but returned; record the cause so the failure is attributed to the
+			// timeout rather than the generic missing terminal state error.
 			lgr.Warn("Task runner exceeded timeout; task will be failed")
 			tsk.AppendError(context.Cause(runnerContext))
 			RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType(), "recovered").Inc()
 		}
 	}
+}
 
-	RunDurationSeconds.WithLabelValues(runner.GetRunnerType()).Observe(duration.Seconds())
-	if duration > runner.GetRunnerDurationMaximum() {
-		lgr.WithField("duration", duration.Seconds()).Warn("Task duration exceeds maximum")
+// monitorTaskForLostClaim polls until the run's claim on the task is lost - the task is gone (deleted) or holds a
+// different claim token (unstuck and possibly re-claimed) - and then returns the reason for the claim loss. If the
+// context is canceled before the claim is lost, returns nil.
+func (q *Queue) monitorTaskForLostClaim(ctx context.Context, id string, runningClaimToken string) *string {
+	ticker := time.NewTicker(q.config.MonitorTaskDelay)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			if storeClaimToken, exists, err := q.repository.GetTaskClaimToken(ctx, id); err != nil {
+				if context.Cause(ctx) == nil {
+					log.LoggerFromContext(ctx).WithError(err).Error("Unable to get task claim token")
+				}
+			} else if !exists {
+				return pointer.From("deleted")
+			} else if storeClaimToken == nil || *storeClaimToken != runningClaimToken {
+				return pointer.From("reclaimed")
+			}
+		}
 	}
 }
 
@@ -403,27 +492,27 @@ func (q *Queue) startManager(ctx context.Context) {
 
 		lgr.Debug("Task queue manager started")
 
-		lgr.Debug("Task queue manager initial delay initiated")
+		lgr.Debug("Task queue start manager delay initiated")
 
 		// Start at a random future time to help prevent thundering herd problem
 		select {
 		case <-ctx.Done():
 			lgr.WithError(context.Cause(ctx)).Debug("Task queue manager stopped before dispatching tasks")
 			return
-		case <-time.After(randomDuration(q.config.DelayInitial)):
-			lgr.Debug("Task queue manager initial delay complete")
+		case <-time.After(randomDuration(q.config.StartManagerDelay)):
+			lgr.Debug("Task queue start manager delay complete")
 		}
 
 		// Start at a random future time to help prevent thundering herd problem
-		unstickTime := time.Now().Add(randomDuration(q.config.DelayUnstick))
+		unstickTasksTime := time.Now().Add(randomDuration(q.config.UnstickTasksDelay))
 
 		for {
 			if err := q.executeManager(ctx); err != nil {
 				lgr.WithError(err).Debug("Task queue manager stopping")
 
-				// Complete any remaining tasks concurrently so the total drain time is
-				// bounded by a single slow completion write rather than the sum across
-				// all workers' tasks, keeping shutdown within the stop wait timeout.
+				// Complete any remaining tasks concurrently so the total drain time is bounded by a single slow
+				// completion write rather than the sum across all workers' tasks, keeping shutdown within the stop wait
+				// timeout.
 				var completionWaitGroup sync.WaitGroup
 				for tsk := range q.completionChannel {
 					if tsk != nil {
@@ -436,9 +525,9 @@ func (q *Queue) startManager(ctx context.Context) {
 				return
 			}
 
-			if unstickTime.Before(time.Now()) {
+			if unstickTasksTime.Before(time.Now()) {
 				q.unstickTasks(ctx)
-				unstickTime = time.Now().Add(durationWithJitter(q.config.DelayUnstick))
+				unstickTasksTime = time.Now().Add(durationWithJitter(q.config.UnstickTasksDelay))
 			}
 		}
 	})
@@ -461,7 +550,7 @@ func (q *Queue) executeManager(ctx context.Context) error {
 			WorkersAvailable.WithLabelValues(q.name).Set(float64(q.workersAvailable))
 			q.dispatchTasks(ctx)
 		}
-	case <-time.After(durationWithJitter(q.config.Delay)):
+	case <-time.After(durationWithJitter(q.config.DispatchTasksDelay)):
 		q.dispatchTasks(ctx)
 	}
 
@@ -469,7 +558,10 @@ func (q *Queue) executeManager(ctx context.Context) error {
 }
 
 func (q *Queue) unstickTasks(ctx context.Context) {
-	ids, err := q.repository.UnstickTasks(ctx)
+	// Delay availability of unstuck tasks to ensure that any still-running tasks have likely been canceled and exited
+	// before being re-dispatched.
+	availabilityDelay := q.config.MonitorTaskDelay + q.config.RunnerWatchdogGracePeriod + q.config.UnstickTasksAvailableGracePeriod
+	ids, err := q.repository.UnstickTasks(ctx, availabilityDelay)
 	if count := len(ids); count > 0 {
 		log.LoggerFromContext(ctx).WithFields(log.Fields{"count": count, "ids": ids}).Info("Unstuck tasks")
 	}
@@ -521,7 +613,8 @@ func (q *Queue) dispatchTasks(ctx context.Context) {
 func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
-	// we don't error here if missing, as the task will be failed during runTask, which persists error to database
+	// we don't error here if missing, as the task will be failed during runTask and the error persisted to the database
+	// when the task completes
 	var deadline time.Duration
 	if runner, ok := q.runners[tsk.Type]; ok {
 		deadline = runner.GetRunnerDeadline()
@@ -529,8 +622,8 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 		deadline = TaskDeadlineDefault
 	}
 
-	// StartTask completes regardless of context cancellation, so its outcome is definitive:
-	// a non-nil startedTask means the claim committed with a known state lock.
+	// StartTask completes regardless of context cancellation, so its outcome is definitive: a non-nil startedTask means
+	// the claim committed with a known claim token.
 	startedTask, err := q.repository.StartTask(ctx, tsk.ID, tsk.Revision, deadline)
 	if err != nil {
 		return errors.Wrap(err, "unable to start task")
@@ -539,12 +632,11 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 		return nil
 	}
 
-	// Hand the task off to a worker. If the queue is shutting down before a worker can
-	// receive it, revert the task to pending rather than blocking the manager. The revert
-	// uses the started task state lock so it reliably matches.
+	// Hand the task off to a worker. If the queue is shutting down before a worker can receive it, revert the task to
+	// pending rather than blocking the manager. The revert uses the started task claim token so it reliably matches.
 	select {
 	case <-ctx.Done():
-		if err := q.repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.StateLock, task.TaskStatePending, nil, nil); err != nil {
+		if err := q.repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.ClaimToken, task.TaskStatePending, nil, nil); err != nil {
 			return errors.Wrap(err, "unable to revert task to pending")
 		}
 	case q.dispatchChannel <- startedTask:
@@ -555,41 +647,46 @@ func (q *Queue) dispatchTask(ctx context.Context, tsk *task.Task) error {
 	return nil
 }
 
-// completeTask persists the task's completion. It deliberately does not touch
-// workersAvailable (the caller accounts for the freed worker where relevant), so it is safe
-// to call concurrently during the manager's shutdown drain.
+// completeTask persists the task's completion. It deliberately does not touch workersAvailable (the caller accounts for
+// the freed worker where relevant), so it is safe to call concurrently during the manager's shutdown drain.
 func (q *Queue) completeTask(ctx context.Context, tsk *task.Task) {
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "task", tsk.LogFields())
 
+	// The claim was lost mid-run (task deleted or re-claimed): any write-back would miss the claim token, so discard
+	// the outcome rather than logging a spurious lost completion.
+	if tsk.ClaimToken == nil {
+		lgr.Warn("Task claim lost; task run outcome discarded")
+		return
+	}
+
 	var duration *time.Duration
 	if tsk.RunTime != nil {
-		// Clamp to a zero minimum: the run time round-trips through the database without a
-		// monotonic reading, so a backwards wall clock step could yield a non-positive elapsed
-		// time, which StopTask would reject, losing the completion.
+		// Clamp to a zero minimum: the run time round-trips through the database without a monotonic reading, so a
+		// backwards wall clock step could yield a negative elapsed time, which StopTask would reject, losing the
+		// completion.
 		duration = pointer.From(max(time.Since(*tsk.RunTime), 0))
 	}
 
 	q.computeState(ctx, tsk)
 
-	// computeState has already settled the terminal state. A failed task is a genuine problem
-	// worth an error; a task that errored but will run again (e.g. reverted to pending for
-	// retry) is an expected, recoverable outcome, so log it at warning to avoid error-level
-	// noise from routine retries.
+	// computeState has already settled the terminal state. A failed task is a genuine problem worth an error; a task
+	// that errored but will run again (e.g. reverted to pending for retry) is an expected, recoverable outcome, so log
+	// it at warning to avoid error-level noise from routine retries.
 	if err := tsk.GetError(); tsk.State == task.TaskStateFailed {
 		lgr.WithError(err).Error("Task failed while running")
 	} else if err != nil {
 		lgr.WithError(err).Warn("Error occurred while running task that did not fail")
 	}
 
-	// Data and Error use non-nil wrappers so that a task whose data or error was cleared during
-	// the run has the corresponding field unset in the database, rather than left stale (a nil
-	// wrapper means "leave unchanged" to StopTask).
+	// Data and Error use non-nil wrappers so that a task whose data or error was cleared during the run has the
+	// corresponding field unset in the database, rather than left stale (a nil wrapper means "leave unchanged" to
+	// StopTask).
 	update := &task.TaskUpdate{
 		Data:          pointer.From(tsk.Data),
 		AvailableTime: tsk.AvailableTime,
 		Error:         &errors.Serializable{Error: tsk.GetError()},
 	}
-	if err := q.repository.StopTask(ctx, tsk.ID, tsk.Revision, tsk.StateLock, tsk.State, duration, update); err != nil {
+	if err := q.repository.StopTask(ctx, tsk.ID, tsk.Revision, tsk.ClaimToken, tsk.State, duration, update); err != nil {
 		lgr.WithError(err).Error("Unable to complete task")
 	}
 }
@@ -608,8 +705,8 @@ func (q *Queue) computeState(ctx context.Context, tsk *task.Task) {
 			tsk.AvailableTime = pointer.FromTime(now)
 		}
 	case task.TaskStateRunning:
-		// The runner returned without moving the task out of the running state, violating
-		// the runner contract; fail the task rather than guessing whether it succeeded.
+		// The runner returned without moving the task out of the running state, violating the runner contract; fail the
+		// task rather than guessing whether it succeeded.
 		if tsk.HasError() {
 			tsk.SetFailed()
 		} else {
@@ -622,11 +719,10 @@ func (q *Queue) computeState(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-// validateRunner enforces the runner duration contract, deadline > timeout > duration maximum > 0,
-// so that a misconfigured runner fails queue construction rather than causing subtle runtime
-// misbehavior (a non-positive deadline prevents the task from ever starting, while a deadline
-// that does not exceed the timeout allows the unstick mechanism to reset a task that is still
-// running).
+// validateRunner enforces the runner duration contract, deadline > timeout > duration maximum > 0, so that a
+// misconfigured runner fails queue construction rather than causing subtle runtime misbehavior (a non-positive deadline
+// prevents the task from ever starting, while a deadline that does not exceed the timeout allows the unstick mechanism
+// to reset a task that is still running).
 func validateRunner(runner Runner) error {
 	if durationMaximum := runner.GetRunnerDurationMaximum(); durationMaximum <= 0 {
 		return errors.New("runner duration maximum is invalid")
@@ -639,9 +735,9 @@ func validateRunner(runner Runner) error {
 	}
 }
 
-// waitWithTimeout waits for the wait group to complete, returning true if it completed within
-// the timeout and false otherwise. On timeout the internal waiter goroutine is left running
-// until the wait group eventually completes (or the process exits).
+// waitWithTimeout waits for the wait group to complete, returning true if it completed within the timeout and false
+// otherwise. On timeout the internal waiter goroutine is left running until the wait group eventually completes (or the
+// process exits).
 func waitWithTimeout(waitGroup *sync.WaitGroup, timeout time.Duration) bool {
 	done := make(chan struct{})
 	go func() {
@@ -679,41 +775,52 @@ var (
 		Help: "The configured number of task queue workers, sorted by queue",
 	}, []string{"queue"})
 
-	// WorkersAvailable reports the number of available workers, per queue. A value pinned at zero
-	// indicates a saturated queue or workers wedged in non-cooperative runners.
+	// WorkersAvailable reports the number of available workers, per queue. A value pinned at zero indicates a saturated
+	// queue or workers wedged in non-cooperative runners.
 	WorkersAvailable = promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "tidepool_task_workers_available",
 		Help: "The number of available task queue workers, sorted by queue",
 	}, []string{"queue"})
 
-	// RunnerNotFoundTotal counts task runs for which no runner is registered for the task's type,
-	// sorted by type. A non-zero value indicates pending tasks of a type this queue cannot process
-	// (a configuration problem); such tasks are failed immediately.
+	// RunnerNotFoundTotal counts task runs for which no runner is registered for the task's type, sorted by type. A
+	// non-zero value indicates pending tasks of a type this queue cannot process (a configuration problem); such tasks
+	// are failed immediately.
 	RunnerNotFoundTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_runner_not_found_total",
 		Help: "The total number of task runs with no registered runner for the task type, sorted by type",
 	}, []string{"type"})
 
-	// RunDurationSeconds observes how long each task run took, sorted by type. Use it to track
-	// run latency percentiles and to alert when durations approach the runner timeout.
+	// RunDurationSeconds observes how long each task run took, sorted by type. Use it to track run latency percentiles
+	// and to alert when durations approach the runner timeout.
 	RunDurationSeconds = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name:    "tidepool_task_run_duration_seconds",
 		Help:    "The duration of task runs, in seconds, sorted by type",
 		Buckets: prometheus.ExponentialBuckets(0.1, 2, 15),
 	}, []string{"type"})
 
-	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout, sorted by type
-	// and disposition, where disposition can be:
-	//   - "blocked" - for runs the watchdog caught still running past the grace period (the worker is
-	// wedged until the runner eventually returns or the process restarts, so this is the severe case)
-	//   - "recovered" - for runs that exceeded the timeout, but returned once their context was
-	// canceled (the timeout mechanism worked as designed)
+	// RunnerTimeoutExceededTotal counts task runs that exceeded the runner timeout, sorted by type and disposition,
+	// where disposition can be:
+	//   - "blocked" - for runs the watchdog caught still running past the grace period (the worker is wedged until the
+	//     runner eventually returns or the process restarts, so this is the severe case)
+	//   - "recovered" - for runs that exceeded the timeout, but returned once their context was canceled (the timeout
+	//     mechanism worked as designed)
 	RunnerTimeoutExceededTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_runner_timeout_exceeded_total",
 		Help: "The total number of task runs that exceeded the runner timeout, sorted by type and disposition",
 	}, []string{"type", "disposition"})
 
-	// RunPanicTotal counts task runs that panicked and were recovered and failed, sorted by type.
+	// RunClaimLostTotal counts task runs canceled because the run's claim was lost, sorted by type and reason, where
+	// reason can be:
+	//   - "deleted" - the task document was deleted mid-run
+	//   - "reclaimed" - the stored claim token no longer matches (the task was unstuck and possibly re-claimed
+	//     elsewhere)
+	RunClaimLostTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "tidepool_task_run_claim_lost_total",
+		Help: "The total number of task runs canceled because the task claim was lost, sorted by type and reason",
+	}, []string{"type", "reason"})
+
+	// RunPanicTotal counts task runs that panicked and were recovered, sorted by type. The task is then failed, unless
+	// the runner had already moved it out of running before panicking.
 	RunPanicTotal = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "tidepool_task_run_panic_total",
 		Help: "The total number of task runs that panicked, sorted by type",

@@ -141,15 +141,17 @@ var _ = Describe("Runner", func() {
 
 	Context("with provider and task", func() {
 		var provider *dexcomFetchTest.MockProvider
+		var runnerDurationMaximum time.Duration
 		var tsk *task.Task
 
 		BeforeEach(func() {
 			provider = dexcomFetchTest.NewMockProvider(mockController)
+			runnerDurationMaximum = time.Second
 			provider.EXPECT().AuthClient().Return(authClient).AnyTimes()
 			provider.EXPECT().DataClient().Return(dataClient).AnyTimes()
 			provider.EXPECT().DataSourceClient().Return(dataSourceClient).AnyTimes()
 			provider.EXPECT().DexcomClient().Return(dexcomClient).AnyTimes()
-			provider.EXPECT().GetRunnerDurationMaximum().Return(time.Second).AnyTimes()
+			provider.EXPECT().GetRunnerDurationMaximum().DoAndReturn(func() time.Duration { return runnerDurationMaximum }).AnyTimes()
 			tsk = &task.Task{
 				State: task.TaskStateRunning,
 				Data: map[string]any{
@@ -204,6 +206,17 @@ var _ = Describe("Runner", func() {
 				} else {
 					Expect(tsk.AvailableTime).To(BeNil())
 				}
+			}
+
+			assertTaskAvailableSoon := func() {
+				Expect(tsk.AvailableTime).ToNot(BeNil())
+				Expect(*tsk.AvailableTime).To(BeTemporally("~", time.Now().Add(time.Minute), 5*time.Second))
+			}
+
+			assertTaskAvailableAfterStandardDuration := func() {
+				Expect(tsk.AvailableTime).ToNot(BeNil())
+				Expect(*tsk.AvailableTime).To(BeTemporally(">", time.Now().Add(dexcomFetch.AvailableAfterDuration-dexcomFetch.AvailableAfterDurationJitter-time.Second)))
+				Expect(*tsk.AvailableTime).To(BeTemporally("<", time.Now().Add(dexcomFetch.AvailableAfterDuration+dexcomFetch.AvailableAfterDurationJitter)))
 			}
 
 			assertTaskRetryCount := func(retryCount int) {
@@ -474,7 +487,6 @@ var _ = Describe("Runner", func() {
 
 						It("is successful if the Dexcom data ranges is not valid", func() {
 							dataRangeResponse.Calibrations.Start = nil
-							dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -484,7 +496,6 @@ var _ = Describe("Runner", func() {
 
 						It("is successful if the Dexcom data ranges start is not before end", func() {
 							dataRangeResponse.Calibrations.Start = &dexcom.Moment{SystemTime: &dexcom.Time{Time: time.Now().Add(-2 * Day)}}
-							dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -571,14 +582,51 @@ var _ = Describe("Runner", func() {
 									ID:       pointer.FromString("test-data-set-id"),
 									UploadID: pointer.FromString("test-data-set-upload-id"),
 								}
-								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(3)
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(2)
 								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
 								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
 								taskRunner.Run(ctx)
 								assertTaskAndDataSourceState(task.TaskStatePending)
+								assertTaskAvailableAfterStandardDuration()
 								assertTaskDeviceHashesCount(3)
 								assertTaskRetryCountNotPresent()
 								assertTaskAndDataSourceErrorNotPresent()
+								assertProviderSessionRefreshedTimes(6)
+							})
+
+							It("is available soon if the deadline is exceeded", func() {
+								runnerDurationMaximum = -time.Second
+								dataSet := &data.DataSet{
+									ID:       pointer.FromString("test-data-set-id"),
+									UploadID: pointer.FromString("test-data-set-upload-id"),
+								}
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(2)
+								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
+								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+								taskRunner.Run(ctx)
+								assertTaskAndDataSourceState(task.TaskStatePending)
+								assertTaskAvailableSoon()
+								assertTaskRetryCountNotPresent()
+								assertTaskAndDataSourceErrorNotPresent()
+								assertProviderSessionRefreshedTimes(6)
+							})
+
+							It("is available soon if the deadline is exceeded and a later update fails", func() {
+								runnerDurationMaximum = -time.Second
+								testErr := errorsTest.RandomError()
+								dataSet := &data.DataSet{
+									ID:       pointer.FromString("test-data-set-id"),
+									UploadID: pointer.FromString("test-data-set-upload-id"),
+								}
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).Return(nil, testErr).Times(1)
+								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
+								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+								taskRunner.Run(ctx)
+								assertTaskState(task.TaskStatePending)
+								assertTaskAvailableSoon()
+								assertTaskRetryCountNotPresent()
+								assertTaskError(dexcomFetch.ErrorCodeResourceFailure, "unable to update data source")
 								assertProviderSessionRefreshedTimes(6)
 							})
 						})

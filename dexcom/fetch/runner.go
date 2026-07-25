@@ -2,13 +2,13 @@ package fetch
 
 import (
 	"context"
-	"math/rand"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/data"
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
@@ -150,7 +150,9 @@ type TaskRunner struct {
 	deviceHashes     map[string]string
 	dataSet          *data.DataSet
 	dataSetPreloaded bool
-	deadline         time.Time
+	runTime          time.Time
+	availableAfter   *time.Duration
+	importCompleted  bool
 }
 
 func NewTaskRunner(provider Provider, tsk *task.Task) (*TaskRunner, error) {
@@ -170,21 +172,29 @@ func NewTaskRunner(provider Provider, tsk *task.Task) (*TaskRunner, error) {
 func (t *TaskRunner) Run(ctx context.Context) {
 	t.context = ctx
 	t.logger = log.LoggerFromContext(t.context)
-	t.deadline = time.Now().Add(t.GetRunnerDurationMaximum())
+	t.runTime = time.Now()
 
 	t.task.ClearError()
-	if err := t.run(); err == nil {
-		t.rescheduleTask()
-	} else if !t.task.HasError() {
-		t.rescheduleTaskWithResourceError(err)
+
+	if err := t.run(); err != nil {
+		t.task.AppendError(err)
+	}
+
+	// A permanently failed task is not rescheduled, unless its outcome could not be recorded on the data source, in
+	// which case run again so a later run can record it
+	err := t.updateDataSourceWithTaskState()
+	if err != nil {
+		t.task.AppendError(err)
+	}
+	if err != nil || !t.task.IsFailed() {
+		t.task.RepeatAvailableAfter(pointer.Default(t.availableAfter, availableAfterDuration()))
 	}
 }
 
 func (t *TaskRunner) run() error {
-	defer t.updateDataSourceWithTaskState()
-
 	if len(t.task.Data) == 0 {
-		return t.failTaskWithInvalidStateError(errors.New("data is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data is missing"))
 	}
 
 	if err := t.getDataSource(); err != nil {
@@ -202,9 +212,6 @@ func (t *TaskRunner) run() error {
 	if err := t.fetchSinceLatestDataTime(); err != nil {
 		return err
 	}
-	if err := t.updateDataSourceWithLastImportTime(); err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -212,14 +219,16 @@ func (t *TaskRunner) run() error {
 func (t *TaskRunner) getProviderSession() error {
 	providerSessionID, ok := t.task.Data[dexcom.DataKeyProviderSessionID].(string)
 	if !ok || providerSessionID == "" {
-		return t.failTaskWithInvalidStateError(errors.New("provider session id is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("provider session id is missing"))
 	}
 
 	providerSession, err := t.AuthClient().GetProviderSession(t.context, providerSessionID)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to get provider session"))
+		return ErrorResourceFailureError(errors.Wrap(err, "unable to get provider session"))
 	} else if providerSession == nil {
-		return t.failTaskWithInvalidStateError(errors.New("provider session is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("provider session is missing"))
 	}
 	t.providerSession = providerSession
 
@@ -250,14 +259,16 @@ func (t *TaskRunner) updateProviderSession() error {
 func (t *TaskRunner) getDataSource() error {
 	dataSourceID, ok := t.task.Data[dexcom.DataKeyDataSourceID].(string)
 	if !ok || dataSourceID == "" {
-		return t.failTaskWithInvalidStateError(errors.New("data source id is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data source id is missing"))
 	}
 
 	source, err := t.DataSourceClient().Get(t.context, dataSourceID)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to get data source"))
+		return ErrorResourceFailureError(errors.Wrap(err, "unable to get data source"))
 	} else if source == nil {
-		return t.failTaskWithInvalidStateError(errors.New("data source is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data source is missing"))
 	}
 	t.dataSource = source
 
@@ -282,14 +293,11 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, l
 	return t.updateDataSource(update)
 }
 
-func (t *TaskRunner) updateDataSourceWithLastImportTime() error {
-	update := dataSource.NewUpdate()
-	update.LastImportTime = pointer.FromTime(time.Now())
-	return t.updateDataSource(update)
-}
-
 func (t *TaskRunner) updateDataSourceWithTaskState() error {
 	update := dataSource.NewUpdate()
+	if t.importCompleted {
+		update.LastImportTime = pointer.FromTime(time.Now())
+	}
 	if t.task.IsFailed() {
 		update.State = pointer.FromString(dataSource.StateError)
 	}
@@ -305,9 +313,10 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 	// Without cancel to ensure data source is updated in the database
 	dataSource, err := t.DataSourceClient().Update(context.WithoutCancel(t.context), t.dataSource.ID, nil, update)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update data source"), update))
+		return ErrorResourceFailureError(errors.WithMeta(errors.Wrap(err, "unable to update data source"), update))
 	} else if dataSource == nil {
-		return t.failTaskWithInvalidStateError(errors.New("data source is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data source is missing"))
 	}
 
 	t.dataSource = dataSource
@@ -317,7 +326,8 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 func (t *TaskRunner) createTokenSource() error {
 	tokenSource, err := oauthToken.NewSourceWithToken(t.providerSession.OAuthToken)
 	if err != nil {
-		return t.failTaskWithInvalidStateError(errors.Wrap(err, "unable to create token source"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.Wrap(err, "unable to create token source"))
 	}
 
 	t.tokenSource = tokenSource
@@ -329,16 +339,18 @@ func (t *TaskRunner) getDeviceHashes() error {
 	if !rawOK || raw == nil {
 		return nil
 	}
-	rawMap, rawMapOK := raw.(map[string]interface{})
+	rawMap, rawMapOK := raw.(map[string]any)
 	if !rawMapOK || rawMap == nil {
-		return t.failTaskWithInvalidStateError(errors.New("device hashes is invalid"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("device hashes is invalid"))
 	}
 	deviceHashes := map[string]string{}
 	for key, value := range rawMap {
 		if valueString, valueStringOK := value.(string); valueStringOK {
 			deviceHashes[key] = valueString
 		} else {
-			return t.failTaskWithInvalidStateError(errors.New("device hash is invalid"))
+			t.task.SetFailed()
+			return ErrorInvalidStateError(errors.New("device hash is invalid"))
 		}
 	}
 
@@ -381,9 +393,10 @@ func (t *TaskRunner) updateDataSet(update *data.DataSetUpdate) error {
 	// Without cancel to ensure data set is updated in the database
 	dataSet, err := t.DataClient().UpdateDataSet(context.WithoutCancel(t.context), *t.dataSet.UploadID, update)
 	if err != nil {
-		return t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to update data set"), update))
+		return ErrorResourceFailureError(errors.WithMeta(errors.Wrap(err, "unable to update data set"), update))
 	} else if dataSet == nil {
-		return t.failTaskWithInvalidStateError(errors.New("data set is missing"))
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data set is missing"))
 	}
 
 	t.dataSet = dataSet
@@ -395,7 +408,8 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 	if err != nil {
 		return err
 	} else if dataRange == nil {
-		return nil // Nothing to fetch
+		t.importCompleted = true // No data, but still successful import
+		return nil
 	}
 
 	startTime := dataRange.StartTime
@@ -409,20 +423,20 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			return err
 		}
 
-		// If past deadline (based upon runner maximum duration), then bail
-		if time.Now().After(t.deadline) {
-			t.rescheduleTaskNow()
+		// If the task has been running for longer than the maximum duration, then stop fetching and repeat after a minute
+		if time.Since(t.runTime) > t.GetRunnerDurationMaximum() {
+			t.availableAfter = pointer.From(time.Minute)
 			return nil
 		}
 
 		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
 	}
 
+	t.importCompleted = true
 	return nil
 }
 
 func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
-
 	// HACK: Dexcom V3 (2024-05-30) - Can only use latest data time as last sync time if not
 	// older than 100 days, otherwise will return erroneous results. Use 30 days to be on
 	// the safe side.
@@ -702,7 +716,7 @@ func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
 	}
 	dataSet, err := t.DataClient().GetDataSet(t.context, *t.dataSource.DataSetID)
 	if err != nil {
-		return nil, t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to get data set"))
+		return nil, ErrorResourceFailureError(errors.Wrap(err, "unable to get data set"))
 	}
 	return dataSet, nil
 }
@@ -724,7 +738,7 @@ func (t *TaskRunner) createDataSet() (*data.DataSet, error) {
 
 	dataSet, err := t.DataClient().CreateUserDataSet(t.context, t.providerSession.UserID, dataSetCreate)
 	if err != nil {
-		return nil, t.rescheduleTaskWithResourceError(errors.WithMeta(errors.Wrap(err, "unable to create data set"), dataSetCreate))
+		return nil, ErrorResourceFailureError(errors.WithMeta(errors.Wrap(err, "unable to create data set"), dataSetCreate))
 	}
 	if err = t.updateDataSourceWithDataSet(dataSet); err != nil {
 		return nil, err
@@ -744,7 +758,7 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 		partialDatumArray := datumArray[startIndex:endIndex]
 
 		if err := t.DataClient().CreateDataSetsData(t.context, *t.dataSet.UploadID, partialDatumArray); err != nil {
-			return t.rescheduleTaskWithResourceError(errors.Wrap(err, "unable to create data set data"))
+			return ErrorResourceFailureError(errors.Wrap(err, "unable to create data set data"))
 		}
 
 		earliestDataTime := partialDatumArray[0].GetTime()
@@ -778,66 +792,27 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 	return latestDataTime != nil && (t.dataSource.LatestDataTime == nil || latestDataTime.After(*t.dataSource.LatestDataTime))
 }
 
-// Handle potential dexcom client error. If error, then retry or reschedule.
-// Otherwise, reset retry count.
 func (t *TaskRunner) handleDexcomClientError(err error) error {
-	if err != nil {
-		return t.retryOrRescheduleTaskWithDexcomClientError(err)
-	} else {
-		return t.resetTaskRetryCount()
-	}
-}
-
-// Retry task if Dexcom authentication failure. Otherwise, reschedule task.
-func (t *TaskRunner) retryOrRescheduleTaskWithDexcomClientError(err error) error {
-	if request.IsErrorUnauthenticated(errors.Cause(err)) {
-		return t.retryTaskWithError(ErrorAuthenticationFailureError(err))
-	} else {
-		return t.rescheduleTaskWithResourceError(err)
-	}
-}
-
-// Increment task retry count. If task retry count exceeds maximum, then fail task.
-// Otherwise, reschedule task. Typically used for Dexcom authentication failures that
-// may or may not be transient.
-func (t *TaskRunner) retryTaskWithError(err error) error {
-	retryCount := t.incrementTaskRetryCount()
-	if retryCount > TaskRetryCountMaximum {
-		return t.failTaskWithError(err)
+	// If success, then reset retry count and return no error
+	if err == nil {
+		t.resetTaskRetryCount()
+		return nil
 	}
 
-	t.task.AppendError(err)
-	t.task.RepeatAvailableAfter(availableAfterDurationWithFallbackFactor(fallbackFactorWithRetryCount(retryCount)))
-	return err
-}
+	// If not an authentication error, then just treat as a resource failure
+	if !request.IsErrorUnauthenticated(errors.Cause(err)) {
+		return ErrorResourceFailureError(err)
+	}
 
-func (t *TaskRunner) rescheduleTaskWithResourceError(err error) error {
-	return t.rescheduleTaskWithError(ErrorResourceFailureError(err))
-}
+	// It is an authentication error, attempt retry, if possible
+	err = ErrorAuthenticationFailureError(err)
+	if retryCount := t.incrementTaskRetryCount(); retryCount <= TaskRetryCountMaximum {
+		t.availableAfter = pointer.From(availableAfterDurationWithRetryCount(retryCount))
+		return err
+	}
 
-// Reschedule task for next run. Append error to task.
-func (t *TaskRunner) rescheduleTaskWithError(err error) error {
-	t.task.AppendError(err)
-	t.rescheduleTask()
-	return err
-}
-
-func (t *TaskRunner) rescheduleTaskNow() {
-	t.task.RepeatAvailableAfter(0)
-}
-
-func (t *TaskRunner) rescheduleTask() {
-	t.task.RepeatAvailableAfter(availableAfterDuration())
-}
-
-func (t *TaskRunner) failTaskWithInvalidStateError(err error) error {
-	return t.failTaskWithError(ErrorInvalidStateError(err))
-}
-
-// Fail task immediately and permanently. Do not reschedule. For situations where any future attempt is
-// also guaranteed to fail. For example, when the task data is missing information. Should not normally happen.
-func (t *TaskRunner) failTaskWithError(err error) error {
-	t.task.SetFailedWithError(err)
+	// Otherwise, we are failed
+	t.task.SetFailed()
 	return err
 }
 
@@ -852,9 +827,8 @@ func (t *TaskRunner) incrementTaskRetryCount() int {
 	return retryCount
 }
 
-func (t *TaskRunner) resetTaskRetryCount() error {
+func (t *TaskRunner) resetTaskRetryCount() {
 	delete(t.task.Data, dexcom.DataKeyRetryCount)
-	return nil
 }
 
 func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
@@ -906,8 +880,12 @@ func availableAfterDuration() time.Duration {
 	return availableAfterDurationWithFallbackFactor(1)
 }
 
+func availableAfterDurationWithRetryCount(retryCount int) time.Duration {
+	return availableAfterDurationWithFallbackFactor(fallbackFactorWithRetryCount(retryCount))
+}
+
 func availableAfterDurationWithFallbackFactor(fallbackFactor float64) time.Duration {
-	return time.Duration(float64(AvailableAfterDuration)*fallbackFactor) + time.Duration(rand.Int63n(int64(2*AvailableAfterDurationJitter))) - AvailableAfterDurationJitter
+	return time.Duration(float64(AvailableAfterDuration)*fallbackFactor) + time.Duration(crypto.RandomInt64N(int64(2*AvailableAfterDurationJitter))) - AvailableAfterDurationJitter
 }
 
 func fallbackFactorWithRetryCount(retryCount int) float64 {
