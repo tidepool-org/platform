@@ -322,6 +322,10 @@ var _ = Describe("Runner", func() {
 					Expect(tsk.HasError()).To(BeFalse())
 				}
 
+				assertDataSourceLastImportTimePresent := func() {
+					Expect(dataSrc.LastImportTime).ToNot(BeNil())
+				}
+
 				It("fails if provider session id is missing and update data source returns an error", func() {
 					testErr := errorsTest.RandomError()
 					delete(tsk.Data, dexcom.DataKeyProviderSessionID)
@@ -591,6 +595,7 @@ var _ = Describe("Runner", func() {
 								assertTaskDeviceHashesCount(3)
 								assertTaskRetryCountNotPresent()
 								assertTaskAndDataSourceErrorNotPresent()
+								assertDataSourceLastImportTimePresent()
 								assertProviderSessionRefreshedTimes(6)
 							})
 
@@ -608,6 +613,7 @@ var _ = Describe("Runner", func() {
 								assertTaskAvailableSoon()
 								assertTaskRetryCountNotPresent()
 								assertTaskAndDataSourceErrorNotPresent()
+								assertDataSourceLastImportTimePresent()
 								assertProviderSessionRefreshedTimes(6)
 							})
 
@@ -627,6 +633,7 @@ var _ = Describe("Runner", func() {
 								assertTaskAvailableSoon()
 								assertTaskRetryCountNotPresent()
 								assertTaskError(dexcomFetch.ErrorCodeResourceFailure, "unable to update data source")
+								assertDataSourceLastImportTimePresent()
 								assertProviderSessionRefreshedTimes(6)
 							})
 						})

@@ -201,22 +201,6 @@ var _ = Describe("Mongo", func() {
 			})
 
 			Context("UnstickTasks", func() {
-				var tsk *task.Task
-
-				BeforeEach(func() {
-					var err error
-					tsk, err = task.NewTask(context.Background(), &task.TaskCreate{
-						Name:          pointer.FromString("test"),
-						Type:          "fetch",
-						Data:          nil,
-						AvailableTime: pointer.FromTime(time.Now()),
-					})
-					Expect(err).ToNot(HaveOccurred())
-					tsk.State = task.TaskStateRunning
-					_, err = collection.InsertOne(ctx, tsk)
-					Expect(err).ToNot(HaveOccurred())
-				})
-
 				It("returns an error when the context is missing", func() {
 					unstuckTaskIDs, err := repository.UnstickTasks(context.Context(nil), 0)
 					Expect(err).To(MatchError("context is missing"))
