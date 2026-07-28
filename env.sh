@@ -1,6 +1,8 @@
+# shellcheck shell=sh
+
 export TIDEPOOL_ENV="local"
 export TIDEPOOL_LOGGER_LEVEL="debug"
-export TIDEPOOL_STORE_ADDRESSES="localhost"
+export TIDEPOOL_STORE_ADDRESSES="127.0.0.1"
 export TIDEPOOL_STORE_DATABASE="tidepool"
 export TIDEPOOL_STORE_TLS="false"
 export TIDEPOOL_SERVER_TLS="false"

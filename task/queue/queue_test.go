@@ -409,9 +409,7 @@ var _ = Describe("Queue", func() {
 
 		AfterEach(func() {
 			_ = test.Must(str.GetRepository("tasks").DeleteMany(ctx, bson.M{}))
-			if str != nil {
-				Expect(str.Terminate(ctx)).To(Succeed())
-			}
+			Expect(str.Terminate(ctx)).To(Succeed())
 		})
 
 		Context("with successful shutdown", func() {
@@ -474,9 +472,9 @@ var _ = Describe("Queue", func() {
 				updatedData := metadataTest.RandomMetadataMap()
 
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
-						*tsk = *test.Must(str.NewTaskRepository().UpdateTask(ctx, tsk.ID, nil, &task.TaskUpdate{Data: &updatedData}))
-						tsk.SetCompleted()
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						*runnerTask = *test.Must(str.NewTaskRepository().UpdateTask(runnerContext, runnerTask.ID, nil, &task.TaskUpdate{Data: &updatedData}))
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -498,9 +496,9 @@ var _ = Describe("Queue", func() {
 				updatedData := metadataTest.RandomMetadataMap()
 
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
-						test.Must(str.NewTaskRepository().UpdateTask(ctx, tsk.ID, nil, &task.TaskUpdate{Data: &updatedData}))
-						tsk.SetCompleted()
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						test.Must(str.NewTaskRepository().UpdateTask(runnerContext, runnerTask.ID, nil, &task.TaskUpdate{Data: &updatedData}))
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -522,11 +520,11 @@ var _ = Describe("Queue", func() {
 
 			It("does not complete a task whose claim token changed while it was running", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
 						// Simulate the task being unstuck and re-claimed elsewhere by changing the claim token out from
 						// under this run. The completion must then miss rather than falsely complete another run task.
-						test.Must(str.GetCollection("tasks").UpdateOne(ctx, bson.M{"id": tsk.ID}, bson.M{"$set": bson.M{"claimToken": ""}}))
-						tsk.SetCompleted()
+						test.Must(str.GetCollection("tasks").UpdateOne(ctx, bson.M{"id": runnerTask.ID}, bson.M{"$set": bson.M{"claimToken": ""}}))
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -546,9 +544,9 @@ var _ = Describe("Queue", func() {
 
 			It("does not complete a task was deleted while it was running", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
-						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": tsk.ID}))
-						tsk.SetCompleted()
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": runnerTask.ID}))
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -572,11 +570,11 @@ var _ = Describe("Queue", func() {
 
 				canceled := make(chan error, 1)
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
-						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": tsk.ID}))
-						<-ctx.Done()
-						canceled <- context.Cause(ctx)
-						tsk.SetCompleted()
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": runnerTask.ID}))
+						<-runnerContext.Done()
+						canceled <- context.Cause(runnerContext)
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -603,14 +601,14 @@ var _ = Describe("Queue", func() {
 
 				canceled := make(chan error, 1)
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
 						// Run past several claim checks before losing the claim, so the monitor must keep checking
 						// rather than settle after the first.
 						time.Sleep(5 * cfg.MonitorTaskDelay)
-						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": tsk.ID}))
-						<-ctx.Done()
-						canceled <- context.Cause(ctx)
-						tsk.SetCompleted()
+						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": runnerTask.ID}))
+						<-runnerContext.Done()
+						canceled <- context.Cause(runnerContext)
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -636,13 +634,13 @@ var _ = Describe("Queue", func() {
 
 				canceled := make(chan error, 1)
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
 						// Simulate the task being unstuck and re-claimed elsewhere by changing the claim token out from
 						// under this run.
-						test.Must(str.GetCollection("tasks").UpdateOne(ctx, bson.M{"id": tsk.ID}, bson.M{"$set": bson.M{"claimToken": "other-claim-token"}}))
-						<-ctx.Done()
-						canceled <- context.Cause(ctx)
-						tsk.SetCompleted()
+						test.Must(str.GetCollection("tasks").UpdateOne(ctx, bson.M{"id": runnerTask.ID}, bson.M{"$set": bson.M{"claimToken": "other-claim-token"}}))
+						<-runnerContext.Done()
+						canceled <- context.Cause(runnerContext)
+						runnerTask.SetCompleted()
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -668,14 +666,14 @@ var _ = Describe("Queue", func() {
 				cfg.MonitorTaskDelay = time.Millisecond
 
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
 						// Linger across several claim checks; the claim is intact, so the run must not be canceled.
 						select {
-						case <-ctx.Done():
-							tsk.AppendError(context.Cause(ctx))
-							tsk.SetFailed()
+						case <-runnerContext.Done():
+							runnerTask.AppendError(context.Cause(runnerContext))
+							runnerTask.SetFailed()
 						case <-time.After(250 * time.Millisecond):
-							tsk.SetCompleted()
+							runnerTask.SetCompleted()
 						}
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
@@ -694,7 +692,7 @@ var _ = Describe("Queue", func() {
 
 			It("cleans up a task that panics during execution", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) { panic("panic test") })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { panic("panic test") })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -716,7 +714,7 @@ var _ = Describe("Queue", func() {
 
 			It("fails a task whose runner leaves it in an unknown state", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) { tsk.State = "unknown-state" })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { runnerTask.State = "unknown-state" })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -735,9 +733,9 @@ var _ = Describe("Queue", func() {
 
 			It("warns and sets the available time for a pending task left without one", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) {
-						tsk.State = task.TaskStatePending
-						tsk.AvailableTime = nil
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						runnerTask.State = task.TaskStatePending
+						runnerTask.AvailableTime = nil
 					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
@@ -759,7 +757,9 @@ var _ = Describe("Queue", func() {
 
 			It("warns when a pending task available time is significantly in the past", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) { tsk.RepeatAvailableAt(time.Now().Add(-2 * time.Minute)) })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+						runnerTask.RepeatAvailableAt(time.Now().Add(-2 * time.Minute))
+					})
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -816,7 +816,7 @@ var _ = Describe("Queue", func() {
 
 			It("reverts a task that is still running to pending when the queue is stopped", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) { <-ctx.Done() })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { <-runnerContext.Done() })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -876,7 +876,7 @@ var _ = Describe("Queue", func() {
 			It("fails a task that exceeds its timeout without setting its own state", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithDurationMaximum(100 * time.Millisecond).
-					WithStub(func(ctx context.Context, tsk *task.Task) { <-ctx.Done() })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { <-runnerContext.Done() })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -959,7 +959,7 @@ var _ = Describe("Queue", func() {
 			It("returns from Stop within the stop timeout when a runner ignores cancellation", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithDurationMaximum(time.Minute).
-					WithStub(func(ctx context.Context, tsk *task.Task) { select {} })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { select {} })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				createdTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
@@ -992,7 +992,7 @@ var _ = Describe("Queue", func() {
 				// reclaiming the task.
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithDurationMaximum(20 * time.Millisecond).
-					WithStub(func(ctx context.Context, tsk *task.Task) { select {} })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { select {} })
 				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
 
 				runnerType := runner.GetRunnerType()
@@ -1034,7 +1034,7 @@ var _ = Describe("Queue", func() {
 
 			BeforeEach(func() {
 				runner = taskQueueTest.NewStubRunner(taskTest.RandomType()).
-					WithStub(func(ctx context.Context, tsk *task.Task) { tsk.State = task.TaskStatePending })
+					WithStub(func(runnerContext context.Context, runnerTask *task.Task) { runnerTask.State = task.TaskStatePending })
 
 				cfg := taskQueue.NewConfig()
 				cfg.Workers = workersCount

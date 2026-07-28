@@ -103,7 +103,7 @@ var _ queue.Runner = &SleepRunner{}
 
 type StubRunner struct {
 	Type            string
-	Stub            func(ctx context.Context, tsk *task.Task)
+	Stub            func(runnerContext context.Context, runnerTask *task.Task)
 	deadline        *time.Duration
 	timeout         *time.Duration
 	durationMaximum *time.Duration
@@ -149,7 +149,7 @@ func (s *StubRunner) Run(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-func (s *StubRunner) WithStub(stub func(ctx context.Context, tsk *task.Task)) *StubRunner {
+func (s *StubRunner) WithStub(stub func(runnerContext context.Context, runnerTask *task.Task)) *StubRunner {
 	s.Stub = stub
 	return s
 }

@@ -67,6 +67,6 @@ func (m *MockMatcher) String() string {
 }
 
 func Must[T any](value T, err error) T {
-	gomega.Expect(err).ToNot(gomega.HaveOccurred())
+	gomega.Expect(err).WithOffset(1).ToNot(gomega.HaveOccurred())
 	return value
 }

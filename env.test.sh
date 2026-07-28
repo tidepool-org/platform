@@ -1,11 +1,14 @@
+# shellcheck shell=sh
+
 # Clear all TIDEPOOL_* environment variables
-unset `env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs`
+# shellcheck disable=SC2046
+unset $(env | cut -d'=' -f1 | grep '^TIDEPOOL_' | xargs) 2> /dev/null || true
 
 export TIDEPOOL_ENV="test"
 
 export TIDEPOOL_LOGGER_LEVEL="error"
 
-export TIDEPOOL_STORE_ADDRESSES="localhost"
+export TIDEPOOL_STORE_ADDRESSES="127.0.0.1"
 export TIDEPOOL_STORE_TLS="false"
 export TIDEPOOL_STORE_DATABASE="tidepool_test"
 

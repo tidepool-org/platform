@@ -444,18 +444,19 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		return
 	}
 
-	// If the runner left the task running, reconcile its state based on why the run ended.
+	// If the runner left the task running, reconcile its state based on why the run ended. A claim lost after the check
+	// above matches neither branch; the outcome is discarded during completion. Any other run left running is failed
+	// with a missing terminal state error during completion.
 	if tsk.State == task.TaskStateRunning {
-		switch {
-		case context.Cause(ctx) != nil:
+		if context.Cause(ctx) != nil {
 			// The parent (worker) context was canceled by shutdown; make the task available again for retry rather than
 			// treating the interruption as a completion.
 			tsk.RepeatAvailableAfter(0)
-		case context.Cause(runnerContext) != nil:
+		} else if cause := context.Cause(runnerContext); errors.Is(cause, ErrRunnerTimeoutExceeded) {
 			// The runner exceeded its timeout but returned; record the cause so the failure is attributed to the
 			// timeout rather than the generic missing terminal state error.
 			lgr.Warn("Task runner exceeded timeout; task will be failed")
-			tsk.AppendError(context.Cause(runnerContext))
+			tsk.AppendError(cause)
 			RunnerTimeoutExceededTotal.WithLabelValues(runner.GetRunnerType(), "recovered").Inc()
 		}
 	}
