@@ -525,7 +525,7 @@ func (w *Work) Validate(validator structure.Validator) {
 	failingRetryTimeValidator := validator.Time("failingRetryTime", w.FailingRetryTime)
 	failedTimeValidator := validator.Time("failedTime", w.FailedTime)
 	failedErrorValidator := validator.WithReference("failedError")
-	successTimeValidator := validator.Time("successTime", w.FailedTime)
+	successTimeValidator := validator.Time("successTime", w.SuccessTime)
 
 	switch w.State {
 	case StateProcessing:
