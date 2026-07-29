@@ -191,8 +191,8 @@ See source files for further details about and usage of each metric.
 
 #### Queue
 
-* `tidepool_task_workers_total` - (gauge) - configured number of task queue workers, sorted by queue (5, per config)
-* `tidepool_task_workers_available` - (gauge) - number of available task queue workers, sorted by queue (5, per config)
+* `tidepool_task_workers_total` - (gauge) - configured number of task queue workers, sorted by queue (per config)
+* `tidepool_task_workers_available` - (gauge) - number of available task queue workers, sorted by queue
 * `tidepool_task_runner_not_found_total` - (counter) - total number of task runs with no registered runner for the task type, sorted by type (ideally zero)
 * `tidepool_task_run_duration_seconds` - (histogram) - duration of task runs in seconds, sorted by type
 * `tidepool_task_runner_timeout_exceeded_total` - (counter) - total number of task runs that exceeded the runner timeout, sorted by type and disposition ("blocked", "recovered") (ideally zero)
@@ -201,5 +201,5 @@ See source files for further details about and usage of each metric.
 #### Store
 
 * `tidepool_task_type_state_total` - (counter) - total number of tasks run, sorted by type and state
-* `tidepool_task_type_lost_completion_total` - (counter) - total number of task completions dropped because the state-lock compare-and-swap missed, sorted by type (ideally low-ish)
+* `tidepool_task_type_lost_completion_total` - (counter) - total number of task completions dropped because the claim-token compare-and-swap missed, sorted by type (ideally low-ish)
 * `tidepool_task_type_revision_mismatch_total` - (counter) - total number of task revisions that do not match the task revision in the database, sorted by type (ideally zero)

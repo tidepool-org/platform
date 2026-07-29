@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"reflect"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/tidepool-org/platform/errors"
@@ -76,23 +77,37 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 }
 
 func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) (io.ReadCloser, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
 	if httpClient == nil {
 		return nil, errors.New("http client is missing")
 	}
 
+	// The request must carry a cancelable context for the timeout to reach the transport. A deadline on that context
+	// cannot be used, though, as it would also abort any read of the returned response body, so instead cancel via a
+	// timer that is stopped once the response headers arrive. The cause preserves the deadline exceeded error.
+	ctx, cancel := context.WithCancelCause(ctx)
+
 	req, err := c.createRequest(ctx, method, url, mutators, requestBody)
 	if err != nil {
+		cancel(nil)
 		return nil, err
 	}
 
+	var timer *time.Timer
 	if c.config.Timeout > 0 {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(ctx, c.config.Timeout)
-		defer cancel()
+		timer = time.AfterFunc(c.config.Timeout, func() { cancel(context.DeadlineExceeded) })
 	}
 
 	res, err := httpClient.Do(req)
+
+	if timer != nil {
+		timer.Stop()
+	}
+
 	if err != nil {
+		cancel(nil)
 		return nil, errors.Wrapf(err, "unable to perform request to %s %s", method, url)
 	}
 
@@ -100,7 +115,16 @@ func (c *Client) RequestStreamWithHTTPClient(ctx context.Context, method string,
 		inspector.InspectResponse(res)
 	}
 
-	return c.handleResponse(ctx, res, req)
+	body, err := c.handleResponse(ctx, res, req)
+	if body == nil {
+		cancel(nil)
+		return nil, err
+	}
+
+	return &ReadCloserWithCancelCause{
+		ReadCloser:      body,
+		CancelCauseFunc: cancel,
+	}, err
 }
 
 func (c *Client) RequestDataWithHTTPClient(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, httpClient *http.Client) error {
@@ -249,6 +273,16 @@ func responseBodyFromBytes(bites []byte) interface{} {
 func drainAndClose(reader io.ReadCloser) {
 	io.Copy(io.Discard, reader)
 	reader.Close()
+}
+
+type ReadCloserWithCancelCause struct {
+	io.ReadCloser
+	context.CancelCauseFunc
+}
+
+func (r *ReadCloserWithCancelCause) Close() error {
+	defer r.CancelCauseFunc(nil)
+	return r.ReadCloser.Close()
 }
 
 func NewSerializableErrorResponseParser() *SerializableErrorResponseParser {

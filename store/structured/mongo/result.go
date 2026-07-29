@@ -97,15 +97,20 @@ func BSONToAny(input any) any {
 	}
 }
 
+//nolint:contextcheck // Use a background context if the provided context is nil
 func CloseCursor(ctx context.Context, cursor *mongo.Cursor) {
 	if cursor == nil {
 		return
 	}
-	if ctx != nil {
-		var cancel context.CancelFunc
-		ctx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-		defer cancel()
+
+	if ctx == nil {
+		ctx = context.Background()
 	}
+
+	var cancel context.CancelFunc
+	ctx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
 	if err := cursor.Close(ctx); err != nil {
 		if lgr := log.LoggerFromContext(ctx); lgr != nil {
 			lgr.WithError(err).Warn("Unable to close cursor")
