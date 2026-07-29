@@ -1556,7 +1556,7 @@ var _ = Describe("Client", func() {
 
 			It("does not record a request time metric when the request-time header is not a valid duration", func() {
 				header := http.Header{}
-				header.Set(dexcomClient.RequestTimeHeaderName, test.RandomString())
+				header.Set(dexcomClient.RequestTimeHeaderName, test.RandomStringFromCharset(test.CharsetAlpha))
 				testRoundTripper.Response = &http.Response{StatusCode: testHttp.NewStatusCode(), Header: header}
 
 				_ = test.Must(roundTripper.RoundTrip(request))

@@ -112,6 +112,7 @@ var _ = Describe("Mongo", func() {
 			store, err = dataSourceStoreStructuredMongo.NewStore(config)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
+			Expect(store.Ping(context.Background())).ToNot(HaveOccurred())
 			mongoCollection = store.GetCollection("data_sources")
 		})
 
