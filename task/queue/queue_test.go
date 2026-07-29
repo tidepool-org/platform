@@ -542,7 +542,7 @@ var _ = Describe("Queue", func() {
 				Expect(actualTask.State).To(Equal(task.TaskStateRunning))
 			})
 
-			It("does not complete a task was deleted while it was running", func() {
+			It("does not complete a task that was deleted while it was running", func() {
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
 						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": runnerTask.ID}))

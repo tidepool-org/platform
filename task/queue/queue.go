@@ -180,9 +180,9 @@ func (c *Config) Validate() error {
 }
 
 // The Queue's fields are all immutable after New, except the lifecycle fields, which are guarded by the lifecycle
-// mutex, and workersAvailable, which is initialized by Start before the manager exists and thereafter owned exclusively
-// by the manager goroutine. The workers and manager therefore read the channels and runners map freely, without
-// synchronization.
+// mutex, and workersAvailable, which is initialized by Start before the manager exists and is thereafter owned
+// exclusively by the manager goroutine. The workers and manager therefore read the channels and runners map freely,
+// without synchronization.
 type Queue struct {
 	name              string
 	config            *Config
