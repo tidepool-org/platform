@@ -108,5 +108,60 @@ var _ = Describe("User", func() {
 				[]string{user.RoleClinician},
 			),
 		)
+
+		Context("RemoveProfileAttributes", func() {
+			It("removes stale profile attributes while preserving non profile attributes", func() {
+				existingProfile := &user.Profile{
+					FullName:      "Bob",
+					Birthday:      "2000-02-03",
+					About:         "About me",
+					MRN:           "1112222",
+					BiologicalSex: "male",
+				}
+				attrs := existingProfile.ToAttributes()
+				attrs["terms_and_conditions"] = []string{"1234567890"}
+				attrs["unrelated_attribute"] = []string{"value"}
+
+				// Simulate an update that clears all patient fields except the full name.
+				updatedProfile := &user.Profile{
+					FullName: "Bob",
+				}
+				user.RemoveProfileAttributes(attrs)
+				for attribute, values := range updatedProfile.ToAttributes() {
+					attrs[attribute] = values
+				}
+
+				Expect(attrs).To(Equal(map[string][]string{
+					"full_name":            {"Bob"},
+					"terms_and_conditions": {"1234567890"},
+					"unrelated_attribute":  {"value"},
+				}))
+			})
+
+			It("removes every attribute a fully populated profile can produce", func() {
+				fullProfile := &user.Profile{
+					FullName:       "Bob",
+					Birthday:       "2000-02-03",
+					DiagnosisDate:  "2001-03-05",
+					DiagnosisType:  user.DiabetesTypeType1,
+					TargetDevices:  []string{"SomeDevice900"},
+					TargetTimezone: "UTC",
+					About:          "About me",
+					MRN:            "1112222",
+					BiologicalSex:  "male",
+					Custodian:      &user.Custodian{FullName: "Alice"},
+					Clinic: &user.ClinicProfile{
+						Name:      pointer.FromString("Clinic Name"),
+						Role:      pointer.FromString("Some Role"),
+						Telephone: pointer.FromString("123-123-3456"),
+						NPI:       pointer.FromString("1234567890"),
+					},
+				}
+				attrs := fullProfile.ToAttributes()
+				Expect(attrs).ToNot(BeEmpty())
+				user.RemoveProfileAttributes(attrs)
+				Expect(attrs).To(BeEmpty())
+			})
+		})
 	})
 })

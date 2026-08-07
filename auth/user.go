@@ -1,12 +1,11 @@
 package auth
 
 import (
-	"regexp"
-
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/id"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/user"
 )
 
 func NewUserID() string {
@@ -24,7 +23,7 @@ func UserIDValidator(value string, errorReporter structure.ErrorReporter) {
 func ValidateUserID(value string) error {
 	if value == "" {
 		return structureValidator.ErrorValueEmpty()
-	} else if !idExpression.MatchString(value) {
+	} else if !user.IsValidID(value) {
 		return ErrorValueStringAsUserIDNotValid(value)
 	}
 	return nil
@@ -33,5 +32,3 @@ func ValidateUserID(value string) error {
 func ErrorValueStringAsUserIDNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as user id", value)
 }
-
-var idExpression = regexp.MustCompile("\\A(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{10})\\z")
