@@ -259,53 +259,102 @@ func (b *jsonBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// Keycloak user attribute names used to store profile fields.
+const (
+	fullNameAttribute          = "full_name"
+	custodianFullNameAttribute = "custodian_full_name"
+	hasCustodianAttribute      = "has_custodian"
+	birthdayAttribute          = "birthday"
+	diagnosisDateAttribute     = "diagnosis_date"
+	diagnosisTypeAttribute     = "diagnosis_type"
+	targetDevicesAttribute     = "target_devices"
+	targetTimezoneAttribute    = "target_timezone"
+	aboutAttribute             = "about"
+	mrnAttribute               = "mrn"
+	biologicalSexAttribute     = "biological_sex"
+	clinicNameAttribute        = "clinic_name"
+	clinicRoleAttribute        = "clinic_role"
+	clinicTelephoneAttribute   = "clinic_telephone"
+	clinicNPIAttribute         = "clinic_npi"
+)
+
+// profileAttributes lists every attribute that [Profile.ToAttributes] may set
+// on a keycloak user.
+var profileAttributes = []string{
+	fullNameAttribute,
+	custodianFullNameAttribute,
+	hasCustodianAttribute,
+	birthdayAttribute,
+	diagnosisDateAttribute,
+	diagnosisTypeAttribute,
+	targetDevicesAttribute,
+	targetTimezoneAttribute,
+	aboutAttribute,
+	mrnAttribute,
+	biologicalSexAttribute,
+	clinicNameAttribute,
+	clinicRoleAttribute,
+	clinicTelephoneAttribute,
+	clinicNPIAttribute,
+}
+
+// RemoveProfileAttributes deletes all profile attributes from attrs. It is
+// used to clear stale values before applying the attributes of an updated
+// profile, so that fields removed from the profile don't retain their old
+// values.
+func RemoveProfileAttributes(attrs map[string][]string) {
+	for _, attr := range profileAttributes {
+		delete(attrs, attr)
+	}
+}
+
 func (up *Profile) ToAttributes() map[string][]string {
 	attributes := map[string][]string{}
 
 	if up.FullName != "" {
-		addAttribute(attributes, "full_name", up.FullName)
+		addAttribute(attributes, fullNameAttribute, up.FullName)
 	}
 	if up.Custodian != nil && up.Custodian.FullName != "" {
-		addAttribute(attributes, "custodian_full_name", up.Custodian.FullName)
+		addAttribute(attributes, custodianFullNameAttribute, up.Custodian.FullName)
 		// The "has_custodian" attribute is only added so that filtering on users is simpler via the keycloak API - because
 		// there is a way to filter by custom attribute values but not by the presence of one.
-		addAttribute(attributes, "has_custodian", "true")
+		addAttribute(attributes, hasCustodianAttribute, "true")
 	}
 	if string(up.Birthday) != "" {
-		addAttribute(attributes, "birthday", string(up.Birthday))
+		addAttribute(attributes, birthdayAttribute, string(up.Birthday))
 	}
 	if string(up.DiagnosisDate) != "" {
-		addAttribute(attributes, "diagnosis_date", string(up.DiagnosisDate))
+		addAttribute(attributes, diagnosisDateAttribute, string(up.DiagnosisDate))
 	}
 	if up.DiagnosisType != "" {
-		addAttribute(attributes, "diagnosis_type", up.DiagnosisType)
+		addAttribute(attributes, diagnosisTypeAttribute, up.DiagnosisType)
 	}
-	addAttributes(attributes, "target_devices", up.TargetDevices...)
+	addAttributes(attributes, targetDevicesAttribute, up.TargetDevices...)
 	if up.TargetTimezone != "" {
-		addAttribute(attributes, "target_timezone", up.TargetTimezone)
+		addAttribute(attributes, targetTimezoneAttribute, up.TargetTimezone)
 	}
 	if up.About != "" {
-		addAttribute(attributes, "about", up.About)
+		addAttribute(attributes, aboutAttribute, up.About)
 	}
 	if up.MRN != "" {
-		addAttribute(attributes, "mrn", up.MRN)
+		addAttribute(attributes, mrnAttribute, up.MRN)
 	}
 	if up.BiologicalSex != "" {
-		addAttribute(attributes, "biological_sex", up.BiologicalSex)
+		addAttribute(attributes, biologicalSexAttribute, up.BiologicalSex)
 	}
 
 	if up.Clinic != nil {
 		if val := pointer.ToString(up.Clinic.Name); val != "" {
-			addAttribute(attributes, "clinic_name", val)
+			addAttribute(attributes, clinicNameAttribute, val)
 		}
 		if val := pointer.ToString(up.Clinic.Role); val != "" {
-			addAttribute(attributes, "clinic_role", val)
+			addAttribute(attributes, clinicRoleAttribute, val)
 		}
 		if val := pointer.ToString(up.Clinic.Telephone); val != "" {
-			addAttribute(attributes, "clinic_telephone", val)
+			addAttribute(attributes, clinicTelephoneAttribute, val)
 		}
 		if val := pointer.ToString(up.Clinic.NPI); val != "" {
-			addAttribute(attributes, "clinic_npi", val)
+			addAttribute(attributes, clinicNPIAttribute, val)
 		}
 	}
 
@@ -314,48 +363,48 @@ func (up *Profile) ToAttributes() map[string][]string {
 
 // ProfileFromAttributes returns a [Profile] if there exists at least one
 // profile attribute in the supplied attributes. Otherwise it returns nil.
-func ProfileFromAttributes(username string, attributes map[string][]string, roles []string) *Profile {
+func ProfileFromAttributes(attributes map[string][]string, roles []string) *Profile {
 	up := &Profile{}
 	foundAnyProfileAttr := false
-	if val := getAttribute(attributes, "full_name"); val != "" {
+	if val := getAttribute(attributes, fullNameAttribute); val != "" {
 		up.FullName = val
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "custodian_full_name"); val != "" {
+	if val := getAttribute(attributes, custodianFullNameAttribute); val != "" {
 		up.Custodian = &Custodian{
 			FullName: val,
 		}
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "birthday"); val != "" {
+	if val := getAttribute(attributes, birthdayAttribute); val != "" {
 		up.Birthday = Date(val)
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "diagnosis_date"); val != "" {
+	if val := getAttribute(attributes, diagnosisDateAttribute); val != "" {
 		up.DiagnosisDate = Date(val)
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "diagnosis_type"); val != "" {
+	if val := getAttribute(attributes, diagnosisTypeAttribute); val != "" {
 		up.DiagnosisType = val
 		foundAnyProfileAttr = true
 	}
-	if vals := getAttributes(attributes, "target_devices"); len(vals) > 0 {
+	if vals := getAttributes(attributes, targetDevicesAttribute); len(vals) > 0 {
 		up.TargetDevices = vals
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "target_timezone"); val != "" {
+	if val := getAttribute(attributes, targetTimezoneAttribute); val != "" {
 		up.TargetTimezone = val
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "about"); val != "" {
+	if val := getAttribute(attributes, aboutAttribute); val != "" {
 		up.About = val
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "mrn"); val != "" {
+	if val := getAttribute(attributes, mrnAttribute); val != "" {
 		up.MRN = val
 		foundAnyProfileAttr = true
 	}
-	if val := getAttribute(attributes, "biological_sex"); val != "" {
+	if val := getAttribute(attributes, biologicalSexAttribute); val != "" {
 		up.BiologicalSex = val
 		foundAnyProfileAttr = true
 	}
@@ -365,19 +414,19 @@ func ProfileFromAttributes(username string, attributes map[string][]string, role
 	// returned so check both the presence of the clinic / clinician role and
 	// individual clinic properties - It may be enough to just check the roles
 	hasClinicProfile := HasClinicOrClinicianRole(roles)
-	if val := getAttribute(attributes, "clinic_name"); val != "" {
+	if val := getAttribute(attributes, clinicNameAttribute); val != "" {
 		clinicProfile.Name = pointer.FromString(val)
 		hasClinicProfile = true
 	}
-	if val := getAttribute(attributes, "clinic_role"); val != "" {
+	if val := getAttribute(attributes, clinicRoleAttribute); val != "" {
 		clinicProfile.Role = pointer.FromString(val)
 		hasClinicProfile = true
 	}
-	if val := getAttribute(attributes, "clinic_telephone"); val != "" {
+	if val := getAttribute(attributes, clinicTelephoneAttribute); val != "" {
 		clinicProfile.Telephone = pointer.FromString(val)
 		hasClinicProfile = true
 	}
-	if val := getAttribute(attributes, "clinic_npi"); val != "" {
+	if val := getAttribute(attributes, clinicNPIAttribute); val != "" {
 		clinicProfile.NPI = pointer.FromString(val)
 		hasClinicProfile = true
 	}

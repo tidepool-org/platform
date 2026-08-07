@@ -37,7 +37,11 @@ var (
 		RolePatient:          struct{}{},
 	}
 
-	idExpression           = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
+	// idExpression matches user ids in either the uuid hex 8-4-4-4-12 format
+	// or the legacy 10 character hex format. It is the single source of truth
+	// for user id validation - [ValidateID] in this package and
+	// auth.ValidateUserID are both based on it.
+	idExpression           = regexp.MustCompile(`\A(?:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9a-f]{10})\z`)
 	custodialAccountRegexp = regexp.MustCompile(`(?i)unclaimed-custodial-automation\+\d+@tidepool\.org`)
 )
 
@@ -59,18 +63,14 @@ type Client interface {
 }
 
 type User struct {
-	UserID         *string             `json:"userid,omitempty" bson:"userid,omitempty"`
-	Username       *string             `json:"username,omitempty" bson:"username,omitempty"`
-	EmailVerified  *bool               `json:"emailVerified,omitempty" bson:"emailVerified,omitempty"`
-	TermsAccepted  *string             `json:"termsAccepted,omitempty" bson:"termsAccepted,omitempty"`
-	Roles          *[]string           `json:"roles,omitempty" bson:"roles,omitempty"`
-	Emails         []string            `json:"emails,omitempty" bson:"emails,omitempty"`
-	PwHash         string              `json:"-" bson:"pwhash,omitempty"`
-	Hash           string              `json:"-" bson:"userhash,omitempty"`
-	Enabled        bool                `json:"-" bson:"-"`
-	Profile        *Profile            `json:"profile,omitempty" bson:"-"`
-	PasswordExists *bool               `json:"passwordExists,omitempty" bson:"-"`
-	Attributes     map[string][]string `json:"-" bson:"-"`
+	UserID        *string             `json:"userid,omitempty"`
+	Username      *string             `json:"username,omitempty"`
+	EmailVerified *bool               `json:"emailVerified,omitempty"`
+	TermsAccepted *string             `json:"termsAccepted,omitempty"`
+	Roles         *[]string           `json:"roles,omitempty"`
+	Enabled       bool                `json:"-"`
+	Profile       *Profile            `json:"profile,omitempty"`
+	Attributes    map[string][]string `json:"-"`
 }
 
 // TrustUser is the user object returned for the /v1/users/:userId/users route.
@@ -133,7 +133,6 @@ func (u *User) Sanitize(details request.AuthDetails) error {
 		u.EmailVerified = nil
 		u.TermsAccepted = nil
 		u.Roles = nil
-		u.PasswordExists = nil
 	}
 	return nil
 }
@@ -147,8 +146,6 @@ func (u *User) Email() string {
 
 func (u *TrustUser) Sanitize(details request.AuthDetails) error {
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
-		// Note that a TrustUser includes some fields in the user that [User.Sanitize] wouldn't.
-		u.PasswordExists = nil
 		if (u.TrustorPermissions == nil || len(*u.TrustorPermissions) == 0) && u.User.Profile != nil {
 			u.User.Profile.Sanitize()
 		}
@@ -163,28 +160,6 @@ func (us TrustUserArray) Sanitize(details request.AuthDetails) error {
 		}
 	}
 	return nil
-}
-
-// IsClinic returns true if the user is legacy clinic Account
-func (u *User) IsClinic() bool {
-	return u.HasRole(RoleClinic)
-}
-
-func (u *User) IsCustodialAccount() bool {
-	return u.HasRole(RoleCustodialAccount)
-}
-
-// IsClinician returns true if the user is a clinician
-func (u *User) IsClinician() bool {
-	return u.HasRole(RoleClinician)
-}
-
-func (u *User) AreTermsAccepted() bool {
-	if u.TermsAccepted == nil {
-		return false
-	}
-	_, err := TimestampToUnixString(*u.TermsAccepted)
-	return err == nil
 }
 
 type UserArray []*User
@@ -217,9 +192,4 @@ func ValidateID(value string) error {
 		return ErrorValueStringAsIDNotValid(value)
 	}
 	return nil
-}
-
-// IsValidUserID return true if the string is in a human readable uuid hex 8-4-4-4-12 format or legacy alphanumeric 10 characters
-func IsValidUserID(id string) bool {
-	return idExpression.MatchString(id)
 }
