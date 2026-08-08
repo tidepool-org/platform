@@ -12,6 +12,7 @@ import (
 
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/crypto"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/pointer"
@@ -98,54 +99,40 @@ func (c *Config) Load(configReporter config.Reporter) error {
 			c.Workers = int(value)
 		}
 	}
-	if valueString, err := configReporter.Get("start_manager_delay"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("start manager delay is invalid")
-		} else {
-			c.StartManagerDelay = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("start_manager_delay", c.StartManagerDelay.String()), time.Second); err != nil {
+		return errors.New("start manager delay is invalid")
+	} else {
+		c.StartManagerDelay = value
 	}
-	if valueString, err := configReporter.Get("dispatch_tasks_delay"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("dispatch tasks delay is invalid")
-		} else {
-			c.DispatchTasksDelay = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("dispatch_tasks_delay", c.DispatchTasksDelay.String()), time.Second); err != nil {
+		return errors.New("dispatch tasks delay is invalid")
+	} else {
+		c.DispatchTasksDelay = value
 	}
-	if valueString, err := configReporter.Get("monitor_task_delay"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("monitor task delay is invalid")
-		} else {
-			c.MonitorTaskDelay = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("monitor_task_delay", c.MonitorTaskDelay.String()), time.Second); err != nil {
+		return errors.New("monitor task delay is invalid")
+	} else {
+		c.MonitorTaskDelay = value
 	}
-	if valueString, err := configReporter.Get("runner_watchdog_grace_period"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("runner watchdog grace period is invalid")
-		} else {
-			c.RunnerWatchdogGracePeriod = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("runner_watchdog_grace_period", c.RunnerWatchdogGracePeriod.String()), time.Second); err != nil {
+		return errors.New("runner watchdog grace period is invalid")
+	} else {
+		c.RunnerWatchdogGracePeriod = value
 	}
-	if valueString, err := configReporter.Get("unstick_tasks_delay"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("unstick tasks delay is invalid")
-		} else {
-			c.UnstickTasksDelay = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("unstick_tasks_delay", c.UnstickTasksDelay.String()), time.Second); err != nil {
+		return errors.New("unstick tasks delay is invalid")
+	} else {
+		c.UnstickTasksDelay = value
 	}
-	if valueString, err := configReporter.Get("unstick_tasks_available_grace_period"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("unstick tasks available grace period is invalid")
-		} else {
-			c.UnstickTasksAvailableGracePeriod = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("unstick_tasks_available_grace_period", c.UnstickTasksAvailableGracePeriod.String()), time.Second); err != nil {
+		return errors.New("unstick tasks available grace period is invalid")
+	} else {
+		c.UnstickTasksAvailableGracePeriod = value
 	}
-	if valueString, err := configReporter.Get("stop_wait_timeout"); err == nil {
-		if value, parseErr := strconv.ParseInt(valueString, 10, 0); parseErr != nil {
-			return errors.New("stop wait timeout is invalid")
-		} else {
-			c.StopWaitTimeout = time.Duration(value) * time.Second
-		}
+	if value, err := duration.Parse(configReporter.GetWithDefault("stop_wait_timeout", c.StopWaitTimeout.String()), time.Second); err != nil {
+		return errors.New("stop wait timeout is invalid")
+	} else {
+		c.StopWaitTimeout = value
 	}
 
 	return nil
