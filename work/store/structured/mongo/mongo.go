@@ -102,8 +102,10 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		bson.M{"state": "failing", "serialId": bson.M{"$exists": true}},
 	}}})
 
-	// Sort by processing priority and available time
-	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}}})
+	// Sort by processing priority and available time, with _id as a tie breaker
+	// The _id tie breaker guarantees a total order so that, within a serial id group, the
+	// document already in state processing remains first and the group is reliably excluded below
+	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}, bson.E{Key: "_id", Value: 1}}})
 
 	// Group all documents by serial id
 	pipeline = append(pipeline, bson.M{"$group": bson.M{"_id": "$serialId", "documents": bson.M{"$push": "$$ROOT"}}})
@@ -128,8 +130,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	pipeline = append(pipeline, bson.M{"$unwind": "$documents"})
 	pipeline = append(pipeline, bson.M{"$replaceRoot": bson.M{"newRoot": "$documents"}})
 
-	// Sort by processing priority and available time
-	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}}})
+	// Sort by processing priority and available time, with _id as a tie breaker
+	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}, bson.E{Key: "_id", Value: 1}}})
 
 	// If one type, then just simple limit
 	// Otherwise, group by type, limit each group by type quantity, and ungroup
