@@ -67,7 +67,72 @@ func (s *Store) EnsureIndexes() error {
 			Options: mongoOptions.Index().
 				SetName("ModifiedBatchId"),
 		},
+		{
+			Keys: bson.D{{Key: "processingTimeoutTime", Value: 1}},
+			Options: mongoOptions.Index().
+				SetName("ProcessingTimeoutTime").
+				SetPartialFilterExpression(bson.D{{Key: "state", Value: work.StateProcessing}}),
+		},
 	})
+}
+
+// ReapExpiredProcessing transitions work that exceeded its processing timeout back to failing so
+// that it is retried. A process terminated while processing work never reports its completion,
+// which otherwise leaves that work in state processing indefinitely and, if it has a serial id,
+// permanently prevents any other work sharing that serial id from being polled.
+//
+// The grace duration allows for clock skew between this process and the database, and for a worker
+// that has only just exceeded its processing timeout to report its own completion. Revision is
+// incremented so that any subsequent completion reported by the original worker, which is
+// conditional upon the revision, no longer matches.
+func (s *Store) ReapExpiredProcessing(ctx context.Context, graceDuration time.Duration) (int, error) {
+	if ctx == nil {
+		return 0, errors.New("context is missing")
+	}
+	if graceDuration < 0 {
+		return 0, errors.New("grace duration is invalid")
+	}
+
+	lgr := log.LoggerFromContext(ctx)
+
+	now := time.Now()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("ReapExpiredProcessing") }()
+
+	query := bson.M{
+		"state":                 work.StateProcessing,
+		"processingTimeoutTime": bson.M{"$lte": now.Add(-graceDuration)},
+	}
+	update := bson.A{
+		bson.M{"$set": bson.M{
+			"state":       work.StateFailing,
+			"failingTime": now,
+			// Literal as the serialized error must be stored verbatim rather than evaluated as an expression
+			"failingError":      bson.M{"$literal": errors.NewSerializable(errors.New("processing timeout expired"))},
+			"failingRetryCount": bson.M{"$add": bson.A{bson.M{"$ifNull": bson.A{"$failingRetryCount", 0}}, 1}},
+			// Retry immediately as the work never had the opportunity to report its completion
+			"failingRetryTime": now,
+			"processingDuration": bson.M{"$cond": bson.M{
+				"if":   bson.M{"$ifNull": bson.A{"$processingTime", false}},
+				"then": bson.M{"$divide": bson.A{bson.M{"$subtract": bson.A{now, "$processingTime"}}, 1000}},
+				"else": "$$REMOVE",
+			}},
+			"modifiedTime": now,
+			"revision":     bson.M{"$add": bson.A{"$revision", 1}},
+		}},
+		bson.M{"$unset": bson.A{"processingTimeoutTime"}},
+	}
+
+	// From this point forward, the context should not be cancelable
+	ctx = context.WithoutCancel(ctx)
+
+	updateResult, err := s.UpdateMany(ctx, query, update)
+	lgr = lgr.WithError(err)
+	if err != nil {
+		lgr.Error("unable to reap expired processing work")
+		return 0, errors.Wrap(err, "unable to reap expired processing work")
+	}
+
+	return int(updateResult.ModifiedCount), nil
 }
 
 func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error) {
