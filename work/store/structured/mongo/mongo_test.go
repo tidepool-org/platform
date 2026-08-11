@@ -1,0 +1,175 @@
+package mongo_test
+
+import (
+	"context"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
+	"github.com/tidepool-org/platform/log"
+	logTest "github.com/tidepool-org/platform/log/test"
+	netTest "github.com/tidepool-org/platform/net/test"
+	"github.com/tidepool-org/platform/pointer"
+	storeStructured "github.com/tidepool-org/platform/store/structured"
+	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	storeStructuredMongoTest "github.com/tidepool-org/platform/store/structured/mongo/test"
+	"github.com/tidepool-org/platform/test"
+	"github.com/tidepool-org/platform/work"
+	workStoreStructuredMongo "github.com/tidepool-org/platform/work/store/structured/mongo"
+)
+
+const processingTimeout = 300
+
+var _ = Describe("Mongo", func() {
+	var config *storeStructuredMongo.Config
+	var store *workStoreStructuredMongo.Store
+	var ctx context.Context
+	var typ string
+
+	BeforeEach(func() {
+		config = storeStructuredMongoTest.NewConfig()
+		ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+		typ = netTest.RandomReverseDomain()
+	})
+
+	AfterEach(func() {
+		if store != nil {
+			Expect(store.Terminate(context.Background())).ToNot(HaveOccurred())
+			store = nil
+		}
+	})
+
+	Context("with a new store", func() {
+		BeforeEach(func() {
+			var err error
+			store, err = workStoreStructuredMongo.NewStore(config)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(store).ToNot(BeNil())
+			Expect(store.EnsureIndexes()).To(Succeed())
+		})
+
+		Context("Poll", func() {
+			// These work items intentionally share an identical processing available time and
+			// processing priority so that only the identifier tie breaker in the Poll aggregation
+			// gives them a total order. Without a total order the document reported first within a
+			// serial id group is arbitrary, which allows a pending work item to be claimed while a
+			// sibling sharing its serial id is still processing.
+			Context("with multiple pending work items sharing a serial id and sort key", func() {
+				const workCount = 10
+
+				var serialID string
+				var availableTime time.Time
+
+				BeforeEach(func() {
+					serialID = typ + ":" + test.RandomString()
+
+					// Create in the future so every work item retains the exact same processing
+					// available time, then wait for them to become available to poll
+					availableTime = time.Now().Add(time.Second).UTC().Truncate(time.Millisecond)
+
+					for range workCount {
+						create := &work.Create{
+							Type:                    typ,
+							SerialID:                pointer.FromString(serialID),
+							ProcessingAvailableTime: availableTime,
+							ProcessingTimeout:       processingTimeout,
+						}
+						created, err := store.Create(ctx, create)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(created).ToNot(BeNil())
+						Expect(created.ProcessingAvailableTime).To(BeTemporally("==", availableTime))
+					}
+
+					time.Sleep(time.Until(availableTime) + 100*time.Millisecond)
+				})
+
+				It("claims one work item and claims no further work item while it is processing", func() {
+					poll := &work.Poll{TypeQuantities: work.TypeQuantities{typ: workCount}}
+
+					claimed, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimed).To(HaveLen(1))
+					Expect(claimed[0].State).To(Equal(work.StateProcessing))
+
+					for index := range 20 {
+						additional, err := store.Poll(ctx, poll)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(additional).To(BeEmpty(), "poll %d claimed work while a work item sharing its serial id was processing", index)
+					}
+				})
+			})
+		})
+
+		Context("Update", func() {
+			var created *work.Work
+
+			BeforeEach(func() {
+				var err error
+				created, err = store.Create(ctx, &work.Create{
+					Type:                    typ,
+					GroupID:                 pointer.FromString(typ + ":" + test.RandomString()),
+					SerialID:                pointer.FromString(typ + ":" + test.RandomString()),
+					ProcessingAvailableTime: time.Now().Add(time.Hour),
+					ProcessingTimeout:       processingTimeout,
+					Metadata:                map[string]any{"reasons": []any{"DATA_ADDED"}},
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).ToNot(BeNil())
+				Expect(created.State).To(Equal(work.StatePending))
+				Expect(created.Revision).To(Equal(1))
+			})
+
+			// The producer coalesces repeated triggers by merging into the work item already
+			// pending for a group, which requires a pending to pending update that revises both the
+			// metadata and the processing available time while retaining the revision condition.
+			Context("with a pending work item updated to pending", func() {
+				var availableTime time.Time
+				var update *work.Update
+
+				BeforeEach(func() {
+					availableTime = time.Now().Add(30 * time.Minute)
+					update = &work.Update{
+						State: work.StatePending,
+						PendingUpdate: &work.PendingUpdate{
+							ProcessingAvailableTime: availableTime,
+							ProcessingPriority:      created.ProcessingPriority,
+							ProcessingTimeout:       created.ProcessingTimeout,
+							Metadata:                map[string]any{"reasons": []any{"DATA_ADDED", "UPLOAD_COMPLETED"}},
+						},
+					}
+				})
+
+				It("returns the updated work item with the revised metadata and processing available time", func() {
+					updated, err := store.Update(ctx, created.ID, &storeStructured.Condition{Revision: pointer.FromInt(created.Revision)}, update)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+					Expect(updated.State).To(Equal(work.StatePending))
+					Expect(updated.Revision).To(Equal(created.Revision + 1))
+					Expect(updated.Metadata).To(HaveKey("reasons"))
+					Expect(updated.Metadata["reasons"]).To(ConsistOf("DATA_ADDED", "UPLOAD_COMPLETED"))
+					Expect(updated.ProcessingAvailableTime).To(BeTemporally("~", availableTime, time.Millisecond))
+					Expect(updated.ProcessingTimeout).To(Equal(created.ProcessingTimeout))
+				})
+
+				It("retains the pending time of the work item", func() {
+					updated, err := store.Update(ctx, created.ID, &storeStructured.Condition{Revision: pointer.FromInt(created.Revision)}, update)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+					// Millisecond tolerance as the stored time is truncated to the BSON date precision
+					Expect(updated.PendingTime).To(BeTemporally("~", created.PendingTime, time.Millisecond))
+				})
+
+				It("returns nil when the revision condition no longer matches", func() {
+					updated, err := store.Update(ctx, created.ID, &storeStructured.Condition{Revision: pointer.FromInt(created.Revision)}, update)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+
+					stale, err := store.Update(ctx, created.ID, &storeStructured.Condition{Revision: pointer.FromInt(created.Revision)}, update)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(stale).To(BeNil())
+				})
+			})
+		})
+	})
+})
