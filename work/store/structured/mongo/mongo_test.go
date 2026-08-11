@@ -6,6 +6,11 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+
+	"go.mongodb.org/mongo-driver/bson"
+	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -47,6 +52,191 @@ var _ = Describe("Mongo", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(store).ToNot(BeNil())
 			Expect(store.EnsureIndexes()).To(Succeed())
+		})
+
+		Context("EnsureIndexes", func() {
+			It("creates an index over processing timeout time restricted to processing work", func() {
+				cursor, err := store.GetCollection("work").Indexes().List(ctx)
+				Expect(err).ToNot(HaveOccurred())
+				var indexes []storeStructuredMongoTest.MongoIndex
+				Expect(cursor.All(ctx, &indexes)).To(Succeed())
+				Expect(indexes).To(ContainElement(MatchFields(IgnoreExtras, Fields{
+					"Key":                     Equal(storeStructuredMongoTest.MakeKeySlice("processingTimeoutTime")),
+					"Name":                    Equal("ProcessingTimeoutTime"),
+					"PartialFilterExpression": Equal(bson.D{{Key: "state", Value: work.StateProcessing}}),
+				})))
+			})
+		})
+
+		Context("ReapExpiredProcessing", func() {
+			const reapGraceDuration = time.Minute
+
+			It("returns an error when the grace duration is negative", func() {
+				_, err := store.ReapExpiredProcessing(ctx, -time.Second)
+				Expect(err).To(MatchError("grace duration is invalid"))
+			})
+
+			var collection *mongo.Collection
+			var poll *work.Poll
+			var serialID string
+			var claimed *work.Work
+
+			// Expires the processing timeout time of work directly, as the alternative is to wait
+			// out both the processing timeout and the reap grace duration
+			expireProcessingTimeoutTime := func(workID string, timeoutTime time.Time) {
+				objectID, err := bsonPrimitive.ObjectIDFromHex(workID)
+				Expect(err).ToNot(HaveOccurred())
+				result, err := collection.UpdateOne(ctx, bson.M{"_id": objectID}, bson.M{"$set": bson.M{"processingTimeoutTime": timeoutTime}})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.ModifiedCount).To(Equal(int64(1)))
+			}
+
+			BeforeEach(func() {
+				collection = store.GetCollection("work")
+				poll = &work.Poll{TypeQuantities: work.TypeQuantities{typ: 10}}
+				serialID = typ + ":" + test.RandomString()
+
+				created, err := store.Create(ctx, &work.Create{
+					Type:              typ,
+					SerialID:          pointer.FromString(serialID),
+					ProcessingTimeout: processingTimeout,
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).ToNot(BeNil())
+
+				polled, err := store.Poll(ctx, poll)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(polled).To(HaveLen(1))
+				claimed = polled[0]
+				Expect(claimed.State).To(Equal(work.StateProcessing))
+				Expect(claimed.ProcessingTimeoutTime).ToNot(BeNil())
+			})
+
+			Context("with work processing beyond the grace duration", func() {
+				BeforeEach(func() {
+					expireProcessingTimeoutTime(claimed.ID, time.Now().Add(-reapGraceDuration-time.Minute))
+				})
+
+				It("returns the work to failing with an immediate retry", func() {
+					count, err := store.ReapExpiredProcessing(ctx, reapGraceDuration)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(count).To(Equal(1))
+
+					reaped, err := store.Get(ctx, claimed.ID, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reaped).ToNot(BeNil())
+					Expect(reaped.State).To(Equal(work.StateFailing))
+					Expect(reaped.FailingTime).ToNot(BeNil())
+					Expect(reaped.FailingError).ToNot(BeNil())
+					Expect(reaped.FailingError.Error).To(MatchError(ContainSubstring("processing timeout expired")))
+					Expect(reaped.FailingRetryCount).To(PointTo(Equal(1)))
+					Expect(reaped.FailingRetryTime).ToNot(BeNil())
+					Expect(*reaped.FailingRetryTime).To(BeTemporally("<=", time.Now()))
+					Expect(reaped.Revision).To(Equal(claimed.Revision + 1))
+				})
+
+				// State failing requires the processing timeout time to be absent and, as the work
+				// was processing, the processing duration to be present
+				It("clears the processing timeout time and records the processing duration", func() {
+					_, err := store.ReapExpiredProcessing(ctx, reapGraceDuration)
+					Expect(err).ToNot(HaveOccurred())
+
+					reaped, err := store.Get(ctx, claimed.ID, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reaped).ToNot(BeNil())
+					Expect(reaped.ProcessingTimeoutTime).To(BeNil())
+					Expect(reaped.ProcessingDuration).ToNot(BeNil())
+					Expect(*reaped.ProcessingDuration).To(BeNumerically(">=", 0))
+				})
+
+				It("allows the reaped work to be polled again", func() {
+					Expect(store.ReapExpiredProcessing(ctx, reapGraceDuration)).To(Equal(1))
+
+					polled, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(polled).To(HaveLen(1))
+					Expect(polled[0].ID).To(Equal(claimed.ID))
+					Expect(polled[0].State).To(Equal(work.StateProcessing))
+				})
+
+				// The original worker may still be running and report its completion, which is
+				// conditional upon the revision it holds and must no longer be applied
+				It("prevents the completion reported with the revision held before the reap", func() {
+					Expect(store.ReapExpiredProcessing(ctx, reapGraceDuration)).To(Equal(1))
+
+					condition := &storeStructured.Condition{Revision: pointer.FromInt(claimed.Revision)}
+					updated, err := store.Update(ctx, claimed.ID, condition, &work.Update{
+						State:         work.StateSuccess,
+						SuccessUpdate: &work.SuccessUpdate{},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeNil())
+
+					deleted, err := store.Delete(ctx, claimed.ID, condition)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(deleted).To(BeNil())
+
+					unchanged, err := store.Get(ctx, claimed.ID, nil)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(unchanged).ToNot(BeNil())
+					Expect(unchanged.State).To(Equal(work.StateFailing))
+				})
+
+				It("unblocks work sharing the serial id of the reaped work", func() {
+					sibling, err := store.Create(ctx, &work.Create{
+						Type:              typ,
+						SerialID:          pointer.FromString(serialID),
+						ProcessingTimeout: processingTimeout,
+					})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(sibling).ToNot(BeNil())
+
+					blocked, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(blocked).To(BeEmpty())
+
+					Expect(store.ReapExpiredProcessing(ctx, reapGraceDuration)).To(Equal(1))
+
+					polled, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(polled).To(HaveLen(1))
+				})
+			})
+
+			It("does not reap work processing within the grace duration", func() {
+				expireProcessingTimeoutTime(claimed.ID, time.Now().Add(-time.Second))
+
+				count, err := store.ReapExpiredProcessing(ctx, reapGraceDuration)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(count).To(Equal(0))
+
+				unchanged, err := store.Get(ctx, claimed.ID, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(unchanged).ToNot(BeNil())
+				Expect(unchanged.State).To(Equal(work.StateProcessing))
+				Expect(unchanged.Revision).To(Equal(claimed.Revision))
+			})
+
+			It("does not reap work that is not processing", func() {
+				pending, err := store.Create(ctx, &work.Create{
+					Type:                    typ,
+					ProcessingAvailableTime: time.Now().Add(time.Hour),
+					ProcessingTimeout:       processingTimeout,
+				})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(pending).ToNot(BeNil())
+				expireProcessingTimeoutTime(pending.ID, time.Now().Add(-reapGraceDuration-time.Minute))
+
+				count, err := store.ReapExpiredProcessing(ctx, reapGraceDuration)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(count).To(Equal(0))
+
+				unchanged, err := store.Get(ctx, pending.ID, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(unchanged).ToNot(BeNil())
+				Expect(unchanged.State).To(Equal(work.StatePending))
+				Expect(unchanged.Revision).To(Equal(pending.Revision))
+			})
 		})
 
 		Context("Poll", func() {
