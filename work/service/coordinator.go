@@ -17,6 +17,8 @@ import (
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
+//go:generate mockgen -source=coordinator.go -destination=test/coordinator_mocks.go -package=test -typed
+
 const (
 	CoordinatorFrequencyDefault = 5 * time.Minute
 	CoordinatorDelayInitial     = 1 * time.Minute
@@ -24,6 +26,10 @@ const (
 
 	FailingRetryDuration       = 1 * time.Minute
 	FailingRetryDurationJitter = 5 * time.Second
+
+	// ReapExpiredProcessingGraceDuration is the duration beyond the processing timeout time that
+	// must elapse before work in state processing is reaped
+	ReapExpiredProcessingGraceDuration = time.Minute
 )
 
 type ServerSessionTokenProvider interface {
@@ -32,6 +38,7 @@ type ServerSessionTokenProvider interface {
 
 type WorkClient interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
+	ReapExpiredProcessing(ctx context.Context) (int, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *work.Update) (*work.Work, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (*work.Work, error)
 }
@@ -201,6 +208,8 @@ func (c *Coordinator) requestAndDispatchWork() {
 		return
 	}
 
+	c.reapExpiredProcessingWork()
+
 	typeQuantities := c.typeQuantities.NonZero()
 	if typeQuantities.IsEmpty() {
 		return
@@ -215,6 +224,18 @@ func (c *Coordinator) requestAndDispatchWork() {
 
 	for _, wrk := range wrks {
 		c.dispatchWork(log.ContextWithField(ctx, "workId", wrk.ID), wrk)
+	}
+}
+
+// reapExpiredProcessingWork returns work abandoned by a terminated process to failing so that it is
+// retried, and so that any work sharing its serial id is no longer prevented from being polled.
+// Failure is reported, but does not prevent polling, as any work reaped is already delayed.
+func (c *Coordinator) reapExpiredProcessingWork() {
+	count, err := c.workClient.ReapExpiredProcessing(context.WithoutCancel(c.managerContext))
+	if err != nil {
+		log.LoggerFromContext(c.managerContext).WithError(err).Error("unable to reap expired processing work")
+	} else if count > 0 {
+		log.LoggerFromContext(c.managerContext).WithField("count", count).Warn("reaped expired processing work")
 	}
 }
 
