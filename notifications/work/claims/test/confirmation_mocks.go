@@ -43,7 +43,7 @@ func (m *MockConfirmationClient) EXPECT() *MockConfirmationClientMockRecorder {
 }
 
 // AcceptCareTeamInviteWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) AcceptCareTeamInviteWithBodyWithResponse(ctx context.Context, userId api.UserId, invitedBy api.InvitedByUser, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error) {
+func (m *MockConfirmationClient) AcceptCareTeamInviteWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, invitedBy api.InvitedbyuserV1, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, invitedBy, contentType, body}
 	for _, a := range reqEditors {
@@ -75,19 +75,19 @@ func (c *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall) Ret
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, api.InvitedByUser, string, io.Reader, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, string, io.Reader, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.InvitedByUser, string, io.Reader, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, string, io.Reader, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // AcceptCareTeamInviteWithResponse mocks base method.
-func (m *MockConfirmationClient) AcceptCareTeamInviteWithResponse(ctx context.Context, userId api.UserId, invitedBy api.InvitedByUser, body api.AcceptCareTeamInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error) {
+func (m *MockConfirmationClient) AcceptCareTeamInviteWithResponse(ctx context.Context, userId api.Tidepooluserid, invitedBy api.InvitedbyuserV1, body api.AcceptCareTeamInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, invitedBy, body}
 	for _, a := range reqEditors {
@@ -119,13 +119,13 @@ func (c *MockConfirmationClientAcceptCareTeamInviteWithResponseCall) Return(arg0
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientAcceptCareTeamInviteWithResponseCall) Do(f func(context.Context, api.UserId, api.InvitedByUser, api.AcceptCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithResponseCall {
+func (c *MockConfirmationClientAcceptCareTeamInviteWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, api.AcceptCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientAcceptCareTeamInviteWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.InvitedByUser, api.AcceptCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithResponseCall {
+func (c *MockConfirmationClientAcceptCareTeamInviteWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, api.AcceptCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.AcceptCareTeamInviteResponse, error)) *MockConfirmationClientAcceptCareTeamInviteWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
@@ -219,7 +219,7 @@ func (c *MockConfirmationClientAcceptPasswordChangeWithResponseCall) DoAndReturn
 }
 
 // CancelAccountSignupConfirmationWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) CancelAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.UserId, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) CancelAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, contentType, body}
 	for _, a := range reqEditors {
@@ -251,19 +251,19 @@ func (c *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithRespon
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // CancelAccountSignupConfirmationWithResponse mocks base method.
-func (m *MockConfirmationClient) CancelAccountSignupConfirmationWithResponse(ctx context.Context, userId api.UserId, body api.CancelAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) CancelAccountSignupConfirmationWithResponse(ctx context.Context, userId api.Tidepooluserid, body api.CancelAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, body}
 	for _, a := range reqEditors {
@@ -295,19 +295,19 @@ func (c *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall) 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.UserId, api.CancelAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.CancelAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.CancelAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.CancelAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.CancelAccountSignupConfirmationResponse, error)) *MockConfirmationClientCancelAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // CancelInviteWithResponse mocks base method.
-func (m *MockConfirmationClient) CancelInviteWithResponse(ctx context.Context, userId api.UserId, invitedBy api.InvitedByEmail, reqEditors ...api.RequestEditorFn) (*api.CancelInviteResponse, error) {
+func (m *MockConfirmationClient) CancelInviteWithResponse(ctx context.Context, userId api.Tidepooluserid, invitedBy api.InvitedbyemailV1, reqEditors ...api.RequestEditorFn) (*api.CancelInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, invitedBy}
 	for _, a := range reqEditors {
@@ -339,19 +339,19 @@ func (c *MockConfirmationClientCancelInviteWithResponseCall) Return(arg0 *api.Ca
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientCancelInviteWithResponseCall) Do(f func(context.Context, api.UserId, api.InvitedByEmail, ...api.RequestEditorFn) (*api.CancelInviteResponse, error)) *MockConfirmationClientCancelInviteWithResponseCall {
+func (c *MockConfirmationClientCancelInviteWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.InvitedbyemailV1, ...api.RequestEditorFn) (*api.CancelInviteResponse, error)) *MockConfirmationClientCancelInviteWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientCancelInviteWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.InvitedByEmail, ...api.RequestEditorFn) (*api.CancelInviteResponse, error)) *MockConfirmationClientCancelInviteWithResponseCall {
+func (c *MockConfirmationClientCancelInviteWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.InvitedbyemailV1, ...api.RequestEditorFn) (*api.CancelInviteResponse, error)) *MockConfirmationClientCancelInviteWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ConfirmAccountSignupWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) ConfirmAccountSignupWithBodyWithResponse(ctx context.Context, key api.Key, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error) {
+func (m *MockConfirmationClient) ConfirmAccountSignupWithBodyWithResponse(ctx context.Context, key api.KeyV1, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, key, contentType, body}
 	for _, a := range reqEditors {
@@ -383,19 +383,19 @@ func (c *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall) Ret
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall) Do(f func(context.Context, api.Key, string, io.Reader, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall {
+func (c *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall) Do(f func(context.Context, api.KeyV1, string, io.Reader, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Key, string, io.Reader, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall {
+func (c *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.KeyV1, string, io.Reader, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ConfirmAccountSignupWithResponse mocks base method.
-func (m *MockConfirmationClient) ConfirmAccountSignupWithResponse(ctx context.Context, key api.Key, body api.ConfirmAccountSignupJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error) {
+func (m *MockConfirmationClient) ConfirmAccountSignupWithResponse(ctx context.Context, key api.KeyV1, body api.ConfirmAccountSignupJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, key, body}
 	for _, a := range reqEditors {
@@ -427,19 +427,19 @@ func (c *MockConfirmationClientConfirmAccountSignupWithResponseCall) Return(arg0
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientConfirmAccountSignupWithResponseCall) Do(f func(context.Context, api.Key, api.ConfirmAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithResponseCall {
+func (c *MockConfirmationClientConfirmAccountSignupWithResponseCall) Do(f func(context.Context, api.KeyV1, api.ConfirmAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientConfirmAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.Key, api.ConfirmAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithResponseCall {
+func (c *MockConfirmationClientConfirmAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.KeyV1, api.ConfirmAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.ConfirmAccountSignupResponse, error)) *MockConfirmationClientConfirmAccountSignupWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DismissAccountSignupWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) DismissAccountSignupWithBodyWithResponse(ctx context.Context, userId api.UserId, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error) {
+func (m *MockConfirmationClient) DismissAccountSignupWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, contentType, body}
 	for _, a := range reqEditors {
@@ -471,19 +471,19 @@ func (c *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall) Ret
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall {
+func (c *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall {
+func (c *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DismissAccountSignupWithResponse mocks base method.
-func (m *MockConfirmationClient) DismissAccountSignupWithResponse(ctx context.Context, userId api.UserId, body api.DismissAccountSignupJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error) {
+func (m *MockConfirmationClient) DismissAccountSignupWithResponse(ctx context.Context, userId api.Tidepooluserid, body api.DismissAccountSignupJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, body}
 	for _, a := range reqEditors {
@@ -515,19 +515,19 @@ func (c *MockConfirmationClientDismissAccountSignupWithResponseCall) Return(arg0
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientDismissAccountSignupWithResponseCall) Do(f func(context.Context, api.UserId, api.DismissAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithResponseCall {
+func (c *MockConfirmationClientDismissAccountSignupWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.DismissAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientDismissAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.DismissAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithResponseCall {
+func (c *MockConfirmationClientDismissAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.DismissAccountSignupJSONRequestBody, ...api.RequestEditorFn) (*api.DismissAccountSignupResponse, error)) *MockConfirmationClientDismissAccountSignupWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DismissInviteWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) DismissInviteWithBodyWithResponse(ctx context.Context, userId api.UserId, invitedBy api.InvitedByUser, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.DismissInviteResponse, error) {
+func (m *MockConfirmationClient) DismissInviteWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, invitedBy api.InvitedbyuserV1, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.DismissInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, invitedBy, contentType, body}
 	for _, a := range reqEditors {
@@ -559,19 +559,19 @@ func (c *MockConfirmationClientDismissInviteWithBodyWithResponseCall) Return(arg
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientDismissInviteWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, api.InvitedByUser, string, io.Reader, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientDismissInviteWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, string, io.Reader, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientDismissInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.InvitedByUser, string, io.Reader, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientDismissInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, string, io.Reader, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // DismissInviteWithResponse mocks base method.
-func (m *MockConfirmationClient) DismissInviteWithResponse(ctx context.Context, userId api.UserId, invitedBy api.InvitedByUser, body api.DismissInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.DismissInviteResponse, error) {
+func (m *MockConfirmationClient) DismissInviteWithResponse(ctx context.Context, userId api.Tidepooluserid, invitedBy api.InvitedbyuserV1, body api.DismissInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.DismissInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, invitedBy, body}
 	for _, a := range reqEditors {
@@ -603,19 +603,19 @@ func (c *MockConfirmationClientDismissInviteWithResponseCall) Return(arg0 *api.D
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientDismissInviteWithResponseCall) Do(f func(context.Context, api.UserId, api.InvitedByUser, api.DismissInviteJSONRequestBody, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithResponseCall {
+func (c *MockConfirmationClientDismissInviteWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, api.DismissInviteJSONRequestBody, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientDismissInviteWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.InvitedByUser, api.DismissInviteJSONRequestBody, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithResponseCall {
+func (c *MockConfirmationClientDismissInviteWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.InvitedbyuserV1, api.DismissInviteJSONRequestBody, ...api.RequestEditorFn) (*api.DismissInviteResponse, error)) *MockConfirmationClientDismissInviteWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetAccountSignupConfirmationWithResponse mocks base method.
-func (m *MockConfirmationClient) GetAccountSignupConfirmationWithResponse(ctx context.Context, userId api.UserId, reqEditors ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) GetAccountSignupConfirmationWithResponse(ctx context.Context, userId api.Tidepooluserid, reqEditors ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId}
 	for _, a := range reqEditors {
@@ -647,19 +647,19 @@ func (c *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall) Ret
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error)) *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error)) *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error)) *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetAccountSignupConfirmationResponse, error)) *MockConfirmationClientGetAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetReceivedInvitationsWithResponse mocks base method.
-func (m *MockConfirmationClient) GetReceivedInvitationsWithResponse(ctx context.Context, userId api.UserId, reqEditors ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error) {
+func (m *MockConfirmationClient) GetReceivedInvitationsWithResponse(ctx context.Context, userId api.Tidepooluserid, reqEditors ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId}
 	for _, a := range reqEditors {
@@ -691,19 +691,19 @@ func (c *MockConfirmationClientGetReceivedInvitationsWithResponseCall) Return(ar
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientGetReceivedInvitationsWithResponseCall) Do(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error)) *MockConfirmationClientGetReceivedInvitationsWithResponseCall {
+func (c *MockConfirmationClientGetReceivedInvitationsWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error)) *MockConfirmationClientGetReceivedInvitationsWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientGetReceivedInvitationsWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error)) *MockConfirmationClientGetReceivedInvitationsWithResponseCall {
+func (c *MockConfirmationClientGetReceivedInvitationsWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetReceivedInvitationsResponse, error)) *MockConfirmationClientGetReceivedInvitationsWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // GetSentInvitationsWithResponse mocks base method.
-func (m *MockConfirmationClient) GetSentInvitationsWithResponse(ctx context.Context, userId api.UserId, reqEditors ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error) {
+func (m *MockConfirmationClient) GetSentInvitationsWithResponse(ctx context.Context, userId api.Tidepooluserid, reqEditors ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId}
 	for _, a := range reqEditors {
@@ -735,19 +735,19 @@ func (c *MockConfirmationClientGetSentInvitationsWithResponseCall) Return(arg0 *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientGetSentInvitationsWithResponseCall) Do(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error)) *MockConfirmationClientGetSentInvitationsWithResponseCall {
+func (c *MockConfirmationClientGetSentInvitationsWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error)) *MockConfirmationClientGetSentInvitationsWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientGetSentInvitationsWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error)) *MockConfirmationClientGetSentInvitationsWithResponseCall {
+func (c *MockConfirmationClientGetSentInvitationsWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, ...api.RequestEditorFn) (*api.GetSentInvitationsResponse, error)) *MockConfirmationClientGetSentInvitationsWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // ResendAccountSignupWithResponse mocks base method.
-func (m *MockConfirmationClient) ResendAccountSignupWithResponse(ctx context.Context, email api.Email, reqEditors ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error) {
+func (m *MockConfirmationClient) ResendAccountSignupWithResponse(ctx context.Context, email api.EmailV1, reqEditors ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, email}
 	for _, a := range reqEditors {
@@ -779,19 +779,19 @@ func (c *MockConfirmationClientResendAccountSignupWithResponseCall) Return(arg0 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientResendAccountSignupWithResponseCall) Do(f func(context.Context, api.Email, ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error)) *MockConfirmationClientResendAccountSignupWithResponseCall {
+func (c *MockConfirmationClientResendAccountSignupWithResponseCall) Do(f func(context.Context, api.EmailV1, ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error)) *MockConfirmationClientResendAccountSignupWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientResendAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.Email, ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error)) *MockConfirmationClientResendAccountSignupWithResponseCall {
+func (c *MockConfirmationClientResendAccountSignupWithResponseCall) DoAndReturn(f func(context.Context, api.EmailV1, ...api.RequestEditorFn) (*api.ResendAccountSignupResponse, error)) *MockConfirmationClientResendAccountSignupWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SendAccountSignupConfirmationWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) SendAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.UserId, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) SendAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, contentType, body}
 	for _, a := range reqEditors {
@@ -823,19 +823,19 @@ func (c *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponse
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SendAccountSignupConfirmationWithResponse mocks base method.
-func (m *MockConfirmationClient) SendAccountSignupConfirmationWithResponse(ctx context.Context, userId api.UserId, body api.SendAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) SendAccountSignupConfirmationWithResponse(ctx context.Context, userId api.Tidepooluserid, body api.SendAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, body}
 	for _, a := range reqEditors {
@@ -867,19 +867,19 @@ func (c *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall) Re
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.UserId, api.SendAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.SendAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.SendAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.SendAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.SendAccountSignupConfirmationResponse, error)) *MockConfirmationClientSendAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SendCareTeamInviteWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) SendCareTeamInviteWithBodyWithResponse(ctx context.Context, userId api.UserId, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error) {
+func (m *MockConfirmationClient) SendCareTeamInviteWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, contentType, body}
 	for _, a := range reqEditors {
@@ -911,19 +911,19 @@ func (c *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall) Retur
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall {
+func (c *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SendCareTeamInviteWithResponse mocks base method.
-func (m *MockConfirmationClient) SendCareTeamInviteWithResponse(ctx context.Context, userId api.UserId, body api.SendCareTeamInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error) {
+func (m *MockConfirmationClient) SendCareTeamInviteWithResponse(ctx context.Context, userId api.Tidepooluserid, body api.SendCareTeamInviteJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, body}
 	for _, a := range reqEditors {
@@ -955,19 +955,19 @@ func (c *MockConfirmationClientSendCareTeamInviteWithResponseCall) Return(arg0 *
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientSendCareTeamInviteWithResponseCall) Do(f func(context.Context, api.UserId, api.SendCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithResponseCall {
+func (c *MockConfirmationClientSendCareTeamInviteWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.SendCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientSendCareTeamInviteWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.SendCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithResponseCall {
+func (c *MockConfirmationClientSendCareTeamInviteWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.SendCareTeamInviteJSONRequestBody, ...api.RequestEditorFn) (*api.SendCareTeamInviteResponse, error)) *MockConfirmationClientSendCareTeamInviteWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // SendPasswordResetWithResponse mocks base method.
-func (m *MockConfirmationClient) SendPasswordResetWithResponse(ctx context.Context, email api.Email, reqEditors ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error) {
+func (m *MockConfirmationClient) SendPasswordResetWithResponse(ctx context.Context, email api.EmailV1, reqEditors ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, email}
 	for _, a := range reqEditors {
@@ -999,19 +999,19 @@ func (c *MockConfirmationClientSendPasswordResetWithResponseCall) Return(arg0 *a
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientSendPasswordResetWithResponseCall) Do(f func(context.Context, api.Email, ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error)) *MockConfirmationClientSendPasswordResetWithResponseCall {
+func (c *MockConfirmationClientSendPasswordResetWithResponseCall) Do(f func(context.Context, api.EmailV1, ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error)) *MockConfirmationClientSendPasswordResetWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientSendPasswordResetWithResponseCall) DoAndReturn(f func(context.Context, api.Email, ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error)) *MockConfirmationClientSendPasswordResetWithResponseCall {
+func (c *MockConfirmationClientSendPasswordResetWithResponseCall) DoAndReturn(f func(context.Context, api.EmailV1, ...api.RequestEditorFn) (*api.SendPasswordResetResponse, error)) *MockConfirmationClientSendPasswordResetWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // UpsertAccountSignupConfirmationWithBodyWithResponse mocks base method.
-func (m *MockConfirmationClient) UpsertAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.UserId, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) UpsertAccountSignupConfirmationWithBodyWithResponse(ctx context.Context, userId api.Tidepooluserid, contentType string, body io.Reader, reqEditors ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, contentType, body}
 	for _, a := range reqEditors {
@@ -1043,19 +1043,19 @@ func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithRespon
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, string, io.Reader, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall {
+func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, string, io.Reader, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithBodyWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
 
 // UpsertAccountSignupConfirmationWithResponse mocks base method.
-func (m *MockConfirmationClient) UpsertAccountSignupConfirmationWithResponse(ctx context.Context, userId api.UserId, body api.UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error) {
+func (m *MockConfirmationClient) UpsertAccountSignupConfirmationWithResponse(ctx context.Context, userId api.Tidepooluserid, body api.UpsertAccountSignupConfirmationJSONRequestBody, reqEditors ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []any{ctx, userId, body}
 	for _, a := range reqEditors {
@@ -1087,13 +1087,13 @@ func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall) 
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.UserId, api.UpsertAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall) Do(f func(context.Context, api.Tidepooluserid, api.UpsertAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.UserId, api.UpsertAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall {
+func (c *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall) DoAndReturn(f func(context.Context, api.Tidepooluserid, api.UpsertAccountSignupConfirmationJSONRequestBody, ...api.RequestEditorFn) (*api.UpsertAccountSignupConfirmationResponse, error)) *MockConfirmationClientUpsertAccountSignupConfirmationWithResponseCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
