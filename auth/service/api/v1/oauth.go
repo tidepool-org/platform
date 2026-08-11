@@ -11,8 +11,6 @@ import (
 
 	"github.com/ant0ine/go-json-rest/rest"
 
-	confirmationClient "github.com/tidepool-org/hydrophone/client"
-
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -155,7 +153,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 	}
 
 	// Include custodial account signup credentials in redirect URL query, if applicable
-	confirmation, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, confirmationClient.UserId(restrictedToken.UserID))
+	confirmation, err := r.ConfirmationClient().GetAccountSignupConfirmationWithResponse(ctx, restrictedToken.UserID)
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
