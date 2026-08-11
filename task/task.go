@@ -348,3 +348,8 @@ func (t Tasks) Sanitize(details request.AuthDetails) error {
 	}
 	return nil
 }
+
+// ErrClaimLost is the cancellation cause set on the Run context when the run's claim on the task was lost mid-run: the
+// task was deleted, or it was unstuck and possibly re-claimed (its claim token no longer matches). A runner
+// distinguishes it with errors.Is(context.Cause(ctx), ErrClaimLost).
+var ErrClaimLost = errors.New("task claim lost")

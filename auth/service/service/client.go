@@ -88,8 +88,8 @@ func (c *Client) CreateProviderSession(ctx context.Context, create *auth.Provide
 
 	if err = prvdr.OnCreate(ctx, providerSession); err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to finalize creation of provider session")
-		if err := c.deleteProviderSession(ctx, repository, providerSession); err != nil {
-			log.LoggerFromContext(ctx).WithError(err).Warn("Unable to delete provider session")
+		if deleteErr := c.deleteProviderSession(ctx, repository, providerSession); deleteErr != nil {
+			log.LoggerFromContext(ctx).WithError(deleteErr).Warn("Unable to delete provider session")
 		}
 		return nil, err
 	}

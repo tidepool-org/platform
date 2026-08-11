@@ -187,6 +187,7 @@ var _ = Describe("Runner", func() {
 
 		Context("with task runner and context", func() {
 			var taskRunner *dexcomFetch.TaskRunner
+			var logger *logTest.Logger
 			var ctx context.Context
 
 			BeforeEach(func() {
@@ -194,7 +195,8 @@ var _ = Describe("Runner", func() {
 				taskRunner, err = dexcomFetch.NewTaskRunner(provider, tsk)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(taskRunner).ToNot(BeNil())
-				ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+				logger = logTest.NewLogger()
+				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})
 
 			assertTaskState := func(state string) {
@@ -362,6 +364,21 @@ var _ = Describe("Runner", func() {
 					assertTaskAndDataSourceState(task.TaskStatePending)
 					assertTaskRetryCountNotPresent()
 					assertTaskAndDataSourceError(dexcomFetch.ErrorCodeResourceFailure, "unable to get provider session")
+				})
+
+				It("discards the run outcome if the task claim is lost", func() {
+					claimContext, claimCancel := context.WithCancelCause(ctx)
+					defer claimCancel(nil)
+					testErr := errorsTest.RandomError()
+					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").DoAndReturn(func(ctx context.Context, id string) (*auth.ProviderSession, error) {
+						claimCancel(task.ErrClaimLost)
+						return nil, testErr
+					})
+					taskRunner.Run(claimContext)
+					assertTaskState(task.TaskStateRunning)
+					Expect(dataSrc.State).To(Equal(dataSource.StateConnected))
+					Expect(dataSrc.HasError()).To(BeFalse())
+					logger.AssertWarn("Skipped updating data source and task because the task claim was lost")
 				})
 
 				It("fails if the provider session is missing", func() {
@@ -643,7 +660,78 @@ var _ = Describe("Runner", func() {
 					// deviceHashes - not in data
 					// dataSource.LatestDataTime - not nil (recent)
 					// refresh token
-					// data ranges multiple 30 day segments
+				})
+
+				Context("with provider session and a data range spanning multiple chunks", func() {
+					var providerSession *auth.ProviderSession
+					var firstChunkStartTime time.Time
+					var firstChunkEndTime time.Time
+					var secondChunkEndTime time.Time
+
+					BeforeEach(func() {
+						providerSession = &auth.ProviderSession{
+							ID:     "test-provider-session-id",
+							UserID: "test-user-id",
+							OAuthToken: &auth.OAuthToken{
+								AccessToken:    "test-access-token-1",
+								TokenType:      "Bearer",
+								RefreshToken:   "test-refresh-token-1",
+								ExpirationTime: time.Now().Add(time.Minute),
+							},
+						}
+						authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(providerSession, nil)
+						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).AnyTimes()
+						firstChunkStartTime = time.Now().Add(-45 * Day)
+						firstChunkEndTime = firstChunkStartTime.AddDate(0, 0, dexcomFetch.DataRangeDaysMaximum)
+						secondChunkEndTime = time.Now().Add(-3 * Day)
+						dataRangeResponse := &dexcom.DataRangesResponse{
+							Calibrations: &dexcom.DataRange{
+								Start: &dexcom.Moment{SystemTime: &dexcom.Time{Time: firstChunkStartTime}},
+								End:   &dexcom.Moment{SystemTime: &dexcom.Time{Time: secondChunkEndTime}},
+							},
+						}
+						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, dataRangeResponse, nil))
+					})
+
+					// Expects the fetch of a single chunk, all responses empty, invoking onEvents, if any, during the
+					// final fetch of the chunk
+					expectFetchChunk := func(startTime time.Time, endTime time.Time, onEvents func()) {
+						dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.AlertsResponse{Records: &dexcom.Alerts{}}, nil))
+						dexcomClient.EXPECT().GetCalibrations(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.CalibrationsResponse{Records: &dexcom.Calibrations{}}, nil))
+						dexcomClient.EXPECT().GetDevices(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.DevicesResponse{Records: &dexcom.Devices{}}, nil))
+						dexcomClient.EXPECT().GetEGVs(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.EGVsResponse{Records: &dexcom.EGVs{}}, nil))
+						dexcomClient.EXPECT().GetEvents(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(func(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
+							if onEvents != nil {
+								onEvents()
+							}
+							return &dexcom.EventsResponse{Records: &dexcom.Events{}}, nil
+						})
+					}
+
+					It("fetches every chunk of the data range", func() {
+						expectFetchChunk(firstChunkStartTime, firstChunkEndTime, nil)
+						expectFetchChunk(firstChunkEndTime, secondChunkEndTime, nil)
+						dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+						taskRunner.Run(ctx)
+						assertTaskAndDataSourceState(task.TaskStatePending)
+						assertTaskAvailableAfterStandardDuration()
+						assertTaskRetryCountNotPresent()
+						assertTaskAndDataSourceErrorNotPresent()
+						assertDataSourceLastImportTimePresent()
+					})
+
+					It("discards the run outcome if the task claim is lost mid-fetch", func() {
+						claimContext, claimCancel := context.WithCancelCause(ctx)
+						defer claimCancel(nil)
+						expectFetchChunk(firstChunkStartTime, firstChunkEndTime, func() { claimCancel(task.ErrClaimLost) })
+						// The canceled context fails the next chunk, ending the run
+						dexcomClient.EXPECT().GetAlerts(matchContext(), firstChunkEndTime, secondChunkEndTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](nil, nil, context.Canceled))
+						taskRunner.Run(claimContext)
+						assertTaskState(task.TaskStateRunning)
+						Expect(dataSrc.State).To(Equal(dataSource.StateConnected))
+						Expect(dataSrc.HasError()).To(BeFalse())
+						logger.AssertWarn("Skipped updating data source and task because the task claim was lost")
+					})
 				})
 			})
 		})

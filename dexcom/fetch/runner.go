@@ -180,14 +180,17 @@ func (t *TaskRunner) Run(ctx context.Context) {
 		t.task.AppendError(err)
 	}
 
-	// A permanently failed task is not rescheduled, unless its outcome could not be recorded on the data source, in
-	// which case run again so a later run can record it
-	err := t.updateDataSourceWithTaskState()
-	if err != nil {
-		t.task.AppendError(err)
-	}
-	if err != nil || !t.task.IsFailed() {
-		t.task.RepeatAvailableAfter(pointer.Default(t.availableAfter, availableAfterDuration()))
+	// If we didn't lose the claim, then update data source and repeat if not failed
+	if !errors.Is(context.Cause(t.context), task.ErrClaimLost) {
+		err := t.updateDataSourceWithTaskState()
+		if err != nil {
+			t.task.AppendError(err)
+		}
+		if err != nil || !t.task.IsFailed() {
+			t.task.RepeatAvailableAfter(pointer.Default(t.availableAfter, availableAfterDuration()))
+		}
+	} else {
+		t.logger.Warn("Skipped updating data source and task because the task claim was lost")
 	}
 }
 

@@ -43,8 +43,8 @@ import (
 // Context: canceled (with cause) after GetRunnerTimeout, on shutdown, and on claim loss - cooperative runners select on
 // ctx.Done() and return promptly. To tell them apart, inspect context.Cause(ctx): a normal shutdown with
 // context.Canceled; a runner timeout with ErrRunnerTimeoutExceeded, and a lost claim (the task was deleted mid-run, or
-// unstuck and its claim token replaced) with ErrClaimLost (use errors.Is in all cases). After a claim loss the run's
-// outcome is discarded - no write-back can land - so return promptly and skip any remaining work. Claim loss is
+// unstuck and its claim token replaced) with task.ErrClaimLost (use errors.Is in all cases). After a claim loss the
+// run's outcome is discarded - no write-back can land - so return promptly and skip any remaining work. Claim loss is
 // detected by a periodic check (MonitorTaskDelay, 1 minute by default), not instantly. The queue cannot preempt a
 // runner that ignores cancellation; it stays blocked until it returns or the process restarts, recovered by the
 // deadline/unstick mechanism (a periodic sweep that resets tasks still running past their deadline - see
@@ -109,8 +109,3 @@ type Runner interface {
 // runner distinguishes a timeout from a shutdown with errors.Is(context.Cause(ctx), ErrRunnerTimeoutExceeded); a
 // shutdown instead cancels with context.Canceled.
 var ErrRunnerTimeoutExceeded = errors.New("task runner timeout exceeded")
-
-// ErrClaimLost is the cancellation cause set on the Run context when the run's claim on the task was lost mid-run: the
-// task was deleted, or it was unstuck and possibly re-claimed (its claim token no longer matches). A runner
-// distinguishes it with errors.Is(context.Cause(ctx), ErrClaimLost).
-var ErrClaimLost = errors.New("task claim lost")

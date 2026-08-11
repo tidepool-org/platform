@@ -34,7 +34,7 @@ const (
 	DispatchTasksDelayDefault = 1 * time.Minute
 
 	// MonitorTaskDelayDefault is the default interval between checks that each in-flight task's claim is still held
-	// (the task exists and its claim token is unchanged); a run whose claim is lost is canceled with ErrClaimLost.
+	// (the task exists and its claim token is unchanged); a run whose claim is lost is canceled with task.ErrClaimLost.
 	MonitorTaskDelayDefault = 1 * time.Minute
 
 	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the watchdog waits before
@@ -363,7 +363,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		return
 	}
 
-	// The claim context is canceled with ErrClaimLost by the task claim monitor when the task is deleted or re-claimed
+	// The claim context is canceled with task.ErrClaimLost by the task claim monitor when the task is deleted or re-claimed
 	// mid-run. Claim loss is irreversible for this run (every claim gets a fresh token), so once canceled the outcome
 	// can never be persisted.
 	claimContext, claimCancel := context.WithCancelCause(ctx)
@@ -372,7 +372,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	// Clearing the claim token marks the outcome as unpersistable, which completeTask discards. Done in a defer, after
 	// the recover below, so a panicking runner is also reconciled correctly.
 	defer func() {
-		if errors.Is(context.Cause(claimContext), ErrClaimLost) {
+		if errors.Is(context.Cause(claimContext), task.ErrClaimLost) {
 			tsk.ClaimToken = nil
 		}
 	}()
@@ -408,7 +408,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		if reason := q.monitorTaskForLostClaim(claimContext, id, claimToken); reason != nil {
 			log.LoggerFromContext(claimContext).Warnf("Task %s; canceling task run", *reason)
 			RunClaimLostTotal.WithLabelValues(typ, *reason).Inc()
-			claimCancel(ErrClaimLost)
+			claimCancel(task.ErrClaimLost)
 		}
 	}(tsk.ID, tsk.Type, *tsk.ClaimToken)
 
@@ -427,7 +427,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 
 	// The claim was lost mid-run; any write-back would miss the claim token, so skip state reconciliation. The outcome
 	// is discarded during completion.
-	if errors.Is(context.Cause(claimContext), ErrClaimLost) {
+	if errors.Is(context.Cause(claimContext), task.ErrClaimLost) {
 		return
 	}
 
