@@ -13,10 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	data "github.com/tidepool-org/platform/data"
 	source "github.com/tidepool-org/platform/data/source"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockDataSetEnsurerClient is a mock of DataSetEnsurerClient interface.
