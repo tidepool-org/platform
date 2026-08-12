@@ -117,7 +117,7 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	if _, err = p.dataSourceClient.Update(ctx, source.ID, nil, update); err != nil {
 
 		// Attempt to delete task if data source not marked as connected
-		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID); taskErr != nil {
+		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID, nil); taskErr != nil {
 			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
 		}
 
@@ -151,7 +151,7 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 				logger.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
 			}
 		}
-		if err = p.taskClient.DeleteTask(ctx, task.ID); err != nil {
+		if err = p.taskClient.DeleteTask(ctx, task.ID, nil); err != nil {
 			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
 		}
 	}

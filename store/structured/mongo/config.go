@@ -85,7 +85,7 @@ func (c *Config) SetDatabaseFromReporter(configReporter platformConfig.Reporter)
 }
 
 // Validate that all parameters are syntactically valid, that all required parameters are present,
-// and the the URL constructed from those parameters is parsable by the Mongo driver
+// and the URL constructed from those parameters is parsable by the Mongo driver
 func (c *Config) Validate() error {
 	if len(c.Addresses) == 0 {
 		return errors.New("addresses is missing")

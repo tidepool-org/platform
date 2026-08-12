@@ -240,7 +240,7 @@ vet: tmp
 	@echo "go vet ./..."
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
+		$(TIMING_CMD) go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
 		(diff .govetignore _tmp/govet.out && exit 1)
 
 vet-ignore:

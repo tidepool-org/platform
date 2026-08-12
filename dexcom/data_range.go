@@ -79,8 +79,8 @@ func (d *DataRangesResponse) DataRange() *DataRange {
 		endMoments = append(endMoments, d.Events.End)
 	}
 
-	startMoments = startMoments.Compact()
-	endMoments = endMoments.Compact()
+	startMoments = startMoments.CompactBySystemTimeRaw()
+	endMoments = endMoments.CompactBySystemTimeRaw()
 	if len(startMoments) == 0 || len(endMoments) == 0 {
 		return nil
 	}

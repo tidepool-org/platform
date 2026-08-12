@@ -9,20 +9,28 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 )
 
+func Now() time.Time {
+	return timeInNormalizedLocation(time.Now().Truncate(time.Millisecond).UTC())
+}
+
+func NowStable() time.Time {
+	return nowStable
+}
+
 func PastFarTime() time.Time {
-	return now.AddDate(-30, 0, 0)
+	return NowStable().AddDate(-30, 0, 0)
 }
 
 func PastNearTime() time.Time {
-	return now.AddDate(0, -1, 0)
+	return NowStable().AddDate(0, -1, 0)
 }
 
 func FutureNearTime() time.Time {
-	return now.AddDate(0, 1, 0)
+	return NowStable().AddDate(0, 1, 0)
 }
 
 func FutureFarTime() time.Time {
-	return now.AddDate(30, 0, 0)
+	return NowStable().AddDate(30, 0, 0)
 }
 
 func MustTime(value time.Time, err error) time.Time {
@@ -33,11 +41,11 @@ func MustTime(value time.Time, err error) time.Time {
 }
 
 func RandomTimeBeforeNow() time.Time {
-	return RandomTimeBefore(now)
+	return RandomTimeBefore(Now())
 }
 
 func RandomTimeAfterNow() time.Time {
-	return RandomTimeAfter(now)
+	return RandomTimeAfter(Now())
 }
 
 func RandomTimeBefore(value time.Time) time.Time {
@@ -73,11 +81,11 @@ func RandomTimeFromRange(minimum time.Time, maximum time.Time) time.Time {
 }
 
 func RandomTimeMaximum() time.Time {
-	return now.Add(RandomDurationMaximum()).Truncate(time.Millisecond)
+	return NowStable().Add(RandomDurationMaximum()).Truncate(time.Millisecond)
 }
 
 func RandomTimeMinimum() time.Time {
-	return now.Add(RandomDurationMinimum()).Truncate(time.Millisecond)
+	return NowStable().Add(RandomDurationMinimum()).Truncate(time.Millisecond)
 }
 
 func NewObjectFromTime(value time.Time, objectFormat ObjectFormat) interface{} {
@@ -98,7 +106,7 @@ func PinnedTime(value time.Time) time.Time {
 	} else if value.After(RandomTimeMaximum()) {
 		return RandomTimeMaximum()
 	} else {
-		return normalizeLocation(value.Truncate(time.Millisecond))
+		return timeInNormalizedLocation(value.Truncate(time.Millisecond))
 	}
 }
 
@@ -109,11 +117,11 @@ func MatchTime(datum *time.Time) gomegaTypes.GomegaMatcher {
 	return gomegaGstruct.PointTo(gomega.BeTemporally("==", *datum))
 }
 
-func normalizeLocation(value time.Time) time.Time {
+func timeInNormalizedLocation(value time.Time) time.Time {
 	if value.Location() == time.Local && time.Local.String() == "UTC" {
 		value = value.In(time.UTC)
 	}
 	return value
 }
 
-var now = normalizeLocation(time.Now().Truncate(time.Millisecond).UTC())
+var nowStable = Now()

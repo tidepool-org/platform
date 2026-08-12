@@ -33,10 +33,8 @@ type MigrationRunner struct {
 func NewDefaultMigrationTaskCreate(summaryType string) *task.TaskCreate {
 	typ := MigrationType + "." + summaryType
 	return &task.TaskCreate{
-		Name:          pointer.FromAny(typ),
-		Type:          typ,
-		Priority:      5,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Name: pointer.FromAny(typ),
+		Type: typ,
 		Data: map[string]any{
 			ConfigMinInterval: int32(DefaultMigrationAvailableAfterDurationMinimum.Seconds()),
 			ConfigMaxInterval: int32(DefaultMigrationAvailableAfterDurationMaximum.Seconds()),
@@ -71,8 +69,8 @@ func (r *MigrationRunner) GetRunnerType() string {
 	return MigrationType + "." + r.summaryType
 }
 
-func (r *MigrationRunner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(MigrationTaskDurationMaximum * 3)
+func (r *MigrationRunner) GetRunnerDeadline() time.Duration {
+	return MigrationTaskDurationMaximum * 3
 }
 
 func (r *MigrationRunner) GetRunnerTimeout() time.Duration {
@@ -171,17 +169,17 @@ func (t *MigrationTaskRunner) run() error {
 	pagination.Size = t.GetBatch()
 	typ := t.summaryType
 
-	t.logger.Infof("Searching for User %s Summaries requiring Migration", typ)
+	t.logger.Debugf("Searching for User %s Summaries requiring Migration", typ)
 	outdatedUserIds, err := t.dataClient.GetMigratableUserIDs(t.context, typ, pagination)
 	if err != nil {
 		return err
 	}
 	if len(outdatedUserIds) == 0 {
-		t.logger.Infof("No %s Summaries requiring migrations found", typ)
+		t.logger.Debugf("No %s Summaries requiring migrations found", typ)
 		return nil
 	}
 
-	t.logger.Infof("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
+	t.logger.Debugf("Found batch of %d %s Summaries to Migrate", len(outdatedUserIds), typ)
 
 	t.logger.Debugf("Starting User %s Summary Migration", typ)
 	err = updateSummaries(t.context, t.logger, t.dataClient, typ, outdatedUserIds, MigrationWorkerCount, t.deadline, "Migrating")

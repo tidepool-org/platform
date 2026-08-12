@@ -182,7 +182,7 @@ func (c *Client) GetData(ctx context.Context, dataType string, timeRange *times.
 	mutators := []request.RequestMutator{request.NewParametersMutator(parameters)}
 
 	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
-	url := c.client.ConstructURL("v2", "usercollection", DataTypeToPath(dataType))
+	url := c.client.ConstructURL("v2", "usercollection", oura.DataTypeToPath(dataType))
 	dataResponse := &oura.DataResponse{}
 	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, mutators, nil, dataResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get data")
@@ -203,7 +203,7 @@ func (c *Client) GetDatum(ctx context.Context, dataType string, dataID string, t
 	}
 
 	// Possible response status codes (see below for details): 200 (DataResponse), 400, 401, 403, 422, 429
-	url := c.client.ConstructURL("v2", "usercollection", DataTypeToPath(dataType), dataID)
+	url := c.client.ConstructURL("v2", "usercollection", oura.DataTypeToPath(dataType), dataID)
 	dataResponse := oura.Datum{}
 	if err := c.sendOAuthRequest(ctx, http.MethodGet, url, nil, nil, &dataResponse, tokenSource); err != nil {
 		return nil, errors.Wrap(err, "unable to get datum")
@@ -229,7 +229,7 @@ func (c *Client) RevokeOAuthToken(ctx context.Context, oauthToken *auth.OAuthTok
 
 func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, tokenSource oauth.TokenSource) error {
 	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
-		return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, []request.ResponseInspector{prometheusCodePathResponseInspector}, tokenSource)
+		return c.client.SendOAuthRequest(ctx, method, url, mutators, requestBody, responseBody, nil, tokenSource)
 	})
 }
 
@@ -243,34 +243,11 @@ func (c *Client) sendClientRequest(ctx context.Context, method string, url strin
 
 func (c *Client) sendBaseRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, inspectors []request.ResponseInspector) error {
 	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
-		return c.client.Client().RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, append(inspectors, prometheusCodePathResponseInspector), http.DefaultClient)
+		return c.client.Client().RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, http.DefaultClient)
 	})
 }
 
-func DataTypeToPath(dataType string) string {
-	switch dataType {
-	case oura.DataTypeVO2Max:
-		return "vO2_max" // Capitalization inconsistency
-	default:
-		return dataType
-	}
-}
-
-func PrometheusCodePathPatterns() []string {
-	var patterns []string
-	for _, eventDataType := range oura.EventDataTypes() {
-		patterns = append(patterns, fmt.Sprintf("/v2/usercollection/%s/{document_id}", DataTypeToPath(eventDataType)))
-	}
-	return append(patterns,
-		"/v2/webhook/subscription/{id}",
-		"/v2/webhook/subscription/renew/{id}",
-		request.PatternAny,
-	)
-}
-
-const requestDurationMaximum = 30 * time.Second
-
-var prometheusCodePathResponseInspector = request.NewPrometheusCodePathResponseInspectorWithPatterns("tidepool_oura_api_client_requests", "Oura API client requests", PrometheusCodePathPatterns()...)
+const requestDurationMaximum = 60 * time.Second
 
 // Possible response status codes from Oura API:
 // 	200: successful get/list; response body contains the requested resource(s)

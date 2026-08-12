@@ -2,7 +2,7 @@ package mongo_test
 
 import (
 	"context"
-	"strings"
+	"strconv"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/ehr/reconcile"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
@@ -22,6 +22,8 @@ import (
 	"github.com/tidepool-org/platform/task"
 	taskStore "github.com/tidepool-org/platform/task/store"
 	taskStoreMongo "github.com/tidepool-org/platform/task/store/mongo"
+	taskTest "github.com/tidepool-org/platform/task/test"
+	"github.com/tidepool-org/platform/test"
 )
 
 var _ = Describe("Mongo", func() {
@@ -37,7 +39,7 @@ var _ = Describe("Mongo", func() {
 
 	AfterEach(func() {
 		if str != nil {
-			str.Terminate(context.Background())
+			_ = str.Terminate(context.Background())
 		}
 	})
 
@@ -83,31 +85,31 @@ var _ = Describe("Mongo", func() {
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("id")),
-						"Background": Equal(true),
-						"Unique":     Equal(true),
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("id")),
+						"Unique": Equal(true),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("name")),
-						"Background": Equal(true),
-						"Unique":     Equal(true),
-						"Sparse":     Equal(true),
+						"Key":    Equal(storeStructuredMongoTest.MakeKeySlice("name")),
+						"Unique": Equal(true),
+						"Sparse": Equal(true),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("priority")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("availableTime")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("availableTime")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("state")),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("expirationTime")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("type", "availableTime")),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "state", Value: task.TaskStatePending},
+						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
-						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("state")),
-						"Background": Equal(true),
+						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("type", "deadlineTime")),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "state", Value: task.TaskStateRunning},
+						}),
 					}),
 				))
 			})
@@ -129,152 +131,311 @@ var _ = Describe("Mongo", func() {
 				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})
 
-			Context("with an existing task", func() {
-				var tsk *task.Task
+			Context("StartTask", func() {
+				It("embeds the claimed revision in the claim token", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
 
-				BeforeEach(func() {
-					var err error
-					tsk, err = task.NewTask(context.Background(), &task.TaskCreate{
-						Name:           pointer.FromString("test"),
-						Type:           "fetch",
-						Priority:       0,
-						Data:           nil,
-						AvailableTime:  pointer.FromTime(time.Now()),
-						ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
-					})
-					Expect(err).ToNot(HaveOccurred())
-					tsk.State = task.TaskStateRunning
-					_, err = collection.InsertOne(ctx, tsk)
-					Expect(err).ToNot(HaveOccurred())
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+					Expect(startedTask.ClaimToken).To(PointTo(HavePrefix(strconv.Itoa(pendingTask.Revision) + ":")))
 				})
 
-				Context("UpdateFromState", func() {
-					var updated *task.Task
+				It("generates a distinct claim token for successive claims of the same task", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
 
-					const defaultPrometheusOutput = `
-							# HELP tidepool_task_tasks_state_total The total number of tasks sorted by state and type
-							# TYPE tidepool_task_tasks_state_total counter
-							tidepool_task_tasks_state_total{ state = "<state>", type = "<type>" } 1
-						`
-					const metricName = "tidepool_task_tasks_state_total"
+					firstStartedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(firstStartedTask).ToNot(BeNil())
+					Expect(repository.StopTask(ctx, firstStartedTask.ID, firstStartedTask.Revision, firstStartedTask.ClaimToken, task.TaskStatePending, nil, nil)).To(Succeed())
 
-					BeforeEach(func() {
-						taskStoreMongo.TasksStateTotal.Reset()
-						var err error
-						updated, err = task.NewTask(context.Background(), &task.TaskCreate{
-							Name:           pointer.FromString("updated"),
-							Type:           "fetch",
-							Priority:       0,
-							Data:           nil,
-							AvailableTime:  pointer.FromTime(time.Now()),
-							ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
-						})
-						Expect(err).ToNot(HaveOccurred())
-						updated.ID = tsk.ID
-					})
+					stoppedTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": pendingTask.ID}).Decode(stoppedTask)).To(Succeed())
 
-					It("returns an error when the context is missing", func() {
-						ctx = nil
-						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						Expect(err).To(MatchError("context is missing"))
-						Expect(result).To(BeNil())
-					})
+					secondStartedTask := test.Must(repository.StartTask(ctx, stoppedTask.ID, stoppedTask.Revision, time.Minute))
+					Expect(secondStartedTask).ToNot(BeNil())
+					Expect(secondStartedTask.ClaimToken).To(PointTo(Not(Equal(*firstStartedTask.ClaimToken))))
+				})
+			})
 
-					It("returns an error when the updated task is missing", func() {
-						updated = nil
-						result, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						Expect(err).To(MatchError("task is missing"))
-						Expect(result).To(BeNil())
-					})
+			Context("StopTask", func() {
+				It("clears the run time and duration when stopping without a duration", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					Expect(pendingTask.AvailableTime).ToNot(BeNil())
 
-					It("successfully fails the task with multiple errors", func() {
-						updated.State = task.TaskStateFailed
-						updated.AppendError(errors.New("first error"))
-						updated.AppendError(errors.New("second error"))
-						_, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						Expect(err).ToNot(HaveOccurred())
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+					Expect(startedTask.RunTime).ToNot(BeNil())
+					Expect(startedTask.AvailableTime).To(BeNil())
 
-						result := task.Task{}
-						err = collection.FindOne(ctx, bson.M{"id": tsk.ID}).Decode(&result)
-						Expect(err).ToNot(HaveOccurred())
-						Expect(result.State).To(Equal(updated.State))
-						Expect(result.Error).To(Equal(updated.Error))
-					})
+					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.ClaimToken, task.TaskStatePending, nil, nil)).To(Succeed())
 
-					It("returns error if task is updated from the same state multiple times", func() {
-						updated.State = task.TaskStatePending
-						_, err := repository.UpdateFromState(ctx, updated, tsk.State)
-						Expect(err).ToNot(HaveOccurred())
+					actualTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": startedTask.ID}).Decode(actualTask)).To(Succeed())
+					Expect(actualTask.State).To(Equal(task.TaskStatePending))
+					Expect(actualTask.RunTime).To(BeNil())
+					Expect(actualTask.Duration).To(BeNil())
+					Expect(actualTask.ClaimToken).To(BeNil())
+					Expect(actualTask.DeadlineTime).To(BeNil())
+					Expect(actualTask.AvailableTime).To(BeNil())
+				})
 
-						_, err = repository.UpdateFromState(ctx, updated, tsk.State)
-						Expect(err).To(HaveOccurred())
-						Expect(err).To(MatchError("Task has already been claimed or is now unavailable."))
-					})
+				It("retains the run time when stopping with a duration", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					Expect(pendingTask.AvailableTime).ToNot(BeNil())
 
-					It("records metrics of completed tasks", func() {
-						updated.State = task.TaskStateCompleted
-						completedTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+					Expect(startedTask.RunTime).ToNot(BeNil())
 
-						Expect(err).ToNot(HaveOccurred())
+					duration := time.Second
+					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.ClaimToken, task.TaskStateCompleted, &duration, nil)).To(Succeed())
 
-						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateCompleted)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", completedTask.Type)
+					actualTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": startedTask.ID}).Decode(actualTask)).To(Succeed())
+					Expect(actualTask.State).To(Equal(task.TaskStateCompleted))
+					Expect(actualTask.RunTime).To(PointTo(BeTemporally("~", *startedTask.RunTime, time.Millisecond)))
+					Expect(actualTask.Duration).To(PointTo(Equal(duration.Seconds())))
+					Expect(actualTask.ClaimToken).To(BeNil())
+					Expect(actualTask.DeadlineTime).To(BeNil())
+					Expect(actualTask.AvailableTime).To(BeNil())
+				})
+			})
 
-						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
-						Expect(prometheusErr).ToNot(HaveOccurred())
-					})
+			Context("UnstickTasks", func() {
+				It("returns an error when the context is missing", func() {
+					unstuckTaskIDs, err := repository.UnstickTasks(context.Context(nil), 0)
+					Expect(err).To(MatchError("context is missing"))
+					Expect(unstuckTaskIDs).To(BeNil())
+				})
 
-					It("records metrics of failed tasks", func() {
-						updated.State = task.TaskStateFailed
-						failedTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
+				It("returns an error when the availability delay is negative", func() {
+					unstuckTaskIDs, err := repository.UnstickTasks(ctx, -time.Second)
+					Expect(err).To(MatchError("availability delay is invalid"))
+					Expect(unstuckTaskIDs).To(BeNil())
+				})
 
-						Expect(err).ToNot(HaveOccurred())
+				It("returns no ids when there are no stuck tasks", func() {
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, 0))
+					Expect(unstuckTaskIDs).To(BeEmpty())
+				})
 
-						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateFailed)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", failedTask.Type)
+				It("unsticks a running task with an expired deadline", func() {
+					stuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Minute)))
 
-						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
-						Expect(prometheusErr).ToNot(HaveOccurred())
-					})
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, 0))
+					Expect(unstuckTaskIDs).To(ConsistOf(stuckTask.ID))
 
-					It("records metrics of running tasks", func() {
-						updated.State = task.TaskStateRunning
-						runningTask, err := repository.UpdateFromState(ctx, updated, tsk.State)
+					actualStuckTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": stuckTask.ID}).Decode(actualStuckTask)).To(Succeed())
+					Expect(actualStuckTask.State).To(Equal(task.TaskStatePending))
+					Expect(actualStuckTask.AvailableTime).To(PointTo(BeTemporally("~", test.Now(), time.Second)))
+					Expect(actualStuckTask.ModifiedTime).To(PointTo(BeTemporally("~", test.Now(), time.Second)))
+					Expect(actualStuckTask.DeadlineTime).To(BeNil())
+				})
 
-						Expect(err).ToNot(HaveOccurred())
+				It("offsets the available time by the availability delay", func() {
+					stuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Minute)))
 
-						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStateRunning)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", runningTask.Type)
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, time.Minute))
+					Expect(unstuckTaskIDs).To(ConsistOf(stuckTask.ID))
 
-						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
-						Expect(prometheusErr).ToNot(HaveOccurred())
-					})
+					actualStuckTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": stuckTask.ID}).Decode(actualStuckTask)).To(Succeed())
+					Expect(actualStuckTask.State).To(Equal(task.TaskStatePending))
+					Expect(actualStuckTask.AvailableTime).To(PointTo(BeTemporally("~", test.Now().Add(time.Minute), time.Second)))
+				})
 
-					It("records metrics of pending tasks", func() {
-						tskCreate := &task.TaskCreate{
-							Name:           pointer.FromString("test"),
-							Type:           "fetch",
-							Priority:       0,
-							Data:           nil,
-							AvailableTime:  pointer.FromTime(time.Now()),
-							ExpirationTime: pointer.FromTime(time.Now().Add(5 * time.Minute)),
-						}
-						_, err := repository.CreateTask(ctx, tskCreate)
-						Expect(err).ToNot(HaveOccurred())
+				It("does not unstick a running task with a deadline in the future", func() {
+					notStuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(time.Hour)))
 
-						prometheusState := strings.ReplaceAll(defaultPrometheusOutput, "<state>", task.TaskStatePending)
-						expectedOutput := strings.ReplaceAll(prometheusState, "<type>", tsk.Type)
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, 0))
+					Expect(unstuckTaskIDs).To(BeEmpty())
 
-						prometheusErr := testutil.
-							CollectAndCompare(taskStoreMongo.TasksStateTotal, strings.NewReader(expectedOutput), metricName)
-						Expect(prometheusErr).ToNot(HaveOccurred())
-					})
+					actualNotStuckTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": notStuckTask.ID}).Decode(actualNotStuckTask)).To(Succeed())
+					Expect(actualNotStuckTask).To(Equal(notStuckTask))
+				})
 
+				It("does not unstick a task that is not running", func() {
+					notStuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, pointer.FromTime(test.Now().Add(-time.Minute)))
+
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, 0))
+					Expect(unstuckTaskIDs).To(BeEmpty())
+
+					actualNotStuckTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": notStuckTask.ID}).Decode(actualNotStuckTask)).To(Succeed())
+					Expect(actualNotStuckTask).To(Equal(notStuckTask))
+				})
+
+				It("unsticks multiple running tasks with expired deadlines, ordered by deadline time", func() {
+					laterStuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Minute)))
+					earlierStuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Hour)))
+
+					unstuckTaskIDs := test.Must(repository.UnstickTasks(ctx, 0))
+					Expect(unstuckTaskIDs).To(Equal([]string{earlierStuckTask.ID, laterStuckTask.ID}))
+				})
+
+				It("only unsticks tasks matching the repository type filter", func() {
+					stuckTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Minute)))
+					otherTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStateRunning, pointer.FromTime(test.Now().Add(-time.Minute)))
+
+					filteredRepository := str.WithTypeFilter(stuckTask.Type).NewTaskRepository()
+					unstuckTaskIDs, err := filteredRepository.UnstickTasks(ctx, 0)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(unstuckTaskIDs).To(ConsistOf(stuckTask.ID))
+
+					actualOtherTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": otherTask.ID}).Decode(actualOtherTask)).To(Succeed())
+					Expect(actualOtherTask).To(Equal(otherTask))
+				})
+			})
+
+			Context("GetTaskClaimToken", func() {
+				It("returns an error when the context is missing", func() {
+					claimToken, exists, err := repository.GetTaskClaimToken(context.Context(nil), taskTest.RandomID())
+					Expect(err).To(MatchError("context is missing"))
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeFalse())
+				})
+
+				It("returns an error when the id is missing", func() {
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, "")
+					Expect(err).To(MatchError("id is missing"))
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeFalse())
+				})
+
+				It("reports the task as not existing when the task does not exist", func() {
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, taskTest.RandomID())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeFalse())
+				})
+
+				It("returns a nil claim token when the task exists, but is not claimed", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					Expect(pendingTask.ClaimToken).To(BeNil())
+
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, pendingTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeTrue())
+				})
+
+				It("returns the claim token of a claimed task", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+					Expect(startedTask.ClaimToken).ToNot(BeNil())
+
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(PointTo(Equal(*startedTask.ClaimToken)))
+					Expect(exists).To(BeTrue())
+				})
+
+				It("returns a nil claim token once the task is stopped", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.ClaimToken, task.TaskStateCompleted, nil, nil)).To(Succeed())
+
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeTrue())
+				})
+
+				It("returns the new claim token once the task is re-claimed", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					firstStartedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(firstStartedTask).ToNot(BeNil())
+					Expect(repository.StopTask(ctx, firstStartedTask.ID, firstStartedTask.Revision, firstStartedTask.ClaimToken, task.TaskStatePending, nil, nil)).To(Succeed())
+
+					stoppedTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": pendingTask.ID}).Decode(stoppedTask)).To(Succeed())
+
+					secondStartedTask := test.Must(repository.StartTask(ctx, stoppedTask.ID, stoppedTask.Revision, time.Minute))
+					Expect(secondStartedTask).ToNot(BeNil())
+
+					claimToken, exists, err := repository.GetTaskClaimToken(ctx, secondStartedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(PointTo(Equal(*secondStartedTask.ClaimToken)))
+					Expect(claimToken).To(PointTo(Not(Equal(*firstStartedTask.ClaimToken))))
+					Expect(exists).To(BeTrue())
+				})
+
+				It("does not modify the task", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+
+					_, _, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+
+					actualTask := &task.Task{}
+					Expect(collection.FindOne(ctx, bson.M{"id": startedTask.ID}).Decode(actualTask)).To(Succeed())
+					Expect(actualTask).To(Equal(startedTask))
+				})
+
+				It("returns the claim token of a task matching the repository type filter", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+
+					filteredRepository := str.WithTypeFilter(startedTask.Type).NewTaskRepository()
+					claimToken, exists, err := filteredRepository.GetTaskClaimToken(ctx, startedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(PointTo(Equal(*startedTask.ClaimToken)))
+					Expect(exists).To(BeTrue())
+				})
+
+				It("reports the task as not existing when it does not match the repository type filter", func() {
+					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+
+					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
+					Expect(startedTask).ToNot(BeNil())
+
+					filteredRepository := str.WithTypeFilter(startedTask.Type + "-other").NewTaskRepository()
+					claimToken, exists, err := filteredRepository.GetTaskClaimToken(ctx, startedTask.ID)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimToken).To(BeNil())
+					Expect(exists).To(BeFalse())
+				})
+			})
+
+			Context("EnsureEHRReconcileTask", func() {
+				BeforeEach(func() {
+					taskStoreMongo.TypeStateTotal.Reset()
+				})
+
+				It("creates the task and increments the pending metric only on the initial insert", func() {
+					repository := str.TaskRepository()
+					Expect(repository).ToNot(BeNil())
+
+					Expect(repository.EnsureEHRReconcileTask(ctx)).To(Succeed())
+					Expect(testutil.ToFloat64(taskStoreMongo.TypeStateTotal)).To(Equal(1.0))
+
+					Expect(repository.EnsureEHRReconcileTask(ctx)).To(Succeed())
+					Expect(testutil.ToFloat64(taskStoreMongo.TypeStateTotal)).To(Equal(1.0))
+
+					count := test.Must(collection.CountDocuments(context.Background(), bson.M{"type": reconcile.Type}))
+					Expect(count).To(Equal(int64(1)))
 				})
 			})
 		})
 	})
 })
+
+func insertTaskWithStateAndDeadlineTime(ctx context.Context, collection *mongo.Collection, state string, deadlineTime *time.Time) *task.Task {
+	tsk := test.Must(task.NewTask(ctx, taskTest.RandomTaskCreate()))
+	tsk.State = state
+	tsk.DeadlineTime = deadlineTime
+	result := test.Must(collection.InsertOne(ctx, tsk))
+	Expect(collection.FindOne(ctx, bson.M{"_id": result.InsertedID}).Decode(tsk)).To(Succeed())
+	return tsk
+}

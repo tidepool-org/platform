@@ -2,10 +2,14 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"slices"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
+	"github.com/tidepool-org/platform/client"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -63,7 +67,18 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, nil, &ouraClient.ErrorResponseParser{})
+	if dependencies.Config.ClientConfig.Timeout == 0 {
+		dependencies.Config.ClientConfig.Timeout = 1 * time.Minute
+	}
+
+	httpClient := &http.Client{
+		Transport:     prometheusRequestMetricsRoundTripper,
+		CheckRedirect: http.DefaultClient.CheckRedirect,
+		Jar:           http.DefaultClient.Jar,
+		Timeout:       http.DefaultClient.Timeout,
+	}
+
+	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, httpClient, nil, &ouraClient.ErrorResponseParser{})
 	if err != nil {
 		return nil, err
 	}
@@ -298,3 +313,17 @@ func (p *Provider) createUserRevokeWork(ctx context.Context, providerSession *au
 	log.LoggerFromContext(ctx).Debug("created user revoke work")
 	return nil
 }
+
+func PrometheusPathPatterns() []string {
+	var pathPatterns []string
+	for _, eventDataType := range oura.EventDataTypes() {
+		pathPatterns = append(pathPatterns, fmt.Sprintf("/v2/usercollection/%s/{document_id}", oura.DataTypeToPath(eventDataType)))
+	}
+	return append(pathPatterns,
+		"/v2/webhook/subscription/{id}",
+		"/v2/webhook/subscription/renew/{id}",
+		client.PathPatternAny,
+	)
+}
+
+var prometheusRequestMetricsRoundTripper = client.NewPrometheusRequestMetricsRoundTripperWithPathPatternsAndDurationBuckets("tidepool_oura_api", "Tidepool Oura API", PrometheusPathPatterns(), nil)

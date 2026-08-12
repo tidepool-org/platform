@@ -82,7 +82,7 @@ var _ = Describe("Runner", func() {
 
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)
 				taskClient.EXPECT().ListTasks(gomock.Any(), gomock.Any(), gomock.Any()).Return(tasksList, nil)
-				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID)).Return(nil)
+				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID), gomock.Nil()).Return(nil)
 				taskClient.EXPECT().CreateTask(gomock.Any(), gomock.Any()).Return(nil, nil)
 				runner.Run(context.Background(), t)
 			})

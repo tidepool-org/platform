@@ -248,3 +248,18 @@ func (r *ResponseWriter) Flush() {
 	}
 	r.ResponseRecorder.Flush()
 }
+
+type RoundTripper struct {
+	Request  *http.Request
+	Response *http.Response
+	Error    error
+}
+
+func NewRoundTripper() *RoundTripper {
+	return &RoundTripper{}
+}
+
+func (t *RoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.Request = req
+	return t.Response, t.Error
+}

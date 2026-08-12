@@ -21,9 +21,8 @@ func TaskName(clinicId string) string {
 
 func NewTaskCreate(clinicId string, cadence time.Duration) *task.TaskCreate {
 	tsk := &task.TaskCreate{
-		Name:          pointer.FromString(TaskName(clinicId)),
-		Type:          Type,
-		AvailableTime: pointer.FromAny(time.Now().UTC()),
+		Name: pointer.FromString(TaskName(clinicId)),
+		Type: Type,
 		Data: map[string]interface{}{
 			"clinicId": clinicId,
 		},

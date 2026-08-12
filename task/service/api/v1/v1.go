@@ -93,7 +93,13 @@ func (r *Router) GetTask(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	tsk, err := r.TaskClient().GetTask(req.Context(), id)
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	tsk, err := r.TaskClient().GetTask(req.Context(), id, condition)
 	if err != nil {
 		responder.InternalServerError(err)
 		return
@@ -114,13 +120,19 @@ func (r *Router) UpdateTask(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
 	update := task.NewTaskUpdate()
 	if err := request.DecodeRequestBody(req.Request, update); err != nil {
 		responder.Error(http.StatusBadRequest, err)
 		return
 	}
 
-	tsk, err := r.TaskClient().UpdateTask(req.Context(), id, update)
+	tsk, err := r.TaskClient().UpdateTask(req.Context(), id, condition, update)
 	if err != nil {
 		responder.InternalServerError(err)
 		return
@@ -141,7 +153,13 @@ func (r *Router) DeleteTask(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	err := r.TaskClient().DeleteTask(req.Context(), id)
+	condition := request.NewCondition()
+	if err := request.DecodeRequestQuery(req.Request, condition); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	err := r.TaskClient().DeleteTask(req.Context(), id, condition)
 	if err != nil {
 		responder.InternalServerError(err)
 		return

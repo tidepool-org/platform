@@ -30,6 +30,7 @@ func Routes() []service.Route {
 		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireAuth),
 	}
 
+	routes = append(routes, MetricsRoutes()...)
 	routes = append(routes, DataSetsRoutes()...)
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)

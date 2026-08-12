@@ -19,15 +19,11 @@ import (
 //go:generate mockgen -source=task.go -destination=test/task_mocks.go -package=test -typed
 
 type Client interface {
-	TaskAccessor
-}
-
-type TaskAccessor interface {
 	ListTasks(ctx context.Context, filter *TaskFilter, pagination *page.Pagination) (Tasks, error)
 	CreateTask(ctx context.Context, create *TaskCreate) (*Task, error)
-	GetTask(ctx context.Context, id string) (*Task, error)
-	UpdateTask(ctx context.Context, id string, update *TaskUpdate) (*Task, error)
-	DeleteTask(ctx context.Context, id string) error
+	GetTask(ctx context.Context, id string, condition *request.Condition) (*Task, error)
+	UpdateTask(ctx context.Context, id string, condition *request.Condition, update *TaskUpdate) (*Task, error)
+	DeleteTask(ctx context.Context, id string, condition *request.Condition) error
 }
 
 const (
@@ -83,12 +79,10 @@ func (t *TaskFilter) MutateRequest(req *http.Request) error {
 }
 
 type TaskCreate struct {
-	Name           *string                `json:"name,omitempty"`
-	Type           string                 `json:"type,omitempty"`
-	Priority       int                    `json:"priority,omitempty"`
-	Data           map[string]interface{} `json:"data,omitempty"`
-	AvailableTime  *time.Time             `json:"availableTime,omitempty"`
-	ExpirationTime *time.Time             `json:"expirationTime,omitempty"`
+	Name          *string        `json:"name,omitempty"`
+	Type          string         `json:"type,omitempty"`
+	Data          map[string]any `json:"data,omitempty"`
+	AvailableTime *time.Time     `json:"availableTime,omitempty"`
 }
 
 func NewTaskCreate() *TaskCreate {
@@ -100,31 +94,21 @@ func (t *TaskCreate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("type"); ptr != nil {
 		t.Type = *ptr
 	}
-	if ptr := parser.Int("priority"); ptr != nil {
-		t.Priority = *ptr
-	}
 	if ptr := parser.Object("data"); ptr != nil {
 		t.Data = *ptr
 	}
 	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 }
 
 func (t *TaskCreate) Validate(validator structure.Validator) {
 	validator.String("name", t.Name).NotEmpty()
 	validator.String("type", &t.Type).NotEmpty()
-	expirationTimeValidator := validator.Time("expirationTime", t.ExpirationTime)
-	expirationTimeValidator.AfterNow(time.Second)
-	if t.AvailableTime != nil {
-		expirationTimeValidator.After(*t.AvailableTime)
-	}
 }
 
 type TaskUpdate struct {
-	Priority       *int                    `json:"priority,omitempty" bson:"priority,omitempty"`
-	Data           *map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
-	AvailableTime  *time.Time              `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
-	ExpirationTime *time.Time              `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
+	Data          *map[string]any      `json:"data,omitempty" bson:"data,omitempty"`
+	AvailableTime *time.Time           `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
+	Error         *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
 }
 
 func NewTaskUpdate() *TaskUpdate {
@@ -132,22 +116,28 @@ func NewTaskUpdate() *TaskUpdate {
 }
 
 func (t *TaskUpdate) Parse(parser structure.ObjectParser) {
-	t.Priority = parser.Int("priority")
 	t.Data = parser.Object("data")
 	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
+	if parser.ReferenceExists("error") {
+		t.Error = &errors.Serializable{}
+		t.Error.Parse("error", parser)
+	}
 }
 
 func (t *TaskUpdate) Validate(validator structure.Validator) {
-	expirationTimeValidator := validator.Time("expirationTime", t.ExpirationTime)
-	expirationTimeValidator.AfterNow(time.Second)
-	if t.AvailableTime != nil {
-		expirationTimeValidator.After(*t.AvailableTime)
+	if t.Error != nil {
+		t.Error.Validate(validator.WithReference("error"))
+	}
+}
+
+func (t *TaskUpdate) Normalize(normalizer structure.Normalizer) {
+	if t.Error != nil {
+		t.Error.Normalize(normalizer.WithReference("error"))
 	}
 }
 
 func (t *TaskUpdate) IsEmpty() bool {
-	return t.Priority == nil && t.Data == nil && t.AvailableTime == nil && t.ExpirationTime == nil
+	return t.Data == nil && t.AvailableTime == nil && t.Error == nil
 }
 
 func NewID() string {
@@ -178,20 +168,25 @@ func ErrorValueStringAsIDNotValid(value string) error {
 var idExpression = regexp.MustCompile("^[0-9a-f]{32}$")
 
 type Task struct {
-	ID             string                 `json:"id,omitempty" bson:"id,omitempty"`
-	Name           *string                `json:"name,omitempty" bson:"name,omitempty"`
-	Type           string                 `json:"type,omitempty" bson:"type,omitempty"`
-	Priority       int                    `json:"priority,omitempty" bson:"priority,omitempty"`
-	Data           map[string]interface{} `json:"data,omitempty" bson:"data,omitempty"`
-	AvailableTime  *time.Time             `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
-	DeadlineTime   *time.Time             `json:"deadlineTime,omitempty" bson:"deadlineTime,omitempty"`
-	ExpirationTime *time.Time             `json:"expirationTime,omitempty" bson:"expirationTime,omitempty"`
-	State          string                 `json:"state,omitempty" bson:"state,omitempty"`
-	Error          *errors.Serializable   `json:"error,omitempty" bson:"error,omitempty"`
-	RunTime        *time.Time             `json:"runTime,omitempty" bson:"runTime,omitempty"`
-	Duration       *float64               `json:"duration,omitempty" bson:"duration,omitempty"`
-	CreatedTime    time.Time              `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	ModifiedTime   *time.Time             `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	ID            string               `json:"id" bson:"id"`
+	Name          *string              `json:"name,omitempty" bson:"name,omitempty"`
+	Type          string               `json:"type" bson:"type"`
+	Data          map[string]any       `json:"data,omitempty" bson:"data,omitempty"`
+	AvailableTime *time.Time           `json:"availableTime,omitempty" bson:"availableTime,omitempty"`
+	State         string               `json:"state" bson:"state"`
+	Error         *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
+	RunTime       *time.Time           `json:"runTime,omitempty" bson:"runTime,omitempty"`
+	Duration      *float64             `json:"duration,omitempty" bson:"duration,omitempty"`
+	CreatedTime   time.Time            `json:"createdTime" bson:"createdTime"`
+	ModifiedTime  *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
+	Revision      int                  `json:"revision" bson:"revision"`
+
+	// Database only
+
+	// ClaimToken fences state transitions: a unique value set each time a run claims the task, which a later stop must
+	// match, so stale writers miss.
+	ClaimToken   *string    `json:"-" bson:"claimToken,omitempty"`
+	DeadlineTime *time.Time `json:"-" bson:"deadlineTime,omitempty"`
 }
 
 func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
@@ -201,16 +196,22 @@ func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
 		return nil, errors.Wrap(err, "create is invalid")
 	}
 
+	now := time.Now().UTC()
+
+	availableTime := create.AvailableTime
+	if availableTime == nil || availableTime.Before(now) {
+		availableTime = pointer.From(now)
+	}
+
 	return &Task{
-		ID:             NewID(),
-		Name:           create.Name,
-		Type:           create.Type,
-		Priority:       create.Priority,
-		Data:           create.Data,
-		AvailableTime:  create.AvailableTime,
-		ExpirationTime: create.ExpirationTime,
-		State:          TaskStatePending,
-		CreatedTime:    time.Now(),
+		ID:            NewID(),
+		Name:          create.Name,
+		Type:          create.Type,
+		Data:          create.Data,
+		AvailableTime: availableTime,
+		State:         TaskStatePending,
+		CreatedTime:   now,
+		Revision:      1,
 	}, nil
 }
 
@@ -222,14 +223,10 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("type"); ptr != nil {
 		t.Type = *ptr
 	}
-	if ptr := parser.Int("priority"); ptr != nil {
-		t.Priority = *ptr
-	}
 	if ptr := parser.Object("data"); ptr != nil {
 		t.Data = *ptr
 	}
 	t.AvailableTime = parser.Time("availableTime", time.RFC3339Nano)
-	t.ExpirationTime = parser.Time("expirationTime", time.RFC3339Nano)
 	if ptr := parser.String("state"); ptr != nil {
 		t.State = *ptr
 	}
@@ -243,17 +240,15 @@ func (t *Task) Parse(parser structure.ObjectParser) {
 		t.CreatedTime = *ptr
 	}
 	t.ModifiedTime = parser.Time("modifiedTime", time.RFC3339Nano)
+	if ptr := parser.Int("revision"); ptr != nil {
+		t.Revision = *ptr
+	}
 }
 
 func (t *Task) Validate(validator structure.Validator) {
 	validator.String("id", &t.ID).Using(IDValidator)
 	validator.String("name", t.Name).NotEmpty()
 	validator.String("type", &t.Type).NotEmpty()
-	expirationTimeValidator := validator.Time("expirationTime", t.ExpirationTime)
-	expirationTimeValidator.AfterNow(time.Second)
-	if t.AvailableTime != nil {
-		expirationTimeValidator.After(*t.AvailableTime)
-	}
 	validator.String("state", &t.State).OneOf(TaskStates()...)
 	if t.Error != nil {
 		t.Error.Validate(validator.WithReference("error"))
@@ -262,6 +257,7 @@ func (t *Task) Validate(validator structure.Validator) {
 	validator.Float64("duration", t.Duration).GreaterThanOrEqualTo(0)
 	validator.Time("createdTime", &t.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", t.ModifiedTime).After(t.CreatedTime).BeforeNow(time.Second)
+	validator.Int("revision", &t.Revision).GreaterThanOrEqualTo(0)
 }
 
 func (t *Task) Normalize(normalizer structure.Normalizer) {
@@ -280,7 +276,6 @@ func (t *Task) Sanitize(details request.AuthDetails) error {
 func (t *Task) RepeatAvailableAt(availableTime time.Time) {
 	t.State = TaskStatePending
 	t.AvailableTime = pointer.FromTime(availableTime)
-	t.DeadlineTime = nil
 }
 
 func (t *Task) RepeatAvailableAfter(availableDuration time.Duration) {
@@ -293,6 +288,12 @@ func (t *Task) IsFailed() bool {
 
 func (t *Task) SetFailed() {
 	t.State = TaskStateFailed
+	t.AvailableTime = nil
+}
+
+func (t *Task) SetFailedWithError(err error) {
+	t.AppendError(err)
+	t.SetFailed()
 }
 
 func (t *Task) IsCompleted() bool {
@@ -327,6 +328,16 @@ func (t *Task) ClearError() {
 	t.Error = nil
 }
 
+func (t *Task) LogFields() log.Fields {
+	return log.Fields{
+		"id":         t.ID,
+		"type":       t.Type,
+		"state":      t.State,
+		"revision":   t.Revision,
+		"claimToken": t.ClaimToken,
+	}
+}
+
 type Tasks []*Task
 
 func (t Tasks) Sanitize(details request.AuthDetails) error {
@@ -338,4 +349,7 @@ func (t Tasks) Sanitize(details request.AuthDetails) error {
 	return nil
 }
 
-var AlreadyClaimedTask = errors.New("Task has already been claimed or is now unavailable.")
+// ErrClaimLost is the cancellation cause set on the Run context when the run's claim on the task was lost mid-run: the
+// task was deleted, or it was unstuck and possibly re-claimed (its claim token no longer matches). A runner
+// distinguishes it with errors.Is(context.Cause(ctx), ErrClaimLost).
+var ErrClaimLost = errors.New("task claim lost")

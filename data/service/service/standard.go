@@ -197,7 +197,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 func (s *Standard) Terminate() {
 	if s.server != nil {
 		if err := s.server.Shutdown(); err != nil {
-			s.Logger().Errorf("Error while terminating the the server: %v", err)
+			s.Logger().Errorf("Error while terminating the server: %v", err)
 		}
 		s.server = nil
 	}

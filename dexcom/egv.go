@@ -241,7 +241,7 @@ func (e *EGV) Validate(validator structure.Validator) {
 		logger.Warnf("Trend is '%s'", *e.Trend)
 	}
 	if e.TransmitterID != nil && *e.TransmitterID == "" {
-		logger.Warnf("TransmitterID is empty", *e.TransmitterID)
+		logger.Warn("TransmitterID is empty")
 	}
 	if e.TransmitterTicks != nil && *e.TransmitterTicks == EGVTransmitterTickMinimum {
 		logger.Warnf("TransmitterTicks is %d", *e.TransmitterTicks)

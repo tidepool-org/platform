@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -766,6 +767,40 @@ var _ = Describe("Client", func() {
 					})
 
 					It("returns success", func() {
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reader).ToNot(BeNil())
+						Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
+
+				Context("with a timeout", func() {
+					var timeout time.Duration
+
+					BeforeEach(func() {
+						timeout = 100 * time.Millisecond
+						config.Timeout = timeout
+					})
+
+					It("returns an error if the response is not received within the timeout", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							time.Sleep(3 * timeout)
+						})
+
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(errors.Is(errors.Cause(err), context.DeadlineExceeded)).To(BeTrue())
+						Expect(reader).To(BeNil())
+					})
+
+					It("does not apply the timeout to reading the response body", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							res.WriteHeader(http.StatusOK)
+							res.(http.Flusher).Flush()
+							time.Sleep(3 * timeout)
+							res.Write([]byte(responseString))
+						})
+
 						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(reader).ToNot(BeNil())

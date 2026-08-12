@@ -31,8 +31,8 @@ func (r *Runner) GetRunnerType() string {
 	return Type
 }
 
-func (r *Runner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(TaskDurationMaximum * 3)
+func (r *Runner) GetRunnerDeadline() time.Duration {
+	return TaskDurationMaximum * 3
 }
 
 func (r *Runner) GetRunnerTimeout() time.Duration {
@@ -58,9 +58,8 @@ func (r *Runner) Run(ctx context.Context, tsk *task.Task) {
 func (r *Runner) doRun(ctx context.Context, tsk *task.Task) {
 	clinicId, err := GetClinicId(tsk.Data)
 	if err != nil {
-		tsk.AppendError(errors.Wrap(err, "unable to get clinicId from task data"))
 		// Unrecoverable condition, move the task to failed state so it won't be retried
-		tsk.SetFailed()
+		tsk.SetFailedWithError(errors.Wrap(err, "unable to get clinicId from task data"))
 		return
 	}
 

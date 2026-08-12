@@ -187,13 +187,17 @@ var _ = Describe("Moment", func() {
 		})
 	})
 
-	Context("Moment", func() {
-		Context("Compact", func() {
-			It("removes nil moments from array", func() {
+	Context("Moments", func() {
+		Context("CompactBySystemTimeRaw", func() {
+			It("removes nil moments and moments without a system time from array", func() {
 				moment1 := dexcomTest.RandomMomentFromRange(test.PastFarTime(), test.FutureFarTime())
 				moment2 := dexcomTest.RandomMomentFromRange(test.PastFarTime(), test.FutureFarTime())
-				moments := dexcom.Moments{nil, moment1, nil, moment2, nil}
-				Expect(moments.Compact()).To(Equal(dexcom.Moments{moment1, moment2}))
+				moment3 := dexcomTest.RandomMomentFromRange(test.PastFarTime(), test.FutureFarTime())
+				moment3.SystemTime = nil
+				moment4 := dexcomTest.RandomMomentFromRange(test.PastFarTime(), test.FutureFarTime())
+				moment4.SystemTime.Time = time.Time{}
+				moments := dexcom.Moments{nil, moment1, moment3, moment2, moment4, nil}
+				Expect(moments.CompactBySystemTimeRaw()).To(Equal(dexcom.Moments{moment1, moment2}))
 			})
 		})
 	})

@@ -23,6 +23,7 @@ func NewRouter(svc service.Service) (*Router, error) {
 
 func (r *Router) Routes() []*rest.Route {
 	routes := [][]*rest.Route{
+		r.MetricsRoutes(),
 		r.OAuthRoutes(),
 		r.ProviderSessionsRoutes(),
 		r.RestrictedTokensRoutes(),

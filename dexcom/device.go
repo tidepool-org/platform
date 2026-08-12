@@ -33,7 +33,7 @@ const (
 	DeviceTransmitterGenerationG4      = "g4"
 	DeviceTransmitterGenerationG5      = "g5"
 	DeviceTransmitterGenerationG6      = "g6"
-	DeviceTransmitterGenerationG6Pro   = "g6 pro" // NOTE: Not specfied in API specs but found during actual usage
+	DeviceTransmitterGenerationG6Pro   = "g6 pro" // NOTE: Not specified in API specs but found during actual usage
 	DeviceTransmitterGenerationG6Plus  = "g6+"
 	DeviceTransmitterGenerationPro     = "dexcomPro"
 	DeviceTransmitterGenerationG7      = "g7"

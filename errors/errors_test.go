@@ -182,9 +182,10 @@ var _ = Describe("Errors", func() {
 	})
 
 	Context("NewSerializable", func() {
-		It("returns nil if the error is nil", func() {
+		It("returns a serializable if the error is nil", func() {
 			serializable := errors.NewSerializable(nil)
-			Expect(serializable).To(BeNil())
+			Expect(serializable).ToNot(BeNil())
+			Expect(serializable.Error).To(BeNil())
 		})
 
 		It("returns a serializable if the error is not nil", func() {

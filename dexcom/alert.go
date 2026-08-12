@@ -174,7 +174,7 @@ func (a *Alert) Validate(validator structure.Validator) {
 		logger.Warnf("AlertState is '%s'", *a.AlertState)
 	}
 	if a.TransmitterID != nil && *a.TransmitterID == "" {
-		logger.Warnf("TransmitterID is empty", *a.TransmitterID)
+		logger.Warn("TransmitterID is empty")
 	}
 }
 

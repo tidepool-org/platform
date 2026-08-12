@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 )
 
@@ -40,13 +41,10 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	}
 	c.TLSCertificateFile = configReporter.GetWithDefault("tls_certificate_file", "")
 	c.TLSKeyFile = configReporter.GetWithDefault("tls_key_file", "")
-	if timeoutString, err := configReporter.Get("timeout"); err == nil {
-		var timeout int64
-		timeout, err = strconv.ParseInt(timeoutString, 10, 0)
-		if err != nil {
-			return errors.New("timeout is invalid")
-		}
-		c.Timeout = time.Duration(timeout) * time.Second
+	if timeout, err := duration.Parse(configReporter.GetWithDefault("timeout", c.Timeout.String()), time.Second); err != nil {
+		return errors.New("timeout is invalid")
+	} else {
+		c.Timeout = timeout
 	}
 
 	return nil

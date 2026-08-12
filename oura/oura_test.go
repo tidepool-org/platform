@@ -375,6 +375,34 @@ var _ = Describe("oura", func() {
 		})
 	})
 
+	Context("DataTypeToPath", func() {
+		It("returns expected path for valid data type", func() {
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyActivity)).To(Equal(oura.DataTypeDailyActivity))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyCardiovascularAge)).To(Equal(oura.DataTypeDailyCardiovascularAge))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyCyclePhases)).To(Equal(oura.DataTypeDailyCyclePhases))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyReadiness)).To(Equal(oura.DataTypeDailyReadiness))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyResilience)).To(Equal(oura.DataTypeDailyResilience))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailySleep)).To(Equal(oura.DataTypeDailySleep))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailySpO2)).To(Equal(oura.DataTypeDailySpO2))
+			Expect(oura.DataTypeToPath(oura.DataTypeDailyStress)).To(Equal(oura.DataTypeDailyStress))
+			Expect(oura.DataTypeToPath(oura.DataTypeEnhancedTag)).To(Equal(oura.DataTypeEnhancedTag))
+			Expect(oura.DataTypeToPath(oura.DataTypeHeartRate)).To(Equal(oura.DataTypeHeartRate))
+			Expect(oura.DataTypeToPath(oura.DataTypeRestModePeriod)).To(Equal(oura.DataTypeRestModePeriod))
+			Expect(oura.DataTypeToPath(oura.DataTypeRingBatteryLevel)).To(Equal(oura.DataTypeRingBatteryLevel))
+			Expect(oura.DataTypeToPath(oura.DataTypeRingConfiguration)).To(Equal(oura.DataTypeRingConfiguration))
+			Expect(oura.DataTypeToPath(oura.DataTypeSession)).To(Equal(oura.DataTypeSession))
+			Expect(oura.DataTypeToPath(oura.DataTypeSleep)).To(Equal(oura.DataTypeSleep))
+			Expect(oura.DataTypeToPath(oura.DataTypeSleepTime)).To(Equal(oura.DataTypeSleepTime))
+			Expect(oura.DataTypeToPath(oura.DataTypeVO2Max)).To(Equal("vO2_max"))
+			Expect(oura.DataTypeToPath(oura.DataTypeWorkout)).To(Equal(oura.DataTypeWorkout))
+		})
+
+		It("returns data type for unknown data type", func() {
+			dataType := test.RandomString()
+			Expect(oura.DataTypeToPath(dataType)).To(Equal(dataType))
+		})
+	})
+
 	Context("CreateSubscription", func() {
 		DescribeTable("serializes the datum as expected",
 			func(mutator func(datum *oura.CreateSubscription)) {

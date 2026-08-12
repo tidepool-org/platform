@@ -109,7 +109,7 @@ var _ = Describe("Runner", func() {
 		})
 
 		It("returns the runner deadline", func() {
-			Expect(runner.GetRunnerDeadline()).Should(BeTemporally("~", time.Now().Add(45*time.Minute), time.Second))
+			Expect(runner.GetRunnerDeadline()).To(Equal(45 * time.Minute))
 		})
 
 		It("returns the runner timeout", func() {
@@ -141,15 +141,17 @@ var _ = Describe("Runner", func() {
 
 	Context("with provider and task", func() {
 		var provider *dexcomFetchTest.MockProvider
+		var runnerDurationMaximum time.Duration
 		var tsk *task.Task
 
 		BeforeEach(func() {
 			provider = dexcomFetchTest.NewMockProvider(mockController)
+			runnerDurationMaximum = time.Second
 			provider.EXPECT().AuthClient().Return(authClient).AnyTimes()
 			provider.EXPECT().DataClient().Return(dataClient).AnyTimes()
 			provider.EXPECT().DataSourceClient().Return(dataSourceClient).AnyTimes()
 			provider.EXPECT().DexcomClient().Return(dexcomClient).AnyTimes()
-			provider.EXPECT().GetRunnerDurationMaximum().Return(time.Second).AnyTimes()
+			provider.EXPECT().GetRunnerDurationMaximum().DoAndReturn(func() time.Duration { return runnerDurationMaximum }).AnyTimes()
 			tsk = &task.Task{
 				State: task.TaskStateRunning,
 				Data: map[string]any{
@@ -185,6 +187,7 @@ var _ = Describe("Runner", func() {
 
 		Context("with task runner and context", func() {
 			var taskRunner *dexcomFetch.TaskRunner
+			var logger *logTest.Logger
 			var ctx context.Context
 
 			BeforeEach(func() {
@@ -192,7 +195,8 @@ var _ = Describe("Runner", func() {
 				taskRunner, err = dexcomFetch.NewTaskRunner(provider, tsk)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(taskRunner).ToNot(BeNil())
-				ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
+				logger = logTest.NewLogger()
+				ctx = log.NewContextWithLogger(context.Background(), logger)
 			})
 
 			assertTaskState := func(state string) {
@@ -206,8 +210,19 @@ var _ = Describe("Runner", func() {
 				}
 			}
 
+			assertTaskAvailableSoon := func() {
+				Expect(tsk.AvailableTime).ToNot(BeNil())
+				Expect(*tsk.AvailableTime).To(BeTemporally("~", time.Now().Add(time.Minute), 5*time.Second))
+			}
+
+			assertTaskAvailableAfterStandardDuration := func() {
+				Expect(tsk.AvailableTime).ToNot(BeNil())
+				Expect(*tsk.AvailableTime).To(BeTemporally(">", time.Now().Add(dexcomFetch.AvailableAfterDuration-dexcomFetch.AvailableAfterDurationJitter-time.Second)))
+				Expect(*tsk.AvailableTime).To(BeTemporally("<", time.Now().Add(dexcomFetch.AvailableAfterDuration+dexcomFetch.AvailableAfterDurationJitter)))
+			}
+
 			assertTaskRetryCount := func(retryCount int) {
-				Expect(tsk.Data[dexcom.DataKeyRetryCount]).To(Equal(retryCount))
+				Expect(tsk.Data[dexcom.DataKeyRetryCount]).To(Equal(int32(retryCount)))
 			}
 
 			assertTaskRetryCountNotPresent := func() {
@@ -258,7 +273,7 @@ var _ = Describe("Runner", func() {
 
 			It("fails if getting the data source fails", func() {
 				testErr := errorsTest.RandomError()
-				dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(nil, testErr).Times(1)
+				dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(nil, testErr)
 				taskRunner.Run(ctx)
 				assertTaskState(task.TaskStatePending)
 				assertTaskRetryCountNotPresent()
@@ -266,7 +281,7 @@ var _ = Describe("Runner", func() {
 			})
 
 			It("fails if the data source is missing", func() {
-				dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(nil, nil).Times(1)
+				dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(nil, nil)
 				taskRunner.Run(ctx)
 				assertTaskState(task.TaskStateFailed)
 				assertTaskRetryCountNotPresent()
@@ -282,7 +297,7 @@ var _ = Describe("Runner", func() {
 						ProviderSessionID: pointer.FromString("test-provider-session-id"),
 						State:             dataSource.StateConnected,
 					}
-					dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(dataSrc, nil).Times(1)
+					dataSourceClient.EXPECT().Get(matchContext(), "test-data-source-id").Return(dataSrc, nil)
 				})
 
 				assertTaskAndDataSourceState := func(state string) {
@@ -309,10 +324,14 @@ var _ = Describe("Runner", func() {
 					Expect(tsk.HasError()).To(BeFalse())
 				}
 
+				assertDataSourceLastImportTimePresent := func() {
+					Expect(dataSrc.LastImportTime).ToNot(BeNil())
+				}
+
 				It("fails if provider session id is missing and update data source returns an error", func() {
 					testErr := errorsTest.RandomError()
 					delete(tsk.Data, dexcom.DataKeyProviderSessionID)
-					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).Return(nil, testErr).Times(1)
+					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).Return(nil, testErr)
 					taskRunner.Run(ctx)
 					assertTaskState(task.TaskStatePending)
 					assertTaskRetryCountNotPresent()
@@ -321,7 +340,7 @@ var _ = Describe("Runner", func() {
 
 				It("fails if provider session id is missing", func() {
 					delete(tsk.Data, dexcom.DataKeyProviderSessionID)
-					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
+					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 					taskRunner.Run(ctx)
 					assertTaskAndDataSourceState(task.TaskStateFailed)
 					assertTaskRetryCountNotPresent()
@@ -330,7 +349,7 @@ var _ = Describe("Runner", func() {
 
 				It("fails if provider session id is empty", func() {
 					tsk.Data[dexcom.DataKeyProviderSessionID] = ""
-					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
+					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 					taskRunner.Run(ctx)
 					assertTaskAndDataSourceState(task.TaskStateFailed)
 					assertTaskRetryCountNotPresent()
@@ -339,17 +358,32 @@ var _ = Describe("Runner", func() {
 
 				It("fails if getting the provider session fails", func() {
 					testErr := errorsTest.RandomError()
-					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(nil, testErr).Times(1)
-					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
+					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(nil, testErr)
+					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 					taskRunner.Run(ctx)
 					assertTaskAndDataSourceState(task.TaskStatePending)
 					assertTaskRetryCountNotPresent()
 					assertTaskAndDataSourceError(dexcomFetch.ErrorCodeResourceFailure, "unable to get provider session")
 				})
 
+				It("discards the run outcome if the task claim is lost", func() {
+					claimContext, claimCancel := context.WithCancelCause(ctx)
+					defer claimCancel(nil)
+					testErr := errorsTest.RandomError()
+					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").DoAndReturn(func(ctx context.Context, id string) (*auth.ProviderSession, error) {
+						claimCancel(task.ErrClaimLost)
+						return nil, testErr
+					})
+					taskRunner.Run(claimContext)
+					assertTaskState(task.TaskStateRunning)
+					Expect(dataSrc.State).To(Equal(dataSource.StateConnected))
+					Expect(dataSrc.HasError()).To(BeFalse())
+					logger.AssertWarn("Skipped updating data source and task because the task claim was lost")
+				})
+
 				It("fails if the provider session is missing", func() {
-					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(nil, nil).Times(1)
-					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
+					authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(nil, nil)
+					dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 					taskRunner.Run(ctx)
 					assertTaskAndDataSourceState(task.TaskStateFailed)
 					assertTaskRetryCountNotPresent()
@@ -372,8 +406,8 @@ var _ = Describe("Runner", func() {
 							UserID:     "test-user-id",
 							OAuthToken: oauthToken,
 						}
-						authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(providerSession, nil).Times(1)
-						dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(1)
+						authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(providerSession, nil)
+						dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
 					})
 
 					assertProviderSessionRefreshedTimes := func(times int) {
@@ -412,7 +446,7 @@ var _ = Describe("Runner", func() {
 
 					It("fails if get data ranges returns a general error", func() {
 						testErr := errorsTest.RandomError()
-						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, nil, testErr)).Times(1)
+						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, nil, testErr))
 						taskRunner.Run(ctx)
 						assertTaskAndDataSourceState(task.TaskStatePending)
 						assertTaskRetryCountNotPresent()
@@ -424,7 +458,7 @@ var _ = Describe("Runner", func() {
 						latestDataTime := pointer.FromTime(time.Now().Add(-Day))
 						dataSrc.LatestDataTime = latestDataTime
 						testErr := errorsTest.RandomError()
-						dexcomClient.EXPECT().GetDataRange(matchContext(), latestDataTime, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, nil, testErr)).Times(1)
+						dexcomClient.EXPECT().GetDataRange(matchContext(), latestDataTime, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, nil, testErr))
 						taskRunner.Run(ctx)
 						assertTaskAndDataSourceState(task.TaskStatePending)
 						assertTaskRetryCountNotPresent()
@@ -434,8 +468,8 @@ var _ = Describe("Runner", func() {
 
 					It("fails if get data ranges refreshes the token and returns a general error", func() {
 						testErr := errorsTest.RandomError()
-						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, testErr)).Times(1)
-						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, testErr))
+						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 						taskRunner.Run(ctx)
 						assertTaskAndDataSourceState(task.TaskStatePending)
 						assertTaskRetryCountNotPresent()
@@ -445,8 +479,8 @@ var _ = Describe("Runner", func() {
 
 					It("fails if get data ranges refreshes the token and returns an authentication error", func() {
 						testErr := request.ErrorUnauthenticated()
-						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, testErr)).Times(1)
-						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, nil, testErr))
+						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 						taskRunner.Run(ctx)
 						assertTaskAndDataSourceState(task.TaskStatePending)
 						assertTaskRetryCount(1)
@@ -468,8 +502,8 @@ var _ = Describe("Runner", func() {
 									End:   &dexcom.Moment{SystemTime: &dexcom.Time{Time: endTime}},
 								},
 							}
-							dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, dataRangeResponse, nil)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+							dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(&MockTokenSource{Refresh: true}, dataRangeResponse, nil))
+							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 						})
 
 						It("is successful if the Dexcom data ranges is not valid", func() {
@@ -492,8 +526,8 @@ var _ = Describe("Runner", func() {
 
 						It("fails if get alerts returns a general error", func() {
 							testErr := errorsTest.RandomError()
-							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](nil, nil, testErr)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](nil, nil, testErr))
+							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -503,8 +537,8 @@ var _ = Describe("Runner", func() {
 
 						It("fails if get alerts refreshes the token and returns a general error", func() {
 							testErr := errorsTest.RandomError()
-							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, testErr)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, testErr))
+							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCountNotPresent()
@@ -514,8 +548,8 @@ var _ = Describe("Runner", func() {
 
 						It("fails if get alerts refreshes the token and returns an authentication error", func() {
 							testErr := request.ErrorUnauthenticated()
-							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, testErr)).Times(1)
-							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(1)
+							dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](&MockTokenSource{Refresh: true}, nil, testErr))
+							authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession))
 							taskRunner.Run(ctx)
 							assertTaskAndDataSourceState(task.TaskStatePending)
 							assertTaskRetryCount(1)
@@ -532,9 +566,9 @@ var _ = Describe("Runner", func() {
 
 							BeforeEach(func() {
 								alertsResponse = &dexcom.AlertsResponse{Records: &dexcom.Alerts{}}
-								dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, alertsResponse, nil)).Times(1)
+								dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, alertsResponse, nil))
 								calibrationsResponse = &dexcom.CalibrationsResponse{Records: &dexcom.Calibrations{}}
-								dexcomClient.EXPECT().GetCalibrations(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, calibrationsResponse, nil)).Times(1)
+								dexcomClient.EXPECT().GetCalibrations(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, calibrationsResponse, nil))
 								devicesResponse = &dexcom.DevicesResponse{
 									Records: &dexcom.Devices{
 										{
@@ -547,11 +581,11 @@ var _ = Describe("Runner", func() {
 										},
 									},
 								}
-								dexcomClient.EXPECT().GetDevices(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, devicesResponse, nil)).Times(1)
+								dexcomClient.EXPECT().GetDevices(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, devicesResponse, nil))
 								egvsResponse = &dexcom.EGVsResponse{Records: &dexcom.EGVs{}}
-								dexcomClient.EXPECT().GetEGVs(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, egvsResponse, nil)).Times(1)
+								dexcomClient.EXPECT().GetEGVs(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, egvsResponse, nil))
 								eventsResponse = &dexcom.EventsResponse{Records: &dexcom.Events{}}
-								dexcomClient.EXPECT().GetEvents(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, eventsResponse, nil)).Times(1)
+								dexcomClient.EXPECT().GetEvents(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, eventsResponse, nil))
 								authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).Times(5)
 							})
 
@@ -569,14 +603,54 @@ var _ = Describe("Runner", func() {
 									ID:       pointer.FromString("test-data-set-id"),
 									UploadID: pointer.FromString("test-data-set-upload-id"),
 								}
-								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(3)
-								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil)).Times(1)
-								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil)).Times(1)
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(2)
+								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
+								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
 								taskRunner.Run(ctx)
 								assertTaskAndDataSourceState(task.TaskStatePending)
+								assertTaskAvailableAfterStandardDuration()
 								assertTaskDeviceHashesCount(3)
 								assertTaskRetryCountNotPresent()
 								assertTaskAndDataSourceErrorNotPresent()
+								assertDataSourceLastImportTimePresent()
+								assertProviderSessionRefreshedTimes(6)
+							})
+
+							It("is available soon if the deadline is exceeded", func() {
+								runnerDurationMaximum = -time.Second
+								dataSet := &data.DataSet{
+									ID:       pointer.FromString("test-data-set-id"),
+									UploadID: pointer.FromString("test-data-set-upload-id"),
+								}
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(2)
+								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
+								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+								taskRunner.Run(ctx)
+								assertTaskAndDataSourceState(task.TaskStatePending)
+								assertTaskAvailableSoon()
+								assertTaskRetryCountNotPresent()
+								assertTaskAndDataSourceErrorNotPresent()
+								assertDataSourceLastImportTimePresent()
+								assertProviderSessionRefreshedTimes(6)
+							})
+
+							It("is available soon if the deadline is exceeded and a later update fails", func() {
+								runnerDurationMaximum = -time.Second
+								testErr := errorsTest.RandomError()
+								dataSet := &data.DataSet{
+									ID:       pointer.FromString("test-data-set-id"),
+									UploadID: pointer.FromString("test-data-set-upload-id"),
+								}
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+								dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).Return(nil, testErr).Times(1)
+								dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(dataSet, nil))
+								dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+								taskRunner.Run(ctx)
+								assertTaskState(task.TaskStatePending)
+								assertTaskAvailableSoon()
+								assertTaskRetryCountNotPresent()
+								assertTaskError(dexcomFetch.ErrorCodeResourceFailure, "unable to update data source")
+								assertDataSourceLastImportTimePresent()
 								assertProviderSessionRefreshedTimes(6)
 							})
 						})
@@ -586,7 +660,78 @@ var _ = Describe("Runner", func() {
 					// deviceHashes - not in data
 					// dataSource.LatestDataTime - not nil (recent)
 					// refresh token
-					// data ranges multiple 30 day segments
+				})
+
+				Context("with provider session and a data range spanning multiple chunks", func() {
+					var providerSession *auth.ProviderSession
+					var firstChunkStartTime time.Time
+					var firstChunkEndTime time.Time
+					var secondChunkEndTime time.Time
+
+					BeforeEach(func() {
+						providerSession = &auth.ProviderSession{
+							ID:     "test-provider-session-id",
+							UserID: "test-user-id",
+							OAuthToken: &auth.OAuthToken{
+								AccessToken:    "test-access-token-1",
+								TokenType:      "Bearer",
+								RefreshToken:   "test-refresh-token-1",
+								ExpirationTime: time.Now().Add(time.Minute),
+							},
+						}
+						authClient.EXPECT().GetProviderSession(matchContext(), "test-provider-session-id").Return(providerSession, nil)
+						authClient.EXPECT().UpdateProviderSession(matchContext(), "test-provider-session-id", matchNotNil()).DoAndReturn(mockAuthClientUpdateProviderSession(providerSession)).AnyTimes()
+						firstChunkStartTime = time.Now().Add(-45 * Day)
+						firstChunkEndTime = firstChunkStartTime.AddDate(0, 0, dexcomFetch.DataRangeDaysMaximum)
+						secondChunkEndTime = time.Now().Add(-3 * Day)
+						dataRangeResponse := &dexcom.DataRangesResponse{
+							Calibrations: &dexcom.DataRange{
+								Start: &dexcom.Moment{SystemTime: &dexcom.Time{Time: firstChunkStartTime}},
+								End:   &dexcom.Moment{SystemTime: &dexcom.Time{Time: secondChunkEndTime}},
+							},
+						}
+						dexcomClient.EXPECT().GetDataRange(matchContext(), nil, matchNotNil()).DoAndReturn(mockDexcomClientGetDataRange(nil, dataRangeResponse, nil))
+					})
+
+					// Expects the fetch of a single chunk, all responses empty, invoking onEvents, if any, during the
+					// final fetch of the chunk
+					expectFetchChunk := func(startTime time.Time, endTime time.Time, onEvents func()) {
+						dexcomClient.EXPECT().GetAlerts(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.AlertsResponse{Records: &dexcom.Alerts{}}, nil))
+						dexcomClient.EXPECT().GetCalibrations(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.CalibrationsResponse{Records: &dexcom.Calibrations{}}, nil))
+						dexcomClient.EXPECT().GetDevices(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.DevicesResponse{Records: &dexcom.Devices{}}, nil))
+						dexcomClient.EXPECT().GetEGVs(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData(nil, &dexcom.EGVsResponse{Records: &dexcom.EGVs{}}, nil))
+						dexcomClient.EXPECT().GetEvents(matchContext(), startTime, endTime, matchNotNil()).DoAndReturn(func(ctx context.Context, startTime time.Time, endTime time.Time, tokenSource oauth.TokenSource) (*dexcom.EventsResponse, error) {
+							if onEvents != nil {
+								onEvents()
+							}
+							return &dexcom.EventsResponse{Records: &dexcom.Events{}}, nil
+						})
+					}
+
+					It("fetches every chunk of the data range", func() {
+						expectFetchChunk(firstChunkStartTime, firstChunkEndTime, nil)
+						expectFetchChunk(firstChunkEndTime, secondChunkEndTime, nil)
+						dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+						taskRunner.Run(ctx)
+						assertTaskAndDataSourceState(task.TaskStatePending)
+						assertTaskAvailableAfterStandardDuration()
+						assertTaskRetryCountNotPresent()
+						assertTaskAndDataSourceErrorNotPresent()
+						assertDataSourceLastImportTimePresent()
+					})
+
+					It("discards the run outcome if the task claim is lost mid-fetch", func() {
+						claimContext, claimCancel := context.WithCancelCause(ctx)
+						defer claimCancel(nil)
+						expectFetchChunk(firstChunkStartTime, firstChunkEndTime, func() { claimCancel(task.ErrClaimLost) })
+						// The canceled context fails the next chunk, ending the run
+						dexcomClient.EXPECT().GetAlerts(matchContext(), firstChunkEndTime, secondChunkEndTime, matchNotNil()).DoAndReturn(mockDexcomClientGetData[dexcom.AlertsResponse](nil, nil, context.Canceled))
+						taskRunner.Run(claimContext)
+						assertTaskState(task.TaskStateRunning)
+						Expect(dataSrc.State).To(Equal(dataSource.StateConnected))
+						Expect(dataSrc.HasError()).To(BeFalse())
+						logger.AssertWarn("Skipped updating data source and task because the task claim was lost")
+					})
 				})
 			})
 		})

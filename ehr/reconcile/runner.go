@@ -41,8 +41,8 @@ func (r *Runner) GetRunnerType() string {
 	return Type
 }
 
-func (r *Runner) GetRunnerDeadline() time.Time {
-	return time.Now().Add(TaskDurationMaximum * 3)
+func (r *Runner) GetRunnerDeadline() time.Duration {
+	return TaskDurationMaximum * 3
 }
 
 func (r *Runner) GetRunnerTimeout() time.Duration {
@@ -117,7 +117,7 @@ func (r *Runner) getSyncTasks(ctx context.Context) (map[string]task.Task, error)
 
 func (r *Runner) reconcileTasks(ctx context.Context, tsk *task.Task, plan ReconciliationPlan) {
 	for _, t := range plan.ToDelete {
-		if err := r.taskClient.DeleteTask(ctx, t.ID); err != nil {
+		if err := r.taskClient.DeleteTask(ctx, t.ID, nil); err != nil {
 			tsk.AppendError(errors.Wrap(err, "unable to delete task"))
 		}
 	}
@@ -127,7 +127,7 @@ func (r *Runner) reconcileTasks(ctx context.Context, tsk *task.Task, plan Reconc
 		}
 	}
 	for id, update := range plan.ToUpdate {
-		if _, err := r.taskClient.UpdateTask(ctx, id, update); err != nil {
+		if _, err := r.taskClient.UpdateTask(ctx, id, nil, update); err != nil {
 			tsk.AppendError(errors.Wrap(err, "unable to update task"))
 		}
 	}
