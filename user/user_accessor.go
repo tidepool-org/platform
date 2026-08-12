@@ -51,8 +51,7 @@ type RoleGetter interface {
 type UserAccessor interface {
 	ProfileAccessor
 	RoleGetter
-	FindUser(ctx context.Context, user *User) (*User, error)
-	FindUserById(ctx context.Context, id string) (*User, error)
+	Get(ctx context.Context, id string) (*User, error)
 	FindUsersWithIds(ctx context.Context, ids []string) ([]*User, error)
 }
 

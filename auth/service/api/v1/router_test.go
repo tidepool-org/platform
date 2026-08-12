@@ -111,7 +111,7 @@ var _ = Describe("Router", func() {
 					userRoles = []string{user.RolePatient}
 
 					userAccessor.EXPECT().
-						FindUserById(gomock.Any(), userID).
+						Get(gomock.Any(), userID).
 						Return(userDetails, nil).AnyTimes()
 				})
 
@@ -228,7 +228,7 @@ var _ = Describe("Router", func() {
 											FindLegacyUserProfile(gomock.Any(), otherPersonID).
 											Return(otherProfile, nil).AnyTimes()
 										userAccessor.EXPECT().
-											FindUserById(gomock.Any(), otherPersonID).
+											Get(gomock.Any(), otherPersonID).
 											Return(otherDetails, nil).AnyTimes()
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -247,7 +247,7 @@ var _ = Describe("Router", func() {
 											FindLegacyUserProfile(gomock.Any(), otherPersonID).
 											Return(otherProfile, nil).AnyTimes()
 										userAccessor.EXPECT().
-											FindUserById(gomock.Any(), otherPersonID).
+											Get(gomock.Any(), otherPersonID).
 											Return(otherDetails, nil).AnyTimes()
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -431,7 +431,7 @@ var _ = Describe("Router", func() {
 											FindLegacyUserProfile(gomock.Any(), otherPersonID).
 											Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
 										userAccessor.EXPECT().
-											FindUserById(gomock.Any(), otherPersonID).
+											Get(gomock.Any(), otherPersonID).
 											Return(otherDetails, nil).AnyTimes()
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -450,7 +450,7 @@ var _ = Describe("Router", func() {
 											FindLegacyUserProfile(gomock.Any(), otherPersonID).
 											Return(otherProfile.ToLegacyProfile(otherRoles), nil).AnyTimes()
 										userAccessor.EXPECT().
-											FindUserById(gomock.Any(), otherPersonID).
+											Get(gomock.Any(), otherPersonID).
 											Return(otherDetails, nil).AnyTimes()
 										handlerFunc(res, req)
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
@@ -587,7 +587,6 @@ var _ = Describe("Router", func() {
 						Username:      pointer.FromString("dev@tidepool.org"),
 						EmailVerified: pointer.FromBool(true),
 						Roles:         &userRoles,
-						Emails:        []string{"dev@tidepool.org"},
 						Profile:       &userProfile,
 					}
 					sanitizedUserDetails = &user.User{
@@ -595,7 +594,6 @@ var _ = Describe("Router", func() {
 						Username:      pointer.FromString("dev@tidepool.org"),
 						EmailVerified: pointer.FromBool(true),
 						Roles:         &userRoles,
-						Emails:        []string{"dev@tidepool.org"},
 						Profile:       &userProfile,
 					}
 
@@ -615,7 +613,6 @@ var _ = Describe("Router", func() {
 						Username:      pointer.FromString("sharee@tidepool.org"),
 						EmailVerified: pointer.FromBool(true),
 						Roles:         &shareeRoles,
-						Emails:        []string{"sharee@tidepool.org"},
 						Profile:       &shareeProfile,
 					}
 					limitedShareeDetails = &user.User{
@@ -623,13 +620,12 @@ var _ = Describe("Router", func() {
 						Username:      pointer.FromString("sharee@tidepool.org"),
 						EmailVerified: pointer.FromBool(true),
 						Roles:         &shareeRoles,
-						Emails:        []string{"sharee@tidepool.org"},
 						Profile:       &limitedShareeProfile,
 					}
 
 					var s string
 					userAccessor.EXPECT().
-						FindUserById(gomock.Any(), gomock.AssignableToTypeOf(s)).
+						Get(gomock.Any(), gomock.AssignableToTypeOf(s)).
 						DoAndReturn(
 							func(ctx context.Context, id string) (*user.User, error) {
 								switch id {

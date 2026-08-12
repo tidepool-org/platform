@@ -452,7 +452,6 @@ func newUserFromGocloakUser(gocloakUser *gocloak.User) *userlib.User {
 	user := &userlib.User{
 		UserID:        gocloakUser.ID,
 		Username:      gocloakUser.Username,
-		Emails:        []string{},
 		Roles:         gocloakUser.RealmRoles,
 		EmailVerified: gocloakUser.EmailVerified,
 		Enabled:       pointer.ToBool(gocloakUser.Enabled),
@@ -472,14 +471,6 @@ func newUserFromGocloakUser(gocloakUser *gocloak.User) *userlib.User {
 			user.Profile = profile
 		}
 		user.Attributes = attrs
-	}
-
-	// All non-custodial users have a password and it's important to set the hash to a non-empty value.
-	// When users are serialized by this service, the payload contains a flag `passwordExists` that
-	// is computed based on the presence of a password hash in the user struct. This flag is used by
-	// other services (e.g. hydrophone) to determine whether the user is custodial or not.
-	if !user.IsCustodialAccount() {
-		user.PwHash = "true"
 	}
 
 	return user
