@@ -33,9 +33,7 @@ const (
 	// ReasonLegacyDataAdded reports jellyfish uploaded a full batch
 	ReasonLegacyDataAdded = "LEGACY_DATA_ADDED"
 
-	ReasonDataDeleted           = "DATA_DELETED"
-	ReasonContinuousDataDeleted = "CONTINUOUS_DATA_DELETED"
-	ReasonSchemaMigration       = "SCHEMA_MIGRATION"
+	ReasonSchemaMigration = "SCHEMA_MIGRATION"
 )
 
 const (
@@ -47,8 +45,6 @@ func Reasons() []string {
 		ReasonDataAdded,
 		ReasonUploadCompleted,
 		ReasonLegacyDataAdded,
-		ReasonDataDeleted,
-		ReasonContinuousDataDeleted,
 		ReasonSchemaMigration,
 	}
 }
@@ -57,23 +53,10 @@ func Reasons() []string {
 var ehrSyncReasons = mapset.NewSet(
 	ReasonUploadCompleted,
 	ReasonLegacyDataAdded,
-	ReasonDataDeleted,
-)
-
-// Data deleted may leave no record behind reporting it was modified, so the summaries cannot be
-// calculated from only the data modified since they were last calculated
-var summaryResetReasons = mapset.NewSet(
-	ReasonDataDeleted,
-	ReasonContinuousDataDeleted,
-	ReasonSchemaMigration,
 )
 
 func TriggersEHRSync(reasons []string) bool {
 	return ehrSyncReasons.ContainsAny(reasons...)
-}
-
-func RequiresSummaryReset(reasons []string) bool {
-	return summaryResetReasons.ContainsAny(reasons...)
 }
 
 // IDFromUserID returns both the serial id, which prevents the work of a user being processed

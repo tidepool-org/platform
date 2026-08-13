@@ -41,8 +41,6 @@ var _ = Describe("Work", func() {
 			"DATA_ADDED",
 			"UPLOAD_COMPLETED",
 			"LEGACY_DATA_ADDED",
-			"DATA_DELETED",
-			"CONTINUOUS_DATA_DELETED",
 			"SCHEMA_MIGRATION",
 		))
 	})
@@ -55,29 +53,10 @@ var _ = Describe("Work", func() {
 			Entry("with no reasons", nil, false),
 			Entry("with data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
 			Entry("with schema migration", []string{dataWorkPostprocess.ReasonSchemaMigration}, false),
-			Entry("with continuous data deleted", []string{dataWorkPostprocess.ReasonContinuousDataDeleted}, false),
 			Entry("with upload completed", []string{dataWorkPostprocess.ReasonUploadCompleted}, true),
 			Entry("with legacy data added", []string{dataWorkPostprocess.ReasonLegacyDataAdded}, true),
-			Entry("with data deleted", []string{dataWorkPostprocess.ReasonDataDeleted}, true),
 			Entry("with any reason triggering a synchronization",
 				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted}, true),
-		)
-	})
-
-	Context("RequiresSummaryReset", func() {
-		DescribeTable("reports whether the reasons require the summaries to be recalculated in full",
-			func(reasons []string, expected bool) {
-				Expect(dataWorkPostprocess.RequiresSummaryReset(reasons)).To(Equal(expected))
-			},
-			Entry("with no reasons", nil, false),
-			Entry("with data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
-			Entry("with upload completed", []string{dataWorkPostprocess.ReasonUploadCompleted}, false),
-			Entry("with legacy data added", []string{dataWorkPostprocess.ReasonLegacyDataAdded}, false),
-			Entry("with data deleted", []string{dataWorkPostprocess.ReasonDataDeleted}, true),
-			Entry("with continuous data deleted", []string{dataWorkPostprocess.ReasonContinuousDataDeleted}, true),
-			Entry("with schema migration", []string{dataWorkPostprocess.ReasonSchemaMigration}, true),
-			Entry("with any reason requiring a reset",
-				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonDataDeleted}, true),
 		)
 	})
 
