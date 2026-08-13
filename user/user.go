@@ -125,6 +125,10 @@ func IsUnclaimedCustodialEmail(email string) bool {
 }
 
 func (u *User) Sanitize(details request.AuthDetails) error {
+	if (details == nil || !details.IsService()) && u.Username != nil && IsUnclaimedCustodialEmail(*u.Username) {
+		u.Username = nil
+	}
+
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		u.Username = nil
 		u.EmailVerified = nil
@@ -142,6 +146,9 @@ func (u *User) Email() string {
 }
 
 func (u *TrustUser) Sanitize(details request.AuthDetails) error {
+	if (details == nil || !details.IsService()) && u.Username != nil && IsUnclaimedCustodialEmail(*u.Username) {
+		u.Username = nil
+	}
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
 		// Note that a TrustUser includes some fields in the user that [User.Sanitize] wouldn't.
 		if (u.TrustorPermissions == nil || len(*u.TrustorPermissions) == 0) && u.User.Profile != nil {

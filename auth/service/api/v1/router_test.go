@@ -544,16 +544,6 @@ var _ = Describe("Router", func() {
 				var handlerFunc rest.HandlerFunc
 				var userID string
 				var details request.AuthDetails
-				var userProfile user.Profile
-				var userRoles []string
-				var userDetails *user.User
-				var sanitizedUserDetails *user.User
-				var shareeUserID string
-				var shareeRoles []string
-				var shareeProfile user.Profile
-				var limitedShareeProfile user.Profile
-				var shareeDetails *user.User
-				var limitedShareeDetails *user.User
 
 				JustBeforeEach(func() {
 					app, err := rest.MakeRouter(rtr.Routes()...)
@@ -562,138 +552,152 @@ var _ = Describe("Router", func() {
 					handlerFunc = app.AppFunc()
 				})
 
-				BeforeEach(func() {
-					userID = userTest.RandomUserID()
-					shareeUserID = userTest.RandomUserID()
-					res = testRest.NewResponseWriter()
-					res.HeaderOutput = &http.Header{}
-					req = testRest.NewRequest()
-					ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
-					req.Request = req.WithContext(ctx)
-					req.Method = http.MethodGet
-					req.URL.Path = fmt.Sprintf("/users/%s/users", shareeUserID)
-					res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-
-					userProfile = user.Profile{
-						FullName:      "Some User Profile",
-						Birthday:      "2001-02-03",
-						DiagnosisDate: "2002-03-04",
-						About:         "About me",
-						MRN:           "11223344",
-					}
-					userRoles = []string{user.RolePatient}
-					userDetails = &user.User{
-						UserID:        pointer.FromString(userID),
-						Username:      pointer.FromString("dev@tidepool.org"),
-						EmailVerified: pointer.FromBool(true),
-						Roles:         &userRoles,
-						Profile:       &userProfile,
-					}
-					sanitizedUserDetails = &user.User{
-						UserID:        pointer.FromString(userID),
-						Username:      pointer.FromString("dev@tidepool.org"),
-						EmailVerified: pointer.FromBool(true),
-						Roles:         &userRoles,
-						Profile:       &userProfile,
-					}
-
-					shareeProfile = user.Profile{
-						FullName:      "Someone Else's Profile",
-						Birthday:      "2002-03-04",
-						DiagnosisDate: "2003-04-05",
-						About:         "Not about me",
-						MRN:           "11223346",
-					}
-					limitedShareeProfile = user.Profile{
-						FullName: "Someone Else's Profile",
-					}
-					shareeRoles = []string{user.RolePatient}
-					shareeDetails = &user.User{
-						UserID:        pointer.FromString(shareeUserID),
-						Username:      pointer.FromString("sharee@tidepool.org"),
-						EmailVerified: pointer.FromBool(true),
-						Roles:         &shareeRoles,
-						Profile:       &shareeProfile,
-					}
-					limitedShareeDetails = &user.User{
-						UserID:        pointer.FromString(shareeUserID),
-						Username:      pointer.FromString("sharee@tidepool.org"),
-						EmailVerified: pointer.FromBool(true),
-						Roles:         &shareeRoles,
-						Profile:       &limitedShareeProfile,
-					}
-
-					var s string
-					userAccessor.EXPECT().
-						Get(gomock.Any(), gomock.AssignableToTypeOf(s)).
-						DoAndReturn(
-							func(ctx context.Context, id string) (*user.User, error) {
-								switch id {
-								case userID:
-									return userDetails, nil
-								case shareeUserID:
-									return shareeDetails, nil
-								}
-								return nil, user.ErrUserNotFound
-							}).AnyTimes()
-
-					profileAccessor.EXPECT().
-						FindLegacyUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
-						DoAndReturn(
-							func(ctx context.Context, id string) (*user.LegacyUserProfile, error) {
-								switch id {
-								case userID:
-									return userProfile.ToLegacyProfile(userRoles), nil
-								case shareeUserID:
-									return shareeProfile.ToLegacyProfile(shareeRoles), nil
-								}
-								return nil, user.ErrUserProfileNotFound
-							}).AnyTimes()
-
-					permsClient.EXPECT().
-						HasCustodianPermissions(gomock.Any(), shareeUserID, userID).
-						Return(true, nil).AnyTimes()
-
-				})
-				AfterEach(func() {
-					res.AssertOutputsEmpty()
-				})
-
-				Context("with trustor permissions", func() {
+				Context("xxx unclaimed custodial account", func() {
+					var unclaimedCustodialUserID string
+					var unclaimedCustodialProfile user.Profile
+					var unclaimedCustodialDetails *user.User
+					var sanitizedUnclaimedCustodialDetails *user.User
+					var unclaimedRoles []string
+					var clinicianUserID string
+					var clinicianProfile user.Profile
+					var clinicianDetails *user.User
+					var clinicianRoles []string
 					BeforeEach(func() {
-						permsClient.EXPECT().
-							PermissionsGrantedToUser(gomock.Any(), userID).
-							Return(permission.Permissions{
-								userID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-							}, nil).AnyTimes()
-						permsClient.EXPECT().
-							PermissionsGrantedToUser(gomock.Any(), shareeUserID).
-							Return(permission.Permissions{
-								shareeUserID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-								userID: permission.Permission{
-									permission.Read: map[string]any{},
-								},
-							}, nil).AnyTimes()
+						clinicianUserID = userTest.RandomUserID()
+						unclaimedCustodialUserID = userTest.RandomUserID()
+						res = testRest.NewResponseWriter()
+						res.HeaderOutput = &http.Header{}
+						req = testRest.NewRequest()
+						ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
+						req.Request = req.WithContext(ctx)
+						req.Method = http.MethodGet
+						req.URL.Path = fmt.Sprintf("/users/%s/users", clinicianUserID)
+						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+						unclaimedCustodialProfile = user.Profile{
+							FullName:      "Unclaimed Custodial",
+							Birthday:      "2001-02-03",
+							DiagnosisDate: "2002-03-04",
+							About:         "About me",
+							MRN:           "11223344",
+						}
+						unclaimedRoles = []string{user.RolePatient}
+						unclaimedCustodialDetails = &user.User{
+							UserID:        pointer.FromString(unclaimedCustodialUserID),
+							Username:      pointer.FromString("unclaimed-custodial-automation+999@tidepool.org"),
+							EmailVerified: pointer.FromBool(false),
+							Roles:         &unclaimedRoles,
+							Profile:       &unclaimedCustodialProfile,
+						}
+						sanitizedUnclaimedCustodialDetails = &user.User{
+							UserID:        pointer.FromString(unclaimedCustodialUserID),
+							Username:      nil,
+							EmailVerified: pointer.FromBool(false),
+							Roles:         &unclaimedRoles,
+							Profile:       &unclaimedCustodialProfile,
+						}
+
+						clinicianRoles = []string{user.RoleClinic}
+						clinicianProfile = user.Profile{
+							FullName: "Mr. Clinician",
+							Clinic:   &user.ClinicProfile{},
+						}
+						clinicianDetails = &user.User{
+							UserID:        pointer.FromString(clinicianUserID),
+							Username:      pointer.FromString("clinician@tidepool.org"),
+							EmailVerified: pointer.FromBool(true),
+							Roles:         &clinicianRoles,
+							Profile:       &clinicianProfile,
+						}
+
+						var s string
+						userAccessor.EXPECT().
+							Get(gomock.Any(), gomock.AssignableToTypeOf(s)).
+							DoAndReturn(
+								func(ctx context.Context, id string) (*user.User, error) {
+									switch id {
+									case clinicianUserID:
+										return clinicianDetails, nil
+									case unclaimedCustodialUserID:
+										return unclaimedCustodialDetails, nil
+									}
+									return nil, user.ErrUserNotFound
+								}).AnyTimes()
+
+						profileAccessor.EXPECT().
+							FindLegacyUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
+							DoAndReturn(
+								func(ctx context.Context, id string) (*user.LegacyUserProfile, error) {
+									switch id {
+									case clinicianUserID:
+										return clinicianProfile.ToLegacyProfile(clinicianRoles), nil
+									case unclaimedCustodialUserID:
+										return unclaimedCustodialProfile.ToLegacyProfile(unclaimedRoles), nil
+									}
+									return nil, user.ErrUserProfileNotFound
+								}).AnyTimes()
 
 						permsClient.EXPECT().
-							PermissionsGrantedByUser(gomock.Any(), userID).
+							HasCustodianPermissions(gomock.Any(), clinicianUserID, unclaimedCustodialUserID).
+							Return(true, nil).AnyTimes()
+						permsClient.EXPECT().
+							PermissionsGrantedToUser(gomock.Any(), clinicianUserID).
 							Return(permission.Permissions{
-								userID: permission.Permission{
+								clinicianUserID: permission.Permission{
 									permission.Owner: map[string]any{},
+								},
+								unclaimedCustodialUserID: permission.Permission{
+									permission.Custodian: map[string]any{},
 								},
 							}, nil).AnyTimes()
 						permsClient.EXPECT().
-							PermissionsGrantedByUser(gomock.Any(), shareeUserID).
+							PermissionsGrantedByUser(gomock.Any(), unclaimedCustodialUserID).
 							Return(permission.Permissions{
-								shareeUserID: permission.Permission{
+								unclaimedCustodialUserID: permission.Permission{
+									permission.Owner: map[string]any{},
+								},
+								clinicianUserID: permission.Permission{
+									permission.Custodian: map[string]any{},
+								},
+							}, nil).AnyTimes()
+						permsClient.EXPECT().
+							PermissionsGrantedByUser(gomock.Any(), clinicianUserID).
+							Return(permission.Permissions{
+								clinicianUserID: permission.Permission{
 									permission.Owner: map[string]any{},
 								},
 							}, nil).AnyTimes()
 					})
+
+					Context("as clinician with custodial permissions", func() {
+						BeforeEach(func() {
+							details = request.NewAuthDetails(request.MethodSessionToken, clinicianUserID, authTest.NewSessionToken())
+							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+							var s string
+							permsClient.EXPECT().
+								HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+								DoAndReturn(
+									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
+										return granteeID == grantorID || (grantorID == unclaimedCustodialUserID && granteeID == clinicianUserID), nil
+									}).AnyTimes()
+						})
+						It("returns custodial profile w/o the unclaimed email", func() {
+							userResults := []user.TrustUser{
+								{
+									User: *sanitizedUnclaimedCustodialDetails,
+									TrustPermissions: user.TrustPermissions{
+										TrustorPermissions: &permission.Permission{
+											permission.Custodian: struct{}{},
+										},
+									},
+								},
+							}
+							handlerFunc(res, req)
+							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+						})
+					})
+
 					Context("as service", func() {
 						BeforeEach(func() {
 							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
@@ -702,56 +706,17 @@ var _ = Describe("Router", func() {
 								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
 								Return(true, nil).AnyTimes()
 						})
-						It("returns sharer's user info w/ sharee.", func() {
+						It("returns custodial profile with the unclaimed custodial email", func() {
 							userResults := []user.TrustUser{
 								{
-									User: *userDetails,
+									User: *unclaimedCustodialDetails,
 									TrustPermissions: user.TrustPermissions{
 										TrustorPermissions: &permission.Permission{
-											permission.Read: map[string]any{},
+											permission.Custodian: map[string]any{},
 										},
 									},
 								},
 							}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
-						})
-					})
-
-					Context("as user", func() {
-						BeforeEach(func() {
-							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
-							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
-							var s string
-							permsClient.EXPECT().
-								HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
-								DoAndReturn(
-									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
-										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
-									}).AnyTimes()
-						})
-						It("returns sharer's full user info w/ sharee.", func() {
-							userResults := []user.TrustUser{
-								{
-									User: *sanitizedUserDetails,
-									TrustPermissions: user.TrustPermissions{
-										TrustorPermissions: &permission.Permission{
-											permission.Read: struct{}{},
-										},
-									},
-								},
-							}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
-						})
-						It("excludes self and returns empty if nothing shared.", func() {
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
-
-							userResults := []user.TrustUser{}
 							handlerFunc(res, req)
 							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
@@ -759,116 +724,325 @@ var _ = Describe("Router", func() {
 					})
 				})
 
-				Context("with trustee permissions", func() {
+				Context("claimed accounts", func() {
+					var userProfile user.Profile
+					var userRoles []string
+					var userDetails *user.User
+					var sanitizedUserDetails *user.User
+					var shareeUserID string
+					var shareeRoles []string
+					var shareeProfile user.Profile
+					var limitedShareeProfile user.Profile
+					var shareeDetails *user.User
+					var limitedShareeDetails *user.User
 					BeforeEach(func() {
-						permsClient.EXPECT().
-							PermissionsGrantedToUser(gomock.Any(), userID).
-							Return(permission.Permissions{
-								userID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-							}, nil).AnyTimes()
-						permsClient.EXPECT().
-							PermissionsGrantedToUser(gomock.Any(), shareeUserID).
-							Return(permission.Permissions{
-								shareeUserID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-								userID: permission.Permission{
-									permission.Read: map[string]any{},
-								},
-							}, nil).AnyTimes()
+						userID = userTest.RandomUserID()
+						shareeUserID = userTest.RandomUserID()
+						res = testRest.NewResponseWriter()
+						res.HeaderOutput = &http.Header{}
+						req = testRest.NewRequest()
+						ctx = log.NewContextWithLogger(req.Context(), logTest.NewLogger())
+						req.Request = req.WithContext(ctx)
+						req.Method = http.MethodGet
+						req.URL.Path = fmt.Sprintf("/users/%s/users", shareeUserID)
+						res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+						userProfile = user.Profile{
+							FullName:      "Some User Profile",
+							Birthday:      "2001-02-03",
+							DiagnosisDate: "2002-03-04",
+							About:         "About me",
+							MRN:           "11223344",
+						}
+						userRoles = []string{user.RolePatient}
+						userDetails = &user.User{
+							UserID:        pointer.FromString(userID),
+							Username:      pointer.FromString("dev@tidepool.org"),
+							EmailVerified: pointer.FromBool(true),
+							Roles:         &userRoles,
+							Profile:       &userProfile,
+						}
+						sanitizedUserDetails = &user.User{
+							UserID:        pointer.FromString(userID),
+							Username:      pointer.FromString("dev@tidepool.org"),
+							EmailVerified: pointer.FromBool(true),
+							Roles:         &userRoles,
+							Profile:       &userProfile,
+						}
+
+						shareeProfile = user.Profile{
+							FullName:      "Someone Else's Profile",
+							Birthday:      "2002-03-04",
+							DiagnosisDate: "2003-04-05",
+							About:         "Not about me",
+							MRN:           "11223346",
+						}
+						limitedShareeProfile = user.Profile{
+							FullName: "Someone Else's Profile",
+						}
+						shareeRoles = []string{user.RolePatient}
+						shareeDetails = &user.User{
+							UserID:        pointer.FromString(shareeUserID),
+							Username:      pointer.FromString("sharee@tidepool.org"),
+							EmailVerified: pointer.FromBool(true),
+							Roles:         &shareeRoles,
+							Profile:       &shareeProfile,
+						}
+						limitedShareeDetails = &user.User{
+							UserID:        pointer.FromString(shareeUserID),
+							Username:      pointer.FromString("sharee@tidepool.org"),
+							EmailVerified: pointer.FromBool(true),
+							Roles:         &shareeRoles,
+							Profile:       &limitedShareeProfile,
+						}
+
+						var s string
+						userAccessor.EXPECT().
+							Get(gomock.Any(), gomock.AssignableToTypeOf(s)).
+							DoAndReturn(
+								func(ctx context.Context, id string) (*user.User, error) {
+									switch id {
+									case userID:
+										return userDetails, nil
+									case shareeUserID:
+										return shareeDetails, nil
+									}
+									return nil, user.ErrUserNotFound
+								}).AnyTimes()
+
+						profileAccessor.EXPECT().
+							FindLegacyUserProfile(gomock.Any(), gomock.AssignableToTypeOf(s)).
+							DoAndReturn(
+								func(ctx context.Context, id string) (*user.LegacyUserProfile, error) {
+									switch id {
+									case userID:
+										return userProfile.ToLegacyProfile(userRoles), nil
+									case shareeUserID:
+										return shareeProfile.ToLegacyProfile(shareeRoles), nil
+									}
+									return nil, user.ErrUserProfileNotFound
+								}).AnyTimes()
 
 						permsClient.EXPECT().
-							PermissionsGrantedByUser(gomock.Any(), userID).
-							Return(permission.Permissions{
-								userID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-								shareeUserID: permission.Permission{
-									permission.Read: map[string]any{},
-								},
-							}, nil).AnyTimes()
-						permsClient.EXPECT().
-							PermissionsGrantedByUser(gomock.Any(), shareeUserID).
-							Return(permission.Permissions{
-								shareeUserID: permission.Permission{
-									permission.Owner: map[string]any{},
-								},
-							}, nil).AnyTimes()
+							HasCustodianPermissions(gomock.Any(), shareeUserID, userID).
+							Return(true, nil).AnyTimes()
+
 					})
-					Context("as service", func() {
+					AfterEach(func() {
+						res.AssertOutputsEmpty()
+					})
+
+					Context("with trustor permissions", func() {
 						BeforeEach(func() {
-							details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
-							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
 							permsClient.EXPECT().
-								HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
-								Return(true, nil).AnyTimes()
+								PermissionsGrantedToUser(gomock.Any(), userID).
+								Return(permission.Permissions{
+									userID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+								}, nil).AnyTimes()
+							permsClient.EXPECT().
+								PermissionsGrantedToUser(gomock.Any(), shareeUserID).
+								Return(permission.Permissions{
+									shareeUserID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+									userID: permission.Permission{
+										permission.Read: map[string]any{},
+									},
+								}, nil).AnyTimes()
+
+							permsClient.EXPECT().
+								PermissionsGrantedByUser(gomock.Any(), userID).
+								Return(permission.Permissions{
+									userID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+								}, nil).AnyTimes()
+							permsClient.EXPECT().
+								PermissionsGrantedByUser(gomock.Any(), shareeUserID).
+								Return(permission.Permissions{
+									shareeUserID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+								}, nil).AnyTimes()
 						})
-						It("returns full sharer details if service", func() {
-							userResults := []user.TrustUser{
-								{
-									User: *userDetails,
-									TrustPermissions: user.TrustPermissions{
-										TrustorPermissions: &permission.Permission{
-											permission.Read: struct{}{},
+						Context("as service", func() {
+							BeforeEach(func() {
+								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								permsClient.EXPECT().
+									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+									Return(true, nil).AnyTimes()
+							})
+							It("returns sharer's user info w/ sharee.", func() {
+								userResults := []user.TrustUser{
+									{
+										User: *userDetails,
+										TrustPermissions: user.TrustPermissions{
+											TrustorPermissions: &permission.Permission{
+												permission.Read: map[string]any{},
+											},
 										},
 									},
-								},
-							}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+								}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
+						})
+
+						Context("as user", func() {
+							BeforeEach(func() {
+								details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								var s string
+								permsClient.EXPECT().
+									HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+									DoAndReturn(
+										func(ctx context.Context, granteeID, grantorID string) (bool, error) {
+											return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
+										}).AnyTimes()
+							})
+							It("returns sharer's full user info w/ sharee.", func() {
+								userResults := []user.TrustUser{
+									{
+										User: *sanitizedUserDetails,
+										TrustPermissions: user.TrustPermissions{
+											TrustorPermissions: &permission.Permission{
+												permission.Read: struct{}{},
+											},
+										},
+									},
+								}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
+							It("excludes self and returns empty if nothing shared.", func() {
+								req.Method = http.MethodGet
+								req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+								userResults := []user.TrustUser{}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
 						})
 					})
 
-					Context("as user", func() {
+					Context("with trustee permissions", func() {
 						BeforeEach(func() {
-							details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
-							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
-							var s string
 							permsClient.EXPECT().
-								HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
-								DoAndReturn(
-									func(ctx context.Context, granteeID, grantorID string) (bool, error) {
-										return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
-									}).AnyTimes()
-						})
-						It("returns sharer's limited user info w/ sharee.", func() {
-							userResults := []user.TrustUser{
-								{
-									User: *sanitizedUserDetails,
-									TrustPermissions: user.TrustPermissions{
-										TrustorPermissions: &permission.Permission{
-											permission.Read: struct{}{},
-										},
+								PermissionsGrantedToUser(gomock.Any(), userID).
+								Return(permission.Permissions{
+									userID: permission.Permission{
+										permission.Owner: map[string]any{},
 									},
-								},
-							}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
-						})
-						It("returns limited profile info of users if only has trusteePermissions", func() {
-							req.Method = http.MethodGet
-							req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
-							details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
-							req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
-							res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+								}, nil).AnyTimes()
+							permsClient.EXPECT().
+								PermissionsGrantedToUser(gomock.Any(), shareeUserID).
+								Return(permission.Permissions{
+									shareeUserID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+									userID: permission.Permission{
+										permission.Read: map[string]any{},
+									},
+								}, nil).AnyTimes()
 
-							userResults := []user.TrustUser{
-								{
-									User: *limitedShareeDetails,
-									TrustPermissions: user.TrustPermissions{
-										TrusteePermissions: &permission.Permission{
-											permission.Read: struct{}{},
+							permsClient.EXPECT().
+								PermissionsGrantedByUser(gomock.Any(), userID).
+								Return(permission.Permissions{
+									userID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+									shareeUserID: permission.Permission{
+										permission.Read: map[string]any{},
+									},
+								}, nil).AnyTimes()
+							permsClient.EXPECT().
+								PermissionsGrantedByUser(gomock.Any(), shareeUserID).
+								Return(permission.Permissions{
+									shareeUserID: permission.Permission{
+										permission.Owner: map[string]any{},
+									},
+								}, nil).AnyTimes()
+						})
+						Context("as service", func() {
+							BeforeEach(func() {
+								details = request.NewAuthDetails(request.MethodServiceSecret, "", authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								permsClient.EXPECT().
+									HasCustodianPermissions(gomock.Any(), gomock.Any(), gomock.Any()).
+									Return(true, nil).AnyTimes()
+							})
+							It("returns full sharer details if service", func() {
+								userResults := []user.TrustUser{
+									{
+										User: *userDetails,
+										TrustPermissions: user.TrustPermissions{
+											TrustorPermissions: &permission.Permission{
+												permission.Read: struct{}{},
+											},
 										},
 									},
-								},
-							}
-							handlerFunc(res, req)
-							Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
-							Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+								}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
+						})
+
+						Context("as user", func() {
+							BeforeEach(func() {
+								details = request.NewAuthDetails(request.MethodSessionToken, shareeUserID, authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								var s string
+								permsClient.EXPECT().
+									HasCustodianPermissions(gomock.Any(), gomock.AssignableToTypeOf(s), gomock.AssignableToTypeOf(s)).
+									DoAndReturn(
+										func(ctx context.Context, granteeID, grantorID string) (bool, error) {
+											return granteeID == grantorID || (grantorID == userID && granteeID == shareeUserID), nil
+										}).AnyTimes()
+							})
+							It("returns sharer's limited user info w/ sharee", func() {
+								userResults := []user.TrustUser{
+									{
+										User: *sanitizedUserDetails,
+										TrustPermissions: user.TrustPermissions{
+											TrustorPermissions: &permission.Permission{
+												permission.Read: struct{}{},
+											},
+										},
+									},
+								}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
+							It("returns limited profile info of users if only has trusteePermissions", func() {
+								req.Method = http.MethodGet
+								req.URL.Path = fmt.Sprintf("/users/%s/users", userID)
+								details = request.NewAuthDetails(request.MethodSessionToken, userID, authTest.NewSessionToken())
+								req.Request = req.WithContext(request.NewContextWithAuthDetails(req.Context(), details))
+								res.WriteOutputs = []testRest.WriteOutput{{BytesWritten: 0, Error: nil}}
+
+								userResults := []user.TrustUser{
+									{
+										User: *limitedShareeDetails,
+										TrustPermissions: user.TrustPermissions{
+											TrusteePermissions: &permission.Permission{
+												permission.Read: struct{}{},
+											},
+										},
+									},
+								}
+								handlerFunc(res, req)
+								Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+								Expect(json.Marshal(userResults)).To(MatchJSON(res.WriteInputs[0]))
+							})
 						})
 					})
 				})

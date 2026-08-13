@@ -146,7 +146,6 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	group, ctx := errgroup.WithContext(ctx)
 	group.SetLimit(20) // do up to 20 concurrent requests like seagull did
 	for userID, trustPerms := range mergedUserPerms {
-		userID, trustPerms := userID, trustPerms
 		group.Go(func() error {
 			sharedUser, err := r.UserAccessor().Get(ctx, userID)
 			if stdErrs.Is(err, user.ErrUserNotFound) || sharedUser == nil {
