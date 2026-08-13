@@ -52,7 +52,7 @@ func NewObjectFromUser(datum *user.User, objectFormat test.ObjectFormat) map[str
 	if datum.UserID != nil {
 		object["userid"] = test.NewObjectFromString(*datum.UserID, objectFormat)
 	}
-	if datum.Username != nil {
+	if datum.Username != nil && !user.IsUnclaimedCustodialEmail(*datum.Username) {
 		object["username"] = test.NewObjectFromString(*datum.Username, objectFormat)
 	}
 	if datum.TermsAccepted != nil {
