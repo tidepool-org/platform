@@ -14,10 +14,11 @@ import (
 	io "io"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	raw "github.com/tidepool-org/platform/data/raw"
 	page "github.com/tidepool-org/platform/page"
 	request "github.com/tidepool-org/platform/request"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockClient is a mock of Client interface.

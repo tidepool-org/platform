@@ -13,8 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	appvalidate "github.com/tidepool-org/platform/appvalidate"
 	gomock "go.uber.org/mock/gomock"
+
+	appvalidate "github.com/tidepool-org/platform/appvalidate"
 )
 
 // MockRepository is a mock of Repository interface.

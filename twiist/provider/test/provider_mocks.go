@@ -13,12 +13,13 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	auth "github.com/tidepool-org/platform/auth"
 	data "github.com/tidepool-org/platform/data"
 	source "github.com/tidepool-org/platform/data/source"
 	page "github.com/tidepool-org/platform/page"
 	request "github.com/tidepool-org/platform/request"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockProviderSessionClient is a mock of ProviderSessionClient interface.

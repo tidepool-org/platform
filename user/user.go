@@ -149,7 +149,9 @@ func (u *TrustUser) Sanitize(details request.AuthDetails) error {
 		u.Username = nil
 	}
 	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
-		// Note that a TrustUser includes some fields in the user that [User.Sanitize] wouldn't.
+		// Note that a TrustUser includes some fields in the user that
+		// [User.Sanitize] wouldn't so it is not called directly as it may clear
+		// out those fields.
 		if (u.TrustorPermissions == nil || len(*u.TrustorPermissions) == 0) && u.User.Profile != nil {
 			u.User.Profile.Sanitize()
 		}
