@@ -32,6 +32,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -94,6 +95,7 @@ type Standard struct {
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
 	mailerClient                   mailer.Client
+	summarizerRegistry             *summary.SummarizerRegistry
 	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
 	notificationsHistoryRecorder   notificationsHistory.Recorder
@@ -620,7 +622,7 @@ func (s *Standard) initializeConfirmationClient() error {
 func (s *Standard) initializeSummaryClient() error {
 	s.Logger().Debug("Creating summarizer registry")
 
-	summarizerRegistry := summary.New(
+	s.summarizerRegistry = summary.New(
 		s.dataStore.NewSummaryRepository().GetStore(),
 		s.dataStore.NewBucketsRepository().GetStore(),
 		s.dataStore.NewDataRepository(),
@@ -629,7 +631,7 @@ func (s *Standard) initializeSummaryClient() error {
 
 	s.Logger().Debug("Creating summary client")
 
-	clnt, err := summaryClient.New(summarizerRegistry)
+	clnt, err := summaryClient.New(s.summarizerRegistry)
 	if err != nil {
 		return errors.Wrap(err, "unable to create summary client")
 	}
@@ -804,6 +806,24 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		UserClient:       s.userClient,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create notifications connections requests work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
+	s.Logger().Debug("Creating data upload postprocess work processor factory")
+
+	summarizers, err := dataWorkPostprocess.NewSummarizers(s.summarizerRegistry)
+	if err != nil {
+		return errors.Wrap(err, "unable to create summarizers")
+	}
+
+	if processorFactory, err := dataWorkPostprocess.NewProcessorFactory(dataWorkPostprocess.Dependencies{
+		Dependencies:  dependencies,
+		Summarizers:   summarizers,
+		ClinicsClient: s.clinicsClient,
+		UserClient:    s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data upload postprocess work processor factory")
 	} else {
 		processorFactories = append(processorFactories, processorFactory)
 	}

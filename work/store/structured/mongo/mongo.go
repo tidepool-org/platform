@@ -334,6 +334,9 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 	if filter.GroupID != nil {
 		query["groupId"] = *filter.GroupID
 	}
+	if filter.State != nil {
+		query["state"] = *filter.State
+	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": 1})

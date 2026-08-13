@@ -29,6 +29,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
+	SyncEHRDataForPatient(ctx context.Context, patientID string) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
 }
@@ -194,6 +195,24 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 		return err
 	}
 	if response.StatusCode() != http.StatusAccepted {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+// SyncEHRDataForPatient reports no error when the clinic service reports the patient has no active
+// subscription to any clinic enabled for an electronic health record, which it does as not found. Most
+// users are not such a patient, so reporting that as a failure would fail the work of nearly every user.
+func (d *defaultClient) SyncEHRDataForPatient(ctx context.Context, patientID string) error {
+	response, err := d.httpClient.SyncEHRDataForPatientWithResponse(ctx, clinic.PatientId(patientID))
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusAccepted && response.StatusCode() != http.StatusNotFound {
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
 			"Unexpected status code from clinic service",
 			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)

@@ -352,3 +352,41 @@ func (c *MockClientSyncEHRDataCall) DoAndReturn(f func(context.Context, string) 
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
+
+// SyncEHRDataForPatient mocks base method.
+func (m *MockClient) SyncEHRDataForPatient(ctx context.Context, patientID string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SyncEHRDataForPatient", ctx, patientID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SyncEHRDataForPatient indicates an expected call of SyncEHRDataForPatient.
+func (mr *MockClientMockRecorder) SyncEHRDataForPatient(ctx, patientID any) *MockClientSyncEHRDataForPatientCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SyncEHRDataForPatient", reflect.TypeOf((*MockClient)(nil).SyncEHRDataForPatient), ctx, patientID)
+	return &MockClientSyncEHRDataForPatientCall{Call: call}
+}
+
+// MockClientSyncEHRDataForPatientCall wrap *gomock.Call
+type MockClientSyncEHRDataForPatientCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientSyncEHRDataForPatientCall) Return(arg0 error) *MockClientSyncEHRDataForPatientCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientSyncEHRDataForPatientCall) Do(f func(context.Context, string) error) *MockClientSyncEHRDataForPatientCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientSyncEHRDataForPatientCall) DoAndReturn(f func(context.Context, string) error) *MockClientSyncEHRDataForPatientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
