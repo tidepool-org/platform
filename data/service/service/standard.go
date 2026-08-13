@@ -61,7 +61,6 @@ import (
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
-	summaryClient "github.com/tidepool-org/platform/summary/client"
 	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
@@ -96,7 +95,6 @@ type Standard struct {
 	dataSourceClient               *dataSourceServiceClient.Client
 	mailerClient                   mailer.Client
 	summarizerRegistry             *summary.SummarizerRegistry
-	summaryClient                  *summaryClient.Client
 	workClient                     *workService.Client
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
@@ -163,7 +161,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserClient(); err != nil {
 		return err
 	}
-	if err := s.initializeSummaryClient(); err != nil {
+	if err := s.initializeSummarizerRegistry(); err != nil {
 		return err
 	}
 	if err := s.initializeConfirmationClient(); err != nil {
@@ -219,7 +217,6 @@ func (s *Standard) Terminate() {
 	s.ouraClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
-	s.summaryClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
 	s.dataClient = nil
@@ -619,7 +616,7 @@ func (s *Standard) initializeConfirmationClient() error {
 	return nil
 }
 
-func (s *Standard) initializeSummaryClient() error {
+func (s *Standard) initializeSummarizerRegistry() error {
 	s.Logger().Debug("Creating summarizer registry")
 
 	s.summarizerRegistry = summary.New(
@@ -628,14 +625,6 @@ func (s *Standard) initializeSummaryClient() error {
 		s.dataStore.NewDataRepository(),
 		s.dataStore.GetClient(),
 	)
-
-	s.Logger().Debug("Creating summary client")
-
-	clnt, err := summaryClient.New(s.summarizerRegistry)
-	if err != nil {
-		return errors.Wrap(err, "unable to create summary client")
-	}
-	s.summaryClient = clnt
 
 	return nil
 }
@@ -836,7 +825,6 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 			DataSetClient:           s.dataClient,
 			DataSourceClient:        s.dataSourceClient,
-			SummaryClient:           s.summaryClient,
 			ProviderSessionClient:   s.AuthClient(),
 			DataRawClient:           s.dataRawClient,
 			AbbottClient:            s.abbottClient,
