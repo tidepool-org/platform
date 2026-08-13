@@ -128,7 +128,7 @@ func (u *User) Sanitize(details request.AuthDetails) error {
 		u.Username = nil
 	}
 
-	if details == nil || (!details.IsService() && details.UserID() != *u.UserID) {
+	if details == nil || (!details.IsService() && (u.UserID == nil || details.UserID() != *u.UserID)) {
 		u.Username = nil
 		u.EmailVerified = nil
 		u.TermsAccepted = nil
