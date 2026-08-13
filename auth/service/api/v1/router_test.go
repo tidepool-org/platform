@@ -552,7 +552,7 @@ var _ = Describe("Router", func() {
 					handlerFunc = app.AppFunc()
 				})
 
-				Context("xxx unclaimed custodial account", func() {
+				Context("unclaimed custodial account", func() {
 					var unclaimedCustodialUserID string
 					var unclaimedCustodialProfile user.Profile
 					var unclaimedCustodialDetails *user.User
