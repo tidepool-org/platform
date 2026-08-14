@@ -422,6 +422,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Background": Equal(false),
 						"Name":       Equal("OutdatedAndSchemaMigration"),
 					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":        Equal(storeStructuredMongoTest.MakeKeySlice("dates.outdatedSince")),
+						"Background": Equal(false),
+						"Name":       Equal("OutdatedSince"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "dates.outdatedSince", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
+					}),
 				))
 			})
 

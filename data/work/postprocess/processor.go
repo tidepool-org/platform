@@ -2,7 +2,6 @@ package postprocess
 
 import (
 	"context"
-	"slices"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -128,7 +127,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	}
 
 	// An upload reporting only full batches is still in progress
-	if deferredUntil.After(p.Now()) && shouldDeffer(reasons) {
+	if deferredUntil.After(p.Now()) && shouldDefer(reasons) {
 		p.pendingBuilder.availableTime = deferredUntil
 		return p.Pending()
 	}
@@ -174,9 +173,4 @@ func (d *deferredPendingBuilder) ProcessingAvailableTime(ctx context.Context, wr
 		return d.availableTime
 	}
 	return tm
-}
-
-// shouldDeffer returns true when jellyfish uploads a full batch
-func shouldDeffer(reasons []string) bool {
-	return !slices.ContainsFunc(reasons, func(reason string) bool { return reason != ReasonLegacyDataAdded })
 }
