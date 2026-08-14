@@ -226,7 +226,7 @@ var _ = Describe("Processor", func() {
 
 		// An upload reporting only full batches is still in progress, so the summaries are not
 		// calculated for every batch so far. Jellyfish defers the same way.
-		Context("that is shouldDeffer and reports only a full batch", func() {
+		Context("that is deferred and reports only a full batch", func() {
 			var deferredUntil time.Time
 
 			BeforeEach(func() {
@@ -243,6 +243,24 @@ var _ = Describe("Processor", func() {
 				result := process()
 				Expect(result.Result).To(Equal(work.ResultPending))
 				Expect(result.PendingUpdate.ProcessingAvailableTime).To(BeTemporally("==", deferredUntil))
+			})
+
+			// Deferral requires every reason to defer, which is not the complement of requesting a
+			// synchronization: data added requests none, yet still cancels the deferral
+			It("calculates the summaries when any reason does not defer, even one reporting no completion", func() {
+				sibling = newWork(work.StatePending, []string{dataWorkPostprocess.ReasonDataAdded}, deferredUntil)
+				expectListWithSibling()
+				processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
+						updated := *wrk
+						updated.Metadata = update.Metadata
+						return &updated, nil
+					})
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(sibling, nil)
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
+				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
+
+				Expect(process().Result).To(Equal(work.ResultDelete))
 			})
 
 			It("calculates the summaries once a reason reports a change is complete", func() {

@@ -138,6 +138,106 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 				})
 			})
 
+			Context("ListOutdated and ClearOutdated", func() {
+				var userIdTwo string
+				var outdatedTime time.Time
+
+				BeforeEach(func() {
+					userIdTwo = userTest.RandomUserID()
+					outdatedTime = time.Now().UTC().Add(-time.Hour).Truncate(time.Millisecond)
+				})
+
+				createOutdated := func(userIDs ...string) {
+					summaries := make([]*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], len(userIDs))
+					for index, userID := range userIDs {
+						summaries[index] = test.RandomContinuousSummary(userID)
+						summaries[index].Dates.OutdatedSince = &outdatedTime
+						summaries[index].Dates.OutdatedReason = []string{"LEGACY_DATA_ADDED"}
+					}
+					_, err = continuousStore.CreateSummaries(ctx, summaries)
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				It("reports the outdated summaries with their type and the time they were marked", func() {
+					createOutdated(userId, userIdTwo)
+
+					outdated, err := typelessStore.ListOutdated(ctx, 100)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(outdated).To(HaveLen(2))
+					Expect(outdated[0].Type).To(Equal(types.SummaryTypeContinuous))
+					Expect(outdated[0].OutdatedSince).To(BeTemporally("==", outdatedTime))
+					Expect([]string{outdated[0].UserID, outdated[1].UserID}).To(ConsistOf(userId, userIdTwo))
+				})
+
+				// The legacy ingestion service defers a full batch by marking the summary outdated in
+				// the future, which is reported only once that time passes, honouring its quiet window
+				It("does not report a summary marked outdated in the future", func() {
+					deferred := time.Now().UTC().Add(90 * time.Second).Truncate(time.Millisecond)
+					summary := test.RandomContinuousSummary(userId)
+					summary.Dates.OutdatedSince = &deferred
+					_, err = continuousStore.CreateSummaries(ctx, []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{summary})
+					Expect(err).ToNot(HaveOccurred())
+
+					outdated, err := typelessStore.ListOutdated(ctx, 100)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(outdated).To(BeEmpty())
+				})
+
+				It("does not report a summary that is not outdated", func() {
+					summary := test.RandomContinuousSummary(userId)
+					summary.Dates.OutdatedSince = nil
+					_, err = continuousStore.CreateSummaries(ctx, []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{summary})
+					Expect(err).ToNot(HaveOccurred())
+
+					outdated, err := typelessStore.ListOutdated(ctx, 100)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(outdated).To(BeEmpty())
+				})
+
+				It("clears the outdated mark it observed", func() {
+					createOutdated(userId)
+
+					Expect(typelessStore.ClearOutdated(ctx, userId, types.SummaryTypeContinuous, outdatedTime)).To(Succeed())
+
+					outdated, err := typelessStore.ListOutdated(ctx, 100)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(outdated).To(BeEmpty())
+
+					summary, err := continuousStore.GetSummary(ctx, userId)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(summary.Dates.OutdatedReason).To(BeEmpty())
+				})
+
+				// A mark made between the report and the clear reports a different time, and must be
+				// retained so that it is reported again rather than discarded
+				It("retains a mark made since the one it observed", func() {
+					createOutdated(userId)
+					remarked := time.Now().UTC().Truncate(time.Millisecond)
+
+					summary, err := continuousStore.GetSummary(ctx, userId)
+					Expect(err).ToNot(HaveOccurred())
+					summary.Dates.OutdatedSince = &remarked
+					Expect(continuousStore.ReplaceSummary(ctx, summary)).To(Succeed())
+
+					Expect(typelessStore.ClearOutdated(ctx, userId, types.SummaryTypeContinuous, outdatedTime)).To(Succeed())
+
+					outdated, err := typelessStore.ListOutdated(ctx, 100)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(outdated).To(HaveLen(1))
+					Expect(outdated[0].OutdatedSince).To(BeTemporally("==", remarked))
+				})
+
+				It("reports errors for missing parameters", func() {
+					_, err = typelessStore.ListOutdated(nil, 100)
+					Expect(err).To(MatchError("context is missing"))
+					_, err = typelessStore.ListOutdated(ctx, 0)
+					Expect(err).To(MatchError("limit is invalid"))
+					Expect(typelessStore.ClearOutdated(nil, userId, types.SummaryTypeContinuous, outdatedTime)).To(MatchError("context is missing"))
+					Expect(typelessStore.ClearOutdated(ctx, "", types.SummaryTypeContinuous, outdatedTime)).To(MatchError("userId is missing"))
+					Expect(typelessStore.ClearOutdated(ctx, userId, "", outdatedTime)).To(MatchError("type is missing"))
+				})
+			})
+
 			Context("GetMigratableUserIDs", func() {
 				var userIds []string
 				var userIdTwo string
@@ -194,6 +294,9 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 					Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
 				})
 
+				// The outdated mark no longer divides the work of two runners between them: a summary
+				// that is both outdated and calculated with an outdated schema is reported by both
+				// sweepers, and the work each creates is absorbed into a single calculation
 				It("With migratable and outdated CGM summaries", func() {
 					var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
 					var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
@@ -214,7 +317,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 
 					userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
 					Expect(err).ToNot(HaveOccurred())
-					Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
+					Expect(userIds).To(ConsistOf([]string{userId, userIdOther, userIdTwo}))
 				})
 
 				It("With a specific pagination size", func() {

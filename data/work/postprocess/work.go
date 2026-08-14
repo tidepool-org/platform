@@ -59,6 +59,19 @@ func TriggersEHRSync(reasons []string) bool {
 	return ehrSyncReasons.ContainsAny(reasons...)
 }
 
+// Defer summary recalculation if jellyfish uploaded a full batch
+var deferrableReasons = mapset.NewSet(
+	ReasonLegacyDataAdded,
+)
+
+// shouldDefer reports whether reasons contains only deferrable reasons
+func shouldDefer(reasons []string) bool {
+	if len(reasons) == 0 {
+		return false
+	}
+	return mapset.NewSet(reasons...).IsSubset(deferrableReasons)
+}
+
 // IDFromUserID returns both the serial id, which prevents the work of a user being processed
 // concurrently, and the group id, which is the scope the work of a user is coalesced within. Both
 // are the user, and neither is the data set, so that changes to any number of data sets, interleaved

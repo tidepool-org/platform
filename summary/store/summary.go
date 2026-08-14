@@ -49,6 +49,96 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessSummaries {
 	}
 }
 
+// OutdatedSummary reports a summary marked outdated by the mechanism being retired, or by the legacy
+// ingestion service, which is the summary of one type for one user
+type OutdatedSummary struct {
+	UserID        string    `bson:"userId"`
+	Type          string    `bson:"type"`
+	OutdatedSince time.Time `bson:"-"`
+}
+
+// ListOutdated reports the summaries marked outdated, of every type, oldest first, up to the limit.
+//
+// A limit rather than pagination, deliberately: the caller clears the marks it reports, so repeating
+// the call reports the *next* oldest. An offset here would skip past the new head of the set as it
+// shrinks, which is also why this must never be "fixed" to page as ListMigratableUserIDs does.
+//
+// Reported across types rather than one type at a time, as the work created for a user recalculates
+// every one of their summaries, so a user whose summaries are all marked reports one user rather than
+// three. GetOutdatedUserIDs is not reused as it reports no outdated time per summary, which
+// ClearOutdated requires, and it records the queue metrics of the mechanism being retired.
+func (r *TypelessSummaries) ListOutdated(ctx context.Context, limit int) ([]OutdatedSummary, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if limit <= 0 {
+		return nil, errors.New("limit is invalid")
+	}
+
+	// No filter upon the reason, as the legacy ingestion service reports its own. A summary marked
+	// outdated in the future is deferred by that service until its upload falls quiet, so it is
+	// reported only once that time passes.
+	selector := bson.M{"dates.outdatedSince": bson.M{"$lte": time.Now().UTC()}}
+
+	opts := options.Find()
+	opts.SetSort(bson.D{{Key: "dates.outdatedSince", Value: 1}})
+	opts.SetLimit(int64(limit))
+	opts.SetProjection(bson.M{"userId": 1, "type": 1, "dates.outdatedSince": 1})
+
+	cursor, err := r.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to list outdated summaries: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	var documents []struct {
+		UserID string `bson:"userId"`
+		Type   string `bson:"type"`
+		Dates  struct {
+			OutdatedSince *time.Time `bson:"outdatedSince"`
+		} `bson:"dates"`
+	}
+	if err = cursor.All(ctx, &documents); err != nil {
+		return nil, fmt.Errorf("unable to decode outdated summaries: %w", err)
+	}
+
+	outdated := make([]OutdatedSummary, 0, len(documents))
+	for _, document := range documents {
+		if document.Dates.OutdatedSince == nil {
+			continue
+		}
+		outdated = append(outdated, OutdatedSummary{
+			UserID:        document.UserID,
+			Type:          document.Type,
+			OutdatedSince: *document.Dates.OutdatedSince,
+		})
+	}
+
+	return outdated, nil
+}
+
+// ClearOutdated clears the outdated mark of a summary, but only while it reports the outdated time
+// observed, so that a mark made since is retained and reported again rather than discarded
+func (r *TypelessSummaries) ClearOutdated(ctx context.Context, userID string, typ string, observed time.Time) error {
+	if ctx == nil {
+		return errors.New("context is missing")
+	}
+	if userID == "" {
+		return errors.New("userId is missing")
+	}
+	if typ == "" {
+		return errors.New("type is missing")
+	}
+
+	selector := bson.M{"userId": userID, "type": typ, "dates.outdatedSince": observed}
+	update := bson.M{"$unset": bson.M{"dates.outdatedSince": "", "dates.outdatedReason": ""}}
+
+	if _, err := r.UpdateOne(ctx, selector, update); err != nil {
+		return fmt.Errorf("unable to clear outdated summary for user %s: %w", userID, err)
+	}
+	return nil
+}
+
 func (r *Summaries[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -307,7 +397,6 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 
 	selector := bson.M{
 		"type":                 types.GetType[PP, PB](),
-		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
@@ -316,7 +405,7 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 		{Key: "dates.lastUpdatedDate", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
-	opts.SetProjection(bson.M{"stats": 0})
+	opts.SetProjection(bson.M{"userId": 1})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {

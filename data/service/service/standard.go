@@ -33,6 +33,7 @@ import (
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
+	dataWorkSweepOutdated "github.com/tidepool-org/platform/data/work/sweep/outdated"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -61,6 +62,7 @@ import (
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
+	summaryStore "github.com/tidepool-org/platform/summary/store"
 	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
@@ -95,6 +97,7 @@ type Standard struct {
 	dataSourceClient               *dataSourceServiceClient.Client
 	mailerClient                   mailer.Client
 	summarizerRegistry             *summary.SummarizerRegistry
+	typelessSummaries              *summaryStore.TypelessSummaries
 	workClient                     *workService.Client
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
@@ -625,6 +628,7 @@ func (s *Standard) initializeSummarizerRegistry() error {
 		s.dataStore.NewDataRepository(),
 		s.dataStore.GetClient(),
 	)
+	s.typelessSummaries = summaryStore.NewTypeless(s.dataStore.NewSummaryRepository().GetStore())
 
 	return nil
 }
@@ -817,6 +821,17 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
+	s.Logger().Debug("Creating data sweep outdated work processor factory")
+
+	if processorFactory, err := dataWorkSweepOutdated.NewProcessorFactory(dataWorkSweepOutdated.Dependencies{
+		Dependencies: dependencies,
+		Summaries:    s.typelessSummaries,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data sweep outdated work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
 	if s.abbottClient != nil {
 		s.Logger().Debug("Creating abbott processor factories")
 
@@ -942,6 +957,14 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 func (s *Standard) initializeWorkSingletons() error {
 	ctx, cancel := context.WithTimeout(log.NewContextWithLogger(context.Background(), s.Logger()), 10*time.Second)
 	defer cancel()
+
+	s.Logger().Debug("Creating data sweep work")
+
+	if workCreate, err := dataWorkSweepOutdated.NewWorkCreate(); err != nil {
+		return errors.Wrap(err, "unable to create data sweep outdated work create")
+	} else if _, err = s.workClient.Create(ctx, workCreate); err != nil {
+		return errors.Wrap(err, "unable to create data sweep outdated work")
+	}
 
 	if s.ouraClient != nil {
 		s.Logger().Debug("Creating oura webhook subscribe work")
