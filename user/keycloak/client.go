@@ -187,7 +187,7 @@ func (c *keycloakClient) UpdateUser(ctx context.Context, u *user.User) error {
 	}
 
 	if u.Profile != nil {
-		maps.Copy(attrs, u.Profile.ToAttributes())
+		u.Profile.WriteAttributes(attrs)
 	}
 
 	gocloakUser.Attributes = &attrs

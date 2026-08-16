@@ -259,57 +259,79 @@ func (b *jsonBool) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-func (up *Profile) ToAttributes() map[string][]string {
-	attributes := map[string][]string{}
-
+// WriteAttributes modifies the source atttributes with user profile fields, adding
+// and removing the profile fields where necessary.
+func (up *Profile) WriteAttributes(attributes map[string][]string) {
 	if up.FullName != "" {
-		addAttribute(attributes, "full_name", up.FullName)
+		setAttribute(attributes, "full_name", up.FullName)
+	} else {
+		delete(attributes, "full_name")
 	}
 	if up.Custodian != nil && up.Custodian.FullName != "" {
-		addAttribute(attributes, "custodian_full_name", up.Custodian.FullName)
+		setAttribute(attributes, "custodian_full_name", up.Custodian.FullName)
 		// The "has_custodian" attribute is only added so that filtering on users is simpler via the keycloak API - because
 		// there is a way to filter by custom attribute values but not by the presence of one.
-		addAttribute(attributes, "has_custodian", "true")
+		setAttribute(attributes, "has_custodian", "true")
 	}
 	if string(up.Birthday) != "" {
-		addAttribute(attributes, "birthday", string(up.Birthday))
+		setAttribute(attributes, "birthday", string(up.Birthday))
+	} else {
+		delete(attributes, "birthday")
 	}
 	if string(up.DiagnosisDate) != "" {
-		addAttribute(attributes, "diagnosis_date", string(up.DiagnosisDate))
+		setAttribute(attributes, "diagnosis_date", string(up.DiagnosisDate))
+	} else {
+		delete(attributes, "diagnosis_date")
 	}
 	if up.DiagnosisType != "" {
-		addAttribute(attributes, "diagnosis_type", up.DiagnosisType)
+		setAttribute(attributes, "diagnosis_type", up.DiagnosisType)
+	} else {
+		delete(attributes, "diagnosis_type")
 	}
-	addAttributes(attributes, "target_devices", up.TargetDevices...)
+	setAttributes(attributes, "target_devices", up.TargetDevices...)
 	if up.TargetTimezone != "" {
-		addAttribute(attributes, "target_timezone", up.TargetTimezone)
+		setAttribute(attributes, "target_timezone", up.TargetTimezone)
+	} else {
+		delete(attributes, "target_timezone")
 	}
 	if up.About != "" {
-		addAttribute(attributes, "about", up.About)
+		setAttribute(attributes, "about", up.About)
+	} else {
+		delete(attributes, "about")
 	}
 	if up.MRN != "" {
-		addAttribute(attributes, "mrn", up.MRN)
+		setAttribute(attributes, "mrn", up.MRN)
+	} else {
+		delete(attributes, "mrn")
 	}
 	if up.BiologicalSex != "" {
-		addAttribute(attributes, "biological_sex", up.BiologicalSex)
+		setAttribute(attributes, "biological_sex", up.BiologicalSex)
+	} else {
+		delete(attributes, "biological_sex")
 	}
 
 	if up.Clinic != nil {
 		if val := pointer.ToString(up.Clinic.Name); val != "" {
-			addAttribute(attributes, "clinic_name", val)
+			setAttribute(attributes, "clinic_name", val)
+		} else {
+			delete(attributes, "clinic_name")
 		}
 		if val := pointer.ToString(up.Clinic.Role); val != "" {
-			addAttribute(attributes, "clinic_role", val)
+			setAttribute(attributes, "clinic_role", val)
+		} else {
+			delete(attributes, "clinic_role")
 		}
 		if val := pointer.ToString(up.Clinic.Telephone); val != "" {
-			addAttribute(attributes, "clinic_telephone", val)
+			setAttribute(attributes, "clinic_telephone", val)
+		} else {
+			delete(attributes, "clinic_telephone")
 		}
 		if val := pointer.ToString(up.Clinic.NPI); val != "" {
-			addAttribute(attributes, "clinic_npi", val)
+			setAttribute(attributes, "clinic_npi", val)
+		} else {
+			delete(attributes, "clinic_npi")
 		}
 	}
-
-	return attributes
 }
 
 // ProfileFromAttributes returns a [Profile] if there exists at least one
@@ -392,12 +414,15 @@ func ProfileFromAttributes(username string, attributes map[string][]string, role
 	return nil
 }
 
-func addAttribute(attributes map[string][]string, attribute, value string) (ok bool) {
-	if !containsAttribute(attributes, attribute, value) {
-		attributes[attribute] = append(attributes[attribute], value)
-		return true
-	}
-	return false
+// setAttribute sets a single value for a single-value attribute. If any value
+// already exists for the attribute, it will be overwritten.
+func setAttribute(attributes map[string][]string, attribute, value string) {
+	attributes[attribute] = []string{value}
+}
+
+// setAttributes sets the values for a multi-valued attribute.
+func setAttributes(attributes map[string][]string, attribute string, values ...string) {
+	attributes[attribute] = slices.Clone(values)
 }
 
 func getAttribute(attributes map[string][]string, attribute string) string {
@@ -409,33 +434,6 @@ func getAttribute(attributes map[string][]string, attribute string) string {
 
 func getAttributes(attributes map[string][]string, attribute string) []string {
 	return attributes[attribute]
-}
-
-func addAttributes(attributes map[string][]string, attribute string, values ...string) (ok bool) {
-	for _, value := range values {
-		if addAttribute(attributes, attribute, value) {
-			ok = true
-		}
-	}
-	return true
-}
-
-func containsAttribute(attributes map[string][]string, attribute, value string) bool {
-	for key, vals := range attributes {
-		if key == attribute && slices.Contains(vals, value) {
-			return true
-		}
-	}
-	return false
-}
-
-func containsAnyAttributeKeys(attributes map[string][]string, keys ...string) bool {
-	for key, vals := range attributes {
-		if len(vals) > 0 && slices.Contains(keys, key) {
-			return true
-		}
-	}
-	return false
 }
 
 func (d *Date) Validate(v structure.Validator) {
