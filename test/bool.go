@@ -1,6 +1,9 @@
 package test
 
-import "math/rand"
+import (
+	"math/rand"
+	"strconv"
+)
 
 func MustBool(value bool, err error) bool {
 	if err != nil {
@@ -14,5 +17,9 @@ func RandomBool() bool {
 }
 
 func NewObjectFromBool(value bool, objectFormat ObjectFormat) interface{} {
+	switch objectFormat {
+	case ObjectFormatConfig:
+		return strconv.FormatBool(value)
+	}
 	return value
 }

@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -282,6 +283,19 @@ var _ = Describe("Continuous", func() {
 
 		Context("Update", func() {
 
+			It("handles cursors that fail mid-iteration", func() {
+				s := ContinuousPeriods{}
+				s.Init()
+
+				buckets := CreateContinuousBuckets(bucketTime, 24, 1)
+				bucketsCursor, err := mongo.NewCursorFromDocuments(
+					ConvertToIntArray(buckets), fmt.Errorf("batch fetch failed"), nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).To(MatchError("batch fetch failed"))
+			})
+
 			It("Update 1d", func() {
 				s := ContinuousPeriods{}
 				s.Init()
@@ -370,6 +384,35 @@ var _ = Describe("Continuous", func() {
 				Expect(s["7d"].Total.Records).To(Equal(24 * 7))
 				Expect(s["14d"].Total.Records).To(Equal(24 * 14))
 				Expect(s["30d"].Total.Records).To(Equal(24 * 30))
+			})
+
+			It("isolates a bucket separated by a large gap to the correct period", func() {
+				// 24 dense hourly buckets near the newest time, then a gap, then a single
+				// bucket at ~20 days old. The gapped bucket sits strictly between the 14d
+				// and 30d boundaries, so it belongs to the 30d period only. A single bucket
+				// must close off every boundary it has crossed before being counted,
+				// otherwise it leaks into 7d/14d.
+				//
+				// This is a fix for BACK-4510, if it's failing, this could be a regression.
+				s := ContinuousPeriods{}
+				s.Init()
+
+				recent := CreateContinuousBuckets(bucketTime, 24, 1)
+				t0 := bucketTime.Add(24 * time.Hour)
+				oldStart := t0.AddDate(0, 0, -20).Add(-time.Hour)
+				old := CreateContinuousBuckets(oldStart, 1, 1)
+				buckets := append(recent, old...)
+
+				bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets), nil, nil)
+				Expect(err).ToNot(HaveOccurred())
+
+				err = s.Update(ctx, bucketsCursor)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(s["1d"].Total.Records).To(Equal(24))
+				Expect(s["7d"].Total.Records).To(Equal(24))
+				Expect(s["14d"].Total.Records).To(Equal(24))
+				Expect(s["30d"].Total.Records).To(Equal(25))
 			})
 		})
 	})

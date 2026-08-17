@@ -12,6 +12,6 @@ func NewConfig() *storeStructuredMongo.Config {
 		Addresses:        []string{Address()},
 		Database:         Database(),
 		CollectionPrefix: NewCollectionPrefix(),
-		Timeout:          5 * time.Second,
+		Timeout:          15 * time.Second,
 	}
 }

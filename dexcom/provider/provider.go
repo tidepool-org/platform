@@ -16,8 +16,6 @@ import (
 	"github.com/tidepool-org/platform/task"
 )
 
-const ProviderName = "dexcom"
-
 type Provider struct {
 	*oauthProvider.Provider
 	dataSourceClient dataSource.Client
@@ -38,7 +36,12 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.New("task client is missing")
 	}
 
-	prvdr, err := oauthProvider.New(ProviderName, configReporter.WithScopes(ProviderName), nil)
+	cfg, err := oauthProvider.NewConfigWithConfigReporter(configReporter.WithScopes(dexcom.ProviderName))
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to create provider config")
+	}
+
+	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,8 +61,8 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
-	filter.ProviderType = pointer.FromStringArray([]string{p.Type()})
-	filter.ProviderName = pointer.FromStringArray([]string{p.Name()})
+	filter.ProviderType = pointer.FromString(p.Type())
+	filter.ProviderName = pointer.FromString(p.Name())
 	sources, err := p.dataSourceClient.List(ctx, providerSession.UserID, filter, nil)
 	if err != nil {
 		return errors.Wrap(err, "unable to fetch data sources")
@@ -72,13 +75,13 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 		}
 
 		for _, source := range sources {
-			if *source.State != dataSource.StateDisconnected {
+			if source.State != dataSource.StateDisconnected {
 				logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
 
 				update := dataSource.NewUpdate()
 				update.State = pointer.FromString(dataSource.StateDisconnected)
 
-				_, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update)
+				_, err = p.dataSourceClient.Update(ctx, source.ID, nil, update)
 				if err != nil {
 					return errors.Wrap(err, "unable to update data source")
 				}
@@ -88,8 +91,8 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 		source = sources[0]
 	} else {
 		create := dataSource.NewCreate()
-		create.ProviderType = pointer.FromString(p.Type())
-		create.ProviderName = pointer.FromString(p.Name())
+		create.ProviderType = p.Type()
+		create.ProviderName = p.Name()
 
 		source, err = p.dataSourceClient.Create(ctx, providerSession.UserID, create)
 		if err != nil {
@@ -97,7 +100,7 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 		}
 	}
 
-	taskCreate, err := dexcomFetch.NewTaskCreate(providerSession.ID, *source.ID)
+	taskCreate, err := dexcomFetch.NewTaskCreate(providerSession.ID, source.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to create task create")
 	}
@@ -111,10 +114,10 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	update := dataSource.NewUpdate()
 	update.ProviderSessionID = pointer.FromString(providerSession.ID)
 	update.State = pointer.FromString(dataSource.StateConnected)
-	if _, err = p.dataSourceClient.Update(ctx, *source.ID, nil, update); err != nil {
+	if _, err = p.dataSourceClient.Update(ctx, source.ID, nil, update); err != nil {
 
 		// Attempt to delete task if data source not marked as connected
-		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID); taskErr != nil {
+		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID, nil); taskErr != nil {
 			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
 		}
 
@@ -148,13 +151,9 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 				logger.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
 			}
 		}
-		if err = p.taskClient.DeleteTask(ctx, task.ID); err != nil {
+		if err = p.taskClient.DeleteTask(ctx, task.ID, nil); err != nil {
 			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
 		}
 	}
 	return nil
-}
-
-func (p *Provider) SupportsUserInitiatedAccountUnlinking() bool {
-	return true
 }

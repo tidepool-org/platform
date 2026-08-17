@@ -103,13 +103,13 @@ var _ = Describe("Client", func() {
 			})
 
 			Context("with server token", func() {
-				var serverSessionTokenProviderController *gomock.Controller
+				var mockController *gomock.Controller
 				var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 				var sessionToken string
 
 				BeforeEach(func() {
-					serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-					serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+					mockController = gomock.NewController(GinkgoT())
+					serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 					sessionToken = dataTest.NewSessionToken()
 					serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 					ctx = auth.NewContextWithServerSessionTokenProvider(ctx, serverSessionTokenProvider)

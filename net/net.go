@@ -13,6 +13,10 @@ import (
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
+const (
+	MediaTypeJSON = "application/json; charset=utf-8"
+)
+
 func DigestMD5(bites []byte) string {
 	return crypto.Base64EncodedMD5Hash(bites)
 }
@@ -30,6 +34,27 @@ func ValidateDigestMD5(value string) error {
 		return structureValidator.ErrorValueEmpty()
 	} else if crypto.ValidateBase64EncodedMD5Hash(value) != nil {
 		return ErrorValueStringAsDigestMD5NotValid(value)
+	}
+	return nil
+}
+
+func DigestSHA256(bites []byte) string {
+	return crypto.Base64EncodedSHA256Hash(bites)
+}
+
+func IsValidDigestSHA256(value string) bool {
+	return ValidateDigestSHA256(value) == nil
+}
+
+func DigestSHA256Validator(value string, errorReporter structure.ErrorReporter) {
+	errorReporter.ReportError(ValidateDigestSHA256(value))
+}
+
+func ValidateDigestSHA256(value string) error {
+	if value == "" {
+		return structureValidator.ErrorValueEmpty()
+	} else if crypto.ValidateBase64EncodedSHA256Hash(value) != nil {
+		return ErrorValueStringAsDigestSHA256NotValid(value)
 	}
 	return nil
 }
@@ -124,6 +149,10 @@ func ValidateURL(value string) error {
 
 func ErrorValueStringAsDigestMD5NotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as md5 digest", value)
+}
+
+func ErrorValueStringAsDigestSHA256NotValid(value string) error {
+	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as sha256 digest", value)
 }
 
 func ErrorValueStringAsMediaTypeNotValid(value string) error {

@@ -59,7 +59,7 @@ var _ = Describe("Client", func() {
 	})
 
 	Context("with server and new client", func() {
-		var serverSessionTokenProviderController *gomock.Controller
+		var mockController *gomock.Controller
 		var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 		var server *Server
 		var requestHandlers []http.HandlerFunc
@@ -71,8 +71,8 @@ var _ = Describe("Client", func() {
 		var client *permissionClient.Client
 
 		BeforeEach(func() {
-			serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+			mockController = gomock.NewController(GinkgoT())
+			serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 			server = NewServer()
 			requestHandlers = nil
 			responseHeaders = http.Header{"Content-Type": []string{"application/json; charset=utf-8"}}
@@ -99,7 +99,6 @@ var _ = Describe("Client", func() {
 			if server != nil {
 				server.Close()
 			}
-			serverSessionTokenProviderController.Finish()
 		})
 
 		Context("GetUserPermissions", func() {

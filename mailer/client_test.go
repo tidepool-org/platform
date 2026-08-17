@@ -15,7 +15,7 @@ import (
 
 var _ = Describe("Mailer", func() {
 	var (
-		mailr      mailer.Mailer
+		mailr      mailer.Client
 		mockBroker *sarama.MockBroker
 	)
 
@@ -26,7 +26,7 @@ var _ = Describe("Mailer", func() {
 			test.SetKafkaConfig(t, mockBroker)
 
 			var err error
-			mailr, err = mailer.Client()
+			mailr, err = mailer.NewClient()
 			Expect(err).NotTo(HaveOccurred())
 		})
 

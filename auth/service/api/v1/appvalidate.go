@@ -16,10 +16,6 @@ import (
 	structValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
-var (
-	ErrPartnerSecretsNotInitialized = errors.New("partner secrets not initialized")
-)
-
 func (r *Router) AppValidateRoutes() []*rest.Route {
 	return []*rest.Route{
 		rest.Post("/v1/attestations/challenges", api.RequireUser(r.CreateAttestationChallenge)),
@@ -152,7 +148,7 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	// from a DB, partner API, etc, depending on the AssertionVerify object.
 	ps := r.PartnerSecrets()
 	if ps == nil {
-		responder.Error(http.StatusInternalServerError, ErrPartnerSecretsNotInitialized)
+		responder.InternalServerError(errors.New("partner secrets not initialized"))
 		return
 	}
 	secret, err := ps.GetSecret(ctx, assertVerify.ClientData)

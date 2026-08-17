@@ -104,3 +104,5 @@ func (p *PointerSource) WithReference(reference string) Source {
 func EncodePointerReference(reference string) string {
 	return strings.Replace(strings.Replace(reference, "~", "~0", -1), "/", "~1", -1)
 }
+
+const ReferenceSelf = "#"

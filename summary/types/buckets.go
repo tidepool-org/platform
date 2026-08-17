@@ -60,7 +60,7 @@ type BucketDataPt[B BucketData] interface {
 }
 
 type Bucket[PB BucketDataPt[B], B BucketData] struct {
-	BaseBucket `json:",inline" bson:",inline"`
+	BaseBucket `bson:",inline"`
 	Data       PB `json:"data" bson:"data"`
 }
 

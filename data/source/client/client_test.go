@@ -136,7 +136,7 @@ var _ = Describe("Client", func() {
 
 							It("returns an error when the filter is invalid", func() {
 								filter = dataSource.NewFilter()
-								filter.ProviderType = pointer.FromStringArray([]string{""})
+								filter.ProviderType = pointer.FromString("")
 								result, err := client.List(ctx, userID, filter, pagination)
 								errorsTest.ExpectEqual(err, errors.New("filter is invalid"))
 								Expect(result).To(BeNil())
@@ -215,7 +215,7 @@ var _ = Describe("Client", func() {
 								var responseResult dataSource.SourceArray
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSourceArray(1, 4)
+									responseResult = dataSourceTest.RandomSourceArray(1, 4, test.AllowOptionals())
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
@@ -238,16 +238,23 @@ var _ = Describe("Client", func() {
 
 					When("the request has random filter and pagination parameters", func() {
 						BeforeEach(func() {
-							filter = dataSourceTest.RandomFilter()
+							filter = dataSourceTest.RandomFilter(test.AllowOptionals())
 							pagination = pageTest.RandomPagination()
 							query := url.Values{
-								"providerType":       *filter.ProviderType,
-								"providerName":       *filter.ProviderName,
-								"providerSessionId":  *filter.ProviderSessionID,
-								"providerExternalId": *filter.ProviderExternalID,
-								"state":              *filter.State,
-								"page":               []string{strconv.Itoa(pagination.Page)},
-								"size":               []string{strconv.Itoa(pagination.Size)},
+								"page": []string{strconv.Itoa(pagination.Page)},
+								"size": []string{strconv.Itoa(pagination.Size)},
+							}
+							if filter.ProviderType != nil {
+								query["providerType"] = []string{*filter.ProviderType}
+							}
+							if filter.ProviderName != nil {
+								query["providerName"] = []string{*filter.ProviderName}
+							}
+							if filter.ProviderExternalID != nil {
+								query["providerExternalId"] = []string{*filter.ProviderExternalID}
+							}
+							if filter.State != nil {
+								query["state"] = []string{*filter.State}
 							}
 							requestHandlers = append(requestHandlers, VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/users/%s/data_sources", userID), query.Encode()))
 						})
@@ -260,7 +267,7 @@ var _ = Describe("Client", func() {
 					var create *dataSource.Create
 
 					BeforeEach(func() {
-						create = dataSourceTest.RandomCreate()
+						create = dataSourceTest.RandomCreate(test.AllowOptionals())
 					})
 
 					Context("without server response", func() {
@@ -297,7 +304,7 @@ var _ = Describe("Client", func() {
 						})
 
 						It("returns an error when the create is invalid", func() {
-							create.ProviderType = pointer.FromString("")
+							create.ProviderType = ""
 							result, err := client.Create(ctx, userID, create)
 							errorsTest.ExpectEqual(err, errors.New("create is invalid"))
 							Expect(result).To(BeNil())
@@ -357,7 +364,7 @@ var _ = Describe("Client", func() {
 							var responseResult *dataSource.Source
 
 							BeforeEach(func() {
-								responseResult = dataSourceTest.RandomSource()
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 
@@ -524,7 +531,7 @@ var _ = Describe("Client", func() {
 							var responseResult *dataSource.Source
 
 							BeforeEach(func() {
-								responseResult = dataSourceTest.RandomSource()
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 							})
 
@@ -541,7 +548,7 @@ var _ = Describe("Client", func() {
 
 					BeforeEach(func() {
 						condition = requestTest.RandomCondition()
-						update = dataSourceTest.RandomUpdate()
+						update = dataSourceTest.RandomUpdate(test.AllowOptionals())
 					})
 
 					Context("without server response", func() {
@@ -638,7 +645,7 @@ var _ = Describe("Client", func() {
 								var responseResult *dataSource.Source
 
 								BeforeEach(func() {
-									responseResult = dataSourceTest.RandomSource()
+									responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
 									requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
 								})
 
@@ -827,6 +834,106 @@ var _ = Describe("Client", func() {
 						})
 
 						deleteAssertions()
+					})
+				})
+			})
+
+			Context("with provider session id", func() {
+				var providerSessionID string
+
+				BeforeEach(func() {
+					providerSessionID = authTest.RandomProviderSessionID()
+				})
+
+				Context("GetFromProviderSession", func() {
+					Context("without server response", func() {
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(BeEmpty())
+						})
+
+						It("returns an error when the context is missing", func() {
+							ctx = nil
+							result, err := client.GetFromProviderSession(ctx, providerSessionID)
+							errorsTest.ExpectEqual(err, errors.New("context is missing"))
+							Expect(result).To(BeNil())
+						})
+
+						It("returns an error when the provider session id is missing", func() {
+							providerSessionID = ""
+							result, err := client.GetFromProviderSession(ctx, providerSessionID)
+							errorsTest.ExpectEqual(err, errors.New("provider session id is missing"))
+							Expect(result).To(BeNil())
+						})
+
+						It("returns an error when the provider session id is invalid", func() {
+							providerSessionID = "invalid"
+							result, err := client.GetFromProviderSession(ctx, providerSessionID)
+							errorsTest.ExpectEqual(err, errors.New("provider session id is invalid"))
+							Expect(result).To(BeNil())
+						})
+					})
+
+					Context("with server response", func() {
+						BeforeEach(func() {
+							requestHandlers = append(requestHandlers,
+								VerifyRequest(http.MethodGet, fmt.Sprintf("/v1/provider_sessions/%s/data_source", providerSessionID)),
+								VerifyContentType(""),
+								VerifyBody(nil),
+							)
+						})
+
+						AfterEach(func() {
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+
+						When("the server responds with an unauthenticated error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusUnauthorized, errors.NewSerializable(request.ErrorUnauthenticated()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								result, err := client.GetFromProviderSession(ctx, providerSessionID)
+								errorsTest.ExpectEqual(err, request.ErrorUnauthenticated())
+								Expect(result).To(BeNil())
+							})
+						})
+
+						When("the server responds with an unauthorized error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusForbidden, errors.NewSerializable(request.ErrorUnauthorized()), responseHeaders))
+							})
+
+							It("returns an error", func() {
+								result, err := client.GetFromProviderSession(ctx, providerSessionID)
+								errorsTest.ExpectEqual(err, request.ErrorUnauthorized())
+								Expect(result).To(BeNil())
+							})
+						})
+
+						When("the server responds with a not found error", func() {
+							BeforeEach(func() {
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusNotFound, errors.NewSerializable(request.ErrorResourceNotFoundWithID(providerSessionID)), responseHeaders))
+							})
+
+							It("returns successfully without result", func() {
+								result, err := client.GetFromProviderSession(ctx, providerSessionID)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).To(BeNil())
+							})
+						})
+
+						When("the server responds with the result", func() {
+							var responseResult *dataSource.Source
+
+							BeforeEach(func() {
+								responseResult = dataSourceTest.RandomSource(test.AllowOptionals())
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
+							})
+
+							It("returns successfully with result", func() {
+								Expect(client.GetFromProviderSession(ctx, providerSessionID)).To(dataSourceTest.MatchSource(responseResult))
+							})
+						})
 					})
 				})
 			})

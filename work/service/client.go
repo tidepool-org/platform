@@ -10,7 +10,8 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test Store
+//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+
 type Store interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	List(ctx context.Context, filter *work.Filter, pagination *page.Pagination) ([]*work.Work, error)

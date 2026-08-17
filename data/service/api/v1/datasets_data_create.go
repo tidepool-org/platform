@@ -147,9 +147,7 @@ func CollectProvenanceInfo(ctx context.Context, req *rest.Request, authDetails r
 
 	if token != "" && shouldHaveJWT(authDetails) {
 		claims := &TokenClaims{}
-		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err != nil {
-			lgr.WithError(err).Warn("Unable to parse access token for provenance")
-		} else {
+		if _, _, err := jwt.NewParser().ParseUnverified(token, claims); err == nil {
 			provenance.ClientID = claims.ClientID
 		}
 	} else if !authDetails.IsService() {

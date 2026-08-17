@@ -4,6 +4,7 @@
 package tools
 
 import (
+	_ "github.com/Khan/genqlient"           // Genqlient - for generating GraphQL client code
 	_ "github.com/githubnemo/CompileDaemon" // CompileDaemon - for hot reloading
 	_ "github.com/onsi/ginkgo/v2"           // Gingko - for running tests
 	_ "github.com/onsi/ginkgo/v2/ginkgo"    // Gingko - for running tests

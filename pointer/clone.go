@@ -2,6 +2,14 @@ package pointer
 
 import "time"
 
+func Clone[T any](source *T) *T {
+	if source == nil {
+		return nil
+	}
+	clone := *source
+	return &clone
+}
+
 func CloneBool(source *bool) *bool {
 	if source == nil {
 		return nil

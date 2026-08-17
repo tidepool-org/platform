@@ -11,6 +11,18 @@ import (
 )
 
 var _ = Describe("To", func() {
+	Context("To", func() {
+		It("returns the zero value if the pointer is nil", func() {
+			Expect(pointer.To[string](nil)).To(BeEmpty())
+		})
+
+		It("returns the dereferenced pointer", func() {
+			value := test.RandomString()
+			result := pointer.To(&value)
+			Expect(result).To(Equal(value))
+		})
+	})
+
 	Context("ToBool", func() {
 		It("returns the zero value if the pointer is nil", func() {
 			Expect(pointer.ToBool(nil)).To(BeFalse())

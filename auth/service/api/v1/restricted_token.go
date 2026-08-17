@@ -40,7 +40,7 @@ func (r *Router) ListUserRestrictedTokens(res rest.ResponseWriter, req *rest.Req
 
 	restrictedTokens, err := r.AuthClient().ListUserRestrictedTokens(req.Context(), userID, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -70,7 +70,7 @@ func (r *Router) CreateUserRestrictedToken(res rest.ResponseWriter, req *rest.Re
 
 	restrictedToken, err := r.AuthClient().CreateUserRestrictedToken(req.Context(), userID, create)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -87,7 +87,7 @@ func (r *Router) DeleteAllRestrictedTokens(res rest.ResponseWriter, req *rest.Re
 	}
 
 	if err := r.AuthClient().DeleteAllRestrictedTokens(req.Context(), userID); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -105,7 +105,7 @@ func (r *Router) GetRestrictedToken(res rest.ResponseWriter, req *rest.Request) 
 
 	restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if restrictedToken == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -132,7 +132,7 @@ func (r *Router) UpdateRestrictedToken(res rest.ResponseWriter, req *rest.Reques
 
 	restrictedToken, err := r.AuthClient().UpdateRestrictedToken(req.Context(), id, update)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if restrictedToken == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
@@ -154,7 +154,7 @@ func (r *Router) DeleteRestrictedToken(res rest.ResponseWriter, req *rest.Reques
 
 	restrictedToken, err := r.AuthClient().GetRestrictedToken(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if restrictedToken == nil {
 		responder.Empty(http.StatusOK)
@@ -168,7 +168,7 @@ func (r *Router) DeleteRestrictedToken(res rest.ResponseWriter, req *rest.Reques
 
 	err = r.AuthClient().DeleteRestrictedToken(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 

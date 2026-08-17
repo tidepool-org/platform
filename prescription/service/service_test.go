@@ -23,17 +23,14 @@ import (
 var _ = Describe("PrescriptionService", func() {
 	var svc prescription.Service
 	var str *prescriptionStoreTest.Store
-	var clinicsCtrl *gomock.Controller
-	var mailerCtrl *gomock.Controller
+	var mockController *gomock.Controller
 	var clinicsClient *clinicsTest.MockClient
 	var mailerClient *prescriptionApplicationTest.MockMailerClient
 
 	BeforeEach(func() {
-		mailerCtrl = gomock.NewController(GinkgoT())
-		mailerClient = prescriptionApplicationTest.NewMockMailerClient(mailerCtrl)
-
-		clinicsCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		clinicsClient = clinicsTest.NewMockClient(mockController)
+		mailerClient = prescriptionApplicationTest.NewMockMailerClient(mockController)
 
 		str = prescriptionStoreTest.NewStore()
 
@@ -43,8 +40,6 @@ var _ = Describe("PrescriptionService", func() {
 	})
 
 	AfterEach(func() {
-		clinicsCtrl.Finish()
-		mailerCtrl.Finish()
 		str.Expectations()
 	})
 

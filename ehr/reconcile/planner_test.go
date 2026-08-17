@@ -20,27 +20,16 @@ import (
 )
 
 var _ = Describe("Planner", func() {
-	var authCtrl *gomock.Controller
-	var clinicsCtrl *gomock.Controller
-	var taskCtrl *gomock.Controller
-
+	var mockController *gomock.Controller
 	var clinicsClient *clinicsTest.MockClient
 	var logger log.Logger
 	var planner *reconcile.Planner
 
 	BeforeEach(func() {
-		authCtrl = gomock.NewController(GinkgoT())
-		clinicsCtrl = gomock.NewController(GinkgoT())
-		taskCtrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		clinicsClient = clinicsTest.NewMockClient(mockController)
 		logger = null.NewLogger()
 		planner = reconcile.NewPlanner(clinicsClient, logger)
-	})
-
-	AfterEach(func() {
-		authCtrl.Finish()
-		clinicsCtrl.Finish()
-		taskCtrl.Finish()
 	})
 
 	Context("With random data", func() {

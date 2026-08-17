@@ -25,7 +25,7 @@ import (
 )
 
 var _ = Describe("Client", func() {
-	var serverSessionTokenProviderController *gomock.Controller
+	var mockController *gomock.Controller
 	var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 	var serverTokenSecret string
 	var serverTokenTimeout int
@@ -36,8 +36,8 @@ var _ = Describe("Client", func() {
 	var ctx context.Context
 
 	BeforeEach(func() {
-		serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-		serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+		mockController = gomock.NewController(GinkgoT())
+		serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 		serverTokenSecret = authTest.NewServiceSecret()
 		serverTokenTimeout = testHttp.NewTimeout()
 		name = test.RandomStringFromRangeAndCharset(4, 16, test.CharsetAlphaNumeric)
@@ -47,10 +47,6 @@ var _ = Describe("Client", func() {
 		serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(serverToken, nil).AnyTimes()
 		token = authTest.NewSessionToken()
 		ctx = auth.NewContextWithServerSessionTokenProvider(log.NewContextWithLogger(context.Background(), logTest.NewLogger()), serverSessionTokenProvider)
-	})
-
-	AfterEach(func() {
-		serverSessionTokenProviderController.Finish()
 	})
 
 	Context("NewClient", func() {

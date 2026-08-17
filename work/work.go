@@ -18,8 +18,8 @@ const (
 	GroupIDLengthMaximum         = 1000
 	DeduplicationIDLengthMaximum = 1000
 	SerialIDLengthMaximum        = 1000
-	ProcessingTimeoutMaximum     = 24 * 60 * 60 // seconds
-	MetadataLengthMaximum        = 4 * 1024
+	ProcessingTimeoutMaximum     = 24 * time.Hour
+	MetadataSizeMaximum          = 4 * 1024
 
 	TypeQuantitiesLengthMaximum = 100
 
@@ -28,6 +28,8 @@ const (
 	StateFailing    = "failing"
 	StateFailed     = "failed"
 	StateSuccess    = "success"
+
+	DeduplicationIDSingleton = "singleton"
 )
 
 func States() []string {
@@ -157,7 +159,7 @@ type Create struct {
 	GroupID                 *string        `json:"groupId,omitempty"`
 	DeduplicationID         *string        `json:"deduplicationId,omitempty"`
 	SerialID                *string        `json:"serialId,omitempty"`
-	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitzero"`
 	ProcessingPriority      int            `json:"processingPriority,omitempty"`
 	ProcessingTimeout       int            `json:"processingTimeout,omitempty"` // seconds
 	Metadata                map[string]any `json:"metadata,omitempty"`
@@ -168,7 +170,7 @@ func ParseCreate(parser structure.ObjectParser) *Create {
 		return nil
 	}
 	datum := &Create{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -198,12 +200,16 @@ func (c *Create) Validate(validator structure.Validator) {
 	validator.String("groupId", c.GroupID).NotEmpty().LengthLessThanOrEqualTo(GroupIDLengthMaximum)
 	validator.String("deduplicationId", c.DeduplicationID).NotEmpty().LengthLessThanOrEqualTo(DeduplicationIDLengthMaximum)
 	validator.String("serialId", c.SerialID).NotEmpty().LengthLessThanOrEqualTo(SerialIDLengthMaximum)
-	validator.Int("processingTimeout", &c.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Int("processingTimeout", &c.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(int(ProcessingTimeoutMaximum.Seconds()))
+	validator.Object("metadata", &c.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
+}
+
+func (c *Create) SetMetadata(metadata map[string]any) {
+	c.Metadata = metadata
 }
 
 type PendingUpdate struct {
-	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitempty" bson:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time      `json:"processingAvailableTime,omitzero" bson:"processingAvailableTime,omitempty"`
 	ProcessingPriority      int            `json:"processingPriority,omitempty" bson:"processingPriority,omitempty"`
 	ProcessingTimeout       int            `json:"processingTimeout,omitempty" bson:"processingTimeout,omitempty"`
 	Metadata                map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
@@ -214,7 +220,7 @@ func ParsePendingUpdate(parser structure.ObjectParser) *PendingUpdate {
 		return nil
 	}
 	datum := &PendingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -234,8 +240,8 @@ func (p *PendingUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (p *PendingUpdate) Validate(validator structure.Validator) {
-	validator.Int("processingTimeout", &p.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	validator.Object("metadata", &p.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Int("processingTimeout", &p.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(int(ProcessingTimeoutMaximum.Seconds()))
+	validator.Object("metadata", &p.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
 type ProcessingUpdate struct {
@@ -247,7 +253,7 @@ func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
 		return nil
 	}
 	datum := &ProcessingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -258,13 +264,13 @@ func (p *ProcessingUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (p *ProcessingUpdate) Validate(validator structure.Validator) {
-	validator.Object("metadata", &p.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &p.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
 type FailingUpdate struct {
-	FailingError      errors.Serializable `json:"failingError,omitempty" bson:"failingError,omitempty"`
+	FailingError      errors.Serializable `json:"failingError,omitzero" bson:"failingError,omitempty"`
 	FailingRetryCount int                 `json:"failingRetryCount,omitempty" bson:"failingRetryCount,omitempty"`
-	FailingRetryTime  time.Time           `json:"failingRetryTime,omitempty" bson:"failingRetryTime,omitempty"`
+	FailingRetryTime  time.Time           `json:"failingRetryTime,omitzero" bson:"failingRetryTime,omitempty"`
 	Metadata          map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
@@ -273,7 +279,7 @@ func ParseFailingUpdate(parser structure.ObjectParser) *FailingUpdate {
 		return nil
 	}
 	datum := &FailingUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -296,11 +302,11 @@ func (f *FailingUpdate) Parse(parser structure.ObjectParser) {
 func (f *FailingUpdate) Validate(validator structure.Validator) {
 	f.FailingError.Validate(validator.WithReference("failingError"))
 	validator.Int("failingRetryCount", &f.FailingRetryCount).GreaterThanOrEqualTo(0)
-	validator.Object("metadata", &f.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &f.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
 type FailedUpdate struct {
-	FailedError errors.Serializable `json:"failedError,omitempty" bson:"failedError,omitempty"`
+	FailedError errors.Serializable `json:"failedError,omitzero" bson:"failedError,omitempty"`
 	Metadata    map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
@@ -309,7 +315,7 @@ func ParseFailedUpdate(parser structure.ObjectParser) *FailedUpdate {
 		return nil
 	}
 	datum := &FailedUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -325,7 +331,7 @@ func (f *FailedUpdate) Parse(parser structure.ObjectParser) {
 
 func (f *FailedUpdate) Validate(validator structure.Validator) {
 	f.FailedError.Validate(validator.WithReference("failedError"))
-	validator.Object("metadata", &f.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &f.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
 type SuccessUpdate struct {
@@ -337,7 +343,7 @@ func ParseSuccessUpdate(parser structure.ObjectParser) *SuccessUpdate {
 		return nil
 	}
 	datum := &SuccessUpdate{}
-	parser.Parse(datum)
+	datum.Parse(parser)
 	return datum
 }
 
@@ -348,7 +354,7 @@ func (s *SuccessUpdate) Parse(parser structure.ObjectParser) {
 }
 
 func (s *SuccessUpdate) Validate(validator structure.Validator) {
-	validator.Object("metadata", &s.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Object("metadata", &s.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
 type Update struct {
@@ -424,13 +430,13 @@ type Work struct {
 	ID                      string               `json:"id,omitempty"`
 	Type                    string               `json:"type,omitempty"`
 	GroupID                 *string              `json:"groupId,omitempty"`
-	DeduplicationID         *string              `json:"deduplicationId,omitempty"`
+	DeduplicationID         *string              `json:"deduplicationId,omitempty"` // scoped to Type
 	SerialID                *string              `json:"serialId,omitempty"`
-	ProcessingAvailableTime time.Time            `json:"processingAvailableTime,omitempty"`
+	ProcessingAvailableTime time.Time            `json:"processingAvailableTime,omitzero"`
 	ProcessingPriority      int                  `json:"processingPriority,omitempty"`
 	ProcessingTimeout       int                  `json:"processingTimeout,omitempty"`
 	Metadata                map[string]any       `json:"metadata,omitempty"`
-	PendingTime             time.Time            `json:"pendingTime,omitempty"`
+	PendingTime             time.Time            `json:"pendingTime,omitzero"`
 	ProcessingTime          *time.Time           `json:"processingTime,omitempty"`
 	ProcessingTimeoutTime   *time.Time           `json:"processingTimeoutTime,omitempty"`
 	ProcessingDuration      *float64             `json:"processingDuration,omitempty"` // seconds
@@ -442,7 +448,7 @@ type Work struct {
 	FailedError             *errors.Serializable `json:"failedError,omitempty"`
 	SuccessTime             *time.Time           `json:"successTime,omitempty"`
 	State                   string               `json:"state,omitempty"`
-	CreatedTime             time.Time            `json:"createdTime,omitempty"`
+	CreatedTime             time.Time            `json:"createdTime,omitzero"`
 	ModifiedTime            *time.Time           `json:"modifiedTime,omitempty"`
 	Revision                int                  `json:"revision,omitempty"`
 }
@@ -506,8 +512,8 @@ func (w *Work) Validate(validator structure.Validator) {
 	validator.String("groupId", w.GroupID).NotEmpty().LengthLessThanOrEqualTo(GroupIDLengthMaximum)
 	validator.String("deduplicationId", w.DeduplicationID).NotEmpty().LengthLessThanOrEqualTo(DeduplicationIDLengthMaximum)
 	validator.String("serialId", w.SerialID).NotEmpty().LengthLessThanOrEqualTo(SerialIDLengthMaximum)
-	validator.Int("processingTimeout", &w.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(ProcessingTimeoutMaximum)
-	validator.Object("metadata", &w.Metadata).SizeLessThanOrEqualTo(MetadataLengthMaximum)
+	validator.Int("processingTimeout", &w.ProcessingTimeout).GreaterThan(0).LessThanOrEqualTo(int(ProcessingTimeoutMaximum.Seconds()))
+	validator.Object("metadata", &w.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 	validator.Time("pendingTime", &w.PendingTime).After(w.CreatedTime).BeforeNow(time.Second)
 
 	processingTimeValidator := validator.Time("processingTime", w.ProcessingTime)

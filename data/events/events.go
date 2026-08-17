@@ -42,7 +42,7 @@ func (u *userDeletionEventsHandler) HandleDeleteUserEvent(payload ev.DeleteUserE
 
 	logger.Infof("Deleting data source for user")
 	dataSourceRepository := u.dataSourceStore.NewDataSourcesRepository()
-	if _, err := dataSourceRepository.DestroyAll(u.ctx, payload.UserID); err != nil {
+	if err := dataSourceRepository.DeleteAll(u.ctx, payload.UserID); err != nil {
 		errs = append(errs, err)
 		logger.WithError(err).Error("unable to delete data sources for user")
 	}

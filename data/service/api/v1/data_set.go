@@ -47,7 +47,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 			if request.IsErrorUnauthorized(err) {
 				responder.Error(http.StatusForbidden, request.ErrorUnauthorized())
 			} else {
-				responder.Error(http.StatusInternalServerError, err)
+				responder.InternalServerError(err)
 			}
 			return
 		}
@@ -69,7 +69,7 @@ func ListUserDataSets(dataServiceContext dataService.Context) {
 
 	dataSets, err := dataClient.ListUserDataSets(req.Context(), userID, filter, pagination)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 
@@ -100,7 +100,7 @@ func GetDataSet(dataServiceContext dataService.Context) {
 
 	dataSet, err := dataClient.GetDataSet(req.Context(), id)
 	if err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	} else if dataSet == nil {
 		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))

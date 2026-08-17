@@ -3,6 +3,7 @@ package test
 import (
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 func MustFloat64(value float64, err error) float64 {
@@ -45,5 +46,9 @@ func RandomFloat64Minimum() float64 {
 }
 
 func NewObjectFromFloat64(value float64, objectFormat ObjectFormat) interface{} {
+	switch objectFormat {
+	case ObjectFormatConfig:
+		return strconv.FormatFloat(value, 'g', -1, 64)
+	}
 	return value
 }

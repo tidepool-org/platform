@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"regexp"
 
 	"github.com/onsi/gomega"
+	gomegaGstruct "github.com/onsi/gomega/gstruct"
+	gomegaTypes "github.com/onsi/gomega/types"
 	"go.mongodb.org/mongo-driver/bson"
+	gomock "go.uber.org/mock/gomock"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/test"
@@ -134,4 +138,41 @@ func ExpectErrorJSON(err error, actualJSON []byte) {
 	expectedJSON, err := json.Marshal(errors.Sanitize(err))
 	gomega.Expect(err).ToNot(gomega.HaveOccurred())
 	gomega.Expect(actualJSON).To(gomega.MatchJSON(expectedJSON))
+}
+
+func MatchSerialized(errorMatcher gomegaTypes.GomegaMatcher) gomegaTypes.GomegaMatcher {
+	return gomegaGstruct.MatchAllFields(gomegaGstruct.Fields{
+		"Error": errorMatcher,
+	})
+}
+
+type matcher struct {
+	expected any
+}
+
+func Matcher(expected any) gomock.Matcher {
+	return &matcher{expected: expected}
+}
+
+func (m *matcher) Matches(raw any) bool {
+	if raw == nil {
+		return false
+	} else if err, ok := raw.(error); !ok {
+		return false
+	} else if expectedErr, ok := m.expected.(error); ok {
+		return err.Error() == expectedErr.Error()
+	} else {
+		switch expectedWithType := m.expected.(type) {
+		case string:
+			return err.Error() == expectedWithType
+		case regexp.Regexp:
+			return expectedWithType.MatchString(err.Error())
+		default:
+			return false
+		}
+	}
+}
+
+func (m *matcher) String() string {
+	return "is an error that matches the expected value"
 }

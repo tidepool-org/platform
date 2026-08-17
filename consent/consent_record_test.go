@@ -835,7 +835,7 @@ var _ = Describe("Consent", func() {
 		It("updates metadata supported organizations", func() {
 			updateBody := `{"metadata": {"supportedOrganizations": ["Beyond Type 1"]}}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			Expect(err).ToNot(HaveOccurred())
 
 			updated := update.ToRecord()
@@ -846,7 +846,7 @@ var _ = Describe("Consent", func() {
 		It("allows removing supported organizations from metadata", func() {
 			updateBody := `{"metadata": {"supportedOrganizations": null}}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			Expect(err).ToNot(HaveOccurred())
 
 			updated := update.ToRecord()
@@ -857,7 +857,7 @@ var _ = Describe("Consent", func() {
 		It("allows setting supported organizations to an empty array", func() {
 			updateBody := `{"metadata": {"supportedOrganizations": []}}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			Expect(err).ToNot(HaveOccurred())
 
 			updated := update.ToRecord()
@@ -869,7 +869,7 @@ var _ = Describe("Consent", func() {
 		It("allows removing metadata", func() {
 			updateBody := `{"metadata": null}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			Expect(err).ToNot(HaveOccurred())
 
 			updated := update.ToRecord()
@@ -879,7 +879,7 @@ var _ = Describe("Consent", func() {
 		It("preserves supported organizations if not in the body", func() {
 			updateBody := `{"metadata": {"other": "test"}}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			Expect(err).ToNot(HaveOccurred())
 
 			updated := update.ToRecord()
@@ -890,7 +890,7 @@ var _ = Describe("Consent", func() {
 		It("returns an error if a invalid attribute is present in the body", func() {
 			updateBody := `{"metadata": {"other": "test"}, "userID":"01234567890"}`
 			update := record.ToUpdate()
-			err := request.DecodeObject(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
+			err := request.DecodeStream(context.Background(), structure.NewPointerSource(), strings.NewReader(updateBody), update)
 			errorsTest.ExpectEqual(err, errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/userID"))
 
 			updated := update.ToRecord()

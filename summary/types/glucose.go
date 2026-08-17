@@ -335,8 +335,8 @@ func (m *MinMax) CalculateDelta(current *MinMax, previous *MinMax) {
 }
 
 type GlucoseBucket struct {
-	GlucoseRanges `json:",inline" bson:",inline"`
-	MinMax        `json:",inline" bson:",inline"`
+	GlucoseRanges `bson:",inline"`
+	MinMax        `bson:",inline"`
 
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
 }
@@ -380,8 +380,8 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 }
 
 type GlucosePeriod struct {
-	GlucoseRanges `json:",inline" bson:",inline"`
-	MinMax        `json:",inline" bson:",inline"`
+	GlucoseRanges `bson:",inline"`
+	MinMax        `bson:",inline"`
 
 	HoursWithData int `json:"hoursWithData,omitempty" bson:"hoursWithData,omitempty"`
 	DaysWithData  int `json:"daysWithData,omitempty" bson:"daysWithData,omitempty"`
@@ -536,12 +536,15 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 			panic("bucket exists with 0 records")
 		}
 
-		if len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
+		// Close off every period boundary this bucket has crossed. A single bucket can be
+		// past multiple boundaries at once when there is a large gap between buckets, so
+		// this must be a loop, not a single check.
+		for len(stopPoints) > nextStopPoint && bucket.Time.Compare(stopPoints[nextStopPoint]) <= 0 {
 			st.CalculatePeriod(periodLengths[nextStopPoint], period)
 			nextStopPoint++
 		}
 
-		if len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
+		for len(offsetStopPoints) > nextOffsetStopPoint && bucket.Time.Compare(offsetStopPoints[nextOffsetStopPoint]) <= 0 {
 			CalculateOffsetPeriod(offsetPeriods, periodLengths[nextOffsetStopPoint], offsetPeriod)
 			offsetPeriod = GlucosePeriod{}
 			nextOffsetStopPoint++
@@ -560,6 +563,16 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 				return err
 			}
 		}
+	}
+	if err := bucketsCursor.Err(); err != nil {
+		return err
+	}
+
+	// the cursor was empty, all buckets may have been invalidated since the last update,
+	// any previously calculated periods are no longer backed by data
+	if stopPoints == nil {
+		st.Init()
+		return nil
 	}
 
 	// fill in periods we never reached

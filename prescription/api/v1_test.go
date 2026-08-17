@@ -35,21 +35,20 @@ import (
 )
 
 var _ = Describe("V1", func() {
-	var ctrl *gomock.Controller
+	var mockController *gomock.Controller
 	var clinicsClient *clinicsTest.MockClient
 	var deviceSettingsValidator prescriptionService.DeviceSettingsValidator
 	var prescriptionService *prescriptionTest.PrescriptionAccessor
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		clinicsClient = clinicsTest.NewMockClient(ctrl)
+		mockController = gomock.NewController(GinkgoT())
+		clinicsClient = clinicsTest.NewMockClient(mockController)
 		deviceSettingsValidator = serviceTest.NewNoopSettingsValidator()
 		prescriptionService = prescriptionTest.NewPrescriptionAccessor()
 	})
 
 	AfterEach(func() {
 		prescriptionService.Expectations()
-		ctrl.Finish()
 	})
 
 	Context("NewRouter", func() {

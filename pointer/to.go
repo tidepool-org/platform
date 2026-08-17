@@ -2,6 +2,13 @@ package pointer
 
 import "time"
 
+func To[T any](ptr *T) (zero T) {
+	if ptr == nil {
+		return zero
+	}
+	return *ptr
+}
+
 func ToBool(ptr *bool) bool {
 	if ptr == nil {
 		return false

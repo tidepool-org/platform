@@ -3,7 +3,6 @@ package client
 import (
 	"context"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
@@ -380,13 +380,10 @@ func (l *externalConfigReporterLoader) Load(cfg *ExternalConfig) error {
 		return err
 	}
 	cfg.ServerSessionTokenSecret = l.Reporter.GetWithDefault("server_session_token_secret", "")
-	if serverSessionTokenTimeoutString, err := l.Reporter.Get("server_session_token_timeout"); err == nil {
-		var serverSessionTokenTimeoutInteger int64
-		serverSessionTokenTimeoutInteger, err = strconv.ParseInt(serverSessionTokenTimeoutString, 10, 0)
-		if err != nil {
-			return errors.New("server session token timeout is invalid")
-		}
-		cfg.ServerSessionTokenTimeout = time.Duration(serverSessionTokenTimeoutInteger) * time.Second
+	if serverSessionTokenTimeout, err := duration.Parse(l.Reporter.GetWithDefault("server_session_token_timeout", cfg.ServerSessionTokenTimeout.String()), time.Second); err != nil {
+		return errors.New("server session token timeout is invalid")
+	} else {
+		cfg.ServerSessionTokenTimeout = serverSessionTokenTimeout
 	}
 
 	return nil

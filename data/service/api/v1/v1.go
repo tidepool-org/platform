@@ -4,6 +4,7 @@ import (
 	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
 
 	"github.com/tidepool-org/platform/data/service"
+	ouraServiceApiV1 "github.com/tidepool-org/platform/oura/service/api/v1"
 	"github.com/tidepool-org/platform/service/api"
 )
 
@@ -29,12 +30,14 @@ func Routes() []service.Route {
 		service.Post("/v1/partners/twiist/data/:tidepoolLinkId", NewTwiistDataCreateHandler(DataSetsDataCreate), api.RequireAuth),
 	}
 
+	routes = append(routes, MetricsRoutes()...)
 	routes = append(routes, DataSetsRoutes()...)
 	routes = append(routes, SourcesRoutes()...)
 	routes = append(routes, SummaryRoutes()...)
 	routes = append(routes, AlertsRoutes()...)
 	routes = append(routes, NotificationsRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
+	routes = append(routes, ouraServiceApiV1.Routes()...)
 
 	return routes
 }

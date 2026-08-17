@@ -143,6 +143,9 @@ func (r *PatientRealtimeDaysReporter) GetNumberOfDaysWithRealtimeData(ctx contex
 				tomorrow.Hour(), tomorrow.Minute(), tomorrow.Second(), tomorrow.Nanosecond(), tomorrow.Location())
 		}
 	}
+	if err = buckets.Err(); err != nil {
+		return 0, err
+	}
 
 	return count, nil
 }

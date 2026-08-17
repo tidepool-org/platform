@@ -3,6 +3,7 @@ package context
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"golang.org/x/oauth2"
 
@@ -58,9 +59,9 @@ func (s *Source) HTTPClient(ctx context.Context, tknSrcSrc oauth.TokenSourceSour
 	return s.httpClient, nil
 }
 
-func (s *Source) UpdateToken() error {
+func (s *Source) UpdateToken(ctx context.Context) (bool, error) {
 	if s.tokenSource == nil {
-		return nil
+		return false, nil
 	}
 
 	tknSrcTkn, err := s.tokenSource.Token()
@@ -68,25 +69,29 @@ func (s *Source) UpdateToken() error {
 		if oauth.IsRefreshTokenError(err) {
 			err = errors.Wrap(request.ErrorUnauthenticated(), err.Error())
 		}
-		return errors.Wrap(err, "unable to get token")
+		return false, errors.Wrap(err, "unable to get token")
 	}
 
 	if s.token.MatchesRawToken(tknSrcTkn) {
-		return nil
+		return false, nil
 	}
 
 	tkn, err := s.token.Refreshed(tknSrcTkn)
 	if err != nil || tkn == nil {
-		return errors.Wrap(err, "unable to refresh token")
+		return false, errors.Wrap(err, "unable to refresh token")
 	}
 	s.token = tkn
 
-	return nil
+	return true, nil
 }
 
-func (s *Source) ExpireToken() error {
+func (s *Source) ExpireToken(ctx context.Context) (bool, error) {
+	if s.token.IsExpiredAt(time.Now()) {
+		return false, nil
+	}
+
 	s.httpClient = nil
 	s.tokenSource = nil
 	s.token = s.token.Expired()
-	return nil
+	return true, nil
 }

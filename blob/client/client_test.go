@@ -850,21 +850,17 @@ var _ = Describe("Client", func() {
 		})
 
 		When("client must authorize as user", func() {
-			var serverSessionTokenProviderController *gomock.Controller
+			var mockController *gomock.Controller
 			var serverSessionTokenProvider *authTest.MockServerSessionTokenProvider
 
 			BeforeEach(func() {
-				serverSessionTokenProviderController = gomock.NewController(GinkgoT())
-				serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(serverSessionTokenProviderController)
+				mockController = gomock.NewController(GinkgoT())
+				serverSessionTokenProvider = authTest.NewMockServerSessionTokenProvider(mockController)
 				sessionToken := authTest.NewSessionToken()
 				serverSessionTokenProvider.EXPECT().ServerSessionToken().Return(sessionToken, nil).AnyTimes()
 				authorizeAs = platform.AuthorizeAsUser
 				requestHandlers = append(requestHandlers, VerifyHeaderKV("X-Tidepool-Session-Token", sessionToken))
 				ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodAccessToken, userTest.RandomUserID(), sessionToken))
-			})
-
-			AfterEach(func() {
-				serverSessionTokenProviderController.Finish()
 			})
 
 			authorizeAssertions()

@@ -3,6 +3,7 @@ package test
 import (
 	"math"
 	"math/rand"
+	"strconv"
 )
 
 func MustInt(value int, err error) int {
@@ -53,6 +54,8 @@ func NewObjectFromInt(value int, objectFormat ObjectFormat) interface{} {
 			return int64(value)
 		}
 		return int32(value)
+	case ObjectFormatConfig:
+		return strconv.FormatInt(int64(value), 10)
 	}
 	return value
 }

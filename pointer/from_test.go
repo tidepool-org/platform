@@ -9,6 +9,15 @@ import (
 )
 
 var _ = Describe("From", func() {
+	Context("From", func() {
+		It("returns a pointer to the specified value", func() {
+			value := test.RandomString()
+			result := pointer.From(value)
+			Expect(result).ToNot(BeNil())
+			Expect(*result).To(Equal(value))
+		})
+	})
+
 	Context("FromBool", func() {
 		It("returns a pointer to the specified value", func() {
 			value := test.RandomBool()
@@ -40,6 +49,15 @@ var _ = Describe("From", func() {
 		It("returns a pointer to the specified value", func() {
 			value := test.RandomInt()
 			result := pointer.FromInt(value)
+			Expect(result).ToNot(BeNil())
+			Expect(*result).To(Equal(value))
+		})
+	})
+
+	Context("FromInt64", func() {
+		It("returns a pointer to the specified value", func() {
+			value := test.RandomInt64()
+			result := pointer.FromInt64(value)
 			Expect(result).ToNot(BeNil())
 			Expect(*result).To(Equal(value))
 		})
@@ -81,6 +99,15 @@ var _ = Describe("From", func() {
 		It("returns a pointer to the specified value", func() {
 			value := test.RandomTime()
 			result := pointer.FromTime(value)
+			Expect(result).ToNot(BeNil())
+			Expect(*result).To(Equal(value))
+		})
+	})
+
+	Context("FromAny", func() {
+		It("returns a pointer to the specified value", func() {
+			value := test.RandomString()
+			result := pointer.FromAny(value)
 			Expect(result).ToNot(BeNil())
 			Expect(*result).To(Equal(value))
 		})

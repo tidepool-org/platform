@@ -33,11 +33,47 @@ func RandomDataSetIDs() []string {
 	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(1, 3, RandomDataSetID)
 }
 
-func RandomDataSetClient() *data.DataSetClient {
+func RandomDataSetType() string {
+	return test.RandomStringFromArray(data.DataSetTypes())
+}
+
+func RandomDeviceID() string {
+	return NewDeviceID()
+}
+
+func RandomDeviceManufacturers() []string {
+	return test.RandomStringArray()
+}
+
+func RandomDeviceModel() string {
+	return test.RandomString()
+}
+
+func RandomDeviceSerialNumber() string {
+	return test.RandomString()
+}
+
+func RandomDeviceTags() []string {
+	return test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, 3, data.DeviceTags())
+}
+
+func RandomTimeProcessing() string {
+	return test.RandomStringFromArray(data.TimeProcessings())
+}
+
+func RandomTimeZoneName() string {
+	return timeZoneTest.RandomName()
+}
+
+func RandomTimeZoneOffset() int {
+	return -4440 + rand.Intn(4440+6960)
+}
+
+func RandomDataSetClient(options ...test.Option) *data.DataSetClient {
 	datum := data.NewDataSetClient()
-	datum.Name = pointer.FromString(netTest.RandomReverseDomain())
-	datum.Version = pointer.FromString(netTest.RandomSemanticVersion())
-	datum.Private = metadataTest.RandomMetadataMap()
+	datum.Name = test.RandomOptional(netTest.RandomReverseDomain, options...)
+	datum.Version = test.RandomOptional(netTest.RandomSemanticVersion, options...)
+	datum.Private = metadataTest.RandomOptionalMetadataMap(options...)
 	return datum
 }
 
@@ -52,7 +88,52 @@ func CloneDataSetClient(datum *data.DataSetClient) *data.DataSetClient {
 	return clone
 }
 
-func RandomDataSetUpdate() *data.DataSetUpdate {
+func RandomDataSetCreate(options ...test.Option) *data.DataSetCreate {
+	datum := data.NewDataSetCreate()
+	datum.Client = test.RandomOptionalPointerWithOptions(RandomDataSetClient, options...)
+	datum.DataSetType = test.RandomOptional(RandomDataSetType, options...)
+	datum.Deduplicator = test.RandomOptionalPointerWithOptions(RandomDeduplicatorDescriptor, options...)
+	datum.DeviceID = test.RandomOptional(RandomDeviceID, options...)
+	datum.DeviceManufacturers = test.RandomOptional(RandomDeviceManufacturers, options...)
+	datum.DeviceModel = test.RandomOptional(RandomDeviceModel, options...)
+	datum.DeviceSerialNumber = test.RandomOptional(RandomDeviceSerialNumber, options...)
+	datum.DeviceTags = test.RandomOptional(RandomDeviceTags, options...)
+	datum.Time = test.RandomOptional(test.RandomTime, options...)
+	datum.TimeProcessing = test.RandomOptional(RandomTimeProcessing, options...)
+	datum.TimeZoneName = test.RandomOptional(RandomTimeZoneName, options...)
+	datum.TimeZoneOffset = test.RandomOptional(func() int {
+		if datum.Time != nil && datum.TimeZoneName != nil {
+			if location, err := time.LoadLocation(*datum.TimeZoneName); err == nil {
+				_, timeZoneOffset := datum.Time.In(location).Zone()
+				return timeZoneOffset
+			}
+		}
+		return RandomTimeZoneOffset()
+	}, options...)
+	return datum
+}
+
+func CloneDataSetCreate(datum *data.DataSetCreate) *data.DataSetCreate {
+	if datum == nil {
+		return nil
+	}
+	clone := data.NewDataSetCreate()
+	clone.Client = CloneDataSetClient(datum.Client)
+	clone.DataSetType = pointer.CloneString(datum.DataSetType)
+	clone.Deduplicator = CloneDeduplicatorDescriptor(datum.Deduplicator)
+	clone.DeviceID = pointer.CloneString(datum.DeviceID)
+	clone.DeviceManufacturers = pointer.CloneStringArray(datum.DeviceManufacturers)
+	clone.DeviceModel = pointer.CloneString(datum.DeviceModel)
+	clone.DeviceSerialNumber = pointer.CloneString(datum.DeviceSerialNumber)
+	clone.DeviceTags = pointer.CloneStringArray(datum.DeviceTags)
+	clone.Time = pointer.CloneTime(datum.Time)
+	clone.TimeProcessing = pointer.CloneString(datum.TimeProcessing)
+	clone.TimeZoneName = pointer.CloneString(datum.TimeZoneName)
+	clone.TimeZoneOffset = pointer.CloneInt(datum.TimeZoneOffset)
+	return clone
+}
+
+func RandomDataSetUpdate(options ...test.Option) *data.DataSetUpdate {
 	datum := data.NewDataSetUpdate()
 	datum.Active = pointer.FromBool(false)
 	datum.DeviceID = pointer.FromString(NewDeviceID())
@@ -66,7 +147,7 @@ func RandomDataSetUpdate() *data.DataSetUpdate {
 	return datum
 }
 
-func RandomDataSet() *data.DataSet {
+func RandomDataSet(options ...test.Option) *data.DataSet {
 	createdTime := test.RandomTimeBefore(time.Now().Add(-30 * 24 * time.Hour))
 	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-24*time.Hour))
 	deletedTime := test.RandomTimeFromRange(modifiedTime, time.Now())
@@ -150,8 +231,4 @@ func CloneDataSet(datum *data.DataSet) *data.DataSet {
 	clone.Version = pointer.CloneString(datum.Version)
 	clone.VersionInternal = datum.VersionInternal
 	return clone
-}
-
-func RandomTimeZoneOffset() int {
-	return -4440 + rand.Intn(4440+6960)
 }

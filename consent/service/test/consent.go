@@ -47,6 +47,22 @@ var MockBDDPConsentV1 = &consent.Consent{
 	CreatedTime: time.Now().UTC(),
 }
 
+var MockBDDPConsentV2 = &consent.Consent{
+	Type:        "big_data_donation_project",
+	Version:     2,
+	Content:     "# Tidepool BDDP Consent - version 2",
+	ContentType: "markdown",
+	CreatedTime: time.Now().UTC(),
+}
+
+var MockRippleConsentV1 = &consent.Consent{
+	Type:        "ripple",
+	Version:     1,
+	Content:     "# RIPPLE Consent - version 1",
+	ContentType: "markdown",
+	CreatedTime: time.Now().UTC(),
+}
+
 func MatchConsent(cons consent.Consent) types.GomegaMatcher {
 	return MatchFields(IgnoreExtras, Fields{
 		"Type":        Equal(cons.Type),

@@ -1,13 +1,19 @@
 package metadata_test
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/metadata"
 	metadataTest "github.com/tidepool-org/platform/metadata/test"
+	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/structure"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -57,6 +63,17 @@ var _ = Describe("Metadata", func() {
 		Context("NewMetadata", func() {
 			It("returns successfully with default values", func() {
 				Expect(metadata.NewMetadata()).To(Equal(&metadata.Metadata{}))
+			})
+		})
+
+		Context("MetadataFromMap", func() {
+			It("returns nil when map is nil", func() {
+				Expect(metadata.MetadataFromMap(nil)).To(BeNil())
+			})
+
+			It("returns successfully with default values", func() {
+				datum := metadataTest.RandomMetadataMap()
+				Expect(metadata.MetadataFromMap(datum)).To(PointTo(Equal(metadata.Metadata(datum))))
 			})
 		})
 
@@ -285,4 +302,206 @@ var _ = Describe("Metadata", func() {
 			)
 		})
 	})
+
+	Context("Decode", func() {
+		var ctx context.Context
+
+		BeforeEach(func() {
+			ctx = context.Background()
+		})
+
+		Context("without decode options", func() {
+			It("returns nil object if metadata is nil", func() {
+				decodedObject, err := metadata.Decode[object](ctx, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(BeNil())
+			})
+
+			It("returns copy of metadata if object is a pointer to metadata", func() {
+				decodableMetadata := metadataTest.RandomMetadataMap()
+				decodedObject, err := metadata.Decode[map[string]any](ctx, decodableMetadata)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(PointTo(Equal(decodableMetadata)))
+			})
+
+			It("returns an error if the metadata cannot be decoded to the object with all fields parsed", func() {
+				decodableMetadata := metadataTest.RandomMetadataMap()
+				decodedObject, err := metadata.Decode[object](ctx, decodableMetadata)
+				Expect(err).To(MatchError(ContainSubstring("unable to decode metadata")))
+				Expect(decodedObject).To(BeNil())
+			})
+
+			It("returns successfully with decoded object", func() {
+				expectedObject := randomObject()
+				decodableMetadata := objectToMetadata(expectedObject)
+				decodedObject, err := metadata.Decode[object](ctx, decodableMetadata)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(Equal(expectedObject))
+			})
+		})
+
+		Context("with decode option IgnoreNotParsed", func() {
+			It("returns nil object if metadata is nil", func() {
+				decodedObject, err := metadata.Decode[object](ctx, nil, request.IgnoreNotParsed())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(BeNil())
+			})
+
+			It("returns copy of metadata if object is a pointer to metadata", func() {
+				decodableMetadata := metadataTest.RandomMetadataMap()
+				decodedObject, err := metadata.Decode[map[string]any](ctx, decodableMetadata, request.IgnoreNotParsed())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(PointTo(Equal(decodableMetadata)))
+			})
+
+			It("returns successfully if the metadata can be decoded to the object without all fields parsed", func() {
+				decodableMetadata := metadataTest.RandomMetadataMap()
+				decodedObject, err := metadata.Decode[object](ctx, decodableMetadata, request.IgnoreNotParsed())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(Equal(&object{}))
+			})
+
+			It("returns successfully with decoded object", func() {
+				expectedObject := randomObject()
+				decodableMetadata := objectToMetadata(expectedObject)
+				decodedObject, err := metadata.Decode[object](ctx, decodableMetadata, request.IgnoreNotParsed())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(decodedObject).To(Equal(expectedObject))
+			})
+		})
+	})
+
+	Context("Encode", func() {
+		It("returns nil metadata if object is nil", func() {
+			encodedMetadata, err := metadata.Encode[object](nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(encodedMetadata).To(BeNil())
+		})
+
+		It("returns copy of object if object is a pointer to metadata", func() {
+			expectedMetadata := metadataTest.RandomMetadataMap()
+			encodableObject := pointer.From(expectedMetadata)
+			encodedMetadata, err := metadata.Encode(encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(encodedMetadata).To(Equal(expectedMetadata))
+		})
+
+		It("returns an error if the object cannot be encoded", func() {
+			encodableObject := &object{Zulu: func() {}}
+			encodedMetadata, err := metadata.Encode(encodableObject)
+			Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
+			Expect(encodedMetadata).To(BeNil())
+		})
+
+		It("returns an error if the object cannot be decoded", func() {
+			encodableObject := []string{"invalid"}
+			encodedMetadata, err := metadata.Encode(&encodableObject)
+			Expect(err).To(MatchError(ContainSubstring("unable to decode metadata")))
+			Expect(encodedMetadata).To(BeNil())
+		})
+
+		It("returns successfully with encoded metadata", func() {
+			encodableObject := randomObject()
+			expectedMetadata := objectToMetadata(encodableObject)
+			encodedMetadata, err := metadata.Encode(encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(encodedMetadata).To(Equal(expectedMetadata))
+		})
+	})
+
+	Context("WithMetadata", func() {
+		var expectedSetter *mockSetter
+
+		BeforeEach(func() {
+			expectedSetter = &mockSetter{}
+		})
+
+		It("returns an error if the object cannot be encoded", func() {
+			setter, err := metadata.WithMetadata(expectedSetter, &object{Zulu: func() {}})
+			Expect(err).To(MatchError(ContainSubstring("unable to encode object")))
+			Expect(setter).To(Equal(expectedSetter))
+			Expect(setter.Metadata).To(BeNil())
+		})
+
+		It("returns successfully with encoded metadata", func() {
+			encodableObject := randomObject()
+
+			expectedMetadata, err := metadata.Encode(encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(expectedMetadata).ToNot(BeNil())
+
+			setter, err := metadata.WithMetadata(expectedSetter, encodableObject)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(setter).To(Equal(expectedSetter))
+			Expect(setter.Metadata).To(Equal(expectedMetadata))
+		})
+	})
 })
+
+type object struct {
+	Alpha *string `json:"alpha,omitempty" bson:"alpha,omitempty"`
+	Bravo *bravo  `json:"bravo,omitempty" bson:"bravo,omitempty"`
+	Zulu  any     `json:"zulu,omitempty" bson:"zulu,omitempty"` // Used to test encoding errors
+}
+
+func (o *object) Parse(parser structure.ObjectParser) {
+	o.Alpha = parser.String("alpha")
+	if bravoParser := parser.WithReferenceObjectParser("bravo"); bravoParser.Exists() {
+		o.Bravo = &bravo{}
+		o.Bravo.Parse(bravoParser)
+	}
+}
+
+type bravo struct {
+	Charlie *string `json:"charlie,omitempty" bson:"charlie,omitempty"`
+}
+
+func (b *bravo) Parse(parser structure.ObjectParser) {
+	b.Charlie = parser.String("charlie")
+}
+
+func randomObject() *object {
+	return &object{
+		Alpha: test.RandomOptional(test.RandomString, test.AllowOptionals()),
+		Bravo: test.RandomOptionalPointer(randomBravo, test.AllowOptionals()),
+	}
+}
+
+func objectToMetadata(object *object) map[string]any {
+	if object == nil {
+		return nil
+	}
+	metadata := map[string]any{}
+	if object.Alpha != nil {
+		metadata["alpha"] = *object.Alpha
+	}
+	if object.Bravo != nil {
+		metadata["bravo"] = bravoToMetadata(object.Bravo)
+	}
+	return metadata
+}
+
+func randomBravo() *bravo {
+	return &bravo{
+		Charlie: test.RandomOptional(test.RandomString, test.AllowOptionals()),
+	}
+}
+
+func bravoToMetadata(bravo *bravo) map[string]any {
+	if bravo == nil {
+		return nil
+	}
+	metadata := map[string]any{}
+	if bravo.Charlie != nil {
+		metadata["charlie"] = *bravo.Charlie
+	}
+	return metadata
+}
+
+type mockSetter struct {
+	Metadata map[string]any
+}
+
+func (m *mockSetter) SetMetadata(metadata map[string]any) {
+	m.Metadata = metadata
+}

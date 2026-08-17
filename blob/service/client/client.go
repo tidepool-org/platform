@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/base64"
 	"io"
+	"time"
 
 	"github.com/tidepool-org/platform/blob"
 	blobStoreStructured "github.com/tidepool-org/platform/blob/store/structured"
@@ -17,6 +18,11 @@ import (
 	storeUnstructured "github.com/tidepool-org/platform/store/unstructured"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+)
+
+const (
+	// arbritrary timeout value for cleanup operations such as deleting from S3 or Repo
+	defaultCleanupTimeout = time.Second * 5
 )
 
 type Provider interface {
@@ -70,31 +76,40 @@ func (c *Client) Create(ctx context.Context, userID string, content *blob.Conten
 	options.MediaType = content.MediaType
 	err = c.BlobUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
+			}
+			return nil
+		})
 		return nil, err
 	}
 
 	size := sizer.Size
 	if size > blob.SizeMaximum {
-		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
-		}
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+				logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
+			}
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
+			}
+			return nil
+		})
 		return nil, request.ErrorResourceTooLarge()
 	}
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
-		if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
-		}
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, deleteErr := c.BlobUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+				logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
+			}
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
+			}
+			return nil
+		})
 		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
@@ -129,31 +144,41 @@ func (c *Client) CreateDeviceLogs(ctx context.Context, userID string, content *b
 	options.MediaType = content.MediaType
 	err = c.DeviceLogsUnstructuredStore().Put(ctx, userID, *result.ID, io.TeeReader(io.TeeReader(io.LimitReader(content.Body, blob.SizeMaximum+1), hasher), sizer), options)
 	if err != nil {
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob after failure to put blob content")
+			}
+			return nil
+		})
 		return nil, err
 	}
 
 	size := sizer.Size
 	if size > blob.SizeMaximum {
-		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
-		}
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+				logger.WithError(deleteErr).Error("Unable to delete blob content exceeding maximum size")
+			}
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob exceeding maximum size")
+			}
+			return nil
+		})
 		return nil, request.ErrorResourceTooLarge()
 	}
 
 	digestMD5 := base64.StdEncoding.EncodeToString(hasher.Sum(nil))
 	if content.DigestMD5 != nil && *content.DigestMD5 != digestMD5 {
-		if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
-			logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
-		}
-		if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
-			logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
-		}
+		alwaysDo(ctx, defaultCleanupTimeout, func(ctx context.Context) error {
+			if _, deleteErr := c.DeviceLogsUnstructuredStore().Delete(ctx, userID, *result.ID); deleteErr != nil {
+				logger.WithError(deleteErr).Error("Unable to delete blob content with incorrect MD5 digest")
+			}
+			if _, destroyErr := repository.Destroy(ctx, *result.ID, nil); destroyErr != nil {
+				logger.WithError(destroyErr).Error("Unable to destroy blob with incorrect MD5 digest")
+			}
+			return nil
+		})
+
 		return nil, errors.WithSource(request.ErrorDigestsNotEqual(*content.DigestMD5, digestMD5), structure.NewPointerSource().WithReference("digestMD5"))
 	}
 
@@ -286,4 +311,14 @@ func (s *SizeWriter) Write(bites []byte) (int, error) {
 	length := len(bites)
 	s.Size += length
 	return length, nil
+}
+
+// alwaysDo performs an action given a context even if the context is
+// canceled or timed out. This is used if we have any cleanup functions that we
+// still want to perform and passing the parent context would time out any
+// child contexts.
+func alwaysDo(ctx context.Context, timeout time.Duration, fn func(ctx context.Context) error) error {
+	newContext, cancel := context.WithTimeout(context.WithoutCancel(ctx), timeout)
+	defer cancel()
+	return fn(newContext)
 }

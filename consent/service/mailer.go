@@ -7,13 +7,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/tidepool-org/platform/log"
-
-	"github.com/tidepool-org/go-common/clients"
 	"github.com/tidepool-org/go-common/events"
 
 	"github.com/tidepool-org/platform/consent"
 	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/log"
+	"github.com/tidepool-org/platform/mailer"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -29,16 +28,16 @@ var (
 )
 
 type ConsentMailer struct {
-	logger     log.Logger
-	mailer     clients.MailerClient
-	userClient user.Client
+	logger       log.Logger
+	mailerClient mailer.Client
+	userClient   user.Client
 }
 
-func NewConsentMailer(mailr clients.MailerClient, userClient user.Client, logger log.Logger) (*ConsentMailer, error) {
+func NewConsentMailer(mailerClient mailer.Client, userClient user.Client, logger log.Logger) (*ConsentMailer, error) {
 	return &ConsentMailer{
-		logger:     logger,
-		mailer:     mailr,
-		userClient: userClient,
+		logger:       logger,
+		mailerClient: mailerClient,
+		userClient:   userClient,
 	}, nil
 }
 
@@ -83,7 +82,7 @@ func (c *ConsentMailer) SendConsentGrantedEmailNotification(ctx context.Context,
 		}},
 	}
 
-	return c.mailer.SendEmailTemplate(ctx, email)
+	return c.mailerClient.SendEmailTemplate(ctx, email)
 }
 
 func (c *ConsentMailer) SendConsentRevokedEmailNotification(ctx context.Context, cons consent.Consent, record consent.Record) error {
@@ -106,5 +105,5 @@ func (c *ConsentMailer) SendConsentRevokedEmailNotification(ctx context.Context,
 		},
 	}
 
-	return c.mailer.SendEmailTemplate(ctx, email)
+	return c.mailerClient.SendEmailTemplate(ctx, email)
 }

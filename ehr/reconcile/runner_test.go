@@ -21,29 +21,18 @@ import (
 )
 
 var _ = Describe("Runner", func() {
-	var authCtrl *gomock.Controller
-	var clinicsCtrl *gomock.Controller
-	var taskCtrl *gomock.Controller
-
+	var mockController *gomock.Controller
 	var authClient *authTest.MockClient
 	var clinicsClient *clinicsTest.MockClient
 	var taskClient *taskTest.MockClient
 	var logger log.Logger
 
 	BeforeEach(func() {
-		authCtrl = gomock.NewController(GinkgoT())
-		clinicsCtrl = gomock.NewController(GinkgoT())
-		taskCtrl = gomock.NewController(GinkgoT())
-		authClient = authTest.NewMockClient(authCtrl)
-		clinicsClient = clinicsTest.NewMockClient(clinicsCtrl)
-		taskClient = taskTest.NewMockClient(taskCtrl)
+		mockController = gomock.NewController(GinkgoT())
+		authClient = authTest.NewMockClient(mockController)
+		clinicsClient = clinicsTest.NewMockClient(mockController)
+		taskClient = taskTest.NewMockClient(mockController)
 		logger = null.NewLogger()
-	})
-
-	AfterEach(func() {
-		authCtrl.Finish()
-		clinicsCtrl.Finish()
-		taskCtrl.Finish()
 	})
 
 	Context("With random data", func() {
@@ -93,7 +82,7 @@ var _ = Describe("Runner", func() {
 
 				clinicsClient.EXPECT().ListEHREnabledClinics(gomock.Any()).Return(clinics, nil)
 				taskClient.EXPECT().ListTasks(gomock.Any(), gomock.Any(), gomock.Any()).Return(tasksList, nil)
-				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID)).Return(nil)
+				taskClient.EXPECT().DeleteTask(gomock.Any(), gomock.Eq(tasks[*toBeDeleted.Id].ID), gomock.Nil()).Return(nil)
 				taskClient.EXPECT().CreateTask(gomock.Any(), gomock.Any()).Return(nil, nil)
 				runner.Run(context.Background(), t)
 			})

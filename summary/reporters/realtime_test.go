@@ -2,6 +2,7 @@ package reporters_test
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -65,6 +66,20 @@ var _ = Describe("Reporters", func() {
 
 			count, err := realtimeReporter.GetNumberOfDaysWithRealtimeData(ctx, bucketsCursor)
 			Expect(count).To(Equal(15))
+		})
+
+		It("with a cursor that fails mid-iteration", func() {
+			endTime := time.Now().UTC().Truncate(time.Hour * 24)
+			startTime := endTime.AddDate(0, 0, -30)
+
+			buckets := NewRealtimeBuckets(userId, startTime, endTime, 15)
+
+			bucketsCursor, err := mongo.NewCursorFromDocuments(ConvertToIntArray(buckets),
+				fmt.Errorf("batch fetch failed"), nil)
+			Expect(err).ToNot(HaveOccurred())
+
+			_, err = realtimeReporter.GetNumberOfDaysWithRealtimeData(ctx, bucketsCursor)
+			Expect(err).To(MatchError("batch fetch failed"))
 		})
 
 		It("with no realtime data", func() {

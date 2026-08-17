@@ -35,12 +35,12 @@ var (
 )
 
 type RevisionCreate struct {
-	DataAttributes `json:",inline"`
-	CreatedUserID  string `json:"createdUserId"`
-	RevisionHash   string `json:"revisionHash"`
-	ClinicID       string `json:"-"`
-	ClinicianID    string `json:"-"`
-	IsPrescriber   bool   `json:"-"`
+	DataAttributes
+	CreatedUserID string `json:"createdUserId"`
+	RevisionHash  string `json:"revisionHash"`
+	ClinicID      string `json:"-"`
+	ClinicianID   string `json:"-"`
+	IsPrescriber  bool   `json:"-"`
 }
 
 func NewRevisionCreate(clinicID, clinicianID string, isPrescriber bool) *RevisionCreate {
@@ -160,8 +160,8 @@ func (r *Revision) GetSubmittedTime() *time.Time {
 }
 
 type Attributes struct {
-	DataAttributes     `json:",inline" bson:",inline"`
-	CreationAttributes `json:",inline" bson:",inline"`
+	DataAttributes     `bson:",inline"`
+	CreationAttributes `bson:",inline"`
 }
 
 func (a *Attributes) Validate(validator structure.Validator) {

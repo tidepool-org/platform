@@ -15,6 +15,12 @@ func NewCondition() *Condition {
 	return &Condition{}
 }
 
+func NewConditionWithRevision(revision *int) *Condition {
+	return &Condition{
+		Revision: revision,
+	}
+}
+
 func (c *Condition) Parse(parser structure.ObjectParser) {
 	c.Revision = parser.Int("revision")
 }

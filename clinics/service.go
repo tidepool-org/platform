@@ -16,11 +16,12 @@ import (
 	"github.com/tidepool-org/platform/auth"
 )
 
+//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
+
 const ErrorCodeClinicClientFailure = "clinic-client-failure"
 
 var ClientModule = fx.Provide(NewClient)
 
-//go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test Client
 type Client interface {
 	GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error)
 	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)

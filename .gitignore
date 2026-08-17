@@ -29,4 +29,5 @@ _tmp
 # Development
 .gvm_local
 .idea
+.vscode
 *.code-workspace

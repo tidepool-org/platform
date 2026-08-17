@@ -42,9 +42,10 @@ const (
 	DataSetStateClosed = "closed"
 	DataSetStateOpen   = "open"
 
-	DeviceTagBGM         = "bgm"
-	DeviceTagCGM         = "cgm"
-	DeviceTagInsulinPump = "insulin-pump"
+	DeviceTagActivityMonitor = "activity-monitor"
+	DeviceTagBGM             = "bgm"
+	DeviceTagCGM             = "cgm"
+	DeviceTagInsulinPump     = "insulin-pump"
 
 	TimeProcessingAcrossTheBoardTimeZone = "across-the-board-timezone" // TODO: Rename to across-the-board-time-zone or alternative
 	TimeProcessingNone                   = "none"
@@ -73,6 +74,7 @@ func DataSetStates() []string {
 
 func DeviceTags() []string {
 	return []string{
+		DeviceTagActivityMonitor,
 		DeviceTagBGM,
 		DeviceTagCGM,
 		DeviceTagInsulinPump,

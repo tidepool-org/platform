@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/tidepool-org/platform/auth"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -174,4 +175,26 @@ func (c *Client) Delete(ctx context.Context, id string, condition *request.Condi
 	}
 
 	return true, nil
+}
+
+func (c *Client) GetFromProviderSession(ctx context.Context, providerSessionID string) (*dataSource.Source, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if providerSessionID == "" {
+		return nil, errors.New("provider session id is missing")
+	} else if !auth.IsValidProviderSessionID(providerSessionID) {
+		return nil, errors.New("provider session id is invalid")
+	}
+
+	url := c.client.ConstructURL("v1", "provider_sessions", providerSessionID, "data_source")
+	result := &dataSource.Source{}
+	if err := c.client.RequestData(ctx, http.MethodGet, url, nil, nil, result); err != nil {
+		if request.IsErrorResourceNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return result, nil
 }

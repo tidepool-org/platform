@@ -9,6 +9,20 @@ import (
 )
 
 var _ = Describe("Clone", func() {
+	Context("Clone", func() {
+		It("returns nil if the source is nil", func() {
+			Expect(pointer.Clone[string](nil)).To(BeNil())
+		})
+
+		It("returns a clone of the specified source", func() {
+			source := test.RandomString()
+			result := pointer.Clone(&source)
+			Expect(result).ToNot(BeNil())
+			Expect(result).ToNot(BeIdenticalTo(&source))
+			Expect(*result).To(Equal(source))
+		})
+	})
+
 	Context("CloneBool", func() {
 		It("returns nil if the source is nil", func() {
 			Expect(pointer.CloneBool(nil)).To(BeNil())

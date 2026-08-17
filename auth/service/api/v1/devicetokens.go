@@ -35,7 +35,7 @@ func (r *Router) UpsertDeviceToken(res rest.ResponseWriter, req *rest.Request) {
 
 	doc := devicetokens.NewDocument(authDetails.UserID(), deviceToken)
 	if err := repo.Upsert(ctx, doc); err != nil {
-		responder.Error(http.StatusInternalServerError, err)
+		responder.InternalServerError(err)
 		return
 	}
 }

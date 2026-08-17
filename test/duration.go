@@ -45,5 +45,9 @@ func RandomDurationMinimum() time.Duration {
 }
 
 func NewObjectFromDuration(value time.Duration, objectFormat ObjectFormat) interface{} {
+	switch objectFormat {
+	case ObjectFormatConfig:
+		return value.String()
+	}
 	return value
 }

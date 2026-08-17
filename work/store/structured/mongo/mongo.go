@@ -319,19 +319,24 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 	ctx = context.WithoutCancel(ctx)
 
 	result, err := s.InsertOne(ctx, document)
-	lgr = lgr.WithError(err)
 	if err != nil {
 
 		// Return nil without error to indicate duplicate based upon type and deduplication id (see unique index above), but ok
 		if mongo.IsDuplicateKeyError(err) {
+			lgr.Debug("work with same type and deduplication id already exists")
 			return nil, nil
 		}
 
-		lgr.Error("unable to create work")
+		lgr.WithError(err).Error("unable to create work")
 		return nil, errors.Wrap(err, "unable to create work")
 	}
 
-	document.ID = result.InsertedID.(bsonPrimitive.ObjectID)
+	if insertedID, ok := result.InsertedID.(bsonPrimitive.ObjectID); !ok || insertedID.IsZero() {
+		lgr.WithError(err).Error("work id is invalid")
+		return nil, errors.Wrap(err, "work id is invalid")
+	} else {
+		document.ID = insertedID
+	}
 
 	return document.AsWork(), nil
 }
@@ -529,7 +534,7 @@ func (s *Store) Delete(ctx context.Context, id string, condition *storeStructure
 	}
 	if condition == nil {
 		condition = storeStructured.NewCondition()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
+	} else if err = structureValidator.New(log.LoggerFromContext(ctx)).Validate(condition); err != nil {
 		return nil, errors.Wrap(err, "condition is invalid")
 	}
 
@@ -634,7 +639,7 @@ type Document struct {
 	ProcessingAvailableTime time.Time              `json:"processingAvailableTime" bson:"processingAvailableTime"`
 	ProcessingPriority      int                    `json:"processingPriority" bson:"processingPriority"`
 	ProcessingTimeout       int                    `json:"processingTimeout" bson:"processingTimeout"`
-	Metadata                map[string]any         `json:"metadata,omitempty" bson:"metadata,omitempty"` // Database only
+	Metadata                bsonPrimitive.M        `json:"metadata,omitempty" bson:"metadata,omitempty"` // Database only
 	PendingTime             time.Time              `json:"pendingTime" bson:"pendingTime"`
 	ProcessingTime          *time.Time             `json:"processingTime,omitempty" bson:"processingTime,omitempty"`
 	ProcessingTimeoutTime   *time.Time             `json:"processingTimeoutTime,omitempty" bson:"processingTimeoutTime,omitempty"`
@@ -663,7 +668,7 @@ func (d *Document) AsWork() *work.Work {
 		ProcessingAvailableTime: d.ProcessingAvailableTime,
 		ProcessingPriority:      d.ProcessingPriority,
 		ProcessingTimeout:       d.ProcessingTimeout,
-		Metadata:                d.Metadata,
+		Metadata:                storeStructuredMongo.BSONToMap(d.Metadata),
 		PendingTime:             d.PendingTime,
 		ProcessingTime:          d.ProcessingTime,
 		ProcessingTimeoutTime:   d.ProcessingTimeoutTime,
