@@ -52,9 +52,9 @@ func NewTypeless(delegate *storeStructuredMongo.Repository) *TypelessSummaries {
 // OutdatedSummary reports a summary marked outdated by the mechanism being retired, or by the legacy
 // ingestion service, which is the summary of one type for one user
 type OutdatedSummary struct {
-	UserID        string    `bson:"userId"`
-	Type          string    `bson:"type"`
-	OutdatedSince time.Time `bson:"-"`
+	UserID        string
+	Type          string
+	OutdatedSince time.Time
 }
 
 // ListOutdated reports the summaries marked outdated, of every type, oldest first, up to the limit.
@@ -95,7 +95,8 @@ func (r *TypelessSummaries) ListOutdated(ctx context.Context, limit int) ([]Outd
 		UserID string `bson:"userId"`
 		Type   string `bson:"type"`
 		Dates  struct {
-			OutdatedSince *time.Time `bson:"outdatedSince"`
+			// Non-pointer, as the $lte selector cannot match a document missing the field
+			OutdatedSince time.Time `bson:"outdatedSince"`
 		} `bson:"dates"`
 	}
 	if err = cursor.All(ctx, &documents); err != nil {
@@ -104,13 +105,10 @@ func (r *TypelessSummaries) ListOutdated(ctx context.Context, limit int) ([]Outd
 
 	outdated := make([]OutdatedSummary, 0, len(documents))
 	for _, document := range documents {
-		if document.Dates.OutdatedSince == nil {
-			continue
-		}
 		outdated = append(outdated, OutdatedSummary{
 			UserID:        document.UserID,
 			Type:          document.Type,
-			OutdatedSince: *document.Dates.OutdatedSince,
+			OutdatedSince: document.Dates.OutdatedSince,
 		})
 	}
 

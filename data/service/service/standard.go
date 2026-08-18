@@ -622,13 +622,14 @@ func (s *Standard) initializeConfirmationClient() error {
 func (s *Standard) initializeSummarizerRegistry() error {
 	s.Logger().Debug("Creating summarizer registry")
 
+	summaryRepositoryStore := s.dataStore.NewSummaryRepository().GetStore()
 	s.summarizerRegistry = summary.New(
-		s.dataStore.NewSummaryRepository().GetStore(),
+		summaryRepositoryStore,
 		s.dataStore.NewBucketsRepository().GetStore(),
 		s.dataStore.NewDataRepository(),
 		s.dataStore.GetClient(),
 	)
-	s.typelessSummaries = summaryStore.NewTypeless(s.dataStore.NewSummaryRepository().GetStore())
+	s.typelessSummaries = summaryStore.NewTypeless(summaryRepositoryStore)
 
 	return nil
 }

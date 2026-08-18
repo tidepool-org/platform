@@ -18,6 +18,7 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 	userWork "github.com/tidepool-org/platform/user/work"
@@ -207,7 +208,7 @@ var _ = Describe("Processor", func() {
 						updated.Revision = wrk.Revision + 1
 						return &updated, nil
 					}),
-				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(sibling, nil),
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil),
 			)
 		}
 
@@ -238,7 +239,7 @@ var _ = Describe("Processor", func() {
 			It("defers rather than calculating the summaries", func() {
 				expectListWithSibling()
 				processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(wrk, nil)
-				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(sibling, nil)
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
 
 				result := process()
 				Expect(result.Result).To(Equal(work.ResultPending))
@@ -256,7 +257,7 @@ var _ = Describe("Processor", func() {
 						updated.Metadata = update.Metadata
 						return &updated, nil
 					})
-				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(sibling, nil)
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
 				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
@@ -272,7 +273,7 @@ var _ = Describe("Processor", func() {
 						updated.Metadata = update.Metadata
 						return &updated, nil
 					})
-				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(sibling, nil)
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
 				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
@@ -283,9 +284,22 @@ var _ = Describe("Processor", func() {
 		It("retries when it cannot be deleted", func() {
 			expectListWithSibling()
 			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(wrk, nil)
-			workClient.EXPECT().Delete(gomock.Any(), sibling.ID, gomock.Nil()).Return(nil, errorsTest.RandomError())
+			workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(nil, errorsTest.RandomError())
 
 			Expect(process().Result).To(Equal(work.ResultFailing))
+		})
+
+		// The sibling changed after it was listed — a producer may have merged another change into
+		// it. Deleting it would destroy that change; leaving it reprocesses the reasons already
+		// absorbed redundantly, which is the at-least-once contract.
+		It("continues without deleting it when it changed since it was listed", func() {
+			expectListWithSibling()
+			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(wrk, nil)
+			workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(nil, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
+			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
 	})
 })

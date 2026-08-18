@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -23,7 +24,6 @@ type Processor struct {
 	ClinicsClient
 
 	pendingBuilder *deferredPendingBuilder
-	wrk            *work.Work
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -60,7 +60,6 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 }
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
-	p.wrk = wrk
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		p.FetchUserFromWorkMetadata,
 		p.absorbPending,
@@ -114,8 +113,14 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	}
 
 	for _, wrk := range absorbed {
-		if _, err = p.WorkClient().Delete(p.Context(), wrk.ID, nil); err != nil {
+		deleted, err := p.WorkClient().Delete(p.Context(), wrk.ID, &request.Condition{Revision: &wrk.Revision})
+		if err != nil {
 			return p.Failing(errors.Wrap(err, "unable to delete work"))
+		}
+		// The work changed since it was listed - log a warning since this shouldn't happen.
+		// Work items are processed serially and there's no modification path.
+		if deleted == nil {
+			log.LoggerFromContext(p.Context()).WithField("id", wrk.ID).Warn("work absorbed changed before it was deleted")
 		}
 	}
 

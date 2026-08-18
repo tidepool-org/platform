@@ -1,7 +1,7 @@
 package service
 
 import (
-	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -32,11 +32,9 @@ var _ = Describe("Coordinator", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(coordinator).ToNot(BeNil())
 
-		// Assigned directly as the contexts are otherwise only assigned by Start, which defers the
-		// first request for work by CoordinatorDelayInitial
-		ctx := log.NewContextWithLogger(context.Background(), logger)
-		coordinator.workersContext = ctx
-		coordinator.managerContext = ctx
+		// Initialized directly as the contexts are otherwise only initialized by Start, which
+		// defers the first request for work by CoordinatorDelayInitial
+		coordinator.initializeContexts()
 	})
 
 	AfterEach(func() {
@@ -71,6 +69,32 @@ var _ = Describe("Coordinator", func() {
 				)
 				coordinator.requestAndDispatchWork()
 				logger.AssertError("unable to reap expired processing work")
+
+				// The coordinator is the single log site for the failure
+				count := 0
+				for _, fields := range logger.SerializedFields {
+					if fields["message"] == "unable to reap expired processing work" {
+						count++
+					}
+				}
+				Expect(count).To(Equal(1))
+			})
+
+			It("does not reap expired processing work again within the reap interval", func() {
+				workClient.EXPECT().ReapExpiredProcessing(gomock.Any()).Return(0, nil)
+				workClient.EXPECT().Poll(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+				coordinator.requestAndDispatchWork()
+				coordinator.requestAndDispatchWork()
+			})
+
+			It("reaps expired processing work again once the reap interval passes", func() {
+				now := time.Now()
+				coordinator.NowFunc = func() time.Time { return now }
+				workClient.EXPECT().ReapExpiredProcessing(gomock.Any()).Return(0, nil).Times(2)
+				workClient.EXPECT().Poll(gomock.Any(), gomock.Any()).Return(nil, nil).Times(2)
+				coordinator.requestAndDispatchWork()
+				now = now.Add(ReapExpiredProcessingInterval)
+				coordinator.requestAndDispatchWork()
 			})
 
 			It("reports the count when expired processing work is reaped", func() {
