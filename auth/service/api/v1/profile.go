@@ -38,9 +38,6 @@ func (r *Router) ProfileRoutes() []*rest.Route {
 
 		rest.Post("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
 		rest.Post("/metadata/:userId/profile", r.requireCustodian("userId", r.UpdateLegacyProfile)),
-
-		rest.Delete("/v1/users/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
-		rest.Delete("/v1/users/legacy/:userId/profile", r.requireCustodian("userId", r.DeleteProfile)),
 	}
 }
 
@@ -232,11 +229,6 @@ func (r *Router) UpdateProfile(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 	responder.Data(http.StatusOK, profile)
-}
-
-func (r *Router) DeleteProfile(res rest.ResponseWriter, req *rest.Request) {
-	responder := request.MustNewResponder(res, req)
-	responder.Empty(http.StatusNotImplemented)
 }
 
 func (r *Router) handleUserOrProfileErr(responder *request.Responder, err error) {
