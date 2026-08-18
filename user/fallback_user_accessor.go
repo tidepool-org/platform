@@ -82,7 +82,7 @@ func (f *FallbackLegacyUserAccessor) UpdateUserProfile(ctx context.Context, user
 	}
 
 	// This is only meant to be called for migrated profiles so it will return an error if the profile exists unmigrated in seagull
-	if legacyProfile != nil && retrievedFromSeagull && legacyProfile.MigrationStatus == MigrationUnmigrated {
+	if legacyProfile != nil && retrievedFromSeagull && !IsMigrationCompleted(legacyProfile.MigrationStatus) {
 		return ErrProfileNotMigrated
 	}
 

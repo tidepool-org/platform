@@ -106,14 +106,17 @@ func (c *Client) PermissionsGrantedByUser(ctx context.Context, sharerID string) 
 
 func (c *Client) UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	fromTo, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
-	if err != nil {
+	// GetUserPermissions treats empty / not found permissions as err
+	// unauthorized so don't return early on those errors to allow the toFrom
+	// check below to still run.
+	if err != nil && !request.IsErrorResourceNotFound(err) && !request.IsErrorUnauthorized(err) {
 		return false, err
 	}
 	if len(fromTo) > 0 {
 		return true, nil
 	}
 	toFrom, err := c.GetUserPermissions(ctx, grantorUserID, granteeUserID)
-	if err != nil {
+	if err != nil && !request.IsErrorResourceNotFound(err) && !request.IsErrorUnauthorized(err) {
 		return false, err
 	}
 	if len(toFrom) > 0 {

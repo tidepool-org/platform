@@ -2,9 +2,9 @@ package keycloak
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
-	"net/http"
 	"strconv"
 	"strings"
 	"sync"
@@ -18,6 +18,10 @@ import (
 
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/user"
+)
+
+var (
+	ErrAdminTokenMissing = errors.New("admin token missing")
 )
 
 const (
@@ -243,37 +247,23 @@ func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (us
 	return users, nil
 }
 
-func (c *keycloakClient) DeleteUserSessions(ctx context.Context, id string) error {
-	token, err := c.getAdminToken(ctx)
-	if err != nil {
-		return err
-	}
-
-	if err := c.keycloak.LogoutAllSessions(ctx, token.AccessToken, c.cfg.Realm, id); err != nil {
-		if aErr, ok := err.(*gocloak.APIError); ok && aErr.Code == http.StatusNotFound {
-			return nil
-		}
-	}
-
-	return err
-}
-
 func (c *keycloakClient) getRealmURL(realm string, path ...string) string {
 	path = append([]string{c.cfg.BaseUrl, "realms", realm}, path...)
 	return strings.Join(path, "/")
 }
 
 func (c *keycloakClient) getAdminToken(ctx context.Context) (oauth2.Token, error) {
-	var err error
 	if c.adminTokenIsExpired() {
 		if err := c.loginAsAdmin(ctx); err != nil {
 			return oauth2.Token{}, err
 		}
 	}
-
 	c.adminTokenLock.RLock()
 	defer c.adminTokenLock.RUnlock()
-	return *c.adminToken, err
+	if c.adminToken == nil {
+		return oauth2.Token{}, ErrAdminTokenMissing
+	}
+	return *c.adminToken, nil
 }
 
 func (c *keycloakClient) loginAsAdmin(ctx context.Context) error {
@@ -290,6 +280,9 @@ func (c *keycloakClient) loginAsAdmin(ctx context.Context) error {
 	c.adminTokenLock.Lock()
 	defer c.adminTokenLock.Unlock()
 	c.adminToken = c.jwtToAccessToken(jwt)
+	if c.adminToken == nil {
+		return ErrAdminTokenMissing
+	}
 	expiration := time.Now().Add(time.Duration(jwt.ExpiresIn)*time.Second - time.Second*5) // check if adding a small buffer to expire time to allow earlier refresh still results in a time in the future
 	if expiration.After(time.Now()) {
 		c.adminTokenRefreshExpires = expiration

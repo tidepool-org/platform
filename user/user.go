@@ -40,7 +40,7 @@ var (
 	}
 
 	IdExpression           = regexp.MustCompile(`^([0-9a-f]{10}|[0-9a-fA-F]{8}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{4}\-[0-9a-fA-F]{12})$`)
-	custodialAccountRegexp = regexp.MustCompile(`(?i)unclaimed-custodial-automation\+\d+@tidepool\.org`)
+	custodialAccountRegexp = regexp.MustCompile(`(?i)^unclaimed-custodial-automation\+\d+@tidepool\.org$`)
 )
 
 func Roles() []string {
