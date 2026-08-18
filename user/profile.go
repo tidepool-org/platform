@@ -464,6 +464,9 @@ func (up *Profile) Validate(v structure.Validator) {
 	if up.DiagnosisType != "" {
 		v.String("diagnosisType", &up.DiagnosisType).OneOf(DiabetesTypes...)
 	}
+	if up.Clinic != nil {
+		up.Clinic.Validate(v.WithReference("clinic"))
+	}
 }
 
 func (up *Profile) Normalize(normalizer structure.Normalizer) {
@@ -522,6 +525,7 @@ func (pp *LegacyPatientProfile) Validate(v structure.Validator) {
 	v.String("targetTimezone", &pp.TargetTimezone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("about", &pp.About).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 	v.String("mrn", &pp.MRN).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("biologicalSex", &pp.BiologicalSex).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 
 	if pp.DiagnosisType != "" {
 		v.String("diagnosisType", &pp.DiagnosisType).OneOf(DiabetesTypes...)
@@ -556,4 +560,11 @@ func (p *LegacyUserProfile) Sanitize() {
 		p.Patient.MRN = ""
 		p.Patient.BiologicalSex = ""
 	}
+}
+
+func (p *ClinicProfile) Validate(v structure.Validator) {
+	v.String("name", p.Name).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("role", p.Role).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("telephone", p.Telephone).LengthLessThanOrEqualTo(MaxProfileFieldLen)
+	v.String("npi", p.NPI).LengthLessThanOrEqualTo(MaxProfileFieldLen)
 }

@@ -64,6 +64,7 @@ import (
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
 	"github.com/tidepool-org/platform/user/keycloak"
+	userStoreMongo "github.com/tidepool-org/platform/user/store/mongo"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workService "github.com/tidepool-org/platform/work/service"
@@ -871,7 +872,7 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 
 	s.Logger().Debug("creating legacy seagull profile accessor")
 
-	repo, err := authStoreMongo.NewLegacySeagullProfileRepository(cfg)
+	repo, err := userStoreMongo.NewLegacySeagullProfileRepository(cfg)
 	if err != nil {
 		return errors.Wrap(err, "unable to create fallback user profile repository")
 	}

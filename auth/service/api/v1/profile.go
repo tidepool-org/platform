@@ -148,7 +148,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 	for userID, trustPerms := range mergedUserPerms {
 		group.Go(func() error {
 			sharedUser, err := r.UserAccessor().Get(ctx, userID)
-			if stdErrs.Is(err, user.ErrUserNotFound) || sharedUser == nil {
+			if stdErrs.Is(err, user.ErrUserNotFound) || (err == nil && sharedUser == nil) {
 				// According to seagull code, "It's possible for a user profile to be deleted before the sharing permissions", so we can ignore if user or profile not found.
 				return nil
 			}
@@ -156,7 +156,7 @@ func (r *Router) GetUsersWithProfiles(res rest.ResponseWriter, req *rest.Request
 				return err
 			}
 			seagullProfile, err := r.getProfile(ctx, userID)
-			if stdErrs.Is(err, user.ErrUserProfileNotFound) || seagullProfile == nil {
+			if stdErrs.Is(err, user.ErrUserProfileNotFound) || (err == nil && seagullProfile == nil) {
 				return nil
 			}
 			if err != nil {
