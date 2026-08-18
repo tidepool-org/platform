@@ -14,14 +14,6 @@ const (
 	Type = "org.tidepool.data.upload.postprocess"
 
 	ProcessingTimeout = 5 * time.Minute
-
-	// JellyfishBatchSize is the number of records the legacy ingestion service uploads per batch. A
-	// smaller batch is the final batch of an upload, which it does not otherwise report.
-	JellyfishBatchSize = 1000
-
-	// JellyfishQuietDelay defers processing so that an upload of any number of full batches is not
-	// processed once per batch
-	JellyfishQuietDelay = 90 * time.Second
 )
 
 const (
