@@ -12,6 +12,7 @@ import (
 	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	netTest "github.com/tidepool-org/platform/net/test"
@@ -287,6 +288,86 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 						Expect(additional).To(BeEmpty(), "poll %d claimed work while a work item sharing its serial id was processing", index)
 					}
+				})
+			})
+
+			// The serial id group exclusion must consider every member of the group, not only the
+			// member that sorts first: a pending sibling with a higher processing priority sorts
+			// ahead of a processing or failing member, which must still block the group.
+			Context("with a work item claimed from a serial id group", func() {
+				var poll *work.Poll
+				var serialID string
+				var claimed *work.Work
+
+				createSibling := func(processingPriority int) *work.Work {
+					sibling, err := store.Create(ctx, &work.Create{
+						Type:               typ,
+						SerialID:           pointer.FromString(serialID),
+						ProcessingPriority: processingPriority,
+						ProcessingTimeout:  processingTimeout,
+					})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(sibling).ToNot(BeNil())
+					return sibling
+				}
+
+				updateToFailing := func(wrk *work.Work, retryTime time.Time) {
+					updated, err := store.Update(ctx, wrk.ID, nil, &work.Update{
+						State: work.StateFailing,
+						FailingUpdate: &work.FailingUpdate{
+							FailingError:      errors.Serializable{Error: errors.New("test failure")},
+							FailingRetryCount: 1,
+							FailingRetryTime:  retryTime,
+						},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+					Expect(updated.State).To(Equal(work.StateFailing))
+				}
+
+				BeforeEach(func() {
+					poll = &work.Poll{TypeQuantities: work.TypeQuantities{typ: 10}}
+					serialID = typ + ":" + test.RandomString()
+
+					createSibling(0)
+					polled, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(polled).To(HaveLen(1))
+					claimed = polled[0]
+					Expect(claimed.State).To(Equal(work.StateProcessing))
+				})
+
+				It("claims nothing while the work item is processing, however a pending sibling sorts", func() {
+					createSibling(1)
+
+					for index := range 10 {
+						polled, err := store.Poll(ctx, poll)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(polled).To(BeEmpty(), "poll %d claimed work while a work item sharing its serial id was processing", index)
+					}
+				})
+
+				It("claims nothing while the work item is failing with a future retry time, however a pending sibling sorts", func() {
+					updateToFailing(claimed, time.Now().Add(time.Hour))
+					createSibling(1)
+
+					for index := range 10 {
+						polled, err := store.Poll(ctx, poll)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(polled).To(BeEmpty(), "poll %d claimed work while a work item sharing its serial id was failing with a future retry", index)
+					}
+				})
+
+				It("claims the work item once its failing retry time has passed", func() {
+					// The store clamps the failing retry time to no earlier than the update itself,
+					// so requesting a past time yields a retry time that has passed by the poll
+					updateToFailing(claimed, time.Now().Add(-time.Minute))
+
+					polled, err := store.Poll(ctx, poll)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(polled).To(HaveLen(1))
+					Expect(polled[0].ID).To(Equal(claimed.ID))
+					Expect(polled[0].State).To(Equal(work.StateProcessing))
 				})
 			})
 		})

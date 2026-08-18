@@ -27,6 +27,10 @@ const (
 	FailingRetryDuration       = 1 * time.Minute
 	FailingRetryDurationJitter = 5 * time.Second
 
+	// ReapExpiredProcessingInterval decouples the reap cadence from the frequency of the fastest
+	// processor, which drives how often work is requested
+	ReapExpiredProcessingInterval = time.Minute
+
 	// ReapExpiredProcessingGraceDuration is the duration beyond the processing timeout time that
 	// must elapse before work in state processing is reaped
 	ReapExpiredProcessingGraceDuration = time.Minute
@@ -59,6 +63,7 @@ type Coordinator struct {
 	managerCancelFunc          context.CancelFunc
 	managerWaitGroup           sync.WaitGroup
 	timer                      *time.Timer
+	lastReapTime               time.Time
 
 	// Testing
 	NowFunc func() time.Time
@@ -140,6 +145,12 @@ func (c *Coordinator) Start() {
 
 	c.workersCompletionChannel = make(chan *coordinatorProcessingCompletion, c.typeQuantities.Total())
 
+	c.initializeContexts()
+
+	c.startManager()
+}
+
+func (c *Coordinator) initializeContexts() {
 	commonContext := log.NewContextWithLogger(context.Background(), c.logger)
 
 	workersContext, workersCancelFunc := context.WithCancel(commonContext)
@@ -150,8 +161,6 @@ func (c *Coordinator) Start() {
 	managerContext, managerCancelFunc := context.WithCancel(commonContext)
 	c.managerContext = managerContext
 	c.managerCancelFunc = managerCancelFunc
-
-	c.startManager()
 }
 
 func (c *Coordinator) Stop() {
@@ -228,10 +237,14 @@ func (c *Coordinator) requestAndDispatchWork() {
 }
 
 // reapExpiredProcessingWork returns work abandoned by a terminated process to failing so that it is
-// retried, and so that any work sharing its serial id is no longer prevented from being polled.
-// Failure is reported, but does not prevent polling, as any work reaped is already delayed.
+// retried. Failure is logged but does not interrupt polling. Reaping runs at most once per interval.
 func (c *Coordinator) reapExpiredProcessingWork() {
-	count, err := c.workClient.ReapExpiredProcessing(context.WithoutCancel(c.managerContext))
+	if c.Now().Sub(c.lastReapTime) < ReapExpiredProcessingInterval {
+		return
+	}
+	c.lastReapTime = c.Now()
+
+	count, err := c.workClient.ReapExpiredProcessing(c.managerContext)
 	if err != nil {
 		log.LoggerFromContext(c.managerContext).WithError(err).Error("unable to reap expired processing work")
 	} else if count > 0 {

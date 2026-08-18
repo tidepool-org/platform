@@ -128,7 +128,6 @@ func (s *Store) ReapExpiredProcessing(ctx context.Context, graceDuration time.Du
 	updateResult, err := s.UpdateMany(ctx, query, update)
 	lgr = lgr.WithError(err)
 	if err != nil {
-		lgr.Error("unable to reap expired processing work")
 		return 0, errors.Wrap(err, "unable to reap expired processing work")
 	}
 
@@ -169,18 +168,23 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 
 	// Sort by processing priority and available time, with _id as a tie breaker
 	// The _id tie breaker guarantees a total order so that, within a serial id group, the
-	// document already in state processing remains first and the group is reliably excluded below
+	// document claimed first is deterministic
 	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}, bson.E{Key: "_id", Value: 1}}})
 
 	// Group all documents by serial id
 	pipeline = append(pipeline, bson.M{"$group": bson.M{"_id": "$serialId", "documents": bson.M{"$push": "$$ROOT"}}})
 
-	// Match any without a serial id or any serial id that does not have one in state processing or failing with retry time in future
+	// Match any without a serial id or any serial id group that contains no member in state
+	// processing nor in state failing with retry time in future ($elemMatch binds both failing
+	// conditions to the same member). Matching the whole group rather than its head is slightly
+	// conservative: a group is also excluded when a failing member with a future retry sorts after
+	// an otherwise eligible head. With uniform priority the failing member sorts first anyway;
+	// where priorities differ, correctness wins over throughput.
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"_id": bson.M{"$exists": false}},
 		bson.M{"$nor": bson.A{
-			bson.M{"documents.0.state": "processing"},
-			bson.M{"documents.0.state": "failing", "documents.0.failingRetryTime": bson.M{"$gt": now}},
+			bson.M{"documents": bson.M{"$elemMatch": bson.M{"state": "processing"}}},
+			bson.M{"documents": bson.M{"$elemMatch": bson.M{"state": "failing", "failingRetryTime": bson.M{"$gt": now}}}},
 		}},
 	}}})
 
