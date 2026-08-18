@@ -230,7 +230,7 @@ var _ = Describe("Processor", func() {
 			var deferredUntil time.Time
 
 			BeforeEach(func() {
-				deferredUntil = time.Now().Add(dataWorkPostprocess.JellyfishQuietDelay)
+				deferredUntil = time.Now().Add(90 * time.Second)
 				wrk = newWork(work.StateProcessing, []string{dataWorkPostprocess.ReasonLegacyDataAdded}, time.Now().Add(-time.Minute))
 				sibling = newWork(work.StatePending, []string{dataWorkPostprocess.ReasonLegacyDataAdded}, deferredUntil)
 			})

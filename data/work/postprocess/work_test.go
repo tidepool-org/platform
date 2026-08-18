@@ -28,14 +28,6 @@ var _ = Describe("Work", func() {
 		Expect(dataWorkPostprocess.ProcessingTimeout).To(Equal(5 * time.Minute))
 	})
 
-	It("JellyfishBatchSize is expected", func() {
-		Expect(dataWorkPostprocess.JellyfishBatchSize).To(Equal(1000))
-	})
-
-	It("JellyfishQuietDelay is expected", func() {
-		Expect(dataWorkPostprocess.JellyfishQuietDelay).To(Equal(90 * time.Second))
-	})
-
 	It("Reasons is expected", func() {
 		Expect(dataWorkPostprocess.Reasons()).To(ConsistOf(
 			"DATA_ADDED",
