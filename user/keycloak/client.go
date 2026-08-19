@@ -187,7 +187,9 @@ func (c *keycloakClient) UpdateUser(ctx context.Context, u *user.User) error {
 	attrs := map[string][]string{}
 	maps.Copy(attrs, u.Attributes)
 	if terms := pointer.ToString(u.TermsAccepted); terms != "" {
-		attrs[termsAcceptedAttribute] = []string{terms}
+		if termsUnixTime, err := timestampStringToUnixTime(terms); err == nil {
+			attrs[termsAcceptedAttribute] = []string{termsUnixTime}
+		}
 	}
 
 	if u.Profile != nil {
@@ -484,4 +486,13 @@ func unixTimeStringToTimestamp(unixString string) (timestamp string, err error) 
 	t := time.Unix(i, 0)
 	timestamp = t.Format(timestampFormat)
 	return
+}
+
+func timestampStringToUnixTime(timestamp string) (unixTime string, err error) {
+	tm, err := time.Parse(timestamp, timestampFormat)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf("%v", tm.Unix()), nil
 }
