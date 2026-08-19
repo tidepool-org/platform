@@ -7,7 +7,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 )
 
-//go:generate mockgen -source=processor.go -destination=test/processor_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=processor.go -destination=test/processor_mocks.go -package=test -typed
 
 // ProcessingUpdater allows a processor to update the work in the database while processing that work. Returns the resulting
 // updated work or an error.

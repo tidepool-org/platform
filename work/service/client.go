@@ -10,7 +10,7 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Store interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)

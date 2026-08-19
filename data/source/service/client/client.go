@@ -11,7 +11,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 )
 
-//go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
+//go:generate go tool go.uber.org/mock/mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Provider interface {
 	AuthClient() auth.Client
