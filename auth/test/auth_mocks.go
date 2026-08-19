@@ -507,6 +507,21 @@ func (c *MockClientGetUserPermissionsCall) DoAndReturn(f func(context.Context, s
 	return c
 }
 
+// HasCustodianPermissions mocks base method.
+func (m *MockClient) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasCustodianPermissions", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasCustodianPermissions indicates an expected call of HasCustodianPermissions.
+func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
+}
+
 // ListProviderSessions mocks base method.
 func (m *MockClient) ListProviderSessions(ctx context.Context, filter *auth.ProviderSessionFilter, pagination *page.Pagination) (auth.ProviderSessions, error) {
 	m.ctrl.T.Helper()
@@ -583,6 +598,36 @@ func (c *MockClientListUserRestrictedTokensCall) Do(f func(context.Context, stri
 func (c *MockClientListUserRestrictedTokensCall) DoAndReturn(f func(context.Context, string, *auth.RestrictedTokenFilter, *page.Pagination) (auth.RestrictedTokens, error)) *MockClientListUserRestrictedTokensCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
+}
+
+// PermissionsGrantedByUser mocks base method.
+func (m *MockClient) PermissionsGrantedByUser(ctx context.Context, sharerID string) (permission.Permissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermissionsGrantedByUser", ctx, sharerID)
+	ret0, _ := ret[0].(permission.Permissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PermissionsGrantedByUser indicates an expected call of PermissionsGrantedByUser.
+func (mr *MockClientMockRecorder) PermissionsGrantedByUser(ctx, sharerID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedByUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedByUser), ctx, sharerID)
+}
+
+// PermissionsGrantedToUser mocks base method.
+func (m *MockClient) PermissionsGrantedToUser(ctx context.Context, granteeUserID string) (permission.Permissions, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermissionsGrantedToUser", ctx, granteeUserID)
+	ret0, _ := ret[0].(permission.Permissions)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PermissionsGrantedToUser indicates an expected call of PermissionsGrantedToUser.
+func (mr *MockClientMockRecorder) PermissionsGrantedToUser(ctx, granteeUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedToUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedToUser), ctx, granteeUserID)
 }
 
 // ServerSessionToken mocks base method.
@@ -738,6 +783,21 @@ func (c *MockClientUpdateUserPermissionsCall) Do(f func(context.Context, string,
 func (c *MockClientUpdateUserPermissionsCall) DoAndReturn(f func(context.Context, string, string, permission.Permissions) error) *MockClientUpdateUserPermissionsCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
+}
+
+// UsersHaveSharingRelationship mocks base method.
+func (m *MockClient) UsersHaveSharingRelationship(ctx context.Context, granteeUserID, grantorUserID string) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UsersHaveSharingRelationship", ctx, granteeUserID, grantorUserID)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UsersHaveSharingRelationship indicates an expected call of UsersHaveSharingRelationship.
+func (mr *MockClientMockRecorder) UsersHaveSharingRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersHaveSharingRelationship", reflect.TypeOf((*MockClient)(nil).UsersHaveSharingRelationship), ctx, granteeUserID, grantorUserID)
 }
 
 // ValidateSessionToken mocks base method.
