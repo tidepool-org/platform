@@ -52,7 +52,7 @@ func (d *SummaryRepository) EnsureIndexes() error {
 				{Key: "dates.outdatedSince", Value: 1},
 			},
 			Options: options.Index().
-				SetName("OutdatedSince").
+				SetName("OutdatedSinceSweep").
 				SetPartialFilterExpression(bson.D{{Key: "dates.outdatedSince", Value: bson.M{"$exists": true}}}),
 		},
 	})
