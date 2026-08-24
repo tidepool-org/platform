@@ -61,11 +61,20 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		func() *work.ProcessResult { return p.validateWork(wrk) },
 		p.FetchUserFromWorkMetadata,
 		p.absorbPending,
 		p.updateSummaries,
 		p.triggerElectronicHealthRecordSync,
 	).Process(p.Delete)
+}
+
+// validateWork fails if there is a mismatch between the user id and group/serial ids
+func (p *Processor) validateWork(wrk *work.Work) *work.ProcessResult {
+	if err := validateIdentity(wrk.GroupID, wrk.SerialID, p.Metadata()); err != nil {
+		return p.Failed(errors.Wrap(err, "work is invalid"))
+	}
+	return nil
 }
 
 // absorbPending absorbs reasons of other pending work items in this serial group
@@ -91,10 +100,13 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	reasons := p.Metadata().Reasons
 	for _, wrk := range wrks {
 		workMetadata, err := metadata.Decode[Metadata](p.Context(), wrk.Metadata)
+		if err == nil && workMetadata == nil {
+			err = errors.New("metadata is missing")
+		}
+		// The pending work item will fail when it's picked up
 		if err != nil {
-			return p.Failed(errors.Wrap(err, "unable to decode metadata"))
-		} else if workMetadata == nil {
-			return p.Failed(errors.New("metadata is missing"))
+			log.LoggerFromContext(p.Context()).WithError(err).WithField("id", wrk.ID).Warn("work pending for the user has invalid metadata")
+			continue
 		}
 
 		absorbed = append(absorbed, wrk)

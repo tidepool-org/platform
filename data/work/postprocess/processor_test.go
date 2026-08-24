@@ -151,6 +151,38 @@ var _ = Describe("Processor", func() {
 		Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("user id is missing")))
 	})
 
+	It("fails without retrying when the work has no metadata", func() {
+		wrk.Metadata = nil
+
+		result := process()
+		Expect(result.Result).To(Equal(work.ResultFailed))
+		Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("user id is missing")))
+	})
+
+	// Work created outside Enqueue could otherwise mutate the user outside the serialization of
+	// the user
+	DescribeTable("fails without retrying when the work is not scoped to the user its metadata reports",
+		func(mutate func(wrk *work.Work)) {
+			mutate(wrk)
+
+			result := process()
+			Expect(result.Result).To(Equal(work.ResultFailed))
+			Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("does not match metadata user id")))
+		},
+		Entry("the group id names another user", func(wrk *work.Work) {
+			wrk.GroupID = pointer.FromString(dataWorkPostprocess.IDFromUserID(userTest.RandomUserID()))
+		}),
+		Entry("the group id is missing", func(wrk *work.Work) {
+			wrk.GroupID = nil
+		}),
+		Entry("the serial id names another user", func(wrk *work.Work) {
+			wrk.SerialID = pointer.FromString(dataWorkPostprocess.IDFromUserID(userTest.RandomUserID()))
+		}),
+		Entry("the serial id is missing", func(wrk *work.Work) {
+			wrk.SerialID = nil
+		}),
+	)
+
 	It("fails without retrying when the user no longer exists", func() {
 		fetchUser = func() (*user.User, error) { return nil, nil }
 
@@ -218,6 +250,35 @@ var _ = Describe("Processor", func() {
 
 		It("reports its reasons, deletes it, and processes once", func() {
 			expectListWithSibling()
+			expectProcessingUpdateThenDelete()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
+			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// A sibling left pending fails on its own pickup; failing this valid work with it would
+		// lose the reasons this work reports
+		DescribeTable("skips it and processes without failing when",
+			func(mutate func()) {
+				mutate()
+				expectListWithSibling()
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
+
+				Expect(process().Result).To(Equal(work.ResultDelete))
+			},
+			Entry("its metadata is invalid", func() {
+				sibling.Metadata["reasons"] = []any{"INVALID"}
+			}),
+			Entry("its metadata is missing", func() {
+				sibling.Metadata = nil
+			}),
+		)
+
+		It("absorbs the others when one of them is invalid", func() {
+			invalid := newWork(work.StatePending, []string{dataWorkPostprocess.ReasonUploadCompleted}, time.Now().Add(-time.Second))
+			invalid.Metadata = nil
+			workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*work.Work{invalid, sibling}, nil)
 			expectProcessingUpdateThenDelete()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)

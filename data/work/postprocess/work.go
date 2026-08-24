@@ -6,6 +6,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	userWork "github.com/tidepool-org/platform/user/work"
 )
@@ -70,6 +71,21 @@ func shouldDefer(reasons []string) bool {
 // in any order, yield a single stream of work for the user.
 func IDFromUserID(userID string) string {
 	return fmt.Sprintf("%s:%s", Type, userID)
+}
+
+// validateIdentity reports an error if the serial or group ids of the metadata don't match the expected user id
+func validateIdentity(groupID *string, serialID *string, workMetadata *Metadata) error {
+	if workMetadata == nil || workMetadata.UserID == nil {
+		return errors.New("metadata user id is missing")
+	}
+	id := IDFromUserID(*workMetadata.UserID)
+	if groupID == nil || *groupID != id {
+		return errors.New("group id does not match metadata user id")
+	}
+	if serialID == nil || *serialID != id {
+		return errors.New("serial id does not match metadata user id")
+	}
+	return nil
 }
 
 type Metadata struct {
