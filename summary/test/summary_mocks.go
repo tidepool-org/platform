@@ -14,9 +14,10 @@ import (
 	reflect "reflect"
 	time "time"
 
-	types "github.com/tidepool-org/platform/summary/types"
 	mongo "go.mongodb.org/mongo-driver/mongo"
 	gomock "go.uber.org/mock/gomock"
+
+	types "github.com/tidepool-org/platform/summary/types"
 )
 
 // MockSummarizer is a mock of Summarizer interface.
