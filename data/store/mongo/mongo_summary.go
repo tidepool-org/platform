@@ -45,16 +45,6 @@ func (d *SummaryRepository) EnsureIndexes() error {
 			Options: options.Index().
 				SetName("OutdatedAndSchemaMigration"),
 		},
-		{
-			// Serves the outdated sweep across types. Partial as the mark is transient — it is
-			// cleared as it is swept — so the index holds only the marks outstanding.
-			Keys: bson.D{
-				{Key: "dates.outdatedSince", Value: 1},
-			},
-			Options: options.Index().
-				SetName("OutdatedSinceSweep").
-				SetPartialFilterExpression(bson.D{{Key: "dates.outdatedSince", Value: bson.M{"$exists": true}}}),
-		},
 	})
 }
 
