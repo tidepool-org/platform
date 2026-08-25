@@ -14,11 +14,9 @@ import (
 	reflect "reflect"
 	time "time"
 
+	types "github.com/tidepool-org/platform/summary/types"
 	mongo "go.mongodb.org/mongo-driver/mongo"
 	gomock "go.uber.org/mock/gomock"
-
-	page "github.com/tidepool-org/platform/page"
-	types "github.com/tidepool-org/platform/summary/types"
 )
 
 // MockSummarizer is a mock of Summarizer interface.
@@ -84,84 +82,6 @@ func (c *MockSummarizerGetBucketsRangeCall[PP, PB, P, B]) DoAndReturn(f func(con
 	return c
 }
 
-// GetMigratableUserIDs mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMigratableUserIDs", ctx, pagination)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMigratableUserIDs indicates an expected call of GetMigratableUserIDs.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetMigratableUserIDs(ctx, pagination any) *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B] {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMigratableUserIDs", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetMigratableUserIDs), ctx, pagination)
-	return &MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B]{Call: call}
-}
-
-// MockSummarizerGetMigratableUserIDsCall wrap *gomock.Call
-type MockSummarizerGetMigratableUserIDsCall[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B]) Return(arg0 []string, arg1 error) *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B]) Do(f func(context.Context, *page.Pagination) ([]string, error)) *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, *page.Pagination) ([]string, error)) *MockSummarizerGetMigratableUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// GetOutdatedUserIDs mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOutdatedUserIDs", ctx, pagination)
-	ret0, _ := ret[0].(*types.OutdatedSummariesResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetOutdatedUserIDs indicates an expected call of GetOutdatedUserIDs.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetOutdatedUserIDs(ctx, pagination any) *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B] {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOutdatedUserIDs", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetOutdatedUserIDs), ctx, pagination)
-	return &MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B]{Call: call}
-}
-
-// MockSummarizerGetOutdatedUserIDsCall wrap *gomock.Call
-type MockSummarizerGetOutdatedUserIDsCall[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B]) Return(arg0 *types.OutdatedSummariesResponse, arg1 error) *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B]) Do(f func(context.Context, *page.Pagination) (*types.OutdatedSummariesResponse, error)) *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, *page.Pagination) (*types.OutdatedSummariesResponse, error)) *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B] {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
 // GetSummary mocks base method.
 func (m *MockSummarizer[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	m.ctrl.T.Helper()
@@ -197,45 +117,6 @@ func (c *MockSummarizerGetSummaryCall[PP, PB, P, B]) Do(f func(context.Context, 
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockSummarizerGetSummaryCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, string) (*types.Summary[PP, PB, P, B], error)) *MockSummarizerGetSummaryCall[PP, PB, P, B] {
-	c.Call = c.Call.DoAndReturn(f)
-	return c
-}
-
-// SetOutdated mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetOutdated", ctx, userId, reason)
-	ret0, _ := ret[0].(*time.Time)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SetOutdated indicates an expected call of SetOutdated.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) SetOutdated(ctx, userId, reason any) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
-	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOutdated", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).SetOutdated), ctx, userId, reason)
-	return &MockSummarizerSetOutdatedCall[PP, PB, P, B]{Call: call}
-}
-
-// MockSummarizerSetOutdatedCall wrap *gomock.Call
-type MockSummarizerSetOutdatedCall[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
-	*gomock.Call
-}
-
-// Return rewrite *gomock.Call.Return
-func (c *MockSummarizerSetOutdatedCall[PP, PB, P, B]) Return(arg0 *time.Time, arg1 error) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
-	c.Call = c.Call.Return(arg0, arg1)
-	return c
-}
-
-// Do rewrite *gomock.Call.Do
-func (c *MockSummarizerSetOutdatedCall[PP, PB, P, B]) Do(f func(context.Context, string, string) (*time.Time, error)) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
-	c.Call = c.Call.Do(f)
-	return c
-}
-
-// DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockSummarizerSetOutdatedCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, string, string) (*time.Time, error)) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

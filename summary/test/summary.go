@@ -5,7 +5,6 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/summary/types"
 	"github.com/tidepool-org/platform/test"
 )
@@ -41,13 +40,10 @@ func RandomRanges(minutes bool) types.GlucoseRanges {
 
 func RandomDates() types.Dates {
 	return types.Dates{
-		LastUpdatedDate:   test.RandomTime(),
-		LastUploadDate:    test.RandomTime(),
-		FirstData:         test.RandomTime(),
-		LastData:          test.RandomTime(),
-		OutdatedSince:     pointer.FromAny(test.RandomTime()),
-		OutdatedReason:    []string{"TESTOutdatedReason"},
-		LastUpdatedReason: []string{"TESTLastUpdatedReason"},
+		LastUpdatedDate: test.RandomTime(),
+		LastUploadDate:  test.RandomTime(),
+		FirstData:       test.RandomTime(),
+		LastData:        test.RandomTime(),
 	}
 }
 
