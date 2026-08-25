@@ -27,11 +27,6 @@ type Client interface {
 	GetCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error)
 	GetBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error)
 	GetContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error)
-	UpdateCGMSummary(ctx context.Context, id string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error)
-	UpdateBGMSummary(ctx context.Context, id string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error)
-	UpdateContinuousSummary(ctx context.Context, id string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error)
-	GetOutdatedUserIDs(ctx context.Context, t string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
-	GetMigratableUserIDs(ctx context.Context, t string, pagination *page.Pagination) ([]string, error)
 }
 
 type ClientImpl struct {
@@ -179,108 +174,6 @@ func (c *ClientImpl) GetContinuousSummary(ctx context.Context, userId string) (*
 	}
 
 	return summary, nil
-}
-
-func (c *ClientImpl) UpdateCGMSummary(ctx context.Context, userId string) (*types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket], error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userId == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	url := c.client.ConstructURL("v1", "summaries", "cgm", userId)
-	summary := &types.Summary[*types.CGMPeriods, *types.GlucoseBucket, types.CGMPeriods, types.GlucoseBucket]{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return nil, errors.Cause(err)
-	}
-
-	return summary, nil
-}
-
-func (c *ClientImpl) UpdateBGMSummary(ctx context.Context, userId string) (*types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket], error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userId == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	url := c.client.ConstructURL("v1", "summaries", "bgm", userId)
-	summary := &types.Summary[*types.BGMPeriods, *types.GlucoseBucket, types.BGMPeriods, types.GlucoseBucket]{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return nil, errors.Cause(err)
-	}
-
-	return summary, nil
-}
-
-func (c *ClientImpl) UpdateContinuousSummary(ctx context.Context, userId string) (*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket], error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if userId == "" {
-		return nil, errors.New("id is missing")
-	}
-
-	url := c.client.ConstructURL("v1", "summaries", "con", userId)
-	summary := &types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{}
-	if err := c.client.RequestData(ctx, http.MethodPost, url, nil, nil, summary); err != nil {
-		if request.IsErrorResourceNotFound(err) {
-			return nil, nil
-		}
-		return nil, errors.Cause(err)
-	}
-
-	return summary, nil
-}
-
-func (c *ClientImpl) GetOutdatedUserIDs(ctx context.Context, typ string, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if typ == "" {
-		return nil, errors.New("type is missing")
-	}
-	url := c.client.ConstructURL("v1", "summaries", "outdated", typ)
-
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	response := &types.OutdatedSummariesResponse{}
-	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, response)
-
-	return response, err
-}
-
-func (c *ClientImpl) GetMigratableUserIDs(ctx context.Context, typ string, pagination *page.Pagination) ([]string, error) {
-	if ctx == nil {
-		return nil, errors.New("context is missing")
-	}
-	if typ == "" {
-		return nil, errors.New("type is missing")
-	}
-	url := c.client.ConstructURL("v1", "summaries", "migratable", typ)
-
-	if pagination == nil {
-		pagination = page.NewPagination()
-	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
-		return nil, errors.Wrap(err, "pagination is invalid")
-	}
-
-	var userIDs []string
-	err := c.client.RequestData(ctx, http.MethodGet, url, []request.RequestMutator{pagination}, nil, &userIDs)
-
-	return userIDs, err
 }
 
 func (c *ClientImpl) UpdateDataSet(ctx context.Context, id string, update *data.DataSetUpdate) (*data.DataSet, error) {
