@@ -47,33 +47,22 @@ func exportSummaryConfig(config types.Config) clinic.SummaryConfigV1 {
 }
 
 func exportSummaryDates(dates types.Dates) clinic.SummaryDatesV1 {
-	// The reasons are reported as empty rather than absent so that the clinic service replaces any
-	// previously reported reasons
-	lastUpdatedReason := dates.LastUpdatedReason
-	if lastUpdatedReason == nil {
-		lastUpdatedReason = []string{}
-	}
-	outdatedReason := dates.OutdatedReason
-	if outdatedReason == nil {
-		outdatedReason = []string{}
-	}
-
 	firstData := timeOrNil(dates.FirstData)
 	lastData := timeOrNil(dates.LastData)
 	lastUploadDate := timeOrNil(dates.LastUploadDate)
 
+	// The reasons and the outdated mark are no longer maintained; the reasons are reported as empty
+	// rather than omitted so that the clinic service clears any values reported before their removal
 	return clinic.SummaryDatesV1{
 		LastUpdatedDate:   timeOrNil(dates.LastUpdatedDate),
-		LastUpdatedReason: &lastUpdatedReason,
-		OutdatedReason:    &outdatedReason,
+		LastUpdatedReason: pointer.FromAny([]string{}),
+		OutdatedReason:    pointer.FromAny([]string{}),
 		HasLastUploadDate: lastUploadDate != nil,
 		LastUploadDate:    lastUploadDate,
 		HasFirstData:      firstData != nil,
 		FirstData:         firstData,
 		HasLastData:       lastData != nil,
 		LastData:          lastData,
-		HasOutdatedSince:  dates.OutdatedSince != nil,
-		OutdatedSince:     dates.OutdatedSince,
 	}
 }
 
