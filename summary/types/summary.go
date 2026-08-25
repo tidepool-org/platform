@@ -144,7 +144,3 @@ func GetDeviceDataType[PS PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B 
 	s := new(Summary[PS, PB, P, B])
 	return s.Periods.GetDeviceDataTypes()
 }
-
-func (d *Dates) Reset() {
-	*d = Dates{}
-}
