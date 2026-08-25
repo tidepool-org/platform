@@ -357,6 +357,32 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 	return documents.AsWork(), nil
 }
 
+func (s *Store) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	// The sort seeds the planner with the TypeState index, which covers the rest of the pipeline,
+	// so the aggregation reads only the index and never fetches a document
+	pipeline := []bson.M{
+		{"$sort": bson.M{"type": 1, "state": 1}},
+		{"$group": bson.M{"_id": bson.M{"type": "$type", "state": "$state"}, "count": bson.M{"$sum": 1}}},
+		{"$project": bson.M{"_id": 0, "type": "$_id.type", "state": "$_id.state", "count": 1}},
+	}
+	cursor, err := s.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to aggregate work by type and state")
+	}
+	defer cursor.Close(ctx)
+
+	var queueSizes []work.QueueSize
+	if err = cursor.All(ctx, &queueSizes); err != nil {
+		return nil, errors.Wrap(err, "unable to get all work counts")
+	}
+
+	return queueSizes, nil
+}
+
 func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")

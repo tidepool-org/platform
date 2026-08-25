@@ -7,6 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
@@ -34,7 +37,16 @@ const (
 	// ReapExpiredProcessingGraceDuration is the duration beyond the processing timeout time that
 	// must elapse before work in state processing is reaped
 	ReapExpiredProcessingGraceDuration = time.Minute
+
+	// QueueSizeMetricsInterval decouples the metrics cadence from how often work is requested,
+	// the same way the reap interval does
+	QueueSizeMetricsInterval = time.Minute
 )
+
+var QueueSizeMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	Name: "tidepool_work_queue_size",
+	Help: "The current number of work items by type and state",
+}, []string{"type", "state"})
 
 type ServerSessionTokenProvider interface {
 	ServerSessionToken() (string, error)
@@ -43,6 +55,7 @@ type ServerSessionTokenProvider interface {
 type WorkClient interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	ReapExpiredProcessing(ctx context.Context) (int, error)
+	QueueSizes(ctx context.Context) ([]work.QueueSize, error)
 	Update(ctx context.Context, id string, condition *request.Condition, update *work.Update) (*work.Work, error)
 	Delete(ctx context.Context, id string, condition *request.Condition) (*work.Work, error)
 }
@@ -64,6 +77,7 @@ type Coordinator struct {
 	managerWaitGroup           sync.WaitGroup
 	timer                      *time.Timer
 	lastReapTime               time.Time
+	lastQueueSizeMetricsTime   time.Time
 
 	// Testing
 	NowFunc func() time.Time
@@ -218,6 +232,7 @@ func (c *Coordinator) requestAndDispatchWork() {
 	}
 
 	c.reapExpiredProcessingWork()
+	c.updateQueueSizeMetrics()
 
 	typeQuantities := c.typeQuantities.NonZero()
 	if typeQuantities.IsEmpty() {
@@ -249,6 +264,27 @@ func (c *Coordinator) reapExpiredProcessingWork() {
 		log.LoggerFromContext(c.managerContext).WithError(err).Error("unable to reap expired processing work")
 	} else if count > 0 {
 		log.LoggerFromContext(c.managerContext).WithField("count", count).Warn("reaped expired processing work")
+	}
+}
+
+// updateQueueSizeMetrics reports the number of work items by type and state, at most once per
+// interval. Failure is logged but does not interrupt polling.
+func (c *Coordinator) updateQueueSizeMetrics() {
+	if c.Now().Sub(c.lastQueueSizeMetricsTime) < QueueSizeMetricsInterval {
+		return
+	}
+	c.lastQueueSizeMetricsTime = c.Now()
+
+	queueSizes, err := c.workClient.QueueSizes(c.managerContext)
+	if err != nil {
+		log.LoggerFromContext(c.managerContext).WithError(err).Error("unable to count work by type and state")
+		return
+	}
+
+	// Reset so that a type and state no longer present reports absent rather than stale
+	QueueSizeMetric.Reset()
+	for _, queueSize := range queueSizes {
+		QueueSizeMetric.WithLabelValues(queueSize.Type, queueSize.State).Set(float64(queueSize.Count))
 	}
 }
 

@@ -26,6 +26,7 @@ var _ = Describe("Coordinator", func() {
 		controller = gomock.NewController(GinkgoT())
 		logger = logTest.NewLogger()
 		workClient = workServiceTest.NewMockWorkClient(controller)
+		workClient.EXPECT().QueueSizes(gomock.Any()).Return(nil, nil).AnyTimes()
 
 		var err error
 		coordinator, err = NewCoordinator(logger, workServiceTest.NewMockServerSessionTokenProvider(controller), workClient)

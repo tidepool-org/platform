@@ -240,6 +240,36 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+		Context("QueueSizes", func() {
+			It("reports nothing with no work present", func() {
+				Expect(store.QueueSizes(ctx)).To(BeEmpty())
+			})
+
+			It("reports the number of work items by type and state", func() {
+				secondType := netTest.RandomReverseDomain()
+				for workType, count := range map[string]int{typ: 3, secondType: 2} {
+					for range count {
+						created, err := store.Create(ctx, &work.Create{
+							Type:              workType,
+							ProcessingTimeout: processingTimeout,
+						})
+						Expect(err).ToNot(HaveOccurred())
+						Expect(created).ToNot(BeNil())
+					}
+				}
+
+				claimed, err := store.Poll(ctx, &work.Poll{TypeQuantities: work.TypeQuantities{typ: 1}})
+				Expect(err).ToNot(HaveOccurred())
+				Expect(claimed).To(HaveLen(1))
+
+				Expect(store.QueueSizes(ctx)).To(ConsistOf(
+					work.QueueSize{Type: typ, State: work.StatePending, Count: 2},
+					work.QueueSize{Type: typ, State: work.StateProcessing, Count: 1},
+					work.QueueSize{Type: secondType, State: work.StatePending, Count: 2},
+				))
+			})
+		})
+
 		Context("Poll", func() {
 			// These work items intentionally share an identical processing available time and
 			// processing priority so that only the identifier tie breaker in the Poll aggregation

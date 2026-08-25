@@ -14,11 +14,10 @@ import (
 	reflect "reflect"
 	time "time"
 
-	gomock "go.uber.org/mock/gomock"
-
 	page "github.com/tidepool-org/platform/page"
 	structured "github.com/tidepool-org/platform/store/structured"
 	work "github.com/tidepool-org/platform/work"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStore is a mock of Store interface.
@@ -275,6 +274,45 @@ func (c *MockStorePollCall) Do(f func(context.Context, *work.Poll) ([]*work.Work
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockStorePollCall) DoAndReturn(f func(context.Context, *work.Poll) ([]*work.Work, error)) *MockStorePollCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// QueueSizes mocks base method.
+func (m *MockStore) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueSizes", ctx)
+	ret0, _ := ret[0].([]work.QueueSize)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueSizes indicates an expected call of QueueSizes.
+func (mr *MockStoreMockRecorder) QueueSizes(ctx any) *MockStoreQueueSizesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueSizes", reflect.TypeOf((*MockStore)(nil).QueueSizes), ctx)
+	return &MockStoreQueueSizesCall{Call: call}
+}
+
+// MockStoreQueueSizesCall wrap *gomock.Call
+type MockStoreQueueSizesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStoreQueueSizesCall) Return(arg0 []work.QueueSize, arg1 error) *MockStoreQueueSizesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStoreQueueSizesCall) Do(f func(context.Context) ([]work.QueueSize, error)) *MockStoreQueueSizesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStoreQueueSizesCall) DoAndReturn(f func(context.Context) ([]work.QueueSize, error)) *MockStoreQueueSizesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

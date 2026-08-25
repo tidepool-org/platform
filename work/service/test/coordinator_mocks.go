@@ -13,10 +13,9 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "go.uber.org/mock/gomock"
-
 	request "github.com/tidepool-org/platform/request"
 	work "github.com/tidepool-org/platform/work"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockServerSessionTokenProvider is a mock of ServerSessionTokenProvider interface.
@@ -180,6 +179,45 @@ func (c *MockWorkClientPollCall) Do(f func(context.Context, *work.Poll) ([]*work
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockWorkClientPollCall) DoAndReturn(f func(context.Context, *work.Poll) ([]*work.Work, error)) *MockWorkClientPollCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// QueueSizes mocks base method.
+func (m *MockWorkClient) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueSizes", ctx)
+	ret0, _ := ret[0].([]work.QueueSize)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueSizes indicates an expected call of QueueSizes.
+func (mr *MockWorkClientMockRecorder) QueueSizes(ctx any) *MockWorkClientQueueSizesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueSizes", reflect.TypeOf((*MockWorkClient)(nil).QueueSizes), ctx)
+	return &MockWorkClientQueueSizesCall{Call: call}
+}
+
+// MockWorkClientQueueSizesCall wrap *gomock.Call
+type MockWorkClientQueueSizesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockWorkClientQueueSizesCall) Return(arg0 []work.QueueSize, arg1 error) *MockWorkClientQueueSizesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockWorkClientQueueSizesCall) Do(f func(context.Context) ([]work.QueueSize, error)) *MockWorkClientQueueSizesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockWorkClientQueueSizesCall) DoAndReturn(f func(context.Context) ([]work.QueueSize, error)) *MockWorkClientQueueSizesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
