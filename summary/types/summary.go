@@ -20,12 +20,7 @@ const (
 	SummaryTypeContinuous = "con"
 	SchemaVersion         = 6
 
-	lowBloodGlucose         = 3.9
-	veryLowBloodGlucose     = 3.0
-	highBloodGlucose        = 10.0
-	veryHighBloodGlucose    = 13.9
-	extremeHighBloodGlucose = 19.4
-	HoursAgoToKeep          = 60 * 24
+	HoursAgoToKeep = 60 * 24
 
 	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
 	OutdatedReasonDataAdded       = "DATA_ADDED"
