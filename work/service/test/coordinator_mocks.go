@@ -13,9 +13,10 @@ import (
 	context "context"
 	reflect "reflect"
 
+	gomock "go.uber.org/mock/gomock"
+
 	request "github.com/tidepool-org/platform/request"
 	work "github.com/tidepool-org/platform/work"
-	gomock "go.uber.org/mock/gomock"
 )
 
 // MockServerSessionTokenProvider is a mock of ServerSessionTokenProvider interface.
