@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
 	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 	userWork "github.com/tidepool-org/platform/user/work"
@@ -124,6 +125,22 @@ var _ = Describe("Work", func() {
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/reasons"),
 				),
+				Entry("with pending summary changes",
+					map[string]any{
+						"userId":                nil,
+						"reasons":               []any{"DATA_ADDED"},
+						"pendingSummaryUpdates": []any{"cgm"},
+						"pendingSummaryDeletes": []any{"68ad3f439bd2caa1a5758a9c"},
+					},
+					func(userID string) *dataWorkPostprocess.Metadata {
+						return &dataWorkPostprocess.Metadata{
+							Metadata:              userWork.Metadata{UserID: pointer.FromString(userID)},
+							Reasons:               []string{"DATA_ADDED"},
+							PendingSummaryUpdates: []string{"cgm"},
+							PendingSummaryDeletes: []string{"68ad3f439bd2caa1a5758a9c"},
+						}
+					},
+				),
 			)
 		})
 
@@ -163,14 +180,38 @@ var _ = Describe("Work", func() {
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/reasons/1"),
 				),
+				Entry("succeeds with pending summary changes", func(datum *dataWorkPostprocess.Metadata) {
+					datum.PendingSummaryUpdates = []string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM}
+					datum.PendingSummaryDeletes = []string{"68ad3f439bd2caa1a5758a9c"}
+				}),
+				Entry("reports a pending summary update the clinic service has no representation of",
+					func(datum *dataWorkPostprocess.Metadata) {
+						datum.PendingSummaryUpdates = []string{summaryTypes.SummaryTypeContinuous}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf(summaryTypes.SummaryTypeContinuous, []string{summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM}), "/pendingSummaryUpdates/0"),
+				),
+				Entry("reports the pending summary updates are duplicated",
+					func(datum *dataWorkPostprocess.Metadata) {
+						datum.PendingSummaryUpdates = []string{summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeCGM}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/pendingSummaryUpdates/1"),
+				),
+				Entry("reports a pending summary delete is empty",
+					func(datum *dataWorkPostprocess.Metadata) {
+						datum.PendingSummaryDeletes = []string{""}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/pendingSummaryDeletes/0"),
+				),
 			)
 		})
 
 		// The metadata is encoded when the work is created and decoded when it is processed
 		It("is unchanged by being encoded and decoded", func() {
 			datum := &dataWorkPostprocess.Metadata{
-				Metadata: userWork.Metadata{UserID: pointer.FromString(userID)},
-				Reasons:  []string{dataWorkPostprocess.ReasonLegacyDataAdded, dataWorkPostprocess.ReasonUploadCompleted},
+				Metadata:              userWork.Metadata{UserID: pointer.FromString(userID)},
+				Reasons:               []string{dataWorkPostprocess.ReasonLegacyDataAdded, dataWorkPostprocess.ReasonUploadCompleted},
+				PendingSummaryUpdates: []string{summaryTypes.SummaryTypeCGM},
+				PendingSummaryDeletes: []string{"68ad3f439bd2caa1a5758a9c"},
 			}
 
 			encoded, err := metadata.Encode(datum)

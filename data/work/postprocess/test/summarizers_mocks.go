@@ -14,6 +14,8 @@ import (
 	reflect "reflect"
 
 	gomock "go.uber.org/mock/gomock"
+
+	postprocess "github.com/tidepool-org/platform/data/work/postprocess"
 )
 
 // MockSummarizers is a mock of Summarizers interface.
@@ -41,11 +43,12 @@ func (m *MockSummarizers) EXPECT() *MockSummarizersMockRecorder {
 }
 
 // UpdateSummaries mocks base method.
-func (m *MockSummarizers) UpdateSummaries(ctx context.Context, userID string) error {
+func (m *MockSummarizers) UpdateSummaries(ctx context.Context, userID string) (postprocess.SummariesUpdate, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateSummaries", ctx, userID)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(postprocess.SummariesUpdate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateSummaries indicates an expected call of UpdateSummaries.
@@ -61,19 +64,19 @@ type MockSummarizersUpdateSummariesCall struct {
 }
 
 // Return rewrite *gomock.Call.Return
-func (c *MockSummarizersUpdateSummariesCall) Return(arg0 error) *MockSummarizersUpdateSummariesCall {
-	c.Call = c.Call.Return(arg0)
+func (c *MockSummarizersUpdateSummariesCall) Return(arg0 postprocess.SummariesUpdate, arg1 error) *MockSummarizersUpdateSummariesCall {
+	c.Call = c.Call.Return(arg0, arg1)
 	return c
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockSummarizersUpdateSummariesCall) Do(f func(context.Context, string) error) *MockSummarizersUpdateSummariesCall {
+func (c *MockSummarizersUpdateSummariesCall) Do(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockSummarizersUpdateSummariesCall) DoAndReturn(f func(context.Context, string) error) *MockSummarizersUpdateSummariesCall {
+func (c *MockSummarizersUpdateSummariesCall) DoAndReturn(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

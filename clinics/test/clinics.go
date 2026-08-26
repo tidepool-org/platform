@@ -9,19 +9,19 @@ import (
 	"github.com/tidepool-org/platform/test"
 )
 
-func NewRandomClinic() api.Clinic {
-	return api.Clinic{
+func NewRandomClinic() api.ClinicV1 {
+	return api.ClinicV1{
 		Address:          pointer.FromAny(faker.Address().StreetAddress()),
 		CanMigrate:       pointer.FromAny(test.RandomBool()),
 		City:             pointer.FromAny(faker.Address().City()),
-		ClinicType:       pointer.FromAny(test.RandomChoice([]api.ClinicClinicType{api.HealthcareSystem, api.VeterinaryClinic, api.Other})),
+		ClinicType:       pointer.FromAny(test.RandomChoice([]api.ClinicV1ClinicType{api.ClinicV1ClinicTypeHealthcareSystem, api.ClinicV1ClinicTypeVeterinaryClinic, api.ClinicV1ClinicTypeOther})),
 		Country:          pointer.FromAny(faker.Address().Country()),
 		CreatedTime:      pointer.FromAny(test.RandomTime()),
 		Id:               pointer.FromAny(primitive.NewObjectIDFromTimestamp(test.RandomTime()).Hex()),
 		Name:             faker.Company().Name(),
-		PhoneNumbers:     pointer.FromAny([]api.PhoneNumber{{Number: faker.PhoneNumber().PhoneNumber()}}),
+		PhoneNumbers:     pointer.FromAny([]api.PhoneNumberV1{{Number: faker.PhoneNumber().PhoneNumber()}}),
 		PostalCode:       pointer.FromAny(faker.Address().ZipCode()),
-		PreferredBgUnits: test.RandomChoice([]api.ClinicPreferredBgUnits{api.MgdL, api.MmolL}),
+		PreferredBgUnits: test.RandomChoice([]api.ClinicV1PreferredBgUnits{api.ClinicV1PreferredBgUnitsMgdL, api.ClinicV1PreferredBgUnitsMmolL}),
 		ShareCode:        pointer.FromAny(faker.RandomString(15)),
 		State:            pointer.FromAny(faker.Address().State()),
 		Tier:             pointer.FromAny(test.RandomChoice([]string{"tier1000", "tier2000"})),
@@ -31,26 +31,26 @@ func NewRandomClinic() api.Clinic {
 	}
 }
 
-func NewRandomEHRSettings() *api.EHRSettings {
-	return &api.EHRSettings{
-		DestinationIds: &api.EHRDestinationIds{
+func NewRandomEHRSettings() *api.EhrSettingsV1 {
+	return &api.EhrSettingsV1{
+		DestinationIds: &api.EhrDestinationsV1{
 			Flowsheet: faker.RandomString(16),
 			Notes:     faker.RandomString(16),
 			Results:   faker.RandomString(16),
 		},
 		Enabled:   true,
 		MrnIdType: "MRN",
-		ProcedureCodes: api.EHRProcedureCodes{
+		ProcedureCodes: api.EhrProceduresV1{
 			CreateAccount:                 pointer.FromAny(faker.RandomString(5)),
 			CreateAccountAndEnableReports: pointer.FromAny(faker.RandomString(5)),
 			DisableSummaryReports:         pointer.FromAny(faker.RandomString(5)),
 			EnableSummaryReports:          pointer.FromAny(faker.RandomString(5)),
 		},
 		Provider: "redox",
-		ScheduledReports: api.ScheduledReports{
+		ScheduledReports: api.ScheduledReportsV1{
 			Cadence:               api.N14d,
 			OnUploadEnabled:       true,
-			OnUploadNoteEventType: pointer.FromAny(api.ScheduledReportsOnUploadNoteEventTypeNew),
+			OnUploadNoteEventType: pointer.FromAny(api.ScheduledReportsV1OnUploadNoteEventTypeNew),
 		},
 		SourceId: faker.RandomString(16),
 	}
