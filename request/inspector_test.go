@@ -12,6 +12,40 @@ import (
 )
 
 var _ = Describe("Inspector", func() {
+	Context("StatusCodeInspector", func() {
+		Context("NewStatusCodeInspector", func() {
+			It("returns successfully", func() {
+				Expect(request.NewStatusCodeInspector()).ToNot(BeNil())
+			})
+		})
+
+		Context("with new status code inspector", func() {
+			var inspector *request.StatusCodeInspector
+
+			BeforeEach(func() {
+				inspector = request.NewStatusCodeInspector()
+				Expect(inspector).ToNot(BeNil())
+			})
+
+			It("has no status code before inspection", func() {
+				Expect(inspector.StatusCode).To(Equal(0))
+			})
+
+			Context("InspectResponse", func() {
+				It("captures the status code", func() {
+					inspector.InspectResponse(&http.Response{StatusCode: http.StatusTooManyRequests})
+					Expect(inspector.StatusCode).To(Equal(http.StatusTooManyRequests))
+				})
+
+				It("captures the status code of the last response inspected", func() {
+					inspector.InspectResponse(&http.Response{StatusCode: http.StatusUnauthorized})
+					inspector.InspectResponse(&http.Response{StatusCode: http.StatusOK})
+					Expect(inspector.StatusCode).To(Equal(http.StatusOK))
+				})
+			})
+		})
+	})
+
 	Context("HeadersInspector", func() {
 		Context("NewHeadersInspector", func() {
 			It("returns successfully", func() {

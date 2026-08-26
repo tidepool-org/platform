@@ -10,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -40,10 +41,20 @@ func NewWithClient(baseClient *client.Client, httpClient *http.Client, tokenSour
 		return nil, errors.New("token source source is missing")
 	}
 
+	// Ensure the HTTP client. If no timeout, then use timeout from config. The HTTP client is usually provided by the
+	// provider and inherits the token timeout, but overrides the API request timeout based upon the config client
+	// timeout.
+	httpClient = pointer.From(pointer.Default(httpClient, *http.DefaultClient))
+	if httpClient.Timeout == 0 {
+		if clientTimeout := baseClient.ClientTimeout(); clientTimeout > 0 {
+			httpClient.Timeout = clientTimeout
+		}
+	}
+
 	return &Client{
 		baseClient:        baseClient,
-		tokenSourceSource: tokenSourceSource,
 		httpClient:        httpClient,
+		tokenSourceSource: tokenSourceSource,
 	}, nil
 }
 
@@ -59,7 +70,7 @@ func (c *Client) AppendURLQuery(urlString string, query map[string]string) strin
 	return c.baseClient.AppendURLQuery(urlString, query)
 }
 
-func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
+func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
 	if tokenSource == nil {
 		return errors.New("token source is missing")
 	}
@@ -85,18 +96,23 @@ func (c *Client) SendOAuthRequest(ctx context.Context, method string, url string
 	return err
 }
 
-func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody interface{}, responseBody interface{}, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
+func (c *Client) sendOAuthRequest(ctx context.Context, method string, url string, mutators []request.RequestMutator, requestBody any, responseBody any, inspectors []request.ResponseInspector, tokenSource oauth.TokenSource) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
 
-	if c.httpClient != nil {
-		ctx = context.WithValue(ctx, oauth2.HTTPClient, c.httpClient)
-	}
+	// Inject the HTTP client to use the transport for all requests and the timeout for token requests
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, c.httpClient)
 
 	httpClient, err := tokenSource.HTTPClient(ctx, c.tokenSourceSource)
 	if err != nil {
 		return err
+	}
+
+	// Override any client timeout from the token source for API requests
+	if clientTimeout := c.Client().ClientTimeout(); clientTimeout > 0 && clientTimeout != httpClient.Timeout {
+		httpClient = pointer.From(*httpClient)
+		httpClient.Timeout = clientTimeout
 	}
 
 	err = c.baseClient.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, httpClient)

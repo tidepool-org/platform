@@ -1030,7 +1030,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							Expect(err).To(MatchError("context is missing"))
 						})
 
-						It("returns an error if the userId is empty", func() {
+						It("returns an error if the user id is empty", func() {
 							status := &data.UserDataStatus{
 								FirstData:       *dataSetData[0].GetTime(),
 								LastData:        *dataSetData[len(dataSetData)-1].GetTime(),
@@ -1042,7 +1042,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								[]string{dataSetData[0].GetType()},
 								status)
 							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("userId is empty"))
+							Expect(err).To(MatchError("user id is empty"))
 						})
 
 						It("returns an error if the typ is empty", func() {
@@ -1180,10 +1180,10 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							Expect(err).To(MatchError("context is missing"))
 						})
 
-						It("returns an error if userId is empty", func() {
+						It("returns an error if user id is empty", func() {
 							_, err := repository.GetLastUpdatedForUser(ctx, "", []string{dataSetData[2].GetType()}, time.Time{})
 							Expect(err).To(HaveOccurred())
-							Expect(err).To(MatchError("userId is empty"))
+							Expect(err).To(MatchError("user id is empty"))
 						})
 
 						It("returns an error if typ is empty", func() {

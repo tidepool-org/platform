@@ -626,7 +626,7 @@ var _ = Describe("Source", func() {
 				Entry("error invalid type",
 					func(object map[string]any, expectedDatum *dataSource.Update) {
 						object["error"] = true
-						expectedDatum.Error = nil
+						expectedDatum.Error = errors.NewSerializable(nil)
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 				),
@@ -729,7 +729,7 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderExternalID = nil
 						expectedDatum.State = nil
 						expectedDatum.Metadata = nil
-						expectedDatum.Error = nil
+						expectedDatum.Error = &errors.Serializable{}
 						expectedDatum.DataSetID = nil
 						expectedDatum.EarliestDataTime = nil
 						expectedDatum.LatestDataTime = nil
@@ -1334,7 +1334,7 @@ var _ = Describe("Source", func() {
 				Entry("error invalid type",
 					func(object map[string]any, expectedDatum *dataSource.Source) {
 						object["error"] = true
-						expectedDatum.Error = nil
+						expectedDatum.Error = errors.NewSerializable(nil)
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
 				),
@@ -1504,7 +1504,7 @@ var _ = Describe("Source", func() {
 						expectedDatum.ProviderExternalID = nil
 						expectedDatum.State = ""
 						expectedDatum.Metadata = nil
-						expectedDatum.Error = nil
+						expectedDatum.Error = &errors.Serializable{}
 						expectedDatum.DataSetID = nil
 						expectedDatum.EarliestDataTime = nil
 						expectedDatum.LatestDataTime = nil

@@ -2,8 +2,16 @@ package provider
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
@@ -41,7 +49,11 @@ func New(configReporter config.Reporter, dataSourceClient dataSource.Client, tas
 		return nil, errors.Wrap(err, "unable to create provider config")
 	}
 
-	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, nil)
+	// Capture metrics for API requests, including OAuth token requests
+	httpClient := pointer.From(*http.DefaultClient)
+	httpClient.Transport = prometheusRequestMetricsRoundTripper
+
+	prvdr, err := oauthProvider.New(dexcom.ProviderName, cfg, httpClient, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +70,7 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
+	lgr := log.LoggerFromContext(ctx).WithFields(log.Fields{"type": p.Type(), "name": p.Name()})
 
 	filter := dataSource.NewFilter()
 	filter.ProviderType = pointer.FromString(p.Type())
@@ -71,12 +83,12 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	var source *dataSource.Source
 	if count := len(sources); count > 0 {
 		if count > 1 {
-			logger.WithField("count", count).Warn("unexpected number of data sources found")
+			lgr.WithField("count", count).Warn("unexpected number of data sources found")
 		}
 
 		for _, source := range sources {
 			if source.State != dataSource.StateDisconnected {
-				logger.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
+				lgr.WithFields(log.Fields{"id": source.ID, "state": source.State}).Warn("data source in unexpected state")
 
 				update := dataSource.NewUpdate()
 				update.State = pointer.FromString(dataSource.StateDisconnected)
@@ -116,9 +128,14 @@ func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderS
 	update.State = pointer.FromString(dataSource.StateConnected)
 	if _, err = p.dataSourceClient.Update(ctx, source.ID, nil, update); err != nil {
 
+		// Do not interrupt normally, but do enforce a reasonable timeout
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+		defer cancel()
+
 		// Attempt to delete task if data source not marked as connected
-		if taskErr := p.taskClient.DeleteTask(context.WithoutCancel(ctx), task.ID, nil); taskErr != nil {
-			logger.WithError(taskErr).Error("Failure deleting task after failed data source update")
+		if taskErr := p.taskClient.DeleteTask(ctx, task.ID, nil); taskErr != nil {
+			lgr.WithError(taskErr).Error("Failure deleting task after failed data source update")
 		}
 
 		return errors.Wrap(err, "unable to update data source")
@@ -132,28 +149,104 @@ func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderS
 		return errors.New("provider session is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx)
+	lgr := log.LoggerFromContext(ctx)
 
 	taskFilter := task.NewTaskFilter()
 	taskFilter.Name = pointer.FromString(dexcomFetch.TaskName(providerSession.ID))
-	tasks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
+	tsks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
 	if err != nil {
-		logger.WithError(err).Error("unable to list tasks while deleting provider session")
+		lgr.WithError(err).Error("unable to list tasks while deleting provider session")
 		return nil
 	}
 
-	for _, task := range tasks {
-		if dataSourceID, ok := task.Data[dexcom.DataKeyDataSourceID].(string); ok && dataSourceID != "" {
+	for _, tsk := range tsks {
+		if dataSourceID, ok := tsk.Data[dexcom.DataKeyDataSourceID].(string); ok && dataSourceID != "" {
 			update := dataSource.NewUpdate()
 			update.State = pointer.FromString(dataSource.StateDisconnected)
 			_, err = p.dataSourceClient.Update(ctx, dataSourceID, nil, update)
 			if err != nil {
-				logger.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
+				lgr.WithError(err).WithField(dexcom.DataKeyDataSourceID, dataSourceID).Error("Unable to update data source while deleting provider session")
 			}
 		}
-		if err = p.taskClient.DeleteTask(ctx, task.ID, nil); err != nil {
-			logger.WithError(err).WithField("taskId", task.ID).Error("unable to delete task while deleting provider session")
+		if err = p.taskClient.DeleteTask(ctx, tsk.ID, nil); err != nil {
+			lgr.WithError(err).WithField("taskId", tsk.ID).Error("unable to delete task while deleting provider session")
 		}
 	}
+
 	return nil
 }
+
+func (p *Provider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
+	if providerSession == nil {
+		return errors.New("provider session is missing")
+	}
+
+	// NOTE: Currently ignores refresh time range. Because the current implementation does not handle deduplication, we aren't
+	// able to ingest any data older than the data source LatestDataTime. So, just trigger the task to fetch the latest data.
+
+	lgr := log.LoggerFromContext(ctx)
+
+	taskFilter := task.NewTaskFilter()
+	taskFilter.Name = pointer.FromString(dexcomFetch.TaskName(providerSession.ID))
+	tsks, err := p.taskClient.ListTasks(ctx, taskFilter, nil)
+	if err != nil {
+		lgr.WithError(err).Error("unable to list tasks while refreshing provider session")
+		return nil
+	}
+
+	// Update all tasks (should just be one) to be available now
+	taskUpdate := &task.TaskUpdate{
+		AvailableTime: pointer.From(time.Now()),
+	}
+	for _, tsk := range tsks {
+		if _, err = p.taskClient.UpdateTask(ctx, tsk.ID, nil, taskUpdate); err != nil {
+			lgr.WithError(err).WithField("taskId", tsk.ID).Error("unable to refresh task")
+		}
+	}
+
+	return nil
+}
+
+// Some Dexcom API responses include a "request-time" header with, supposedly, the internal duration of the request.
+// This could be useful for debugging connection issues if compared against the calculated request duration.
+// See client/prometheus.go for details on how the request duration is calculated and recorded. The format for
+// this header is non-standard duration (e.g. "1234 ms") and the space needs to be removed for Golang to parse.
+
+const RequestTimeHeaderName = "request-time"
+
+type PrometheusRequestMetricsRoundTripper struct {
+	*client.PrometheusRequestMetricsRoundTripper
+	requestTimeHistogramVec *prometheus.HistogramVec
+}
+
+func NewPrometheusRequestMetricsRoundTripper(name string, help string) *PrometheusRequestMetricsRoundTripper {
+	return &PrometheusRequestMetricsRoundTripper{
+		PrometheusRequestMetricsRoundTripper: client.NewPrometheusRequestMetricsRoundTripper(name, help),
+		requestTimeHistogramVec: promauto.NewHistogramVec(
+			prometheus.HistogramOpts{
+				Name:    fmt.Sprintf("%s_request_time_seconds", name),
+				Help:    fmt.Sprintf("%s request time (seconds)", help),
+				Buckets: client.DurationBucketsDefault,
+			},
+			client.PrometheusLabelNames(),
+		),
+	}
+}
+
+func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	res, err := p.PrometheusRequestMetricsRoundTripper.RoundTrip(req)
+
+	if res != nil {
+		if labels := p.Labels(req, res); labels != nil {
+			if requestTimeHeader := strings.ReplaceAll(res.Header.Get(RequestTimeHeaderName), " ", ""); requestTimeHeader != "" {
+				if requestTime, parseErr := time.ParseDuration(requestTimeHeader); parseErr == nil {
+					p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
+				}
+			}
+		}
+	}
+
+	return res, err
+}
+
+var prometheusRequestMetricsRoundTripper = NewPrometheusRequestMetricsRoundTripper("tidepool_dexcom_api", "Tidepool Dexcom API")

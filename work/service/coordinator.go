@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
-	"github.com/tidepool-org/platform/crypto"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/request"
@@ -23,7 +23,7 @@ const (
 	CoordinatorDelayJitter      = 0.1
 
 	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDurationJitter = 0.1
 )
 
 type ServerSessionTokenProvider interface {
@@ -206,10 +206,14 @@ func (c *Coordinator) requestAndDispatchWork() {
 		return
 	}
 
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	managerContext, cancel := context.WithTimeout(context.WithoutCancel(c.managerContext), 10*time.Second)
+	defer cancel()
+
 	poll := &work.Poll{TypeQuantities: typeQuantities}
-	wrks, err := c.workClient.Poll(context.WithoutCancel(c.managerContext), poll)
+	wrks, err := c.workClient.Poll(managerContext, poll)
 	if err != nil {
-		log.LoggerFromContext(c.managerContext).WithError(err).Error("unable to poll for work")
+		log.LoggerFromContext(managerContext).WithError(err).Error("unable to poll for work")
 		return
 	}
 
@@ -288,7 +292,10 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 		return
 	}
 
-	ctx := context.WithoutCancel(c.managerContext)
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(c.managerContext), 10*time.Second)
+	defer cancel()
+
 	lgr := log.LoggerFromContext(ctx)
 
 	c.typeQuantities.Increment(completion.Identifier.Type)
@@ -310,7 +317,7 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 
 			// Create failed process result
 			processResult = work.NewProcessResultFailed(work.FailedUpdate{
-				FailedError: errors.Serializable{Error: errors.New("invalid process result")},
+				FailedError: errors.Serializable{Error: errors.New("process result is invalid")},
 				Metadata:    failedUpdateMetadata,
 			})
 		}
@@ -349,12 +356,12 @@ func (c *Coordinator) completeWork(completion *coordinatorProcessingCompletion) 
 	}
 }
 
-func (c *Coordinator) startTimerWithDuration(duration time.Duration) {
-	duration = durationWithJitter(duration, CoordinatorDelayJitter)
+func (c *Coordinator) startTimerWithDuration(timerDuration time.Duration) {
+	timerDuration = duration.WithJitter(timerDuration, CoordinatorDelayJitter)
 	if c.timer == nil {
-		c.timer = time.NewTimer(duration)
+		c.timer = time.NewTimer(timerDuration)
 	} else {
-		c.timer.Reset(duration)
+		c.timer.Reset(timerDuration)
 	}
 }
 
@@ -386,12 +393,16 @@ type coordinatorProcessingUpdater struct {
 }
 
 func (c *coordinatorProcessingUpdater) ProcessingUpdate(ctx context.Context, processingUpdate work.ProcessingUpdate) (*work.Work, error) {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+
 	condition := &request.Condition{Revision: &c.Identifier.Revision}
 	workUpdate := &work.Update{
 		State:            work.StateProcessing,
 		ProcessingUpdate: &processingUpdate,
 	}
-	wrk, err := c.WorkClient.Update(context.WithoutCancel(ctx), c.Identifier.ID, condition, workUpdate)
+	wrk, err := c.WorkClient.Update(ctx, c.Identifier.ID, condition, workUpdate)
 	if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("unable to update work when processing")
 	} else if wrk != nil {
@@ -435,9 +446,4 @@ func processResultToUpdate(processResult *work.ProcessResult) *work.Update {
 	default:
 		return nil
 	}
-}
-
-func durationWithJitter(duration time.Duration, durationJitterFactor float64) time.Duration {
-	durationJitter := int64(float64(duration) * durationJitterFactor)
-	return duration + time.Duration(crypto.RandomInt64N(durationJitter*2+1)-durationJitter)
 }

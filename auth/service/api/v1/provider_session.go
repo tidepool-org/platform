@@ -27,6 +27,8 @@ func (r *Router) ProviderSessionsRoutes() []*rest.Route {
 		rest.Put("/v1/provider_sessions/:id", serviceApi.RequireServer(r.UpdateProviderSession)),
 		rest.Delete("/v1/provider_sessions/:id", serviceApi.RequireServer(r.DeleteProviderSession)),
 
+		rest.Post("/v1/provider_sessions/:id/refresh", serviceApi.RequireServer(r.RefreshProviderSession)),
+
 		// TODO: Temporary endpoint for deleting provider sessions given a twiist tidepool link id
 		rest.Delete("/v1/partners/twiist/links/:tidepoolLinkId", serviceApi.RequireAuth(r.DeleteProviderSessionByTidepoolLinkID)),
 	}
@@ -225,4 +227,31 @@ func (r *Router) DeleteProviderSessionByTidepoolLinkID(res rest.ResponseWriter, 
 	}
 
 	responder.Empty(http.StatusOK)
+}
+
+func (r *Router) RefreshProviderSession(res rest.ResponseWriter, req *rest.Request) {
+	responder := request.MustNewResponder(res, req)
+
+	id := req.PathParam("id")
+	if id == "" {
+		responder.Error(http.StatusBadRequest, request.ErrorParameterMissing("id"))
+		return
+	}
+
+	refresh := &auth.ProviderSessionRefresh{}
+	if err := request.DecodeRequestBody(req.Request, refresh); err != nil {
+		responder.Error(http.StatusBadRequest, err)
+		return
+	}
+
+	providerSession, err := r.AuthClient().RefreshProviderSession(req.Context(), id, refresh)
+	if err != nil {
+		responder.Error(http.StatusInternalServerError, err)
+		return
+	} else if providerSession == nil {
+		responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
+		return
+	}
+
+	responder.Data(http.StatusOK, providerSession)
 }

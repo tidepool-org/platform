@@ -20,6 +20,7 @@ import (
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 )
@@ -341,6 +342,66 @@ var _ = Describe("External", func() {
 						Expect(client.EnsureAuthorizedUser(ctx, targetUserID, authorizedPermission)).To(Equal(requestUserID))
 					})
 				})
+			})
+		})
+	})
+})
+
+var _ = Describe("TokenData", func() {
+	var logger *logTest.Logger
+	var tokenData *authClient.TokenData
+
+	BeforeEach(func() {
+		logger = logTest.NewLogger()
+		tokenData = &authClient.TokenData{}
+	})
+
+	Context("Parse", func() {
+		var object map[string]any
+		var parser *structureParser.Object
+
+		JustBeforeEach(func() {
+			parser = structureParser.NewObject(logger, &object)
+			Expect(parser).ToNot(BeNil())
+			tokenData.Parse(parser)
+			parser.ReportNotParsed()
+		})
+
+		Context("with only the recognized fields", func() {
+			BeforeEach(func() {
+				object = map[string]any{"isserver": false, "userid": "test-user-id"}
+			})
+
+			It("parses the fields and reports nothing unparsed", func() {
+				Expect(parser.Error()).ToNot(HaveOccurred())
+				Expect(tokenData.IsServer).To(BeFalse())
+				Expect(tokenData.UserID).To(Equal("test-user-id"))
+				Expect(tokenData.NotParsed).To(BeNil())
+			})
+		})
+
+		Context("with unrecognized fields", func() {
+			BeforeEach(func() {
+				object = map[string]any{"isserver": true, "userid": "test-user-id", "role": "clinic", "extra": 1}
+			})
+
+			It("records the unrecognized fields in NotParsed and reports no error", func() {
+				Expect(parser.Error()).ToNot(HaveOccurred())
+				Expect(tokenData.IsServer).To(BeTrue())
+				Expect(tokenData.UserID).To(Equal("test-user-id"))
+				Expect(tokenData.NotParsed).To(Equal(map[string]any{"role": "clinic", "extra": 1}))
+			})
+		})
+
+		Context("with a recognized field of the wrong type", func() {
+			BeforeEach(func() {
+				object = map[string]any{"isserver": "true", "userid": "test-user-id"}
+			})
+
+			It("still reports the type error", func() {
+				errorsTest.ExpectEqual(parser.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotBool("true"), "/isserver"))
+				Expect(tokenData.IsServer).To(BeFalse())
+				Expect(tokenData.UserID).To(Equal("test-user-id"))
 			})
 		})
 	})

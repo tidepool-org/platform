@@ -247,7 +247,7 @@ func (c *Client) sendBaseRequest(ctx context.Context, method string, url string,
 	})
 }
 
-const requestDurationMaximum = 60 * time.Second
+const requestDurationMaximum = 30 * time.Second
 
 // Possible response status codes from Oura API:
 // 	200: successful get/list; response body contains the requested resource(s)

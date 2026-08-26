@@ -108,7 +108,11 @@ func (p *Processor[W]) ProcessingUpdate() *work.ProcessResult {
 		return result
 	}
 
-	wrk, err := p.processingUpdater.ProcessingUpdate(context.WithoutCancel(p.Context()), work.ProcessingUpdate{Metadata: p.work.Metadata})
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(p.Context()), 10*time.Second)
+	defer cancel()
+
+	wrk, err := p.processingUpdater.ProcessingUpdate(ctx, work.ProcessingUpdate{Metadata: p.work.Metadata})
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to update work"))
 	} else if wrk == nil {

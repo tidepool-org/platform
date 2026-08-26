@@ -3,7 +3,7 @@ package test
 import (
 	"encoding/json"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"regexp"
 
 	"github.com/onsi/gomega"
@@ -22,7 +22,7 @@ func NewSourceParameter() string {
 
 func NewSourcePointer() string {
 	sourcePointer := ""
-	for index := 0; index <= rand.Intn(4); index++ {
+	for index := 0; index <= rand.IntN(4); index++ { //nolint:gosec // Test only
 		sourcePointer += "/" + test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)
 	}
 	return sourcePointer
@@ -50,12 +50,12 @@ func CloneSerializable(serializable *errors.Serializable) *errors.Serializable {
 	return errors.NewSerializable(CloneError(serializable.Error))
 }
 
-func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat test.ObjectFormat) map[string]interface{} {
+func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat test.ObjectFormat) map[string]any {
 	if serializable == nil {
 		return nil
 	}
 
-	object := map[string]interface{}{}
+	object := map[string]any{}
 
 	switch objectFormat {
 	case test.ObjectFormatBSON:
@@ -70,16 +70,16 @@ func NewObjectFromSerializable(serializable *errors.Serializable, objectFormat t
 		} else if err = json.Unmarshal(bites, &object); err != nil {
 			return nil
 		}
-	default:
+	case test.ObjectFormatConfig:
 		return nil
 	}
 
 	return object
 }
 
-func NewMeta() interface{} {
-	meta := map[string]interface{}{}
-	for index := 0; index <= rand.Intn(2); index++ {
+func NewMeta() any {
+	meta := map[string]any{}
+	for index := 0; index <= rand.IntN(2); index++ { //nolint:gosec // Test only
 		meta[test.RandomStringFromRangeAndCharset(1, 8, test.CharsetAlphaNumeric)] = test.RandomStringFromRange(1, 32)
 	}
 	return meta
@@ -102,7 +102,7 @@ func WithParameterSource(err error, parameter string) error {
 	return errors.WithSource(err, &source{parameter: parameter})
 }
 
-func WithParameterSourceAndMeta(err error, parameter string, meta interface{}) error {
+func WithParameterSourceAndMeta(err error, parameter string, meta any) error {
 	return errors.WithMeta(errors.WithSource(err, &source{parameter: parameter}), meta)
 }
 
@@ -110,7 +110,7 @@ func WithPointerSource(err error, pointer string) error {
 	return errors.WithSource(err, &source{pointer: pointer})
 }
 
-func WithPointerSourceAndMeta(err error, pointer string, meta interface{}) error {
+func WithPointerSourceAndMeta(err error, pointer string, meta any) error {
 	return errors.WithMeta(errors.WithSource(err, &source{pointer: pointer}), meta)
 }
 

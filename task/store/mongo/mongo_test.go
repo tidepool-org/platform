@@ -201,6 +201,22 @@ var _ = Describe("Mongo", func() {
 			})
 
 			Context("UnstickTasks", func() {
+				var tsk *task.Task
+
+				BeforeEach(func() {
+					var err error
+					tsk, err = task.NewTask(context.Background(), &task.TaskCreate{
+						Name:          pointer.FromString("test"),
+						Type:          "fetch",
+						Data:          nil,
+						AvailableTime: pointer.FromTime(time.Now()),
+					})
+					Expect(err).ToNot(HaveOccurred())
+					tsk.State = task.TaskStateRunning
+					_, err = collection.InsertOne(ctx, tsk)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
 				It("returns an error when the context is missing", func() {
 					unstuckTaskIDs, err := repository.UnstickTasks(context.Context(nil), 0)
 					Expect(err).To(MatchError("context is missing"))
@@ -289,36 +305,32 @@ var _ = Describe("Mongo", func() {
 				})
 			})
 
-			Context("GetTaskClaimToken", func() {
+			Context("GetTaskClaimTokens", func() {
 				It("returns an error when the context is missing", func() {
-					claimToken, exists, err := repository.GetTaskClaimToken(context.Context(nil), taskTest.RandomID())
+					claimTokens, err := repository.GetTaskClaimTokens(context.Context(nil), []string{taskTest.RandomID()})
 					Expect(err).To(MatchError("context is missing"))
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeFalse())
+					Expect(claimTokens).To(BeNil())
 				})
 
-				It("returns an error when the id is missing", func() {
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, "")
-					Expect(err).To(MatchError("id is missing"))
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeFalse())
+				It("returns an error when the ids are missing", func() {
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, nil)
+					Expect(err).To(MatchError("ids is missing"))
+					Expect(claimTokens).To(BeNil())
 				})
 
-				It("reports the task as not existing when the task does not exist", func() {
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, taskTest.RandomID())
+				It("omits a task that does not exist", func() {
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{taskTest.RandomID()})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeFalse())
+					Expect(claimTokens).To(BeEmpty())
 				})
 
 				It("returns a nil claim token when the task exists, but is not claimed", func() {
 					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
 					Expect(pendingTask.ClaimToken).To(BeNil())
 
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, pendingTask.ID)
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{pendingTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeTrue())
+					Expect(claimTokens).To(HaveKeyWithValue(pendingTask.ID, BeNil()))
 				})
 
 				It("returns the claim token of a claimed task", func() {
@@ -328,10 +340,26 @@ var _ = Describe("Mongo", func() {
 					Expect(startedTask).ToNot(BeNil())
 					Expect(startedTask.ClaimToken).ToNot(BeNil())
 
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{startedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(PointTo(Equal(*startedTask.ClaimToken)))
-					Expect(exists).To(BeTrue())
+					Expect(claimTokens).To(HaveKeyWithValue(startedTask.ID, PointTo(Equal(*startedTask.ClaimToken))))
+				})
+
+				It("returns the claim token of each of several tasks, omitting those that do not exist", func() {
+					firstPendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					secondPendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
+					missingTaskID := taskTest.RandomID()
+
+					firstStartedTask := test.Must(repository.StartTask(ctx, firstPendingTask.ID, firstPendingTask.Revision, time.Minute))
+					Expect(firstStartedTask).ToNot(BeNil())
+					secondStartedTask := test.Must(repository.StartTask(ctx, secondPendingTask.ID, secondPendingTask.Revision, time.Minute))
+					Expect(secondStartedTask).ToNot(BeNil())
+
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{firstStartedTask.ID, missingTaskID, secondStartedTask.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(claimTokens).To(HaveLen(2))
+					Expect(claimTokens).To(HaveKeyWithValue(firstStartedTask.ID, PointTo(Equal(*firstStartedTask.ClaimToken))))
+					Expect(claimTokens).To(HaveKeyWithValue(secondStartedTask.ID, PointTo(Equal(*secondStartedTask.ClaimToken))))
 				})
 
 				It("returns a nil claim token once the task is stopped", func() {
@@ -341,10 +369,9 @@ var _ = Describe("Mongo", func() {
 					Expect(startedTask).ToNot(BeNil())
 					Expect(repository.StopTask(ctx, startedTask.ID, startedTask.Revision, startedTask.ClaimToken, task.TaskStateCompleted, nil, nil)).To(Succeed())
 
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{startedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeTrue())
+					Expect(claimTokens).To(HaveKeyWithValue(startedTask.ID, BeNil()))
 				})
 
 				It("returns the new claim token once the task is re-claimed", func() {
@@ -360,11 +387,10 @@ var _ = Describe("Mongo", func() {
 					secondStartedTask := test.Must(repository.StartTask(ctx, stoppedTask.ID, stoppedTask.Revision, time.Minute))
 					Expect(secondStartedTask).ToNot(BeNil())
 
-					claimToken, exists, err := repository.GetTaskClaimToken(ctx, secondStartedTask.ID)
+					claimTokens, err := repository.GetTaskClaimTokens(ctx, []string{secondStartedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(PointTo(Equal(*secondStartedTask.ClaimToken)))
-					Expect(claimToken).To(PointTo(Not(Equal(*firstStartedTask.ClaimToken))))
-					Expect(exists).To(BeTrue())
+					Expect(claimTokens).To(HaveKeyWithValue(secondStartedTask.ID, PointTo(Equal(*secondStartedTask.ClaimToken))))
+					Expect(claimTokens).To(HaveKeyWithValue(secondStartedTask.ID, PointTo(Not(Equal(*firstStartedTask.ClaimToken)))))
 				})
 
 				It("does not modify the task", func() {
@@ -373,7 +399,7 @@ var _ = Describe("Mongo", func() {
 					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
 					Expect(startedTask).ToNot(BeNil())
 
-					_, _, err := repository.GetTaskClaimToken(ctx, startedTask.ID)
+					_, err := repository.GetTaskClaimTokens(ctx, []string{startedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
 
 					actualTask := &task.Task{}
@@ -388,23 +414,21 @@ var _ = Describe("Mongo", func() {
 					Expect(startedTask).ToNot(BeNil())
 
 					filteredRepository := str.WithTypeFilter(startedTask.Type).NewTaskRepository()
-					claimToken, exists, err := filteredRepository.GetTaskClaimToken(ctx, startedTask.ID)
+					claimTokens, err := filteredRepository.GetTaskClaimTokens(ctx, []string{startedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(PointTo(Equal(*startedTask.ClaimToken)))
-					Expect(exists).To(BeTrue())
+					Expect(claimTokens).To(HaveKeyWithValue(startedTask.ID, PointTo(Equal(*startedTask.ClaimToken))))
 				})
 
-				It("reports the task as not existing when it does not match the repository type filter", func() {
+				It("omits a task that does not match the repository type filter", func() {
 					pendingTask := insertTaskWithStateAndDeadlineTime(ctx, collection, task.TaskStatePending, nil)
 
 					startedTask := test.Must(repository.StartTask(ctx, pendingTask.ID, pendingTask.Revision, time.Minute))
 					Expect(startedTask).ToNot(BeNil())
 
 					filteredRepository := str.WithTypeFilter(startedTask.Type + "-other").NewTaskRepository()
-					claimToken, exists, err := filteredRepository.GetTaskClaimToken(ctx, startedTask.ID)
+					claimTokens, err := filteredRepository.GetTaskClaimTokens(ctx, []string{startedTask.ID})
 					Expect(err).ToNot(HaveOccurred())
-					Expect(claimToken).To(BeNil())
-					Expect(exists).To(BeFalse())
+					Expect(claimTokens).To(BeEmpty())
 				})
 			})
 

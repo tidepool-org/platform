@@ -45,7 +45,7 @@ import (
 // context.Canceled; a runner timeout with ErrRunnerTimeoutExceeded, and a lost claim (the task was deleted mid-run, or
 // unstuck and its claim token replaced) with task.ErrClaimLost (use errors.Is in all cases). After a claim loss the
 // run's outcome is discarded - no write-back can land - so return promptly and skip any remaining work. Claim loss is
-// detected by a periodic check (MonitorTaskDelay, 1 minute by default), not instantly. The queue cannot preempt a
+// detected by a periodic check (WatchTasksInterval, 1 minute by default), not instantly. The queue cannot preempt a
 // runner that ignores cancellation; it stays blocked until it returns or the process restarts, recovered by the
 // deadline/unstick mechanism (a periodic sweep that resets tasks still running past their deadline - see
 // GetRunnerDeadline). The logger is on the context (log.LoggerFromContext(ctx)). So that cancellation doesn't abandon

@@ -2,6 +2,7 @@ package provider_test
 
 import (
 	"context"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -90,6 +91,27 @@ var _ = Describe("provider", func() {
 				prvdr, err := ouraProvider.New(dependencies)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(prvdr).ToNot(BeNil())
+			})
+
+			It("defaults the client config timeouts from the provider client timeout when not set", func() {
+				clientConfig := dependencies.Config.ClientConfig
+				clientConfig.ClientTimeout = 0
+				clientConfig.ResponseTimeout = 0
+				providerClientTimeout := dependencies.Config.ClientTimeout
+				Expect(ouraProvider.New(dependencies)).ToNot(BeNil())
+				Expect(clientConfig.ClientTimeout).To(Equal(providerClientTimeout * 3))
+				Expect(clientConfig.ResponseTimeout).To(Equal(providerClientTimeout * 2))
+			})
+
+			It("keeps explicitly set client config timeouts", func() {
+				clientConfig := dependencies.Config.ClientConfig
+				clientTimeout := test.RandomDurationFromRange(time.Second, time.Hour)
+				responseTimeout := test.RandomDurationFromRange(time.Second, time.Hour)
+				clientConfig.ClientTimeout = clientTimeout
+				clientConfig.ResponseTimeout = responseTimeout
+				Expect(ouraProvider.New(dependencies)).ToNot(BeNil())
+				Expect(clientConfig.ClientTimeout).To(Equal(clientTimeout))
+				Expect(clientConfig.ResponseTimeout).To(Equal(responseTimeout))
 			})
 		})
 

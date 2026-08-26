@@ -259,7 +259,7 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 			set["providerExternalId"] = *update.ProviderExternalID
 		}
 		if update.Error != nil {
-			if update.Error.Error != nil {
+			if update.Error.HasError() {
 				delete(unset, "error")
 				set["error"] = *update.Error
 			} else {
@@ -417,7 +417,7 @@ func (c *DataSourcesRepository) get(ctx context.Context, query bson.M, condition
 		query["revision"] = *condition.Revision
 	}
 	err := c.FindOne(ctx, query).Decode(&result)
-	if err == mongo.ErrNoDocuments {
+	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, nil
 	} else if err != nil {
 		log.LoggerFromContext(ctx).WithError(err).Error("Unable to get data source")

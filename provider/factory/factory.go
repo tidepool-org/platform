@@ -13,26 +13,24 @@ func New() (*Factory, error) {
 	return &Factory{}, nil
 }
 
-func (f *Factory) Get(typ string, name string) (provider.Provider, error) {
-	if typ == "" {
-		return nil, errors.New("type is missing")
-	}
-	if name == "" {
-		return nil, errors.New("name is missing")
-	}
-
+func (f *Factory) Get(typ string, name string) provider.Provider {
 	for _, prvdr := range f.providers {
 		if typ == prvdr.Type() && name == prvdr.Name() {
-			return prvdr, nil
+			return prvdr
 		}
 	}
-
-	return nil, errors.Newf("provider with provider type %q and provider name %q not found", typ, name)
+	return nil
 }
 
 func (f *Factory) Add(prvdr provider.Provider) error {
 	if prvdr == nil {
 		return errors.New("provider is missing")
+	}
+	if prvdr.Type() == "" {
+		return errors.New("provider type is missing")
+	}
+	if prvdr.Name() == "" {
+		return errors.New("provider name is missing")
 	}
 
 	f.providers = append(f.providers, prvdr)

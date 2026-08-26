@@ -2,6 +2,7 @@ package fetch
 
 import (
 	"context"
+	"maps"
 	"net/http"
 	"sort"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	dataDeduplicatorDeduplicator "github.com/tidepool-org/platform/data/deduplicator/deduplicator"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/dexcom"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
@@ -31,8 +33,10 @@ const (
 	AvailableAfterDurationJitter = 15 * time.Minute
 	DataSetSize                  = 2000
 	TaskDurationMaximum          = 15 * time.Minute
-	TaskRetryCountMaximum        = 4  // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
-	DataRangeDaysMaximum         = 30 // Per Dexcom documentation
+	TaskRetryCountMaximum        = 4                // Last retry after ~(AvailableAfterDuration * (2^TaskRetryCountMaximum - 1)) hours (discounting AvailableAfterDurationJitter)
+	DataRangeDaysMaximum         = 30               // Per Dexcom documentation
+	ResumeAfterDuration          = 1 * time.Minute  // Resume interrupted work after a short delay, so that a later run can pick up where the previous one left off
+	ResumeExpirationDuration     = 10 * time.Minute // Several times ResumeAfterDuration, so ordinary queue lag is tolerated but a long wait is not
 )
 
 var initialDataTime = time.Date(2015, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -141,18 +145,20 @@ type Provider interface {
 
 type TaskRunner struct {
 	Provider
-	task             *task.Task
-	context          context.Context
-	logger           log.Logger
-	providerSession  *auth.ProviderSession
-	dataSource       *dataSource.Source
-	tokenSource      *oauthToken.Source
-	deviceHashes     map[string]string
-	dataSet          *data.DataSet
-	dataSetPreloaded bool
-	runTime          time.Time
-	availableAfter   *time.Duration
-	importCompleted  bool
+	task                *task.Task
+	context             context.Context
+	logger              log.Logger
+	providerSession     *auth.ProviderSession
+	dataSource          *dataSource.Source
+	tokenSource         *oauthToken.Source
+	deviceHashes        map[string]string
+	deviceHashesPending map[string]string
+	dataSet             *data.DataSet
+	dataSetPreloaded    bool
+	runTime             time.Time
+	availableAfter      *time.Duration
+	completed           bool
+	tokenUpdateError    error
 }
 
 func NewTaskRunner(provider Provider, tsk *task.Task) (*TaskRunner, error) {
@@ -244,11 +250,14 @@ func (t *TaskRunner) updateProviderSession() error {
 		return nil // Token not changed, do not update
 	}
 
-	// Without cancel to ensure provider session is updated in the database
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.context), 10*time.Second)
+	defer cancel()
+
 	providerSessionUpdate := auth.NewProviderSessionUpdate()
 	providerSessionUpdate.OAuthToken = token
 	providerSessionUpdate.ExternalID = t.providerSession.ExternalID
-	providerSession, err := t.AuthClient().UpdateProviderSession(context.WithoutCancel(t.context), t.providerSession.ID, providerSessionUpdate)
+	providerSession, err := t.AuthClient().UpdateProviderSession(ctx, t.providerSession.ID, providerSessionUpdate)
 	if err != nil {
 		return errors.Wrap(err, "unable to update provider session")
 	} else if providerSession == nil {
@@ -283,6 +292,11 @@ func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {
+	// The comparisons below read the data source, so guard before them rather than relying on updateDataSource
+	if t.dataSource == nil {
+		return nil
+	}
+
 	update := dataSource.NewUpdate()
 
 	if t.beforeEarliestDataTime(earliestDataTime) {
@@ -292,13 +306,22 @@ func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, l
 		update.LatestDataTime = latestDataTime
 	}
 
+	update.Error = errors.NewSerializable(nil)
 	update.LastImportTime = pointer.FromTime(time.Now())
-	return t.updateDataSource(update)
+	if err := t.updateDataSource(update); err != nil {
+		return err
+	}
+
+	if update.LatestDataTime != nil {
+		return t.cancelPendingResume()
+	}
+
+	return nil
 }
 
 func (t *TaskRunner) updateDataSourceWithTaskState() error {
 	update := dataSource.NewUpdate()
-	if t.importCompleted {
+	if t.completed {
 		update.LastImportTime = pointer.FromTime(time.Now())
 	}
 	if t.task.IsFailed() {
@@ -313,8 +336,11 @@ func (t *TaskRunner) updateDataSource(update *dataSource.Update) error {
 		return nil
 	}
 
-	// Without cancel to ensure data source is updated in the database
-	dataSource, err := t.DataSourceClient().Update(context.WithoutCancel(t.context), t.dataSource.ID, nil, update)
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.context), 10*time.Second)
+	defer cancel()
+
+	dataSource, err := t.DataSourceClient().Update(ctx, t.dataSource.ID, nil, update)
 	if err != nil {
 		return ErrorResourceFailureError(errors.WithMeta(errors.Wrap(err, "unable to update data source"), update))
 	} else if dataSource == nil {
@@ -361,24 +387,90 @@ func (t *TaskRunner) getDeviceHashes() error {
 	return nil
 }
 
-func (t *TaskRunner) updateDeviceHash(device *dexcom.Device) bool {
+// updateDeviceHashPending reports whether the device hash changed, recording the new hash as pending until the resulting datum
+// is stored. Recording it immediately would drop the datum for good if a later failure prevented the store, since the
+// next run only translates a device whose hash changed.
+func (t *TaskRunner) updateDeviceHashPending(device *dexcom.Device) bool {
 	deviceID := device.ID()
 	deviceHash, err := device.Hash()
 	if err != nil {
 		return false
 	}
 
-	if t.deviceHashes == nil {
-		t.deviceHashes = map[string]string{}
-	}
-
 	// If the device hash has not changed, then no need to update
-	if existingDeviceHash, ok := t.deviceHashes[deviceID]; ok && existingDeviceHash == deviceHash {
+	if existingDeviceHash, ok := t.deviceHashesPending[deviceID]; ok && existingDeviceHash == deviceHash {
+		return false
+	} else if existingDeviceHash, ok = t.deviceHashes[deviceID]; ok && existingDeviceHash == deviceHash {
 		return false
 	}
 
-	t.deviceHashes[deviceID] = deviceHash
+	if t.deviceHashesPending == nil {
+		t.deviceHashesPending = map[string]string{}
+	}
+	t.deviceHashesPending[deviceID] = deviceHash
 	return true
+}
+
+// commitDeviceHashesPending promotes the pending device hashes now that their datums are stored, persisting them with the task
+// so that the next run skips those devices.
+func (t *TaskRunner) commitDeviceHashesPending() {
+	if len(t.deviceHashesPending) == 0 {
+		return
+	}
+
+	if t.deviceHashes == nil {
+		t.deviceHashes = map[string]string{}
+	}
+	maps.Copy(t.deviceHashes, t.deviceHashesPending)
+	clear(t.deviceHashesPending)
+
+	t.task.Data[dexcom.DataKeyDeviceHashes] = maps.Clone(t.deviceHashes)
+}
+
+// getStartTimeMinimum returns the minimum start time for fetching data, considering the latest data time from the data
+// source, the absolute initial data time, and any unexpired resume data time, if applicable.
+func (t *TaskRunner) getStartTimeMinimum() time.Time {
+	// Default to latest data time from data source or use the initial data time if none
+	startTimeMinimum := pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
+
+	// If there is a resume data time and it is after the start time minimum then see if we can use it
+	resumeDataTime := t.getDataTimeField(dexcom.DataKeyResumeDataTime)
+	if resumeDataTime != nil && resumeDataTime.After(startTimeMinimum) {
+		resumeExpirationTime := t.getDataTimeField(dexcom.DataKeyResumeExpirationTime)
+
+		lgr := t.logger.WithFields(log.Fields{
+			dexcom.DataKeyResumeDataTime:       *resumeDataTime,
+			dexcom.DataKeyResumeExpirationTime: resumeExpirationTime,
+		})
+
+		// Ensure the resume data time isn't expired (too long after last run)
+		if resumeExpirationTime == nil || resumeExpirationTime.Before(t.runTime) {
+			lgr.Warn("Ignoring expired resume data time")
+		} else {
+			lgr.Debug("Resuming fetch from resume data time")
+			startTimeMinimum = *resumeDataTime
+		}
+	}
+
+	return startTimeMinimum
+}
+
+func (t *TaskRunner) resumeWithDataTime(dataTime time.Time) error {
+	t.setDataTimeField(dexcom.DataKeyResumeDataTime, dataTime)
+	t.setDataTimeField(dexcom.DataKeyResumeExpirationTime, time.Now().Add(ResumeExpirationDuration))
+	t.availableAfter = pointer.From(duration.WithJitter(ResumeAfterDuration, 0.2))
+	return nil
+}
+
+func (t *TaskRunner) cancelPendingResume() error {
+	delete(t.task.Data, dexcom.DataKeyResumeDataTime)
+	delete(t.task.Data, dexcom.DataKeyResumeExpirationTime)
+	return nil
+}
+
+func (t *TaskRunner) complete() error {
+	t.completed = true
+	return t.cancelPendingResume()
 }
 
 func (t *TaskRunner) updateDataSetWithTimezoneOffset(timezoneOffset *int) error {
@@ -393,8 +485,11 @@ func (t *TaskRunner) updateDataSet(update *data.DataSetUpdate) error {
 		return nil
 	}
 
-	// Without cancel to ensure data set is updated in the database
-	dataSet, err := t.DataClient().UpdateDataSet(context.WithoutCancel(t.context), *t.dataSet.UploadID, update)
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.context), 10*time.Second)
+	defer cancel()
+
+	dataSet, err := t.DataClient().UpdateDataSet(ctx, *t.dataSet.UploadID, update)
 	if err != nil {
 		return ErrorResourceFailureError(errors.WithMeta(errors.Wrap(err, "unable to update data set"), update))
 	} else if dataSet == nil {
@@ -411,12 +506,11 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 	if err != nil {
 		return err
 	} else if dataRange == nil {
-		t.importCompleted = true // No data, but still successful import
-		return nil
+		return t.complete() // No data, but still successful import
 	}
 
 	startTime := dataRange.StartTime
-	for startTime.Before(dataRange.EndTime) {
+	for {
 		endTime := startTime.AddDate(0, 0, DataRangeDaysMaximum)
 		if endTime.After(dataRange.EndTime) {
 			endTime = dataRange.EndTime
@@ -426,31 +520,36 @@ func (t *TaskRunner) fetchSinceLatestDataTime() error {
 			return err
 		}
 
-		// If the task has been running for longer than the maximum duration, then stop fetching and repeat after a minute
-		if time.Since(t.runTime) > t.GetRunnerDurationMaximum() {
-			t.availableAfter = pointer.From(time.Minute)
-			return nil
+		// Next fetch starts at the end of the last fetch, since Dexcom data ranges are inclusive of the start and
+		// end times, so that no data is missed.
+		startTime = endTime
+
+		// If no more remains to fetch, then indicate import completed.
+		if !startTime.Before(dataRange.EndTime) {
+			return t.complete()
 		}
 
-		startTime = startTime.AddDate(0, 0, DataRangeDaysMaximum)
+		// If the task has been running for longer than the maximum duration, then stop fetching and repeat quickly,
+		// capturing how far this run got so that the next one resumes instead of walking it all again.
+		if time.Since(t.runTime) > t.GetRunnerDurationMaximum() {
+			return t.resumeWithDataTime(startTime)
+		}
 	}
-
-	t.importCompleted = true
-	return nil
 }
 
 func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
-	// HACK: Dexcom V3 (2024-05-30) - Can only use latest data time as last sync time if not
-	// older than 100 days, otherwise will return erroneous results. Use 30 days to be on
-	// the safe side.
-	var lastSyncTime *time.Time
-	if t.dataSource.LatestDataTime != nil && time.Now().Before(t.dataSource.LatestDataTime.AddDate(0, 0, DataRangeDaysMaximum)) {
-		lastSyncTime = t.dataSource.LatestDataTime
-	}
-
-	response, err := t.DexcomClient().GetDataRange(t.context, lastSyncTime, t)
+	// NOTE: Per Dexcom support, the lastSyncTime parameter does not work as
+	// expected in all situations (e.g. signal loss, last data more than 100
+	// days ago). Dexcom support recommends to not specify the lastSyncTime
+	// parameter for any request. Since the code below clamps any date range
+	// to the data source latestDateTime and the current time, this will work
+	// as expected FOR NOW. If/when we add deduplication and support
+	// update and delete of OLDER data, we will need to revisit this logic.
+	response, err := t.DexcomClient().GetDataRange(t.context, nil, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil {
+		return nil, ErrorResourceFailureError(errors.New("data ranges response is missing"))
 	}
 
 	// Get data range, if none valid, then indicate nothing to fetch
@@ -460,10 +559,10 @@ func (t *TaskRunner) fetchDataRange() (*DataRange, error) {
 	}
 
 	// Clamp data range, if none valid, then indicate nothing to fetch
-	latestDataTime := pointer.DefaultTime(t.dataSource.LatestDataTime, initialDataTime)
-	now := time.Now()
-	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), latestDataTime, now)
-	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), latestDataTime, now)
+	startTimeMinimum := t.getStartTimeMinimum()
+	endTimeMaximum := time.Now()
+	startTime := ClampTime(*dataRange.Start.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
+	endTime := ClampTime(*dataRange.End.SystemTimeRaw(), startTimeMinimum, endTimeMaximum)
 	if !startTime.Before(endTime) {
 		return nil, nil
 	}
@@ -486,7 +585,12 @@ func (t *TaskRunner) fetch(startTime time.Time, endTime time.Time) error {
 		return err
 	}
 
-	return t.storeDatumArray(datumArray)
+	if err = t.storeDatumArray(datumArray); err != nil {
+		return err
+	}
+
+	t.commitDeviceHashesPending()
+	return nil
 }
 
 func (t *TaskRunner) preloadDataSet() error {
@@ -507,36 +611,35 @@ func (t *TaskRunner) preloadDataSet() error {
 func (t *TaskRunner) fetchData(startTime time.Time, endTime time.Time) (data.Data, error) {
 	datumArray := data.Data{}
 
-	fetchDatumArray, err := t.fetchAlerts(startTime, endTime)
-	if err != nil {
+	if fetchDatumArray, err := t.fetchAlerts(startTime, endTime); err != nil {
 		return nil, err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchCalibrations(startTime, endTime)
-	if err != nil {
-		return nil, err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchDevices(startTime, endTime)
-	if err != nil {
-		return nil, err
-	}
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchEGVs(startTime, endTime)
-	if err != nil {
-		return nil, err
+	} else {
+		datumArray = append(datumArray, fetchDatumArray...)
 	}
 
-	datumArray = append(datumArray, fetchDatumArray...)
-
-	fetchDatumArray, err = t.fetchEvents(startTime, endTime)
-	if err != nil {
+	if fetchDatumArray, err := t.fetchCalibrations(startTime, endTime); err != nil {
 		return nil, err
+	} else {
+		datumArray = append(datumArray, fetchDatumArray...)
 	}
-	datumArray = append(datumArray, fetchDatumArray...)
+
+	if fetchDatumArray, err := t.fetchDevices(startTime, endTime); err != nil {
+		return nil, err
+	} else {
+		datumArray = append(datumArray, fetchDatumArray...)
+	}
+
+	if fetchDatumArray, err := t.fetchEGVs(startTime, endTime); err != nil {
+		return nil, err
+	} else {
+		datumArray = append(datumArray, fetchDatumArray...)
+	}
+
+	if fetchDatumArray, err := t.fetchEvents(startTime, endTime); err != nil {
+		return nil, err
+	} else {
+		datumArray = append(datumArray, fetchDatumArray...)
+	}
 
 	sort.Stable(data.DataByTime(datumArray))
 
@@ -547,6 +650,8 @@ func (t *TaskRunner) fetchAlerts(startTime time.Time, endTime time.Time) (data.D
 	response, err := t.DexcomClient().GetAlerts(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil || response.Records == nil {
+		return nil, ErrorResourceFailureError(errors.New("alerts response is missing"))
 	}
 
 	var alerts dexcom.Alerts
@@ -574,6 +679,8 @@ func (t *TaskRunner) fetchCalibrations(startTime time.Time, endTime time.Time) (
 	response, err := t.DexcomClient().GetCalibrations(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil || response.Records == nil {
+		return nil, ErrorResourceFailureError(errors.New("calibrations response is missing"))
 	}
 
 	var calibrations dexcom.Calibrations
@@ -601,6 +708,8 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.
 	response, err := t.DexcomClient().GetDevices(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil || response.Records == nil {
+		return nil, ErrorResourceFailureError(errors.New("devices response is missing"))
 	}
 
 	var devices dexcom.Devices
@@ -616,7 +725,7 @@ func (t *TaskRunner) fetchDevices(startTime time.Time, endTime time.Time) (data.
 
 	datumArray := data.Data{}
 	for _, device := range devices {
-		if time := device.LastUploadDate.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.updateDeviceHash(device) {
+		if time := device.LastUploadDate.Raw(); time != nil && InTimeRange(*time, startTime, endTime) && t.updateDeviceHashPending(device) {
 			datumArray = append(datumArray, translateDeviceToDatum(t.context, device))
 		}
 	}
@@ -628,6 +737,8 @@ func (t *TaskRunner) fetchEGVs(startTime time.Time, endTime time.Time) (data.Dat
 	response, err := t.DexcomClient().GetEGVs(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil || response.Records == nil {
+		return nil, ErrorResourceFailureError(errors.New("egvs response is missing"))
 	}
 
 	var egvs dexcom.EGVs
@@ -655,6 +766,8 @@ func (t *TaskRunner) fetchEvents(startTime time.Time, endTime time.Time) (data.D
 	response, err := t.DexcomClient().GetEvents(t.context, startTime, endTime, t)
 	if err = t.handleDexcomClientError(err); err != nil {
 		return nil, err
+	} else if response == nil || response.Records == nil {
+		return nil, ErrorResourceFailureError(errors.New("events response is missing"))
 	}
 
 	var events dexcom.Events
@@ -701,15 +814,20 @@ func (t *TaskRunner) prepareDataSet() error {
 		return err
 	}
 
-	if t.dataSet != nil {
-		return nil
+	if t.dataSet == nil {
+		dataSet, err := t.createDataSet()
+		if err != nil {
+			return err
+		}
+		t.dataSet = dataSet
 	}
 
-	dataSet, err := t.createDataSet()
-	if err != nil {
-		return err
+	// Everything downstream addresses the data set by upload id
+	if t.dataSet.UploadID == nil {
+		t.task.SetFailed()
+		return ErrorInvalidStateError(errors.New("data set upload id is missing"))
 	}
-	t.dataSet = dataSet
+
 	return nil
 }
 
@@ -782,8 +900,6 @@ func (t *TaskRunner) storeDatumArray(datumArray data.Data) error {
 		}
 	}
 
-	t.task.Data[dexcom.DataKeyDeviceHashes] = t.deviceHashes
-
 	return nil
 }
 
@@ -796,6 +912,12 @@ func (t *TaskRunner) afterLatestDataTime(latestDataTime *time.Time) bool {
 }
 
 func (t *TaskRunner) handleDexcomClientError(err error) error {
+	// The stored refresh token is spent and its replacement was lost, so every later call authenticates against a token
+	// the database does not have. Stop here rather than continuing, and leave the retry count alone.
+	if t.tokenUpdateError != nil {
+		return ErrorResourceFailureError(t.tokenUpdateError)
+	}
+
 	// If success, then reset retry count and return no error
 	if err == nil {
 		t.resetTaskRetryCount()
@@ -803,7 +925,7 @@ func (t *TaskRunner) handleDexcomClientError(err error) error {
 	}
 
 	// If not an authentication error, then just treat as a resource failure
-	if !request.IsErrorUnauthenticated(errors.Cause(err)) {
+	if !request.IsErrorUnauthenticated(errors.LastCause(err)) {
 		return ErrorResourceFailureError(err)
 	}
 
@@ -820,18 +942,28 @@ func (t *TaskRunner) handleDexcomClientError(err error) error {
 }
 
 func (t *TaskRunner) incrementTaskRetryCount() int {
-	retryCount := 1
-	if valueRaw, ok := t.task.Data[dexcom.DataKeyRetryCount]; ok && valueRaw != nil {
-		if value, ok := valueRaw.(int32); ok {
-			retryCount = int(value) + 1
-		}
-	}
+	retryCount := taskRetryCount(t.task.Data[dexcom.DataKeyRetryCount]) + 1
 	t.task.Data[dexcom.DataKeyRetryCount] = int32(retryCount)
 	return retryCount
 }
 
 func (t *TaskRunner) resetTaskRetryCount() {
 	delete(t.task.Data, dexcom.DataKeyRetryCount)
+}
+
+func (t *TaskRunner) setDataTimeField(key string, value time.Time) {
+	t.task.Data[key] = value.UTC().Format(time.RFC3339Nano)
+}
+
+func (t *TaskRunner) getDataTimeField(key string) *time.Time {
+	if value, ok := t.task.Data[key].(string); !ok {
+		return nil
+	} else if tm, err := time.Parse(time.RFC3339Nano, value); err != nil {
+		t.logger.WithError(err).WithField(key, value).Warn("Unable to parse data time")
+		return nil
+	} else {
+		return pointer.From(tm)
+	}
 }
 
 func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.TokenSourceSource) (*http.Client, error) {
@@ -841,17 +973,22 @@ func (t *TaskRunner) HTTPClient(ctx context.Context, tokenSourceSource oauth.Tok
 func (t *TaskRunner) UpdateToken(ctx context.Context) (bool, error) {
 	if updated, err := t.tokenSource.UpdateToken(ctx); err != nil || !updated {
 		return updated, err
-	} else {
-		return true, t.updateProviderSession()
 	}
+
+	// Dexcom rotates the refresh token and accepts each only once, so the refresh just consumed the stored token and
+	// losing its replacement permanently breaks the connection. The OAuth client only logs what this returns, so record
+	// the failure for handleDexcomClientError to surface.
+	err := request.RetryError(ctx, updateTokenRetrier, func(ctx context.Context) error {
+		return t.updateProviderSession()
+	})
+	if err != nil {
+		t.tokenUpdateError = err
+	}
+	return true, err
 }
 
 func (t *TaskRunner) ExpireToken(ctx context.Context) (bool, error) {
-	if expired, err := t.tokenSource.ExpireToken(ctx); err != nil || !expired {
-		return expired, err
-	} else {
-		return true, t.updateProviderSession()
-	}
+	return t.tokenSource.ExpireToken(ctx)
 }
 
 func InTimeRange(time time.Time, lower time.Time, upper time.Time) bool {
@@ -871,6 +1008,24 @@ func ClampTime(time time.Time, lower time.Time, upper time.Time) time.Time {
 		return upper
 	} else {
 		return time
+	}
+}
+
+// taskRetryCount accepts any numeric representation, since the count round trips as int32 through BSON, but as float64
+// through JSON. Narrowing to one would silently restart the count and defeat TaskRetryCountMaximum. This will be
+// unnecessary once Dexcom is moved to the work system (which has much better metadata support).
+func taskRetryCount(valueRaw any) int {
+	switch value := valueRaw.(type) {
+	case int:
+		return value
+	case int32:
+		return int(value)
+	case int64:
+		return int(value)
+	case float64:
+		return int(value)
+	default:
+		return 0
 	}
 }
 
@@ -894,3 +1049,5 @@ func availableAfterDurationWithFallbackFactor(fallbackFactor float64) time.Durat
 func fallbackFactorWithRetryCount(retryCount int) float64 {
 	return float64(int(1) << (retryCount - 1))
 }
+
+var updateTokenRetrier = request.NewRetrier(3, time.Second, 0.2)

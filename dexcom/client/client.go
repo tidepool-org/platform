@@ -2,13 +2,8 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"strings"
 	"time"
-
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/dexcom"
@@ -16,28 +11,33 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/oauth"
 	oauthClient "github.com/tidepool-org/platform/oauth/client"
+	"github.com/tidepool-org/platform/request"
 )
 
+const (
+	RetrierRetries = 4
+	RetrierDelay   = 2 * time.Second
+	RetrierJitter  = 0.1
+)
+
+var Retrier = request.NewRetrier(RetrierRetries, RetrierDelay, RetrierJitter)
+
 type Client struct {
-	client *oauthClient.Client
+	client  *oauthClient.Client
+	retrier request.Retrier
 }
 
-func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error) {
+func New(cfg *client.Config, httpClient *http.Client, tknSrcSrc oauth.TokenSourceSource, retrier request.Retrier) (*Client, error) {
 	if cfg == nil {
 		return nil, errors.New("config is missing")
 	} else if err := cfg.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
 	}
-
-	if cfg.Timeout == 0 {
-		cfg.Timeout = 1 * time.Minute
+	if tknSrcSrc == nil {
+		return nil, errors.New("token source source is missing")
 	}
-
-	httpClient := &http.Client{
-		Transport:     prometheusRequestMetricsRoundTripper,
-		CheckRedirect: http.DefaultClient.CheckRedirect,
-		Jar:           http.DefaultClient.Jar,
-		Timeout:       http.DefaultClient.Timeout,
+	if retrier == nil {
+		return nil, errors.New("retrier is missing")
 	}
 
 	baseClient, err := client.New(cfg)
@@ -51,7 +51,8 @@ func New(cfg *client.Config, tknSrcSrc oauth.TokenSourceSource) (*Client, error)
 	}
 
 	return &Client{
-		client: clnt,
+		client:  clnt,
+		retrier: retrier,
 	}, nil
 }
 
@@ -127,7 +128,7 @@ func (c *Client) GetEvents(ctx context.Context, startTime time.Time, endTime tim
 	return eventsResponse, nil
 }
 
-func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
+func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime time.Time, endTime time.Time, method string, url string, responseBody any, tokenSource oauth.TokenSource) error {
 	url = c.client.AppendURLQuery(url, map[string]string{
 		"startDate": startTime.UTC().Format(dexcom.DateRangeTimeFormat),
 		"endDate":   endTime.UTC().Format(dexcom.DateRangeTimeFormat),
@@ -135,54 +136,37 @@ func (c *Client) sendDexcomRequestWithDataRange(ctx context.Context, startTime t
 	return c.sendDexcomRequest(ctx, method, url, responseBody, tokenSource)
 }
 
-func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody interface{}, tokenSource oauth.TokenSource) error {
-	return log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
-		return c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, nil, tokenSource)
-	})
-}
-
-// Some Dexcom API responses include a "request-time" header with, supposedly, the internal duration of the request.
-// This could be useful for debugging connection issues if compared against the calculated request duration.
-// See client/prometheus.go for details on how the request duration is calculated and recorded. The format for
-// this header is non-standard duration (e.g. "1234 ms") and the space needs to be removed for Golang to parse.
-
-const RequestTimeHeaderName = "request-time"
-
-type PrometheusRequestMetricsRoundTripper struct {
-	*client.PrometheusRequestMetricsRoundTripper
-	requestTimeHistogramVec *prometheus.HistogramVec
-}
-
-func NewPrometheusRequestMetricsRoundTripper(name string, help string) *PrometheusRequestMetricsRoundTripper {
-	return &PrometheusRequestMetricsRoundTripper{
-		PrometheusRequestMetricsRoundTripper: client.NewPrometheusRequestMetricsRoundTripper(name, help),
-		requestTimeHistogramVec: promauto.NewHistogramVec(
-			prometheus.HistogramOpts{
-				Name:    fmt.Sprintf("%s_request_time_seconds", name),
-				Help:    fmt.Sprintf("%s request time (seconds)", help),
-				Buckets: client.DurationBucketsDefault,
-			},
-			client.PrometheusLabelNames(),
-		),
+func (c *Client) sendDexcomRequest(ctx context.Context, method string, url string, responseBody any, tokenSource oauth.TokenSource) error {
+	if tokenSource == nil {
+		return errors.New("token source is missing")
 	}
-}
 
-func (p *PrometheusRequestMetricsRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	res, err := p.PrometheusRequestMetricsRoundTripper.RoundTrip(req)
-
-	if res != nil {
-		if labels := p.Labels(req, res); labels != nil {
-			if requestTimeHeader := strings.ReplaceAll(res.Header.Get(RequestTimeHeaderName), " ", ""); requestTimeHeader != "" {
-				if requestTime, parseErr := time.ParseDuration(requestTimeHeader); parseErr == nil {
-					p.requestTimeHistogramVec.With(*labels).Observe(requestTime.Seconds())
-				}
-			}
+	_, err := request.RetryFailure(ctx, c.retrier, func(ctx context.Context) (bool, error) {
+		statusCodeInspector := request.NewStatusCodeInspector()
+		if err := log.WarnIfDurationExceedsMaximum(ctx, requestDurationMaximum, url, func(ctx context.Context) error {
+			return c.client.SendOAuthRequest(ctx, method, url, nil, nil, responseBody, []request.ResponseInspector{statusCodeInspector}, tokenSource)
+		}); err != nil {
+			return !isTransientFailure(err, statusCodeInspector.StatusCode), err
+		} else {
+			return true, nil
 		}
-	}
+	})
 
-	return res, err
+	return err
 }
 
-const requestDurationMaximum = 60 * time.Second
+// isTransientFailure reports whether an identical retry could plausibly succeed. Authentication failures are excluded
+// deliberately: Dexcom rotates its single-use refresh token on every refresh, so retrying one here would consume and
+// re-persist that token repeatedly, and TaskRunner.handleDexcomClientError already retries them at task scope.
+func isTransientFailure(err error, statusCode int) bool {
+	switch {
+	case request.IsErrorUnauthenticated(errors.LastCause(err)):
+		return false
+	case statusCode == 0: // No response, so a transport failure, timeout or cancellation
+		return true
+	default:
+		return statusCode == http.StatusTooManyRequests || statusCode >= http.StatusInternalServerError
+	}
+}
 
-var prometheusRequestMetricsRoundTripper = NewPrometheusRequestMetricsRoundTripper("tidepool_dexcom_api", "Tidepool Dexcom API")
+const requestDurationMaximum = 30 * time.Second

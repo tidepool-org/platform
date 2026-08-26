@@ -95,7 +95,7 @@ endif
 
 SERVICES=auth blob data migrations prescription task tools
 
-default: test
+default: generate build test
 
 tmp:
 	@mkdir -p $(ROOT_DIRECTORY)/_tmp
@@ -272,42 +272,42 @@ ci-test: ci-test-go
 test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(TEST)
 
 test-ginkgo-repeat: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --repeat $(TEST_REPEAT) $(TEST)
 
 test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) --until-it-fails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) --until-it-fails $(TEST)
 
 test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $(TEST)
 
 ci-test-ginkgo: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off $(TIMING_CMD) ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) $(TEST)
 
 ci-test-ginkgo-repeat: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --repeat $(TEST_REPEAT) $(TEST)
 
 ci-test-ginkgo-until-failure: ginkgo
 	@echo "ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo $(GINKGO_FLAGS) $(GINKGO_CI_FLAGS) --until-it-fails $(TEST)
 
 ci-test-ginkgo-watch: ginkgo
 	@echo "ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)"
 	@cd $(ROOT_DIRECTORY) && \
-		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $${GOWORK_FLAGS:-} $(TEST)
+		. ./env.test.sh && GOWORK=off ginkgo watch $(GINKGO_FLAGS) $(GINKGO_CI_WATCH_FLAGS) $(TEST)
 
 test-go:
 	@echo "go test $(GOTEST_FLAGS) $(GOTEST_PKGS)"

@@ -26,8 +26,13 @@ type Config struct {
 	// More info: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
 	UserAgent string `envconfig:"TIDEPOOL_USER_AGENT"`
 
-	// Timeout specifies the maximum amount of time a request can take. Zero means no timeout.
-	Timeout time.Duration `envconfig:"TIDEPOOL_CLIENT_TIMEOUT"`
+	// ClientTimeout specifies the maximum amount of time a request can take until the entire request is complete
+	// (response headers and body are fully received, i.e. http.Client.Timeout). Zero means no timeout.
+	ClientTimeout time.Duration `envconfig:"TIDEPOOL_CLIENT_CLIENT_TIMEOUT"`
+
+	// ResponseTimeout specifies the maximum amount of time a request can take until the response headers are received.
+	// This does NOT include reading the response body (use ClientTimeout for headers and body). Zero means no timeout.
+	ResponseTimeout time.Duration `envconfig:"TIDEPOOL_CLIENT_RESPONSE_TIMEOUT"`
 }
 
 func NewConfig() *Config {
@@ -41,10 +46,15 @@ func (c *Config) Load(loader ConfigLoader) error {
 func (c *Config) LoadFromConfigReporter(reporter config.Reporter) error {
 	c.Address = reporter.GetWithDefault("address", c.Address)
 	c.UserAgent = reporter.GetWithDefault("user_agent", c.UserAgent)
-	if timeout, parseErr := duration.Parse(reporter.GetWithDefault("timeout", c.Timeout.String()), time.Second); parseErr != nil {
-		return errors.New("timeout is invalid")
+	if clientTimeout, parseErr := duration.Parse(reporter.GetWithDefault("client_timeout", c.ClientTimeout.String()), time.Second); parseErr != nil {
+		return errors.New("client timeout is invalid")
 	} else {
-		c.Timeout = timeout
+		c.ClientTimeout = clientTimeout
+	}
+	if responseTimeout, parseErr := duration.Parse(reporter.GetWithDefault("response_timeout", c.ResponseTimeout.String()), time.Second); parseErr != nil {
+		return errors.New("response timeout is invalid")
+	} else {
+		c.ResponseTimeout = responseTimeout
 	}
 	return nil
 }
@@ -55,8 +65,11 @@ func (c *Config) Validate() error {
 	} else if _, err := url.Parse(c.Address); err != nil {
 		return errors.New("address is invalid")
 	}
-	if c.Timeout < 0 {
-		return errors.New("timeout is invalid")
+	if c.ClientTimeout < 0 {
+		return errors.New("client timeout is invalid")
+	}
+	if c.ResponseTimeout < 0 {
+		return errors.New("response timeout is invalid")
 	}
 
 	return nil
@@ -83,10 +96,15 @@ func NewConfigReporterLoader(reporter config.Reporter) *configReporterLoader {
 func (l *configReporterLoader) Load(cfg *Config) error {
 	cfg.Address = l.Reporter.GetWithDefault("address", cfg.Address)
 	cfg.UserAgent = l.Reporter.GetWithDefault("user_agent", cfg.UserAgent)
-	if timeout, parseErr := duration.Parse(l.Reporter.GetWithDefault("timeout", cfg.Timeout.String()), time.Second); parseErr != nil {
-		return errors.New("timeout is invalid")
+	if clientTimeout, parseErr := duration.Parse(l.Reporter.GetWithDefault("client_timeout", cfg.ClientTimeout.String()), time.Second); parseErr != nil {
+		return errors.New("client timeout is invalid")
 	} else {
-		cfg.Timeout = timeout
+		cfg.ClientTimeout = clientTimeout
+	}
+	if responseTimeout, parseErr := duration.Parse(l.Reporter.GetWithDefault("response_timeout", cfg.ResponseTimeout.String()), time.Second); parseErr != nil {
+		return errors.New("response timeout is invalid")
+	} else {
+		cfg.ResponseTimeout = responseTimeout
 	}
 	return nil
 }

@@ -198,10 +198,18 @@ var _ = Describe("Object", func() {
 			Expect(parser.Interface("9")).To(BeNil())
 		})
 
-		It("NotParsed only returns existing errors", func() {
+		It("IgnoreNotParsed only returns existing errors", func() {
 			err := errorsTest.RandomError()
 			base.ReportError(err)
-			Expect(parser.NotParsed()).To(Equal(errors.Normalize(err)))
+			parser.IgnoreNotParsed()
+			Expect(parser.Error()).To(Equal(errors.Normalize(err)))
+		})
+
+		It("ReportNotParsed only returns existing errors", func() {
+			err := errorsTest.RandomError()
+			base.ReportError(err)
+			parser.ReportNotParsed()
+			Expect(parser.Error()).To(Equal(errors.Normalize(err)))
 		})
 
 		Context("WithSource", func() {
@@ -249,7 +257,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{})
+			parser = structureParser.NewObjectParser(base, &map[string]any{})
 			Expect(parser).ToNot(BeNil())
 		})
 
@@ -297,7 +305,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": "exists",
 				"one":  "exists",
 			})
@@ -313,7 +321,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": "exists",
 			})
 			Expect(parser).ToNot(BeNil())
@@ -332,7 +340,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": "not a boolean",
 				"one":  true,
 			})
@@ -362,7 +370,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero":  false,
 				"one":   3,
 				"two":   4.0,
@@ -408,7 +416,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero":  false,
 				"one":   3,
 				"two":   4.0,
@@ -453,7 +461,7 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
 				"one":  "this is a string",
 			})
@@ -483,17 +491,17 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
 				"one": []string{
 					"one",
 					"two",
 				},
-				"two": []interface{}{
+				"two": []any{
 					"three",
 					"four",
 				},
-				"three": []interface{}{
+				"three": []any{
 					"five",
 					6,
 				},
@@ -541,7 +549,7 @@ var _ = Describe("Object", func() {
 
 		BeforeEach(func() {
 			now = time.Now()
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero":  false,
 				"one":   "abc",
 				"two":   now.Format(time.RFC3339Nano),
@@ -602,9 +610,9 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
-				"one": map[string]interface{}{
+				"one": map[string]any{
 					"1": "2",
 				},
 			})
@@ -625,7 +633,7 @@ var _ = Describe("Object", func() {
 		It("with key with object type returns value", func() {
 			value := parser.Object("one")
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
+			Expect(*value).To(Equal(map[string]any{"1": "2"}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -634,9 +642,9 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
-				"one": []interface{}{
+				"one": []any{
 					"1",
 					false,
 				},
@@ -658,7 +666,7 @@ var _ = Describe("Object", func() {
 		It("with key with array type returns value", func() {
 			value := parser.Array("one")
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal([]interface{}{"1", false}))
+			Expect(*value).To(Equal([]any{"1", false}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -667,12 +675,12 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
-				"one": map[string]interface{}{
+				"one": map[string]any{
 					"1": "2",
 				},
-				"two": []interface{}{
+				"two": []any{
 					"1",
 					false,
 				},
@@ -695,14 +703,14 @@ var _ = Describe("Object", func() {
 		It("with key with object type returns value", func() {
 			value := parser.Interface("one")
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal(map[string]interface{}{"1": "2"}))
+			Expect(*value).To(Equal(map[string]any{"1": "2"}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 
 		It("with key with array type returns value", func() {
 			value := parser.Interface("two")
 			Expect(value).ToNot(BeNil())
-			Expect(*value).To(Equal([]interface{}{"1", false}))
+			Expect(*value).To(Equal([]any{"1", false}))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -711,7 +719,64 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
+				"zero": 1,
+				"one":  "two",
+				"two":  3,
+			})
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("returns the unparsed references", func() {
+			parser.String("one")
+			Expect(parser.NotParsed()).To(Equal(map[string]any{
+				"zero": 1,
+				"two":  3,
+			}))
+		})
+	})
+
+	Context("IgnoreNotParsed", func() {
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			parser = structureParser.NewObjectParser(base, &map[string]any{
+				"zero": 1,
+				"one":  "two",
+				"two":  3,
+			})
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("without anything parsed marks every reference parsed", func() {
+			parser.IgnoreNotParsed()
+			Expect(parser.NotParsed()).To(BeNil())
+			parser.ReportNotParsed()
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with some items parsed marks the remaining references parsed", func() {
+			parser.String("one")
+			parser.IgnoreNotParsed()
+			Expect(parser.NotParsed()).To(BeNil())
+			parser.ReportNotParsed()
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("applies to a parser derived with WithSource, which shares the parsed references", func() {
+			derived := parser.WithSource(structureTest.NewSource())
+			parser.IgnoreNotParsed()
+			Expect(derived.NotParsed()).To(BeNil())
+			derived.ReportNotParsed()
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("ReportNotParsed", func() {
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": 1,
 				"one":  "two",
 				"two":  3,
@@ -720,7 +785,7 @@ var _ = Describe("Object", func() {
 		})
 
 		It("without anything parsed reports all unparsed as errors", func() {
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errors.Append(
 				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/one"),
@@ -731,7 +796,7 @@ var _ = Describe("Object", func() {
 
 		It("with some items parsed reports all unparsed as errors", func() {
 			parser.String("one")
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errors.Append(
 				errorsTest.WithPointerSource(structureParser.ErrorNotParsed(), "/two"),
@@ -743,7 +808,7 @@ var _ = Describe("Object", func() {
 			parser.Int("zero")
 			parser.String("one")
 			parser.Int("two")
-			parser.NotParsed()
+			parser.ReportNotParsed()
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
@@ -801,9 +866,9 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
-				"one": map[string]interface{}{
+				"one": map[string]any{
 					"1": "2",
 				},
 			})
@@ -838,9 +903,9 @@ var _ = Describe("Object", func() {
 		var parser *structureParser.Object
 
 		BeforeEach(func() {
-			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+			parser = structureParser.NewObjectParser(base, &map[string]any{
 				"zero": false,
-				"one": []interface{}{
+				"one": []any{
 					"1",
 					false,
 				},

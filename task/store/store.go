@@ -30,7 +30,7 @@ type TaskRepository interface {
 	StopTask(ctx context.Context, id string, revision int, claimToken *string, state string, duration *time.Duration, update *task.TaskUpdate) error
 
 	UnstickTasks(ctx context.Context, availabilityDelay time.Duration) ([]string, error)
-	GetTaskClaimToken(ctx context.Context, id string) (*string, bool, error)
+	GetTaskClaimTokens(ctx context.Context, ids []string) (map[string]*string, error)
 
 	IteratePending(ctx context.Context) (*mongo.Cursor, error)
 }
