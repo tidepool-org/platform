@@ -2,12 +2,14 @@ package postprocess
 
 import (
 	"fmt"
+	"slices"
 	"time"
 
 	mapset "github.com/deckarep/golang-set/v2"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
 	userWork "github.com/tidepool-org/platform/user/work"
 )
 
@@ -30,7 +32,9 @@ const (
 )
 
 const (
-	MetadataKeyReasons = "reasons"
+	MetadataKeyReasons               = "reasons"
+	MetadataKeyPendingSummaryUpdates = "pendingSummaryUpdates"
+	MetadataKeyPendingSummaryDeletes = "pendingSummaryDeletes"
 )
 
 func Reasons() []string {
@@ -91,6 +95,10 @@ func validateIdentity(groupID *string, serialID *string, workMetadata *Metadata)
 type Metadata struct {
 	userWork.Metadata `bson:",inline"`
 	Reasons           []string `json:"reasons,omitempty" bson:"reasons,omitempty"`
+
+	// Summary changes already calculated by this work item but not yet reported to the clinic service.
+	PendingSummaryUpdates []string `json:"pendingSummaryUpdates,omitempty" bson:"pendingSummaryUpdates,omitempty"`
+	PendingSummaryDeletes []string `json:"pendingSummaryDeletes,omitempty" bson:"pendingSummaryDeletes,omitempty"`
 }
 
 func (m *Metadata) Parse(parser structure.ObjectParser) {
@@ -98,9 +106,40 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 	if ptr := parser.StringArray(MetadataKeyReasons); ptr != nil {
 		m.Reasons = *ptr
 	}
+	if ptr := parser.StringArray(MetadataKeyPendingSummaryUpdates); ptr != nil {
+		m.PendingSummaryUpdates = *ptr
+	}
+	if ptr := parser.StringArray(MetadataKeyPendingSummaryDeletes); ptr != nil {
+		m.PendingSummaryDeletes = *ptr
+	}
 }
 
 func (m *Metadata) Validate(validator structure.Validator) {
 	m.Metadata.Validate(validator)
 	validator.StringArray(MetadataKeyReasons, &m.Reasons).NotEmpty().EachOneOf(Reasons()...).EachUnique()
+	validator.StringArray(MetadataKeyPendingSummaryUpdates, &m.PendingSummaryUpdates).EachOneOf(summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM).EachUnique()
+	validator.StringArray(MetadataKeyPendingSummaryDeletes, &m.PendingSummaryDeletes).EachNotEmpty().EachUnique()
+}
+
+// recordSummariesUpdate updates the pending/deleted summaries and return true if any changes were made
+// as part of this update cycle
+func (m *Metadata) recordSummariesUpdate(update SummariesUpdate) bool {
+	changed := false
+	for _, summaryType := range update.UpdatedTypes {
+		if !slices.Contains(m.PendingSummaryUpdates, summaryType) {
+			m.PendingSummaryUpdates = append(m.PendingSummaryUpdates, summaryType)
+			changed = true
+		}
+	}
+	for _, summaryID := range update.Deleted {
+		if !slices.Contains(m.PendingSummaryDeletes, summaryID) {
+			m.PendingSummaryDeletes = append(m.PendingSummaryDeletes, summaryID)
+			changed = true
+		}
+	}
+	if changed {
+		slices.Sort(m.PendingSummaryUpdates)
+		slices.Sort(m.PendingSummaryDeletes)
+	}
+	return changed
 }

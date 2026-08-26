@@ -23,15 +23,17 @@ const ErrorCodeClinicClientFailure = "clinic-client-failure"
 var ClientModule = fx.Provide(NewClient)
 
 type Client interface {
-	GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error)
-	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error)
-	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error)
-	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
-	ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error)
+	GetClinic(ctx context.Context, clinicID string) (*clinic.ClinicV1, error)
+	GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.ClinicianV1, error)
+	GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EhrSettingsV1, error)
+	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
+	ListEHREnabledClinics(ctx context.Context) ([]clinic.ClinicV1, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
 	SyncEHRDataForPatient(ctx context.Context, patientID string) error
-	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error)
-	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error)
+	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
+	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
+	UpdatePatientSummary(ctx context.Context, patientID string, patientSummary *clinic.PatientSummaryV1) error
+	DeletePatientSummary(ctx context.Context, summaryID string) error
 }
 
 type config struct {
@@ -76,7 +78,7 @@ func NewClient(authClient auth.ExternalAccessor) (Client, error) {
 	}, nil
 }
 
-func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.Clinician, error) {
+func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID string) (*clinic.ClinicianV1, error) {
 	response, err := d.httpClient.GetClinicianWithResponse(ctx, clinic.ClinicId(clinicID), clinic.ClinicianId(clinicianID))
 	if err != nil {
 		return nil, err
@@ -94,7 +96,7 @@ func (d *defaultClient) GetClinician(ctx context.Context, clinicID, clinicianID 
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) GetClinic(ctx context.Context, clinicID string) (*clinic.Clinic, error) {
+func (d *defaultClient) GetClinic(ctx context.Context, clinicID string) (*clinic.ClinicV1, error) {
 	response, err := d.httpClient.GetClinicWithResponse(ctx, clinic.ClinicId(clinicID))
 	if err != nil {
 		return nil, err
@@ -112,11 +114,11 @@ func (d *defaultClient) GetClinic(ctx context.Context, clinicID string) (*clinic
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Clinic, error) {
+func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.ClinicV1, error) {
 	offset := 0
 	batchSize := 1000
 
-	clinics := make([]clinic.Clinic, 0)
+	clinics := make([]clinic.ClinicV1, 0)
 	for {
 		response, err := d.httpClient.ListClinicsWithResponse(ctx, &clinic.ListClinicsParams{
 			EhrEnabled: pointer.FromBool(true),
@@ -148,7 +150,7 @@ func (d *defaultClient) ListEHREnabledClinics(ctx context.Context) ([]clinic.Cli
 	return clinics, nil
 }
 
-func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EHRSettings, error) {
+func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*clinic.EhrSettingsV1, error) {
 	response, err := d.httpClient.GetEHRSettingsWithResponse(ctx, clinicId)
 	if err != nil {
 		return nil, err
@@ -163,10 +165,10 @@ func (d *defaultClient) GetEHRSettings(ctx context.Context, clinicId string) (*c
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
+func (d *defaultClient) SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error) {
 	permission := make(map[string]interface{}, 0)
 	body := clinic.CreatePatientFromUserJSONRequestBody{
-		Permissions: &clinic.PatientPermissions{
+		Permissions: &clinic.PatientPermissionsV1{
 			Note: &permission,
 			View: &permission,
 		},
@@ -222,7 +224,37 @@ func (d *defaultClient) SyncEHRDataForPatient(ctx context.Context, patientID str
 	return nil
 }
 
-func (d *defaultClient) GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.Patient, error) {
+func (d *defaultClient) UpdatePatientSummary(ctx context.Context, patientID string, patientSummary *clinic.PatientSummaryV1) error {
+	response, err := d.httpClient.UpdatePatientSummaryWithResponse(ctx, clinic.PatientId(patientID), *patientSummary)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent && response.StatusCode() != http.StatusNotFound {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+func (d *defaultClient) DeletePatientSummary(ctx context.Context, summaryID string) error {
+	response, err := d.httpClient.DeletePatientSummaryWithResponse(ctx, clinic.SummaryId(summaryID))
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+func (d *defaultClient) GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error) {
 	response, err := d.httpClient.GetPatientWithResponse(ctx, clinic.ClinicId(clinicID), clinic.PatientId(patientID))
 	if err != nil {
 		return nil, err
@@ -237,7 +269,7 @@ func (d *defaultClient) GetPatient(ctx context.Context, clinicID, patientID stri
 	return response.JSON200, nil
 }
 
-func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.Patient, error) {
+func (d *defaultClient) GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error) {
 	response, err := d.httpClient.ListPatientsWithResponse(ctx, clinicId, params, func(ctx context.Context, req *http.Request) error {
 		if len(injectedParams) != 0 {
 			q := req.URL.Query()

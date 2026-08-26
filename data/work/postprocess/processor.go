@@ -2,14 +2,17 @@ package postprocess
 
 import (
 	"context"
+	"slices"
 	"time"
 
+	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/page"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
 	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
@@ -23,7 +26,8 @@ type Processor struct {
 	Summarizers
 	ClinicsClient
 
-	pendingBuilder *deferredPendingBuilder
+	pendingBuilder  *deferredPendingBuilder
+	summariesUpdate SummariesUpdate
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -65,6 +69,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.FetchUserFromWorkMetadata,
 		p.absorbPending,
 		p.updateSummaries,
+		p.updateClinicSummaries,
 		p.triggerElectronicHealthRecordSync,
 	).Process(p.Delete)
 }
@@ -103,9 +108,14 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 		if err == nil && workMetadata == nil {
 			err = errors.New("metadata is missing")
 		}
+		// The work must be scoped to the same user. This check should never fail under normal circumstances
+		// given we are filtering by the group id when retrieving pending work items
+		if err == nil {
+			err = validateIdentity(wrk.GroupID, wrk.SerialID, workMetadata)
+		}
 		// The pending work item will fail when it's picked up
 		if err != nil {
-			log.LoggerFromContext(p.Context()).WithError(err).WithField("id", wrk.ID).Warn("work pending for the user has invalid metadata")
+			log.LoggerFromContext(p.Context()).WithError(err).WithField("id", wrk.ID).Warn("work pending for the user is invalid")
 			continue
 		}
 
@@ -153,18 +163,73 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 }
 
 func (p *Processor) updateSummaries() *work.ProcessResult {
-	if err := p.UpdateSummaries(p.Context(), *p.User().UserID); err != nil {
+	var err error
+	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID)
+
+	// The changes made are recorded in the metadata before they are synced to the clinic service,
+	// so that a failure between the two retries the update
+	changed := p.Metadata().recordSummariesUpdate(p.summariesUpdate)
+	if err != nil {
 		return p.Failing(err)
 	}
-
-	log.LoggerFromContext(p.Context()).WithField("reasons", p.Metadata().Reasons).Info("calculated the summaries of the user")
+	if changed {
+		if result := p.ProcessingUpdate(); result != nil {
+			return result
+		}
+		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
+			"reasons": p.Metadata().Reasons,
+			"updated": p.summariesUpdate.UpdatedTypes,
+			"deleted": p.summariesUpdate.Deleted,
+		}).Info("updated user summaries")
+	}
 
 	return nil
 }
 
-// triggerElectronicHealthRecordSync reports the data of the user to any electronic health record it is
-// shared with, after the summaries it reports are calculated. It is requested at least once per change
-// reported, as a request repeated reports the same data again rather than reporting it twice.
+func (p *Processor) updateClinicSummaries() *work.ProcessResult {
+	workMetadata := p.Metadata()
+	if len(workMetadata.PendingSummaryUpdates) == 0 && len(workMetadata.PendingSummaryDeletes) == 0 {
+		return nil
+	}
+
+	for _, summaryID := range workMetadata.PendingSummaryDeletes {
+		if err := p.ClinicsClient.DeletePatientSummary(p.Context(), summaryID); err != nil {
+			return p.Failing(errors.Wrap(err, "unable to delete patient summary"))
+		}
+	}
+	if len(workMetadata.PendingSummaryDeletes) > 0 {
+		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
+			"deleted": workMetadata.PendingSummaryDeletes,
+		}).Debug("deleted clinic service summaries")
+	}
+
+	var cgm *summaryTypes.CGMSummary
+	var bgm *summaryTypes.BGMSummary
+	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeCGM) {
+		cgm = p.summariesUpdate.CGM
+	}
+	if slices.Contains(workMetadata.PendingSummaryUpdates, summaryTypes.SummaryTypeBGM) {
+		bgm = p.summariesUpdate.BGM
+	}
+	if cgm != nil || bgm != nil {
+		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.User().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
+			return p.Failing(errors.Wrap(err, "unable to update patient summary"))
+		}
+		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
+			"updated": workMetadata.PendingSummaryUpdates,
+		}).Debug("updated clinic service summaries")
+	}
+
+	log.LoggerFromContext(p.Context()).WithFields(log.Fields{
+		"updated": workMetadata.PendingSummaryUpdates,
+		"deleted": workMetadata.PendingSummaryDeletes,
+	}).Info("synced user summaries with the clinic service")
+
+	return nil
+}
+
+// triggerElectronicHealthRecordSync reports the data of the user to any electronic health record it
+// is shared with. Repeating the request reports the same data again, not twice, so retries are safe.
 func (p *Processor) triggerElectronicHealthRecordSync() *work.ProcessResult {
 	if !TriggersEHRSync(p.Metadata().Reasons) {
 		return nil
@@ -179,8 +244,7 @@ func (p *Processor) triggerElectronicHealthRecordSync() *work.ProcessResult {
 	return nil
 }
 
-// deferredPendingBuilder defers work until a time decided while processing, rather than by a duration
-// fixed when the processor is created
+// deferredPendingBuilder defers work until a time decided during processing
 type deferredPendingBuilder struct {
 	availableTime time.Time
 }
