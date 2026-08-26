@@ -218,7 +218,7 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 	}
 
 	// Do not interrupt, but do enforce a reasonable timeout
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
 	defer cancel()
 
 	// If there is a data source, then update the replacement to match provider session and state

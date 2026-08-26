@@ -71,10 +71,10 @@ func New(dependencies Dependencies) (*Provider, error) {
 	httpClient.Transport = prometheusRequestMetricsRoundTripper
 
 	if dependencies.Config.ClientConfig.ClientTimeout == 0 {
-		dependencies.Config.ClientConfig.ClientTimeout = dependencies.Config.ClientTimeout * 3 // token + request + response headers + response body
+		dependencies.Config.ClientConfig.ClientTimeout = dependencies.Config.ProviderConfig.ClientTimeout * 3 // token + request + response headers + response body
 	}
 	if dependencies.Config.ClientConfig.ResponseTimeout == 0 {
-		dependencies.Config.ClientConfig.ResponseTimeout = dependencies.Config.ClientTimeout * 2 // token + request + response headers
+		dependencies.Config.ClientConfig.ResponseTimeout = dependencies.Config.ProviderConfig.ClientTimeout * 2 // token + request + response headers
 	}
 
 	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, httpClient, nil, &ouraClient.ErrorResponseParser{})

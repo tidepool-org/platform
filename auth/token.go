@@ -7,6 +7,8 @@ import (
 
 	"golang.org/x/oauth2"
 
+	"github.com/golang-jwt/jwt/v4"
+
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
@@ -91,28 +93,14 @@ func (o *OAuthToken) Normalize(normalizer structure.Normalizer) {
 
 func (o *OAuthToken) Redacted() *OAuthToken {
 	redacted := &OAuthToken{
-		AccessToken:    crypto.Base64EncodedSHA256Hash([]byte(o.AccessToken)),
+		AccessToken:    redactToken(o.AccessToken),
 		TokenType:      o.TokenType,
-		RefreshToken:   crypto.Base64EncodedSHA256Hash([]byte(o.RefreshToken)),
+		RefreshToken:   redactToken(o.RefreshToken),
 		ExpirationTime: o.ExpirationTime,
 		Scope:          o.Scope,
 	}
 	if o.IDToken != nil {
-		//nolint:tagliatelle // Standard id token claims
-		var redactedIDToken struct {
-			Subject   *string `json:"sub,omitempty" bson:"sub,omitempty"`
-			Email     *string `json:"email,omitempty" bson:"email,omitempty"`
-			IssuedAt  *int    `json:"iat,omitempty" bson:"iat,omitempty"`
-			ExpiresAt *int    `json:"exp,omitempty" bson:"exp,omitempty"`
-		}
-		if err := json.Unmarshal([]byte(*o.IDToken), &redactedIDToken); err == nil {
-			if redcatedIDTokenBytes, err := json.Marshal(redactedIDToken); err == nil {
-				redacted.IDToken = pointer.From(string(redcatedIDTokenBytes))
-			}
-		}
-		if redacted.IDToken == nil {
-			redacted.IDToken = pointer.From(crypto.Base64EncodedSHA256Hash([]byte(*o.IDToken)))
-		}
+		redacted.IDToken = pointer.From(redactToken(*o.IDToken))
 	}
 	return redacted
 }
@@ -209,4 +197,31 @@ func GetScope(rawToken *oauth2.Token) (*[]string, error) {
 	} else {
 		return pointer.FromStringArray(scope), nil
 	}
+}
+
+func redactToken(token string) string {
+	type claims struct {
+		jwt.RegisteredClaims
+		Scope string `json:"scope,omitempty"`
+		Email string `json:"email,omitempty"`
+		Name  string `json:"name,omitempty"`
+	}
+
+	var tokenClaims claims
+	if _, _, err := jwt.NewParser().ParseUnverified(token, &tokenClaims); err == nil {
+		redactedTokenClaims := claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   tokenClaims.Subject,
+				IssuedAt:  tokenClaims.IssuedAt,
+				ExpiresAt: tokenClaims.ExpiresAt,
+			},
+			Scope: tokenClaims.Scope,
+			Email: tokenClaims.Email,
+			Name:  tokenClaims.Name,
+		}
+		if redactedTokenBytes, err := json.Marshal(redactedTokenClaims); err == nil {
+			return string(redactedTokenBytes)
+		}
+	}
+	return crypto.Base64EncodedSHA256Hash([]byte(token))
 }

@@ -61,8 +61,15 @@ func (r *retrier) Retry(ctx context.Context, handler func(ctx context.Context) (
 	retry := retry{ID: id.Must(id.New(16))}
 	for retry.Retry = range r.retries + 1 {
 		if retry.Retry > 0 {
+			select {
+			case <-ctx.Done():
+				return false, ctx.Err()
+			default:
+			}
+
 			retry.Delay = duration.WithJitter(duration.Exponential(r.delay, retry.Retry-1), r.jitter)
 			lgr.WithField("retry", retry).Info("Delaying before retrying")
+
 			select {
 			case <-ctx.Done():
 				return false, ctx.Err()

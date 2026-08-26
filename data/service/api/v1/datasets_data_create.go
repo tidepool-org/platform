@@ -94,11 +94,12 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
+	provenance := GetProvenanceFromRequest(ctx, req, authDetails)
 	datumArray = append(datumArray, normalizer.Data()...)
 	for _, datum := range datumArray {
 		datum.SetUserID(dataSet.UserID)
 		datum.SetDataSetID(dataSet.UploadID)
-		datum.SetProvenance(GetProvenanceFromRequest(ctx, req, authDetails))
+		datum.SetProvenance(provenance)
 	}
 
 	if deduplicator, getErr := dataServiceContext.DataDeduplicatorFactory().Get(ctx, dataSet); getErr != nil {
