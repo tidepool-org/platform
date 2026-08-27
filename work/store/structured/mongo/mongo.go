@@ -174,12 +174,13 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	// Group all documents by serial id
 	pipeline = append(pipeline, bson.M{"$group": bson.M{"_id": "$serialId", "documents": bson.M{"$push": "$$ROOT"}}})
 
-	// Match any without a serial id or any serial id group that contains no member in state
-	// processing nor in state failing with retry time in future ($elemMatch binds both failing
-	// conditions to the same member). Matching the whole group rather than its head is slightly
-	// conservative: a group is also excluded when a failing member with a future retry sorts after
-	// an otherwise eligible head. With uniform priority the failing member sorts first anyway;
-	// where priorities differ, correctness wins over throughput.
+	// Match documents without a serial id, and serial id groups with no member processing or
+	// failing with a future retry time ($elemMatch binds both failing conditions to the same
+	// member). The whole group is checked, not just its head, because the sort is by priority
+	// first: a lower-priority processing or failing member can sort behind an eligible sibling,
+	// and a head-only check would dispatch that sibling — running two members of a serial group
+	// at once or retrying out of order. Blocking the group whenever such a member exists is
+	// slightly conservative, but keeps the serial guarantees unconditional.
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"_id": bson.M{"$exists": false}},
 		bson.M{"$nor": bson.A{
