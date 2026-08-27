@@ -70,7 +70,7 @@ func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdat
 		p.absorbPending,
 		p.updateSummaries,
 		p.updateClinicSummaries,
-		p.triggerElectronicHealthRecordSync,
+		p.triggerEHRSync,
 	).Process(p.Delete)
 }
 
@@ -167,7 +167,9 @@ func (p *Processor) updateSummaries() *work.ProcessResult {
 	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID)
 
 	// The changes made are recorded in the metadata before they are synced to the clinic service,
-	// so that a failure between the two retries the update
+	// so that a failure between the two retries the update. They are recorded even when the
+	// calculation fails partway (a partial update is returned alongside the error), riding along
+	// on the failing update so the retry still reports them
 	changed := p.Metadata().recordSummariesUpdate(p.summariesUpdate)
 	if err != nil {
 		return p.Failing(err)
@@ -197,11 +199,6 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 			return p.Failing(errors.Wrap(err, "unable to delete patient summary"))
 		}
 	}
-	if len(workMetadata.PendingSummaryDeletes) > 0 {
-		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
-			"deleted": workMetadata.PendingSummaryDeletes,
-		}).Debug("deleted clinic service summaries")
-	}
 
 	var cgm *summaryTypes.CGMSummary
 	var bgm *summaryTypes.BGMSummary
@@ -215,9 +212,6 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.User().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
 			return p.Failing(errors.Wrap(err, "unable to update patient summary"))
 		}
-		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
-			"updated": workMetadata.PendingSummaryUpdates,
-		}).Debug("updated clinic service summaries")
 	}
 
 	log.LoggerFromContext(p.Context()).WithFields(log.Fields{
@@ -228,9 +222,8 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 	return nil
 }
 
-// triggerElectronicHealthRecordSync reports the data of the user to any electronic health record it
-// is shared with. Repeating the request reports the same data again, not twice, so retries are safe.
-func (p *Processor) triggerElectronicHealthRecordSync() *work.ProcessResult {
+// triggerEHRSync triggers report and flowsheet upload for patients with active subscriptions
+func (p *Processor) triggerEHRSync() *work.ProcessResult {
 	if !TriggersEHRSync(p.Metadata().Reasons) {
 		return nil
 	}
@@ -238,8 +231,6 @@ func (p *Processor) triggerElectronicHealthRecordSync() *work.ProcessResult {
 	if err := p.ClinicsClient.SyncEHRDataForPatient(p.Context(), *p.User().UserID); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to trigger EHR sync"))
 	}
-
-	log.LoggerFromContext(p.Context()).Info("triggerred EHR sync")
 
 	return nil
 }
