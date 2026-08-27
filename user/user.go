@@ -78,7 +78,7 @@ func (u *User) Parse(parser structure.ObjectParser) {
 
 func (u *User) Validate(validator structure.Validator) {
 	validator.String("userid", u.UserID).Exists().Using(IDValidator)
-	validator.String("username", u.Username).Exists().NotEmpty()
+	validator.String("username", u.Username).NotEmpty()
 	validator.String("termsAccepted", u.TermsAccepted).AsTime(time.RFC3339Nano).NotZero()
 	validator.StringArray("roles", u.Roles).EachOneOf(Roles()...).EachUnique()
 }
