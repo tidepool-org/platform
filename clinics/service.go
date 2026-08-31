@@ -239,12 +239,15 @@ func (d *defaultClient) UpdatePatientSummary(ctx context.Context, patientID stri
 	return nil
 }
 
+// DeletePatientSummary reports no error when the clinic service reports the summary as not found,
+// so that a delete resent by retried work targeting an already deleted summary does not fail the
+// work forever.
 func (d *defaultClient) DeletePatientSummary(ctx context.Context, summaryID string) error {
 	response, err := d.httpClient.DeletePatientSummaryWithResponse(ctx, clinic.SummaryId(summaryID))
 	if err != nil {
 		return err
 	}
-	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent {
+	if response.StatusCode() != http.StatusOK && response.StatusCode() != http.StatusNoContent && response.StatusCode() != http.StatusNotFound {
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
 			"Unexpected status code from clinic service",
 			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
