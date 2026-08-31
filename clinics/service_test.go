@@ -135,6 +135,12 @@ var _ = Describe("Client", func() {
 			Expect(client.DeletePatientSummary(context.Background(), summaryID)).To(Succeed())
 		})
 
+		// A delete resent by retried work may target a summary the clinic service already deleted
+		It("returns no error when the summary is not found", func() {
+			responseStatusCode = http.StatusNotFound
+			Expect(client.DeletePatientSummary(context.Background(), summaryID)).To(Succeed())
+		})
+
 		It("returns an error when the clinic service reports an unexpected status", func() {
 			responseStatusCode = http.StatusInternalServerError
 			err := client.DeletePatientSummary(context.Background(), summaryID)
