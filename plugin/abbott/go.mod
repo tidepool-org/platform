@@ -36,7 +36,7 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/segmentio/asm v1.2.0 // indirect
-	github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc // indirect
+	github.com/tidepool-org/clinic/client v0.0.0-20260814105914-911a077531db // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
