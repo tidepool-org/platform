@@ -19,7 +19,6 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
-	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	"github.com/tidepool-org/platform/task/queue"
 	"github.com/tidepool-org/platform/task/service"
@@ -295,12 +294,6 @@ func (s *Service) initializeTaskQueue() error {
 
 		runners = append(runners, rnnr)
 	}
-
-	summaryRunners, err := summaryTask.NewSummaryRunners(s.AuthClient(), s.dataClient, s.Logger())
-	if err != nil {
-		return errors.Wrap(err, "unable to create summary runners")
-	}
-	runners = append(runners, summaryRunners...)
 
 	s.Logger().Debug("Creating ehr reconcile runner")
 

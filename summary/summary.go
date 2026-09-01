@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
-	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary/fetcher"
 	"github.com/tidepool-org/platform/summary/store"
@@ -46,10 +45,7 @@ func GetSummarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P typ
 type Summarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] interface {
 	GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
 	GetBucketsRange(ctx context.Context, userId string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error)
-	SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error)
 	UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error)
-	GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error)
-	GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error)
 }
 
 // Compile time interface check
@@ -120,18 +116,6 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, 
 	return gs.buckets.GetBucketsRange(ctx, userId, &startTime, &endTime)
 }
 
-func (gs *GlucoseSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
-	return gs.summaries.SetOutdated(ctx, userId, reason)
-}
-
-func (gs *GlucoseSummarizer[PP, PB, P, B]) GetOutdatedUserIDs(ctx context.Context, pagination *page.Pagination) (*types.OutdatedSummariesResponse, error) {
-	return gs.summaries.GetOutdatedUserIDs(ctx, pagination)
-}
-
-func (gs *GlucoseSummarizer[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, pagination *page.Pagination) ([]string, error) {
-	return gs.summaries.GetMigratableUserIDs(ctx, pagination)
-}
-
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
 	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
@@ -161,8 +145,8 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		if userSummary.Config.SchemaVersion != types.SchemaVersion {
-			userSummary.SetOutdated(types.OutdatedReasonSchemaMigration)
-			userSummary.Dates.Reset()
+			// A summary calculated with an outdated schema is recreated from nothing
+			*userSummary = *types.Create[PP, PB](userId)
 
 			// Drop all buckets for this user for a full reset
 			err = gs.buckets.Reset(sessionCtx, userId)
@@ -188,8 +172,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		if status.EarliestModified.IsZero() {
 			logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userId, summaryType)
 
-			userSummary.SetNotOutdated()
-			return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
+			return userSummary, nil
 		}
 
 		// only attempt to invalidate buckets if there is buckets which exist in the modified range

@@ -226,63 +226,15 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary).To(BeNil())
 	})
 
-	It("summary calc with jellyfish created summary", func() {
-		opts := options.BulkWrite().SetOrdered(false)
-
-		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
-		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
-		Expect(err).ToNot(HaveOccurred())
-
-		summaries := make([]*Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket], 1)
-
-		// we don't use types.Create as we want to create a sparse jellyfish style upsert
-		summaries[0] = &Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]{
-			BaseSummary: BaseSummary{
-				Type:   SummaryTypeBGM,
-				UserID: userId,
-				Dates: Dates{
-					OutdatedSince:  &time.Time{},
-					OutdatedReason: []string{"LEGACY_DATA_ADDED"},
-				},
-			},
-		}
-
-		count, err := bgmStore.CreateSummaries(ctx, summaries)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(count).To(Equal(1))
-
-		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(bgmSummary).ToNot(BeNil())
-
-		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
-
-		Expect(len(buckets)).To(Equal(5))
-		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
-		Expect(bgmSummary.Dates.LastUpdatedReason).To(ConsistOf("LEGACY_DATA_ADDED", OutdatedReasonSchemaMigration))
-	})
-
 	It("summary calc with no data correctly deletes summaries", func() {
-		var t *time.Time
-
-		// create bgm summary
-		t, err = bgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
+		// create a bgm summary with no backing data
+		_, err = bgmStore.CreateSummaries(ctx, []*Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]{Create[*BGMPeriods, *GlucoseBucket](userId)})
 		Expect(err).ToNot(HaveOccurred())
 
 		// check that it exists in the db
 		bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(bgmSummary).ToNot(BeNil())
-		Expect(bgmSummary.Dates.OutdatedSince).To(Equal(t))
-
-		// create cgm summary
-		t, err = cgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
-		Expect(err).ToNot(HaveOccurred())
-		// check that it exists in the db
-		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(cgmSummary).ToNot(BeNil())
-		Expect(cgmSummary.Dates.OutdatedSince).To(Equal(t))
 
 		// update bgm summary, which should delete it
 		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
@@ -293,16 +245,6 @@ var _ = Describe("End to end summary calculations", func() {
 		bgmSummary, err = bgmSummarizer.GetSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(bgmSummary).To(BeNil())
-
-		// update cgm summary, which should delete it
-		cgmSummary, err = cgmSummarizer.UpdateSummary(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(cgmSummary).To(BeNil())
-
-		// confirm its truly gone
-		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(cgmSummary).To(BeNil())
 	})
 
 	It("summary calc with no new data correctly leaves summary unchanged", func() {
@@ -320,9 +262,6 @@ var _ = Describe("End to end summary calculations", func() {
 
 		// get the real summary stored to the db
 		cgmSummary, err = cgmSummarizer.GetSummary(ctx, userId)
-		Expect(err).ToNot(HaveOccurred())
-
-		_, err = cgmSummarizer.SetOutdated(ctx, userId, OutdatedReasonUploadCompleted)
 		Expect(err).ToNot(HaveOccurred())
 
 		cgmSummaryNew, err = cgmSummarizer.UpdateSummary(ctx, userId)
@@ -514,7 +453,6 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Dates.LastUpdatedDate.IsZero()).To(BeFalse())
 		Expect(bgmSummary.Dates.FirstData.IsZero()).To(BeFalse())
 		Expect(bgmSummary.Dates.LastData.IsZero()).To(BeFalse())
-		Expect(bgmSummary.Dates.OutdatedSince).To(BeNil())
 	})
 
 	It("cgm summary calc with the same data range twice, with new modifiedTime", func() {
