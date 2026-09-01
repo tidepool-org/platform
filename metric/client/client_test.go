@@ -8,6 +8,8 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/ghttp"
 
+	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	logNull "github.com/tidepool-org/platform/log/null"
 	"github.com/tidepool-org/platform/metric"
@@ -209,6 +211,62 @@ var _ = Describe("Client", func() {
 				})
 			})
 
+			Context("as service with service secret", func() {
+				var serverSessionToken string
+
+				BeforeEach(func() {
+					serverSessionToken = test.RandomStringFromRangeAndCharset(64, 64, test.CharsetAlphaNumeric)
+					ctx = log.NewContextWithLogger(ctx, logNull.NewLogger())
+					ctx = request.NewContextWithAuthDetails(ctx, request.NewAuthDetails(request.MethodServiceSecret, "", ""))
+				})
+
+				Context("with a server session token provider", func() {
+					BeforeEach(func() {
+						ctx = auth.NewContextWithServerSessionTokenProvider(ctx, &testServerSessionTokenProvider{token: serverSessionToken})
+					})
+
+					Context("with a successful response", func() {
+						BeforeEach(func() {
+							server.AppendHandlers(
+								CombineHandlers(
+									VerifyRequest("GET", "/metrics/server/"+name+"/"+metric, "left=handed&right=correct&sourceVersion=1.2.3"),
+									VerifyHeaderKV("User-Agent", userAgent),
+									VerifyHeaderKV("X-Tidepool-Session-Token", serverSessionToken),
+									VerifyBody(nil),
+									RespondWith(http.StatusOK, nil)),
+							)
+						})
+
+						It("records the metric using the server session token", func() {
+							err := clnt.RecordMetric(ctx, metric, data)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(server.ReceivedRequests()).To(HaveLen(1))
+						})
+					})
+				})
+
+				Context("with a server session token provider that returns an error", func() {
+					BeforeEach(func() {
+						ctx = auth.NewContextWithServerSessionTokenProvider(ctx, &testServerSessionTokenProvider{err: errors.New("session token unavailable")})
+					})
+
+					It("returns an error", func() {
+						err := clnt.RecordMetric(ctx, metric, data)
+						Expect(err).To(MatchError("unable to get server session token; session token unavailable"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+				})
+
+				Context("without a server session token provider", func() {
+					It("returns an error", func() {
+						err := clnt.RecordMetric(ctx, metric, data)
+						Expect(err).To(HaveOccurred())
+						Expect(err.Error()).To(MatchRegexp("unable to mutate request to .*; session token is missing"))
+						Expect(server.ReceivedRequests()).To(BeEmpty())
+					})
+				})
+			})
+
 			Context("as server", func() {
 				var token string
 
@@ -297,3 +355,12 @@ var _ = Describe("Client", func() {
 		})
 	})
 })
+
+type testServerSessionTokenProvider struct {
+	token string
+	err   error
+}
+
+func (t *testServerSessionTokenProvider) ServerSessionToken() (string, error) {
+	return t.token, t.err
+}
