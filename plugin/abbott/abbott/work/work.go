@@ -13,8 +13,6 @@ type DataSetClient any
 
 type DataSourceClient any
 
-type SummaryClient any
-
 type ProviderSessionClient any
 
 type AbbottClient any
@@ -27,7 +25,6 @@ type ProcessorDependencies struct {
 	DataRawClient           DataRawClient
 	DataSetClient           DataSetClient
 	DataSourceClient        DataSourceClient
-	SummaryClient           SummaryClient
 	ProviderSessionClient   ProviderSessionClient
 	AbbottClient            AbbottClient
 }
