@@ -225,18 +225,18 @@ func (c *MockProviderCookieDisabledCall) DoAndReturn(f func() bool) *MockProvide
 }
 
 // ExchangeAuthorizationCodeForToken mocks base method.
-func (m *MockProvider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error) {
+func (m *MockProvider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode, state string) (*auth.OAuthToken, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ExchangeAuthorizationCodeForToken", ctx, authorizationCode)
+	ret := m.ctrl.Call(m, "ExchangeAuthorizationCodeForToken", ctx, authorizationCode, state)
 	ret0, _ := ret[0].(*auth.OAuthToken)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ExchangeAuthorizationCodeForToken indicates an expected call of ExchangeAuthorizationCodeForToken.
-func (mr *MockProviderMockRecorder) ExchangeAuthorizationCodeForToken(ctx, authorizationCode any) *MockProviderExchangeAuthorizationCodeForTokenCall {
+func (mr *MockProviderMockRecorder) ExchangeAuthorizationCodeForToken(ctx, authorizationCode, state any) *MockProviderExchangeAuthorizationCodeForTokenCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeAuthorizationCodeForToken", reflect.TypeOf((*MockProvider)(nil).ExchangeAuthorizationCodeForToken), ctx, authorizationCode)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExchangeAuthorizationCodeForToken", reflect.TypeOf((*MockProvider)(nil).ExchangeAuthorizationCodeForToken), ctx, authorizationCode, state)
 	return &MockProviderExchangeAuthorizationCodeForTokenCall{Call: call}
 }
 
@@ -252,13 +252,13 @@ func (c *MockProviderExchangeAuthorizationCodeForTokenCall) Return(arg0 *auth.OA
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockProviderExchangeAuthorizationCodeForTokenCall) Do(f func(context.Context, string) (*auth.OAuthToken, error)) *MockProviderExchangeAuthorizationCodeForTokenCall {
+func (c *MockProviderExchangeAuthorizationCodeForTokenCall) Do(f func(context.Context, string, string) (*auth.OAuthToken, error)) *MockProviderExchangeAuthorizationCodeForTokenCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockProviderExchangeAuthorizationCodeForTokenCall) DoAndReturn(f func(context.Context, string) (*auth.OAuthToken, error)) *MockProviderExchangeAuthorizationCodeForTokenCall {
+func (c *MockProviderExchangeAuthorizationCodeForTokenCall) DoAndReturn(f func(context.Context, string, string) (*auth.OAuthToken, error)) *MockProviderExchangeAuthorizationCodeForTokenCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -196,7 +196,7 @@ func (r *Router) OAuthProviderRedirectGet(res rest.ResponseWriter, req *rest.Req
 		return
 	}
 
-	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"))
+	oauthToken, err := prvdr.ExchangeAuthorizationCodeForToken(ctx, query.Get("code"), query.Get("state"))
 	if err != nil {
 		r.htmlOnError(res, req, err)
 		return
