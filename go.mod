@@ -32,6 +32,7 @@ require (
 	github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55
 	github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093
 	github.com/tidepool-org/platform-plugin-abbott v0.0.0
+	github.com/tidepool-org/platform-plugin-tandem v0.0.0
 	github.com/urfave/cli v1.22.16
 	go.mongodb.org/mongo-driver v1.17.3
 	go.uber.org/fx v1.23.0
@@ -135,3 +136,5 @@ require (
 )
 
 replace github.com/tidepool-org/platform-plugin-abbott => ./plugin/abbott
+
+replace github.com/tidepool-org/platform-plugin-tandem => ./plugin/tandem
