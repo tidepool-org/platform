@@ -194,6 +194,9 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 					Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
 				})
 
+				// The outdated mark no longer divides the work of two runners between them: a summary
+				// that is both outdated and calculated with an outdated schema is reported by both
+				// sweepers, and the work each creates is absorbed into a single calculation
 				It("With migratable and outdated CGM summaries", func() {
 					var outdatedTime = time.Now().UTC().Truncate(time.Millisecond)
 					var continuousSummaries = []*types.Summary[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket]{
@@ -214,7 +217,7 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 
 					userIds, err = continuousStore.GetMigratableUserIDs(ctx, page.NewPagination())
 					Expect(err).ToNot(HaveOccurred())
-					Expect(userIds).To(ConsistOf([]string{userId, userIdTwo}))
+					Expect(userIds).To(ConsistOf([]string{userId, userIdOther, userIdTwo}))
 				})
 
 				It("With a specific pagination size", func() {

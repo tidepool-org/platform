@@ -139,19 +139,29 @@ func (p *Poll) Validate(validator structure.Validator) {
 	p.TypeQuantities.Validate(validator.WithReference("typeQuantities"))
 }
 
+// QueueSize is the number of work items of one type in one state
+type QueueSize struct {
+	Type  string `json:"type" bson:"type"`
+	State string `json:"state" bson:"state"`
+	Count int    `json:"count" bson:"count"`
+}
+
 type Filter struct {
 	Types   *[]string `json:"types,omitempty"`
+	State   *string   `json:"state,omitempty"`
 	GroupID *string   `json:"groupId,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.Types = parser.StringArray("types")
 	f.GroupID = parser.String("groupId")
+	f.State = parser.String("state")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
-	validator.StringArray("type", f.Types).NotEmpty().EachUsing(net.ReverseDomainValidator).EachUnique()
+	validator.StringArray("types", f.Types).NotEmpty().EachUsing(net.ReverseDomainValidator).EachUnique()
 	validator.String("groupId", f.GroupID).NotEmpty().LengthLessThanOrEqualTo(GroupIDLengthMaximum)
+	validator.String("state", f.State).OneOf(States()...)
 }
 
 type Create struct {

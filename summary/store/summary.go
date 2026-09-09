@@ -307,7 +307,6 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 
 	selector := bson.M{
 		"type":                 types.GetType[PP, PB](),
-		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
@@ -316,7 +315,7 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 		{Key: "dates.lastUpdatedDate", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
-	opts.SetProjection(bson.M{"stats": 0})
+	opts.SetProjection(bson.M{"userId": 1})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {

@@ -35,7 +35,7 @@ var _ = Describe("Runner", func() {
 
 	Describe("Run", func() {
 		var tsk task.Task
-		var clinic api.Clinic
+		var clinic api.ClinicV1
 
 		BeforeEach(func() {
 			clinic = clinicsTest.NewRandomClinic()

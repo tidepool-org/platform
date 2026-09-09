@@ -67,7 +67,71 @@ func (s *Store) EnsureIndexes() error {
 			Options: mongoOptions.Index().
 				SetName("ModifiedBatchId"),
 		},
+		{
+			Keys: bson.D{{Key: "processingTimeoutTime", Value: 1}},
+			Options: mongoOptions.Index().
+				SetName("ProcessingTimeoutTime").
+				SetPartialFilterExpression(bson.D{{Key: "state", Value: work.StateProcessing}}),
+		},
 	})
+}
+
+// ReapExpiredProcessing transitions work that exceeded its processing timeout back to failing so
+// that it is retried. A process terminated while processing work never reports its completion,
+// which otherwise leaves that work in state processing indefinitely and, if it has a serial id,
+// permanently prevents any other work sharing that serial id from being polled.
+//
+// The grace duration allows for clock skew between this process and the database, and for a worker
+// that has only just exceeded its processing timeout to report its own completion. Revision is
+// incremented so that any subsequent completion reported by the original worker, which is
+// conditional upon the revision, no longer matches.
+func (s *Store) ReapExpiredProcessing(ctx context.Context, graceDuration time.Duration) (int, error) {
+	if ctx == nil {
+		return 0, errors.New("context is missing")
+	}
+	if graceDuration < 0 {
+		return 0, errors.New("grace duration is invalid")
+	}
+
+	lgr := log.LoggerFromContext(ctx)
+
+	now := time.Now()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("ReapExpiredProcessing") }()
+
+	query := bson.M{
+		"state":                 work.StateProcessing,
+		"processingTimeoutTime": bson.M{"$lte": now.Add(-graceDuration)},
+	}
+	update := bson.A{
+		bson.M{"$set": bson.M{
+			"state":       work.StateFailing,
+			"failingTime": now,
+			// Literal as the serialized error must be stored verbatim rather than evaluated as an expression
+			"failingError":      bson.M{"$literal": errors.NewSerializable(errors.New("processing timeout expired"))},
+			"failingRetryCount": bson.M{"$add": bson.A{bson.M{"$ifNull": bson.A{"$failingRetryCount", 0}}, 1}},
+			// Retry immediately as the work never had the opportunity to report its completion
+			"failingRetryTime": now,
+			"processingDuration": bson.M{"$cond": bson.M{
+				"if":   bson.M{"$ifNull": bson.A{"$processingTime", false}},
+				"then": bson.M{"$divide": bson.A{bson.M{"$subtract": bson.A{now, "$processingTime"}}, 1000}},
+				"else": "$$REMOVE",
+			}},
+			"modifiedTime": now,
+			"revision":     bson.M{"$add": bson.A{"$revision", 1}},
+		}},
+		bson.M{"$unset": bson.A{"processingTimeoutTime"}},
+	}
+
+	// From this point forward, the context should not be cancelable
+	ctx = context.WithoutCancel(ctx)
+
+	updateResult, err := s.UpdateMany(ctx, query, update)
+	lgr = lgr.WithError(err)
+	if err != nil {
+		return 0, errors.Wrap(err, "unable to reap expired processing work")
+	}
+
+	return int(updateResult.ModifiedCount), nil
 }
 
 func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error) {
@@ -102,18 +166,26 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		bson.M{"state": "failing", "serialId": bson.M{"$exists": true}},
 	}}})
 
-	// Sort by processing priority and available time
-	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}}})
+	// Sort by processing priority and available time, with _id as a tie breaker
+	// The _id tie breaker guarantees a total order so that, within a serial id group, the
+	// document claimed first is deterministic
+	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}, bson.E{Key: "_id", Value: 1}}})
 
 	// Group all documents by serial id
 	pipeline = append(pipeline, bson.M{"$group": bson.M{"_id": "$serialId", "documents": bson.M{"$push": "$$ROOT"}}})
 
-	// Match any without a serial id or any serial id that does not have one in state processing or failing with retry time in future
+	// Match documents without a serial id, and serial id groups with no member processing or
+	// failing with a future retry time ($elemMatch binds both failing conditions to the same
+	// member). The whole group is checked, not just its head, because the sort is by priority
+	// first: a lower-priority processing or failing member can sort behind an eligible sibling,
+	// and a head-only check would dispatch that sibling — running two members of a serial group
+	// at once or retrying out of order. Blocking the group whenever such a member exists is
+	// slightly conservative, but keeps the serial guarantees unconditional.
 	pipeline = append(pipeline, bson.M{"$match": bson.M{"$or": bson.A{
 		bson.M{"_id": bson.M{"$exists": false}},
 		bson.M{"$nor": bson.A{
-			bson.M{"documents.0.state": "processing"},
-			bson.M{"documents.0.state": "failing", "documents.0.failingRetryTime": bson.M{"$gt": now}},
+			bson.M{"documents": bson.M{"$elemMatch": bson.M{"state": "processing"}}},
+			bson.M{"documents": bson.M{"$elemMatch": bson.M{"state": "failing", "failingRetryTime": bson.M{"$gt": now}}}},
 		}},
 	}}})
 
@@ -128,8 +200,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	pipeline = append(pipeline, bson.M{"$unwind": "$documents"})
 	pipeline = append(pipeline, bson.M{"$replaceRoot": bson.M{"newRoot": "$documents"}})
 
-	// Sort by processing priority and available time
-	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}}})
+	// Sort by processing priority and available time, with _id as a tie breaker
+	pipeline = append(pipeline, bson.M{"$sort": bson.D{bson.E{Key: "processingPriority", Value: -1}, bson.E{Key: "processingAvailableTime", Value: 1}, bson.E{Key: "_id", Value: 1}}})
 
 	// If one type, then just simple limit
 	// Otherwise, group by type, limit each group by type quantity, and ungroup
@@ -267,6 +339,9 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 	if filter.GroupID != nil {
 		query["groupId"] = *filter.GroupID
 	}
+	if filter.State != nil {
+		query["state"] = *filter.State
+	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
 		SetSort(bson.M{"createdTime": 1})
@@ -281,6 +356,32 @@ func (s *Store) List(ctx context.Context, filter *work.Filter, pagination *page.
 
 	lgr = lgr.WithField("count", len(documents))
 	return documents.AsWork(), nil
+}
+
+func (s *Store) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+
+	// The sort seeds the planner with the TypeState index, which covers the rest of the pipeline,
+	// so the aggregation reads only the index and never fetches a document
+	pipeline := []bson.M{
+		{"$sort": bson.M{"type": 1, "state": 1}},
+		{"$group": bson.M{"_id": bson.M{"type": "$type", "state": "$state"}, "count": bson.M{"$sum": 1}}},
+		{"$project": bson.M{"_id": 0, "type": "$_id.type", "state": "$_id.state", "count": 1}},
+	}
+	cursor, err := s.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to aggregate work by type and state")
+	}
+	defer cursor.Close(ctx)
+
+	var queueSizes []work.QueueSize
+	if err = cursor.All(ctx, &queueSizes); err != nil {
+		return nil, errors.Wrap(err, "unable to get all work counts")
+	}
+
+	return queueSizes, nil
 }
 
 func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, error) {

@@ -3,11 +3,9 @@ package v1
 import (
 	"net/http"
 
-	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/types"
-
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
+	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/pointer"
@@ -93,13 +91,9 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			return
 		}
 
-		// create map of all types, this will create redundant summaries, but will be cleaned up upon processing
-		updatesSummary := make(map[string]struct{})
-		for _, typ := range types.AllSummaryTypes {
-			updatesSummary[typ] = struct{}{}
+		if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, dataWorkPostprocess.ReasonUploadCompleted); err != nil {
+			lgr.WithError(err).Error("Unable to report upload completed")
 		}
-
-		summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, types.OutdatedReasonUploadCompleted)
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_update"); err != nil {

@@ -20,11 +20,6 @@ import (
 
 //go:generate mockgen -source=summary.go -destination=test/summary_mocks.go -package=test -typed
 
-type Client interface {
-	CheckDataUpdatesSummary(datumArray data.Data, updatesSummary map[string]struct{})
-	MaybeUpdateSummary(ctx context.Context, userID string, reason string, updatesSummary map[string]struct{})
-}
-
 type SummarizerRegistry struct {
 	summarizers map[string]any
 }
@@ -291,56 +286,6 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, us
 	}
 
 	return nil
-}
-
-func MaybeUpdateSummary(ctx context.Context, registry *SummarizerRegistry, updatesSummary map[string]struct{}, userId, reason string) map[string]*time.Time {
-	outdatedSinceMap := make(map[string]*time.Time)
-	lgr := log.LoggerFromContext(ctx)
-
-	if _, ok := updatesSummary[types.SummaryTypeCGM]; ok {
-		summarizer := GetSummarizer[*types.CGMPeriods, *types.GlucoseBucket](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set cgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeCGM] = outdatedSince
-	}
-
-	if _, ok := updatesSummary[types.SummaryTypeBGM]; ok {
-		summarizer := GetSummarizer[*types.BGMPeriods, *types.GlucoseBucket](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set bgm summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeBGM] = outdatedSince
-	}
-
-	if _, ok := updatesSummary[types.SummaryTypeContinuous]; ok {
-		summarizer := GetSummarizer[*types.ContinuousPeriods, *types.ContinuousBucket](registry)
-		outdatedSince, err := summarizer.SetOutdated(ctx, userId, reason)
-		if err != nil {
-			lgr.WithError(err).Error("Unable to set continuous summary outdated")
-		}
-		outdatedSinceMap[types.SummaryTypeContinuous] = outdatedSince
-	}
-
-	return outdatedSinceMap
-}
-
-func CheckDatumUpdatesSummary(updatesSummary map[string]struct{}, datum data.Datum) {
-	twoYearsPast := time.Now().UTC().AddDate(0, -24, 0)
-	oneDayFuture := time.Now().UTC().AddDate(0, 0, 1)
-
-	// we only update summaries if the data is both of a relevant type, and being uploaded as "active"
-	// it also must be recent enough, within the past 2 years, and no more than 1d into the future
-	if datum.IsActive() {
-		typ := datum.GetType()
-		if types.DeviceDataTypesSet.Contains(typ) && datum.GetTime().Before(oneDayFuture) && datum.GetTime().After(twoYearsPast) {
-			for _, summaryType := range types.DeviceDataToSummaryTypes[typ] {
-				updatesSummary[summaryType] = struct{}{}
-			}
-		}
-	}
 }
 
 func NewContinuousSummarizer(collection *storeStructuredMongo.Repository, bucketsCollection *storeStructuredMongo.Repository, dataFetcher fetcher.DeviceDataFetcher, mongoClient *mongo.Client) Summarizer[*types.ContinuousPeriods, *types.ContinuousBucket, types.ContinuousPeriods, types.ContinuousBucket] {
