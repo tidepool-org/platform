@@ -2,6 +2,9 @@ package provider
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"fmt"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -125,6 +128,10 @@ func (p *Provider) CookieDisabled() bool {
 	return p.config.CookieDisabled
 }
 
+func (p *Provider) PKCEEnabled() bool {
+	return p.config.PKCEEnabled
+}
+
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
 	if !p.CookieDisabled() {
 		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
@@ -133,12 +140,29 @@ func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) stri
 	}
 }
 
-func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
-	return p.oauth2Config.AuthCodeURL(state)
+// The PKCE code verifier is derived from the state rather than stored, so nothing has to be persisted
+// between the authorize and redirect requests. The state is unique per authorization attempt and the
+// salt is secret, so a party that intercepts the authorization code cannot reproduce the verifier.
+func (p *Provider) CodeVerifierForState(state string) string {
+	mac := hmac.New(sha256.New, []byte(*p.config.StateSalt))
+	mac.Write([]byte(fmt.Sprintf("pkce:%s:%s:%s", p.Type(), p.Name(), state)))
+	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error) {
-	token, err := p.oauth2Config.Exchange(ctx, authorizationCode)
+func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
+	var opts []oauth2.AuthCodeOption
+	if p.config.PKCEEnabled {
+		opts = append(opts, oauth2.S256ChallengeOption(p.CodeVerifierForState(state)))
+	}
+	return p.oauth2Config.AuthCodeURL(state, opts...)
+}
+
+func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string, state string) (*auth.OAuthToken, error) {
+	var opts []oauth2.AuthCodeOption
+	if p.config.PKCEEnabled {
+		opts = append(opts, oauth2.VerifierOption(p.CodeVerifierForState(state)))
+	}
+	token, err := p.oauth2Config.Exchange(ctx, authorizationCode, opts...)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to exchange authorization code for token")
 	}

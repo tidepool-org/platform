@@ -85,7 +85,7 @@ endif
 endif
 endif
 
-PLUGINS=abbott
+PLUGINS=abbott tandem
 
 ifeq ($(shell go env GOWORK),)
 	PLUGIN_VISIBILITY:=public
@@ -142,7 +142,7 @@ plugin-visibility:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go`."
+		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go $(PLUGIN)`."
 endif
 
 plugins-visibility-public:
