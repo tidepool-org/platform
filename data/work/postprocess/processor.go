@@ -217,7 +217,7 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 	log.LoggerFromContext(p.Context()).WithFields(log.Fields{
 		"updated": workMetadata.PendingSummaryUpdates,
 		"deleted": workMetadata.PendingSummaryDeletes,
-	}).Info("synced user summaries with the clinic service")
+	}).Debug("synced user summaries with the clinic service")
 
 	return nil
 }
