@@ -26,9 +26,7 @@ func SummaryRoutes() []dataService.Route {
 		dataService.Get("/v1/summaries/bgm/:userId", GetSummary[*types.BGMPeriods, *types.GlucoseBucket], api.RequireAuth),
 		dataService.Get("/v1/summaries/con/:userId", GetSummary[*types.ContinuousPeriods, *types.ContinuousBucket], api.RequireAuth),
 
-		dataService.Post("/v1/summaries/cgm/:userId", UpdateSummary, api.RequireAuth),
-		dataService.Post("/v1/summaries/bgm/:userId", UpdateSummary, api.RequireAuth),
-		dataService.Post("/v1/summaries/con/:userId", UpdateSummary, api.RequireAuth),
+		dataService.Post("/v1/summaries/:userId", UpdateSummaries, api.RequireAuth),
 
 		dataService.Get("/v1/clinics/:clinicId/reports/realtime", GetPatientsWithRealtimeData, api.RequireAuth),
 	}
@@ -122,9 +120,9 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	responder.Data(http.StatusOK, response)
 }
 
-// UpdateSummary reports the data of the user as changed rather than recalculating synchronously,
+// UpdateSummaries reports the data of the user as changed rather than recalculating synchronously,
 // which the retired task runners required. The work created recalculates every summary of the user.
-func UpdateSummary(dataServiceContext dataService.Context) {
+func UpdateSummaries(dataServiceContext dataService.Context) {
 	ctx := dataServiceContext.Request().Context()
 	res := dataServiceContext.Response()
 	req := dataServiceContext.Request()
