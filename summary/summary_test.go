@@ -338,6 +338,34 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(cgmSummaryNew).To(BeComparableTo(cgmSummary, cmpOpts))
 	})
 
+	It("summary calc recreating a summary with an outdated schema reports the stored id", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		// the first update creates the summary and reports the id it was stored with
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.ID.IsZero()).To(BeFalse())
+
+		bgmSummaryStored, err := bgmSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummaryStored.ID).To(Equal(bgmSummary.ID))
+
+		// a summary calculated with an outdated schema is recreated in place of the stored one
+		bgmSummaryStored.Config.SchemaVersion = SchemaVersion - 1
+		Expect(bgmStore.ReplaceSummary(ctx, bgmSummaryStored)).To(Succeed())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.Config.SchemaVersion).To(Equal(SchemaVersion))
+		Expect(bgmSummary.ID).To(Equal(bgmSummaryStored.ID))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+	})
+
 	It("summary calc with realtime data", func() {
 		realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
 
