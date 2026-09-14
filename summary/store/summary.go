@@ -9,6 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -131,15 +132,23 @@ func (r *Summaries[PP, PB, P, B]) ReplaceSummary(ctx context.Context, userSummar
 		return errors.New("summary is missing UserID")
 	}
 
-	opts := options.Replace().SetUpsert(true)
+	opts := options.FindOneAndReplace().SetUpsert(true).SetReturnDocument(options.After).SetProjection(bson.M{"_id": 1})
 	selector := bson.M{
 		"userId": userSummary.UserID,
 		"type":   userSummary.Type,
 	}
 
-	_, err := r.ReplaceOne(ctx, selector, userSummary, opts)
+	// A summary created in memory has no id until it is stored, so the id is read back from the
+	// stored document rather than left zero
+	var stored struct {
+		ID primitive.ObjectID `bson:"_id"`
+	}
+	if err := r.FindOneAndReplace(ctx, selector, userSummary, opts).Decode(&stored); err != nil {
+		return fmt.Errorf("unable to replace summary: %w", err)
+	}
+	userSummary.ID = stored.ID
 
-	return err
+	return nil
 }
 
 func (r *Summaries[PP, PB, P, B]) CreateSummaries(ctx context.Context, summaries []*types.Summary[PP, PB, P, B]) (int, error) {
@@ -307,7 +316,6 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 
 	selector := bson.M{
 		"type":                 types.GetType[PP, PB](),
-		"dates.outdatedSince":  nil,
 		"config.schemaVersion": bson.M{"$ne": types.SchemaVersion},
 	}
 
@@ -316,7 +324,7 @@ func (r *Summaries[PP, PB, P, B]) GetMigratableUserIDs(ctx context.Context, page
 		{Key: "dates.lastUpdatedDate", Value: 1},
 	})
 	opts.SetLimit(int64(page.Size))
-	opts.SetProjection(bson.M{"stats": 0})
+	opts.SetProjection(bson.M{"userId": 1})
 
 	cursor, err := r.Find(ctx, selector, opts)
 	if errors.Is(err, mongo.ErrNoDocuments) {

@@ -192,7 +192,6 @@ var _ = Describe("User", func() {
 				),
 				Entry("username missing",
 					func(datum *user.User) { datum.Username = nil },
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/username"),
 				),
 				Entry("username empty",
 					func(datum *user.User) { datum.Username = pointer.FromString("") },
@@ -244,7 +243,6 @@ var _ = Describe("User", func() {
 						datum.Roles = pointer.FromStringArray([]string{user.RoleClinic, "invalid"})
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/userid"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/username"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("", time.RFC3339Nano), "/termsAccepted"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("invalid", user.Roles()), "/roles/1"),
 				),

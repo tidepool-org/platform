@@ -99,8 +99,8 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 				userBGMSummaryWritten, err := bgmStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// copy id, as that was mongo generated
-				userBGMSummary.ID = userBGMSummaryWritten.ID
+				// the id generated on insert is reported on the summary written
+				Expect(userBGMSummary.ID.IsZero()).To(BeFalse())
 				Expect(userBGMSummaryWritten).To(Equal(userBGMSummary))
 			})
 
@@ -120,8 +120,8 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 				userBGMSummaryWritten, err = bgmStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// copy id, as that was mongo generated
-				userBGMSummary.ID = userBGMSummaryWritten.ID
+				// the id generated on insert is reported on the summary written
+				Expect(userBGMSummary.ID.IsZero()).To(BeFalse())
 				Expect(userBGMSummaryWritten).To(Equal(userBGMSummary))
 
 				// generate a new summary with same type and user, and upsert
@@ -132,11 +132,11 @@ var _ = Describe("BGM", Label("mongodb", "slow", "integration"), func() {
 				userBGMSummaryWrittenTwo, err = bgmStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// confirm the ID was unchanged
+				// confirm the ID was unchanged and reported on the replacement summary
 				Expect(userBGMSummaryWrittenTwo.ID).To(Equal(userBGMSummaryWritten.ID))
+				Expect(userBGMSummaryTwo.ID).To(Equal(userBGMSummaryWritten.ID))
 
 				// confirm the written summary matches the new summary
-				userBGMSummaryTwo.ID = userBGMSummaryWritten.ID
 				Expect(userBGMSummaryWrittenTwo).To(Equal(userBGMSummaryTwo))
 			})
 		})

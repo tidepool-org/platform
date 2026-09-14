@@ -99,6 +99,12 @@ type mockDataServiceContext struct {
 
 	// DataSetTester tests the resulting data set.
 	DataSetTester func(testingT, *data.DataSet)
+
+	// RestRequest, RestResponse and TestWorkClient, when set, are returned by
+	// Request, Response and WorkClient in place of the defaults.
+	RestRequest    *rest.Request
+	RestResponse   rest.ResponseWriter
+	TestWorkClient work.Client
 }
 
 func newMockDataServiceContext(t testingT) *mockDataServiceContext {
@@ -119,10 +125,16 @@ func newMockDataServiceContext(t testingT) *mockDataServiceContext {
 }
 
 func (c *mockDataServiceContext) Response() rest.ResponseWriter {
+	if c.RestResponse != nil {
+		return c.RestResponse
+	}
 	panic("not implemented") // TODO: Implement
 }
 
 func (c *mockDataServiceContext) Request() *rest.Request {
+	if c.RestRequest != nil {
+		return c.RestRequest
+	}
 	r, err := http.NewRequest(http.MethodGet, "", nil)
 	if err != nil {
 		c.t.Fatalf("creating test request: %s", err)
@@ -235,6 +247,9 @@ func (c *mockDataServiceContext) DataSourceClient() dataSource.Client {
 }
 
 func (c *mockDataServiceContext) WorkClient() work.Client {
+	if c.TestWorkClient != nil {
+		return c.TestWorkClient
+	}
 	panic("not implemented")
 }
 

@@ -27,7 +27,7 @@ require (
 	github.com/prometheus/client_model v0.6.1
 	github.com/rinchsan/device-check-go v1.3.0
 	github.com/solworktech/md2pdf/v2 v2.2.18
-	github.com/tidepool-org/clinic/client v0.0.0-20250122123230-f89e2b1540dc
+	github.com/tidepool-org/clinic/client v0.0.0-20260910143847-9e33e90c739e
 	github.com/tidepool-org/devices/api v0.0.0-20241122210913-d66c72510ddb
 	github.com/tidepool-org/go-common v0.12.3-0.20250812104912-8c5789d87f55
 	github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093
@@ -75,7 +75,6 @@ require (
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-task/slim-sprig/v3 v3.0.0 // indirect
 	github.com/goccy/go-json v0.10.3 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/snappy v1.0.0 // indirect
 	github.com/gomarkdown/markdown v0.0.0-20250311123330-531bef5e742b // indirect
 	github.com/google/pprof v0.0.0-20250403155104-27863c87afa6 // indirect

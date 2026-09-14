@@ -47,7 +47,7 @@ func (m *Metadata) Validate(validator structure.Validator) {
 type Processor struct {
 	*workBase.Processor[Metadata]
 	Dependencies
-	patient *clinicClient.Patient
+	patient *clinicClient.PatientV1
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {

@@ -12,6 +12,7 @@ package test
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	gomock "go.uber.org/mock/gomock"
 
@@ -274,6 +275,84 @@ func (c *MockStorePollCall) Do(f func(context.Context, *work.Poll) ([]*work.Work
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockStorePollCall) DoAndReturn(f func(context.Context, *work.Poll) ([]*work.Work, error)) *MockStorePollCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// QueueSizes mocks base method.
+func (m *MockStore) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "QueueSizes", ctx)
+	ret0, _ := ret[0].([]work.QueueSize)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// QueueSizes indicates an expected call of QueueSizes.
+func (mr *MockStoreMockRecorder) QueueSizes(ctx any) *MockStoreQueueSizesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "QueueSizes", reflect.TypeOf((*MockStore)(nil).QueueSizes), ctx)
+	return &MockStoreQueueSizesCall{Call: call}
+}
+
+// MockStoreQueueSizesCall wrap *gomock.Call
+type MockStoreQueueSizesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStoreQueueSizesCall) Return(arg0 []work.QueueSize, arg1 error) *MockStoreQueueSizesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStoreQueueSizesCall) Do(f func(context.Context) ([]work.QueueSize, error)) *MockStoreQueueSizesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStoreQueueSizesCall) DoAndReturn(f func(context.Context) ([]work.QueueSize, error)) *MockStoreQueueSizesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ReapExpiredProcessing mocks base method.
+func (m *MockStore) ReapExpiredProcessing(ctx context.Context, graceDuration time.Duration) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReapExpiredProcessing", ctx, graceDuration)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReapExpiredProcessing indicates an expected call of ReapExpiredProcessing.
+func (mr *MockStoreMockRecorder) ReapExpiredProcessing(ctx, graceDuration any) *MockStoreReapExpiredProcessingCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReapExpiredProcessing", reflect.TypeOf((*MockStore)(nil).ReapExpiredProcessing), ctx, graceDuration)
+	return &MockStoreReapExpiredProcessingCall{Call: call}
+}
+
+// MockStoreReapExpiredProcessingCall wrap *gomock.Call
+type MockStoreReapExpiredProcessingCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockStoreReapExpiredProcessingCall) Return(arg0 int, arg1 error) *MockStoreReapExpiredProcessingCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockStoreReapExpiredProcessingCall) Do(f func(context.Context, time.Duration) (int, error)) *MockStoreReapExpiredProcessingCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockStoreReapExpiredProcessingCall) DoAndReturn(f func(context.Context, time.Duration) (int, error)) *MockStoreReapExpiredProcessingCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
@@ -14,6 +15,8 @@ import (
 
 type Store interface {
 	Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
+	ReapExpiredProcessing(ctx context.Context, graceDuration time.Duration) (int, error)
+	QueueSizes(ctx context.Context) ([]work.QueueSize, error)
 	List(ctx context.Context, filter *work.Filter, pagination *page.Pagination) ([]*work.Work, error)
 	Create(ctx context.Context, create *work.Create) (*work.Work, error)
 	Get(ctx context.Context, id string, condition *storeStructured.Condition) (*work.Work, error)
@@ -37,6 +40,18 @@ func NewClient(store Store) (*Client, error) {
 
 func (c *Client) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error) {
 	return c.store.Poll(ctx, poll)
+}
+
+// ReapExpiredProcessing is intentionally absent from work.Client as it is coordinator
+// infrastructure rather than part of the interface offered to those that create work
+func (c *Client) ReapExpiredProcessing(ctx context.Context) (int, error) {
+	return c.store.ReapExpiredProcessing(ctx, ReapExpiredProcessingGraceDuration)
+}
+
+// QueueSizes is intentionally absent from work.Client as it is coordinator
+// infrastructure rather than part of the interface offered to those that create work
+func (c *Client) QueueSizes(ctx context.Context) ([]work.QueueSize, error) {
+	return c.store.QueueSizes(ctx)
 }
 
 func (c *Client) List(ctx context.Context, filter *work.Filter, pagination *page.Pagination) ([]*work.Work, error) {

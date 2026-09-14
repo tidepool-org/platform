@@ -32,6 +32,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/events"
 	"github.com/tidepool-org/platform/log"
@@ -60,7 +61,6 @@ import (
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/summary"
-	summaryClient "github.com/tidepool-org/platform/summary/client"
 	synctaskStoreMongo "github.com/tidepool-org/platform/synctask/store/mongo"
 	"github.com/tidepool-org/platform/twiist"
 	"github.com/tidepool-org/platform/user"
@@ -94,7 +94,7 @@ type Standard struct {
 	dataRawClient                  *dataRawService.Client
 	dataSourceClient               *dataSourceServiceClient.Client
 	mailerClient                   mailer.Client
-	summaryClient                  *summaryClient.Client
+	summarizerRegistry             *summary.SummarizerRegistry
 	workClient                     *workService.Client
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
@@ -161,7 +161,7 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserClient(); err != nil {
 		return err
 	}
-	if err := s.initializeSummaryClient(); err != nil {
+	if err := s.initializeSummarizerRegistry(); err != nil {
 		return err
 	}
 	if err := s.initializeConfirmationClient(); err != nil {
@@ -217,7 +217,6 @@ func (s *Standard) Terminate() {
 	s.ouraClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
-	s.summaryClient = nil
 	s.dataSourceClient = nil
 	s.dataRawClient = nil
 	s.dataClient = nil
@@ -617,23 +616,16 @@ func (s *Standard) initializeConfirmationClient() error {
 	return nil
 }
 
-func (s *Standard) initializeSummaryClient() error {
+func (s *Standard) initializeSummarizerRegistry() error {
 	s.Logger().Debug("Creating summarizer registry")
 
-	summarizerRegistry := summary.New(
-		s.dataStore.NewSummaryRepository().GetStore(),
+	summaryRepositoryStore := s.dataStore.NewSummaryRepository().GetStore()
+	s.summarizerRegistry = summary.New(
+		summaryRepositoryStore,
 		s.dataStore.NewBucketsRepository().GetStore(),
 		s.dataStore.NewDataRepository(),
 		s.dataStore.GetClient(),
 	)
-
-	s.Logger().Debug("Creating summary client")
-
-	clnt, err := summaryClient.New(summarizerRegistry)
-	if err != nil {
-		return errors.Wrap(err, "unable to create summary client")
-	}
-	s.summaryClient = clnt
 
 	return nil
 }
@@ -808,6 +800,24 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		processorFactories = append(processorFactories, processorFactory)
 	}
 
+	s.Logger().Debug("Creating data upload postprocess work processor factory")
+
+	summarizers, err := dataWorkPostprocess.NewSummarizers(s.summarizerRegistry)
+	if err != nil {
+		return errors.Wrap(err, "unable to create summarizers")
+	}
+
+	if processorFactory, err := dataWorkPostprocess.NewProcessorFactory(dataWorkPostprocess.Dependencies{
+		Dependencies:  dependencies,
+		Summarizers:   summarizers,
+		ClinicsClient: s.clinicsClient,
+		UserClient:    s.userClient,
+	}); err != nil {
+		return errors.Wrap(err, "unable to create data upload postprocess work processor factory")
+	} else {
+		processorFactories = append(processorFactories, processorFactory)
+	}
+
 	if s.abbottClient != nil {
 		s.Logger().Debug("Creating abbott processor factories")
 
@@ -816,7 +826,6 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 			DataSetClient:           s.dataClient,
 			DataSourceClient:        s.dataSourceClient,
-			SummaryClient:           s.summaryClient,
 			ProviderSessionClient:   s.AuthClient(),
 			DataRawClient:           s.dataRawClient,
 			AbbottClient:            s.abbottClient,

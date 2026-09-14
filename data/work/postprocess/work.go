@@ -1,0 +1,145 @@
+package postprocess
+
+import (
+	"fmt"
+	"slices"
+	"time"
+
+	mapset "github.com/deckarep/golang-set/v2"
+
+	"github.com/tidepool-org/platform/errors"
+	"github.com/tidepool-org/platform/structure"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
+	userWork "github.com/tidepool-org/platform/user/work"
+)
+
+const (
+	Type = "org.tidepool.data.upload.postprocess"
+
+	ProcessingTimeout = 5 * time.Minute
+)
+
+const (
+	ReasonDataAdded = "DATA_ADDED"
+
+	// ReasonUploadCompleted reports a data set was closed, or jellyfish uploaded a partial batch
+	ReasonUploadCompleted = "UPLOAD_COMPLETED"
+
+	// ReasonLegacyDataAdded reports jellyfish uploaded a full batch
+	ReasonLegacyDataAdded = "LEGACY_DATA_ADDED"
+
+	ReasonSchemaMigration = "SCHEMA_MIGRATION"
+)
+
+const (
+	MetadataKeyReasons               = "reasons"
+	MetadataKeyPendingSummaryUpdates = "pendingSummaryUpdates"
+	MetadataKeyPendingSummaryDeletes = "pendingSummaryDeletes"
+)
+
+func Reasons() []string {
+	return []string{
+		ReasonDataAdded,
+		ReasonUploadCompleted,
+		ReasonLegacyDataAdded,
+		ReasonSchemaMigration,
+	}
+}
+
+// Data added is intentionally absent to prevent continuous data uploads from constantly triggering syncs
+var ehrSyncReasons = mapset.NewSet(
+	ReasonUploadCompleted,
+	ReasonLegacyDataAdded,
+)
+
+func TriggersEHRSync(reasons []string) bool {
+	return ehrSyncReasons.ContainsAny(reasons...)
+}
+
+// Defer summary recalculation if jellyfish uploaded a full batch
+var deferrableReasons = mapset.NewSet(
+	ReasonLegacyDataAdded,
+)
+
+// shouldDefer reports whether reasons contains only deferrable reasons
+func shouldDefer(reasons []string) bool {
+	if len(reasons) == 0 {
+		return false
+	}
+	return mapset.NewSet(reasons...).IsSubset(deferrableReasons)
+}
+
+// IDFromUserID returns both the serial id, which prevents the work of a user being processed
+// concurrently, and the group id, which is the scope the work of a user is coalesced within. Both
+// are the user, and neither is the data set, so that changes to any number of data sets, interleaved
+// in any order, yield a single stream of work for the user.
+func IDFromUserID(userID string) string {
+	return fmt.Sprintf("%s:%s", Type, userID)
+}
+
+// validateIdentity reports an error if the serial or group ids of the metadata don't match the expected user id
+func validateIdentity(groupID *string, serialID *string, workMetadata *Metadata) error {
+	if workMetadata == nil || workMetadata.UserID == nil {
+		return errors.New("metadata user id is missing")
+	}
+	id := IDFromUserID(*workMetadata.UserID)
+	if groupID == nil || *groupID != id {
+		return errors.New("group id does not match metadata user id")
+	}
+	if serialID == nil || *serialID != id {
+		return errors.New("serial id does not match metadata user id")
+	}
+	return nil
+}
+
+type Metadata struct {
+	userWork.Metadata `bson:",inline"`
+	Reasons           []string `json:"reasons,omitempty" bson:"reasons,omitempty"`
+
+	// Summary changes already calculated by this work item but not yet reported to the clinic service.
+	PendingSummaryUpdates []string `json:"pendingSummaryUpdates,omitempty" bson:"pendingSummaryUpdates,omitempty"`
+	PendingSummaryDeletes []string `json:"pendingSummaryDeletes,omitempty" bson:"pendingSummaryDeletes,omitempty"`
+}
+
+func (m *Metadata) Parse(parser structure.ObjectParser) {
+	m.Metadata.Parse(parser)
+	if ptr := parser.StringArray(MetadataKeyReasons); ptr != nil {
+		m.Reasons = *ptr
+	}
+	if ptr := parser.StringArray(MetadataKeyPendingSummaryUpdates); ptr != nil {
+		m.PendingSummaryUpdates = *ptr
+	}
+	if ptr := parser.StringArray(MetadataKeyPendingSummaryDeletes); ptr != nil {
+		m.PendingSummaryDeletes = *ptr
+	}
+}
+
+func (m *Metadata) Validate(validator structure.Validator) {
+	m.Metadata.Validate(validator)
+	validator.StringArray(MetadataKeyReasons, &m.Reasons).NotEmpty().EachOneOf(Reasons()...).EachUnique()
+	validator.StringArray(MetadataKeyPendingSummaryUpdates, &m.PendingSummaryUpdates).EachOneOf(summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM).EachUnique()
+	validator.StringArray(MetadataKeyPendingSummaryDeletes, &m.PendingSummaryDeletes).EachNotEmpty().EachUnique()
+}
+
+// recordSummariesUpdate updates the pending/deleted summaries and return true if any changes were made
+// as part of this update cycle
+func (m *Metadata) recordSummariesUpdate(update SummariesUpdate) bool {
+	changed := false
+	for _, summaryType := range update.UpdatedTypes {
+		if !slices.Contains(m.PendingSummaryUpdates, summaryType) {
+			m.PendingSummaryUpdates = append(m.PendingSummaryUpdates, summaryType)
+			changed = true
+		}
+	}
+	for _, summaryID := range update.Deleted {
+		if !slices.Contains(m.PendingSummaryDeletes, summaryID) {
+			m.PendingSummaryDeletes = append(m.PendingSummaryDeletes, summaryID)
+			changed = true
+		}
+	}
+	if changed {
+		slices.Sort(m.PendingSummaryUpdates)
+		slices.Sort(m.PendingSummaryDeletes)
+	}
+	return changed
+}

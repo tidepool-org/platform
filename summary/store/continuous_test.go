@@ -100,8 +100,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 				userContinuousSummaryWritten, err := continuousStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// copy id, as that was mongo generated
-				userContinuousSummary.ID = userContinuousSummaryWritten.ID
+				// the id generated on insert is reported on the summary written
+				Expect(userContinuousSummary.ID.IsZero()).To(BeFalse())
 				Expect(userContinuousSummaryWritten).To(Equal(userContinuousSummary))
 			})
 
@@ -121,8 +121,8 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 				userContinuousSummaryWritten, err = continuousStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// copy id, as that was mongo generated
-				userContinuousSummary.ID = userContinuousSummaryWritten.ID
+				// the id generated on insert is reported on the summary written
+				Expect(userContinuousSummary.ID.IsZero()).To(BeFalse())
 				Expect(userContinuousSummaryWritten).To(Equal(userContinuousSummary))
 
 				// generate a new summary with same type and user, and upsert
@@ -133,11 +133,11 @@ var _ = Describe("Continuous", Label("mongodb", "slow", "integration"), func() {
 				userContinuousSummaryWrittenTwo, err = continuousStore.GetSummary(ctx, userId)
 				Expect(err).ToNot(HaveOccurred())
 
-				// confirm the ID was unchanged
+				// confirm the ID was unchanged and reported on the replacement summary
 				Expect(userContinuousSummaryWrittenTwo.ID).To(Equal(userContinuousSummaryWritten.ID))
+				Expect(userContinuousSummaryTwo.ID).To(Equal(userContinuousSummaryWritten.ID))
 
 				// confirm the written summary matches the new summary
-				userContinuousSummaryWrittenTwo.ID = userContinuousSummaryTwo.ID
 				opts := cmpopts.IgnoreUnexported(types.ContinuousPeriod{})
 				Expect(userContinuousSummaryWrittenTwo).To(BeComparableTo(userContinuousSummaryTwo, opts))
 			})
