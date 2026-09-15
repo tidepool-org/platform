@@ -702,6 +702,14 @@ func (s *Standard) initializeAbbottClient() error {
 }
 
 func (s *Standard) initializeTandemClient() error {
+	s.Logger().Debug("Loading tandem client config")
+
+	cfg := tandemClient.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("tandem", "client")); err != nil {
+		return errors.Wrap(err, "unable to load tandem client config")
+	}
+
 	s.Logger().Debug("Loading tandem provider")
 
 	tandemJWKS, err := oauthProvider.NewJWKS(s.ConfigReporter().WithScopes("provider", tandem.ProviderName))
@@ -710,22 +718,15 @@ func (s *Standard) initializeTandemClient() error {
 	}
 	tandemProviderDependencies := tandemProvider.ProviderDependencies{
 		ConfigReporter:        s.ConfigReporter().WithScopes("provider"),
+		ClientConfig:          cfg,
 		ProviderSessionClient: s.AuthClient(),
 		DataSourceClient:      s.dataSourceClient,
 		WorkClient:            s.workClient,
 		JWKS:                  tandemJWKS,
 	}
 	if prvdr, err := tandemProvider.New(tandemProviderDependencies); err != nil || prvdr == nil {
-		s.Logger().Warn("Unable to create tandem provider")
+		s.Logger().WithError(err).Warn("Unable to create tandem provider")
 	} else {
-		s.Logger().Debug("Loading tandem client config")
-
-		cfg := tandemClient.NewConfig()
-		cfg.UserAgent = s.UserAgent()
-		if err = cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("tandem", "client")); err != nil {
-			return errors.Wrap(err, "unable to load tandem client config")
-		}
-
 		s.Logger().Debug("Creating tandem client")
 
 		tandemClientDependencies := tandemClient.ClientDependencies{
