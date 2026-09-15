@@ -2,3 +2,7 @@
 	path = private/plugin/abbott
 	url = https://github.com/tidepool-org/platform-plugin-abbott
 	update = none
+[submodule "private/plugin/tandem"]
+	path = private/plugin/tandem
+	url = https://github.com/tidepool-org/platform-plugin-tandem
+	update = none
