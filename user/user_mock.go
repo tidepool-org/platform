@@ -122,21 +122,6 @@ func (mr *MockUserAccessorMockRecorder) FindLegacyUserProfile(ctx, userID any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindLegacyUserProfile", reflect.TypeOf((*MockUserAccessor)(nil).FindLegacyUserProfile), ctx, userID)
 }
 
-// FindUsersWithIds mocks base method.
-func (m *MockUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) ([]*User, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FindUsersWithIds", ctx, ids)
-	ret0, _ := ret[0].([]*User)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// FindUsersWithIds indicates an expected call of FindUsersWithIds.
-func (mr *MockUserAccessorMockRecorder) FindUsersWithIds(ctx, ids any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FindUsersWithIds", reflect.TypeOf((*MockUserAccessor)(nil).FindUsersWithIds), ctx, ids)
-}
-
 // Get mocks base method.
 func (m *MockUserAccessor) Get(ctx context.Context, id string) (*User, error) {
 	m.ctrl.T.Helper()

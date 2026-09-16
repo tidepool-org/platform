@@ -517,9 +517,33 @@ func (m *MockClient) HasCustodianPermissions(ctx context.Context, granteeUserID,
 }
 
 // HasCustodianPermissions indicates an expected call of HasCustodianPermissions.
-func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+func (mr *MockClientMockRecorder) HasCustodianPermissions(ctx, granteeUserID, grantorUserID any) *MockClientHasCustodianPermissionsCall {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasCustodianPermissions", reflect.TypeOf((*MockClient)(nil).HasCustodianPermissions), ctx, granteeUserID, grantorUserID)
+	return &MockClientHasCustodianPermissionsCall{Call: call}
+}
+
+// MockClientHasCustodianPermissionsCall wrap *gomock.Call
+type MockClientHasCustodianPermissionsCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientHasCustodianPermissionsCall) Return(has bool, err error) *MockClientHasCustodianPermissionsCall {
+	c.Call = c.Call.Return(has, err)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientHasCustodianPermissionsCall) Do(f func(context.Context, string, string) (bool, error)) *MockClientHasCustodianPermissionsCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientHasCustodianPermissionsCall) DoAndReturn(f func(context.Context, string, string) (bool, error)) *MockClientHasCustodianPermissionsCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // ListProviderSessions mocks base method.
@@ -610,9 +634,33 @@ func (m *MockClient) PermissionsGrantedByUser(ctx context.Context, sharerID stri
 }
 
 // PermissionsGrantedByUser indicates an expected call of PermissionsGrantedByUser.
-func (mr *MockClientMockRecorder) PermissionsGrantedByUser(ctx, sharerID any) *gomock.Call {
+func (mr *MockClientMockRecorder) PermissionsGrantedByUser(ctx, sharerID any) *MockClientPermissionsGrantedByUserCall {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedByUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedByUser), ctx, sharerID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedByUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedByUser), ctx, sharerID)
+	return &MockClientPermissionsGrantedByUserCall{Call: call}
+}
+
+// MockClientPermissionsGrantedByUserCall wrap *gomock.Call
+type MockClientPermissionsGrantedByUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientPermissionsGrantedByUserCall) Return(arg0 permission.Permissions, arg1 error) *MockClientPermissionsGrantedByUserCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientPermissionsGrantedByUserCall) Do(f func(context.Context, string) (permission.Permissions, error)) *MockClientPermissionsGrantedByUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientPermissionsGrantedByUserCall) DoAndReturn(f func(context.Context, string) (permission.Permissions, error)) *MockClientPermissionsGrantedByUserCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // PermissionsGrantedToUser mocks base method.
@@ -625,9 +673,33 @@ func (m *MockClient) PermissionsGrantedToUser(ctx context.Context, granteeUserID
 }
 
 // PermissionsGrantedToUser indicates an expected call of PermissionsGrantedToUser.
-func (mr *MockClientMockRecorder) PermissionsGrantedToUser(ctx, granteeUserID any) *gomock.Call {
+func (mr *MockClientMockRecorder) PermissionsGrantedToUser(ctx, granteeUserID any) *MockClientPermissionsGrantedToUserCall {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedToUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedToUser), ctx, granteeUserID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsGrantedToUser", reflect.TypeOf((*MockClient)(nil).PermissionsGrantedToUser), ctx, granteeUserID)
+	return &MockClientPermissionsGrantedToUserCall{Call: call}
+}
+
+// MockClientPermissionsGrantedToUserCall wrap *gomock.Call
+type MockClientPermissionsGrantedToUserCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientPermissionsGrantedToUserCall) Return(arg0 permission.Permissions, arg1 error) *MockClientPermissionsGrantedToUserCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientPermissionsGrantedToUserCall) Do(f func(context.Context, string) (permission.Permissions, error)) *MockClientPermissionsGrantedToUserCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientPermissionsGrantedToUserCall) DoAndReturn(f func(context.Context, string) (permission.Permissions, error)) *MockClientPermissionsGrantedToUserCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // ServerSessionToken mocks base method.
@@ -795,9 +867,33 @@ func (m *MockClient) UsersHaveSharingRelationship(ctx context.Context, granteeUs
 }
 
 // UsersHaveSharingRelationship indicates an expected call of UsersHaveSharingRelationship.
-func (mr *MockClientMockRecorder) UsersHaveSharingRelationship(ctx, granteeUserID, grantorUserID any) *gomock.Call {
+func (mr *MockClientMockRecorder) UsersHaveSharingRelationship(ctx, granteeUserID, grantorUserID any) *MockClientUsersHaveSharingRelationshipCall {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersHaveSharingRelationship", reflect.TypeOf((*MockClient)(nil).UsersHaveSharingRelationship), ctx, granteeUserID, grantorUserID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UsersHaveSharingRelationship", reflect.TypeOf((*MockClient)(nil).UsersHaveSharingRelationship), ctx, granteeUserID, grantorUserID)
+	return &MockClientUsersHaveSharingRelationshipCall{Call: call}
+}
+
+// MockClientUsersHaveSharingRelationshipCall wrap *gomock.Call
+type MockClientUsersHaveSharingRelationshipCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientUsersHaveSharingRelationshipCall) Return(has bool, err error) *MockClientUsersHaveSharingRelationshipCall {
+	c.Call = c.Call.Return(has, err)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientUsersHaveSharingRelationshipCall) Do(f func(context.Context, string, string) (bool, error)) *MockClientUsersHaveSharingRelationshipCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientUsersHaveSharingRelationshipCall) DoAndReturn(f func(context.Context, string, string) (bool, error)) *MockClientUsersHaveSharingRelationshipCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
 }
 
 // ValidateSessionToken mocks base method.
