@@ -146,12 +146,13 @@ Ordinary `make build` and Docker builds without this context still build from
 source as before.
 
 On Travis, `ci-docker` logs in once and uses `ci/images.hcl` to package and
-publish all services in parallel with Buildx Bake. Each image is exported with
-the existing branch/commit/timestamp, branch/commit, and branch/latest tags;
+publish all services in parallel with Buildx Bake. Each image is pushed once;
+additional tags copy the published manifest without checking image layers again.
+Images retain the branch/commit/timestamp, branch/commit, and branch/latest tags;
 `master` also updates `latest`. Private images retain the `-private` suffix.
 `CI_DOCKER_IMAGE_PREFIX` can select a local test registry instead of
-`tidepool/platform`. Override `DOCKER_BAKE_FLAGS` with `--print` to inspect the
-resolved targets, or `--load --progress=plain` to build without publishing.
+`tidepool/platform`. Set `CI_DOCKER_OUTPUT=print` to inspect the resolved targets,
+or `CI_DOCKER_OUTPUT=load` to build without publishing.
 For local validation without registry credentials, set `DOCKER_LOGIN_CMD=true`.
 
 To inspect cache reuse locally, run these commands twice with the same Go

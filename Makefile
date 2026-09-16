@@ -66,8 +66,7 @@ DOCKER_BUILD_CMD ?= docker build
 DOCKER_BUILD_FLAGS ?=
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
-DOCKER_BAKE_CMD ?= docker buildx bake
-DOCKER_BAKE_FLAGS ?= --push --progress=plain
+CI_DOCKER_OUTPUT ?= push
 CI_DOCKER_IMAGE_PREFIX ?= tidepool/$(REPOSITORY_NAME)
 
 ifdef TRAVIS_COMMIT
@@ -435,7 +434,7 @@ else
 endif
 
 # One authentication and one parallel Bake invocation for all service images.
-# Each exporter uploads an image once and assigns all of that image's tags.
+# Additional tags reuse the published manifest without checking layers again.
 ci-docker-publish:
 ifdef DOCKER_TRAVIS_BRANCH
 	@$(TIMING_CMD) $(MAKE) docker-login DOCKER_REPOSITORY="$(CI_DOCKER_IMAGE_PREFIX)"
@@ -445,7 +444,7 @@ ifdef DOCKER_TRAVIS_BRANCH
 		CI_SERVICES="$(SERVICES)" CI_PLUGIN_VISIBILITY="$(PLUGIN_VISIBILITY)" \
 		CI_TAGS="$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) $(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) $(DOCKER_TRAVIS_BRANCH)-latest$(if $(filter master,$(DOCKER_TRAVIS_BRANCH)), latest)" \
 		CI_BIN_DIRECTORY="$(BIN_DIRECTORY)" CI_PLATFORM="linux/$(shell go env GOARCH)" \
-		$(TIMING_CMD) $(DOCKER_BAKE_CMD) --file ci/images.hcl $(DOCKER_BAKE_FLAGS)
+		$(TIMING_CMD) bash ci/publish-images.sh "$(CI_DOCKER_OUTPUT)"
 endif
 
 version-write:
