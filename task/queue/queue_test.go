@@ -515,7 +515,12 @@ var _ = Describe("Queue", func() {
 				Expect(actualTask.Error).To(BeNil())
 				Expect(actualTask.Data).To(BeNil())
 
-				lgr.AssertWarn("Database task revision does not match running task revision; Runner contract broken or concurrent update")
+				// The database update becomes visible before the worker logs the warning.
+				Eventually(func() bool {
+					defer func() { _ = recover() }()
+					lgr.AssertWarn("Database task revision does not match running task revision; Runner contract broken or concurrent update")
+					return true
+				}, "5s", "100ms").To(BeTrue())
 			})
 
 			It("does not complete a task whose claim token changed while it was running", func() {
