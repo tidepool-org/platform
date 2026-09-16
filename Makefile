@@ -158,8 +158,8 @@ ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ ! -e go.work ] || go work edit -dropuse=./private/plugin/$(PLUGIN); } && \
 		{ [ "`go list -m -mod=readonly`" != "${REPOSITORY_PACKAGE}" ] || rm go.work go.work.sum 2> /dev/null || true; } && \
-		git config set --local submodule.private/plugin/$(PLUGIN).update none && \
-		git config set --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
+		git config --local submodule.private/plugin/$(PLUGIN).update none && \
+		git config --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
 		$(MAKE) plugin-visibility
 endif
 
@@ -170,8 +170,8 @@ plugins-visibility-private:
 plugin-visibility-private:
 ifdef PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
-		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config --local --unset submodule.private/plugin/$(PLUGIN).update || true; } && \
+		{ git config --file=.gitmodules --unset submodule.private/plugin/$(PLUGIN).update || true; } && \
 		git submodule update --init private/plugin/$(PLUGIN) && \
 		{ [ -e go.work ] || go work init .; } && \
 		go work edit -use=./private/plugin/$(PLUGIN) && \
@@ -181,10 +181,10 @@ ifdef PLUGIN
 endif
 
 ci:
-	@$(MAKE) ci-init
-	@$(MAKE) ci-generate
-	@$(MAKE) ci-test
-	@$(MAKE) ci-docker
+	@$(TIMING_CMD) $(MAKE) ci-init
+	@$(TIMING_CMD) $(MAKE) ci-generate
+	@$(TIMING_CMD) $(MAKE) ci-test
+	@$(TIMING_CMD) $(MAKE) ci-docker
 
 init: go-mod-download
 

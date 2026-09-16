@@ -3,6 +3,7 @@
 
 # Environment
 *.env
+!ci/tools.env
 .envrc
 
 # Go
