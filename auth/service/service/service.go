@@ -859,14 +859,8 @@ func (s *Service) initializeUserProfileAccessor(userAccessor user.UserAccessor) 
 	if userAccessor == nil {
 		return errors.New("empty user accessor passed to initializeUserProfileAccessor")
 	}
-	cfg := storeStructuredMongo.NewConfig()
-	// Note the "SEAGULL" prefix, this is so that the regular env vars
-	// for mongo access such as TIDEPOOL_STORE_SCHEME are
-	// SEAGULL_TIDEPOOL_STORE_SCHEME so as to not conflict with existing
-	// TIDEPOOL_STORE_SCHEME values. This is done instead of using a
-	// seagull client as seagull will eventually be removed so no sense
-	// in keeping it around.
-	if err := cfg.LoadPrefix("SEAGULL"); err != nil {
+	cfg, err := userStoreMongo.NewConfig()
+	if err != nil {
 		return errors.Wrap(err, "unable to load seagull profile accessor config")
 	}
 
