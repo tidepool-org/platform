@@ -117,6 +117,50 @@ make pre-commit
 make clean
 ```
 
+# Incremental CI builds
+
+Travis saves both `GOCACHE` (compiled packages and successful test results) and
+`GOMODCACHE` (downloaded modules). Go decides which packages and tests to reuse
+from their inputs; CI still requests every package on every run. A new branch
+can use Travis's default-branch cache until it has a cache of its own. The first
+run after changing the Go version or cache configuration may need to populate
+the cache.
+
+`make ci-test-go` keeps race detection and coverage enabled. It omits `-count=1`
+and `-shuffle`, since either flag disables Go's test-result cache. Ginkgo still
+chooses a random seed when a suite actually runs. To force a full shuffled run,
+including after changing an external dependency such as MongoDB, use:
+
+```sh
+make ci-test-go-fresh
+# Or force tests during the entire CI pipeline:
+make ci GOTEST_CI_FLAGS='-buildvcs=false -race -cover -count=1 -shuffle=on'
+```
+
+`make ci-build` builds static Linux binaries in `_bin` using the host Go cache.
+`make ci-docker` runs `ci-build` and supplies `_bin` as Docker's
+`platform-binaries` named build context, so image packaging does not compile Go
+again. This requires Buildx (installed in Travis). `GOARCH` can select a different
+Linux architecture.
+Ordinary `make build` and Docker builds without this context still build from
+source as before.
+
+To inspect cache reuse locally, run these commands twice with the same Go
+version and plugin visibility (MongoDB must be running for the full test suite):
+
+```sh
+GODEBUG=gocachetest=1 make ci-test-go TIMING_CMD='time -p'
+make ci-build GO_BUILD_FLAGS='-buildvcs=false -x' TIMING_CMD='time -p'
+```
+
+The second test run should report `(cached)` for unchanged successful packages;
+the second build should omit compiler invocations. A fresh checkout at the same
+path does not invalidate Go's source compilation cache. Tests that read fixture
+files or inspect file metadata can rerun when checkout timestamps change. CI
+leaves those checks intact so changed test inputs cannot be hidden by timestamp
+normalization. A new commit also requires linking binaries with the new version
+metadata, even when compiled packages are reused.
+
 # Upgrade Golang Version
 
 ## Prepare
