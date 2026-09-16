@@ -64,11 +64,15 @@ func (r *Router) getSanitizedProfile(ctx context.Context, userID string) (*user.
 	if details.IsService() || details.UserID() == userID {
 		return profile, nil
 	}
+	// The permissions client transforms a 404 to a an unauthorized so treat
+	// unauthorized the same as not found. getSanitizedProfile already has the
+	// appropriate middleware requireCustodian/requireMembership checks so
+	// returning a sanitized profile is fine.
 	trustorPerms, err := r.PermissionsClient().GetUserPermissions(ctx, details.UserID(), userID)
-	if err != nil {
+	if err != nil && !request.IsErrorUnauthorized(err) {
 		return nil, err
 	}
-	if len(trustorPerms) == 0 {
+	if request.IsErrorUnauthorized(err) || len(trustorPerms) == 0 {
 		profile.Sanitize()
 	}
 	return profile, nil

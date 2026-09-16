@@ -489,7 +489,7 @@ func unixTimeStringToTimestamp(unixString string) (timestamp string, err error) 
 }
 
 func timestampStringToUnixTime(timestamp string) (unixTime string, err error) {
-	tm, err := time.Parse(timestamp, timestampFormat)
+	tm, err := time.Parse(timestampFormat, timestamp)
 	if err != nil {
 		return "", err
 	}

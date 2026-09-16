@@ -253,6 +253,23 @@ var _ = Describe("Router", func() {
 										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
 										Expect(json.Marshal(sanitizedOtherProfile)).To(MatchJSON(res.WriteInputs[0]))
 									})
+									It("retrieves another person's sanitized profile if user does not have trustor permissions and permissions client returns unauthorized", func() {
+										permsClient.EXPECT().
+											UsersHaveSharingRelationship(gomock.Any(), userID, otherPersonID).
+											Return(true, nil).AnyTimes()
+										permsClient.EXPECT().
+											GetUserPermissions(gomock.Any(), userID, otherPersonID).
+											Return(nil, request.ErrorUnauthorized()).AnyTimes()
+										profileAccessor.EXPECT().
+											FindLegacyUserProfile(gomock.Any(), otherPersonID).
+											Return(otherProfile, nil).AnyTimes()
+										userAccessor.EXPECT().
+											Get(gomock.Any(), otherPersonID).
+											Return(otherDetails, nil).AnyTimes()
+										handlerFunc(res, req)
+										Expect(res.WriteHeaderInputs).To(Equal([]int{http.StatusOK}))
+										Expect(json.Marshal(sanitizedOtherProfile)).To(MatchJSON(res.WriteInputs[0]))
+									})
 								})
 							})
 						})
