@@ -137,10 +137,10 @@ make ci-test-go-fresh
 make ci GOTEST_CI_FLAGS='-buildvcs=false -race -cover -count=1 -shuffle=on'
 ```
 
-`make ci-build` builds static Linux binaries in `_bin` using the host Go cache.
+`make ci-build` builds static Linux binaries in `_bin` using the current Go cache.
 `make ci-docker` runs `ci-build` and supplies `_bin` as Docker's
 `platform-binaries` named build context, so image packaging does not compile Go
-again. This requires Buildx (installed in Travis). `GOARCH` can select a different
+again. This requires Buildx (included in the CI tools image). `GOARCH` can select a different
 Linux architecture.
 Ordinary `make build` and Docker builds without this context still build from
 source as before.
@@ -160,6 +160,45 @@ files or inspect file metadata can rerun when checkout timestamps change. CI
 leaves those checks intact so changed test inputs cannot be hidden by timestamp
 normalization. A new commit also requires linking binaries with the new version
 metadata, even when compiled packages are reused.
+
+## Shared CI tools image
+
+Travis first runs one `tools` job, followed by the public/private jobs in parallel.
+`ci/tools-image.sh ensure` checks for a content-addressed image in the existing
+`tidepool/platform-tools` repository. A cache hit only checks the registry manifest;
+it does not build, pull, or push the image. On a miss, it builds and publishes the
+image and an inline-cache tag for subsequent tool updates. No application source,
+private plugins, credentials, or test results are included in this image.
+
+The image includes Go, MongoDB/mongosh, Git, Make, GCC, mockgen, goimports, Docker
+CLI, and Buildx. Base images are pinned in `ci/tools.env`; generator versions come
+from `go.mod`. The tag includes the architecture and a hash of the Dockerfile,
+base-image pins, and Go/tool versions. Update the Go image pin when updating the
+Go directive in `go.mod`. Application-only changes reuse the existing image.
+
+Each matrix job pulls that image, mounts its checkout and Travis's Go caches,
+and runs the Makefile as the host user's UID. MongoDB runs inside the job's
+container with a fresh replica set. The compiler/test cache is namespaced by tools
+image, so a MongoDB/toolchain update reruns tests even when Go source is unchanged.
+Module downloads remain reusable across tools images. Docker CLI uses the host
+Docker socket to package the binaries. The preparation job does not restore or
+upload Go caches.
+
+To exercise the same environment locally in a clean disposable checkout:
+
+```sh
+bash ci/tools-image.sh build
+CI_TOOLS_LOCAL=true CI_CACHE_ROOT=/tmp/platform-ci-cache \
+  PLUGINS_VISIBILITY=public bash ci/run.sh
+# Repeat with PLUGINS_VISIBILITY=private after authenticating GitHub or fetching
+# the private submodule. The same image works for both configurations.
+```
+
+`CI_CACHE_ROOT` keeps the Linux caches separate from native developer caches.
+`CI_DOCKER_SOCKET` can override `/var/run/docker.sock` for local Docker setups.
+`CI_TOOLS_REPOSITORY` selects another registry repository. Image pulls and each
+Makefile phase are timed; compare total pipeline elapsed time, including the
+preparation stage and its scheduling delay, when evaluating this experiment.
 
 # Upgrade Golang Version
 
