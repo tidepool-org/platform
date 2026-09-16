@@ -47,10 +47,6 @@ func (m *keycloakUserAccessor) Roles(ctx context.Context, userID string) ([]stri
 	return m.keycloakClient.GetRolesForUser(ctx, userID)
 }
 
-func (m *keycloakUserAccessor) FindUsersWithIds(ctx context.Context, ids []string) (users []*user.User, err error) {
-	return m.keycloakClient.FindUsersWithIds(ctx, ids)
-}
-
 func (m *keycloakUserAccessor) UpdateLegacyUserProfile(ctx context.Context, userID string, p *user.LegacyUserProfile) error {
 	roles, err := m.Roles(ctx, userID)
 	if err != nil {
