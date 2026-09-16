@@ -219,13 +219,13 @@ ci-generate: generate
 format:
 	@echo "gofmt -d -e -s"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -d -e -s {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -d -e -s {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write:
 	@echo "gofmt -e -s -w"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -e -s -w {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec gofmt -e -s -w {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 format-write-changed:
@@ -235,13 +235,13 @@ format-write-changed:
 imports: goimports
 	@echo "goimports -d -e -local $(GOIMPORTS_LOCAL)"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -d -e -local $(GOIMPORTS_LOCAL) {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -d -e -local $(GOIMPORTS_LOCAL) {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write: goimports
 	@echo "goimports -e -w -local $(GOIMPORTS_LOCAL)"
 	@cd $(ROOT_DIRECTORY) && \
-		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -e -w -local $(GOIMPORTS_LOCAL) {} \; 2>&1` && \
+		O=`$(FIND_CMD) -type f -name '*.go' -exec goimports -e -w -local $(GOIMPORTS_LOCAL) {} + 2>&1` && \
 		[ -z "$${O}" ] || (echo "$${O}" && exit 1)
 
 imports-write-changed: goimports
