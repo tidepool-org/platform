@@ -9,9 +9,11 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
 	authStore "github.com/tidepool-org/platform/auth/store"
+	permission "github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
 )
 
 type Service interface {
@@ -19,6 +21,10 @@ type Service interface {
 
 	Domain() string
 	AuthStore() authStore.Store
+
+	UserAccessor() user.UserAccessor
+	ProfileAccessor() user.ProfileAccessor
+	PermissionsClient() permission.Client
 
 	ProviderFactory() provider.Factory
 

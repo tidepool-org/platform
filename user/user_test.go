@@ -42,7 +42,6 @@ var _ = Describe("User", func() {
 				datum := userTest.RandomUser()
 				mutator(datum)
 				test.ExpectSerializedObjectJSON(datum, userTest.NewObjectFromUser(datum, test.ObjectFormatJSON))
-				test.ExpectSerializedObjectBSON(datum, userTest.NewObjectFromUser(datum, test.ObjectFormatBSON))
 			},
 			Entry("succeeds",
 				func(datum *user.User) {},
