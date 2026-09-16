@@ -44,6 +44,9 @@ else
 endif
 endif
 GOTEST_FLAGS ?=
+# Keep the default CI invocation cacheable. Use ci-test-go-fresh for a full,
+# shuffled run (for example after changing MongoDB or other external inputs).
+GOTEST_CI_FLAGS ?= -buildvcs=false -race -cover
 
 GINKGO_FLAGS += --require-suite --poll-progress-after=10s --poll-progress-interval=20s -r
 GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --trace --race
@@ -60,6 +63,7 @@ TEST_REPEAT ?= 1
 
 DOCKER_LOGIN_CMD ?= docker login
 DOCKER_BUILD_CMD ?= docker build
+DOCKER_BUILD_FLAGS ?=
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
 
@@ -176,7 +180,11 @@ ifdef PLUGIN
 		$(MAKE) plugin-visibility
 endif
 
-ci: ci-init ci-generate ci-build ci-test ci-docker
+ci:
+	@$(MAKE) ci-init
+	@$(MAKE) ci-generate
+	@$(MAKE) ci-test
+	@$(MAKE) ci-docker
 
 init: go-mod-download
 
@@ -197,7 +205,11 @@ go-generate: mockgen
 	@cd $(ROOT_DIRECTORY) && \
 		GOWORK=off $(TIMING_CMD) go generate ./...
 
-generate: go-generate format-write imports-write vet
+generate:
+	@$(MAKE) go-generate
+	@$(MAKE) format-write
+	@$(MAKE) imports-write
+	@$(MAKE) vet
 
 ci-generate: generate
 	@cd $(ROOT_DIRECTORY) && \
@@ -253,13 +265,17 @@ build:
 	@echo "go build $(BUILD)"
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		$(TIMING_CMD) $(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
-			$(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE}; \
+		$(FIND_MAIN_CMD) | $(TRANSFORM_GO_BUILD_CMD) | while read LINE; do \
+			$(TIMING_CMD) $(GO_BUILD_CMD) $${GOWORK_FLAGS:-} -o $${LINE} || exit $$?; \
 		done
 
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude-dir='.gvm_local' -exclude-dir='.vscode' -exclude='*_test.go' -include='Makefile' -recursive=true
 
+# These binaries also run in the Alpine service images. Keep race-enabled tests
+# on the host, but build the shipping binaries without a libc dependency.
+ci-build: export CGO_ENABLED = 0
+ci-build: export GOOS = linux
 ci-build: build
 
 ci-build-watch: CompileDaemon
@@ -315,9 +331,12 @@ test-go:
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
 		. ./env.test.sh && $(TIMING_CMD) go test $(GOTEST_FLAGS) $${GOWORK_FLAGS:-} $(GOTEST_PKGS)
 
-ci-test-go: GOTEST_FLAGS += -count=1 -race -shuffle=on -cover
+ci-test-go: GOTEST_FLAGS += $(GOTEST_CI_FLAGS)
 ci-test-go: GOTEST_PKGS = ./...
 ci-test-go: test-go
+
+ci-test-go-fresh: GOTEST_FLAGS += -count=1 -shuffle=on
+ci-test-go-fresh: ci-test-go
 
 ginkgo-bootstrap: ginkgo
 ifdef TEST
@@ -366,8 +385,8 @@ docker-dump:
 docker:
 ifdef DOCKER
 	@cd $(ROOT_DIRECTORY) && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
+		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit $$?; done && \
+		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit $$?; done
 endif
 
 docker-login:
@@ -378,7 +397,7 @@ endif
 docker-build: docker-dump docker-login
 ifdef DOCKER_REPOSITORY
 	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
+		$(TIMING_CMD) $(DOCKER_BUILD_CMD) $(DOCKER_BUILD_FLAGS) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
 ifdef DOCKER_TRAVIS_BRANCH
 	@cd $(ROOT_DIRECTORY) && \
 		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
@@ -401,7 +420,12 @@ endif
 endif
 endif
 
-ci-docker: version-write docker
+# A named context overrides the Dockerfile's platform-binaries stage. Always
+# refresh the binaries first, including when ci-docker is invoked on its own.
+ci-docker: export DOCKER_BUILD_FLAGS += --build-context platform-binaries=$(BIN_DIRECTORY) --platform=linux/$(shell go env GOARCH)
+ci-docker: version-write
+	@$(MAKE) ci-build
+	@$(MAKE) docker
 
 version-write:
 	@cd $(ROOT_DIRECTORY) && \
@@ -444,7 +468,7 @@ phony:
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
     ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
     ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
-    ci-test-go clean clean-all clean-bin clean-cover clean-debug clean-generate \
+    ci-test-go ci-test-go-fresh clean clean-all clean-bin clean-cover clean-debug clean-generate \
     clean-test clean-version CompileDaemon default docker docker-build docker-dump \
     docker-login docker-push format format-write format-write-changed generate \
     ginkgo ginkgo-bootstrap ginkgo-generate go-generate go-mod-download go-mod-tidy \

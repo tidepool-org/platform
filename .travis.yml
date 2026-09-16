@@ -19,10 +19,16 @@ env:
     - PLUGINS_VISIBILITY=private
 
 cache:
+  timeout: 600
   directories:
     - $HOME/.cache/go-build
+    - $HOME/.cache/go-mod
+
+# ci-init downloads the modules after the public/private workspace is selected.
+install: skip
 
 before_install:
+  - export GOCACHE="$HOME/.cache/go-build" GOMODCACHE="$HOME/.cache/go-mod"
   # Remove broken RabbitMQ repos
   - sudo rm -f /etc/apt/sources.list.d/rabbitmq*
   - sudo apt-get update
@@ -41,4 +47,5 @@ addons:
 
 script:
   - export TIMING_CMD='time -p'
+  - go env GOCACHE GOMODCACHE GOOS GOARCH
   - make "plugins-visibility-${PLUGINS_VISIBILITY}" && make ci
