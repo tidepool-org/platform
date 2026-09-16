@@ -3,7 +3,9 @@ package mongo
 import (
 	"context"
 	stdErrors "errors"
+	"time"
 
+	"github.com/kelseyhightower/envconfig"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,18 +17,47 @@ import (
 	"github.com/tidepool-org/platform/user"
 )
 
+// Config is the same as [storeStructuredMongo.Config] except with explicit seagull envconfig tags.
+type Config struct {
+	Scheme           string        `envconfig:"SEAGULL_TIDEPOOL_STORE_SCHEME"`
+	Addresses        []string      `envconfig:"SEAGULL_TIDEPOOL_STORE_ADDRESSES" required:"true"`
+	TLS              bool          `envconfig:"SEAGULL_TIDEPOOL_STORE_TLS" default:"true"`
+	Database         string        `envconfig:"SEAGULL_TIDEPOOL_STORE_DATABASE" required:"true"`
+	CollectionPrefix string        `envconfig:"SEAGULL_TIDEPOOL_STORE_COLLECTION_PREFIX"`
+	Username         *string       `envconfig:"SEAGULL_TIDEPOOL_STORE_USERNAME" require:"true"`
+	Password         *string       `envconfig:"SEAGULL_TIDEPOOL_STORE_PASSWORD" require:"true"`
+	Timeout          time.Duration `envconfig:"SEAGULL_TIDEPOOL_STORE_TIMEOUT" default:"60s"`
+	OptParams        *string       `envconfig:"SEAGULL_TIDEPOOL_STORE_OPT_PARAMS"`
+}
+
+var (
+	_ Config = Config(storeStructuredMongo.Config{})
+)
+
+func NewConfig() (*Config, error) {
+	c := Config{
+		TLS:     true,
+		Timeout: 30 * time.Second,
+	}
+	if err := envconfig.Process("", &c); err != nil {
+		return nil, err
+	}
+	return &c, nil
+}
+
 // LegacySeagullProfileRepository accesses legacy seagull profiles while the
 // seagll migration to keycloak is in progress.
 type LegacySeagullProfileRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-func NewLegacySeagullProfileRepository(c *storeStructuredMongo.Config) (*LegacySeagullProfileRepository, error) {
+func NewLegacySeagullProfileRepository(c *Config) (*LegacySeagullProfileRepository, error) {
 	if c == nil {
 		return nil, errors.New("config is missing")
 	}
+	storeConfig := storeStructuredMongo.Config(*c)
 
-	store, err := storeStructuredMongo.NewStore(c)
+	store, err := storeStructuredMongo.NewStore(&storeConfig)
 	if err != nil {
 		return nil, err
 	}

@@ -127,7 +127,8 @@ func (c *Client) UsersHaveSharingRelationship(ctx context.Context, granteeUserID
 
 func (c *Client) HasCustodianPermissions(ctx context.Context, granteeUserID, grantorUserID string) (has bool, err error) {
 	perms, err := c.GetUserPermissions(ctx, granteeUserID, grantorUserID)
-	if err != nil {
+	// GetUserPermssions will transform a gatekeeper 404 to error unauthorized so treat unauthorized as returning has == false
+	if err != nil && !request.IsErrorUnauthorized(err) {
 		return false, err
 	}
 	_, ok := perms[permission.Custodian]
