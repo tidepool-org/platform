@@ -140,8 +140,8 @@ make ci GOTEST_CI_FLAGS='-buildvcs=false -race -cover -count=1 -shuffle=on'
 `make ci-build` builds static Linux binaries in `_bin` using the current Go cache.
 `make ci-docker` runs `ci-build` and supplies `_bin` as Docker's
 `platform-binaries` named build context, so image packaging does not compile Go
-again. This requires Buildx (included in the CI tools image). `GOARCH` can select a different
-Linux architecture.
+again. This requires Buildx (included in the CI tools image). `GOARCH` can select
+a different Linux architecture.
 Ordinary `make build` and Docker builds without this context still build from
 source as before.
 
@@ -209,18 +209,27 @@ preparation stage and its scheduling delay, when evaluating this experiment.
 - Review the release notes for **all** Golang versions, major and minor, from the current Golang version to the target Golang version. The entire Golang release history can be found at https://golang.org/doc/devel/release.html.
   - For major revisions, if any change described in the release notes could have a negative impact upon this repository, follow up and review any associated issues and the updated code. Make note of this change in order to explicitly test after upgrading.
   - For minor revisions, review all issues included in the associated GitHub milestone issue tracker. These can be found in the minor revision release notes. If any issue could have a negative impact upon this repository, review the updated code. Make note of this issue in order to explicitly test after upgrading.
-- Install `gimme`(https://github.com/travis-ci/gimme) via `brew`. Execute `gimme -k`. Ensure that the target Golang version is listed. The `gimme` tool is used by Travis CI to manage Golang versions. If the version is not listed, then the Travis CI build will not succeed.
-- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.11.4`, then ensure that the `1.11.4-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
+- Check https://hub.docker.com/_/golang for the target version's Bookworm image
+  (shared CI tools) and Alpine image (ordinary source-based Docker builds).
+  Record the Bookworm image's multi-platform digest for `ci/tools.env`.
 
 ## Upgrade
 
 Ensure you are using the target Golang version locally.
 
-Change the version in `.travis.yml` and all `Dockerfile.*` files.
+Update the Go directive in `go.mod`, the Go image version and digest in
+`ci/tools.env`, and the Go image version in `Dockerfile`. Check any other
+`Dockerfile.*` files and plugin modules for matching version requirements.
+Travis obtains Go from the shared tools image; it does not install Go on the host.
 
 ## Test
 
 Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
+
+Build the updated tools image with `bash ci/tools-image.sh build`, then exercise
+both plugin configurations with `CI_TOOLS_LOCAL=true bash ci/run.sh` in a clean
+checkout. Use `CI_CACHE_ROOT` to keep container caches separate from native
+caches. The changed tools-image key creates a fresh compiler/test cache.
 
 If you previously noted any changes or issues of concern, perform any explicit tests necessary.
 
