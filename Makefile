@@ -66,6 +66,9 @@ DOCKER_BUILD_CMD ?= docker build
 DOCKER_BUILD_FLAGS ?=
 DOCKER_PUSH_CMD ?= docker push
 DOCKER_TAG_CMD ?= docker tag
+DOCKER_BAKE_CMD ?= docker buildx bake
+DOCKER_BAKE_FLAGS ?= --push --progress=plain
+CI_DOCKER_IMAGE_PREFIX ?= tidepool/$(REPOSITORY_NAME)
 
 ifdef TRAVIS_COMMIT
 ifdef TRAVIS_BRANCH
@@ -272,8 +275,8 @@ build:
 build-watch: CompileDaemon
 	@cd $(ROOT_DIRECTORY) && BUILD=$(BUILD) CompileDaemon -build-dir='.' -build='make build' -color -directory='.' -exclude-dir='.git' -exclude-dir='.gvm_local' -exclude-dir='.vscode' -exclude='*_test.go' -include='Makefile' -recursive=true
 
-# These binaries also run in the Alpine service images. Keep race-enabled tests
-# on the host, but build the shipping binaries without a libc dependency.
+# These binaries also run in the Alpine service images. Build the shipping
+# binaries without a libc dependency, separately from race-enabled tests.
 ci-build: export CGO_ENABLED = 0
 ci-build: export GOOS = linux
 ci-build: build
@@ -425,7 +428,25 @@ endif
 ci-docker: export DOCKER_BUILD_FLAGS += --build-context platform-binaries=$(BIN_DIRECTORY) --platform=linux/$(shell go env GOARCH)
 ci-docker: version-write
 	@$(MAKE) ci-build
+ifdef DOCKER_TRAVIS_BRANCH
+	@$(MAKE) ci-docker-publish
+else
 	@$(MAKE) docker
+endif
+
+# One authentication and one parallel Bake invocation for all service images.
+# Each exporter uploads an image once and assigns all of that image's tags.
+ci-docker-publish:
+ifdef DOCKER_TRAVIS_BRANCH
+	@$(TIMING_CMD) $(MAKE) docker-login DOCKER_REPOSITORY="$(CI_DOCKER_IMAGE_PREFIX)"
+	@cd $(ROOT_DIRECTORY) && \
+		CI_IMAGE_PREFIX="$(CI_DOCKER_IMAGE_PREFIX)" \
+		CI_IMAGE_SUFFIX="$(if $(filter private,$(PLUGIN_VISIBILITY)),-private)" \
+		CI_SERVICES="$(SERVICES)" CI_PLUGIN_VISIBILITY="$(PLUGIN_VISIBILITY)" \
+		CI_TAGS="$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) $(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) $(DOCKER_TRAVIS_BRANCH)-latest$(if $(filter master,$(DOCKER_TRAVIS_BRANCH)), latest)" \
+		CI_BIN_DIRECTORY="$(BIN_DIRECTORY)" CI_PLATFORM="linux/$(shell go env GOARCH)" \
+		$(TIMING_CMD) $(DOCKER_BAKE_CMD) --file ci/images.hcl $(DOCKER_BAKE_FLAGS)
+endif
 
 version-write:
 	@cd $(ROOT_DIRECTORY) && \
@@ -466,7 +487,7 @@ phony:
 	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g' >> $(MAKEFILE)
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
-    ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
+    ci-build-watch ci-docker ci-docker-publish ci-generate ci-init ci-test ci-test-ginkgo \
     ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
     ci-test-go ci-test-go-fresh clean clean-all clean-bin clean-cover clean-debug clean-generate \
     clean-test clean-version CompileDaemon default docker docker-build docker-dump \
