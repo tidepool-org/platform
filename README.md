@@ -199,6 +199,9 @@ CI_TOOLS_LOCAL=true CI_CACHE_ROOT=/tmp/platform-ci-cache \
 `CI_TOOLS_REPOSITORY` selects another registry repository. Image pulls and each
 Makefile phase are timed; compare total pipeline elapsed time, including the
 preparation stage and its scheduling delay, when evaluating this experiment.
+Measure a warm run only after both matrix jobs have completed successfully and
+uploaded their caches. The first run after a tools-image change repopulates the
+compiler/test cache; a registry image hit alone does not mean the Go cache is warm.
 
 # Upgrade Golang Version
 
