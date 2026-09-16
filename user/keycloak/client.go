@@ -142,7 +142,7 @@ func (c *keycloakClient) GetUserById(ctx context.Context, id string) (*user.User
 		return nil, nil
 	}
 
-	users, err := c.FindUsersWithIds(ctx, []string{id})
+	users, err := c.findUsersWithIds(ctx, []string{id})
 	if err != nil || len(users) == 0 {
 		return nil, err
 	}
@@ -218,7 +218,7 @@ func (c *keycloakClient) UpdateUserProfile(ctx context.Context, id string, p *us
 	return c.UpdateUser(ctx, u)
 }
 
-func (c *keycloakClient) FindUsersWithIds(ctx context.Context, ids []string) (users []*user.User, err error) {
+func (c *keycloakClient) findUsersWithIds(ctx context.Context, ids []string) (users []*user.User, err error) {
 	const errMessage = "could not retrieve users by ids"
 
 	token, err := c.getAdminToken(ctx)
