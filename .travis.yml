@@ -22,13 +22,13 @@ cache:
   timeout: 600
   directories:
     - $HOME/.cache/go-build
-    - $HOME/.cache/go-mod
+    - $HOME/gopath/pkg/mod
 
 # ci-init downloads the modules after the public/private workspace is selected.
 install: skip
 
 before_install:
-  - export GOCACHE="$HOME/.cache/go-build" GOMODCACHE="$HOME/.cache/go-mod"
+  - export GOCACHE="$HOME/.cache/go-build" GOMODCACHE="$HOME/gopath/pkg/mod"
   # Remove broken RabbitMQ repos
   - sudo rm -f /etc/apt/sources.list.d/rabbitmq*
   - sudo apt-get update
