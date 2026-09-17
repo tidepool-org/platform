@@ -50,9 +50,6 @@ var _ = Describe("Blood", func() {
 	})
 
 	Context("Blood", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

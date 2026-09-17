@@ -127,10 +127,6 @@ var _ = Describe("DataSet", func() {
 			})
 		})
 
-		Context("Parse", func() {
-			// TODO
-		})
-
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *data.DataSetClient), expectedErrors ...error) {
@@ -268,9 +264,6 @@ var _ = Describe("DataSet", func() {
 		})
 
 		Context("Upload", func() {
-			Context("Parse", func() {
-				// TODO
-			})
 
 			Context("Validate", func() {
 				DescribeTable("validates the datum",

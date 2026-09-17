@@ -41,10 +41,6 @@ var _ = Describe("Lap", func() {
 		Expect(physical.LapCountMinimum).To(Equal(0))
 	})
 
-	Context("ParseLap", func() {
-		// TODO
-	})
-
 	Context("NewLap", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewLap()).To(Equal(&physical.Lap{}))
@@ -52,9 +48,6 @@ var _ = Describe("Lap", func() {
 	})
 
 	Context("Lap", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

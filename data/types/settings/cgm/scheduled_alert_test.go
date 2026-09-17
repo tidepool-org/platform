@@ -70,10 +70,6 @@ var _ = Describe("ScheduledAlert", func() {
 		Expect(dataTypesSettingsCgm.ScheduledAlertDays()).To(Equal([]string{"sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"}))
 	})
 
-	Context("ParseScheduledAlerts", func() {
-		// TODO
-	})
-
 	Context("NewScheduledAlerts", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewScheduledAlerts()
@@ -83,9 +79,6 @@ var _ = Describe("ScheduledAlert", func() {
 	})
 
 	Context("ScheduledAlerts", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -135,10 +128,6 @@ var _ = Describe("ScheduledAlert", func() {
 		})
 	})
 
-	Context("ParseScheduledAlert", func() {
-		// TODO
-	})
-
 	Context("NewScheduledAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewScheduledAlert()
@@ -166,10 +155,6 @@ var _ = Describe("ScheduledAlert", func() {
 				func(datum *dataTypesSettingsCgm.ScheduledAlert) { *datum = dataTypesSettingsCgm.ScheduledAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

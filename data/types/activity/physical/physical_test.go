@@ -123,9 +123,6 @@ var _ = Describe("Physical", func() {
 	})
 
 	Context("Physical", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

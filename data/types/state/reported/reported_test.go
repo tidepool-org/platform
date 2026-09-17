@@ -59,9 +59,6 @@ var _ = Describe("Reported", func() {
 	})
 
 	Context("Reported", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

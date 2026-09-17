@@ -34,10 +34,6 @@ var _ = Describe("BasalRateMaximum", func() {
 		Expect(pump.BasalRateMaximumUnits()).To(Equal([]string{"Units/hour"}))
 	})
 
-	Context("ParseBasalRateMaximum", func() {
-		// TODO
-	})
-
 	Context("NewBasalRateMaximum", func() {
 		It("is successful", func() {
 			Expect(pump.NewBasalRateMaximum()).To(Equal(&pump.BasalRateMaximum{}))
@@ -45,9 +41,6 @@ var _ = Describe("BasalRateMaximum", func() {
 	})
 
 	Context("BasalRateMaximum", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

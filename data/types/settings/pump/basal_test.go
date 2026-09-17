@@ -15,9 +15,6 @@ import (
 )
 
 var _ = Describe("Basal", func() {
-	Context("ParseBasal", func() {
-		// TODO
-	})
 
 	Context("NewBasal", func() {
 		It("is successful", func() {
@@ -26,9 +23,6 @@ var _ = Describe("Basal", func() {
 	})
 
 	Context("Basal", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

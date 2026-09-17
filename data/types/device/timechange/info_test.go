@@ -25,10 +25,6 @@ var _ = Describe("Info", func() {
 		Expect(dataTypesDeviceTimechange.InfoTimeFormat).To(Equal("2006-01-02T15:04:05"))
 	})
 
-	Context("ParseInfo", func() {
-		// TODO
-	})
-
 	Context("NewInfo", func() {
 		It("is successful", func() {
 			Expect(dataTypesDeviceTimechange.NewInfo()).To(Equal(&dataTypesDeviceTimechange.Info{}))
@@ -36,9 +32,6 @@ var _ = Describe("Info", func() {
 	})
 
 	Context("Info", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

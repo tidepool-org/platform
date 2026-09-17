@@ -29,10 +29,6 @@ var _ = Describe("DisplayBloodGlucose", func() {
 		Expect(pump.DisplayBloodGlucoseUnits()).To(Equal([]string{"mg/dL", "mmol/L"}))
 	})
 
-	Context("ParseDisplayBloodGlucose", func() {
-		// TODO
-	})
-
 	Context("NewDisplayBloodGlucose", func() {
 		It("is successful", func() {
 			Expect(pump.NewDisplayBloodGlucose()).To(Equal(&pump.DisplayBloodGlucose{}))
@@ -40,9 +36,6 @@ var _ = Describe("DisplayBloodGlucose", func() {
 	})
 
 	Context("DisplayBloodGlucose", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

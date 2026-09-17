@@ -39,9 +39,6 @@ func NewTarget(high interface{}, low interface{}, rng interface{}, target interf
 }
 
 var _ = Describe("Target", func() {
-	Context("ParseTarget", func() {
-		// TODO
-	})
 
 	Context("NewTarget", func() {
 		It("is successful", func() {
@@ -50,9 +47,6 @@ var _ = Describe("Target", func() {
 	})
 
 	Context("Target", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

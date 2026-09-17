@@ -35,10 +35,6 @@ var _ = Describe("BolusAmountMaximum", func() {
 		Expect(pump.BolusAmountMaximumUnits()).To(Equal([]string{"Units"}))
 	})
 
-	Context("ParseBolusAmountMaximum", func() {
-		// TODO
-	})
-
 	Context("NewBolusAmountMaximum", func() {
 		It("is successful", func() {
 			Expect(pump.NewBolusAmountMaximum()).To(Equal(&pump.BolusAmountMaximum{}))
@@ -46,9 +42,6 @@ var _ = Describe("BolusAmountMaximum", func() {
 	})
 
 	Context("BolusAmountMaximum", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
