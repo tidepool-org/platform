@@ -8,8 +8,13 @@ case "$visibility" in public|private) ;; *) echo "Invalid plugin visibility: $vi
 
 # A local build can be tested without publishing it to the registry.
 if [[ "${CI_TOOLS_LOCAL:-false}" != true ]]; then
-    echo "Pulling shared tools image: $image"
-    time -p docker pull "$image"
+    # Only the public, non-PR Travis job publishes a missing tools image. Keep
+    # this out of the matrix env so Travis reuses the existing Go-cache keys.
+    publish=false
+    if [[ "$visibility" == public && "${TRAVIS_PULL_REQUEST:-}" == false ]]; then
+        publish=true
+    fi
+    CI_TOOLS_PUBLISH="${CI_TOOLS_PUBLISH:-$publish}" bash ci/tools-image.sh ensure
 fi
 cache_root=${CI_CACHE_ROOT:-$HOME}
 # Go cannot detect changes in external test inputs such as the MongoDB version.
