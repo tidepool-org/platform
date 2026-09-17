@@ -32,6 +32,7 @@ type Client interface {
 	UpdateConnectionIssues(ctx context.Context) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
+	RecordInvitationResent(ctx context.Context, clinicID, patientID string) error
 }
 
 type config struct {
@@ -208,6 +209,28 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 // all of its patients.
 func (d *defaultClient) UpdateConnectionIssues(ctx context.Context) error {
 	response, err := d.httpClient.UpdateConnectionIssuesWithResponse(ctx)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusNoContent {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(),
+			response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+// RecordInvitationResent tells the clinic service that the patient's account claim
+// invitation has been re-sent, so it can refresh the patient's primary issue. A 404 is
+// reported as an error like any other unexpected status; callers decide how to treat it.
+func (d *defaultClient) RecordInvitationResent(ctx context.Context,
+	clinicID, patientID string) error {
+
+	response, err := d.httpClient.RecordInvitationResentWithResponse(ctx,
+		clinic.ClinicId(clinicID), clinic.PatientId(patientID))
 	if err != nil {
 		return err
 	}

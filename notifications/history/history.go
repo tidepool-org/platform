@@ -10,6 +10,8 @@ import (
 	"github.com/tidepool-org/platform/structure"
 )
 
+//go:generate mockgen -source=history.go -destination=test/history_mocks.go -package=test -typed
+
 const (
 	NotificationQueued            = "queued"
 	NotificationGeneralError      = "error"
