@@ -90,9 +90,6 @@ var _ = Describe("Scheduled", func() {
 	})
 
 	Context("Scheduled", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -408,10 +405,6 @@ var _ = Describe("Scheduled", func() {
 		})
 	})
 
-	Context("ParseSuppressedScheduled", func() {
-		// TODO
-	})
-
 	Context("NewSuppressedScheduled", func() {
 		It("returns the expected datum", func() {
 			Expect(scheduled.NewSuppressedScheduled()).To(Equal(&scheduled.SuppressedScheduled{
@@ -422,9 +415,6 @@ var _ = Describe("Scheduled", func() {
 	})
 
 	Context("SuppressedScheduled", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

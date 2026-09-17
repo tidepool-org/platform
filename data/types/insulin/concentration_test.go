@@ -34,10 +34,6 @@ var _ = Describe("Concentration", func() {
 		Expect(insulin.ConcentrationUnits()).To(Equal([]string{"Units/mL"}))
 	})
 
-	Context("ParseConcentration", func() {
-		// TODO
-	})
-
 	Context("NewConcentration", func() {
 		It("is successful", func() {
 			Expect(insulin.NewConcentration()).To(Equal(&insulin.Concentration{}))
@@ -45,9 +41,6 @@ var _ = Describe("Concentration", func() {
 	})
 
 	Context("Concentration", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

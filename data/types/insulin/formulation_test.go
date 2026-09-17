@@ -21,10 +21,6 @@ var _ = Describe("Formulation", func() {
 		Expect(insulin.FormulationNameLengthMaximum).To(Equal(100))
 	})
 
-	Context("ParseFormulation", func() {
-		// TODO
-	})
-
 	Context("NewFormulation", func() {
 		It("is successful", func() {
 			Expect(insulin.NewFormulation()).To(Equal(&insulin.Formulation{}))
@@ -32,9 +28,6 @@ var _ = Describe("Formulation", func() {
 	})
 
 	Context("Formulation", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

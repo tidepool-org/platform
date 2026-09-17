@@ -27,9 +27,7 @@ var _ = Describe("Continuous", func() {
 		bucketTime = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC)
 	})
 
-	Context("Range", func() {
-		// range has no direct functions for continuous, but if it does, tests here.
-	})
+	// Range has no functions specific to continuous summaries to test.
 
 	Context("Ranges", func() {
 		It("ranges.Add", func() {

@@ -59,10 +59,6 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 		Expect(pump.BolusCalculatorInsulinUnits()).To(Equal([]string{"hours", "minutes", "seconds"}))
 	})
 
-	Context("ParseBolusCalculatorInsulin", func() {
-		// TODO
-	})
-
 	Context("NewBolusCalculatorInsulin", func() {
 		It("is successful", func() {
 			Expect(pump.NewBolusCalculatorInsulin()).To(Equal(&pump.BolusCalculatorInsulin{}))
@@ -70,9 +66,6 @@ var _ = Describe("BolusCalculatorInsulin", func() {
 	})
 
 	Context("BolusCalculatorInsulin", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

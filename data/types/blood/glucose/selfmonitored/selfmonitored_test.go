@@ -75,9 +75,6 @@ var _ = Describe("SelfMonitored", func() {
 	})
 
 	Context("SelfMonitored", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

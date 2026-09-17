@@ -75,10 +75,6 @@ var _ = Describe("Duration", func() {
 		Expect(physical.DurationUnits()).To(Equal([]string{"hours", "minutes", "seconds"}))
 	})
 
-	Context("ParseDuration", func() {
-		// TODO
-	})
-
 	Context("NewDuration", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewDuration()).To(Equal(&physical.Duration{}))
@@ -86,9 +82,6 @@ var _ = Describe("Duration", func() {
 	})
 
 	Context("Duration", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

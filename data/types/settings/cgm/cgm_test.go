@@ -92,9 +92,6 @@ var _ = Describe("CGM", func() {
 	})
 
 	Context("CGM", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

@@ -98,10 +98,6 @@ var _ = Describe("State", func() {
 		Expect(reported.StateStates()).To(Equal([]string{"alcohol", "cycle", "hyperglycemiaSymptoms", "hypoglycemiaSymptoms", "illness", "other", "stress"}))
 	})
 
-	Context("ParseState", func() {
-		// TODO
-	})
-
 	Context("NewState", func() {
 		It("is successful", func() {
 			Expect(reported.NewState()).To(Equal(&reported.State{}))
@@ -109,9 +105,6 @@ var _ = Describe("State", func() {
 	})
 
 	Context("State", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -340,10 +333,6 @@ var _ = Describe("State", func() {
 		})
 	})
 
-	Context("ParseStateArray", func() {
-		// TODO
-	})
-
 	Context("NewStateArray", func() {
 		It("is successful", func() {
 			Expect(reported.NewStateArray()).To(Equal(&reported.StateArray{}))
@@ -351,9 +340,6 @@ var _ = Describe("State", func() {
 	})
 
 	Context("StateArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

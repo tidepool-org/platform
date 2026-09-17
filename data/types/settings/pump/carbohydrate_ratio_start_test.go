@@ -32,10 +32,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 		Expect(pump.CarbohydrateRatioStartStartMinimum).To(Equal(0))
 	})
 
-	Context("ParseCarbohydrateRatioStart", func() {
-		// TODO
-	})
-
 	Context("NewCarbohydrateRatioStart", func() {
 		It("is successful", func() {
 			Expect(pump.NewCarbohydrateRatioStart()).To(Equal(&pump.CarbohydrateRatioStart{}))
@@ -43,9 +39,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 	})
 
 	Context("CarbohydrateRatioStart", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -159,10 +152,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 		})
 	})
 
-	Context("ParseCarbohydrateRatioStartArray", func() {
-		// TODO
-	})
-
 	Context("NewCarbohydrateRatioStartArray", func() {
 		It("is successful", func() {
 			Expect(pump.NewCarbohydrateRatioStartArray()).To(Equal(&pump.CarbohydrateRatioStartArray{}))
@@ -170,9 +159,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 	})
 
 	Context("CarbohydrateRatioStartArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -311,10 +297,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 		})
 	})
 
-	Context("ParseCarbohydrateRatioStartArrayMap", func() {
-		// TODO
-	})
-
 	Context("NewCarbohydrateRatioStartArrayMap", func() {
 		It("is successful", func() {
 			Expect(pump.NewCarbohydrateRatioStartArrayMap()).To(Equal(&pump.CarbohydrateRatioStartArrayMap{}))
@@ -322,9 +304,6 @@ var _ = Describe("CarbohydrateRatioStart", func() {
 	})
 
 	Context("CarbohydrateRatioStartArrayMap", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

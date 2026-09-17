@@ -41,10 +41,6 @@ var _ = Describe("Simple", func() {
 		Expect(insulin.SimpleActingTypes()).To(Equal([]string{"intermediate", "long", "rapid", "short"}))
 	})
 
-	Context("ParseSimple", func() {
-		// TODO
-	})
-
 	Context("NewSimple", func() {
 		It("is successful", func() {
 			Expect(insulin.NewSimple()).To(Equal(&insulin.Simple{}))
@@ -52,9 +48,6 @@ var _ = Describe("Simple", func() {
 	})
 
 	Context("Simple", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

@@ -60,10 +60,6 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 			14400000, 15300000, 16200000, 17100000, 18000000}))
 	})
 
-	Context("ParseHighLevelAlertDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewHighLevelAlertDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewHighLevelAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.HighLevelAlertDEPRECATED{}))
@@ -71,9 +67,6 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 	})
 
 	Context("HighLevelAlertDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -444,10 +437,6 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 		})
 	})
 
-	Context("ParseLowLevelAlertDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewLowLevelAlertDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewLowLevelAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.LowLevelAlertDEPRECATED{}))
@@ -455,9 +444,6 @@ var _ = Describe("LevelAlertDEPRECATED", func() {
 	})
 
 	Context("LowLevelAlertDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

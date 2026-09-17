@@ -26,10 +26,6 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 			12600000, 12900000, 13200000, 13500000, 13800000, 14100000, 14400000}))
 	})
 
-	Context("ParseOutOfRangeAlertDEPRECATED", func() {
-		// TODO
-	})
-
 	Context("NewOutOfRangeAlertDEPRECATED", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsCgm.NewOutOfRangeAlertDEPRECATED()).To(Equal(&dataTypesSettingsCgm.OutOfRangeAlertDEPRECATED{}))
@@ -37,9 +33,6 @@ var _ = Describe("OutOfRangeAlertDEPRECATED", func() {
 	})
 
 	Context("OutOfRangeAlertDEPRECATED", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

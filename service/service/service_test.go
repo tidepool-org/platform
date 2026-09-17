@@ -86,9 +86,7 @@ var _ = Describe("Service", func() {
 					})
 				})
 
-				Context("Run", func() {
-					// Cannot invoke Run since it starts a server that requires user intervention
-				})
+				// Run is not invoked here because it starts a server that requires user intervention.
 
 				Context("Secret", func() {
 					It("returns the secret", func() {

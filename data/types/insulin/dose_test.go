@@ -56,10 +56,6 @@ var _ = Describe("Dose", func() {
 		Expect(insulin.DoseUnits()).To(Equal([]string{"Units"}))
 	})
 
-	Context("ParseDose", func() {
-		// TODO
-	})
-
 	Context("NewDose", func() {
 		It("is successful", func() {
 			Expect(insulin.NewDose()).To(Equal(&insulin.Dose{}))
@@ -67,9 +63,6 @@ var _ = Describe("Dose", func() {
 	})
 
 	Context("Dose", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

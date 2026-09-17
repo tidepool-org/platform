@@ -111,10 +111,6 @@ var _ = Describe("Distance", func() {
 		Expect(physical.DistanceUnits()).To(Equal([]string{"feet", "kilometers", "meters", "miles", "yards"}))
 	})
 
-	Context("ParseDistance", func() {
-		// TODO
-	})
-
 	Context("NewDistance", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewDistance()).To(Equal(&physical.Distance{}))
@@ -122,9 +118,6 @@ var _ = Describe("Distance", func() {
 	})
 
 	Context("Distance", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
