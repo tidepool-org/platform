@@ -7,21 +7,11 @@ language: minimal
 services:
   - docker
 
-stages:
-  - tools
-  - test
-
 jobs:
   include:
-    - stage: tools
-      name: Prepare shared CI tools image
-      cache: false
-      script: bash ci/tools-image.sh ensure
-    - stage: test
-      name: Public plugins
+    - name: Public plugins
       env: PLUGINS_VISIBILITY=public
-    - stage: test
-      name: Private plugins
+    - name: Private plugins
       env: PLUGINS_VISIBILITY=private
 
 cache:

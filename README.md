@@ -173,12 +173,18 @@ metadata, even when compiled packages are reused.
 
 ## Shared CI tools image
 
-Travis first runs one `tools` job, followed by the public/private jobs in parallel.
-`ci/tools-image.sh ensure` checks for a content-addressed image in the existing
-`tidepool/platform-tools` repository. A cache hit only checks the registry manifest;
-it does not build, pull, or push the image. On a miss, it builds and publishes the
-image and an inline-cache tag for subsequent tool updates. No application source,
-private plugins, credentials, or test results are included in this image.
+Travis starts the public/private jobs in parallel, without a preparation stage.
+Each job runs `ci/tools-image.sh ensure` to pull the image identified by the tools
+configuration from `tidepool/platform-tools`. An existing image needs no build,
+login, or push. If its manifest is missing, the job builds it locally using the
+previous tools image's inline cache when available. Other pull failures get up
+to three attempts and fail the job rather than trigger a rebuild.
+
+The public, non-PR Travis job also publishes a newly built image and its inline
+cache when Docker credentials are available. Other jobs use their local build
+without publishing. Both jobs may build on the first run after a tools change;
+neither depends on the other finishing. No application source, private plugins,
+credentials, or test results are included in this image.
 
 The image includes Go, MongoDB/mongosh, Git, Make, GCC, mockgen, goimports, Docker
 CLI, and Buildx. Base images are pinned in `ci/tools.env`; generator versions come
@@ -191,8 +197,7 @@ and runs the Makefile as the host user's UID. MongoDB runs inside the job's
 container with a fresh replica set. The compiler/test cache is namespaced by tools
 image, so a MongoDB/toolchain update reruns tests even when Go source is unchanged.
 Module downloads remain reusable across tools images. Docker CLI uses the host
-Docker socket to package the binaries. The preparation job does not restore or
-upload Go caches.
+Docker socket to package the binaries.
 
 To exercise the same environment locally in a clean disposable checkout:
 
@@ -206,12 +211,16 @@ CI_TOOLS_LOCAL=true CI_CACHE_ROOT=/tmp/platform-ci-cache \
 
 `CI_CACHE_ROOT` keeps the Linux caches separate from native developer caches.
 `CI_DOCKER_SOCKET` can override `/var/run/docker.sock` for local Docker setups.
-`CI_TOOLS_REPOSITORY` selects another registry repository. Image pulls and each
-Makefile phase are timed; compare total pipeline elapsed time, including the
-preparation stage and its scheduling delay, when evaluating this experiment.
+`CI_TOOLS_REPOSITORY` selects another registry repository. `CI_TOOLS_PUBLISH=true`
+opts into publishing a newly built tools image when credentials are available;
+`false` disables publication. Image pulls and each Makefile phase are timed;
+compare total pipeline elapsed time when evaluating changes.
 Measure a warm run only after both matrix jobs have completed successfully and
 uploaded their caches. The first run after a tools-image change repopulates the
 compiler/test cache; a registry image hit alone does not mean the Go cache is warm.
+
+Run `python3 -B -m unittest discover -s ci/tests -v` to check tools-image fallback,
+retry, and publication behavior without contacting a registry.
 
 # Upgrade Golang Version
 

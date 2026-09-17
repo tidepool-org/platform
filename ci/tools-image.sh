@@ -30,32 +30,61 @@ build_image() {
         --tag "$image" --file ci/Dockerfile ci
 }
 
+# Return 2 only for a missing manifest. Authentication, rate limits, transport
+# errors and ambiguous failures must never turn a pull into a tools rebuild.
+pull_image() {
+    local reference=$1 attempt
+    for attempt in 1 2 3; do
+        if docker pull "$reference" 2>"$error_file"; then
+            return 0
+        fi
+        cat "$error_file" >&2
+        # Classic Docker reports MANIFEST_UNKNOWN; the containerd image store
+        # reports a failed resolution of this exact reference as "not found".
+        if grep -Eiq 'manifest unknown|MANIFEST_UNKNOWN|no such manifest' "$error_file" ||
+            grep -Fq -- "failed to resolve reference \"$reference\": $reference: not found" "$error_file"; then
+            return 2
+        fi
+        if [[ "$attempt" -lt 3 ]]; then
+            echo "Tools image pull failed; retrying ($attempt/3): $reference" >&2
+            sleep "$((attempt * 5))" || return 1
+        fi
+    done
+    return 1
+}
+
 case "${1:-ref}" in
     ref) printf '%s\n' "$image" ;;
     build) time -p build_image ;;
     ensure)
         error_file=$(mktemp)
         trap 'rm -f "$error_file"' EXIT
-        echo "Checking shared tools image: $image"
-        if docker manifest inspect "$image" >/dev/null 2>"$error_file"; then
+        echo "Pulling shared tools image: $image"
+        if time -p pull_image "$image"; then
             echo "TOOLS_IMAGE_CACHE=hit (no build or push required)"
             exit 0
+        else
+            status=$?
         fi
-        # A registry outage or authentication error must not trigger a rebuild.
-        if ! grep -Eq 'no such manifest|manifest unknown|not found' "$error_file"; then
-            cat "$error_file" >&2
-            exit 1
-        fi
+        [[ "$status" == 2 ]] || exit "$status"
         echo "TOOLS_IMAGE_CACHE=miss"
-        : "${DOCKER_USERNAME:?Required to publish the shared tools image}"
-        : "${DOCKER_PASSWORD:?Required to publish the shared tools image}"
-        printf '%s' "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
         # Inline cache is optional on the first build of this tools image.
-        docker pull "$cache_image" || echo "No previous tools image cache available"
+        if time -p pull_image "$cache_image"; then
+            :
+        else
+            status=$?
+            [[ "$status" == 2 ]] || exit "$status"
+            echo "No previous tools image cache available"
+        fi
         time -p build_image
-        time -p docker push "$image"
-        docker tag "$image" "$cache_image"
-        time -p docker push "$cache_image"
+        if [[ "${CI_TOOLS_PUBLISH:-false}" == true && -n "${DOCKER_USERNAME:-}" && -n "${DOCKER_PASSWORD:-}" ]]; then
+            printf '%s' "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
+            time -p docker push "$image"
+            docker tag "$image" "$cache_image"
+            time -p docker push "$cache_image"
+        else
+            echo "Using locally built tools image (publishing disabled or credentials unavailable)"
+        fi
         ;;
     *) echo "Usage: $0 [ref|build|ensure]" >&2; exit 1 ;;
 esac
