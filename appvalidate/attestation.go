@@ -6,8 +6,8 @@ import (
 
 	"github.com/tidepool-org/platform/structure"
 
-	appAttest "github.com/bas-d/appattest/attestation"
-	appUtils "github.com/bas-d/appattest/utils"
+	appAttest "github.com/tidepool-org/appattest/attestation"
+	appUtils "github.com/tidepool-org/appattest/utils"
 )
 
 // AttestationVerify is the request body used to validate an app's

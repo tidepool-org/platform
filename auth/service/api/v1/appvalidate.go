@@ -3,7 +3,6 @@ package v1
 import (
 	"context"
 	"errors"
-	"maps"
 	"net/http"
 
 	"github.com/ant0ine/go-json-rest/rest"
@@ -38,7 +37,7 @@ func (r *Router) CreateAttestationChallenge(res rest.ResponseWriter, req *rest.R
 	result, err := r.AppValidator().CreateAttestChallenge(ctx, challengeCreate)
 	if err != nil {
 		fields := log.Fields{
-			"userID": details.UserID(),
+			"userId": details.UserID(),
 			"keyId":  challengeCreate.KeyID,
 		}
 		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to create attestation challenge")
@@ -65,7 +64,7 @@ func (r *Router) CreateAssertionChallenge(res rest.ResponseWriter, req *rest.Req
 	result, err := r.AppValidator().CreateAssertChallenge(ctx, challengeCreate)
 	if err != nil {
 		fields := log.Fields{
-			"userID": details.UserID(),
+			"userId": details.UserID(),
 			"keyId":  challengeCreate.KeyID,
 		}
 		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to create assertion challenge")
@@ -88,14 +87,17 @@ func (r *Router) VerifyAttestation(res rest.ResponseWriter, req *rest.Request) {
 	if decodeValidateBodyFailed(ctx, responder, req.Request, attestVerify) {
 		return
 	}
+	logFields := log.Fields{
+		"attestation": attestVerify,
+		"auth":        details,
+		"userId":      details.UserID(),
+		"keyId":       attestVerify.KeyID,
+	}
+	log.LoggerFromContext(ctx).WithFields(logFields).Debug("VerifyAttestation")
 
 	err := r.AppValidator().VerifyAttestation(ctx, attestVerify)
 	if err != nil {
-		fields := log.Fields{
-			"userID": details.UserID(),
-			"keyId":  attestVerify.KeyID,
-		}
-		log.LoggerFromContext(ctx).WithFields(fields).WithError(err).Error("unable to verify attestation")
+		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to verify attestation")
 		if errors.Is(err, appvalidate.ErrKeyIdNotFound) {
 			responder.Error(http.StatusNotFound, err)
 			return
@@ -122,16 +124,12 @@ func (r *Router) VerifyAssertion(res rest.ResponseWriter, req *rest.Request) {
 	}
 
 	logFields := log.Fields{
-		"userID": details.UserID(),
-		"keyId":  assertVerify.KeyID,
+		"userId":      details.UserID(),
+		"keyId":       assertVerify.KeyID,
+		"partnerData": string(assertVerify.ClientData.PartnerData),
 	}
 
-	// log debug fields (only in qa environments)
-	debugFields := log.Fields{
-		"PartnerData": string(assertVerify.ClientData.PartnerData),
-	}
-	maps.Copy(debugFields, logFields)
-	log.LoggerFromContext(ctx).WithFields(debugFields).Debug("appvalidate input")
+	log.LoggerFromContext(ctx).WithFields(logFields).Debug("VerifyAssertion")
 
 	if err := r.AppValidator().VerifyAssertion(ctx, assertVerify); err != nil {
 		log.LoggerFromContext(ctx).WithFields(logFields).WithError(err).Error("unable to verify assertion")
