@@ -105,13 +105,20 @@ type Standard struct {
 	userEventsHandler              events.Runner
 	twiistServiceAccountAuthorizer *twiist.ServiceAccountAuthorizer
 	api                            *dataServiceApi.Standard
-	server                         *serviceServer.Standard
+	server                         serviceServer.Server
+	serverFactory                  serviceServer.Factory
 }
 
 func NewStandard() *Standard {
 	return &Standard{
 		DEPRECATEDService: serviceService.NewDEPRECATEDService(),
+		serverFactory:     serviceServer.New,
 	}
+}
+
+// SetServerFactory must be called before Initialize.
+func (s *Standard) SetServerFactory(factory serviceServer.Factory) {
+	s.serverFactory = factory
 }
 
 func (s *Standard) Initialize(provider application.Provider) error {
@@ -253,15 +260,11 @@ func (s *Standard) Run() error {
 	if s.server == nil {
 		return errors.New("service not initialized")
 	}
-
-	errs := make(chan error)
-	go func() {
-		errs <- s.userEventsHandler.Run()
-	}()
-	go func() {
-		errs <- s.server.Serve()
-	}()
-
+	runServer := s.server.Serve
+	runEvents := s.userEventsHandler.Run
+	errs := make(chan error, 2)
+	go func() { errs <- runEvents() }()
+	go func() { errs <- runServer() }()
 	return <-errs
 }
 
@@ -956,7 +959,7 @@ func (s *Standard) initializeUserEventsHandler() error {
 	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
 	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
+	runner := events.NewRunner(handlers, events.WithConsumerGroup(s.ConfigReporter().WithScopes("events").GetWithDefault("consumer_group", "")))
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
@@ -1015,7 +1018,7 @@ func (s *Standard) initializeServer() error {
 
 	s.Logger().Debug("Creating server")
 
-	newServer, err := serviceServer.NewStandard(serverConfig, s.Logger(), s.api)
+	newServer, err := s.serverFactory(serverConfig, s.Logger(), s.api)
 	if err != nil {
 		return errors.Wrap(err, "unable to create server")
 	}

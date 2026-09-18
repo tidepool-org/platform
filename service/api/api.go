@@ -14,6 +14,8 @@ type API struct {
 	service.Service
 	api              *rest.Api
 	statusMiddleware *rest.StatusMiddleware
+	routes           []*rest.Route
+	middleware       []rest.Middleware
 }
 
 func New(svc service.Service) (*API, error) {
@@ -87,6 +89,7 @@ func (a *API) InitializeMiddleware() error {
 	}
 
 	a.api.Use(middlewareStack...)
+	a.middleware = middlewareStack
 
 	a.statusMiddleware = statusMiddleware
 
@@ -100,12 +103,31 @@ func (a *API) InitializeRouters(routers ...service.Router) error {
 		routes = append(routes, router.Routes()...)
 	}
 
+	return a.InitializeRoutes(routes...)
+}
+
+// InitializeRoutes retains the route table so a combined server can mount the
+// same handlers, including their service-specific authentication middleware.
+func (a *API) InitializeRoutes(routes ...*rest.Route) error {
 	router, err := rest.MakeRouter(routes...)
 	if err != nil {
 		return errors.Wrap(err, "unable to initializer router")
 	}
 
 	a.api.SetApp(router)
+	a.routes = routes
 
 	return nil
+}
+
+// Routes returns independent route descriptors with this API's middleware.
+// Call after InitializeMiddleware, before serving requests.
+func (a *API) Routes() []*rest.Route {
+	routes := make([]*rest.Route, 0, len(a.routes))
+	for _, route := range a.routes {
+		copy := *route
+		copy.Func = rest.WrapMiddlewares(a.middleware, route.Func)
+		routes = append(routes, &copy)
+	}
+	return routes
 }

@@ -14,13 +14,21 @@ type Service struct {
 	secret         string
 	authClientImpl auth.Client
 	api            *api.API
-	server         *server.Standard
+	server         server.Server
+	serverFactory  server.Factory
 }
 
 func New() *Service {
 	return &Service{
-		Application: application.New(),
+		Application:   application.New(),
+		serverFactory: server.New,
 	}
+}
+
+// SetServerFactory must be called before Initialize to host this service in a
+// combined application. The default factory creates a standalone HTTP server.
+func (s *Service) SetServerFactory(factory server.Factory) {
+	s.serverFactory = factory
 }
 
 func (s *Service) Initialize(provider application.Provider) error {
@@ -46,17 +54,26 @@ func (s *Service) Terminate() {
 }
 
 func (s *Service) Run() error {
+	run, err := s.RunFunc()
+	if err != nil {
+		return err
+	}
+	return run()
+}
+
+// RunFunc prepares middleware and captures the server before workers start.
+func (s *Service) RunFunc() (func() error, error) {
 	if s.server == nil {
-		return errors.New("service not initialized")
+		return nil, errors.New("service not initialized")
 	}
 
 	s.Logger().Debug("Finalizing middleware")
 
 	if err := s.api.InitializeMiddleware(); err != nil {
-		return errors.Wrap(err, "unable to initialize middleware")
+		return nil, errors.Wrap(err, "unable to initialize middleware")
 	}
 
-	return s.server.Serve()
+	return s.server.Serve, nil
 }
 
 func (s *Service) Secret() string {
@@ -123,7 +140,7 @@ func (s *Service) initializeServer() error {
 
 	s.Logger().Debug("Creating server")
 
-	svr, err := server.NewStandard(cfg, s.Logger(), s.API())
+	svr, err := s.serverFactory(cfg, s.Logger(), s.API())
 	if err != nil {
 		return errors.Wrap(err, "unable to create server")
 	}

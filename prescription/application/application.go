@@ -26,6 +26,13 @@ var Prescription = fx.Options(
 		prescriptionMongo.NewStatusReporter,
 		service.NewDeviceSettingsValidator,
 		service.NewService,
+	),
+	Routers,
+)
+
+// Routers is shared by application assembly and route reachability tests.
+var Routers = fx.Options(
+	fx.Provide(
 		fx.Annotated{
 			Group:  "routers",
 			Target: api.NewRouter,

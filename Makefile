@@ -99,7 +99,7 @@ else
 	PLUGIN_VISIBILITY:=private
 endif
 
-SERVICES=auth blob data migrations prescription task tools
+SERVICES=server migrations tools
 
 default: test
 

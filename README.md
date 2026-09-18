@@ -6,7 +6,7 @@ The Tidepool Platform API.
 
 # Setup
 
-1. Install Go version 1.11.4 or later
+1. Install the Go version specified in `go.mod`
 1. Install mongodb (if it is not already installed, or run it from Docker)
 
     The tests assume that mongodb is listening on 127.0.0.1:27017.
@@ -58,16 +58,77 @@ NOTE: Do **NOT** commit any `update = none` changes to `.gitmodules` nor the `go
 
 1. Setup the environment, as above.
 1. Build the project.
-1. Execute a service.
+1. Execute the combined server.
 
 In addition to the setup above, for example:
 
 ```
-make build
-_bin/services/data/data
+make build BUILD=services/server
+_bin/services/server/server
 ```
 
 Use `Ctrl-C` to stop the executable. It may take up to 60 seconds to stop.
+
+## Combined server
+
+Auth, blob, data, prescription, and task run in one process, with one HTTP
+listener and their existing background workers. CI publishes the runtime as
+`tidepool/platform-server` (or `tidepool/platform-server-private`). The migration
+and administrative executables and their `platform-migrations` and
+`platform-tools` images remain separate.
+
+Merge the configuration previously supplied to the five service deployments.
+Component settings keep their existing scopes, such as
+`TIDEPOOL_AUTH_SERVICE_SECRET` and `TIDEPOOL_BLOB_SERVICE_UNSTRUCTURED_BLOBS_STORE_*`.
+Client identities also remain `auth`, `blob`, `data`, `prescription`, and `task`.
+Configure the shared listener with `TIDEPOOL_SERVER_ADDRESS` and
+`TIDEPOOL_SERVER_TLS`; old component-specific server addresses no longer open
+listeners. For example, for HTTP behind a TLS-terminating proxy:
+
+```sh
+export TIDEPOOL_SERVER_ADDRESS=:9220
+export TIDEPOOL_SERVER_TLS=false
+export TIDEPOOL_AUTH_CLIENT_ADDRESS=http://127.0.0.1:9220
+export TIDEPOOL_DATA_CLIENT_ADDRESS=http://127.0.0.1:9220
+export TIDEPOOL_DATA_SOURCE_CLIENT_ADDRESS=http://127.0.0.1:9220
+export TIDEPOOL_TASK_CLIENT_ADDRESS=http://127.0.0.1:9220
+```
+
+Update any more-specific client address overrides as well. Internal clients
+currently use loopback HTTP and retain their existing service secrets. Keep
+`TIDEPOOL_AUTH_CLIENT_EXTERNAL_ADDRESS` pointed at the existing external
+authentication API; it must not point at this server. MongoDB, Kafka, object
+storage, and APIs supplied by other repositories remain dependencies.
+
+Copy each old deployment's `KAFKA_CONSUMER_GROUP` into its new setting:
+`TIDEPOOL_AUTH_SERVICE_EVENTS_CONSUMER_GROUP`,
+`TIDEPOOL_BLOB_SERVICE_EVENTS_CONSUMER_GROUP`, and
+`TIDEPOOL_DATA_SERVICE_EVENTS_CONSUMER_GROUP`. All three are required and must
+be distinct, so every component receives user events and retains its existing
+Kafka offsets. The common broker and topic settings still apply to all three.
+Set `CLOUD_EVENTS_SOURCE` to the combined deployment's event source identity.
+
+Point the gateway and other callers at the combined listener instead of the
+five service addresses. API methods and paths are preserved. `GET /status`
+reports the running components after all have initialized; individual status
+responses are at `/status/auth`, `/status/blob`, `/status/data`,
+`/status/prescription`, and `/status/task`. `GET /v1/metrics` exposes the shared
+Prometheus registry. Component authentication and authorization still apply to
+their routes. Unexpected duplicate routes prevent startup.
+
+Deploying this image requires replacing the five old service deployments and
+updating their gateway, client, health-check, and monitoring configuration.
+Scaling the combined deployment scales all five components and their workers
+together. The repository does not apply these deployment changes automatically.
+
+The combined server's tests exercise every registered route over HTTP, check
+parameter and body preservation and authentication, and verify startup failure
+handling and shutdown. The checked-in route inventory makes removed routes
+visible in review; private plugin routes are included dynamically. Run them with:
+
+```sh
+go test -race ./service/combined
+```
 
 > **Note:** For testing and development, services are generally run on a local Kubernetes cluster through the [development repo](https://github.com/tidepool-org/development#developing-tidepool-services).
 
