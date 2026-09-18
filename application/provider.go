@@ -74,6 +74,19 @@ func ExportVersionReporter(prvdr Provider) version.Reporter {
 }
 
 func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
+	return newProvider(prefix, "", scopes...)
+}
+
+// NewNamedProvider preserves each component's configuration scope and client
+// identity when several services run in the same executable.
+func NewNamedProvider(prefix, name string, scopes ...string) (*ProviderImpl, error) {
+	if name == "" {
+		return nil, errors.New("name is missing")
+	}
+	return newProvider(prefix, name, scopes...)
+}
+
+func newProvider(prefix, name string, scopes ...string) (*ProviderImpl, error) {
 	if prefix == "" {
 		return nil, errors.New("prefix is missing")
 	}
@@ -88,9 +101,11 @@ func NewProvider(prefix string, scopes ...string) (*ProviderImpl, error) {
 		return nil, errors.Wrap(err, "unable to create config reporter")
 	}
 
-	name := filepath.Base(os.Args[0])
-	if strings.EqualFold(name, "debug") || strings.HasPrefix(name, "__debug_bin") {
-		name = configReporter.WithScopes("debug").GetWithDefault("name", name)
+	if name == "" {
+		name = filepath.Base(os.Args[0])
+		if strings.EqualFold(name, "debug") || strings.HasPrefix(name, "__debug_bin") {
+			name = configReporter.WithScopes("debug").GetWithDefault("name", name)
+		}
 	}
 
 	configReporter = configReporter.WithScopes(name).WithScopes(scopes...)

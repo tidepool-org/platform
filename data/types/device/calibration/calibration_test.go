@@ -63,9 +63,6 @@ var _ = Describe("Calibration", func() {
 	})
 
 	Context("Calibration", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

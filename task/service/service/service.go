@@ -17,6 +17,7 @@ import (
 	"github.com/tidepool-org/platform/ehr/sync"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/platform"
+	serviceRoot "github.com/tidepool-org/platform/service"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	summaryTask "github.com/tidepool-org/platform/summary/task"
@@ -344,27 +345,26 @@ func (s *Service) terminateTaskQueue() {
 }
 
 func (s *Service) initializeRouter() error {
-	s.Logger().Debug("Creating api router")
+	s.Logger().Debug("Initializing routers")
+	routers, err := s.Routers()
+	if err != nil {
+		return err
+	}
+	return s.API().InitializeRouters(routers...)
+}
 
+// Routers is the complete API registration used by both standalone and combined servers.
+func (s *Service) Routers() ([]serviceRoot.Router, error) {
 	apiRouter, err := api.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create api router")
+		return nil, errors.Wrap(err, "unable to create api router")
 	}
-
-	s.Logger().Debug("Creating v1 router")
 
 	v1Router, err := taskServiceApiV1.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create v1 router")
+		return nil, errors.Wrap(err, "unable to create v1 router")
 	}
-
-	s.Logger().Debug("Initializing routers")
-
-	if err = s.API().InitializeRouters(apiRouter, v1Router); err != nil {
-		return errors.Wrap(err, "unable to initialize routers")
-	}
-
-	return nil
+	return []serviceRoot.Router{apiRouter, v1Router}, nil
 }
 
 func (s *Service) terminateRouter() {

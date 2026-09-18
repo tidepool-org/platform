@@ -50,9 +50,6 @@ var _ = Describe("Basal", func() {
 	})
 
 	Context("Basal", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -164,7 +161,4 @@ var _ = Describe("Basal", func() {
 		})
 	})
 
-	Context("ParseDeliveryType", func() {
-		// TODO
-	})
 })

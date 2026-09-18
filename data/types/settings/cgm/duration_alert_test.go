@@ -94,10 +94,6 @@ var _ = Describe("DurationAlert", func() {
 			),
 		)
 
-		Context("Parse", func() {
-			// TODO
-		})
-
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataTypesSettingsCgm.DurationAlert), expectedErrors ...error) {
@@ -211,10 +207,6 @@ var _ = Describe("DurationAlert", func() {
 		})
 	})
 
-	Context("ParseNoDataAlert", func() {
-		// TODO
-	})
-
 	Context("NewNoDataAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewNoDataAlert()
@@ -241,10 +233,6 @@ var _ = Describe("DurationAlert", func() {
 				func(datum *dataTypesSettingsCgm.NoDataAlert) { *datum = dataTypesSettingsCgm.NoDataAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -449,10 +437,6 @@ var _ = Describe("DurationAlert", func() {
 		})
 	})
 
-	Context("ParseOutOfRangeAlert", func() {
-		// TODO
-	})
-
 	Context("NewOutOfRangeAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewOutOfRangeAlert()
@@ -479,10 +463,6 @@ var _ = Describe("DurationAlert", func() {
 				func(datum *dataTypesSettingsCgm.OutOfRangeAlert) { *datum = dataTypesSettingsCgm.OutOfRangeAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

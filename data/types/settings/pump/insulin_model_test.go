@@ -67,10 +67,6 @@ var _ = Describe("InsulinModel", func() {
 		Expect(dataTypesSettingsPump.InsulinModelModelTypes()).To(Equal([]string{"fiasp", "other", "rapidAdult", "rapidChild", "walsh"}))
 	})
 
-	Context("ParseInsulinModel", func() {
-		// TODO
-	})
-
 	Context("NewInsulinModel", func() {
 		It("is successful", func() {
 			Expect(dataTypesSettingsPump.NewInsulinModel()).To(Equal(&dataTypesSettingsPump.InsulinModel{}))
@@ -78,9 +74,6 @@ var _ = Describe("InsulinModel", func() {
 	})
 
 	Context("InsulinModel", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

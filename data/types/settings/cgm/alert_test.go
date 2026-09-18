@@ -14,9 +14,6 @@ import (
 )
 
 var _ = Describe("Alert", func() {
-	Context("ParseAlerts", func() {
-		// TODO
-	})
 
 	Context("NewAlerts", func() {
 		It("returns successfully with default values", func() {
@@ -51,10 +48,6 @@ var _ = Describe("Alert", func() {
 				func(datum *dataTypesSettingsCgm.Alerts) { *datum = dataTypesSettingsCgm.Alerts{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -241,10 +234,6 @@ var _ = Describe("Alert", func() {
 				func(datum *dataTypesSettingsCgm.Alert) { *datum = dataTypesSettingsCgm.Alert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

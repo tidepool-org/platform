@@ -117,14 +117,7 @@ func (s *Standard) DEPRECATEDInitializeRouter(routes []dataService.Route) error 
 		contextRoutes = append(contextRoutes, route.ToRestRoute(s.withContext))
 	}
 
-	router, err := rest.MakeRouter(contextRoutes...)
-	if err != nil {
-		return errors.Wrap(err, "unable to create router")
-	}
-
-	s.DEPRECATEDAPI().SetApp(router)
-
-	return nil
+	return s.InitializeRoutes(contextRoutes...)
 }
 
 func (s *Standard) withContext(handler dataService.HandlerFunc) rest.HandlerFunc {

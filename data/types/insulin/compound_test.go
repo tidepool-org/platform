@@ -20,10 +20,6 @@ var _ = Describe("Compound", func() {
 		Expect(insulin.CompoundAmountMinimum).To(Equal(0.0))
 	})
 
-	Context("ParseCompound", func() {
-		// TODO
-	})
-
 	Context("NewCompound", func() {
 		It("is successful", func() {
 			Expect(insulin.NewCompound()).To(Equal(&insulin.Compound{}))
@@ -31,9 +27,6 @@ var _ = Describe("Compound", func() {
 	})
 
 	Context("Compound", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -106,10 +99,6 @@ var _ = Describe("Compound", func() {
 		})
 	})
 
-	Context("ParseCompoundArray", func() {
-		// TODO
-	})
-
 	Context("NewCompoundArray", func() {
 		It("is successful", func() {
 			Expect(insulin.NewCompoundArray()).To(Equal(&insulin.CompoundArray{}))
@@ -117,9 +106,6 @@ var _ = Describe("Compound", func() {
 	})
 
 	Context("CompoundArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

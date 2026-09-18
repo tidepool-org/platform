@@ -39,10 +39,6 @@ var _ = Describe("Step", func() {
 		Expect(physical.StepCountMinimum).To(Equal(0))
 	})
 
-	Context("ParseStep", func() {
-		// TODO
-	})
-
 	Context("NewStep", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewStep()).To(Equal(&physical.Step{}))
@@ -50,9 +46,6 @@ var _ = Describe("Step", func() {
 	})
 
 	Context("Step", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

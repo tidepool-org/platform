@@ -32,10 +32,6 @@ var _ = Describe("BasalTemporary", func() {
 		Expect(pump.BasalTemporaryTypes()).To(Equal([]string{"off", "percent", "Units/hour"}))
 	})
 
-	Context("ParseBasalTemporary", func() {
-		// TODO
-	})
-
 	Context("NewBasalTemporary", func() {
 		It("is successful", func() {
 			Expect(pump.NewBasalTemporary()).To(Equal(&pump.BasalTemporary{}))
@@ -43,9 +39,6 @@ var _ = Describe("BasalTemporary", func() {
 	})
 
 	Context("BasalTemporary", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

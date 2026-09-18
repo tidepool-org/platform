@@ -45,11 +45,12 @@ func Run(runner Runner, provider Provider) error {
 		return errors.Wrap(err, "unable to initialize runner")
 	}
 
-	errs := make(chan error)
+	errs := make(chan error, 1)
 
 	go func() {
 		if err := runner.Run(); err != nil {
 			errs <- errors.Wrap(err, "unable to run runner")
+			return
 		}
 		errs <- nil
 	}()
@@ -57,6 +58,7 @@ func Run(runner Runner, provider Provider) error {
 	provider.Logger().Debug("Listening for signals")
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(signals)
 
 	select {
 	case sig := <-signals:

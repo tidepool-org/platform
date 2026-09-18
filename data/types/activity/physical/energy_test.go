@@ -91,10 +91,6 @@ var _ = Describe("Energy", func() {
 		Expect(physical.EnergyUnits()).To(Equal([]string{"calories", "joules", "kilocalories", "kilojoules"}))
 	})
 
-	Context("ParseEnergy", func() {
-		// TODO
-	})
-
 	Context("NewEnergy", func() {
 		It("is successful", func() {
 			Expect(physical.NewEnergy()).To(Equal(&physical.Energy{}))
@@ -102,9 +98,6 @@ var _ = Describe("Energy", func() {
 	})
 
 	Context("Energy", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

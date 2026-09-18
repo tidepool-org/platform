@@ -20,6 +20,7 @@ import (
 	blobStoreStructuredMongo "github.com/tidepool-org/platform/blob/store/structured/mongo"
 	blobStoreUnstructured "github.com/tidepool-org/platform/blob/store/unstructured"
 	"github.com/tidepool-org/platform/errors"
+	serviceRoot "github.com/tidepool-org/platform/service"
 	serviceApi "github.com/tidepool-org/platform/service/api"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -42,14 +43,14 @@ func New() *Service {
 }
 
 func (s *Service) Run() error {
-	errs := make(chan error)
-	go func() {
-		errs <- s.userEventsHandler.Run()
-	}()
-	go func() {
-		errs <- s.Service.Run()
-	}()
-
+	runServer, err := s.Service.RunFunc()
+	if err != nil {
+		return err
+	}
+	runEvents := s.userEventsHandler.Run
+	errs := make(chan error, 2)
+	go func() { errs <- runEvents() }()
+	go func() { errs <- runServer() }()
 	return <-errs
 }
 
@@ -218,7 +219,7 @@ func (s *Service) initializeUserEventsHandler() error {
 	ctx := logInternal.NewContextWithLogger(context.Background(), s.Logger())
 	handler := blobEvents.NewUserDataDeletionHandler(ctx, s.blobClient)
 	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
+	runner := events.NewRunner(handlers, events.WithConsumerGroup(s.ConfigReporter().WithScopes("events").GetWithDefault("consumer_group", "")))
 
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "unable to initialize events runner")
@@ -258,27 +259,26 @@ func (s *Service) terminateBlobClient() {
 }
 
 func (s *Service) initializeRouter() error {
-	s.Logger().Debug("Creating status router")
+	s.Logger().Debug("Initializing routers")
+	routers, err := s.Routers()
+	if err != nil {
+		return err
+	}
+	return s.API().InitializeRouters(routers...)
+}
 
+// Routers is the complete API registration used by both standalone and combined servers.
+func (s *Service) Routers() ([]serviceRoot.Router, error) {
 	statusRouter, err := serviceApi.NewStatusRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create status router")
+		return nil, errors.Wrap(err, "unable to create status router")
 	}
-
-	s.Logger().Debug("Creating blob service api v1 router")
 
 	router, err := blobServiceApiV1.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create blob service api v1 router")
+		return nil, errors.Wrap(err, "unable to create blob service api v1 router")
 	}
-
-	s.Logger().Debug("Initializing routers")
-
-	if err = s.API().InitializeRouters(statusRouter, router); err != nil {
-		return errors.Wrap(err, "unable to initialize routers")
-	}
-
-	return nil
+	return []serviceRoot.Router{statusRouter, router}, nil
 }
 
 func (s *Service) terminateRouter() {

@@ -27,10 +27,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 		Expect(pump.BloodGlucoseTargetStartStartMinimum).To(Equal(0))
 	})
 
-	Context("ParseBloodGlucoseTargetStart", func() {
-		// TODO
-	})
-
 	Context("NewBloodGlucoseTargetStart", func() {
 		It("is successful", func() {
 			Expect(pump.NewBloodGlucoseTargetStart()).To(Equal(&pump.BloodGlucoseTargetStart{}))
@@ -38,9 +34,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 	})
 
 	Context("BloodGlucoseTargetStart", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -247,10 +240,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 		})
 	})
 
-	Context("ParseBloodGlucoseTargetStartArray", func() {
-		// TODO
-	})
-
 	Context("NewBloodGlucoseTargetStartArray", func() {
 		It("is successful", func() {
 			Expect(pump.NewBloodGlucoseTargetStartArray()).To(Equal(&pump.BloodGlucoseTargetStartArray{}))
@@ -258,9 +247,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 	})
 
 	Context("BloodGlucoseTargetStartArray", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -507,10 +493,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 		})
 	})
 
-	Context("ParseBloodGlucoseTargetStartArrayMap", func() {
-		// TODO
-	})
-
 	Context("NewBloodGlucoseTargetStartArrayMap", func() {
 		It("is successful", func() {
 			Expect(pump.NewBloodGlucoseTargetStartArrayMap()).To(Equal(&pump.BloodGlucoseTargetStartArrayMap{}))
@@ -518,9 +500,6 @@ var _ = Describe("BloodGlucoseTargetStart", func() {
 	})
 
 	Context("BloodGlucoseTargetStartArrayMap", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

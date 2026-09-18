@@ -53,6 +53,7 @@ import (
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/provider"
 	providerFactory "github.com/tidepool-org/platform/provider/factory"
+	serviceRoot "github.com/tidepool-org/platform/service"
 	serviceService "github.com/tidepool-org/platform/service/service"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/task"
@@ -108,14 +109,14 @@ func New() *Service {
 }
 
 func (s *Service) Run() error {
-	errs := make(chan error)
-	go func() {
-		errs <- s.userEventsHandler.Run()
-	}()
-	go func() {
-		errs <- s.Service.Run()
-	}()
-
+	runServer, err := s.Service.RunFunc()
+	if err != nil {
+		return err
+	}
+	runEvents := s.userEventsHandler.Run
+	errs := make(chan error, 2)
+	go func() { errs <- runEvents() }()
+	go func() { errs <- runServer() }()
 	return <-errs
 }
 
@@ -194,6 +195,10 @@ func (s *Service) Initialize(provider application.Provider) error {
 }
 
 func (s *Service) Terminate() {
+	if s.workCoordinator != nil {
+		s.workCoordinator.Stop()
+		s.workCoordinator = nil
+	}
 	s.Service.Terminate()
 	s.terminateUserEventsHandler()
 	s.terminateAuthClient()
@@ -362,48 +367,41 @@ func (s *Service) initializeShopify() error {
 }
 
 func (s *Service) initializeRouter() error {
-	s.Logger().Debug("Creating api router")
+	s.Logger().Debug("Initializing routers")
+	routers, err := s.Routers()
+	if err != nil {
+		return err
+	}
+	return s.API().InitializeRouters(routers...)
+}
 
+// Routers is the complete API registration used by both standalone and combined servers.
+func (s *Service) Routers() ([]serviceRoot.Router, error) {
 	apiRouter, err := authServiceApi.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create api router")
+		return nil, errors.Wrap(err, "unable to create api router")
 	}
-
-	s.Logger().Debug("Creating v1 router")
 
 	v1Router, err := authServiceApiV1.NewRouter(s)
 	if err != nil {
-		return errors.Wrap(err, "unable to create v1 router")
+		return nil, errors.Wrap(err, "unable to create v1 router")
 	}
-
-	s.Logger().Debug("Creating consent router")
 
 	consentV1Router, err := consentApiV1.NewRouter(s.consentService)
 	if err != nil {
-		return errors.Wrap(err, "unable to create consent router")
+		return nil, errors.Wrap(err, "unable to create consent router")
 	}
-
-	s.Logger().Debug("Creating jotform router")
 
 	jotformRouter, err := ouraJotformAPI.NewRouter(s.jotformSubmissionProcessor)
 	if err != nil {
-		return errors.Wrap(err, "unable to create jotform router")
+		return nil, errors.Wrap(err, "unable to create jotform router")
 	}
-
-	s.Logger().Debug("Creating shopify router")
 
 	shopifyRouter, err := ouraShopifyAPI.NewRouter(s.shopifyOrderProcessor)
 	if err != nil {
-		return errors.Wrap(err, "unable to create shopify router")
+		return nil, errors.Wrap(err, "unable to create shopify router")
 	}
-
-	s.Logger().Debug("Initializing routers")
-
-	if err = s.API().InitializeRouters(apiRouter, v1Router, consentV1Router, jotformRouter, shopifyRouter); err != nil {
-		return errors.Wrap(err, "unable to initialize routers")
-	}
-
-	return nil
+	return []serviceRoot.Router{apiRouter, v1Router, consentV1Router, jotformRouter, shopifyRouter}, nil
 }
 
 func (s *Service) terminateRouter() {
@@ -785,7 +783,7 @@ func (s *Service) initializeUserEventsHandler() error {
 	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := authEvents.NewUserDataDeletionHandler(ctx, s.authClient)
 	handlers := []eventsCommon.EventHandler{handler}
-	runner := events.NewRunner(handlers)
+	runner := events.NewRunner(handlers, events.WithConsumerGroup(s.ConfigReporter().WithScopes("events").GetWithDefault("consumer_group", "")))
 
 	if err := runner.Initialize(); err != nil {
 		return errors.Wrap(err, "unable to initialize events runner")
