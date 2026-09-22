@@ -19,6 +19,7 @@ import (
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 	"github.com/tidepool-org/platform-plugin-tandem/tandem"
 	tandemClient "github.com/tidepool-org/platform-plugin-tandem/tandem/client"
+	tandemEventHub "github.com/tidepool-org/platform-plugin-tandem/tandem/eventhub"
 	tandemProvider "github.com/tidepool-org/platform-plugin-tandem/tandem/provider"
 	tandemWork "github.com/tidepool-org/platform-plugin-tandem/tandem/work"
 
@@ -103,6 +104,7 @@ type Standard struct {
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
 	tandemClient                   *tandemClient.Client
+	tandemEventHubConsumer         *tandemEventHub.Consumer
 	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
 	confirmationClient             confirmationClient.ClientWithResponsesInterface
@@ -193,6 +195,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeUserEventsHandler(); err != nil {
 		return err
 	}
+	if err := s.initializeTandemEventHubConsumer(); err != nil {
+		return err
+	}
 	if err := s.initializeTwiistServiceAccountAuthorizer(); err != nil {
 		return err
 	}
@@ -211,6 +216,11 @@ func (s *Standard) Terminate() {
 	}
 	s.api = nil
 	s.twiistServiceAccountAuthorizer = nil
+	if s.tandemEventHubConsumer != nil {
+		s.Logger().Debug("Terminating the tandem event hub consumer")
+		s.tandemEventHubConsumer.Stop()
+		s.tandemEventHubConsumer = nil
+	}
 	if s.userEventsHandler != nil {
 		s.Logger().Debug("Terminating the userEventsHandler")
 		if err := s.userEventsHandler.Terminate(); err != nil {
@@ -267,6 +277,14 @@ func (s *Standard) Run() error {
 	go func() {
 		errs <- s.userEventsHandler.Run()
 	}()
+	if s.tandemEventHubConsumer != nil {
+		go func() {
+			// Returns nil only once stopped by Terminate, which must not shut down the service
+			if err := s.tandemEventHubConsumer.Run(); err != nil {
+				errs <- err
+			}
+		}()
+	}
 	go func() {
 		errs <- s.server.Serve()
 	}()
@@ -1032,6 +1050,29 @@ func (s *Standard) initializeUserEventsHandler() error {
 		return errors.Wrap(err, "unable to initialize user events handler runner")
 	}
 	s.userEventsHandler = runner
+
+	return nil
+}
+
+func (s *Standard) initializeTandemEventHubConsumer() error {
+	if s.tandemClient == nil {
+		return nil
+	}
+
+	s.Logger().Debug("Creating tandem event hub consumer")
+
+	consumer, err := tandemEventHub.NewConsumer(tandemEventHub.ConsumerDependencies{
+		Logger:                s.Logger(),
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.dataSourceClient,
+		DataSetClient:         s.dataClient,
+		DataRawClient:         s.dataRawClient,
+		WorkClient:            s.workClient,
+	})
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem event hub consumer")
+	}
+	s.tandemEventHubConsumer = consumer // nil when the feed is not configured for this environment
 
 	return nil
 }
