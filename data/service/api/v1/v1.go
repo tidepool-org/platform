@@ -2,6 +2,7 @@ package v1
 
 import (
 	abbottServiceApiV1 "github.com/tidepool-org/platform-plugin-abbott/abbott/service/api/v1"
+	tandemServiceApiV1 "github.com/tidepool-org/platform-plugin-tandem/tandem/service/api/v1"
 
 	"github.com/tidepool-org/platform/data/service"
 	ouraServiceApiV1 "github.com/tidepool-org/platform/oura/service/api/v1"
@@ -38,6 +39,18 @@ func Routes() []service.Route {
 	routes = append(routes, NotificationsRoutes()...)
 	routes = append(routes, abbottServiceApiV1.Routes()...)
 	routes = append(routes, ouraServiceApiV1.Routes()...)
+	routes = append(routes, TandemRoutes()...)
 
+	return routes
+}
+
+// TandemRoutes adapts the Tandem plugin routes, which are declared without this package so the plugin does
+// not depend on the other plugins through it.
+func TandemRoutes() []service.Route {
+	var routes []service.Route
+	for _, route := range tandemServiceApiV1.Routes() {
+		handler := func(context service.Context) { route.Handler(context) }
+		routes = append(routes, service.MakeRoute(route.Method, route.Path, handler, route.Middleware...))
+	}
 	return routes
 }

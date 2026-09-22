@@ -3,12 +3,12 @@ module github.com/tidepool-org/platform-plugin-tandem
 go 1.26.8
 
 require (
+	github.com/ant0ine/go-json-rest v3.3.2+incompatible
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/tidepool-org/platform v0.0.0
 )
 
 require (
-	github.com/ant0ine/go-json-rest v3.3.2+incompatible // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

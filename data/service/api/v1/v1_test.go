@@ -9,6 +9,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	tandemServiceApiV1 "github.com/tidepool-org/platform-plugin-tandem/tandem/service/api/v1"
+
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
 	"github.com/tidepool-org/platform/request"
 )
@@ -17,6 +19,19 @@ var _ = Describe("V1", func() {
 	Context("Routes", func() {
 		It("returns the correct routes", func() {
 			Expect(dataServiceApiV1.Routes()).ToNot(BeEmpty())
+		})
+	})
+
+	Context("TandemRoutes", func() {
+		It("adapts every route the plugin declares", func() {
+			pluginRoutes := tandemServiceApiV1.Routes()
+			routes := dataServiceApiV1.TandemRoutes()
+			Expect(routes).To(HaveLen(len(pluginRoutes)))
+			for index, pluginRoute := range pluginRoutes {
+				Expect(routes[index].Method).To(Equal(pluginRoute.Method))
+				Expect(routes[index].Path).To(Equal(pluginRoute.Path))
+				Expect(routes[index].Handler).ToNot(BeNil())
+			}
 		})
 	})
 
