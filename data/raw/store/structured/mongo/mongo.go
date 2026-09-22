@@ -91,11 +91,19 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("List") }()
 
 	query := bson.M{"userId": userID}
+	createdTimeQuery := bson.M{}
 	if createdTime := filter.CreatedTime(); createdTime != nil {
-		query["createdTime"] = bson.M{
-			"$gte": createdTime,
-			"$lt":  createdTime.AddDate(0, 0, 1),
+		createdTimeQuery["$gte"] = *createdTime
+		createdTimeQuery["$lt"] = createdTime.AddDate(0, 0, 1)
+	}
+	if filter.CreatedTimeStart != nil {
+		// Both bounds are conjunctive, so the later lower bound wins
+		if createdTime, ok := createdTimeQuery["$gte"].(time.Time); !ok || filter.CreatedTimeStart.After(createdTime) {
+			createdTimeQuery["$gte"] = *filter.CreatedTimeStart
 		}
+	}
+	if len(createdTimeQuery) > 0 {
+		query["createdTime"] = createdTimeQuery
 	}
 	if filter.DataSetID != nil {
 		query["dataSetId"] = *filter.DataSetID

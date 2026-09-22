@@ -23,15 +23,17 @@ const (
 )
 
 type Filter struct {
-	CreatedDate *string `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
-	DataSetID   *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
-	Processed   *bool   `json:"processed,omitempty" bson:"processed,omitempty"`
-	Archivable  *bool   `json:"archivable,omitempty" bson:"archivable,omitempty"`
-	Archived    *bool   `json:"archived,omitempty" bson:"archived,omitempty"`
+	CreatedDate      *string    `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
+	CreatedTimeStart *time.Time `json:"createdTimeStart,omitempty" bson:"createdTimeStart,omitempty"`
+	DataSetID        *string    `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	Processed        *bool      `json:"processed,omitempty" bson:"processed,omitempty"`
+	Archivable       *bool      `json:"archivable,omitempty" bson:"archivable,omitempty"`
+	Archived         *bool      `json:"archived,omitempty" bson:"archived,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.CreatedDate = parser.String("createdDate")
+	f.CreatedTimeStart = parser.Time("createdTimeStart", time.RFC3339Nano)
 	f.DataSetID = parser.String("dataSetId")
 	f.Processed = parser.Bool("processed")
 	f.Archivable = parser.Bool("archivable")
@@ -40,6 +42,7 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 
 func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("createdDate", f.CreatedDate).AsTime(FilterCreatedDateFormat).NotZero()
+	validator.Time("createdTimeStart", f.CreatedTimeStart).NotZero()
 	validator.String("dataSetId", f.DataSetID).Using(data.SetIDValidator)
 }
 
