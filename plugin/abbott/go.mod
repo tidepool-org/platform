@@ -1,6 +1,6 @@
 module github.com/tidepool-org/platform-plugin-abbott
 
-go 1.25.7
+go 1.26.8
 
 require (
 	github.com/lestrrat-go/jwx/v2 v2.1.4
