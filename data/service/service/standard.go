@@ -1062,12 +1062,13 @@ func (s *Standard) initializeTandemEventHubConsumer() error {
 	s.Logger().Debug("Creating tandem event hub consumer")
 
 	consumer, err := tandemEventHub.NewConsumer(tandemEventHub.ConsumerDependencies{
-		Logger:                s.Logger(),
-		ProviderSessionClient: s.AuthClient(),
-		DataSourceClient:      s.dataSourceClient,
-		DataSetClient:         s.dataClient,
-		DataRawClient:         s.dataRawClient,
-		WorkClient:            s.workClient,
+		Logger:                     s.Logger(),
+		ServerSessionTokenProvider: s.AuthClient(),
+		ProviderSessionClient:      s.AuthClient(),
+		DataSourceClient:           s.dataSourceClient,
+		DataSetClient:              s.dataClient,
+		DataRawClient:              s.dataRawClient,
+		WorkClient:                 s.workClient,
 	})
 	if err != nil {
 		return errors.Wrap(err, "unable to create tandem event hub consumer")
