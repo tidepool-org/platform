@@ -149,6 +149,21 @@ func (v *Values) Int(reference string) *int {
 	return &intValue
 }
 
+func (v *Values) Int64(reference string) *int64 {
+	rawValue, ok := v.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	int64Value, err := strconv.ParseInt(rawValue, 10, 0)
+	if err != nil {
+		v.base.WithReference(reference).ReportError(structureParser.ErrorTypeNotInt(rawValue))
+		return nil
+	}
+
+	return &int64Value
+}
+
 func (v *Values) String(reference string) *string {
 	rawValue, ok := v.raw(reference)
 	if !ok {

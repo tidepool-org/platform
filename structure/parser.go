@@ -24,6 +24,8 @@ type ObjectParser interface {
 	Bool(reference string) *bool
 	Float64(reference string) *float64
 	Int(reference string) *int
+	Int64(reference string) *int64
+
 	String(reference string) *string
 	StringArray(reference string) *[]string
 	Time(reference string, layout string) *time.Time
