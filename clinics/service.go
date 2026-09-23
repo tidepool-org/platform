@@ -29,6 +29,7 @@ type Client interface {
 	SharePatientAccount(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
 	ListEHREnabledClinics(ctx context.Context) ([]clinic.ClinicV1, error)
 	SyncEHRData(ctx context.Context, clinicID string) error
+	UpdateConnectionIssues(ctx context.Context) error
 	GetPatients(ctx context.Context, clinicId string, userToken string, params *clinic.ListPatientsParams, injectedParams url.Values) ([]clinic.PatientV1, error)
 	GetPatient(ctx context.Context, clinicID, patientID string) (*clinic.PatientV1, error)
 }
@@ -197,6 +198,24 @@ func (d *defaultClient) SyncEHRData(ctx context.Context, clinicID string) error 
 		err = errors.Preparedf(ErrorCodeClinicClientFailure,
 			"Unexpected status code from clinic service",
 			"unexpected response status code %v from %v", response.StatusCode(), response.HTTPResponse.Request.URL)
+		err = errors.WithMeta(err, response.HTTPResponse)
+		return err
+	}
+	return nil
+}
+
+// UpdateConnectionIssues asks the clinic service to recompute the connection issues of
+// all of its patients.
+func (d *defaultClient) UpdateConnectionIssues(ctx context.Context) error {
+	response, err := d.httpClient.UpdateConnectionIssuesWithResponse(ctx)
+	if err != nil {
+		return err
+	}
+	if response.StatusCode() != http.StatusNoContent {
+		err = errors.Preparedf(ErrorCodeClinicClientFailure,
+			"Unexpected status code from clinic service",
+			"unexpected response status code %v from %v", response.StatusCode(),
+			response.HTTPResponse.Request.URL)
 		err = errors.WithMeta(err, response.HTTPResponse)
 		return err
 	}
