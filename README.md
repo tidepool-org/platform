@@ -117,6 +117,111 @@ make pre-commit
 make clean
 ```
 
+# Incremental CI builds
+
+Travis saves both `GOCACHE` (compiled packages and successful test results) and
+`GOMODCACHE` (downloaded modules). Go decides which packages and tests to reuse
+from their inputs; CI still requests every package on every run. A new branch
+can use Travis's default-branch cache until it has a cache of its own. The first
+run after changing the Go version or cache configuration may need to populate
+the cache.
+
+`make ci-test-go` keeps race detection and coverage enabled. It omits `-count=1`
+and `-shuffle`, since either flag disables Go's test-result cache. Ginkgo still
+chooses a random seed when a suite actually runs. To force a full shuffled run,
+including after changing an external dependency such as MongoDB, use:
+
+```sh
+make ci-test-go-fresh
+# Or force tests during the entire CI pipeline:
+make ci GOTEST_CI_FLAGS='-buildvcs=false -race -cover -count=1 -shuffle=on'
+```
+
+`make ci-build` builds static Linux binaries in `_bin` using the current Go cache.
+`make ci-docker` runs `ci-build` and supplies `_bin` as Docker's
+`platform-binaries` named build context, so image packaging does not compile Go
+again. This requires Buildx (included in the CI tools image). `GOARCH` can select
+a different Linux architecture.
+Ordinary `make build` and Docker builds without this context still build from
+source as before.
+
+On Travis, `ci-docker` logs in once and uses `ci/images.hcl` to package and
+publish all services in parallel with Buildx Bake. Each image is pushed once;
+additional tags copy the published manifest without checking image layers again.
+Images retain the branch/commit/timestamp, branch/commit, and branch/latest tags;
+`master` also updates `latest`. Private images retain the `-private` suffix.
+`CI_DOCKER_IMAGE_PREFIX` can select a local test registry instead of
+`tidepool/platform`. Set `CI_DOCKER_OUTPUT=print` to inspect the resolved targets,
+or `CI_DOCKER_OUTPUT=load` to build without publishing.
+For local validation without registry credentials, set `DOCKER_LOGIN_CMD=true`.
+
+To inspect cache reuse locally, run these commands twice with the same Go
+version and plugin visibility (MongoDB must be running for the full test suite):
+
+```sh
+GODEBUG=gocachetest=1 make ci-test-go TIMING_CMD='time -p'
+make ci-build GO_BUILD_FLAGS='-buildvcs=false -x' TIMING_CMD='time -p'
+```
+
+The second test run should report `(cached)` for unchanged successful packages;
+the second build should omit compiler invocations. A fresh checkout at the same
+path does not invalidate Go's source compilation cache. Tests that read fixture
+files or inspect file metadata can rerun when checkout timestamps change. CI
+leaves those checks intact so changed test inputs cannot be hidden by timestamp
+normalization. A new commit also requires linking binaries with the new version
+metadata, even when compiled packages are reused.
+
+## Shared CI tools image
+
+Travis starts the public/private jobs in parallel, without a preparation stage.
+Each job runs `ci/tools-image.sh ensure` to pull the image identified by the tools
+configuration from `tidepool/platform-tools`. An existing image needs no build,
+login, or push. If its manifest is missing, the job builds it locally using the
+previous tools image's inline cache when available. Other pull failures get up
+to three attempts and fail the job rather than trigger a rebuild.
+
+The public, non-PR Travis job also publishes a newly built image and its inline
+cache when Docker credentials are available. Other jobs use their local build
+without publishing. Both jobs may build on the first run after a tools change;
+neither depends on the other finishing. No application source, private plugins,
+credentials, or test results are included in this image.
+
+The image includes Go, MongoDB/mongosh, Git, Make, GCC, mockgen, goimports, Docker
+CLI, and Buildx. Base images are pinned in `ci/tools.env`; generator versions come
+from `go.mod`. The tag includes the architecture and a hash of the Dockerfile,
+base-image pins, and Go/tool versions. Update the Go image pin when updating the
+Go directive in `go.mod`. Application-only changes reuse the existing image.
+
+Each matrix job pulls that image, mounts its checkout and Travis's Go caches,
+and runs the Makefile as the host user's UID. MongoDB runs inside the job's
+container with a fresh replica set. The compiler/test cache is namespaced by tools
+image, so a MongoDB/toolchain update reruns tests even when Go source is unchanged.
+Module downloads remain reusable across tools images. Docker CLI uses the host
+Docker socket to package the binaries.
+
+To exercise the same environment locally in a clean disposable checkout:
+
+```sh
+bash ci/tools-image.sh build
+CI_TOOLS_LOCAL=true CI_CACHE_ROOT=/tmp/platform-ci-cache \
+  PLUGINS_VISIBILITY=public bash ci/run.sh
+# Repeat with PLUGINS_VISIBILITY=private after authenticating GitHub or fetching
+# the private submodule. The same image works for both configurations.
+```
+
+`CI_CACHE_ROOT` keeps the Linux caches separate from native developer caches.
+`CI_DOCKER_SOCKET` can override `/var/run/docker.sock` for local Docker setups.
+`CI_TOOLS_REPOSITORY` selects another registry repository. `CI_TOOLS_PUBLISH=true`
+opts into publishing a newly built tools image when credentials are available;
+`false` disables publication. Image pulls and each Makefile phase are timed;
+compare total pipeline elapsed time when evaluating changes.
+Measure a warm run only after both matrix jobs have completed successfully and
+uploaded their caches. The first run after a tools-image change repopulates the
+compiler/test cache; a registry image hit alone does not mean the Go cache is warm.
+
+Run `python3 -B -m unittest discover -s ci/tests -v` to check tools-image fallback,
+retry, and publication behavior without contacting a registry.
+
 # Upgrade Golang Version
 
 ## Prepare
@@ -126,18 +231,27 @@ make clean
 - Review the release notes for **all** Golang versions, major and minor, from the current Golang version to the target Golang version. The entire Golang release history can be found at https://golang.org/doc/devel/release.html.
   - For major revisions, if any change described in the release notes could have a negative impact upon this repository, follow up and review any associated issues and the updated code. Make note of this change in order to explicitly test after upgrading.
   - For minor revisions, review all issues included in the associated GitHub milestone issue tracker. These can be found in the minor revision release notes. If any issue could have a negative impact upon this repository, review the updated code. Make note of this issue in order to explicitly test after upgrading.
-- Install `gimme`(https://github.com/travis-ci/gimme) via `brew`. Execute `gimme -k`. Ensure that the target Golang version is listed. The `gimme` tool is used by Travis CI to manage Golang versions. If the version is not listed, then the Travis CI build will not succeed.
-- Browse to https://hub.docker.com/_/golang and ensure the target Golang version in an Alpine Linux image is available. For example, if the target version is `1.11.4`, then ensure that the `1.11.4-alpine` image tag is available. If the image tag is not avaiable, then the Travis CI build will not succeed.
+- Check https://hub.docker.com/_/golang for the target version's Bookworm image
+  (shared CI tools) and Alpine image (ordinary source-based Docker builds).
+  Record the Bookworm image's multi-platform digest for `ci/tools.env`.
 
 ## Upgrade
 
 Ensure you are using the target Golang version locally.
 
-Change the version in `.travis.yml` and all `Dockerfile.*` files.
+Update the Go directive in `go.mod`, the Go image version and digest in
+`ci/tools.env`, and the Go image version in `Dockerfile`. Check any other
+`Dockerfile.*` files and plugin modules for matching version requirements.
+Travis obtains Go from the shared tools image; it does not install Go on the host.
 
 ## Test
 
 Ensure the `ci-build` and `ci-test` Makefile targets pass using the target Golang version.
+
+Build the updated tools image with `bash ci/tools-image.sh build`, then exercise
+both plugin configurations with `CI_TOOLS_LOCAL=true bash ci/run.sh` in a clean
+checkout. Use `CI_CACHE_ROOT` to keep container caches separate from native
+caches. The changed tools-image key creates a fresh compiler/test cache.
 
 If you previously noted any changes or issues of concern, perform any explicit tests necessary.
 

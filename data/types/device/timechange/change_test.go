@@ -38,10 +38,6 @@ var _ = Describe("Change", func() {
 		Expect(dataTypesDeviceTimechange.Agents()).To(Equal([]string{"automatic", "manual"}))
 	})
 
-	Context("ParseChange", func() {
-		// TODO
-	})
-
 	Context("NewChange", func() {
 		It("is successful", func() {
 			Expect(dataTypesDeviceTimechange.NewChange()).To(Equal(&dataTypesDeviceTimechange.Change{}))
@@ -49,9 +45,6 @@ var _ = Describe("Change", func() {
 	})
 
 	Context("Change", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

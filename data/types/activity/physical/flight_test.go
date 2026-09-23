@@ -39,10 +39,6 @@ var _ = Describe("Flight", func() {
 		Expect(physical.FlightCountMinimum).To(Equal(0))
 	})
 
-	Context("ParseFlight", func() {
-		// TODO
-	})
-
 	Context("NewFlight", func() {
 		It("returns the expected datum", func() {
 			Expect(physical.NewFlight()).To(Equal(&physical.Flight{}))
@@ -50,9 +46,6 @@ var _ = Describe("Flight", func() {
 	})
 
 	Context("Flight", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

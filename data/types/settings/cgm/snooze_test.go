@@ -56,10 +56,6 @@ var _ = Describe("Snooze", func() {
 		Expect(dataTypesSettingsCgm.SnoozeUnits()).To(Equal([]string{"hours", "minutes", "seconds"}))
 	})
 
-	Context("ParseSnooze", func() {
-		// TODO
-	})
-
 	Context("NewSnooze", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewSnooze()
@@ -84,10 +80,6 @@ var _ = Describe("Snooze", func() {
 				func(datum *dataTypesSettingsCgm.Snooze) { *datum = dataTypesSettingsCgm.Snooze{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

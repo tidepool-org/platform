@@ -59,10 +59,6 @@ var _ = Describe("Recommended", func() {
 		Expect(calculator.NetMinimum).To(Equal(-100.0))
 	})
 
-	Context("ParseRecommended", func() {
-		// TODO
-	})
-
 	Context("NewRecommended", func() {
 		It("is successful", func() {
 			Expect(calculator.NewRecommended()).To(Equal(&calculator.Recommended{}))
@@ -70,9 +66,6 @@ var _ = Describe("Recommended", func() {
 	})
 
 	Context("Recommended", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

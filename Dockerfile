@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 ARG GOLANG_VERSION=1.25.7-alpine
 ARG MONGO_VERSION=6.0.23
 ARG PLUGIN_VISIBILITY=public
@@ -60,6 +61,11 @@ ARG SERVICE DELVE_PORT
 COPY . .
 RUN BUILD=services/${SERVICE} make build
 
+# CI supplies _bin as this named context. Ordinary Docker builds still compile
+# from source through platform-build, including the development/Delve image.
+FROM scratch AS platform-binaries
+COPY --from=platform-build /build/_bin/ /
+
 ### Delve
 
 # platform-delve
@@ -73,36 +79,36 @@ CMD exec /go/bin/dlv --listen=:${DELVE_PORT} --headless=true --api-version=2 exe
 
 # platform-auth
 FROM platform-base-alpine AS platform-auth
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/auth/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/auth/ .
 CMD ["./auth"]
 
 # platform-blob
 FROM platform-base-alpine AS platform-blob
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/blob/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/blob/ .
 CMD ["./blob"]
 
 # platform-data
 FROM platform-base-alpine AS platform-data
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/data/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/data/ .
 CMD ["./data"]
 
 # platform-migrations
 FROM platform-base-alpine AS platform-migrations
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/migrations/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/migrations/ .
 CMD ["./migrations"]
 
 # platform-prescription
 FROM platform-base-alpine AS platform-prescription
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/prescription/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/prescription/ .
 CMD ["./prescription"]
 
 # platform-task
 FROM platform-base-alpine AS platform-task
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/task/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/task/ .
 CMD ["./task"]
 
 # platform-tools
 FROM platform-base-mongo AS platform-tools
-COPY --from=platform-build --chown=tidepool:tidepool /build/_bin/services/tools/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool /services/tools/ .
 COPY ./services/tools/ashrc .bashrc
 CMD ["./tools"]

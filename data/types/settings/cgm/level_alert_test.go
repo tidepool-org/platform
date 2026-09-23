@@ -92,10 +92,6 @@ var _ = Describe("LevelAlert", func() {
 			),
 		)
 
-		Context("Parse", func() {
-			// TODO
-		})
-
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataTypesSettingsCgm.LevelAlert), expectedErrors ...error) {
@@ -194,10 +190,6 @@ var _ = Describe("LevelAlert", func() {
 		})
 	})
 
-	Context("ParseHighAlert", func() {
-		// TODO
-	})
-
 	Context("NewHighAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewHighAlert()
@@ -224,10 +216,6 @@ var _ = Describe("LevelAlert", func() {
 				func(datum *dataTypesSettingsCgm.HighAlert) { *datum = dataTypesSettingsCgm.HighAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -393,10 +381,6 @@ var _ = Describe("LevelAlert", func() {
 		})
 	})
 
-	Context("ParseLowAlert", func() {
-		// TODO
-	})
-
 	Context("NewLowAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewLowAlert()
@@ -423,10 +407,6 @@ var _ = Describe("LevelAlert", func() {
 				func(datum *dataTypesSettingsCgm.LowAlert) { *datum = dataTypesSettingsCgm.LowAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -592,10 +572,6 @@ var _ = Describe("LevelAlert", func() {
 		})
 	})
 
-	Context("ParseUrgentLowAlert", func() {
-		// TODO
-	})
-
 	Context("NewUrgentLowAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewUrgentLowAlert()
@@ -622,10 +598,6 @@ var _ = Describe("LevelAlert", func() {
 				func(datum *dataTypesSettingsCgm.UrgentLowAlert) { *datum = dataTypesSettingsCgm.UrgentLowAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

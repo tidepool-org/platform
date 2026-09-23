@@ -53,9 +53,6 @@ var _ = Describe("Water", func() {
 	})
 
 	Context("Water", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

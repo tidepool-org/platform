@@ -68,9 +68,6 @@ var _ = Describe("Status", func() {
 	})
 
 	Context("Prime", func() {
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",

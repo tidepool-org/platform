@@ -64,10 +64,6 @@ var _ = Describe("RateAlert", func() {
 			),
 		)
 
-		Context("Parse", func() {
-			// TODO
-		})
-
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
 				func(mutator func(datum *dataTypesSettingsCgm.RateAlert), expectedErrors ...error) {
@@ -166,10 +162,6 @@ var _ = Describe("RateAlert", func() {
 		})
 	})
 
-	Context("ParseFallAlert", func() {
-		// TODO
-	})
-
 	Context("NewFallAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewFallAlert()
@@ -196,10 +188,6 @@ var _ = Describe("RateAlert", func() {
 				func(datum *dataTypesSettingsCgm.FallAlert) { *datum = dataTypesSettingsCgm.FallAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
@@ -365,10 +353,6 @@ var _ = Describe("RateAlert", func() {
 		})
 	})
 
-	Context("ParseRiseAlert", func() {
-		// TODO
-	})
-
 	Context("NewRiseAlert", func() {
 		It("returns successfully with default values", func() {
 			datum := dataTypesSettingsCgm.NewRiseAlert()
@@ -395,10 +379,6 @@ var _ = Describe("RateAlert", func() {
 				func(datum *dataTypesSettingsCgm.RiseAlert) { *datum = dataTypesSettingsCgm.RiseAlert{} },
 			),
 		)
-
-		Context("Parse", func() {
-			// TODO
-		})
 
 		Context("Validate", func() {
 			DescribeTable("validates the datum",
