@@ -158,6 +158,29 @@ func (o *Object) Int(reference string) *int {
 	return &intValue
 }
 
+func (o *Object) Int64(reference string) *int64 {
+	rawValue, ok := o.raw(reference)
+	if !ok {
+		return nil
+	}
+
+	intValue, intValueOk := rawValue.(int64)
+	if !intValueOk {
+		float64Value, float64ValueOk := rawValue.(float64)
+		if !float64ValueOk {
+			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
+			return nil
+		}
+		if math.Trunc(float64Value) != float64Value {
+			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
+			return nil
+		}
+		intValue = int64(float64Value)
+	}
+
+	return &intValue
+}
+
 func (o *Object) String(reference string) *string {
 	rawValue, ok := o.raw(reference)
 	if !ok {

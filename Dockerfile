@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG GOLANG_VERSION=1.25.7-alpine
+ARG GOLANG_VERSION=1.26.8-alpine
 ARG MONGO_VERSION=6.0.23
 ARG PLUGIN_VISIBILITY=public
 
