@@ -12,6 +12,9 @@ import (
 
 	"github.com/tidepool-org/platform-plugin-abbott/abbott"
 	abbottProvider "github.com/tidepool-org/platform-plugin-abbott/abbott/provider"
+	"github.com/tidepool-org/platform-plugin-tandem/tandem"
+	tandemClient "github.com/tidepool-org/platform-plugin-tandem/tandem/client"
+	tandemProvider "github.com/tidepool-org/platform-plugin-tandem/tandem/provider"
 
 	"github.com/tidepool-org/platform/apple"
 	"github.com/tidepool-org/platform/application"
@@ -729,6 +732,30 @@ func (s *Service) initializeProviders() error {
 		s.Logger().WithError(prvdrErr).Warn("Unable to create abbott provider")
 	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
 		return errors.Wrap(prvdrErr, "unable to add abbott provider")
+	}
+
+	// Tandem
+	tandemJWKS, err := oauthProvider.NewJWKS(configReporter.WithScopes(tandem.ProviderName))
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem jwks")
+	}
+	tandemClientConfig := tandemClient.NewConfig()
+	tandemClientConfig.UserAgent = s.UserAgent()
+	if err = tandemClientConfig.LoadFromConfigReporter(s.ConfigReporter().WithScopes("tandem", "client")); err != nil {
+		return errors.Wrap(err, "unable to load tandem client config")
+	}
+	tandemProviderDependencies := tandemProvider.ProviderDependencies{
+		ConfigReporter:        configReporter,
+		ClientConfig:          tandemClientConfig,
+		ProviderSessionClient: s.AuthClient(),
+		DataSourceClient:      s.DataSourceClient(),
+		WorkClient:            s.workClient,
+		JWKS:                  tandemJWKS,
+	}
+	if prvdr, prvdrErr := tandemProvider.New(tandemProviderDependencies); prvdrErr != nil || prvdr == nil {
+		s.Logger().WithError(prvdrErr).Warn("Unable to create tandem provider")
+	} else if prvdrErr = s.providerFactory.Add(prvdr); prvdrErr != nil {
+		return errors.Wrap(prvdrErr, "unable to add tandem provider")
 	}
 
 	// Dexcom

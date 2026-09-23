@@ -22,6 +22,7 @@ type Config struct {
 	AuthStyleInParams bool     `json:"auth_style_in_params,omitempty"`
 	CookieDisabled    bool     `json:"cookie_disabled,omitempty"`
 	StateSalt         *string  `json:"state_salt,omitempty"`
+	PKCEEnabled       bool     `json:"pkce_enabled,omitempty"`
 }
 
 func NewConfigWithConfigReporter(configReporter config.Reporter) (*Config, error) {
@@ -100,7 +101,7 @@ func (c *Config) Validate() error {
 			return errors.New("revoke url is invalid")
 		}
 	}
-	if !c.CookieDisabled {
+	if !c.CookieDisabled || c.PKCEEnabled {
 		if c.StateSalt == nil {
 			return errors.New("state salt is missing")
 		} else if *c.StateSalt == "" {
