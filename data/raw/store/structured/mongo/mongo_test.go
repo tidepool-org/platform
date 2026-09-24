@@ -230,6 +230,40 @@ var _ = Describe("Mongo", func() {
 							}
 						})
 
+						It("returns only records created at or after the created time start", func() {
+							createdTimeStart := sortedUserDocs[1].CreatedTime
+							filter := &dataRaw.Filter{CreatedTimeStart: pointer.From(createdTimeStart)}
+							result, err := store.List(ctx, userID, filter, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).To(HaveLen(3))
+							for _, r := range result {
+								Expect(r.CreatedTime.Before(createdTimeStart)).To(BeFalse())
+							}
+						})
+
+						It("returns only records matching the created date at or after the created time start", func() {
+							createdDate := sortedUserDocs[0].CreatedTime.Format(dataRawStoreStructuredMongo.IDDateFormat)
+							filter := &dataRaw.Filter{
+								CreatedDate:      pointer.From(createdDate),
+								CreatedTimeStart: pointer.From(sortedUserDocs[0].CreatedTime.Add(time.Millisecond)),
+							}
+							result, err := store.List(ctx, userID, filter, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).To(BeEmpty())
+						})
+
+						It("returns only records matching the created date when the created time start is earlier", func() {
+							createdDate := sortedUserDocs[1].CreatedTime.Format(dataRawStoreStructuredMongo.IDDateFormat)
+							filter := &dataRaw.Filter{
+								CreatedDate:      pointer.From(createdDate),
+								CreatedTimeStart: pointer.From(sortedUserDocs[0].CreatedTime),
+							}
+							result, err := store.List(ctx, userID, filter, nil)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(result).To(HaveLen(1))
+							Expect(result[0].CreatedTime.Format(dataRawStoreStructuredMongo.IDDateFormat)).To(Equal(createdDate))
+						})
+
 						It("returns only records matching the dataSetID filter", func() {
 							filter := &dataRaw.Filter{DataSetID: pointer.From(dataSetID)}
 							result, err := store.List(ctx, userID, filter, nil)
