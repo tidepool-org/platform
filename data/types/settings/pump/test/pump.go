@@ -1,8 +1,6 @@
 package test
 
 import (
-	"math/rand"
-
 	dataBloodGlucose "github.com/tidepool-org/platform/data/blood/glucose"
 	dataBloodGlucoseTest "github.com/tidepool-org/platform/data/blood/glucose/test"
 
@@ -26,11 +24,9 @@ func NewManufacturer(minimumLength int, maximumLength int) string {
 }
 
 func NewManufacturers(minimumLength int, maximumLength int) []string {
-	result := make([]string, minimumLength+rand.Intn(maximumLength-minimumLength+1))
-	for index := range result {
-		result[index] = NewManufacturer(1, 100)
-	}
-	return result
+	return test.RandomStringArrayFromRangeAndGeneratorWithoutDuplicates(minimumLength, maximumLength, func() string {
+		return NewManufacturer(1, 100)
+	})
 }
 
 func NewPump(unitsBloodGlucose *string) *pump.Pump {
