@@ -1253,6 +1253,13 @@ var _ = Describe("Mongo", func() {
 			})
 		})
 
+		Context("AsRaw with nested metadata", func() {
+			It("returns nested arrays as slices", func() {
+				document.Metadata = map[string]any{"array": bson.A{map[string]any{"array": bson.A{"value"}}}}
+				Expect(document.AsRaw().Metadata).To(Equal(map[string]any{"array": []any{map[string]any{"array": []any{"value"}}}}))
+			})
+		})
+
 		Context("AsContent", func() {
 			It("returns content with uncompressed data when Compressed is false", func() {
 				expectedData := test.RandomBytes()

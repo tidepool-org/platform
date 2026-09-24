@@ -19,6 +19,7 @@ import (
 	abbottWork "github.com/tidepool-org/platform-plugin-abbott/abbott/work"
 	"github.com/tidepool-org/platform-plugin-tandem/tandem"
 	tandemClient "github.com/tidepool-org/platform-plugin-tandem/tandem/client"
+	tandemCloudDrivers "github.com/tidepool-org/platform-plugin-tandem/tandem/clouddrivers"
 	tandemEventHub "github.com/tidepool-org/platform-plugin-tandem/tandem/eventhub"
 	tandemProvider "github.com/tidepool-org/platform-plugin-tandem/tandem/provider"
 	tandemWork "github.com/tidepool-org/platform-plugin-tandem/tandem/work"
@@ -104,6 +105,7 @@ type Standard struct {
 	notificationsHistoryRecorder   notificationsHistory.Recorder
 	abbottClient                   *abbottClient.Client
 	tandemClient                   *tandemClient.Client
+	tandemCloudDriversClient       *tandemCloudDrivers.Client
 	tandemEventHubConsumer         *tandemEventHub.Consumer
 	ouraClient                     *ouraClient.Client
 	userClient                     user.Client
@@ -183,6 +185,9 @@ func (s *Standard) Initialize(provider application.Provider) error {
 	if err := s.initializeTandemClient(); err != nil {
 		return err
 	}
+	if err := s.initializeTandemCloudDriversClient(); err != nil {
+		return err
+	}
 	if err := s.initializeOuraClient(); err != nil {
 		return err
 	}
@@ -233,6 +238,7 @@ func (s *Standard) Terminate() {
 		s.workCoordinator = nil
 	}
 	s.ouraClient = nil
+	s.tandemCloudDriversClient = nil
 	s.tandemClient = nil
 	s.abbottClient = nil
 	s.workClient = nil
@@ -761,6 +767,35 @@ func (s *Standard) initializeTandemClient() error {
 	return nil
 }
 
+// initializeTandemCloudDriversClient creates the client only where the cloud-drivers service is deployed.
+func (s *Standard) initializeTandemCloudDriversClient() error {
+	if s.tandemClient == nil {
+		return nil
+	}
+
+	s.Logger().Debug("Loading tandem cloud drivers client config")
+
+	cfg := platform.NewConfig()
+	cfg.UserAgent = s.UserAgent()
+	if err := cfg.Load(platform.NewConfigReporterLoader(s.ConfigReporter().WithScopes("cloud_drivers", "client"))); err != nil {
+		return errors.Wrap(err, "unable to load tandem cloud drivers client config")
+	}
+	if cfg.Address == "" {
+		s.Logger().Warn("Tandem cloud drivers client address is missing, pump logs will not be processed")
+		return nil
+	}
+
+	s.Logger().Debug("Creating tandem cloud drivers client")
+
+	clnt, err := tandemCloudDrivers.NewClient(cfg)
+	if err != nil {
+		return errors.Wrap(err, "unable to create tandem cloud drivers client")
+	}
+	s.tandemCloudDriversClient = clnt
+
+	return nil
+}
+
 func (s *Standard) initializeOuraClient() error {
 	s.Logger().Debug("Loading oura provider")
 
@@ -909,6 +944,7 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 			ProviderSessionClient:   s.AuthClient(),
 			DataRawClient:           s.dataRawClient,
 			TandemClient:            s.tandemClient,
+			CloudDriversClient:      s.tandemCloudDriversClient,
 		}
 		if tandemProcessorFactories, err := tandemWork.NewProcessorFactories(tandemProcessorDependencies); err != nil {
 			return errors.Wrap(err, "unable to create tandem processor factories")

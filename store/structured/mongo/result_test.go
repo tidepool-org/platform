@@ -78,6 +78,11 @@ var _ = Describe("Result", func() {
 			Expect(storeStructuredMongo.BSONToAny([]string{"value", "42"})).To(Equal([]string{"value", "42"}))
 		})
 
+		It("converts arrays nested in map[string]any", func() {
+			result := storeStructuredMongo.BSONToAny(map[string]any{"zero": bson.A{map[string]any{"nested": bson.A{"array"}}}})
+			Expect(result).To(Equal(map[string]any{"zero": []any{map[string]any{"nested": []any{"array"}}}}))
+		})
+
 		It("converts bson.M", func() {
 			result := storeStructuredMongo.BSONToAny(bson.M{"zero": bson.A{"nested", "array"}, "one": bson.M{"nested": "object"}})
 			Expect(result).To(MatchAllKeys(Keys{

@@ -90,6 +90,8 @@ func BSONToAny(input any) any {
 	switch output := input.(type) {
 	case bson.M:
 		return BSONToMap(output)
+	case map[string]any:
+		return BSONToMap(output)
 	case bson.A:
 		return BSONToArray(output)
 	default:
