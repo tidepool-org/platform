@@ -9,6 +9,7 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/summary/types"
 )
 
@@ -74,8 +75,25 @@ func (c *Client) UpdateDataSet(ctx context.Context, id string, update *data.Data
 	return repository.UpdateDataSet(ctx, id, update)
 }
 
+// DeleteDataSet deletes the data set the way the data sets delete endpoint does: through its
+// deduplicator when it has one, so deduplicators that archive other data can undo that first.
 func (c *Client) DeleteDataSet(ctx context.Context, id string) error {
-	panic("Not Implemented!")
+	repository := c.dataStore.NewDataRepository()
+
+	dataSet, err := repository.GetDataSet(ctx, id)
+	if err != nil {
+		return err
+	} else if dataSet == nil {
+		return request.ErrorResourceNotFoundWithID(id)
+	}
+
+	deduplicator, err := c.dataDuplicatorFactory.Get(ctx, dataSet)
+	if err != nil {
+		return errors.Wrap(err, "unable to get deduplicator")
+	} else if deduplicator == nil {
+		return repository.DeleteDataSet(ctx, dataSet)
+	}
+	return deduplicator.Delete(ctx, dataSet)
 }
 
 func (c *Client) CreateDataSetsData(ctx context.Context, dataSetID string, datumArray []data.Datum) error {

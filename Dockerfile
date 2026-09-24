@@ -83,36 +83,36 @@ CMD exec /go/bin/dlv --listen=:${DELVE_PORT} --headless=true --api-version=2 exe
 
 # platform-auth
 FROM platform-base-alpine AS platform-auth
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/auth/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/auth/ .
 CMD ["./auth"]
 
 # platform-blob
 FROM platform-base-alpine AS platform-blob
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/blob/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/blob/ .
 CMD ["./blob"]
 
 # platform-data
 FROM platform-base-alpine AS platform-data
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/data/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/data/ .
 CMD ["./data"]
 
 # platform-migrations
 FROM platform-base-alpine AS platform-migrations
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/migrations/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/migrations/ .
 CMD ["./migrations"]
 
 # platform-prescription
 FROM platform-base-alpine AS platform-prescription
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/prescription/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/prescription/ .
 CMD ["./prescription"]
 
 # platform-task
 FROM platform-base-alpine AS platform-task
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/task/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/task/ .
 CMD ["./task"]
 
 # platform-tools
 FROM platform-base-mongo AS platform-tools
-COPY --from=platform-binaries --chown=tidepool:tidepool /services/tools/ .
+COPY --from=platform-binaries --chown=tidepool:tidepool --chmod=0755 /services/tools/ .
 COPY ./services/tools/ashrc .bashrc
 CMD ["./tools"]
