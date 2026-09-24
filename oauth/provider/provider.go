@@ -3,6 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"time"
 
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/lestrrat-go/jwx/v2/jwk"
@@ -13,16 +15,18 @@ import (
 	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/oauth"
+	"github.com/tidepool-org/platform/pointer"
 )
 
 type Provider struct {
 	name         string
 	config       Config
+	httpClient   *http.Client
 	jwks         jwk.Set
 	oauth2Config *oauth2.Config
 }
 
-func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
+func New(name string, config *Config, httpClient *http.Client, jwks jwk.Set) (*Provider, error) {
 	if name == "" {
 		return nil, errors.New("name is missing")
 	}
@@ -30,6 +34,14 @@ func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
 		return nil, errors.New("config is missing")
 	} else if err := config.Validate(); err != nil {
 		return nil, errors.Wrap(err, "config is invalid")
+	}
+
+	// Ensure the HTTP client. If no timeout, then use timeout from config.
+	httpClient = pointer.From(pointer.Default(httpClient, *http.DefaultClient))
+	if httpClient.Timeout == 0 {
+		if clientTimeout := config.ClientTimeout; clientTimeout > 0 {
+			httpClient.Timeout = clientTimeout
+		}
 	}
 
 	oauth2Config := &oauth2.Config{
@@ -49,6 +61,7 @@ func New(name string, config *Config, jwks jwk.Set) (*Provider, error) {
 	return &Provider{
 		name:         name,
 		config:       *config,
+		httpClient:   httpClient,
 		jwks:         jwks,
 		oauth2Config: oauth2Config,
 	}, nil
@@ -70,11 +83,23 @@ func (p *Provider) ClientSecret() string {
 	return p.config.ClientSecret
 }
 
+func (p *Provider) ClientTimeout() time.Duration {
+	return p.config.ClientTimeout
+}
+
+func (p *Provider) HTTPClient() *http.Client {
+	return p.httpClient
+}
+
 func (p *Provider) OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error {
 	return nil
 }
 
 func (p *Provider) OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error {
+	return nil
+}
+
+func (p *Provider) OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error {
 	return nil
 }
 
@@ -127,7 +152,7 @@ func (p *Provider) CookieDisabled() bool {
 
 func (p *Provider) CalculateStateForRestrictedToken(restrictedToken string) string {
 	if !p.CookieDisabled() {
-		return crypto.HexEncodedMD5Hash(fmt.Sprintf("%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
+		return crypto.HexEncodedMD5Hash(fmt.Appendf(nil, "%s:%s:%s:%s", p.Type(), p.Name(), restrictedToken, *p.config.StateSalt))
 	} else {
 		return restrictedToken
 	}
@@ -138,7 +163,7 @@ func (p *Provider) GetAuthorizationCodeURLWithState(state string) string {
 }
 
 func (p *Provider) ExchangeAuthorizationCodeForToken(ctx context.Context, authorizationCode string) (*auth.OAuthToken, error) {
-	token, err := p.oauth2Config.Exchange(ctx, authorizationCode)
+	token, err := p.oauth2Config.Exchange(context.WithValue(ctx, oauth2.HTTPClient, p.httpClient), authorizationCode)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to exchange authorization code for token")
 	}

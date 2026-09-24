@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
@@ -27,6 +28,8 @@ type Client interface {
 }
 
 const (
+	TasksLengthMaximum = page.PaginationSizeMaximum
+
 	TaskStatePending   = "pending"
 	TaskStateRunning   = "running"
 	TaskStateFailed    = "failed"
@@ -189,6 +192,16 @@ type Task struct {
 	DeadlineTime *time.Time `json:"-" bson:"deadlineTime,omitempty"`
 }
 
+func ParseTask(parser structure.ObjectParser) *Task {
+	if !parser.Exists() {
+		return nil
+	}
+
+	task := &Task{}
+	task.Parse(parser)
+	return task
+}
+
 func NewTask(ctx context.Context, create *TaskCreate) (*Task, error) {
 	if create == nil {
 		return nil, errors.New("create is missing")
@@ -339,6 +352,25 @@ func (t *Task) LogFields() log.Fields {
 }
 
 type Tasks []*Task
+
+func (t *Tasks) Parse(parser structure.ArrayParser) {
+	for _, reference := range parser.References() {
+		*t = append(*t, ParseTask(parser.WithReferenceObjectParser(reference)))
+	}
+}
+
+func (t *Tasks) Validate(validator structure.Validator) {
+	if length := len(*t); length > TasksLengthMaximum {
+		validator.ReportError(structureValidator.ErrorLengthNotLessThanOrEqualTo(length, TasksLengthMaximum))
+	}
+	for index, datum := range *t {
+		if datumValidator := validator.WithReference(strconv.Itoa(index)); datum != nil {
+			datum.Validate(datumValidator)
+		} else {
+			datumValidator.ReportError(structureValidator.ErrorValueNotExists())
+		}
+	}
+}
 
 func (t Tasks) Sanitize(details request.AuthDetails) error {
 	for _, tsk := range t {

@@ -13,10 +13,12 @@ const (
 	DateRangeTimeFormat    = "2006-01-02T15:04:05"
 	SystemTimeNowThreshold = 24 * time.Hour
 
-	DataKeyDataSourceID      = "dataSourceId"
-	DataKeyDeviceHashes      = "deviceHashes"
-	DataKeyProviderSessionID = "providerSessionId"
-	DataKeyRetryCount        = "retryCount"
+	DataKeyDataSourceID         = "dataSourceId"
+	DataKeyDeviceHashes         = "deviceHashes"
+	DataKeyProviderSessionID    = "providerSessionId"
+	DataKeyResumeDataTime       = "resumeDataTime"
+	DataKeyResumeExpirationTime = "resumeExpirationTime"
+	DataKeyRetryCount           = "retryCount"
 
 	ProviderName = "dexcom"
 )

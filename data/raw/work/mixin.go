@@ -3,6 +3,7 @@ package work
 import (
 	"context"
 	"io"
+	"time"
 
 	dataRaw "github.com/tidepool-org/platform/data/raw"
 	"github.com/tidepool-org/platform/errors"
@@ -202,7 +203,11 @@ func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate 
 		return m.Failed(errors.New("data raw already exists"))
 	}
 
-	if dataRw, err := m.dataRawClient.Create(context.WithoutCancel(m.Context()), userID, dataSetID, dataRawCreate, reader); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if dataRw, err := m.dataRawClient.Create(ctx, userID, dataSetID, dataRawCreate, reader); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to create data raw"))
 	} else if dataRw == nil {
 		return m.Failed(errors.New("data raw is missing"))
@@ -210,7 +215,7 @@ func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate 
 		return result
 	}
 
-	log.LoggerFromContext(m.Context()).Debug("created data raw")
+	log.LoggerFromContext(ctx).Debug("created data raw")
 	return nil
 }
 
@@ -228,7 +233,11 @@ func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessRes
 		dataRawUpdate.Metadata = &dataRwMetadata
 	}
 
-	if dataRw, err := m.dataRawClient.Update(context.WithoutCancel(m.Context()), m.dataRaw.ID, nil, dataRawUpdate); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if dataRw, err := m.dataRawClient.Update(ctx, m.dataRaw.ID, nil, dataRawUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data raw"))
 	} else if dataRw == nil {
 		return m.Failed(errors.New("data raw is missing"))

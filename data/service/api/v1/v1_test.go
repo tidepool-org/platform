@@ -1,15 +1,22 @@
 package v1_test
 
 import (
+	"context"
+	"encoding/base64"
+	"encoding/json"
 	"net/http"
-	"time"
-
-	"github.com/tidepool-org/platform/summary/reporters"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
+
+	"github.com/ant0ine/go-json-rest/rest"
 
 	dataServiceApiV1 "github.com/tidepool-org/platform/data/service/api/v1"
+	"github.com/tidepool-org/platform/log"
+	logNull "github.com/tidepool-org/platform/log/null"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/request"
 )
 
@@ -20,29 +27,184 @@ var _ = Describe("V1", func() {
 		})
 	})
 
-	Context("GetPatientsWithRealtimeData request parse", func() {
-		It("full request url", func() {
-			loc := time.FixedZone("-0400", -4*60*60)
-			startDate := time.Date(2024, 4, 25, 0, 0, 0, 0, loc)
-			endDate := time.Date(2024, 5, 24, 23, 59, 59, 999000000, loc)
+	Context("GetProvenanceFromRequest", func() {
+		logger := logNull.NewLogger()
+		ctx := log.NewContextWithLogger(context.Background(), logger)
 
-			filter := reporters.NewPatientRealtimeDaysFilter()
-			url := "https://qa2.development.tidepool.org/v1/clinics/12345asdf/reports/realtime?startDate=2024-04-25T00%3A00%3A00.000-04%3A00&endDate=2024-05-24T23%3A59%3A59.999-04%3A00&patientFilters=%7B%22cgm.lastUploadDateTo%22%3A%222024-05-25T04%3A00%3A00.000Z%22%2C%22cgm.lastUploadDateFrom%22%3A%222024-04-25T04%3A00%3A00.000Z%22%2C%22tags%22%3A%5B%226577551586650af25e519385%22%2C%22657754bc86650af25e519372%22%5D%2C%22cgm.timeInLowPercent%22%3A%22%3E%3D0.04%22%2C%22cgm.timeInVeryLowPercent%22%3A%22%3E%3D0.01%22%2C%22cgm.timeInTargetPercent%22%3A%22%3C%3D0.7%22%2C%22cgm.timeInHighPercent%22%3A%22%3E%3D0.25%22%2C%22cgm.timeInVeryHighPercent%22%3A%22%3E%3D0.05%22%2C%22cgm.timeCGMUsePercent%22%3A%22%3E%3D0.7%22%7D"
-			req, err := http.NewRequest(http.MethodGet, url, nil)
-			Expect(err).ToNot(HaveOccurred())
+		It("assigns all the things", func() {
+			req, details := newTestReqAndDetails("foo", "baz", "192.0.2.1")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(*prov.ByUserID).To(Equal("baz"))
+			Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
+			Expect(prov.ClientID).To(Equal("foo"))
+		})
 
-			err = request.DecodeRequestQuery(req, filter)
-			Expect(err).ToNot(HaveOccurred())
+		It("handles a missing SourceIP", func() {
+			req, details := newTestReqAndDetails("foo", "baz", "")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(*prov.ByUserID).To(Equal("baz"))
+			Expect(prov.SourceIP).To(BeNil())
+			Expect(prov.ClientID).To(Equal("foo"))
+		})
 
-			Expect(filter.StartTime).ToNot(BeNil())
-			Expect(filter.StartTime.Equal(startDate)).To(BeTrue())
+		It("handles a missing UserID", func() {
+			req, details := newTestReqAndDetails("foo", "", "192.0.2.1")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(prov.ByUserID).To(BeNil())
+			Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
+			Expect(prov.ClientID).To(Equal("foo"))
+		})
 
-			Expect(filter.EndTime).ToNot(BeNil())
-			Expect(filter.EndTime.Equal(endDate)).To(BeTrue())
+		It("handles a missing ClientID", func() {
+			req, details := newTestReqAndDetails("", "bar", "192.0.2.1")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(prov).ToNot(BeNil())
+			Expect(*prov.ByUserID).To(Equal("bar"))
+			Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
+			Expect(prov.ClientID).To(Equal(""))
+		})
 
-			Expect(filter.PatientFilters).ToNot(BeNil())
-			Expect(filter.PatientFilters["cgm.timeInLowPercent"].(string)).To(Equal(">=0.04"))
+		It("logs missing ClientIDs when expected, but not found", func() {
+			testLogger := logTest.NewLogger()
+			ctx := log.NewContextWithLogger(context.Background(), testLogger)
+			req, _ := newTestReqAndDetails("", "", "192.0.2.1")
+			details := request.NewAuthDetails(request.MethodSessionToken, "bar", "")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(prov).ToNot(BeNil())
+			Expect(*prov.ByUserID).To(Equal("bar"))
+			Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
+			Expect(prov.ClientID).To(Equal(""))
+		})
+
+		It("doesn't log missing ClientIDs for service secret authenticated requests", func() {
+			ctx := log.NewContextWithLogger(context.Background(), logNull.NewLogger())
+			req, _ := newTestReqAndDetails("", "", "192.0.2.1")
+			details := request.NewAuthDetails(request.MethodServiceSecret, "bar", "")
+			prov := dataServiceApiV1.GetProvenanceFromRequest(ctx, req, details)
+			Expect(prov).ToNot(BeNil())
+			Expect(*prov.ByUserID).To(Equal("bar"))
+			Expect(*prov.SourceIP).To(Equal("192.0.2.1"))
+			Expect(prov.ClientID).To(Equal(""))
 		})
 	})
 
+	Context("SelectXFF", func() {
+		It("handles a missing header", func() {
+			header := http.Header{}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(BeNil())
+		})
+
+		It("handles an empty header", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(BeNil())
+		})
+
+		It("handles an invalid IP address", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"invalid"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(BeNil())
+		})
+
+		It("handles a non-IP address", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"example.com"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(BeNil())
+		})
+
+		It("handles a simple case", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"192.0.2.1"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("handles IPv6 addresses", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"2001:0db8::1", "192.0.2.1"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("2001:0db8::1")))
+		})
+
+		It("chooses the first IP in the first header", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"192.0.2.1, 192.0.2.2", "192.0.2.3, 192.0.2.3"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("handles commas with or without spaces", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"192.0.2.1,192.0.2.2 , 192.0.2.5", "192.0.2.3 , 192.0.2.3"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("skips private RFC-1918 and RFC-4193 addresses", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"192.168.1.1, 10.1.1.1", "172.16.0.1", "fd11::1", "192.0.2.1, 192.0.2.2"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("skips link-local addresses", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"fe80::1, 169.254.0.1, 192.0.2.1"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("skips loopback addresses", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"::0, 127.0.1.1, 192.0.2.1"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("192.0.2.1")))
+		})
+
+		It("skips multicast and broadcast addresses", func() {
+			header := http.Header{
+				"X-Forwarded-For": []string{"ff01::1", "224.0.0.53", "2001:0db8::1"},
+			}
+			Expect(dataServiceApiV1.SelectXFF(header)).To(PointTo(Equal("2001:0db8::1")))
+		})
+	})
 })
+
+func newTestReqAndDetails(clientID, userID, sourceIP string) (*rest.Request, request.AuthDetails) {
+	remoteAddr := ""
+	headers := http.Header{}
+	if sourceIP != "" {
+		remoteAddr = sourceIP + ":1234"
+		headers.Set("X-Forwarded-For", sourceIP)
+	}
+	token := ""
+	if clientID != "" {
+		token = newTestToken(clientID)
+		headers.Set("X-Tidepool-Session-Token", token)
+	}
+	req := &rest.Request{
+		Request: &http.Request{
+			RemoteAddr: remoteAddr,
+			Header:     headers,
+		},
+	}
+	details := request.NewAuthDetails(request.MethodSessionToken, userID, token)
+	return req, details
+}
+
+func newTestToken(clientID string) string {
+	header := map[string]any{"alg": "none"}
+	payload := map[string]any{"azp": clientID}
+	sig := map[string]any{}
+
+	encoded := []string{}
+	for _, a := range []map[string]any{header, payload, sig} {
+		jsonData, err := json.Marshal(a)
+		Expect(err).To(Not(HaveOccurred()))
+		encoded = append(encoded, base64.RawURLEncoding.EncodeToString(jsonData))
+	}
+	return strings.Join(encoded, ".")
+}

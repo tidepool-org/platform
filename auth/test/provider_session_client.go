@@ -61,6 +61,17 @@ type DeleteProviderSessionInput struct {
 	ID      string
 }
 
+type RefreshProviderSessionInput struct {
+	Context context.Context
+	ID      string
+	Refresh *auth.ProviderSessionRefresh
+}
+
+type RefreshProviderSessionOutput struct {
+	ProviderSession *auth.ProviderSession
+	Error           error
+}
+
 type ProviderSessionClient struct {
 	CreateProviderSessionInvocations  int
 	CreateProviderSessionInputs       []CreateProviderSessionInput
@@ -80,6 +91,9 @@ type ProviderSessionClient struct {
 	DeleteProviderSessionInvocations  int
 	DeleteProviderSessionInputs       []DeleteProviderSessionInput
 	DeleteProviderSessionOutputs      []error
+	RefreshProviderSessionInvocations int
+	RefreshProviderSessionInputs      []RefreshProviderSessionInput
+	RefreshProviderSessionOutputs     []RefreshProviderSessionOutput
 }
 
 func NewProviderSessionClient() *ProviderSessionClient {
@@ -158,6 +172,18 @@ func (p *ProviderSessionClient) DeleteProviderSession(ctx context.Context, id st
 	return output
 }
 
+func (p *ProviderSessionClient) RefreshProviderSession(ctx context.Context, id string, update *auth.ProviderSessionRefresh) (*auth.ProviderSession, error) {
+	p.RefreshProviderSessionInvocations++
+
+	p.RefreshProviderSessionInputs = append(p.RefreshProviderSessionInputs, RefreshProviderSessionInput{Context: ctx, ID: id, Refresh: update})
+
+	gomega.Expect(p.RefreshProviderSessionOutputs).ToNot(gomega.BeEmpty())
+
+	output := p.RefreshProviderSessionOutputs[0]
+	p.RefreshProviderSessionOutputs = p.RefreshProviderSessionOutputs[1:]
+	return output.ProviderSession, output.Error
+}
+
 func (p *ProviderSessionClient) Expectations() {
 	gomega.Expect(p.CreateProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.DeleteProviderSessionsOutputs).To(gomega.BeEmpty())
@@ -165,4 +191,5 @@ func (p *ProviderSessionClient) Expectations() {
 	gomega.Expect(p.GetProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.UpdateProviderSessionOutputs).To(gomega.BeEmpty())
 	gomega.Expect(p.DeleteProviderSessionOutputs).To(gomega.BeEmpty())
+	gomega.Expect(p.RefreshProviderSessionOutputs).To(gomega.BeEmpty())
 }

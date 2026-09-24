@@ -7,7 +7,7 @@ import (
 )
 
 type Factory interface {
-	Get(typ string, name string) (Provider, error)
+	Get(typ string, name string) Provider
 }
 
 type Provider interface {
@@ -16,4 +16,5 @@ type Provider interface {
 
 	OnCreate(ctx context.Context, providerSession *auth.ProviderSession) error
 	OnDelete(ctx context.Context, providerSession *auth.ProviderSession) error
+	OnRefresh(ctx context.Context, providerSession *auth.ProviderSession, refresh *auth.ProviderSessionRefresh) error
 }

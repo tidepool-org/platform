@@ -30,7 +30,7 @@ import (
 const (
 	PendingAvailableDuration    = 12 * time.Hour // Data returned is for previous 24 hours, using 12 hours ensures we do not miss data
 	FailingRetryDuration        = 1 * time.Minute
-	FailingRetryDurationJitter  = 5 * time.Second
+	FailingRetryDurationJitter  = 0.1
 	FailingRetryDurationMaximum = 12 * time.Hour
 )
 

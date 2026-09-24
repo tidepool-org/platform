@@ -672,6 +672,8 @@ func (s *Standard) initializeAbbottClient() error {
 
 		cfg := abbottClient.NewConfig()
 		cfg.UserAgent = s.UserAgent()
+		cfg.ClientTimeout = prvdr.ClientTimeout() * 3   // token + request + response headers + response body
+		cfg.ResponseTimeout = prvdr.ClientTimeout() * 2 // token + request + response headers
 		if err = cfg.LoadFromConfigReporter(s.ConfigReporter().WithScopes("abbott", "client")); err != nil {
 			return errors.Wrap(err, "unable to load abbott client config")
 		}
@@ -680,6 +682,7 @@ func (s *Standard) initializeAbbottClient() error {
 
 		abbottClientDependencies := abbottClient.ClientDependencies{
 			Config:            cfg,
+			HTTPClient:        prvdr.HTTPClient(),
 			TokenSourceSource: prvdr,
 		}
 		clnt, clntErr := abbottClient.NewClient(abbottClientDependencies)

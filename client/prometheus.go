@@ -34,8 +34,8 @@ func PrometheusLabelNames() []string {
 
 // Where there are numerous discrete paths possible, then must simplify via patterns to prevent overwhelming Prometheus.
 // If no patterns are specified, then all paths are recorded as-is. If one or more patterns are specified, but a path
-// does not match one of the patterns, then the path is NOT captured by Prometheus. If you wish to match "all other" paths
-// and records those paths as-is, then add the pattern PathPatternAny at the end of your patterns.
+// does not match one of the patterns, then the path is NOT captured by Prometheus. If you wish to match "all other"
+// paths and record those paths as-is, then add the pattern PathPatternAny at the end of your patterns.
 //
 // Uses standard Go HTTP pattern matching. See https://go.dev/src/net/http/pattern.go.
 //

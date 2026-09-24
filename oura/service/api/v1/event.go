@@ -109,7 +109,7 @@ func (r *Router) Event(res rest.ResponseWriter, req *rest.Request) {
 		return
 	}
 
-	// Find the associated provider session
+	// Find the associated provider sessions
 	providerSessionFilter := &auth.ProviderSessionFilter{
 		Type:       pointer.From(oauth.ProviderType),
 		Name:       pointer.From(oura.ProviderName),

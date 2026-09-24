@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"time"
 
 	dataSource "github.com/tidepool-org/platform/data/source"
 	"github.com/tidepool-org/platform/errors"
@@ -212,7 +213,11 @@ func (m *mixin[M]) UpdateDataSource(dataSourceUpdate *dataSource.Update) *work.P
 		dataSourceUpdate.Metadata = &dataSrcMetadata
 	}
 
-	if dataSrc, err := m.dataSourceClient.Update(context.WithoutCancel(m.Context()), m.dataSource.ID, nil, dataSourceUpdate); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if dataSrc, err := m.dataSourceClient.Update(ctx, m.dataSource.ID, nil, dataSourceUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data source"))
 	} else if dataSrc == nil {
 		return m.Failed(errors.New("data source is missing"))

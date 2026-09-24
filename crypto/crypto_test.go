@@ -75,7 +75,7 @@ var _ = Describe("Crypto", func() {
 	Context("HexEncodedMD5Hash", func() {
 		DescribeTable("returns the expected result when the input",
 			func(value string, expectedResult string) {
-				Expect(crypto.HexEncodedMD5Hash(value)).To(Equal(expectedResult))
+				Expect(crypto.HexEncodedMD5Hash([]byte(value))).To(Equal(expectedResult))
 			},
 			Entry("is empty", "", "d41d8cd98f00b204e9800998ecf8427e"),
 			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "c3fcd3d76192e4007dfb496cca67e13b"),
@@ -124,7 +124,7 @@ var _ = Describe("Crypto", func() {
 	Context("HexEncodedSHA256Hash", func() {
 		DescribeTable("returns the expected result when the input",
 			func(value string, expectedResult string) {
-				Expect(crypto.HexEncodedSHA256Hash(value)).To(Equal(expectedResult))
+				Expect(crypto.HexEncodedSHA256Hash([]byte(value))).To(Equal(expectedResult))
 			},
 			Entry("is empty", "", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
 			Entry("is not empty", "abcdefghijklmnopqrstuvwxyz", "71c480df93d6ae2f1efad1447c66c9525e316218cf51fc8d9ed832f2daf18b73"),

@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
@@ -135,7 +136,11 @@ func (m *mixin) UpdateProviderSession(providerSessionUpdate *auth.ProviderSessio
 		return m.Failed(errors.New("provider session is missing"))
 	}
 
-	if providerSession, err := m.providerSessionClient.UpdateProviderSession(context.WithoutCancel(m.Context()), m.providerSession.ID, providerSessionUpdate); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if providerSession, err := m.providerSessionClient.UpdateProviderSession(ctx, m.providerSession.ID, providerSessionUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update provider session"))
 	} else if providerSession == nil {
 		return m.Failed(errors.New("provider session is missing"))

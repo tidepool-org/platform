@@ -6,10 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tidepool-org/platform/summary"
-	"github.com/tidepool-org/platform/summary/reporters"
-	"github.com/tidepool-org/platform/summary/types"
-
 	"github.com/tidepool-org/platform/clinics"
 	dataService "github.com/tidepool-org/platform/data/service"
 	"github.com/tidepool-org/platform/errors"
@@ -18,6 +14,9 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
+	"github.com/tidepool-org/platform/summary"
+	"github.com/tidepool-org/platform/summary/reporters"
+	"github.com/tidepool-org/platform/summary/types"
 )
 
 func SummaryRoutes() []dataService.Route {
@@ -94,7 +93,7 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 
 	responder := request.MustNewResponder(res, req)
 
-	clinicId := req.PathParam("clinicId")
+	clinicID := req.PathParam("clinicId")
 
 	filter := reporters.NewPatientRealtimeDaysFilter()
 	if err := request.DecodeRequestQuery(req.Request, filter); err != nil {
@@ -116,10 +115,13 @@ func GetPatientsWithRealtimeData(dataServiceContext dataService.Context) {
 	}
 
 	response, err := dataServiceContext.SummaryReporter().GetRealtimeDaysForPatients(
-		ctx, dataServiceContext.ClinicsClient(), clinicId, details.Token(), *filter.StartTime, *filter.EndTime, filter.PatientFilters)
+		ctx, dataServiceContext.ClinicsClient(), clinicID, details.Token(), *filter.StartTime, *filter.EndTime, filter.PatientFilters)
 	if err != nil {
+		res, ok := errors.Meta(err).(*http.Response)
+		if ok && res != nil {
+			defer request.DrainAndClose(res.Body)
+		}
 		if errors.Code(err) == clinics.ErrorCodeClinicClientFailure {
-			res := errors.Meta(err).(*http.Response)
 			responder.Reader(res.StatusCode, res.Body)
 		} else {
 			responder.InternalServerError(err)

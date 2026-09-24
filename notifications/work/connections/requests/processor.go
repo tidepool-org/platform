@@ -22,7 +22,7 @@ import (
 
 const (
 	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDurationJitter = 0.1
 )
 
 type Metadata struct {

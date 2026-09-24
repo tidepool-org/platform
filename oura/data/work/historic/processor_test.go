@@ -55,7 +55,7 @@ var _ = Describe("processor", func() {
 	})
 
 	It("FailingRetryDurationJitter is expected", func() {
-		Expect(ouraDataWorkHistoric.FailingRetryDurationJitter).To(Equal(5 * time.Second))
+		Expect(ouraDataWorkHistoric.FailingRetryDurationJitter).To(Equal(0.1))
 	})
 
 	It("FailingRetryDurationMaximum is expected", func() {

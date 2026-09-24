@@ -128,7 +128,6 @@ func (p *PrescriptionRepository) ListPrescriptions(ctx context.Context, filter *
 	}
 
 	prescriptions := prescription.Prescriptions{}
-	defer cursor.Close(ctx)
 	if err = cursor.All(ctx, &prescriptions); err != nil {
 		return nil, errors.Wrap(err, "unable to decode prescriptions")
 	}

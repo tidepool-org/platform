@@ -23,7 +23,7 @@ const (
 	Frequency = 5 * time.Second
 
 	FailingRetryDuration       = 1 * time.Minute
-	FailingRetryDurationJitter = 5 * time.Second
+	FailingRetryDurationJitter = 0.1
 
 	ProcessingTimeout = 1 * time.Minute
 )

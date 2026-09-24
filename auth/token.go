@@ -1,11 +1,15 @@
 package auth
 
 import (
+	"encoding/json"
 	"sort"
 	"time"
 
 	"golang.org/x/oauth2"
 
+	"github.com/golang-jwt/jwt/v4"
+
+	"github.com/tidepool-org/platform/crypto"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
@@ -85,6 +89,20 @@ func (o *OAuthToken) Normalize(normalizer structure.Normalizer) {
 	if o.Scope != nil {
 		sort.Strings(*o.Scope)
 	}
+}
+
+func (o *OAuthToken) Redacted() *OAuthToken {
+	redacted := &OAuthToken{
+		AccessToken:    redactToken(o.AccessToken),
+		TokenType:      o.TokenType,
+		RefreshToken:   redactToken(o.RefreshToken),
+		ExpirationTime: o.ExpirationTime,
+		Scope:          o.Scope,
+	}
+	if o.IDToken != nil {
+		redacted.IDToken = pointer.From(redactToken(*o.IDToken))
+	}
+	return redacted
 }
 
 func (o *OAuthToken) Refreshed(rawToken *oauth2.Token) (*OAuthToken, error) {
@@ -179,4 +197,31 @@ func GetScope(rawToken *oauth2.Token) (*[]string, error) {
 	} else {
 		return pointer.FromStringArray(scope), nil
 	}
+}
+
+func redactToken(token string) string {
+	type claims struct {
+		jwt.RegisteredClaims
+		Scope string `json:"scope,omitempty"`
+		Email string `json:"email,omitempty"`
+		Name  string `json:"name,omitempty"`
+	}
+
+	var tokenClaims claims
+	if _, _, err := jwt.NewParser().ParseUnverified(token, &tokenClaims); err == nil {
+		redactedTokenClaims := claims{
+			RegisteredClaims: jwt.RegisteredClaims{
+				Subject:   tokenClaims.Subject,
+				IssuedAt:  tokenClaims.IssuedAt,
+				ExpiresAt: tokenClaims.ExpiresAt,
+			},
+			Scope: tokenClaims.Scope,
+			Email: tokenClaims.Email,
+			Name:  tokenClaims.Name,
+		}
+		if redactedTokenBytes, err := json.Marshal(redactedTokenClaims); err == nil {
+			return string(redactedTokenBytes)
+		}
+	}
+	return crypto.Base64EncodedSHA256Hash([]byte(token))
 }

@@ -30,35 +30,43 @@ import (
 
 var _ = Describe("Queue", func() {
 	It("WorkersDefault is expected", func() {
-		Expect(taskQueue.WorkersDefault).To(Equal(5))
+		Expect(taskQueue.WorkersDefault).To(Equal(1))
 	})
 
 	It("StartManagerDelayDefault is expected", func() {
 		Expect(taskQueue.StartManagerDelayDefault).To(Equal(1 * time.Minute))
 	})
 
-	It("DispatchTasksDelayDefault is expected", func() {
-		Expect(taskQueue.DispatchTasksDelayDefault).To(Equal(1 * time.Minute))
+	It("DispatchTasksIntervalDefault is expected", func() {
+		Expect(taskQueue.DispatchTasksIntervalDefault).To(Equal(1 * time.Minute))
 	})
 
-	It("MonitorTaskDelayDefault is expected", func() {
-		Expect(taskQueue.MonitorTaskDelayDefault).To(Equal(1 * time.Minute))
+	It("WatchTasksIntervalDefault is expected", func() {
+		Expect(taskQueue.WatchTasksIntervalDefault).To(Equal(1 * time.Minute))
+	})
+
+	It("WatchTasksTimeoutDefault is expected", func() {
+		Expect(taskQueue.WatchTasksTimeoutDefault).To(Equal(10 * time.Second))
 	})
 
 	It("RunnerWatchdogGracePeriodDefault is expected", func() {
 		Expect(taskQueue.RunnerWatchdogGracePeriodDefault).To(Equal(5 * time.Second))
 	})
 
-	It("UnstickTasksDelayDefault is expected", func() {
-		Expect(taskQueue.UnstickTasksDelayDefault).To(Equal(5 * time.Minute))
+	It("UnstickTasksIntervalDefault is expected", func() {
+		Expect(taskQueue.UnstickTasksIntervalDefault).To(Equal(5 * time.Minute))
 	})
 
 	It("UnstickTasksAvailableGracePeriodDefault is expected", func() {
 		Expect(taskQueue.UnstickTasksAvailableGracePeriodDefault).To(Equal(1 * time.Minute))
 	})
 
-	It("StopWaitTimeoutDefault is expected", func() {
-		Expect(taskQueue.StopWaitTimeoutDefault).To(Equal(10 * time.Second))
+	It("StopWorkersTimeoutDefault is expected", func() {
+		Expect(taskQueue.StopWorkersTimeoutDefault).To(Equal(15 * time.Second))
+	})
+
+	It("StopManagerTimeoutDefault is expected", func() {
+		Expect(taskQueue.StopManagerTimeoutDefault).To(Equal(10 * time.Second))
 	})
 
 	It("TaskDeadlineDefault is expected", func() {
@@ -81,12 +89,14 @@ var _ = Describe("Queue", func() {
 				Expect(cfg).ToNot(BeNil())
 				Expect(cfg.Workers).To(Equal(taskQueue.WorkersDefault))
 				Expect(cfg.StartManagerDelay).To(Equal(taskQueue.StartManagerDelayDefault))
-				Expect(cfg.DispatchTasksDelay).To(Equal(taskQueue.DispatchTasksDelayDefault))
-				Expect(cfg.MonitorTaskDelay).To(Equal(taskQueue.MonitorTaskDelayDefault))
-				Expect(cfg.UnstickTasksDelay).To(Equal(taskQueue.UnstickTasksDelayDefault))
+				Expect(cfg.DispatchTasksInterval).To(Equal(taskQueue.DispatchTasksIntervalDefault))
+				Expect(cfg.WatchTasksInterval).To(Equal(taskQueue.WatchTasksIntervalDefault))
+				Expect(cfg.WatchTasksTimeout).To(Equal(taskQueue.WatchTasksTimeoutDefault))
+				Expect(cfg.UnstickTasksInterval).To(Equal(taskQueue.UnstickTasksIntervalDefault))
 				Expect(cfg.UnstickTasksAvailableGracePeriod).To(Equal(taskQueue.UnstickTasksAvailableGracePeriodDefault))
 				Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(taskQueue.RunnerWatchdogGracePeriodDefault))
-				Expect(cfg.StopWaitTimeout).To(Equal(taskQueue.StopWaitTimeoutDefault))
+				Expect(cfg.StopWorkersTimeout).To(Equal(taskQueue.StopWorkersTimeoutDefault))
+				Expect(cfg.StopManagerTimeout).To(Equal(taskQueue.StopManagerTimeoutDefault))
 			})
 		})
 
@@ -118,14 +128,19 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Load(configReporter)).To(MatchError("start manager delay is invalid"))
 				})
 
-				It("returns an error when dispatch tasks delay is not parsable", func() {
-					configReporter.Config["dispatch_tasks_delay"] = test.RandomStringFromCharset(test.CharsetAlpha)
-					Expect(cfg.Load(configReporter)).To(MatchError("dispatch tasks delay is invalid"))
+				It("returns an error when dispatch tasks interval is not parsable", func() {
+					configReporter.Config["dispatch_tasks_interval"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("dispatch tasks interval is invalid"))
 				})
 
-				It("returns an error when monitor task delay is not parsable", func() {
-					configReporter.Config["monitor_task_delay"] = test.RandomStringFromCharset(test.CharsetAlpha)
-					Expect(cfg.Load(configReporter)).To(MatchError("monitor task delay is invalid"))
+				It("returns an error when watch tasks interval is not parsable", func() {
+					configReporter.Config["watch_tasks_interval"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("watch tasks interval is invalid"))
+				})
+
+				It("returns an error when watch tasks timeout is not parsable", func() {
+					configReporter.Config["watch_tasks_timeout"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("watch tasks timeout is invalid"))
 				})
 
 				It("returns an error when runner watchdog grace period is not parsable", func() {
@@ -133,9 +148,9 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Load(configReporter)).To(MatchError("runner watchdog grace period is invalid"))
 				})
 
-				It("returns an error when unstick tasks delay is not parsable", func() {
-					configReporter.Config["unstick_tasks_delay"] = test.RandomStringFromCharset(test.CharsetAlpha)
-					Expect(cfg.Load(configReporter)).To(MatchError("unstick tasks delay is invalid"))
+				It("returns an error when unstick tasks interval is not parsable", func() {
+					configReporter.Config["unstick_tasks_interval"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("unstick tasks interval is invalid"))
 				})
 
 				It("returns an error when unstick tasks available grace period is not parsable", func() {
@@ -143,9 +158,14 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Load(configReporter)).To(MatchError("unstick tasks available grace period is invalid"))
 				})
 
-				It("returns an error when stop wait timeout is not parsable", func() {
-					configReporter.Config["stop_wait_timeout"] = test.RandomStringFromCharset(test.CharsetAlpha)
-					Expect(cfg.Load(configReporter)).To(MatchError("stop wait timeout is invalid"))
+				It("returns an error when stop workers timeout is not parsable", func() {
+					configReporter.Config["stop_workers_timeout"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("stop workers timeout is invalid"))
+				})
+
+				It("returns an error when stop manager timeout is not parsable", func() {
+					configReporter.Config["stop_manager_timeout"] = test.RandomStringFromCharset(test.CharsetAlpha)
+					Expect(cfg.Load(configReporter)).To(MatchError("stop manager timeout is invalid"))
 				})
 
 				It("uses existing workers if not set", func() {
@@ -158,14 +178,19 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.StartManagerDelay).To(Equal(taskQueue.StartManagerDelayDefault))
 				})
 
-				It("uses existing dispatch tasks delay if not set", func() {
+				It("uses existing dispatch tasks interval if not set", func() {
 					Expect(cfg.Load(configReporter)).To(Succeed())
-					Expect(cfg.DispatchTasksDelay).To(Equal(taskQueue.DispatchTasksDelayDefault))
+					Expect(cfg.DispatchTasksInterval).To(Equal(taskQueue.DispatchTasksIntervalDefault))
 				})
 
-				It("uses existing monitor task delay if not set", func() {
+				It("uses existing watch tasks interval if not set", func() {
 					Expect(cfg.Load(configReporter)).To(Succeed())
-					Expect(cfg.MonitorTaskDelay).To(Equal(taskQueue.MonitorTaskDelayDefault))
+					Expect(cfg.WatchTasksInterval).To(Equal(taskQueue.WatchTasksIntervalDefault))
+				})
+
+				It("uses existing watch tasks timeout if not set", func() {
+					Expect(cfg.Load(configReporter)).To(Succeed())
+					Expect(cfg.WatchTasksTimeout).To(Equal(taskQueue.WatchTasksTimeoutDefault))
 				})
 
 				It("uses existing runner watchdog grace period if not set", func() {
@@ -173,9 +198,9 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(taskQueue.RunnerWatchdogGracePeriodDefault))
 				})
 
-				It("uses existing unstick tasks delay if not set", func() {
+				It("uses existing unstick tasks interval if not set", func() {
 					Expect(cfg.Load(configReporter)).To(Succeed())
-					Expect(cfg.UnstickTasksDelay).To(Equal(taskQueue.UnstickTasksDelayDefault))
+					Expect(cfg.UnstickTasksInterval).To(Equal(taskQueue.UnstickTasksIntervalDefault))
 				})
 
 				It("uses existing unstick tasks available grace period if not set", func() {
@@ -183,29 +208,38 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.UnstickTasksAvailableGracePeriod).To(Equal(taskQueue.UnstickTasksAvailableGracePeriodDefault))
 				})
 
-				It("uses existing stop wait timeout if not set", func() {
+				It("uses existing stop workers timeout if not set", func() {
 					Expect(cfg.Load(configReporter)).To(Succeed())
-					Expect(cfg.StopWaitTimeout).To(Equal(taskQueue.StopWaitTimeoutDefault))
+					Expect(cfg.StopWorkersTimeout).To(Equal(taskQueue.StopWorkersTimeoutDefault))
+				})
+
+				It("uses existing stop manager timeout if not set", func() {
+					Expect(cfg.Load(configReporter)).To(Succeed())
+					Expect(cfg.StopManagerTimeout).To(Equal(taskQueue.StopManagerTimeoutDefault))
 				})
 
 				It("returns successfully and uses values from the config reporter", func() {
 					configReporter.Config["workers"] = "5"
 					configReporter.Config["start_manager_delay"] = "45"
-					configReporter.Config["dispatch_tasks_delay"] = "30"
-					configReporter.Config["monitor_task_delay"] = "75"
+					configReporter.Config["dispatch_tasks_interval"] = "30"
+					configReporter.Config["watch_tasks_interval"] = "75"
+					configReporter.Config["watch_tasks_timeout"] = "25"
 					configReporter.Config["runner_watchdog_grace_period"] = "20"
-					configReporter.Config["unstick_tasks_delay"] = "60"
+					configReporter.Config["unstick_tasks_interval"] = "60"
 					configReporter.Config["unstick_tasks_available_grace_period"] = "10"
-					configReporter.Config["stop_wait_timeout"] = "15"
+					configReporter.Config["stop_workers_timeout"] = "20"
+					configReporter.Config["stop_manager_timeout"] = "15"
 					Expect(cfg.Load(configReporter)).To(Succeed())
 					Expect(cfg.Workers).To(Equal(5))
 					Expect(cfg.StartManagerDelay).To(Equal(45 * time.Second))
-					Expect(cfg.DispatchTasksDelay).To(Equal(30 * time.Second))
-					Expect(cfg.MonitorTaskDelay).To(Equal(75 * time.Second))
+					Expect(cfg.DispatchTasksInterval).To(Equal(30 * time.Second))
+					Expect(cfg.WatchTasksInterval).To(Equal(75 * time.Second))
+					Expect(cfg.WatchTasksTimeout).To(Equal(25 * time.Second))
 					Expect(cfg.RunnerWatchdogGracePeriod).To(Equal(20 * time.Second))
-					Expect(cfg.UnstickTasksDelay).To(Equal(60 * time.Second))
+					Expect(cfg.UnstickTasksInterval).To(Equal(60 * time.Second))
 					Expect(cfg.UnstickTasksAvailableGracePeriod).To(Equal(10 * time.Second))
-					Expect(cfg.StopWaitTimeout).To(Equal(15 * time.Second))
+					Expect(cfg.StopWorkersTimeout).To(Equal(20 * time.Second))
+					Expect(cfg.StopManagerTimeout).To(Equal(15 * time.Second))
 				})
 			})
 
@@ -220,14 +254,19 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Validate()).To(MatchError("start manager delay is invalid"))
 				})
 
-				It("returns an error when dispatch tasks delay is invalid", func() {
-					cfg.DispatchTasksDelay = 0
-					Expect(cfg.Validate()).To(MatchError("dispatch tasks delay is invalid"))
+				It("returns an error when dispatch tasks interval is invalid", func() {
+					cfg.DispatchTasksInterval = 0
+					Expect(cfg.Validate()).To(MatchError("dispatch tasks interval is invalid"))
 				})
 
-				It("returns an error when monitor task delay is invalid", func() {
-					cfg.MonitorTaskDelay = 0
-					Expect(cfg.Validate()).To(MatchError("monitor task delay is invalid"))
+				It("returns an error when watch tasks interval is invalid", func() {
+					cfg.WatchTasksInterval = 0
+					Expect(cfg.Validate()).To(MatchError("watch tasks interval is invalid"))
+				})
+
+				It("returns an error when watch tasks timeout is invalid", func() {
+					cfg.WatchTasksTimeout = 0
+					Expect(cfg.Validate()).To(MatchError("watch tasks timeout is invalid"))
 				})
 
 				It("returns an error when runner watchdog grace period is invalid", func() {
@@ -235,9 +274,9 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Validate()).To(MatchError("runner watchdog grace period is invalid"))
 				})
 
-				It("returns an error when unstick tasks delay is invalid", func() {
-					cfg.UnstickTasksDelay = 0
-					Expect(cfg.Validate()).To(MatchError("unstick tasks delay is invalid"))
+				It("returns an error when unstick tasks interval is invalid", func() {
+					cfg.UnstickTasksInterval = 0
+					Expect(cfg.Validate()).To(MatchError("unstick tasks interval is invalid"))
 				})
 
 				It("returns an error when unstick tasks available grace period is invalid", func() {
@@ -245,9 +284,14 @@ var _ = Describe("Queue", func() {
 					Expect(cfg.Validate()).To(MatchError("unstick tasks available grace period is invalid"))
 				})
 
-				It("returns an error when stop wait timeout is invalid", func() {
-					cfg.StopWaitTimeout = 0
-					Expect(cfg.Validate()).To(MatchError("stop wait timeout is invalid"))
+				It("returns an error when stop workers timeout is invalid", func() {
+					cfg.StopWorkersTimeout = 0
+					Expect(cfg.Validate()).To(MatchError("stop workers timeout is invalid"))
+				})
+
+				It("returns an error when stop manager timeout is invalid", func() {
+					cfg.StopManagerTimeout = 0
+					Expect(cfg.Validate()).To(MatchError("stop manager timeout is invalid"))
 				})
 
 				It("returns successfully", func() {
@@ -420,7 +464,7 @@ var _ = Describe("Queue", func() {
 				cfg = taskQueue.NewConfig()
 				cfg.Workers = 2
 				cfg.StartManagerDelay = time.Millisecond
-				cfg.DispatchTasksDelay = time.Millisecond
+				cfg.DispatchTasksInterval = time.Millisecond
 			})
 
 			AfterEach(func() {
@@ -429,6 +473,9 @@ var _ = Describe("Queue", func() {
 				}
 				lgr.AssertDebug("Task queue worker stopped", log.Fields{"error": errors.NewSerializable(context.Canceled)})
 				lgr.AssertDebug("Task queue manager stopped", log.Fields{"error": errors.NewSerializable(context.Canceled)})
+
+				// Stop waits for the watcher, so its stop is always logged by the time Stop returns.
+				lgr.AssertDebug("Task queue watcher stopped", log.Fields{"error": errors.NewSerializable(context.Canceled)})
 			})
 
 			It("fails a pending task that does not match any registered runner", func() {
@@ -565,7 +612,7 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("cancels a running task when the task is deleted mid-run", func() {
-				cfg.MonitorTaskDelay = time.Millisecond
+				cfg.WatchTasksInterval = time.Millisecond
 				taskQueue.RunClaimLostTotal.Reset()
 
 				canceled := make(chan error, 1)
@@ -596,15 +643,15 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("cancels a running task deleted after earlier claim checks found the claim intact", func() {
-				cfg.MonitorTaskDelay = 50 * time.Millisecond
+				cfg.WatchTasksInterval = 50 * time.Millisecond
 				taskQueue.RunClaimLostTotal.Reset()
 
 				canceled := make(chan error, 1)
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
-						// Run past several claim checks before losing the claim, so the monitor must keep checking
+						// Run past several claim checks before losing the claim, so the watcher must keep checking
 						// rather than settle after the first.
-						time.Sleep(5 * cfg.MonitorTaskDelay)
+						time.Sleep(5 * cfg.WatchTasksInterval)
 						test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": runnerTask.ID}))
 						<-runnerContext.Done()
 						canceled <- context.Cause(runnerContext)
@@ -629,7 +676,7 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("cancels a running task when the task is re-claimed mid-run", func() {
-				cfg.MonitorTaskDelay = 100 * time.Millisecond
+				cfg.WatchTasksInterval = 100 * time.Millisecond
 				taskQueue.RunClaimLostTotal.Reset()
 
 				canceled := make(chan error, 1)
@@ -663,7 +710,7 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("does not cancel a running task whose claim is intact", func() {
-				cfg.MonitorTaskDelay = time.Millisecond
+				cfg.WatchTasksInterval = time.Millisecond
 
 				runner := taskQueueTest.NewStubRunner(taskTest.RandomType()).
 					WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
@@ -688,6 +735,87 @@ var _ = Describe("Queue", func() {
 
 				actualTask := test.Must(str.NewTaskRepository().GetTask(ctx, createdTask.ID, nil))
 				Expect(actualTask.Error).To(BeNil())
+			})
+
+			It("cancels every run whose claim was lost, and only those, when several runs are in flight", func() {
+				cfg.Workers = 3
+				cfg.WatchTasksInterval = 50 * time.Millisecond
+				taskQueue.RunClaimLostTotal.Reset()
+
+				runner := taskQueueTest.NewStubRunner(taskTest.RandomType())
+				que = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))
+
+				deletedTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
+				reclaimedTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
+				retainedTask := test.Must(str.NewTaskRepository().CreateTask(ctx, &task.TaskCreate{Type: runner.GetRunnerType()}))
+
+				// Both claims are lost only once all three runs are in flight, so a single claim check covers all of
+				// them.
+				var inFlight sync.WaitGroup
+				inFlight.Add(3)
+				allInFlight := make(chan struct{})
+				go func() {
+					defer GinkgoRecover()
+					inFlight.Wait()
+					close(allInFlight)
+				}()
+
+				deletedCanceled := make(chan error, 1)
+				reclaimedCanceled := make(chan error, 1)
+				claimsLost := make(chan struct{})
+				runner.WithStub(func(runnerContext context.Context, runnerTask *task.Task) {
+					inFlight.Done()
+
+					if runnerTask.ID == retainedTask.ID {
+						// Stay in flight until the other runs have lost their claims. This claim is intact, so this run
+						// must not be canceled with them.
+						select {
+						case <-runnerContext.Done():
+							runnerTask.AppendError(context.Cause(runnerContext))
+							runnerTask.SetFailed()
+						case <-claimsLost:
+							runnerTask.SetCompleted()
+						}
+						return
+					}
+
+					<-runnerContext.Done()
+					if runnerTask.ID == deletedTask.ID {
+						deletedCanceled <- context.Cause(runnerContext)
+					} else {
+						reclaimedCanceled <- context.Cause(runnerContext)
+					}
+					runnerTask.SetCompleted()
+				})
+
+				que.Start()
+
+				Eventually(allInFlight, "5s").Should(BeClosed())
+
+				test.Must(str.GetCollection("tasks").DeleteOne(ctx, bson.M{"id": deletedTask.ID}))
+
+				// Simulate the task being unstuck and re-claimed elsewhere by changing the claim token out from under
+				// its run.
+				test.Must(str.GetCollection("tasks").UpdateOne(ctx, bson.M{"id": reclaimedTask.ID}, bson.M{"$set": bson.M{"claimToken": "other-claim-token"}}))
+
+				Eventually(deletedCanceled, "5s").Should(Receive(MatchError("task claim lost")))
+				Eventually(reclaimedCanceled, "5s").Should(Receive(MatchError("task claim lost")))
+				close(claimsLost)
+
+				Eventually(func() string {
+					return test.Must(str.NewTaskRepository().GetTask(ctx, retainedTask.ID, nil)).State
+				}, "5s", "50ms").To(Equal(task.TaskStateCompleted))
+
+				actualRetainedTask := test.Must(str.NewTaskRepository().GetTask(ctx, retainedTask.ID, nil))
+				Expect(actualRetainedTask.Error).To(BeNil())
+
+				// The deleted task is gone and the foreign claim remains untouched; neither run wrote anything back.
+				Expect(test.Must(str.NewTaskRepository().GetTask(ctx, deletedTask.ID, nil))).To(BeNil())
+				actualReclaimedTask := test.Must(str.NewTaskRepository().GetTask(ctx, reclaimedTask.ID, nil))
+				Expect(actualReclaimedTask.State).To(Equal(task.TaskStateRunning))
+
+				Expect(testutil.ToFloat64(taskQueue.RunClaimLostTotal.WithLabelValues(runner.GetRunnerType(), "deleted"))).To(Equal(float64(1)))
+				Expect(testutil.ToFloat64(taskQueue.RunClaimLostTotal.WithLabelValues(runner.GetRunnerType(), "reclaimed"))).To(Equal(float64(1)))
 			})
 
 			It("cleans up a task that panics during execution", func() {
@@ -779,11 +907,11 @@ var _ = Describe("Queue", func() {
 			})
 
 			It("unsticks and logs a task left running past its deadline", func() {
-				cfg.UnstickTasksDelay = time.Millisecond
+				cfg.UnstickTasksInterval = time.Millisecond
 				cfg.UnstickTasksAvailableGracePeriod = 50 * time.Millisecond
 
 				// Keep the unstuck task's availability delay short so it is re-dispatched within the wait below.
-				cfg.MonitorTaskDelay = time.Millisecond
+				cfg.WatchTasksInterval = time.Millisecond
 				cfg.RunnerWatchdogGracePeriod = 50 * time.Millisecond
 
 				runner := taskQueueTest.NewCountingRunner(taskTest.RandomType())
@@ -946,8 +1074,9 @@ var _ = Describe("Queue", func() {
 				cfg = taskQueue.NewConfig()
 				cfg.Workers = 2
 				cfg.StartManagerDelay = time.Millisecond
-				cfg.DispatchTasksDelay = time.Millisecond
-				cfg.StopWaitTimeout = 250 * time.Millisecond
+				cfg.DispatchTasksInterval = time.Millisecond
+				cfg.StopWorkersTimeout = 250 * time.Millisecond
+				cfg.StopManagerTimeout = 250 * time.Millisecond
 			})
 
 			AfterEach(func() {
@@ -1039,8 +1168,8 @@ var _ = Describe("Queue", func() {
 				cfg := taskQueue.NewConfig()
 				cfg.Workers = workersCount
 				cfg.StartManagerDelay = time.Millisecond
-				cfg.DispatchTasksDelay = time.Millisecond
-				cfg.UnstickTasksDelay = time.Millisecond
+				cfg.DispatchTasksInterval = time.Millisecond
+				cfg.UnstickTasksInterval = time.Millisecond
 				ques = make([]*taskQueue.Queue, queueCount)
 				for index := range len(ques) {
 					ques[index] = test.Must(taskQueue.New(taskTest.RandomType(), cfg, lgr, str, runner))

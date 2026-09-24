@@ -17,7 +17,7 @@ require (
 	github.com/gowebpki/jcs v1.0.1
 	github.com/hashicorp/go-uuid v1.0.3
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/klauspost/compress v1.18.5
+	github.com/klauspost/compress v1.18.7
 	github.com/lestrrat-go/jwx/v2 v2.1.4
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/oklog/ulid/v2 v2.1.1
@@ -33,16 +33,16 @@ require (
 	github.com/tidepool-org/hydrophone/client v0.0.0-20260311102224-0a387435e093
 	github.com/tidepool-org/platform-plugin-abbott v0.0.0
 	github.com/urfave/cli v1.22.16
-	go.mongodb.org/mongo-driver v1.17.3
+	go.mongodb.org/mongo-driver v1.17.9
 	go.uber.org/fx v1.23.0
 	go.uber.org/mock v0.5.2
-	golang.org/x/crypto v0.41.0
+	golang.org/x/crypto v0.54.0
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394
 	golang.org/x/lint v0.0.0-20241112194109-818c5a804067
 	golang.org/x/oauth2 v0.28.0
-	golang.org/x/sync v0.16.0
-	golang.org/x/text v0.28.0
-	golang.org/x/tools v0.36.0
+	golang.org/x/sync v0.22.0
+	golang.org/x/text v0.40.0
+	golang.org/x/tools v0.47.0
 	google.golang.org/grpc v1.71.0
 	gopkg.in/yaml.v2 v2.4.0
 	syreclabs.com/go/faker v1.2.3
@@ -125,10 +125,11 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.27.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/mod v0.27.0 // indirect
-	golang.org/x/net v0.43.0 // indirect
-	golang.org/x/sys v0.35.0 // indirect
-	golang.org/x/term v0.34.0 // indirect
+	golang.org/x/mod v0.37.0 // indirect
+	golang.org/x/net v0.57.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260625142307-59b4966ccb57 // indirect
+	golang.org/x/term v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250313205543-e70fdf4c4cb4 // indirect
 	google.golang.org/protobuf v1.36.7 // indirect

@@ -20,7 +20,7 @@ const (
 	Frequency = time.Minute
 
 	PendingRetryDuration       = 30 * time.Minute
-	FailingRetryDurationJitter = 10 * time.Second
+	FailingRetryDurationJitter = 0.3
 	FailingRetryDuration       = ProcessingTimeout * 2
 	ProcessingTimeout          = 3 * time.Minute
 )

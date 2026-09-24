@@ -1,6 +1,8 @@
 package test
 
 import (
+	"time"
+
 	authTest "github.com/tidepool-org/platform/auth/test"
 	oauthProvider "github.com/tidepool-org/platform/oauth/provider"
 	"github.com/tidepool-org/platform/pointer"
@@ -32,6 +34,10 @@ func RandomStateSalt() string {
 	return test.RandomStringFromCharset(test.CharsetAlphaNumeric)
 }
 
+func RandomClientTimeout() time.Duration {
+	return time.Duration(test.RandomIntFromRange(1, 3600)) * time.Second
+}
+
 func RandomConfig(options ...test.Option) *oauthProvider.Config {
 	cookiesDisabled := test.RandomBool()
 	return &oauthProvider.Config{
@@ -46,6 +52,7 @@ func RandomConfig(options ...test.Option) *oauthProvider.Config {
 		AuthStyleInParams: test.RandomBool(),
 		CookieDisabled:    cookiesDisabled,
 		StateSalt:         test.Conditional(RandomStateSalt, !cookiesDisabled),
+		ClientTimeout:     RandomClientTimeout(),
 	}
 }
 
@@ -65,6 +72,7 @@ func CloneConfig(config *oauthProvider.Config) *oauthProvider.Config {
 		AuthStyleInParams: config.AuthStyleInParams,
 		CookieDisabled:    config.CookieDisabled,
 		StateSalt:         pointer.Clone(config.StateSalt),
+		ClientTimeout:     config.ClientTimeout,
 	}
 }
 
@@ -98,5 +106,6 @@ func NewObjectFromConfig(config *oauthProvider.Config, objectFormat test.ObjectF
 	if config.StateSalt != nil {
 		object["state_salt"] = test.NewObjectFromString(*config.StateSalt, objectFormat)
 	}
+	object["client_timeout"] = test.NewObjectFromString(config.ClientTimeout.String(), objectFormat)
 	return object
 }

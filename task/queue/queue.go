@@ -2,7 +2,9 @@ package queue
 
 import (
 	"context"
+	"maps"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"sync"
 	"time"
@@ -23,19 +25,25 @@ import (
 
 const (
 	// WorkersDefault is the default number of workers for the queue.
-	WorkersDefault = 5
+	WorkersDefault = 1
 
 	// StartManagerDelayDefault is the default upper bound on the randomized delay the manager waits before it begins
 	// dispatching tasks, spreading startup across instances.
 	StartManagerDelayDefault = 1 * time.Minute
 
-	// DispatchTasksDelayDefault is the default delay, jittered, between polls for pending tasks to dispatch. Completing
-	// a task also dispatches immediately, without waiting for the poll.
-	DispatchTasksDelayDefault = 1 * time.Minute
+	// DispatchTasksIntervalDefault is the default interval, jittered, between polls for pending tasks to dispatch.
+	// Completing a task also dispatches immediately, without waiting for the poll.
+	DispatchTasksIntervalDefault = 1 * time.Minute
 
-	// MonitorTaskDelayDefault is the default interval between checks that each in-flight task's claim is still held
+	// WatchTasksIntervalDefault is the default interval between checks that each in-flight task's claim is still held
 	// (the task exists and its claim token is unchanged); a run whose claim is lost is canceled with task.ErrClaimLost.
-	MonitorTaskDelayDefault = 1 * time.Minute
+	WatchTasksIntervalDefault = 1 * time.Minute
+
+	// WatchTasksTimeoutDefault is the default timeout that bounds the claim lookup the watcher makes on each check, so
+	// a slow store stalls claim watching for a bounded time rather than indefinitely. Configured separately from
+	// WatchTasksInterval, since a lookup that cannot complete within the interval would never complete at all,
+	// silently disabling claim watching.
+	WatchTasksTimeoutDefault = 10 * time.Second
 
 	// RunnerWatchdogGracePeriodDefault is the extra time beyond the runner timeout that the watchdog waits before
 	// reporting a runner as blocked. The runner context is still canceled at the runner timeout; the grace period only
@@ -43,21 +51,27 @@ const (
 	// non-cooperative.
 	RunnerWatchdogGracePeriodDefault = 5 * time.Second
 
-	// UnstickTasksDelayDefault is the default delay, jittered, between attempts to unstick tasks. The first attempt is
-	// made after a randomized delay of at most this duration.
-	UnstickTasksDelayDefault = 5 * time.Minute
+	// UnstickTasksIntervalDefault is the default interval, jittered, between attempts to unstick tasks. The first
+	// attempt is made after a randomized delay of at most this duration.
+	UnstickTasksIntervalDefault = 5 * time.Minute
 
-	// UnstickTasksAvailableGracePeriodDefault is the default grace period added to the claim monitor delay and the
+	// UnstickTasksAvailableGracePeriodDefault is the default grace period added to the watch tasks interval and the
 	// runner watchdog grace period to form the delay after a task is unstuck before it is made available for
 	// re-dispatch. This ensures that any still-running tasks have likely been canceled and exited before being
 	// re-dispatched.
 	UnstickTasksAvailableGracePeriodDefault = 1 * time.Minute
 
-	// StopWaitTimeoutDefault bounds how long Stop waits for in-flight tasks to observe cancellation and exit before
-	// abandoning them (they are recovered by the deadline and unstick mechanism). Kept under the typical Kubernetes
-	// termination grace period since we could use it up to twice (once for workers and once for manager) and we still
-	// want to leave time for the store to flush any pending writes.
-	StopWaitTimeoutDefault = 10 * time.Second
+	// StopWorkersTimeoutDefault is the default timeout that bounds how long Stop waits for in-flight tasks to observe
+	// cancellation and exit before abandoning them (they are recovered by the deadline and unstick mechanism).
+	// StopWorkersTimeout plus StopManagerTimeout should be kept under the Kubernetes termination grace period
+	// (typically 30 seconds) since we still need to leave time for the store to flush any pending writes.
+	StopWorkersTimeoutDefault = 15 * time.Second
+
+	// StopManagerTimeoutDefault is the default timeout that bounds how long Stop additionally waits for the manager to
+	// observe cancellation, persist any cancelled tasks, and exit. StopWorkersTimeout plus StopManagerTimeout should be
+	// kept under the Kubernetes termination grace period (typically 30 seconds) since we still need to leave time for
+	// the store to flush any pending writes.
+	StopManagerTimeoutDefault = 10 * time.Second
 
 	TaskDeadlineDefault  = 1 * time.Minute
 	DurationJitterFactor = 0.2
@@ -66,24 +80,28 @@ const (
 type Config struct {
 	Workers                          int
 	StartManagerDelay                time.Duration
-	DispatchTasksDelay               time.Duration
-	MonitorTaskDelay                 time.Duration
+	DispatchTasksInterval            time.Duration
+	WatchTasksInterval               time.Duration
+	WatchTasksTimeout                time.Duration
 	RunnerWatchdogGracePeriod        time.Duration
-	UnstickTasksDelay                time.Duration
+	UnstickTasksInterval             time.Duration
 	UnstickTasksAvailableGracePeriod time.Duration
-	StopWaitTimeout                  time.Duration
+	StopWorkersTimeout               time.Duration
+	StopManagerTimeout               time.Duration
 }
 
 func NewConfig() *Config {
 	return &Config{
 		Workers:                          WorkersDefault,
 		StartManagerDelay:                StartManagerDelayDefault,
-		DispatchTasksDelay:               DispatchTasksDelayDefault,
-		MonitorTaskDelay:                 MonitorTaskDelayDefault,
+		DispatchTasksInterval:            DispatchTasksIntervalDefault,
+		WatchTasksInterval:               WatchTasksIntervalDefault,
+		WatchTasksTimeout:                WatchTasksTimeoutDefault,
 		RunnerWatchdogGracePeriod:        RunnerWatchdogGracePeriodDefault,
-		UnstickTasksDelay:                UnstickTasksDelayDefault,
+		UnstickTasksInterval:             UnstickTasksIntervalDefault,
 		UnstickTasksAvailableGracePeriod: UnstickTasksAvailableGracePeriodDefault,
-		StopWaitTimeout:                  StopWaitTimeoutDefault,
+		StopWorkersTimeout:               StopWorkersTimeoutDefault,
+		StopManagerTimeout:               StopManagerTimeoutDefault,
 	}
 }
 
@@ -104,35 +122,45 @@ func (c *Config) Load(configReporter config.Reporter) error {
 	} else {
 		c.StartManagerDelay = value
 	}
-	if value, err := duration.Parse(configReporter.GetWithDefault("dispatch_tasks_delay", c.DispatchTasksDelay.String()), time.Second); err != nil {
-		return errors.New("dispatch tasks delay is invalid")
+	if value, err := duration.Parse(configReporter.GetWithDefault("dispatch_tasks_interval", c.DispatchTasksInterval.String()), time.Second); err != nil {
+		return errors.New("dispatch tasks interval is invalid")
 	} else {
-		c.DispatchTasksDelay = value
+		c.DispatchTasksInterval = value
 	}
-	if value, err := duration.Parse(configReporter.GetWithDefault("monitor_task_delay", c.MonitorTaskDelay.String()), time.Second); err != nil {
-		return errors.New("monitor task delay is invalid")
+	if value, err := duration.Parse(configReporter.GetWithDefault("watch_tasks_interval", c.WatchTasksInterval.String()), time.Second); err != nil {
+		return errors.New("watch tasks interval is invalid")
 	} else {
-		c.MonitorTaskDelay = value
+		c.WatchTasksInterval = value
+	}
+	if value, err := duration.Parse(configReporter.GetWithDefault("watch_tasks_timeout", c.WatchTasksTimeout.String()), time.Second); err != nil {
+		return errors.New("watch tasks timeout is invalid")
+	} else {
+		c.WatchTasksTimeout = value
 	}
 	if value, err := duration.Parse(configReporter.GetWithDefault("runner_watchdog_grace_period", c.RunnerWatchdogGracePeriod.String()), time.Second); err != nil {
 		return errors.New("runner watchdog grace period is invalid")
 	} else {
 		c.RunnerWatchdogGracePeriod = value
 	}
-	if value, err := duration.Parse(configReporter.GetWithDefault("unstick_tasks_delay", c.UnstickTasksDelay.String()), time.Second); err != nil {
-		return errors.New("unstick tasks delay is invalid")
+	if value, err := duration.Parse(configReporter.GetWithDefault("unstick_tasks_interval", c.UnstickTasksInterval.String()), time.Second); err != nil {
+		return errors.New("unstick tasks interval is invalid")
 	} else {
-		c.UnstickTasksDelay = value
+		c.UnstickTasksInterval = value
 	}
 	if value, err := duration.Parse(configReporter.GetWithDefault("unstick_tasks_available_grace_period", c.UnstickTasksAvailableGracePeriod.String()), time.Second); err != nil {
 		return errors.New("unstick tasks available grace period is invalid")
 	} else {
 		c.UnstickTasksAvailableGracePeriod = value
 	}
-	if value, err := duration.Parse(configReporter.GetWithDefault("stop_wait_timeout", c.StopWaitTimeout.String()), time.Second); err != nil {
-		return errors.New("stop wait timeout is invalid")
+	if value, err := duration.Parse(configReporter.GetWithDefault("stop_workers_timeout", c.StopWorkersTimeout.String()), time.Second); err != nil {
+		return errors.New("stop workers timeout is invalid")
 	} else {
-		c.StopWaitTimeout = value
+		c.StopWorkersTimeout = value
+	}
+	if value, err := duration.Parse(configReporter.GetWithDefault("stop_manager_timeout", c.StopManagerTimeout.String()), time.Second); err != nil {
+		return errors.New("stop manager timeout is invalid")
+	} else {
+		c.StopManagerTimeout = value
 	}
 
 	return nil
@@ -145,31 +173,37 @@ func (c *Config) Validate() error {
 	if c.StartManagerDelay <= 0 {
 		return errors.New("start manager delay is invalid")
 	}
-	if c.DispatchTasksDelay <= 0 {
-		return errors.New("dispatch tasks delay is invalid")
+	if c.DispatchTasksInterval <= 0 {
+		return errors.New("dispatch tasks interval is invalid")
 	}
-	if c.MonitorTaskDelay <= 0 {
-		return errors.New("monitor task delay is invalid")
+	if c.WatchTasksInterval <= 0 {
+		return errors.New("watch tasks interval is invalid")
+	}
+	if c.WatchTasksTimeout <= 0 {
+		return errors.New("watch tasks timeout is invalid")
 	}
 	if c.RunnerWatchdogGracePeriod <= 0 {
 		return errors.New("runner watchdog grace period is invalid")
 	}
-	if c.UnstickTasksDelay <= 0 {
-		return errors.New("unstick tasks delay is invalid")
+	if c.UnstickTasksInterval <= 0 {
+		return errors.New("unstick tasks interval is invalid")
 	}
 	if c.UnstickTasksAvailableGracePeriod <= 0 {
 		return errors.New("unstick tasks available grace period is invalid")
 	}
-	if c.StopWaitTimeout <= 0 {
-		return errors.New("stop wait timeout is invalid")
+	if c.StopWorkersTimeout <= 0 {
+		return errors.New("stop workers timeout is invalid")
+	}
+	if c.StopManagerTimeout <= 0 {
+		return errors.New("stop manager timeout is invalid")
 	}
 	return nil
 }
 
 // The Queue's fields are all immutable after New, except the lifecycle fields, which are guarded by the lifecycle
-// mutex, and workersAvailable, which is initialized by Start before the manager exists and is thereafter owned
-// exclusively by the manager goroutine. The workers and manager therefore read the channels and runners map freely,
-// without synchronization.
+// mutex, the watches, which are guarded by the watches mutex, and workersAvailable, which is initialized by Start
+// before the manager exists and is thereafter owned exclusively by the manager goroutine. The workers and manager
+// therefore read the channels and runners map freely, without synchronization.
 type Queue struct {
 	name              string
 	config            *Config
@@ -179,12 +213,24 @@ type Queue struct {
 	dispatchChannel   chan *task.Task
 	completionChannel chan *task.Task
 	lifecycleMutex    sync.Mutex
-	started           bool
-	stopped           bool
+	lifecycleStarted  bool
+	lifecycleStopped  bool
 	cancelFunc        context.CancelFunc
 	workersWaitGroup  sync.WaitGroup
 	managerWaitGroup  sync.WaitGroup
+	watcherWaitGroup  sync.WaitGroup
+	watchesMutex      sync.Mutex
+	watches           map[string]*Watch
 	workersAvailable  int
+}
+
+// Watch is one in-flight run's registration with the watcher. The task is owned by the runner while it runs, so the
+// watch gets its own copies of everything the watcher needs rather than reading the task.
+type Watch struct {
+	taskType   string
+	claimToken string
+	logger     log.Logger
+	cancel     context.CancelCauseFunc
 }
 
 func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners ...Runner) (*Queue, error) {
@@ -220,19 +266,14 @@ func New(name string, cfg *Config, lgr log.Logger, str taskStore.Store, runners 
 	}
 
 	return &Queue{
-		name:       name,
-		config:     cfg,
-		logger:     lgr.WithField("queue", name),
-		repository: str.NewTaskRepository(),
-		runners:    runnerMap,
-
-		// NOT buffered so a task is only handed off when a worker is ready to receive it. This ensures a dispatched
-		// task is never stranded in a buffer during shutdown.
-		dispatchChannel: make(chan *task.Task),
-
-		// Buffered so that a worker can complete a task and hand it off to the manager even if the manager is busy
-		// dispatching other tasks.
-		completionChannel: make(chan *task.Task, cfg.Workers),
+		name:              name,
+		config:            cfg,
+		logger:            lgr.WithField("queue", name),
+		repository:        str.NewTaskRepository(),
+		runners:           runnerMap,
+		dispatchChannel:   make(chan *task.Task),              // Not buffered so a task is only handed off when a worker is ready to receive it
+		completionChannel: make(chan *task.Task, cfg.Workers), // Buffered so that a worker can complete a task even if the manager is busy
+		watches:           make(map[string]*Watch, cfg.Workers),
 	}, nil
 }
 
@@ -240,16 +281,17 @@ func (q *Queue) Start() {
 	q.lifecycleMutex.Lock()
 	defer q.lifecycleMutex.Unlock()
 
-	if q.started || q.stopped {
+	if q.lifecycleStarted || q.lifecycleStopped {
 		return
 	}
-	q.started = true
+	q.lifecycleStarted = true
 
 	q.logger.Debug("Task queue starting")
 
 	ctx, cancelFunc := context.WithCancel(log.NewContextWithLogger(context.Background(), q.logger))
 	q.cancelFunc = cancelFunc
 
+	q.startWatcher(ctx)
 	q.startWorkers(ctx)
 	q.startManager(ctx)
 
@@ -262,29 +304,43 @@ func (q *Queue) Stop() {
 	q.lifecycleMutex.Lock()
 	defer q.lifecycleMutex.Unlock()
 
-	if q.stopped {
+	if q.lifecycleStopped {
 		return
 	}
-	q.stopped = true
+	q.lifecycleStopped = true
 
 	// Never started, so nothing to stop; the stopped flag ensures it never will be.
-	if !q.started {
+	if !q.lifecycleStarted {
 		return
 	}
 
 	q.logger.Info("Task queue stopping")
 
-	lgr := q.logger.WithField("stopWaitTimeout", q.config.StopWaitTimeout)
+	lgr := q.logger.WithFields(log.Fields{
+		"stopWorkersTimeout": q.config.StopWorkersTimeout.String(),
+		"stopManagerTimeout": q.config.StopManagerTimeout.String(),
+	})
 
-	// Cancel the manager, so it stops dispatching new tasks and begins draining completions from the workers, and the
-	// workers, to interrupt any in-flight task.
+	// Cancel the manager, so it stops dispatching new tasks and begins draining completions from the workers, the
+	// workers, to interrupt any in-flight task, and the watcher.
 	q.cancelFunc()
+
+	// Watcher and workers are stopped within the same deadline. The manager deadline is taken once they have stopped,
+	// so it bounds only the time the manager itself takes to drain completions from the workers and exit.
+	workersDeadline := time.Now().Add(q.config.StopWorkersTimeout)
+
+	// Wait for the watcher before the workers, since the worker wait returns early when it times out and a watcher left
+	// running would keep querying the store after shutdown. If it somehow does not stop, there is nothing to do but
+	// report it and carry on, as it blocks nothing further in the shutdown.
+	if !waitUntil(&q.watcherWaitGroup, workersDeadline) {
+		lgr.Error("Task queue watcher did not stop within timeout")
+	}
 
 	// Wait for all workers to exit, but only up to a bounded timeout so a runner that does not honor cancellation
 	// cannot block shutdown forever. If a worker is still running we must NOT close the channels: a stuck worker that
 	// later finishes would panic sending on a closed completion channel. Instead we leave the goroutines orphaned
 	// (reaped at process exit); the abandoned task stays running and is recovered by the deadline/unstick mechanism.
-	if !waitWithTimeout(&q.workersWaitGroup, q.config.StopWaitTimeout) {
+	if !waitUntil(&q.workersWaitGroup, workersDeadline) {
 		lgr.Error("Task queue workers did not stop within timeout; abandoning in-flight tasks; will be fixed with UnstickTasks later")
 		return
 	}
@@ -294,7 +350,7 @@ func (q *Queue) Stop() {
 
 	// Wait for manager to exit. This should be prompt now that the completion channel is closed, but bound it too in
 	// case a completion write is slow.
-	if !waitWithTimeout(&q.managerWaitGroup, q.config.StopWaitTimeout) {
+	if !waitUntil(&q.managerWaitGroup, time.Now().Add(q.config.StopManagerTimeout)) {
 		lgr.Error("Task queue manager did not stop within timeout")
 		return
 	}
@@ -363,7 +419,7 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 		return
 	}
 
-	// The claim context is canceled with task.ErrClaimLost by the task claim monitor when the task is deleted or re-claimed
+	// The claim context is canceled with task.ErrClaimLost by the watcher when the task is deleted or re-claimed
 	// mid-run. Claim loss is irreversible for this run (every claim gets a fresh token), so once canceled the outcome
 	// can never be persisted.
 	claimContext, claimCancel := context.WithCancelCause(ctx)
@@ -402,15 +458,11 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	})
 	defer runnerWatchdog.Stop()
 
-	// Watch the claim for the duration of the run. The task is owned by the runner while it runs, so the watch gets its
-	// own copies of everything it needs rather than reading tsk.
-	go func(id string, typ string, claimToken string) {
-		if reason := q.monitorTaskForLostClaim(claimContext, id, claimToken); reason != nil {
-			log.LoggerFromContext(claimContext).Warnf("Task %s; canceling task run", *reason)
-			RunClaimLostTotal.WithLabelValues(typ, *reason).Inc()
-			claimCancel(task.ErrClaimLost)
-		}
-	}(tsk.ID, tsk.Type, *tsk.ClaimToken)
+	// Watch the task claim for the duration of the run. Registered last, so it is deregistered first, before any of the
+	// defers above run: the watcher and the deregistration contend for the same mutex, so once the run is deregistered
+	// no watcher can still cancel it and the claim outcome the defers read is final.
+	watch := q.registerWatch(tsk, lgr, claimCancel)
+	defer q.deregisterWatch(tsk.ID, watch)
 
 	// Run the task via the runner
 	startTime := time.Now()
@@ -449,29 +501,110 @@ func (q *Queue) runTask(ctx context.Context, tsk *task.Task) {
 	}
 }
 
-// monitorTaskForLostClaim polls until the run's claim on the task is lost - the task is gone (deleted) or holds a
-// different claim token (unstuck and possibly re-claimed) - and then returns the reason for the claim loss. If the
-// context is canceled before the claim is lost, returns nil.
-func (q *Queue) monitorTaskForLostClaim(ctx context.Context, id string, runningClaimToken string) *string {
-	ticker := time.NewTicker(q.config.MonitorTaskDelay)
-	defer ticker.Stop()
+func (q *Queue) startWatcher(ctx context.Context) {
+	q.watcherWaitGroup.Go(func() {
+		lgr := log.LoggerFromContext(ctx)
 
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-			if storeClaimToken, exists, err := q.repository.GetTaskClaimToken(ctx, id); err != nil {
-				if context.Cause(ctx) == nil {
-					log.LoggerFromContext(ctx).WithError(err).Error("Unable to get task claim token")
-				}
-			} else if !exists {
-				return pointer.From("deleted")
-			} else if storeClaimToken == nil || *storeClaimToken != runningClaimToken {
-				return pointer.From("reclaimed")
+		lgr.Debug("Task queue watcher started")
+
+		ticker := time.NewTicker(q.config.WatchTasksInterval)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				lgr.WithError(context.Cause(ctx)).Debug("Task queue watcher stopped")
+				return
+			case <-ticker.C:
+				q.executeWatcher(ctx)
 			}
 		}
+	})
+}
+
+func (q *Queue) executeWatcher(ctx context.Context) {
+	watches := q.watchesSnapshot()
+	if len(watches) == 0 {
+		return
 	}
+
+	// Bound the lookup so that a store that never answers stalls claim watching for every run on the queue only until
+	// the next check rather than indefinitely. Note the failure below is reported against the queue context, not this
+	// one, so a lookup that times out is logged while a shutdown stays quiet.
+	getContext, getCancel := context.WithTimeout(ctx, q.config.WatchTasksTimeout)
+	defer getCancel()
+
+	claimTokens, err := q.repository.GetTaskClaimTokens(getContext, slices.Collect(maps.Keys(watches)))
+	if err != nil {
+		if context.Cause(ctx) == nil {
+			log.LoggerFromContext(ctx).WithError(err).Error("Unable to get task claim tokens")
+		}
+		return
+	}
+
+	for id, watch := range watches {
+		var reason string
+		if claimToken, exists := claimTokens[id]; !exists {
+			reason = "deleted"
+		} else if claimToken == nil || *claimToken != watch.claimToken {
+			reason = "reclaimed"
+		} else {
+			continue
+		}
+
+		if q.deregisterWatchAndCancelTask(id, watch) {
+			watch.logger.Warnf("Task %s; canceling task run", reason)
+			RunClaimLostTotal.WithLabelValues(watch.taskType, reason).Inc()
+		}
+	}
+}
+
+func (q *Queue) watchesSnapshot() map[string]*Watch {
+	q.watchesMutex.Lock()
+	defer q.watchesMutex.Unlock()
+
+	return maps.Clone(q.watches)
+}
+
+func (q *Queue) registerWatch(tsk *task.Task, lgr log.Logger, cancel context.CancelCauseFunc) *Watch {
+	watch := &Watch{
+		taskType:   tsk.Type,
+		claimToken: *tsk.ClaimToken,
+		logger:     lgr,
+		cancel:     cancel,
+	}
+
+	q.watchesMutex.Lock()
+	defer q.watchesMutex.Unlock()
+
+	q.watches[tsk.ID] = watch
+	return watch
+}
+
+func (q *Queue) deregisterWatch(id string, watch *Watch) {
+	q.watchesMutex.Lock()
+	defer q.watchesMutex.Unlock()
+
+	if q.watches[id] != watch {
+		return
+	}
+
+	delete(q.watches, id)
+}
+
+// Include watch cancel within the mutex so that the watcher cannot cancel the run after it has been deregistered.
+func (q *Queue) deregisterWatchAndCancelTask(id string, watch *Watch) bool {
+	q.watchesMutex.Lock()
+	defer q.watchesMutex.Unlock()
+
+	if q.watches[id] != watch {
+		return false
+	}
+
+	delete(q.watches, id)
+
+	watch.cancel(task.ErrClaimLost)
+	return true
 }
 
 func (q *Queue) startManager(ctx context.Context) {
@@ -492,7 +625,7 @@ func (q *Queue) startManager(ctx context.Context) {
 		}
 
 		// Start at a random future time to help prevent thundering herd problem
-		unstickTasksTime := time.Now().Add(randomDuration(q.config.UnstickTasksDelay))
+		unstickTasksTime := time.Now().Add(randomDuration(q.config.UnstickTasksInterval))
 
 		for {
 			if err := q.executeManager(ctx); err != nil {
@@ -515,7 +648,7 @@ func (q *Queue) startManager(ctx context.Context) {
 
 			if unstickTasksTime.Before(time.Now()) {
 				q.unstickTasks(ctx)
-				unstickTasksTime = time.Now().Add(durationWithJitter(q.config.UnstickTasksDelay))
+				unstickTasksTime = time.Now().Add(duration.WithJitter(q.config.UnstickTasksInterval, DurationJitterFactor))
 			}
 		}
 	})
@@ -538,7 +671,7 @@ func (q *Queue) executeManager(ctx context.Context) error {
 			WorkersAvailable.WithLabelValues(q.name).Set(float64(q.workersAvailable))
 			q.dispatchTasks(ctx)
 		}
-	case <-time.After(durationWithJitter(q.config.DispatchTasksDelay)):
+	case <-time.After(duration.WithJitter(q.config.DispatchTasksInterval, DurationJitterFactor)):
 		q.dispatchTasks(ctx)
 	}
 
@@ -548,7 +681,7 @@ func (q *Queue) executeManager(ctx context.Context) error {
 func (q *Queue) unstickTasks(ctx context.Context) {
 	// Delay availability of unstuck tasks to ensure that any still-running tasks have likely been canceled and exited
 	// before being re-dispatched.
-	availabilityDelay := q.config.MonitorTaskDelay + q.config.RunnerWatchdogGracePeriod + q.config.UnstickTasksAvailableGracePeriod
+	availabilityDelay := q.config.WatchTasksInterval + q.config.RunnerWatchdogGracePeriod + q.config.UnstickTasksAvailableGracePeriod
 	ids, err := q.repository.UnstickTasks(ctx, availabilityDelay)
 	if count := len(ids); count > 0 {
 		log.LoggerFromContext(ctx).WithFields(log.Fields{"count": count, "ids": ids}).Info("Unstuck tasks")
@@ -723,21 +856,29 @@ func validateRunner(runner Runner) error {
 	}
 }
 
-// waitWithTimeout waits for the wait group to complete, returning true if it completed within the timeout and false
-// otherwise. On timeout the internal waiter goroutine is left running until the wait group eventually completes (or the
+// waitUntil waits for the wait group to complete, returning true if it completed before the deadline and false
+// otherwise. On timeout the internal goroutine is left running until the wait group eventually completes (or the
 // process exits).
-func waitWithTimeout(waitGroup *sync.WaitGroup, timeout time.Duration) bool {
+func waitUntil(waitGroup *sync.WaitGroup, deadline time.Time) bool {
 	done := make(chan struct{})
 	go func() {
 		waitGroup.Wait()
 		close(done)
 	}()
 
+	timer := time.NewTimer(time.Until(deadline))
+	defer timer.Stop()
+
 	select {
 	case <-done:
 		return true
-	case <-time.After(timeout):
-		return false
+	case <-timer.C:
+		select {
+		case <-done:
+			return true
+		default:
+			return false
+		}
 	}
 }
 
@@ -746,14 +887,6 @@ func randomDuration(duration time.Duration) time.Duration {
 		return 0
 	}
 	return time.Duration(crypto.RandomInt64N(int64(duration)))
-}
-
-func durationWithJitter(duration time.Duration) time.Duration {
-	if duration <= 0 {
-		return 0
-	}
-	jitter := time.Duration(float64(duration) * DurationJitterFactor)
-	return duration + (randomDuration(jitter*2) - jitter)
 }
 
 var (

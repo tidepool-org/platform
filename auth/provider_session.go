@@ -12,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
+	"github.com/tidepool-org/platform/times"
 	"github.com/tidepool-org/platform/user"
 )
 
@@ -33,6 +34,8 @@ type ProviderSessionClient interface {
 	GetProviderSession(ctx context.Context, id string) (*ProviderSession, error)
 	UpdateProviderSession(ctx context.Context, id string, update *ProviderSessionUpdate) (*ProviderSession, error)
 	DeleteProviderSession(ctx context.Context, id string) error
+
+	RefreshProviderSession(ctx context.Context, id string, refresh *ProviderSessionRefresh) (*ProviderSession, error)
 }
 
 type ProviderSessionFilter struct {
@@ -102,11 +105,7 @@ func (p *ProviderSessionCreate) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("name"); ptr != nil {
 		p.Name = *ptr
 	}
-	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = NewOAuthToken()
-		p.OAuthToken.Parse(oauthTokenParser)
-		oauthTokenParser.NotParsed()
-	}
+	p.OAuthToken = ParseOAuthToken(parser.WithReferenceObjectParser("oauthToken"))
 	p.ExternalID = parser.String("externalId")
 }
 
@@ -135,11 +134,7 @@ func NewProviderSessionUpdate() *ProviderSessionUpdate {
 }
 
 func (p *ProviderSessionUpdate) Parse(parser structure.ObjectParser) {
-	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = NewOAuthToken()
-		p.OAuthToken.Parse(oauthTokenParser)
-		oauthTokenParser.NotParsed()
-	}
+	p.OAuthToken = ParseOAuthToken(parser.WithReferenceObjectParser("oauthToken"))
 	p.ExternalID = parser.String("externalId")
 }
 
@@ -152,6 +147,20 @@ func (p *ProviderSessionUpdate) Validate(validator structure.Validator) {
 
 func (p *ProviderSessionUpdate) IsEmpty() bool {
 	return p.OAuthToken == nil && p.ExternalID == nil
+}
+
+type ProviderSessionRefresh struct {
+	TimeRange *times.TimeRange `json:"timeRange,omitempty" bson:"timeRange,omitempty"`
+}
+
+func (p *ProviderSessionRefresh) Parse(parser structure.ObjectParser) {
+	p.TimeRange = times.ParseTimeRange(parser.WithReferenceObjectParser("timeRange"))
+}
+
+func (p *ProviderSessionRefresh) Validate(validator structure.Validator) {
+	if p.TimeRange != nil {
+		p.TimeRange.Validate(validator.WithReference("timeRange"))
+	}
 }
 
 func NewProviderSessionID() string {
@@ -243,11 +252,7 @@ func (p *ProviderSession) Parse(parser structure.ObjectParser) {
 	if ptr := parser.String("name"); ptr != nil {
 		p.Name = *ptr
 	}
-	if oauthTokenParser := parser.WithReferenceObjectParser("oauthToken"); oauthTokenParser.Exists() {
-		p.OAuthToken = NewOAuthToken()
-		p.OAuthToken.Parse(oauthTokenParser)
-		oauthTokenParser.NotParsed()
-	}
+	p.OAuthToken = ParseOAuthToken(parser.WithReferenceObjectParser("oauthToken"))
 	p.ExternalID = parser.String("externalId")
 	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		p.CreatedTime = *ptr
@@ -280,6 +285,22 @@ func (p *ProviderSession) Sanitize(details request.AuthDetails) error {
 	return errors.New("unable to sanitize")
 }
 
+func (p *ProviderSession) Redacted() *ProviderSession {
+	redacted := &ProviderSession{
+		ID:           p.ID,
+		UserID:       p.UserID,
+		Type:         p.Type,
+		Name:         p.Name,
+		ExternalID:   p.ExternalID,
+		CreatedTime:  p.CreatedTime,
+		ModifiedTime: p.ModifiedTime,
+	}
+	if p.OAuthToken != nil {
+		redacted.OAuthToken = p.OAuthToken.Redacted()
+	}
+	return redacted
+}
+
 type ProviderSessions []*ProviderSession
 
 func (p ProviderSessions) Sanitize(details request.AuthDetails) error {
@@ -289,4 +310,12 @@ func (p ProviderSessions) Sanitize(details request.AuthDetails) error {
 		}
 	}
 	return nil
+}
+
+func (p ProviderSessions) Redacted() ProviderSessions {
+	redacted := make(ProviderSessions, len(p))
+	for index, providerSession := range p {
+		redacted[index] = providerSession.Redacted()
+	}
+	return redacted
 }

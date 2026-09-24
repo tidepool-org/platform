@@ -236,6 +236,45 @@ func (c *MockClientListProviderSessionsCall) DoAndReturn(f func(context.Context,
 	return c
 }
 
+// RefreshProviderSession mocks base method.
+func (m *MockClient) RefreshProviderSession(ctx context.Context, id string, refresh *auth.ProviderSessionRefresh) (*auth.ProviderSession, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshProviderSession", ctx, id, refresh)
+	ret0, _ := ret[0].(*auth.ProviderSession)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RefreshProviderSession indicates an expected call of RefreshProviderSession.
+func (mr *MockClientMockRecorder) RefreshProviderSession(ctx, id, refresh any) *MockClientRefreshProviderSessionCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshProviderSession", reflect.TypeOf((*MockClient)(nil).RefreshProviderSession), ctx, id, refresh)
+	return &MockClientRefreshProviderSessionCall{Call: call}
+}
+
+// MockClientRefreshProviderSessionCall wrap *gomock.Call
+type MockClientRefreshProviderSessionCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockClientRefreshProviderSessionCall) Return(arg0 *auth.ProviderSession, arg1 error) *MockClientRefreshProviderSessionCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockClientRefreshProviderSessionCall) Do(f func(context.Context, string, *auth.ProviderSessionRefresh) (*auth.ProviderSession, error)) *MockClientRefreshProviderSessionCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockClientRefreshProviderSessionCall) DoAndReturn(f func(context.Context, string, *auth.ProviderSessionRefresh) (*auth.ProviderSession, error)) *MockClientRefreshProviderSessionCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateProviderSession mocks base method.
 func (m *MockClient) UpdateProviderSession(ctx context.Context, id string, update *auth.ProviderSessionUpdate) (*auth.ProviderSession, error) {
 	m.ctrl.T.Helper()

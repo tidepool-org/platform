@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"slices"
-	"time"
 
 	"github.com/tidepool-org/platform/auth"
 	authProviderSession "github.com/tidepool-org/platform/auth/providersession"
@@ -67,15 +66,15 @@ func New(dependencies Dependencies) (*Provider, error) {
 		return nil, errors.Wrap(err, "dependencies is invalid")
 	}
 
-	if dependencies.Config.ClientConfig.Timeout == 0 {
-		dependencies.Config.ClientConfig.Timeout = 1 * time.Minute
-	}
+	// Capture metrics for API requests, including OAuth token requests
+	httpClient := pointer.From(*http.DefaultClient)
+	httpClient.Transport = prometheusRequestMetricsRoundTripper
 
-	httpClient := &http.Client{
-		Transport:     prometheusRequestMetricsRoundTripper,
-		CheckRedirect: http.DefaultClient.CheckRedirect,
-		Jar:           http.DefaultClient.Jar,
-		Timeout:       http.DefaultClient.Timeout,
+	if dependencies.Config.ClientConfig.ClientTimeout == 0 {
+		dependencies.Config.ClientConfig.ClientTimeout = dependencies.Config.ProviderConfig.ClientTimeout * 3 // token + request + response headers + response body
+	}
+	if dependencies.Config.ClientConfig.ResponseTimeout == 0 {
+		dependencies.Config.ClientConfig.ResponseTimeout = dependencies.Config.ProviderConfig.ClientTimeout * 2 // token + request + response headers
 	}
 
 	oauthProviderClient, err := oauthProviderClient.NewWithErrorParser(oura.ProviderName, dependencies.Config.Config, httpClient, nil, &ouraClient.ErrorResponseParser{})

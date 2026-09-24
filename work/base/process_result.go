@@ -5,7 +5,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/tidepool-org/platform/crypto"
+	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/work"
@@ -94,56 +94,16 @@ func (c *ConstantProcessResultFailingBuilder) FailingRetryTime(ctx context.Conte
 type ExponentialProcessResultFailingBuilder struct {
 	LinearProcessResultFailingBuilder
 	Duration        time.Duration
-	DurationJitter  time.Duration
+	DurationJitter  float64
 	DurationMaximum *time.Duration
 }
 
 func (e *ExponentialProcessResultFailingBuilder) FailingRetryTime(ctx context.Context, wrk *work.Work, err error, failingRetryCount int, tm time.Time) time.Time {
-	duration := min(durationWithJitterExponential(e.Duration, e.DurationJitter, failingRetryCount-1), tm.AddDate(failingRetryDurationMaximumYears, 0, 0).Sub(tm))
+	duration := min(duration.WithJitter(duration.Exponential(e.Duration, failingRetryCount-1), e.DurationJitter), tm.AddDate(failingRetryDurationMaximumYears, 0, 0).Sub(tm))
 	if e.DurationMaximum != nil && duration > *e.DurationMaximum {
 		duration = *e.DurationMaximum
 	}
 	return tm.Add(duration)
 }
 
-func durationWithJitterExponential(duration time.Duration, durationJitter time.Duration, exponent int) time.Duration {
-	if duration < 0 || exponent < 0 {
-		return 0
-	}
-	duration = durationExponential(duration, exponent)
-	durationJitter = durationExponential(durationAbsolute(durationJitter), exponent)
-	if durationJitter > 0 {
-		durationJitter = time.Duration(crypto.RandomInt64N(int64(durationJitter)))
-		if crypto.RandomBool() {
-			duration += min(durationJitter, durationMaximum-duration)
-		} else {
-			duration -= min(durationJitter, duration)
-		}
-	}
-	return duration
-}
-
-func durationExponential(duration time.Duration, exponent int) time.Duration {
-	if duration <= 0 || exponent < 0 {
-		return 0
-	} else if exponent == 0 {
-		return duration
-	} else if exponent >= 63 || duration >= durationMaximum>>exponent {
-		return durationMaximum
-	} else {
-		return time.Duration(int64(duration) * (int64(1) << exponent))
-	}
-}
-
-func durationAbsolute(duration time.Duration) time.Duration {
-	if duration < 0 {
-		return -duration
-	} else {
-		return duration
-	}
-}
-
-const (
-	failingRetryDurationMaximumYears = 10
-	durationMaximum                  = time.Duration(math.MaxInt64)
-)
+const failingRetryDurationMaximumYears = 10

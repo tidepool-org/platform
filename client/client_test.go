@@ -111,6 +111,32 @@ var _ = Describe("Client", func() {
 				Expect(clnt).ToNot(BeNil())
 			})
 
+			Context("ClientTimeout", func() {
+				It("returns the configured client timeout", func() {
+					clientTimeout := test.RandomDurationFromRange(time.Second, time.Hour)
+					config.ClientTimeout = clientTimeout
+					clnt = test.Must(client.NewWithErrorParser(config, errorResponseParser))
+					Expect(clnt.ClientTimeout()).To(Equal(clientTimeout))
+				})
+
+				It("returns zero when a client timeout is not configured", func() {
+					Expect(clnt.ClientTimeout()).To(BeZero())
+				})
+			})
+
+			Context("ResponseTimeout", func() {
+				It("returns the configured response timeout", func() {
+					responseTimeout := test.RandomDurationFromRange(time.Second, time.Hour)
+					config.ResponseTimeout = responseTimeout
+					clnt = test.Must(client.NewWithErrorParser(config, errorResponseParser))
+					Expect(clnt.ResponseTimeout()).To(Equal(responseTimeout))
+				})
+
+				It("returns zero when a response timeout is not configured", func() {
+					Expect(clnt.ResponseTimeout()).To(BeZero())
+				})
+			})
+
 			Context("ConstructURL", func() {
 				constructURLAssertions := func() {
 					It("returns a valid URL with no paths", func() {
@@ -292,11 +318,21 @@ var _ = Describe("Client", func() {
 					})
 				})
 
-				It("returns error if http client is missing", func() {
+				It("returns success if http client is missing", func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusOK, []byte(responseString)),
+						),
+					)
+
 					reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, nil)
-					Expect(err).To(MatchError("http client is missing"))
-					Expect(reader).To(BeNil())
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reader).ToNot(BeNil())
+					Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
 				})
 
 				It("returns error if context is missing", func() {
@@ -775,17 +811,17 @@ var _ = Describe("Client", func() {
 					})
 				})
 
-				Context("with a timeout", func() {
-					var timeout time.Duration
+				Context("with a response timeout", func() {
+					var responseTimeout time.Duration
 
 					BeforeEach(func() {
-						timeout = 100 * time.Millisecond
-						config.Timeout = timeout
+						responseTimeout = 100 * time.Millisecond
+						config.ResponseTimeout = responseTimeout
 					})
 
-					It("returns an error if the response is not received within the timeout", func() {
+					It("returns an error if the response is not received within the response timeout", func() {
 						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
-							time.Sleep(3 * timeout)
+							time.Sleep(3 * responseTimeout)
 						})
 
 						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
@@ -793,13 +829,99 @@ var _ = Describe("Client", func() {
 						Expect(reader).To(BeNil())
 					})
 
-					It("does not apply the timeout to reading the response body", func() {
+					It("does not apply the response timeout to reading the response body", func() {
 						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
 							res.WriteHeader(http.StatusOK)
 							res.(http.Flusher).Flush()
-							time.Sleep(3 * timeout)
+							time.Sleep(3 * responseTimeout)
 							res.Write([]byte(responseString))
 						})
+
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reader).ToNot(BeNil())
+						Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
+
+				Context("with a client timeout from the config", func() {
+					var clientTimeout time.Duration
+
+					BeforeEach(func() {
+						clientTimeout = 100 * time.Millisecond
+						config.ClientTimeout = clientTimeout
+					})
+
+					It("returns an error if the response is not received within the client timeout", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							time.Sleep(5 * clientTimeout)
+						})
+
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).To(MatchError(ContainSubstring("Client.Timeout exceeded")))
+						Expect(reader).To(BeNil())
+					})
+
+					It("applies the client timeout to reading the response body", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							res.WriteHeader(http.StatusOK)
+							res.(http.Flusher).Flush()
+							time.Sleep(5 * clientTimeout)
+							res.Write([]byte(responseString))
+						})
+
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reader).ToNot(BeNil())
+						_, readErr := io.ReadAll(reader)
+						Expect(readErr).To(MatchError(ContainSubstring("Client.Timeout")))
+					})
+
+					It("does not lower a longer timeout on the provided http client", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							time.Sleep(3 * clientTimeout)
+							res.WriteHeader(http.StatusOK)
+							res.Write([]byte(responseString))
+						})
+
+						httpClient = &http.Client{Timeout: 10 * clientTimeout}
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reader).ToNot(BeNil())
+						Expect(io.ReadAll(reader)).To(Equal([]byte(responseString)))
+						Expect(server.ReceivedRequests()).To(HaveLen(1))
+					})
+				})
+
+				Context("with a client timeout from the provided http client", func() {
+					var clientTimeout time.Duration
+
+					BeforeEach(func() {
+						clientTimeout = 100 * time.Millisecond
+						config.ClientTimeout = time.Hour
+						httpClient = &http.Client{Timeout: clientTimeout}
+					})
+
+					It("does not raise the provided timeout to the longer config client timeout", func() {
+						server.AppendHandlers(func(res http.ResponseWriter, req *http.Request) {
+							time.Sleep(5 * clientTimeout)
+						})
+
+						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
+						Expect(err).To(MatchError(ContainSubstring("Client.Timeout exceeded")))
+						Expect(reader).To(BeNil())
+					})
+
+					It("returns success if the response is received within the provided timeout", func() {
+						server.AppendHandlers(
+							CombineHandlers(
+								VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+								VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+								VerifyBody(test.MarshalRequestBody(requestBody)),
+								RespondWith(http.StatusOK, []byte(responseString)),
+							),
+						)
 
 						reader, err = clnt.RequestStreamWithHTTPClient(ctx, method, url, mutators, requestBody, inspectors, httpClient)
 						Expect(err).ToNot(HaveOccurred())
@@ -817,9 +939,20 @@ var _ = Describe("Client", func() {
 					responseBody = &ResponseBody{}
 				})
 
-				It("returns error if http client is missing", func() {
-					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, nil)).To(MatchError("http client is missing"))
-					Expect(server.ReceivedRequests()).To(BeEmpty())
+				It("returns success if http client is missing", func() {
+					server.AppendHandlers(
+						CombineHandlers(
+							VerifyRequest(method, path, fmt.Sprintf("%s=%s", parameterMutator.Key, parameterMutator.Value)),
+							VerifyHeaderKV(headerMutator.Key, headerMutator.Value),
+							VerifyBody(test.MarshalRequestBody(requestBody)),
+							RespondWith(http.StatusOK, test.MarshalResponseBody(&ResponseBody{Response: responseString}), responseHeaders),
+						),
+					)
+
+					Expect(clnt.RequestDataWithHTTPClient(ctx, method, url, mutators, requestBody, responseBody, inspectors, nil)).To(Succeed())
+					Expect(server.ReceivedRequests()).To(HaveLen(1))
+					Expect(responseBody).ToNot(BeNil())
+					Expect(responseBody.Response).To(Equal(responseString))
 				})
 
 				It("returns error if context is missing", func() {

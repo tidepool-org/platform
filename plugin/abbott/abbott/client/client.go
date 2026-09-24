@@ -1,6 +1,8 @@
 package client
 
 import (
+	"net/http"
+
 	"github.com/tidepool-org/platform/client"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/oauth"
@@ -26,6 +28,7 @@ func (c *Config) Validate() error {
 
 type ClientDependencies struct {
 	Config            *Config
+	HTTPClient        *http.Client
 	TokenSourceSource oauth.TokenSourceSource
 }
 

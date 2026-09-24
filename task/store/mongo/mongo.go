@@ -594,30 +594,50 @@ func (t *TaskRepository) UnstickTasks(ctx context.Context, availabilityDelay tim
 	return ids, nil
 }
 
-func (t *TaskRepository) GetTaskClaimToken(ctx context.Context, id string) (*string, bool, error) {
+// GetTaskClaimTokens returns the claim token of each of the given tasks, keyed by task id. A task that does not exist
+// is absent from the result; a task that exists, but is not claimed, maps to a nil claim token.
+func (t *TaskRepository) GetTaskClaimTokens(ctx context.Context, ids []string) (map[string]*string, error) {
 	if ctx == nil {
-		return nil, false, errors.New("context is missing")
+		return nil, errors.New("context is missing")
 	}
-	if id == "" {
-		return nil, false, errors.New("id is missing")
+	if len(ids) == 0 {
+		return nil, errors.New("ids is missing")
 	}
 
-	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"id": id})
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"ids": ids})
 
 	now := time.Now().UTC()
-	defer func() { logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetTaskClaimToken") }()
+	defer func() { logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetTaskClaimTokens") }()
 
-	partial := &task.Task{}
-	opts := options.FindOne().SetProjection(bson.M{"_id": 0, "claimToken": 1})
-	err := t.FindOne(ctx, t.selector(id, nil), opts).Decode(partial)
-	if errors.Is(err, mongo.ErrNoDocuments) {
-		return nil, false, nil
-	} else if err != nil {
-		logger = logger.WithError(err)
-		return nil, false, errors.Wrap(err, "unable to get task claim token")
+	selector := bson.M{"id": bson.M{"$in": ids}}
+	if t.typeFilter != nil {
+		selector["type"] = *t.typeFilter
 	}
 
-	return partial.ClaimToken, true, nil
+	opts := options.Find().SetProjection(bson.M{"_id": 0, "id": 1, "claimToken": 1})
+	cursor, err := t.Find(ctx, selector, opts)
+	if err != nil {
+		logger = logger.WithError(err)
+		return nil, errors.Wrap(err, "unable to get task claim tokens")
+	}
+	defer storeStructuredMongo.CloseCursor(ctx, cursor)
+
+	claimTokens := make(map[string]*string, len(ids))
+	for cursor.Next(ctx) {
+		partial := &task.Task{}
+		if err = cursor.Decode(partial); err != nil {
+			logger = logger.WithError(err)
+			return nil, errors.Wrap(err, "unable to decode task")
+		}
+		claimTokens[partial.ID] = partial.ClaimToken
+	}
+
+	if err = cursor.Err(); err != nil {
+		logger = logger.WithError(err)
+		return nil, errors.Wrap(err, "unable to get task claim tokens")
+	}
+
+	return claimTokens, nil
 }
 
 func (t *TaskRepository) IteratePending(ctx context.Context) (*mongo.Cursor, error) {

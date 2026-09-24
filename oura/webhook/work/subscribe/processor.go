@@ -18,7 +18,7 @@ import (
 const (
 	PendingAvailableDuration      = 24 * time.Hour
 	FailingRetryDuration          = 1 * time.Minute
-	FailingRetryDurationJitter    = 10 * time.Second
+	FailingRetryDurationJitter    = 0.1
 	FailingRetryDurationMaximum   = 24 * time.Hour
 	ExpirationTimeDurationMinimum = 7 * 24 * time.Hour // Normal expiration seems like 90 days, but this will refresh every 7
 

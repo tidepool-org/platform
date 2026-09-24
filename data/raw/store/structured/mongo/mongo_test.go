@@ -113,6 +113,12 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("List", func() {
+					It("returns an error when the context is missing", func() {
+						result, err := store.List(context.Context(nil), userID, nil, nil)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the user id is missing", func() {
 						result, err := store.List(ctx, "", nil, nil)
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
@@ -138,6 +144,14 @@ var _ = Describe("Mongo", func() {
 						pagination.Page = -1
 						result, err := store.List(ctx, userID, nil, pagination)
 						errorsTest.ExpectEqual(err, errors.New("pagination is invalid"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when a document is invalid", func() {
+						_, err := mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"userId": userID, "revision": "invalid"}})
+						Expect(err).ToNot(HaveOccurred())
+						result, err := store.List(ctx, userID, nil, nil)
+						errorsTest.ExpectEqual(err, errors.New("unable to list raw"))
 						Expect(result).To(BeNil())
 					})
 
@@ -347,6 +361,12 @@ var _ = Describe("Mongo", func() {
 						create.DigestSHA256 = nil
 					})
 
+					It("returns an error when the context is missing", func() {
+						result, err := store.Create(context.Context(nil), userID, dataSetID, create, bytes.NewReader(nil))
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the user id is missing", func() {
 						result, err := store.Create(ctx, "", dataSetID, create, bytes.NewReader(nil))
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))
@@ -513,6 +533,12 @@ var _ = Describe("Mongo", func() {
 						condition = storeStructuredTest.RandomCondition()
 					})
 
+					It("returns an error when the context is missing", func() {
+						result, err := store.Get(context.Context(nil), id, condition)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the id is missing", func() {
 						result, err := store.Get(ctx, "", condition)
 						errorsTest.ExpectEqual(err, errors.New("id is missing"))
@@ -529,6 +555,16 @@ var _ = Describe("Mongo", func() {
 						condition.Revision = pointer.From(-1)
 						result, err := store.Get(ctx, id, condition)
 						errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when the document is invalid", func() {
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(id)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"_id": objectID, "revision": "invalid"}})
+						Expect(err).ToNot(HaveOccurred())
+						result, err := store.Get(ctx, id, nil)
+						errorsTest.ExpectEqual(err, errors.New("unable to get raw"))
 						Expect(result).To(BeNil())
 					})
 
@@ -600,6 +636,12 @@ var _ = Describe("Mongo", func() {
 						condition = storeStructuredTest.RandomCondition()
 					})
 
+					It("returns an error when the context is missing", func() {
+						result, err := store.GetContent(context.Context(nil), id, condition)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the id is missing", func() {
 						result, err := store.GetContent(ctx, "", condition)
 						errorsTest.ExpectEqual(err, errors.New("id is missing"))
@@ -616,6 +658,16 @@ var _ = Describe("Mongo", func() {
 						condition.Revision = pointer.From(-1)
 						result, err := store.GetContent(ctx, id, condition)
 						errorsTest.ExpectEqual(err, errors.New("condition is invalid"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when the document is invalid", func() {
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(id)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"_id": objectID, "revision": "invalid"}})
+						Expect(err).ToNot(HaveOccurred())
+						result, err := store.GetContent(ctx, id, nil)
+						errorsTest.ExpectEqual(err, errors.New("unable to get content"))
 						Expect(result).To(BeNil())
 					})
 
@@ -729,6 +781,12 @@ var _ = Describe("Mongo", func() {
 						update = dataRawTest.RandomUpdate(test.RandomOptionals())
 					})
 
+					It("returns an error when the context is missing", func() {
+						result, err := store.Update(context.Context(nil), id, condition, update)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
+					})
+
 					It("returns an error when the id is missing", func() {
 						result, err := store.Update(ctx, "", condition, update)
 						errorsTest.ExpectEqual(err, errors.New("id is missing"))
@@ -758,6 +816,26 @@ var _ = Describe("Mongo", func() {
 						update.ProcessedTime = pointer.From(time.Time{})
 						result, err := store.Update(ctx, id, condition, update)
 						errorsTest.ExpectEqual(err, errors.New("update is invalid"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when the document is invalid", func() {
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(id)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"_id": objectID, "revision": "invalid"}})
+						Expect(err).ToNot(HaveOccurred())
+						result, err := store.Update(ctx, id, nil, update)
+						errorsTest.ExpectEqual(err, errors.New("unable to update raw"))
+						Expect(result).To(BeNil())
+					})
+
+					It("returns an error when the updated document is invalid", func() {
+						objectID, _, err := dataRawStoreStructuredMongo.ObjectIDAndDateFromID(id)
+						Expect(err).ToNot(HaveOccurred())
+						_, err = mongoCollection.InsertMany(context.Background(), bson.A{bson.M{"_id": objectID, "compressed": "invalid"}})
+						Expect(err).ToNot(HaveOccurred())
+						result, err := store.Update(ctx, id, nil, update)
+						errorsTest.ExpectEqual(err, errors.New("unable to get raw after update"))
 						Expect(result).To(BeNil())
 					})
 
@@ -842,6 +920,12 @@ var _ = Describe("Mongo", func() {
 					BeforeEach(func() {
 						id = dataRawTest.RandomDataRawID()
 						condition = storeStructuredTest.RandomCondition()
+					})
+
+					It("returns an error when the context is missing", func() {
+						result, err := store.Delete(context.Context(nil), id, condition)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(result).To(BeNil())
 					})
 
 					It("returns an error when the id is missing", func() {
@@ -958,6 +1042,12 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("DeleteMultiple", func() {
+					It("returns an error when the context is missing", func() {
+						count, err := store.DeleteMultiple(context.Context(nil), nil)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(count).To(BeZero())
+					})
+
 					It("returns an error when any id is invalid", func() {
 						count, err := store.DeleteMultiple(ctx, []string{dataRawTest.RandomDataRawID(), "invalid-id"})
 						errorsTest.ExpectEqual(err, errors.New("id is invalid"))
@@ -1035,6 +1125,12 @@ var _ = Describe("Mongo", func() {
 
 					BeforeEach(func() {
 						dataSetID = dataTest.RandomDataSetID()
+					})
+
+					It("returns an error when the context is missing", func() {
+						count, err := store.DeleteAllByDataSetID(context.Context(nil), userID, dataSetID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(count).To(BeZero())
 					})
 
 					It("returns an error when the user id is missing", func() {
@@ -1123,6 +1219,12 @@ var _ = Describe("Mongo", func() {
 				})
 
 				Context("DeleteAllByUserID", func() {
+					It("returns an error when the context is missing", func() {
+						count, err := store.DeleteAllByUserID(context.Context(nil), userID)
+						errorsTest.ExpectEqual(err, errors.New("context is missing"))
+						Expect(count).To(BeZero())
+					})
+
 					It("returns an error when the user id is missing", func() {
 						count, err := store.DeleteAllByUserID(ctx, "")
 						errorsTest.ExpectEqual(err, errors.New("user id is missing"))

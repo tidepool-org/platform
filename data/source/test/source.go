@@ -1,8 +1,6 @@
 package test
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"time"
 
 	"github.com/onsi/gomega"
@@ -10,6 +8,7 @@ import (
 	gomegaTypes "github.com/onsi/gomega/types"
 
 	authTest "github.com/tidepool-org/platform/auth/test"
+	cryptoTest "github.com/tidepool-org/platform/crypto/test"
 	dataSource "github.com/tidepool-org/platform/data/source"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
@@ -37,8 +36,7 @@ func RandomDeviceID() string {
 }
 
 func RandomDeviceHash() string {
-	md5Sum := md5.Sum([]byte(test.RandomString()))
-	return hex.EncodeToString(md5Sum[:])
+	return cryptoTest.RandomHexEncodedMD5Hash()
 }
 
 func RandomDeviceHashMap() map[string]any {

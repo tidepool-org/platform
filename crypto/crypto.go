@@ -3,7 +3,7 @@ package crypto
 import (
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/md5"
+	"crypto/md5" //nolint:gosec // Only used for simple hashing
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/base64"
@@ -52,8 +52,8 @@ func ErrorValueStringAsBase64EncodedMD5HashNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as Base64 encoded MD5 hash", value)
 }
 
-func HexEncodedMD5Hash(sourceString string) string {
-	md5Sum := md5.Sum([]byte(sourceString)) //nolint:gosec // Only used for simple hashing
+func HexEncodedMD5Hash(bites []byte) string {
+	md5Sum := md5.Sum(bites) //nolint:gosec // Only used for simple hashing
 	return hex.EncodeToString(md5Sum[:])
 }
 
@@ -85,8 +85,8 @@ func ErrorValueStringAsBase64EncodedSHA256HashNotValid(value string) error {
 	return errors.Preparedf(structureValidator.ErrorCodeValueNotValid, "value is not valid", "value %q is not valid as Base64 encoded SHA256 hash", value)
 }
 
-func HexEncodedSHA256Hash(sourceString string) string {
-	sha256Sum := sha256.Sum256([]byte(sourceString))
+func HexEncodedSHA256Hash(bites []byte) string {
+	sha256Sum := sha256.Sum256(bites)
 	return hex.EncodeToString(sha256Sum[:])
 }
 

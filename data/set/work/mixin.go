@@ -2,6 +2,7 @@ package work
 
 import (
 	"context"
+	"time"
 
 	"github.com/tidepool-org/platform/data"
 	dataSet "github.com/tidepool-org/platform/data/set"
@@ -136,7 +137,11 @@ func (m *mixin) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) 
 		return m.Failed(errors.New("data set already exists"))
 	}
 
-	if dataSt, err := m.dataSetClient.CreateUserDataSet(context.WithoutCancel(m.Context()), userID, dataSetCreate); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if dataSt, err := m.dataSetClient.CreateUserDataSet(ctx, userID, dataSetCreate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to create data set"))
 	} else if dataSt == nil {
 		return m.Failed(errors.New("data set is missing"))
@@ -144,7 +149,7 @@ func (m *mixin) CreateDataSet(userID string, dataSetCreate *data.DataSetCreate) 
 		return result
 	}
 
-	log.LoggerFromContext(m.Context()).Debug("created data set")
+	log.LoggerFromContext(ctx).Debug("created data set")
 	return nil
 }
 
@@ -155,7 +160,11 @@ func (m *mixin) UpdateDataSet(dataSetUpdate *data.DataSetUpdate) *work.ProcessRe
 		return m.Failed(errors.New("data set id is missing"))
 	}
 
-	if dataSt, err := m.dataSetClient.UpdateDataSet(context.WithoutCancel(m.Context()), *m.dataSet.ID, dataSetUpdate); err != nil {
+	// Do not interrupt normally, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(m.Context()), 10*time.Second)
+	defer cancel()
+
+	if dataSt, err := m.dataSetClient.UpdateDataSet(ctx, *m.dataSet.ID, dataSetUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data set"))
 	} else if dataSt == nil {
 		return m.Failed(errors.New("data set is missing"))

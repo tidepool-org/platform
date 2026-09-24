@@ -3,6 +3,7 @@ package work
 import (
 	"context"
 	"io"
+	"time"
 
 	providerSession "github.com/tidepool-org/platform/auth/providersession"
 	providerSessionWork "github.com/tidepool-org/platform/auth/providersession/work"
@@ -216,8 +217,9 @@ func (d *dataSourceReplacerMixin) ReplaceDataSource(replacementDataSource *dataS
 		}
 	}
 
-	// Do not interrupt
-	ctx = context.WithoutCancel(ctx)
+	// Do not interrupt, but do enforce a reasonable timeout
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 30*time.Second)
+	defer cancel()
 
 	// If there is a data source, then update the replacement to match provider session and state
 	originalDataSource := d.DataSource()

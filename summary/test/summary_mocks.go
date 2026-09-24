@@ -143,18 +143,18 @@ func (m *MockSummarizer[PP, PB, P, B]) EXPECT() *MockSummarizerMockRecorder[PP, 
 }
 
 // GetBucketsRange mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, userId string, startTime, endTime time.Time) (*mongo.Cursor, error) {
+func (m *MockSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, userID string, startTime, endTime time.Time) (*mongo.Cursor, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBucketsRange", ctx, userId, startTime, endTime)
+	ret := m.ctrl.Call(m, "GetBucketsRange", ctx, userID, startTime, endTime)
 	ret0, _ := ret[0].(*mongo.Cursor)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBucketsRange indicates an expected call of GetBucketsRange.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetBucketsRange(ctx, userId, startTime, endTime any) *MockSummarizerGetBucketsRangeCall[PP, PB, P, B] {
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetBucketsRange(ctx, userID, startTime, endTime any) *MockSummarizerGetBucketsRangeCall[PP, PB, P, B] {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketsRange", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetBucketsRange), ctx, userId, startTime, endTime)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBucketsRange", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetBucketsRange), ctx, userID, startTime, endTime)
 	return &MockSummarizerGetBucketsRangeCall[PP, PB, P, B]{Call: call}
 }
 
@@ -260,18 +260,18 @@ func (c *MockSummarizerGetOutdatedUserIDsCall[PP, PB, P, B]) DoAndReturn(f func(
 }
 
 // GetSummary mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) GetSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
+func (m *MockSummarizer[PP, PB, P, B]) GetSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetSummary", ctx, userId)
+	ret := m.ctrl.Call(m, "GetSummary", ctx, userID)
 	ret0, _ := ret[0].(*types.Summary[PP, PB, P, B])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetSummary indicates an expected call of GetSummary.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetSummary(ctx, userId any) *MockSummarizerGetSummaryCall[PP, PB, P, B] {
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) GetSummary(ctx, userID any) *MockSummarizerGetSummaryCall[PP, PB, P, B] {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSummary", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetSummary), ctx, userId)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSummary", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).GetSummary), ctx, userID)
 	return &MockSummarizerGetSummaryCall[PP, PB, P, B]{Call: call}
 }
 
@@ -299,18 +299,18 @@ func (c *MockSummarizerGetSummaryCall[PP, PB, P, B]) DoAndReturn(f func(context.
 }
 
 // SetOutdated mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userId, reason string) (*time.Time, error) {
+func (m *MockSummarizer[PP, PB, P, B]) SetOutdated(ctx context.Context, userID, reason string) (*time.Time, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetOutdated", ctx, userId, reason)
+	ret := m.ctrl.Call(m, "SetOutdated", ctx, userID, reason)
 	ret0, _ := ret[0].(*time.Time)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SetOutdated indicates an expected call of SetOutdated.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) SetOutdated(ctx, userId, reason any) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) SetOutdated(ctx, userID, reason any) *MockSummarizerSetOutdatedCall[PP, PB, P, B] {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOutdated", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).SetOutdated), ctx, userId, reason)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOutdated", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).SetOutdated), ctx, userID, reason)
 	return &MockSummarizerSetOutdatedCall[PP, PB, P, B]{Call: call}
 }
 
@@ -338,18 +338,18 @@ func (c *MockSummarizerSetOutdatedCall[PP, PB, P, B]) DoAndReturn(f func(context
 }
 
 // UpdateSummary mocks base method.
-func (m *MockSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
+func (m *MockSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSummary", ctx, userId)
+	ret := m.ctrl.Call(m, "UpdateSummary", ctx, userID)
 	ret0, _ := ret[0].(*types.Summary[PP, PB, P, B])
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateSummary indicates an expected call of UpdateSummary.
-func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) UpdateSummary(ctx, userId any) *MockSummarizerUpdateSummaryCall[PP, PB, P, B] {
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) UpdateSummary(ctx, userID any) *MockSummarizerUpdateSummaryCall[PP, PB, P, B] {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSummary", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).UpdateSummary), ctx, userId)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSummary", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).UpdateSummary), ctx, userID)
 	return &MockSummarizerUpdateSummaryCall[PP, PB, P, B]{Call: call}
 }
 
