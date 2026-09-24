@@ -612,7 +612,7 @@ func (d *Document) AsRaw() *dataRaw.Raw {
 		ID:             IDFromObjectIDAndDate(d.ID, d.CreatedTime),
 		UserID:         d.UserID,
 		DataSetID:      d.DataSetID,
-		Metadata:       d.Metadata,
+		Metadata:       storeStructuredMongo.BSONToMap(d.Metadata),
 		DigestMD5:      d.DigestMD5,
 		DigestSHA256:   d.DigestSHA256,
 		MediaType:      d.MediaType,
