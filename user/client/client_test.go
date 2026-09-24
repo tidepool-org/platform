@@ -16,6 +16,7 @@ import (
 	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/platform"
 	"github.com/tidepool-org/platform/request"
+	"github.com/tidepool-org/platform/test"
 	testHttp "github.com/tidepool-org/platform/test/http"
 	"github.com/tidepool-org/platform/user"
 	userClient "github.com/tidepool-org/platform/user/client"
@@ -169,6 +170,22 @@ var _ = Describe("Client", func() {
 							BeforeEach(func() {
 								responseResult = userTest.RandomUser()
 								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseResult, responseHeaders))
+							})
+
+							It("returns successfully with result", func() {
+								Expect(client.Get(ctx, id)).To(userTest.MatchUser(responseResult))
+							})
+						})
+
+						When("the server responds with the result including unrecognized fields", func() {
+							var responseResult *user.User
+
+							BeforeEach(func() {
+								responseResult = userTest.RandomUser()
+								responseObject := userTest.NewObjectFromUser(responseResult, test.ObjectFormatJSON)
+								responseObject["passwordExists"] = true
+								responseObject["securityProfile"] = map[string]interface{}{"securityQuestionsSetup": false}
+								requestHandlers = append(requestHandlers, RespondWithJSONEncoded(http.StatusOK, responseObject, responseHeaders))
 							})
 
 							It("returns successfully with result", func() {
