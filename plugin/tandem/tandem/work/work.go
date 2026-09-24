@@ -19,6 +19,8 @@ type ProviderSessionClient any
 
 type TandemClient any
 
+type CloudDriversClient any
+
 type WorkClient any
 
 type ProcessorDependencies struct {
@@ -30,6 +32,7 @@ type ProcessorDependencies struct {
 	SummaryClient           SummaryClient
 	ProviderSessionClient   ProviderSessionClient
 	TandemClient            TandemClient
+	CloudDriversClient      CloudDriversClient
 }
 
 func NewProcessorFactories(processorDependencies ProcessorDependencies) ([]work.ProcessorFactory, error) {
