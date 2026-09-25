@@ -4,6 +4,7 @@ import (
 	"github.com/tidepool-org/platform/application"
 	"github.com/tidepool-org/platform/auth"
 	"github.com/tidepool-org/platform/errors"
+	logSarama "github.com/tidepool-org/platform/log/sarama"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/service/api"
 	"github.com/tidepool-org/platform/service/server"
@@ -28,6 +29,9 @@ func (s *Service) Initialize(provider application.Provider) error {
 		return err
 	}
 
+	if err := logSarama.Setup(s.Logger()); err != nil {
+		return errors.Wrap(err, "unable to setup sarama logger")
+	}
 	if err := s.initializeSecret(); err != nil {
 		return err
 	}

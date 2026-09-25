@@ -2,12 +2,9 @@ package service
 
 import (
 	"context"
-	stdLog "log"
 	"net/http"
-	"os"
 	"time"
 
-	"github.com/IBM/sarama"
 	"github.com/kelseyhightower/envconfig"
 
 	eventsCommon "github.com/tidepool-org/go-common/events"
@@ -1075,8 +1072,6 @@ func (s *Standard) initializeWorkSingletons() error {
 
 func (s *Standard) initializeUserEventsHandler() error {
 	s.Logger().Debug("Initializing user events handler")
-
-	sarama.Logger = stdLog.New(os.Stdout, "SARAMA ", stdLog.LstdFlags|stdLog.Lshortfile)
 
 	ctx := log.NewContextWithLogger(context.Background(), s.Logger())
 	handler := dataEvents.NewUserDataDeletionHandler(ctx, s.dataStore, s.dataSourceStructuredStore)
