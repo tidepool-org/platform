@@ -2,6 +2,8 @@ package mongo
 
 import (
 	"context"
+	"maps"
+	"slices"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
@@ -234,40 +236,50 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 		if condition.Revision != nil {
 			query["revision"] = *condition.Revision
 		}
+		// This is an aggregation pipeline update, so that connectedTime can be set
+		// conditionally on the existing state. Within a pipeline, values are
+		// interpreted as expressions, so all user-supplied values are wrapped in
+		// $literal.
 		set := bson.M{
 			"modifiedTime": now,
+			"revision":     bson.M{"$add": bson.A{"$revision", 1}},
 		}
-		unset := bson.M{}
+		unset := map[string]bool{}
 		if update.State != nil {
-			set["state"] = *update.State
+			set["state"] = literal(*update.State)
 			switch *update.State {
 			case dataSource.StateDisconnected:
 				unset["providerSessionId"] = true
 				unset["error"] = true
 			case dataSource.StateConnected:
 				unset["error"] = true
+				set["connectedTime"] = bson.M{"$cond": bson.A{
+					bson.M{"$ne": bson.A{"$state", dataSource.StateConnected}},
+					now,
+					"$connectedTime",
+				}}
 			}
 		}
 		if update.Metadata != nil {
-			set["metadata"] = update.Metadata
+			set["metadata"] = literal(update.Metadata)
 		}
 		if update.ProviderSessionID != nil {
 			delete(unset, "providerSessionId")
-			set["providerSessionId"] = *update.ProviderSessionID
+			set["providerSessionId"] = literal(*update.ProviderSessionID)
 		}
 		if update.ProviderExternalID != nil {
-			set["providerExternalId"] = *update.ProviderExternalID
+			set["providerExternalId"] = literal(*update.ProviderExternalID)
 		}
 		if update.Error != nil {
 			if update.Error.Error != nil {
 				delete(unset, "error")
-				set["error"] = *update.Error
+				set["error"] = literal(*update.Error)
 			} else {
 				unset["error"] = true
 			}
 		}
 		if update.DataSetID != nil {
-			set["dataSetId"] = *update.DataSetID
+			set["dataSetId"] = literal(*update.DataSetID)
 		}
 		if update.EarliestDataTime != nil {
 			set["earliestDataTime"] = *update.EarliestDataTime
@@ -278,7 +290,11 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 		if update.LastImportTime != nil {
 			set["lastImportTime"] = *update.LastImportTime
 		}
-		changeInfo, err := c.UpdateMany(ctx, query, c.ConstructUpdate(set, unset))
+		pipeline := bson.A{bson.M{"$set": set}}
+		if len(unset) > 0 {
+			pipeline = append(pipeline, bson.M{"$unset": slices.Sorted(maps.Keys(unset))})
+		}
+		changeInfo, err := c.UpdateMany(ctx, query, pipeline)
 		if err != nil {
 			logger.WithError(err).Error("Unable to update data source")
 			return nil, errors.Wrap(err, "unable to update data source")
@@ -425,6 +441,12 @@ func (c *DataSourcesRepository) get(ctx context.Context, query bson.M, condition
 	}
 
 	return result.Modernize(), nil
+}
+
+// literal wraps a value so that it is not interpreted as an expression within an
+// aggregation pipeline update.
+func literal(value any) bson.M {
+	return bson.M{"$literal": value}
 }
 
 type sourceDEPRECATED struct {

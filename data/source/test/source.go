@@ -241,6 +241,10 @@ func RandomSource(options ...test.Option) *dataSource.Source {
 	}
 	datum.CreatedTime = test.RandomTimeBefore(pointer.DefaultTime(datum.LastImportTime, time.Now()))
 	datum.ModifiedTime = pointer.FromTime(test.RandomTimeFromRange(pointer.DefaultTime(datum.LastImportTime, datum.CreatedTime), time.Now()))
+	if test.IsOptionalPresent(options...) {
+		connectedTime := test.RandomTimeFromRange(datum.CreatedTime, *datum.ModifiedTime)
+		datum.ConnectedTime = pointer.FromTime(connectedTime)
+	}
 	datum.Revision = requestTest.RandomRevision()
 	return datum
 }
@@ -263,6 +267,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
 	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
+	clone.ConnectedTime = pointer.CloneTime(datum.ConnectedTime)
 	clone.CreatedTime = datum.CreatedTime
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
 	clone.Revision = datum.Revision
@@ -303,6 +308,9 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	if datum.LastImportTime != nil {
 		object["lastImportTime"] = test.NewObjectFromTime(*datum.LastImportTime, objectFormat)
 	}
+	if datum.ConnectedTime != nil {
+		object["connectedTime"] = test.NewObjectFromTime(*datum.ConnectedTime, objectFormat)
+	}
 	object["createdTime"] = test.NewObjectFromTime(datum.CreatedTime, objectFormat)
 	if datum.ModifiedTime != nil {
 		object["modifiedTime"] = test.NewObjectFromTime(*datum.ModifiedTime, objectFormat)
@@ -329,6 +337,7 @@ func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
 		"EarliestDataTime":   test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":     test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":     test.MatchTime(datum.LastImportTime),
+		"ConnectedTime":      test.MatchTime(datum.ConnectedTime),
 		"CreatedTime":        gomega.Equal(datum.CreatedTime),
 		"ModifiedTime":       test.MatchTime(datum.ModifiedTime),
 		"Revision":           gomega.Equal(datum.Revision),

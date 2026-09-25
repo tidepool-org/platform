@@ -201,6 +201,7 @@ type Source struct {
 	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
 	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
 	LastImportTime     *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
+	ConnectedTime      *time.Time           `json:"connectedTime,omitempty" bson:"connectedTime,omitempty"`
 	CreatedTime        time.Time            `json:"createdTime" bson:"createdTime"`
 	ModifiedTime       *time.Time           `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
 	Revision           int                  `json:"revision" bson:"revision"`
@@ -238,6 +239,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 	s.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
 	s.LatestDataTime = parser.Time("latestDataTime", time.RFC3339Nano)
 	s.LastImportTime = parser.Time("lastImportTime", time.RFC3339Nano)
+	s.ConnectedTime = parser.Time("connectedTime", time.RFC3339Nano)
 	if ptr := parser.Time("createdTime", time.RFC3339Nano); ptr != nil {
 		s.CreatedTime = *ptr
 	}
@@ -267,6 +269,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	validator.Time("earliestDataTime", s.EarliestDataTime).NotZero().BeforeNow(time.Second)
 	validator.Time("latestDataTime", s.LatestDataTime).NotZero().After(pointer.ToTime(s.EarliestDataTime)).BeforeNow(time.Second)
 	validator.Time("lastImportTime", s.LastImportTime).NotZero().BeforeNow(time.Second)
+	validator.Time("connectedTime", s.ConnectedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("createdTime", &s.CreatedTime).NotZero().BeforeNow(time.Second)
 	validator.Time("modifiedTime", s.ModifiedTime).NotZero().After(s.CreatedTime).BeforeNow(time.Second)
 	validator.Int("revision", &s.Revision).GreaterThanOrEqualTo(0)
