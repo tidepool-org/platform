@@ -425,6 +425,7 @@ var _ = Describe("Mongo", func() {
 							"EarliestDataTime":   BeNil(),
 							"LatestDataTime":     BeNil(),
 							"LastImportTime":     BeNil(),
+							"ConnectedTime":      BeNil(),
 							"CreatedTime":        BeTemporally("~", time.Now(), time.Second),
 							"ModifiedTime":       BeNil(),
 							"Revision":           Equal(0),
@@ -620,6 +621,12 @@ var _ = Describe("Mongo", func() {
 						Expect(err).ToNot(HaveOccurred())
 					})
 
+					replaceOriginal := func(original *dataSource.Source) {
+						filter := bson.M{"id": original.ID}
+						_, err := mongoCollection.ReplaceOne(context.Background(), filter, original)
+						Expect(err).ToNot(HaveOccurred())
+					}
+
 					AfterEach(func() {
 						if condition != nil {
 							logger.AssertDebug("Update", log.Fields{"id": id, "condition": condition, "update": update})
@@ -659,6 +666,7 @@ var _ = Describe("Mongo", func() {
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),
+									"ConnectedTime":      matchConnectedTime(original),
 									"CreatedTime":        Equal(original.CreatedTime),
 									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":           Equal(original.Revision + 1),
@@ -695,6 +703,7 @@ var _ = Describe("Mongo", func() {
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),
+									"ConnectedTime":      Equal(original.ConnectedTime),
 									"CreatedTime":        Equal(original.CreatedTime),
 									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":           Equal(original.Revision + 1),
@@ -731,6 +740,7 @@ var _ = Describe("Mongo", func() {
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),
+									"ConnectedTime":      Equal(original.ConnectedTime),
 									"CreatedTime":        Equal(original.CreatedTime),
 									"ModifiedTime":       PointTo(BeTemporally("~", time.Now(), time.Second)),
 									"Revision":           Equal(original.Revision + 1),
@@ -751,6 +761,53 @@ var _ = Describe("Mongo", func() {
 							It("returns nil when the id does not exist", func() {
 								id = dataSourceTest.RandomDataSourceID()
 								Expect(repository.Update(ctx, id, condition, update)).To(BeNil())
+							})
+
+							DescribeTable("sets connected time only on transition to connected",
+								func(originalState string, originalConnectedTime *time.Time) {
+									original.State = originalState
+									original.ConnectedTime = originalConnectedTime
+									replaceOriginal(original)
+									providerSessionID := authTest.RandomProviderSessionID()
+									update.ProviderSessionID = pointer.FromString(providerSessionID)
+									update.State = pointer.FromString(dataSource.StateConnected)
+									result, err := repository.Update(ctx, id, condition, update)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result).ToNot(BeNil())
+									Expect(result.ConnectedTime).To(matchConnectedTime(original))
+								},
+								Entry("from disconnected", dataSource.StateDisconnected, nil),
+								Entry("from disconnected with previous connected time",
+									dataSource.StateDisconnected,
+									pointer.FromTime(test.RandomTimeBeforeNow())),
+								Entry("from error", dataSource.StateError,
+									pointer.FromTime(test.RandomTimeBeforeNow())),
+								Entry("from connected", dataSource.StateConnected,
+									pointer.FromTime(test.RandomTimeBeforeNow())),
+								Entry("from connected without connected time",
+									dataSource.StateConnected, nil),
+							)
+
+							It("does not merge or evaluate replaced metadata and error", func() {
+								original.Metadata = map[string]any{
+									"stale":  "value",
+									"nested": map[string]any{"stale": "value"},
+								}
+								original.Error = errorsTest.RandomSerializable()
+								replaceOriginal(original)
+								metadata := map[string]any{
+									"fresh":  "$state",
+									"nested": map[string]any{"fresh": "$revision"},
+								}
+								update.State = pointer.FromString(dataSource.StateError)
+								update.ProviderSessionID = nil
+								update.Metadata = &metadata
+								update.Error = errorsTest.RandomSerializable()
+								result, err := repository.Update(ctx, id, condition, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.Metadata).To(Equal(metadata))
+								Expect(result.Error).To(Equal(update.Error))
 							})
 						})
 
@@ -944,3 +1001,10 @@ var _ = Describe("Mongo", func() {
 		})
 	})
 })
+
+func matchConnectedTime(original *dataSource.Source) OmegaMatcher {
+	if original.State == dataSource.StateConnected {
+		return Equal(original.ConnectedTime)
+	}
+	return PointTo(BeTemporally("~", time.Now(), time.Second))
+}
