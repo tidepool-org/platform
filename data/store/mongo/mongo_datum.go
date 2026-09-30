@@ -18,9 +18,11 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	platerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -419,6 +421,70 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *data.
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDataSetData")
 	return nil
+}
+
+func (d *DatumRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	if typ == "" {
+		return nil, errors.New("type is empty")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "type": typ, "subType": subType})
+
+	// The user, active and type select the UserIdTypeWeighted_v2 index, which is sorted by time
+	selector := bson.M{
+		"_userId":     dataSet.UserID,
+		"_active":     true,
+		"type":        typ,
+		"uploadId":    dataSet.UploadID,
+		"deletedTime": bson.M{"$exists": false},
+	}
+	if subType != "" {
+		selector["subType"] = subType
+	}
+	raw, err := d.FindOne(ctx, selector, options.FindOne().SetSort(bson.D{{Key: "time", Value: -1}})).Raw()
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
+		logger.WithError(err).Error("Unable to get latest data set datum")
+		return nil, fmt.Errorf("unable to get latest data set datum: %w", err)
+	}
+
+	datum, err := decodeDatum(ctx, raw)
+	if err != nil {
+		logger.WithError(err).Error("Unable to decode latest data set datum")
+		return nil, fmt.Errorf("unable to decode latest data set datum: %w", err)
+	}
+
+	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetLatestDataSetDatum")
+	return datum, nil
+}
+
+// decodeDatum decodes a stored datum into the datum its type, subtype and delivery type parse as.
+func decodeDatum(ctx context.Context, raw bson.Raw) (data.Datum, error) {
+	object := map[string]any{}
+	for _, key := range []string{"type", "subType", "deliveryType"} {
+		if value, ok := raw.Lookup(key).StringValueOK(); ok {
+			object[key] = value
+		}
+	}
+	parser := structureParser.NewObject(log.LoggerFromContext(ctx), &object)
+	datum := dataTypesFactory.NewDatum(parser)
+	if err := parser.Error(); err != nil {
+		return nil, err
+	} else if datum == nil {
+		return nil, errors.New("datum is missing")
+	}
+	if err := bson.Unmarshal(raw, datum); err != nil {
+		return nil, err
+	}
+	return datum, nil
 }
 
 func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {
