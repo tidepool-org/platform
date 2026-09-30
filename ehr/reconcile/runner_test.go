@@ -36,7 +36,7 @@ var _ = Describe("Runner", func() {
 	})
 
 	Context("With random data", func() {
-		var clinics []api.Clinic
+		var clinics []api.ClinicV1
 		var tasks map[string]task.Task
 
 		BeforeEach(func() {

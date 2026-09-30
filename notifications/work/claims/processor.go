@@ -47,7 +47,7 @@ func (m *Metadata) Validate(validator structure.Validator) {
 type Processor struct {
 	*workBase.Processor[Metadata]
 	Dependencies
-	patient *clinicClient.Patient
+	patient *clinicClient.PatientV1
 }
 
 func NewProcessor(dependencies Dependencies) (*Processor, error) {
@@ -111,6 +111,14 @@ func (p *Processor) process() *work.ProcessResult {
 	}
 
 	p.recordHistoryEntry(notificationsHistory.NotificationEmailSent)
+
+	err := p.RecordInvitationResent(p.Context(), p.Metadata().ClinicID,
+		p.Metadata().UserID)
+	if err != nil {
+		err = errors.Wrap(err, "unable to record patient invitation re-sent")
+		log.LoggerFromContext(p.Context()).WithError(err).Error(err.Error())
+		p.recordHistoryEntryWithError(notificationsHistory.NotificationGeneralError, err)
+	}
 	return nil
 }
 
