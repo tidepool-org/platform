@@ -68,6 +68,7 @@ type Datum struct {
 	SetDeletedTimeInputs                 []*time.Time
 	SetDeletedUserIDInvocations          int
 	SetDeletedUserIDInputs               []*string
+	IDValue                              *string
 	DeduplicatorDescriptorValue          *data.DeduplicatorDescriptor
 	DeduplicatorDescriptorInvocations    int
 	SetDeduplicatorDescriptorInvocations int
@@ -157,6 +158,14 @@ func (d *Datum) GetType() string {
 	output := d.GetTypeOutputs[0]
 	d.GetTypeOutputs = d.GetTypeOutputs[1:]
 	return output
+}
+
+func (d *Datum) GetID() *string {
+	return d.IDValue
+}
+
+func (d *Datum) SetID(id *string) {
+	d.IDValue = id
 }
 
 func (d *Datum) GetDeviceID() *string {

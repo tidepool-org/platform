@@ -305,6 +305,14 @@ func (b *Base) GetUploadID() *string {
 	return b.UploadID
 }
 
+func (b *Base) GetID() *string {
+	return b.ID
+}
+
+func (b *Base) SetID(id *string) {
+	b.ID = id
+}
+
 func (b *Base) GetType() string {
 	return b.Type
 }
