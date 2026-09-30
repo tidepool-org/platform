@@ -5,6 +5,8 @@ import (
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
+type DataClient any
+
 type DataDeduplicatorFactory any
 
 type DataRawClient any
@@ -25,6 +27,7 @@ type WorkClient any
 
 type ProcessorDependencies struct {
 	workBase.Dependencies
+	DataClient              DataClient
 	DataDeduplicatorFactory DataDeduplicatorFactory
 	DataRawClient           DataRawClient
 	DataSetClient           DataSetClient

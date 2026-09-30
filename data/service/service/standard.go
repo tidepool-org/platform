@@ -942,6 +942,7 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 
 		tandemProcessorDependencies := tandemWork.ProcessorDependencies{
 			Dependencies:            dependencies,
+			DataClient:              s.dataClient,
 			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 			DataSetClient:           s.dataClient,
 			DataSourceClient:        s.dataSourceClient,
