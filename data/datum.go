@@ -21,6 +21,7 @@ type Datum interface {
 	SetOrigin(origin *origin.Origin)
 	GetPayload() *metadata.Metadata
 
+	GetID() *string
 	GetType() string
 	IsActive() bool
 	GetTime() *time.Time
@@ -28,6 +29,7 @@ type Datum interface {
 	GetUploadID() *string
 	GetDeviceID() *string
 
+	SetID(id *string)
 	SetUserID(userID *string)
 	SetDataSetID(dataSetID *string)
 	SetActive(active bool)

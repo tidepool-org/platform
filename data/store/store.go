@@ -59,6 +59,10 @@ type DatumRepository interface {
 	DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 
+	// GetLatestDataSetDatum returns the active datum of the data set with the latest time of the type, and of the
+	// subtype if not empty, or nil if there is none.
+	GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error)
+
 	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error

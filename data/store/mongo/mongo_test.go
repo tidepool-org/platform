@@ -21,10 +21,17 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
+	dataTypesBasalAutomatedTest "github.com/tidepool-org/platform/data/types/basal/automated/test"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
 	"github.com/tidepool-org/platform/data/types/bolus"
+	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
+	dataTypesDeviceStatusTest "github.com/tidepool-org/platform/data/types/device/status/test"
+	dataTypesSettingsPump "github.com/tidepool-org/platform/data/types/settings/pump"
+	dataTypesSettingsPumpTest "github.com/tidepool-org/platform/data/types/settings/pump/test"
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -864,6 +871,113 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						dataSetExistingOneData = NewDataSetData(deviceID)
 						dataSetExistingTwoData = NewDataSetData(deviceID)
 						dataSetData = NewDataSetData(deviceID)
+					})
+
+					Context("GetLatestDataSetDatum", func() {
+						It("returns an error when the context is missing", func() {
+							datum, err := repository.GetLatestDataSetDatum(nil, dataSet, "pumpSettings", "")
+							Expect(err).To(MatchError("context is missing"))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the data set is missing", func() {
+							datum, err := repository.GetLatestDataSetDatum(ctx, nil, "pumpSettings", "")
+							Expect(err).To(MatchError("data set is missing"))
+							Expect(datum).To(BeNil())
+						})
+
+						It("returns an error when the type is empty", func() {
+							datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "", "")
+							Expect(err).To(MatchError("type is empty"))
+							Expect(datum).To(BeNil())
+						})
+
+						Context("with database access", func() {
+							var latestTime time.Time
+							var latestPump *dataTypesSettingsPump.Pump
+							var latestStatus *dataTypesDeviceStatus.Status
+
+							activeDatum := func(datum data.Datum, base *types.Base, tm time.Time) data.Datum {
+								base.Active = true
+								base.DeletedTime = nil
+								base.DeletedUserID = nil
+								base.Time = pointer.FromTime(tm)
+								return datum
+							}
+							newPump := func(tm time.Time) *dataTypesSettingsPump.Pump {
+								datum := dataTypesSettingsPumpTest.NewPump(pointer.FromString("mg/dL"))
+								activeDatum(datum, &datum.Base, tm)
+								return datum
+							}
+							newStatus := func(tm time.Time) *dataTypesDeviceStatus.Status {
+								datum := dataTypesDeviceStatusTest.NewStatus()
+								activeDatum(datum, &datum.Base, tm)
+								return datum
+							}
+
+							BeforeEach(func() {
+								preparePersistedDataSets()
+								latestTime = time.Now().UTC().Truncate(time.Millisecond).Add(-time.Hour)
+								latestPump = newPump(latestTime)
+								latestStatus = newStatus(latestTime)
+
+								inactivePump := newPump(latestTime.Add(time.Minute))
+								inactivePump.Active = false
+								deletedPump := newPump(latestTime.Add(2 * time.Minute))
+								deletedPump.DeletedTime = pointer.FromTime(latestTime)
+								Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{
+									newPump(latestTime.Add(-time.Hour)), latestPump, inactivePump, deletedPump,
+									newStatus(latestTime.Add(-time.Hour)), latestStatus,
+								})).To(Succeed())
+								Expect(repository.CreateDataSetData(ctx, dataSetExistingOne, []data.Datum{
+									newPump(latestTime.Add(time.Hour)), newStatus(latestTime.Add(time.Hour)),
+								})).To(Succeed())
+							})
+
+							It("returns the latest active datum of the type in the data set", func() {
+								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "pumpSettings", "")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeAssignableToTypeOf(&dataTypesSettingsPump.Pump{}))
+								pump := datum.(*dataTypesSettingsPump.Pump)
+								Expect(pump.ID).To(Equal(latestPump.ID))
+								Expect(pump.Time).To(PointTo(BeTemporally("==", latestTime)))
+								Expect(pump.ActiveScheduleName).To(Equal(latestPump.ActiveScheduleName))
+								Expect(pump.UploadID).To(Equal(dataSet.UploadID))
+							})
+
+							It("returns the latest datum of the subtype", func() {
+								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "deviceEvent", "status")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeAssignableToTypeOf(&dataTypesDeviceStatus.Status{}))
+								status := datum.(*dataTypesDeviceStatus.Status)
+								Expect(status.ID).To(Equal(latestStatus.ID))
+								Expect(status.Name).To(Equal(latestStatus.Name))
+							})
+
+							It("returns a datum with a field declared as an interface, such as a suppressed basal", func() {
+								automated := dataTypesBasalAutomatedTest.RandomAutomated()
+								activeDatum(automated, &automated.Base, latestTime)
+								Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{automated})).To(Succeed())
+
+								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "basal", "")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeAssignableToTypeOf(&dataTypesBasalAutomated.Automated{}))
+								basal := datum.(*dataTypesBasalAutomated.Automated)
+								Expect(basal.ID).To(Equal(automated.ID))
+								Expect(basal.Rate).To(Equal(automated.Rate))
+								Expect(basal.Suppressed).To(BeAssignableToTypeOf(&dataTypesBasalScheduled.SuppressedScheduled{}))
+								Expect(basal.Suppressed.(*dataTypesBasalScheduled.SuppressedScheduled).Rate).To(Equal(automated.Suppressed.(*dataTypesBasalScheduled.SuppressedScheduled).Rate))
+							})
+
+							It("returns nil when there is no datum of the type or subtype", func() {
+								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "basal", "")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeNil())
+								datum, err = repository.GetLatestDataSetDatum(ctx, dataSet, "deviceEvent", "pumpSettingsOverride")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeNil())
+							})
+						})
 					})
 
 					Context("DeleteDataSet", func() {

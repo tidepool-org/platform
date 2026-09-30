@@ -521,6 +521,13 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		return errors.Wrap(err, "unable to create data set drop hash deduplicator")
 	}
 
+	s.Logger().Debug("Creating data set drop hash replace id deduplicator")
+
+	dataSetDropHashReplaceIDDeduplicator, err := dataDeduplicatorDeduplicator.NewDataSetDropHashReplaceID(dependencies)
+	if err != nil {
+		return errors.Wrap(err, "unable to create data set drop hash replace id deduplicator")
+	}
+
 	s.Logger().Debug("Creating none deduplicator")
 
 	noneDeduplicator, err := dataDeduplicatorDeduplicator.NewNone(dependencies)
@@ -536,6 +543,7 @@ func (s *Standard) initializeDataDeduplicatorFactory() error {
 		dataSetDeleteOriginDeduplicator,
 		dataSetDeleteOriginOlderDeduplicator,
 		dataSetDropHashDeduplicator,
+		dataSetDropHashReplaceIDDeduplicator,
 		noneDeduplicator,
 	}
 
@@ -934,6 +942,7 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 
 		tandemProcessorDependencies := tandemWork.ProcessorDependencies{
 			Dependencies:            dependencies,
+			DataClient:              s.dataClient,
 			DataDeduplicatorFactory: s.dataDeduplicatorFactory,
 			DataSetClient:           s.dataClient,
 			DataSourceClient:        s.dataSourceClient,

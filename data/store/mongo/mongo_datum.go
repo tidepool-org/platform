@@ -2,6 +2,7 @@ package mongo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"github.com/tidepool-org/platform/summary/types"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 
@@ -18,9 +20,11 @@ import (
 	"github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
+	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
 	platerrors "github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
 
@@ -419,6 +423,107 @@ func (d *DatumRepository) DestroyDataSetData(ctx context.Context, dataSet *data.
 
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).Debug("DestroyDataSetData")
 	return nil
+}
+
+func (d *DatumRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if err := validateDataSet(dataSet); err != nil {
+		return nil, err
+	}
+	if typ == "" {
+		return nil, errors.New("type is empty")
+	}
+
+	now := time.Now()
+	logger := log.LoggerFromContext(ctx).WithFields(log.Fields{"dataSetId": *dataSet.UploadID, "type": typ, "subType": subType})
+
+	// The user, active and type select the UserIdTypeWeighted_v2 index, which is sorted by time
+	selector := bson.M{
+		"_userId":     dataSet.UserID,
+		"_active":     true,
+		"type":        typ,
+		"uploadId":    dataSet.UploadID,
+		"deletedTime": bson.M{"$exists": false},
+	}
+	if subType != "" {
+		selector["subType"] = subType
+	}
+	raw, err := d.FindOne(ctx, selector, options.FindOne().SetSort(bson.D{{Key: "time", Value: -1}})).Raw()
+	if errors.Is(err, mongo.ErrNoDocuments) {
+		return nil, nil
+	} else if err != nil {
+		logger.WithError(err).Error("Unable to get latest data set datum")
+		return nil, fmt.Errorf("unable to get latest data set datum: %w", err)
+	}
+
+	datum, err := decodeDatum(ctx, dataSet, raw)
+	if err != nil {
+		logger.WithError(err).Error("Unable to decode latest data set datum")
+		return nil, fmt.Errorf("unable to decode latest data set datum: %w", err)
+	}
+
+	logger.WithField("duration", time.Since(now)/time.Microsecond).Debug("GetLatestDataSetDatum")
+	return datum, nil
+}
+
+// decodeDatum parses a stored datum as data from a client is parsed: the stored document does not say which type
+// fills a field declared as an interface, such as the suppressed basal of an automated basal, but the parser does.
+func decodeDatum(ctx context.Context, dataSet *data.DataSet, raw bson.Raw) (data.Datum, error) {
+	document := bson.M{}
+	if err := bson.Unmarshal(raw, &document); err != nil {
+		return nil, err
+	}
+	body, err := json.Marshal(jsonValue(document))
+	if err != nil {
+		return nil, err
+	}
+	object := map[string]any{}
+	if err = json.Unmarshal(body, &object); err != nil {
+		return nil, err
+	}
+
+	parser := structureParser.NewObject(log.LoggerFromContext(ctx), &object)
+	datum := dataTypesFactory.ParseDatum(parser)
+	if err = parser.Error(); err != nil {
+		return nil, err
+	} else if datum == nil || *datum == nil {
+		return nil, errors.New("datum is missing")
+	}
+	(*datum).SetUserID(dataSet.UserID)
+	(*datum).SetDataSetID(dataSet.UploadID)
+	return *datum, nil
+}
+
+// jsonValue is a stored value as a client would send it: times as RFC 3339 strings, documents as objects.
+func jsonValue(value any) any {
+	switch value := value.(type) {
+	case primitive.DateTime:
+		return value.Time().UTC()
+	case primitive.ObjectID:
+		return value.Hex()
+	case primitive.M:
+		object := make(map[string]any, len(value))
+		for key, element := range value {
+			object[key] = jsonValue(element)
+		}
+		return object
+	case primitive.D:
+		object := make(map[string]any, len(value))
+		for _, element := range value {
+			object[element.Key] = jsonValue(element.Value)
+		}
+		return object
+	case primitive.A:
+		array := make([]any, len(value))
+		for index, element := range value {
+			array[index] = jsonValue(element)
+		}
+		return array
+	default:
+		return value
+	}
 }
 
 func (d *DatumRepository) ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error {

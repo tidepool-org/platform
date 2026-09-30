@@ -147,6 +147,18 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
+type GetLatestDataSetDatumInput struct {
+	Context context.Context
+	DataSet *data.DataSet
+	Type    string
+	SubType string
+}
+
+type GetLatestDataSetDatumOutput struct {
+	Datum data.Datum
+	Error error
+}
+
 type GetLastUpdatedForUserInput struct {
 	Context     context.Context
 	UserID      string
@@ -253,6 +265,10 @@ type DataRepository struct {
 	GetDataRangeInvocations int
 	GetDataRangeInputs      []GetDataRangeInput
 	GetDataRangeOutputs     []GetDataRangeOutput
+
+	GetLatestDataSetDatumInvocations int
+	GetLatestDataSetDatumInputs      []GetLatestDataSetDatumInput
+	GetLatestDataSetDatumOutputs     []GetLatestDataSetDatumOutput
 
 	GetLastUpdatedForUserInvocations int
 	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
@@ -498,6 +514,18 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
+func (d *DataRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error) {
+	d.GetLatestDataSetDatumInvocations++
+
+	d.GetLatestDataSetDatumInputs = append(d.GetLatestDataSetDatumInputs, GetLatestDataSetDatumInput{Context: ctx, DataSet: dataSet, Type: typ, SubType: subType})
+
+	gomega.Expect(d.GetLatestDataSetDatumOutputs).ToNot(gomega.BeEmpty())
+
+	output := d.GetLatestDataSetDatumOutputs[0]
+	d.GetLatestDataSetDatumOutputs = d.GetLatestDataSetDatumOutputs[1:]
+	return output.Datum, output.Error
+}
+
 func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
 	d.GetLastUpdatedForUserInvocations++
 
@@ -565,6 +593,7 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetLatestDataSetDatumOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 }
