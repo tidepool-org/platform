@@ -21,6 +21,9 @@ import (
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
 	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/data/types"
+	dataTypesBasalAutomated "github.com/tidepool-org/platform/data/types/basal/automated"
+	dataTypesBasalAutomatedTest "github.com/tidepool-org/platform/data/types/basal/automated/test"
+	dataTypesBasalScheduled "github.com/tidepool-org/platform/data/types/basal/scheduled"
 	glucoseDatum "github.com/tidepool-org/platform/data/types/blood/glucose"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
@@ -949,6 +952,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								status := datum.(*dataTypesDeviceStatus.Status)
 								Expect(status.ID).To(Equal(latestStatus.ID))
 								Expect(status.Name).To(Equal(latestStatus.Name))
+							})
+
+							It("returns a datum with a field declared as an interface, such as a suppressed basal", func() {
+								automated := dataTypesBasalAutomatedTest.RandomAutomated()
+								activeDatum(automated, &automated.Base, latestTime)
+								Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{automated})).To(Succeed())
+
+								datum, err := repository.GetLatestDataSetDatum(ctx, dataSet, "basal", "")
+								Expect(err).ToNot(HaveOccurred())
+								Expect(datum).To(BeAssignableToTypeOf(&dataTypesBasalAutomated.Automated{}))
+								basal := datum.(*dataTypesBasalAutomated.Automated)
+								Expect(basal.ID).To(Equal(automated.ID))
+								Expect(basal.Rate).To(Equal(automated.Rate))
+								Expect(basal.Suppressed).To(BeAssignableToTypeOf(&dataTypesBasalScheduled.SuppressedScheduled{}))
+								Expect(basal.Suppressed.(*dataTypesBasalScheduled.SuppressedScheduled).Rate).To(Equal(automated.Suppressed.(*dataTypesBasalScheduled.SuppressedScheduled).Rate))
 							})
 
 							It("returns nil when there is no datum of the type or subtype", func() {
