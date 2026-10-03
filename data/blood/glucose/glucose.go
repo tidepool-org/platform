@@ -2,6 +2,7 @@ package glucose
 
 import (
 	"math"
+	"strings"
 
 	"github.com/tidepool-org/platform/pointer"
 )
@@ -80,6 +81,24 @@ func NormalizeValueForUnits(value *float64, units *string) *float64 {
 		}
 	}
 	return value
+}
+
+func MmolLRounded(value float64, units string) float64 {
+	mmolLValue := 0.0
+	if strings.EqualFold(units, MmolL) {
+		mmolLValue = value
+	} else {
+		normalized := NormalizeValueForUnits(&value, &units)
+		mmolLValue = *normalized
+	}
+	return math.Round(mmolLValue*10) / 10
+}
+
+func MgdLRounded(value float64, units string) int {
+	if strings.EqualFold(units, MmolL) {
+		value *= MmolLToMgdLConversionFactor
+	}
+	return int(math.Round(value))
 }
 
 func ValueRangeForRateUnits(rateUnits *string) (float64, float64) {

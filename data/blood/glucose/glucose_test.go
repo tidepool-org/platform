@@ -218,4 +218,39 @@ var _ = Describe("Glucose", func() {
 			}
 		})
 	})
+
+	Describe("MgdLRounded", func() {
+		It("rounds to 0 decimal places", func() {
+			got := glucose.MgdLRounded(3.0, "mmol/L")
+			Expect(got).To(Equal(54))
+			got = glucose.MgdLRounded(3.9, "mmol/L")
+			Expect(got).To(Equal(70))
+			got = glucose.MgdLRounded(10, "mmol/L")
+			Expect(got).To(Equal(180))
+			got = glucose.MgdLRounded(13.9, "mmol/L")
+			Expect(got).To(Equal(250))
+			got = glucose.MgdLRounded(19.4, "mmol/L")
+			Expect(got).To(Equal(350))
+
+			got = glucose.MgdLRounded(54.49999999999999, "mg/dL")
+			Expect(got).To(Equal(54))
+			got = glucose.MgdLRounded(54.5, "mg/dL")
+			Expect(got).To(Equal(55))
+		})
+	})
+
+	Describe("MmolLRounded", func() {
+		It("rounds to 1 decimal place", func() {
+			got := glucose.MmolLRounded(54, "mg/dL")
+			Expect(got).To(Equal(3.0))
+			got = glucose.MmolLRounded(70, "mg/dL")
+			Expect(got).To(Equal(3.9))
+			got = glucose.MmolLRounded(180, "mg/dL")
+			Expect(got).To(Equal(10.0))
+			got = glucose.MmolLRounded(250, "mg/dL")
+			Expect(got).To(Equal(13.9))
+			got = glucose.MmolLRounded(350, "mg/dL")
+			Expect(got).To(Equal(19.4))
+		})
+	})
 })
