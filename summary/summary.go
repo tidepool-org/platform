@@ -119,6 +119,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
 	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
+		now := time.Now()
 		userSummary, err := gs.GetSummary(sessionCtx, userId)
 		summaryType := types.GetType[PP, PB]()
 		dataTypes := types.GetDeviceDataType[PP, PB]()
@@ -144,7 +145,8 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 			userSummary.Periods.Init()
 		}
 
-		if userSummary.Config.SchemaVersion != types.SchemaVersion {
+		schemaMigration := userSummary.Config.SchemaVersion != types.SchemaVersion
+		if schemaMigration {
 			// A summary calculated with an outdated schema is recreated from nothing
 			*userSummary = *types.Create[PP, PB](userId)
 
@@ -225,7 +227,16 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		userSummary.Dates.Update(status, oldest)
-		return userSummary, gs.summaries.ReplaceSummary(sessionCtx, userSummary)
+		if err := gs.summaries.ReplaceSummary(sessionCtx, userSummary); err != nil {
+			return nil, err
+		}
+
+		logger.WithFields(log.Fields{
+			"summaryType":     summaryType,
+			"schemaMigration": schemaMigration,
+			"duration":        time.Since(now) / time.Microsecond,
+		}).Info("UpdateSummary")
+		return userSummary, nil
 	})
 	if err != nil {
 		return nil, err
