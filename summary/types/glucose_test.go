@@ -12,6 +12,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/blood/glucose"
 	"github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
@@ -697,6 +698,176 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(2))
 			Expect(glucoseRanges.Total.Records).To(Equal(6))
+		})
+
+		Context("ranges.Update at the ADA cut points", func() {
+			type rangeRecords struct {
+				VeryLow, Low, Target, High, VeryHigh, ExtremeHigh, AnyLow, AnyHigh int
+			}
+
+			veryLow := rangeRecords{VeryLow: 1, AnyLow: 1}
+			low := rangeRecords{Low: 1, AnyLow: 1}
+			inRange := rangeRecords{Target: 1}
+			high := rangeRecords{High: 1, AnyHigh: 1}
+			veryHigh := rangeRecords{VeryHigh: 1, AnyHigh: 1}
+			extremeHigh := rangeRecords{VeryHigh: 1, ExtremeHigh: 1, AnyHigh: 1}
+
+			newRecord := func(units string, value float64) Glucose {
+				datumTime := time.Now()
+				datum := NewContinuousGlucoseDatum(&units, &datumTime,
+					pointer.FromAny("SummaryTestDevice"),
+					pointer.FromAny(test.RandomDataSetID()))
+				datum.Value = &value
+				g, err := NewGlucose(datum)
+				Expect(err).ToNot(HaveOccurred())
+				return g
+			}
+
+			recordsOf := func(rs GlucoseRanges) rangeRecords {
+				return rangeRecords{
+					VeryLow:     rs.VeryLow.Records,
+					Low:         rs.Low.Records,
+					Target:      rs.Target.Records,
+					High:        rs.High.Records,
+					VeryHigh:    rs.VeryHigh.Records,
+					ExtremeHigh: rs.ExtremeHigh.Records,
+					AnyLow:      rs.AnyLow.Records,
+					AnyHigh:     rs.AnyHigh.Records,
+				}
+			}
+
+			DescribeTable("classifies the reading",
+				func(units string, value float64, expected rangeRecords) {
+					glucoseRanges := GlucoseRanges{}
+					glucoseRanges.Update(newRecord(units, value))
+
+					Expect(recordsOf(glucoseRanges)).To(Equal(expected))
+					Expect(glucoseRanges.Total.Records).To(Equal(1))
+				},
+				Entry("53 mg/dL is very low", glucose.MgdL, 53.0, veryLow),
+				Entry("54 mg/dL is low", glucose.MgdL, 54.0, low),
+				Entry("69 mg/dL is low", glucose.MgdL, 69.0, low),
+				Entry("70 mg/dL is in range", glucose.MgdL, 70.0, inRange),
+				Entry("180 mg/dL is in range", glucose.MgdL, 180.0, inRange),
+				Entry("181 mg/dL is high", glucose.MgdL, 181.0, high),
+				Entry("250 mg/dL is high", glucose.MgdL, 250.0, high),
+				Entry("251 mg/dL is very high", glucose.MgdL, 251.0, veryHigh),
+				Entry("349 mg/dL is very high", glucose.MgdL, 349.0, veryHigh),
+				Entry("350 mg/dL is extreme high", glucose.MgdL, 350.0, extremeHigh),
+				Entry("2.9 mmol/L is very low", glucose.MmolL, 2.9, veryLow),
+				Entry("3.0 mmol/L is low", glucose.MmolL, 3.0, low),
+				Entry("3.8 mmol/L is low", glucose.MmolL, 3.8, low),
+				Entry("3.9 mmol/L is in range", glucose.MmolL, 3.9, inRange),
+				Entry("10.0 mmol/L is in range", glucose.MmolL, 10.0, inRange),
+				Entry("10.1 mmol/L is high", glucose.MmolL, 10.1, high),
+				Entry("13.9 mmol/L is high", glucose.MmolL, 13.9, high),
+				Entry("14.0 mmol/L is very high", glucose.MmolL, 14.0, veryHigh),
+				Entry("19.3 mmol/L is very high", glucose.MmolL, 19.3, veryHigh),
+				Entry("19.4 mmol/L is extreme high", glucose.MmolL, 19.4, extremeHigh),
+			)
+
+			It("classifies every supported input by its native-unit standard", func() {
+				// The ADA standard (Battelino T, et al. Diabetes Care.
+				// 2019;42(8):1593-1603), applied to the input as recorded. Extreme high
+				// isn't part of the standard; it mirrors the 19.4 mmol/L threshold.
+				nativeMgdL := func(mg int) rangeRecords {
+					switch {
+					case mg < 54:
+						return veryLow
+					case mg < 70:
+						return low
+					case mg <= 180:
+						return inRange
+					case mg <= 250:
+						return high
+					case mg < 350:
+						return veryHigh
+					default:
+						return extremeHigh
+					}
+				}
+				nativeMmolL := func(tenths int) rangeRecords {
+					switch {
+					case tenths < 30:
+						return veryLow
+					case tenths < 39:
+						return low
+					case tenths <= 100:
+						return inRange
+					case tenths <= 139:
+						return high
+					case tenths < 194:
+						return veryHigh
+					default:
+						return extremeHigh
+					}
+				}
+				// The cut points used before BACK-4158, applied to the stored mmol/L value.
+				previous := func(n float64) rangeRecords {
+					switch {
+					case n < 3.0:
+						return veryLow
+					case n < 3.9:
+						return low
+					case n <= 10.0:
+						return inRange
+					case n <= 13.9:
+						return high
+					case n < 19.4:
+						return veryHigh
+					default:
+						return extremeHigh
+					}
+				}
+
+				type input struct {
+					label    string
+					units    string
+					value    float64
+					expected rangeRecords
+				}
+				var inputs []input
+				for mg := 0; mg <= int(glucose.MgdLMaximum); mg++ {
+					inputs = append(inputs, input{fmt.Sprintf("%d mg/dL", mg), glucose.MgdL,
+						float64(mg), nativeMgdL(mg)})
+				}
+				for tenths := 0; tenths <= int(glucose.MmolLMaximum*10); tenths++ {
+					value := float64(tenths) / 10
+					inputs = append(inputs, input{fmt.Sprintf("%.1f mmol/L", value),
+						glucose.MmolL, value, nativeMmolL(tenths)})
+				}
+
+				var misclassified, changed []string
+				all := GlucoseRanges{}
+				for _, in := range inputs {
+					record := newRecord(in.units, in.value)
+
+					glucoseRanges := GlucoseRanges{}
+					glucoseRanges.Update(record)
+					if got := recordsOf(glucoseRanges); got != in.expected {
+						misclassified = append(misclassified,
+							fmt.Sprintf("%s: got %+v, want %+v",
+								in.label, got, in.expected))
+					}
+					if previous(record.NormalizedValue()) != in.expected {
+						changed = append(changed, in.label)
+					}
+
+					all.Update(record)
+				}
+
+				Expect(misclassified).To(BeEmpty())
+				// Recalculating existing summaries moves only these readings: 54 mg/dL from
+				// very low to low, and 70 mg/dL from low to in range.
+				Expect(changed).To(Equal([]string{"54 mg/dL", "70 mg/dL"}))
+
+				Expect(all.Total.Records).To(Equal(len(inputs)))
+				Expect(all.VeryLow.Records + all.Low.Records + all.Target.Records +
+					all.High.Records + all.VeryHigh.Records).To(Equal(all.Total.Records))
+				Expect(all.AnyLow.Records).To(Equal(all.VeryLow.Records + all.Low.Records))
+				Expect(all.AnyHigh.Records).
+					To(Equal(all.High.Records + all.VeryHigh.Records))
+			})
 		})
 
 		It("ranges.Finalize with minutes >70% of a day", func() {
