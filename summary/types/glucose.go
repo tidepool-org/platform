@@ -263,30 +263,60 @@ func (rs *GlucoseRanges) Finalize(days int) {
 }
 
 func (rs *GlucoseRanges) Update(record Glucose) {
-	normalizedValue := record.NormalizedValue()
-
-	if normalizedValue < veryLowBloodGlucose {
+	n := record.NormalizedValue()
+	switch classifyADAStandard(n) {
+	case classificationVeryLow:
 		rs.VeryLow.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > veryHighBloodGlucose {
-		rs.VeryHigh.Update(record)
-		rs.AnyHigh.Update(record)
-
-		// VeryHigh is inclusive of extreme high, this is intentional
-		if normalizedValue >= extremeHighBloodGlucose {
-			rs.ExtremeHigh.Update(record)
-		}
-	} else if normalizedValue < lowBloodGlucose {
+	case classificationLow:
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	} else if normalizedValue > highBloodGlucose {
-		rs.AnyHigh.Update(record)
-		rs.High.Update(record)
-	} else {
+	case classificationInRange:
 		rs.Target.Update(record)
+	case classificationHigh:
+		rs.High.Update(record)
+		rs.AnyHigh.Update(record)
+	case classificationVeryHigh:
+		rs.VeryHigh.Update(record)
+		rs.AnyHigh.Update(record)
+		if isExtremeHigh(n) {
+			rs.ExtremeHigh.Update(record)
+		}
 	}
-
 	rs.Total.UpdateTotal(record)
+}
+
+type classification int
+
+const (
+	classificationVeryLow classification = iota + 1
+	classificationLow
+	classificationInRange
+	classificationHigh
+	classificationVeryHigh
+)
+
+// classifyADAStandard classifies a normalized (mmol/L) glucose value.
+func classifyADAStandard(n float64) classification {
+	switch {
+	case n < veryLowBloodGlucose:
+		return classificationVeryLow
+	case n < lowBloodGlucose:
+		return classificationLow
+	case n < highBloodGlucose:
+		return classificationInRange
+	case n < veryHighBloodGlucose:
+		return classificationHigh
+	default:
+		return classificationVeryHigh
+	}
+}
+
+// isExtremeHigh reports if a normalized (mmol/L) glucose value matches the criteria for an
+// extreme high classification. This extreme high classification is a special one-off
+// classification for a particular clinic, which is why its handled as a special case.
+func isExtremeHigh(n float64) bool {
+	return n >= extremeHighBloodGlucose
 }
 
 func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
