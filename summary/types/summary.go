@@ -19,12 +19,21 @@ const (
 	SummaryTypeContinuous = "con"
 	SchemaVersion         = 6
 
-	lowBloodGlucose         = 3.9
-	veryLowBloodGlucose     = 3.0
-	highBloodGlucose        = 10.0
-	veryHighBloodGlucose    = 13.9
+	// These values are defined in BACK-4158. They represent the ADA standard glucose
+	// ranges.
+	//
+	// Readings are compared after normalization to mmol/L, so each cut point sits in the
+	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
+	// as the ADA standard intends. Readings with finer precision may not classify as
+	// expected.  extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
+	// 350 mg/dL ≈ 19.43), so it needs no adjustment.
+	veryLowBloodGlucose     = 2.97
+	lowBloodGlucose         = 3.87
+	highBloodGlucose        = 10.02
+	veryHighBloodGlucose    = 13.91
 	extremeHighBloodGlucose = 19.4
-	HoursAgoToKeep          = 60 * 24
+
+	HoursAgoToKeep = 60 * 24
 )
 
 var DeviceDataTypesSet = mapset.NewSet[string](continuous.Type, selfmonitored.Type)
