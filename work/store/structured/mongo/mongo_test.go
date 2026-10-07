@@ -280,29 +280,30 @@ var _ = Describe("Mongo", func() {
 				const workCount = 10
 
 				var serialID string
-				var availableTime time.Time
 
 				BeforeEach(func() {
 					serialID = typ + ":" + test.RandomString()
 
-					// Create in the future so every work item retains the exact same processing
-					// available time, then wait for them to become available to poll
-					availableTime = time.Now().Add(time.Second).UTC().Truncate(time.Millisecond)
-
 					for range workCount {
-						create := &work.Create{
-							Type:                    typ,
-							SerialID:                pointer.FromString(serialID),
-							ProcessingAvailableTime: availableTime,
-							ProcessingTimeout:       processingTimeout,
-						}
-						created, err := store.Create(ctx, create)
+						created, err := store.Create(ctx, &work.Create{
+							Type:              typ,
+							SerialID:          pointer.FromString(serialID),
+							ProcessingTimeout: processingTimeout,
+						})
 						Expect(err).ToNot(HaveOccurred())
 						Expect(created).ToNot(BeNil())
-						Expect(created.ProcessingAvailableTime).To(BeTemporally("==", availableTime))
 					}
 
-					time.Sleep(time.Until(availableTime) + 100*time.Millisecond)
+					// Create raises a processing available time in the past to the time of
+					// creation, which differs between work items, so the identical time is set
+					// directly. Setting a time in the future instead, and waiting for it, is
+					// flaky, as a slow create is raised past it.
+					availableTime := time.Now().Add(-time.Minute).UTC().Truncate(time.Millisecond)
+					result, err := store.GetCollection("work").UpdateMany(ctx,
+						bson.M{"serialId": serialID},
+						bson.M{"$set": bson.M{"processingAvailableTime": availableTime}})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(result.ModifiedCount).To(Equal(int64(workCount)))
 				})
 
 				It("claims one work item and claims no further work item while it is processing", func() {
