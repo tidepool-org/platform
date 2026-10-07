@@ -17,15 +17,23 @@ const (
 	SummaryTypeCGM        = "cgm"
 	SummaryTypeBGM        = "bgm"
 	SummaryTypeContinuous = "con"
-	SchemaVersion         = 6
+
+	// A summary whose schema version doesn't match is recalculated from scratch only the
+	// next time it's updated. If incrementing it requires every summary to be migrated
+	// promptly, then also change the recalculation id in the
+	// data/work/summary/recalculate package. That recalculates only the CGM and BGM
+	// summaries.
+	SchemaVersion = 6
 
 	// These values are defined in BACK-4158. They represent the ADA standard glucose
-	// ranges.
+	// ranges. If they, or how readings are classified against them, are modified, then
+	// change the recalculation id in the data/work/summary/recalculate package, so that
+	// every patient's summary is recalculated based on the modified thresholds.
 	//
 	// Readings are compared after normalization to mmol/L, so each cut point sits in the
 	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
 	// as the ADA standard intends. Readings with finer precision may not classify as
-	// expected.  extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
+	// expected. extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
 	// 350 mg/dL ≈ 19.43), so it needs no adjustment.
 	veryLowBloodGlucose     = 2.97
 	lowBloodGlucose         = 3.87

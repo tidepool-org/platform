@@ -34,7 +34,7 @@ var _ = Describe("Work", func() {
 			"DATA_ADDED",
 			"UPLOAD_COMPLETED",
 			"LEGACY_DATA_ADDED",
-			"SCHEMA_MIGRATION",
+			"SUMMARY_RECALCULATION",
 		))
 	})
 
@@ -45,11 +45,24 @@ var _ = Describe("Work", func() {
 			},
 			Entry("with no reasons", nil, false),
 			Entry("with data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
-			Entry("with schema migration", []string{dataWorkPostprocess.ReasonSchemaMigration}, false),
+			Entry("with summary recalculation", []string{dataWorkPostprocess.ReasonSummaryRecalculation}, false),
 			Entry("with upload completed", []string{dataWorkPostprocess.ReasonUploadCompleted}, true),
 			Entry("with legacy data added", []string{dataWorkPostprocess.ReasonLegacyDataAdded}, true),
 			Entry("with any reason triggering a synchronization",
 				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted}, true),
+		)
+	})
+
+	Context("RecalculatesSummaries", func() {
+		DescribeTable("reports whether the reasons require a recalculation of the summaries",
+			func(reasons []string, expected bool) {
+				Expect(dataWorkPostprocess.RecalculatesSummaries(reasons)).To(Equal(expected))
+			},
+			Entry("with no reasons", nil, false),
+			Entry("with data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
+			Entry("with summary recalculation", []string{dataWorkPostprocess.ReasonSummaryRecalculation}, true),
+			Entry("with any reason requiring a recalculation",
+				[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonSummaryRecalculation}, true),
 		)
 	})
 
