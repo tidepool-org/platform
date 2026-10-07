@@ -151,11 +151,25 @@ var _ = Describe("Processor", func() {
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		},
 		Entry("data added", []string{dataWorkPostprocess.ReasonDataAdded}, false),
-		Entry("schema migration", []string{dataWorkPostprocess.ReasonSchemaMigration}, false),
 		Entry("upload completed", []string{dataWorkPostprocess.ReasonUploadCompleted}, true),
 		Entry("legacy data added", []string{dataWorkPostprocess.ReasonLegacyDataAdded}, true),
 		Entry("data added and upload completed",
 			[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted}, true),
+	)
+
+	// A recalculation doesn't request a synchronization, as recalculating every summary
+	// would otherwise synchronize every patient with an active subscription
+	DescribeTable("recalculates the summaries, without requesting a synchronization, when a reason requires it",
+		func(reasons []string) {
+			wrk = newWork(work.StateProcessing, reasons, time.Now().Add(-time.Minute))
+			expectListNone()
+			summarizers.EXPECT().RecalculateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		},
+		Entry("summary recalculation", []string{dataWorkPostprocess.ReasonSummaryRecalculation}),
+		Entry("data added and summary recalculation",
+			[]string{dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonSummaryRecalculation}),
 	)
 
 	// A synchronization reports the summaries, so it must not be requested before they are calculated
@@ -419,6 +433,7 @@ var _ = Describe("Processor", func() {
 
 	Context("with work also pending for the user", func() {
 		var sibling *work.Work
+		var siblingReason string
 
 		expectListWithSibling := func() {
 			workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*work.Work{sibling}, nil)
@@ -431,7 +446,7 @@ var _ = Describe("Processor", func() {
 				processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
 					func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
 						Expect(update.Metadata).To(HaveKeyWithValue("reasons",
-							ConsistOf(dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted)))
+							ConsistOf(dataWorkPostprocess.ReasonDataAdded, siblingReason)))
 						updated := *wrk
 						updated.Metadata = update.Metadata
 						updated.Revision = wrk.Revision + 1
@@ -442,7 +457,8 @@ var _ = Describe("Processor", func() {
 		}
 
 		BeforeEach(func() {
-			sibling = newWork(work.StatePending, []string{dataWorkPostprocess.ReasonUploadCompleted}, time.Now().Add(-time.Second))
+			siblingReason = dataWorkPostprocess.ReasonUploadCompleted
+			sibling = newWork(work.StatePending, []string{siblingReason}, time.Now().Add(-time.Second))
 		})
 
 		It("reports its reasons, deletes it, and processes once", func() {
@@ -450,6 +466,18 @@ var _ = Describe("Processor", func() {
 			expectProcessingUpdateThenDelete()
 			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// The upload of a user awaiting a recalculation is picked up first, as the recalculation
+		// has a lower priority, so the recalculation must survive being absorbed
+		It("recalculates the summaries when it reports a summary recalculation", func() {
+			siblingReason = dataWorkPostprocess.ReasonSummaryRecalculation
+			sibling = newWork(work.StatePending, []string{siblingReason}, time.Now().Add(-time.Second))
+			expectListWithSibling()
+			expectProcessingUpdateThenDelete()
+			summarizers.EXPECT().RecalculateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
 		})
