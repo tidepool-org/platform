@@ -18,10 +18,10 @@ import (
 )
 
 const (
-	VeryLowBloodGlucose     = 3.0
-	LowBloodGlucose         = 3.9
-	HighBloodGlucose        = 10.0
-	VeryHighBloodGlucose    = 13.9
+	VeryLowBloodGlucose     = 2.97
+	LowBloodGlucose         = 3.87
+	HighBloodGlucose        = 10.02
+	VeryHighBloodGlucose    = 13.91
 	ExtremeHighBloodGlucose = 19.4
 	InTargetBloodGlucose    = 5.0
 )

@@ -28,7 +28,15 @@ const (
 	// ReasonLegacyDataAdded reports jellyfish uploaded a full batch
 	ReasonLegacyDataAdded = "LEGACY_DATA_ADDED"
 
-	ReasonSchemaMigration = "SCHEMA_MIGRATION"
+	// ReasonSummaryRecalculation reports the summaries of the user must be recalculated
+	// from all of their data, rather than incrementally
+	ReasonSummaryRecalculation = "SUMMARY_RECALCULATION"
+)
+
+const (
+	// ProcessingPriorityLow is the priority of work that only recalculates summaries, so
+	// that it yields to work reporting changes to the data of a user
+	ProcessingPriorityLow = -1
 )
 
 const (
@@ -42,7 +50,7 @@ func Reasons() []string {
 		ReasonDataAdded,
 		ReasonUploadCompleted,
 		ReasonLegacyDataAdded,
-		ReasonSchemaMigration,
+		ReasonSummaryRecalculation,
 	}
 }
 
@@ -67,6 +75,25 @@ func shouldDefer(reasons []string) bool {
 		return false
 	}
 	return mapset.NewSet(reasons...).IsSubset(deferrableReasons)
+}
+
+// RecalculatesSummaries reports whether reasons requires summaries to be recalculated from
+// all of the user's data
+func RecalculatesSummaries(reasons []string) bool {
+	return slices.Contains(reasons, ReasonSummaryRecalculation)
+}
+
+// Work that only recalculates summaries has a low priority
+var lowPriorityReasons = mapset.NewSet(
+	ReasonSummaryRecalculation,
+)
+
+// processingPriority reports the processing priority of work with the reasons given
+func processingPriority(reasons []string) int {
+	if len(reasons) > 0 && mapset.NewSet(reasons...).IsSubset(lowPriorityReasons) {
+		return ProcessingPriorityLow
+	}
+	return 0
 }
 
 // IDFromUserID returns both the serial id, which prevents the work of a user being processed
