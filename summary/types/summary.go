@@ -11,7 +11,6 @@ import (
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/data/types/blood/glucose/selfmonitored"
-	"github.com/tidepool-org/platform/pointer"
 )
 
 const (
@@ -26,10 +25,6 @@ const (
 	veryHighBloodGlucose    = 13.9
 	extremeHighBloodGlucose = 19.4
 	HoursAgoToKeep          = 60 * 24
-
-	OutdatedReasonUploadCompleted = "UPLOAD_COMPLETED"
-	OutdatedReasonDataAdded       = "DATA_ADDED"
-	OutdatedReasonSchemaMigration = "SCHEMA_MIGRATION"
 )
 
 var DeviceDataTypesSet = mapset.NewSet[string](continuous.Type, selfmonitored.Type)
@@ -40,12 +35,6 @@ var DeviceDataToSummaryTypes = map[string][]string{
 }
 
 var AllSummaryTypes = []string{SummaryTypeCGM, SummaryTypeBGM, SummaryTypeContinuous}
-
-type OutdatedSummariesResponse struct {
-	UserIds []string  `json:"userIds"`
-	Start   time.Time `json:"start"`
-	End     time.Time `json:"end"`
-}
 
 type Config struct {
 	SchemaVersion int `json:"schemaVersion" bson:"schemaVersion"`
@@ -58,15 +47,11 @@ type Config struct {
 }
 
 type Dates struct {
-	LastUpdatedDate   time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
-	LastUpdatedReason []string  `json:"lastUpdatedReason,omitempty" bson:"lastUpdatedReason,omitempty"`
-	LastUploadDate    time.Time `json:"lastUploadDate,omitempty" bson:"lastUploadDate,omitempty"`
+	LastUpdatedDate time.Time `json:"lastUpdatedDate" bson:"lastUpdatedDate"`
+	LastUploadDate  time.Time `json:"lastUploadDate,omitempty" bson:"lastUploadDate,omitempty"`
 
 	FirstData time.Time `json:"firstData,omitempty" bson:"firstData,omitempty"`
 	LastData  time.Time `json:"lastData,omitempty" bson:"lastData,omitempty"`
-
-	OutdatedSince  *time.Time `json:"outdatedSince,omitempty" bson:"outdatedSince,omitempty"`
-	OutdatedReason []string   `json:"outdatedReason,omitempty" bson:"outdatedReason,omitempty"`
 }
 
 type CalcState struct {
@@ -86,14 +71,10 @@ type CalcState struct {
 
 func (d *Dates) Update(status *data.UserDataStatus, firstBucketDate time.Time) {
 	d.LastUpdatedDate = status.NextLastUpdated
-	d.LastUpdatedReason = d.OutdatedReason
 	d.LastUploadDate = status.LastUpload
 
 	d.FirstData = firstBucketDate
 	d.LastData = status.LastData
-
-	d.OutdatedSince = nil
-	d.OutdatedReason = nil
 }
 
 type Periods interface {
@@ -136,28 +117,6 @@ func NewConfig() Config {
 	}
 }
 
-func (s *Summary[PP, PB, P, B]) SetOutdated(reason string) {
-	set := mapset.NewSet[string](reason)
-	if len(s.Dates.OutdatedReason) > 0 {
-		set.Append(s.Dates.OutdatedReason...)
-	}
-
-	if reason == OutdatedReasonSchemaMigration {
-		*s = *Create[PP, PB](s.UserID)
-	}
-
-	s.Dates.OutdatedReason = set.ToSlice()
-
-	if s.Dates.OutdatedSince == nil {
-		s.Dates.OutdatedSince = pointer.FromAny(time.Now().Truncate(time.Millisecond).UTC())
-	}
-}
-
-func (s *Summary[PP, PB, P, B]) SetNotOutdated() {
-	s.Dates.OutdatedReason = nil
-	s.Dates.OutdatedSince = nil
-}
-
 func NewDates() Dates {
 	return Dates{
 		LastUpdatedDate: time.Time{},
@@ -184,10 +143,4 @@ func GetType[PP PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData
 func GetDeviceDataType[PS PeriodsPt[P, PB, B], PB BucketDataPt[B], P Periods, B BucketData]() []string {
 	s := new(Summary[PS, PB, P, B])
 	return s.Periods.GetDeviceDataTypes()
-}
-
-func (d *Dates) Reset() {
-	*d = Dates{
-		OutdatedReason: d.OutdatedReason,
-	}
 }

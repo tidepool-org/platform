@@ -1,8 +1,6 @@
 package clinics_test
 
 import (
-	"time"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -57,10 +55,8 @@ var _ = Describe("NewPatientSummary", func() {
 		Expect(dates.HasLastData).To(BeTrue())
 		Expect(dates.LastUploadDate).To(PointTo(BeTemporally("==", cgm.Dates.LastUploadDate)))
 		Expect(dates.HasLastUploadDate).To(BeTrue())
-		Expect(dates.OutdatedSince).To(Equal(cgm.Dates.OutdatedSince))
-		Expect(dates.HasOutdatedSince).To(BeTrue())
-		Expect(dates.LastUpdatedReason).To(PointTo(Equal(cgm.Dates.LastUpdatedReason)))
-		Expect(dates.OutdatedReason).To(PointTo(Equal(cgm.Dates.OutdatedReason)))
+		Expect(dates.OutdatedSince).To(BeNil())
+		Expect(dates.HasOutdatedSince).To(BeFalse())
 	})
 
 	It("omits the dates the summary does not have", func() {
@@ -78,12 +74,9 @@ var _ = Describe("NewPatientSummary", func() {
 		Expect(dates.HasOutdatedSince).To(BeFalse())
 	})
 
-	// The clinic service replaces only what the report carries, so reasons no longer held must be
-	// reported as empty rather than omitted
-	It("reports absent reasons as empty", func() {
-		cgm.Dates.LastUpdatedReason = nil
-		cgm.Dates.OutdatedReason = nil
-
+	// The reasons are no longer maintained; they are reported as empty rather than omitted so that
+	// the clinic service clears any values reported before their removal
+	It("reports the reasons as empty", func() {
 		dates := clinics.NewPatientSummary(cgm, nil).CgmStats.Dates
 		Expect(dates.LastUpdatedReason).To(PointTo(BeEmpty()))
 		Expect(dates.OutdatedReason).To(PointTo(BeEmpty()))
@@ -287,10 +280,4 @@ var _ = Describe("NewPatientSummary", func() {
 		})
 	})
 
-	It("round-trips a zero-valued outdated since", func() {
-		cgm.Dates.OutdatedSince = &time.Time{}
-		dates := clinics.NewPatientSummary(cgm, nil).CgmStats.Dates
-		Expect(dates.OutdatedSince).To(PointTo(BeTemporally("==", time.Time{})))
-		Expect(dates.HasOutdatedSince).To(BeTrue())
-	})
 })

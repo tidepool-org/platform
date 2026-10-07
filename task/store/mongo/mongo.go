@@ -21,7 +21,6 @@ import (
 	storeStructured "github.com/tidepool-org/platform/store/structured"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	summaryTask "github.com/tidepool-org/platform/summary/task"
 	"github.com/tidepool-org/platform/task"
 	taskStore "github.com/tidepool-org/platform/task/store"
 )
@@ -80,8 +79,7 @@ func (s *Store) EnsureDefaultTasks() error {
 
 	repository := s.TaskRepository()
 	fs := []func(context.Context) error{
-		repository.EnsureSummaryUpdateTask,
-		repository.EnsureSummaryMigrationTask,
+		repository.DeleteDeprecatedTasks,
 		repository.EnsureEHRReconcileTask,
 	}
 
@@ -140,24 +138,11 @@ func (t *TaskRepository) EnsureIndexes() error {
 	})
 }
 
-func (t *TaskRepository) EnsureSummaryUpdateTask(ctx context.Context) error {
-	for _, summaryType := range summaryTask.SummaryTypes {
-		create := summaryTask.NewDefaultUpdateTaskCreate(summaryType)
-		err := t.ensureTask(ctx, create)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (t *TaskRepository) EnsureSummaryMigrationTask(ctx context.Context) error {
-	for _, summaryType := range summaryTask.SummaryTypes {
-		create := summaryTask.NewDefaultMigrationTaskCreate(summaryType)
-		err := t.ensureTask(ctx, create)
-		if err != nil {
-			return err
-		}
+// DeleteDeprecatedTasks deletes the tasks of the retired summary runners, which are replaced by
+// work created on upload. Kept at least one release beyond the removal.
+func (t *TaskRepository) DeleteDeprecatedTasks(ctx context.Context) error {
+	if _, err := t.DeleteMany(ctx, bson.M{"type": bson.M{"$regex": "^org\\.tidepool\\.summary\\."}}); err != nil {
+		return errors.Wrap(err, "unable to delete deprecated tasks")
 	}
 	return nil
 }
