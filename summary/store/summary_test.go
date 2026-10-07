@@ -135,6 +135,58 @@ var _ = Describe("Summary Periods Mongo", Label("mongodb", "slow", "integration"
 					Expect(userContinuousSummaryWritten).To(BeNil())
 				})
 			})
+
+			Context("ListUserIDs", func() {
+				var userIDs []string
+
+				BeforeEach(func() {
+					userIDs = []string{"0000000001", "0000000002", "0000000003", "0000000004"}
+					for index, id := range userIDs {
+						// Users have summaries of a varying number of types
+						Expect(continuousStore.ReplaceSummary(ctx, test.RandomContinuousSummary(id))).To(Succeed())
+						if index%2 == 0 {
+							Expect(cgmStore.ReplaceSummary(ctx, test.RandomCGMSummary(id))).To(Succeed())
+							Expect(bgmStore.ReplaceSummary(ctx, test.RandomBGMSummary(id))).To(Succeed())
+						}
+					}
+				})
+
+				It("returns an error if the limit is invalid", func() {
+					_, err := typelessStore.ListUserIDs(ctx, nil, 0)
+					Expect(err).To(MatchError("limit is invalid"))
+				})
+
+				It("returns each user once, in order", func() {
+					Expect(typelessStore.ListUserIDs(ctx, nil, 10)).To(Equal(userIDs))
+				})
+
+				It("returns up to the limit", func() {
+					Expect(typelessStore.ListUserIDs(ctx, nil, 3)).To(Equal(userIDs[:3]))
+				})
+
+				It("returns the users after the given user", func() {
+					Expect(typelessStore.ListUserIDs(ctx, &userIDs[0], 2)).To(Equal(userIDs[1:3]))
+				})
+
+				It("returns every user exactly once when paged through", func() {
+					var paged []string
+					var after *string
+					for {
+						page, err := typelessStore.ListUserIDs(ctx, after, 1)
+						Expect(err).ToNot(HaveOccurred())
+						if len(page) == 0 {
+							break
+						}
+						paged = append(paged, page...)
+						after = &page[len(page)-1]
+					}
+					Expect(paged).To(Equal(userIDs))
+				})
+
+				It("returns none after the last user", func() {
+					Expect(typelessStore.ListUserIDs(ctx, &userIDs[3], 10)).To(BeEmpty())
+				})
+			})
 		})
 	})
 })

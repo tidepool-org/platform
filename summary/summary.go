@@ -46,6 +46,9 @@ type Summarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.
 	GetSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error)
 	GetBucketsRange(ctx context.Context, userID string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error)
 	UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error)
+	// RecalculateSummary recalculates the summary of the user from all of their data,
+	// rather than incrementally from the data modified since it was last updated.
+	RecalculateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error)
 }
 
 // Compile time interface check
@@ -117,6 +120,17 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, 
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
+	return gs.updateOrRecalculateSummary(ctx, userID, false)
+}
+
+func (gs *GlucoseSummarizer[PP, PB, P, B]) RecalculateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
+	return gs.updateOrRecalculateSummary(ctx, userID, true)
+}
+
+// updateOrRecalculateSummary updates the summary of the user incrementally, unless
+// recalculate is true or the summary's schema version is outdated, in which case it's
+// recalculated from all of the user's data.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx context.Context, userID string, recalculate bool) (*types.Summary[PP, PB, P, B], error) {
 	logger := log.LoggerFromContext(ctx)
 	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
 		now := time.Now()
@@ -146,8 +160,9 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		}
 
 		schemaMigration := userSummary.Config.SchemaVersion != types.SchemaVersion
-		if schemaMigration {
-			// A summary calculated with an outdated schema is recreated from nothing
+		if recalculate || schemaMigration {
+			// A summary calculated with an outdated schema, or whose recalculation was
+			// requested, is recreated from nothing
 			*userSummary = *types.Create[PP, PB](userID)
 
 			// Drop all buckets for this user for a full reset
@@ -235,8 +250,9 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, us
 		logger.WithFields(log.Fields{
 			"summaryType":     summaryType,
 			"schemaMigration": schemaMigration,
-			"duration":        time.Since(now) / time.Microsecond,
-		}).Info("UpdateSummary")
+			"recalculation":   recalculate,
+			"duration":        time.Since(now).Microseconds(),
+		}).Info("UpdateOrRecalculateSummary")
 		return userSummary, nil
 	})
 	if err != nil {

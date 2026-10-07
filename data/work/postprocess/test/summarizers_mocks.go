@@ -42,6 +42,45 @@ func (m *MockSummarizers) EXPECT() *MockSummarizersMockRecorder {
 	return m.recorder
 }
 
+// RecalculateSummaries mocks base method.
+func (m *MockSummarizers) RecalculateSummaries(ctx context.Context, userID string) (postprocess.SummariesUpdate, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecalculateSummaries", ctx, userID)
+	ret0, _ := ret[0].(postprocess.SummariesUpdate)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RecalculateSummaries indicates an expected call of RecalculateSummaries.
+func (mr *MockSummarizersMockRecorder) RecalculateSummaries(ctx, userID any) *MockSummarizersRecalculateSummariesCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecalculateSummaries", reflect.TypeOf((*MockSummarizers)(nil).RecalculateSummaries), ctx, userID)
+	return &MockSummarizersRecalculateSummariesCall{Call: call}
+}
+
+// MockSummarizersRecalculateSummariesCall wrap *gomock.Call
+type MockSummarizersRecalculateSummariesCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockSummarizersRecalculateSummariesCall) Return(arg0 postprocess.SummariesUpdate, arg1 error) *MockSummarizersRecalculateSummariesCall {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockSummarizersRecalculateSummariesCall) Do(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersRecalculateSummariesCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockSummarizersRecalculateSummariesCall) DoAndReturn(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersRecalculateSummariesCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateSummaries mocks base method.
 func (m *MockSummarizers) UpdateSummaries(ctx context.Context, userID string) (postprocess.SummariesUpdate, error) {
 	m.ctrl.T.Helper()
