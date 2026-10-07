@@ -305,6 +305,37 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
 	})
 
+	It("summary calc recalculates a current summary without new data when requested", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		// tamper with the stored summary, so that a recalculation is observable
+		bgmSummaryStored, err := bgmSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		bgmSummaryStored.Periods.GlucosePeriods["7d"].Total.Records = 0
+		Expect(bgmStore.ReplaceSummary(ctx, bgmSummaryStored)).To(Succeed())
+
+		// without new data, an incremental update leaves the summary as is
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(0))
+
+		bgmSummary, err = bgmSummarizer.RecalculateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.ID).To(Equal(bgmSummaryStored.ID))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+		Expect(bgmSummary.Dates.LastUpdatedDate).To(BeTemporally(">",
+			bgmSummaryStored.Dates.LastUpdatedDate))
+	})
+
 	It("summary calc with realtime data", func() {
 		realtimeDatumTime := time.Now().UTC().Truncate(24 * time.Hour)
 

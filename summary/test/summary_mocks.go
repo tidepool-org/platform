@@ -122,6 +122,45 @@ func (c *MockSummarizerGetSummaryCall[PP, PB, P, B]) DoAndReturn(f func(context.
 	return c
 }
 
+// RecalculateSummary mocks base method.
+func (m *MockSummarizer[PP, PB, P, B]) RecalculateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RecalculateSummary", ctx, userId)
+	ret0, _ := ret[0].(*types.Summary[PP, PB, P, B])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RecalculateSummary indicates an expected call of RecalculateSummary.
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) RecalculateSummary(ctx, userId any) *MockSummarizerRecalculateSummaryCall[PP, PB, P, B] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RecalculateSummary", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).RecalculateSummary), ctx, userId)
+	return &MockSummarizerRecalculateSummaryCall[PP, PB, P, B]{Call: call}
+}
+
+// MockSummarizerRecalculateSummaryCall wrap *gomock.Call
+type MockSummarizerRecalculateSummaryCall[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockSummarizerRecalculateSummaryCall[PP, PB, P, B]) Return(arg0 *types.Summary[PP, PB, P, B], arg1 error) *MockSummarizerRecalculateSummaryCall[PP, PB, P, B] {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockSummarizerRecalculateSummaryCall[PP, PB, P, B]) Do(f func(context.Context, string) (*types.Summary[PP, PB, P, B], error)) *MockSummarizerRecalculateSummaryCall[PP, PB, P, B] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockSummarizerRecalculateSummaryCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, string) (*types.Summary[PP, PB, P, B], error)) *MockSummarizerRecalculateSummaryCall[PP, PB, P, B] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateSummary mocks base method.
 func (m *MockSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userId string) (*types.Summary[PP, PB, P, B], error) {
 	m.ctrl.T.Helper()

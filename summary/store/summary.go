@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -76,6 +77,54 @@ func (r *TypelessSummaries) DeleteSummary(ctx context.Context, userId string) er
 	}
 
 	return nil
+}
+
+// ListUserIDs returns, in ascending order, the ids of up to limit users with a summary of
+// any type, starting after the given user id, if any, so that every user can be paged
+// through.
+func (r *TypelessSummaries) ListUserIDs(ctx context.Context, afterUserID *string, limit int) ([]string, error) {
+	if ctx == nil {
+		return nil, errors.New("context is missing")
+	}
+	if limit <= 0 {
+		return nil, errors.New("limit is invalid")
+	}
+
+	selector := bson.M{}
+	if afterUserID != nil {
+		selector["userId"] = bson.M{"$gt": *afterUserID}
+	}
+
+	// A user has a summary of each type, so their ids are deduplicated as they're read. The
+	// cursor is read only until enough users are found, rather than limiting the query to a
+	// number of summaries that depends on how many types there are.
+	opts := options.Find().
+		SetSort(bson.D{{Key: "userId", Value: 1}}).
+		SetProjection(bson.M{"_id": 0, "userId": 1}).
+		SetBatchSize(int32(min(limit*3, math.MaxInt32)))
+	cursor, err := r.Find(ctx, selector, opts)
+	if err != nil {
+		return nil, fmt.Errorf("unable to list summary user ids: %w", err)
+	}
+	defer cursor.Close(ctx)
+
+	userIDs := []string{}
+	for len(userIDs) < limit && cursor.Next(ctx) {
+		var summary struct {
+			UserID string `bson:"userId"`
+		}
+		if err = cursor.Decode(&summary); err != nil {
+			return nil, fmt.Errorf("unable to decode summary user id: %w", err)
+		}
+		if len(userIDs) == 0 || userIDs[len(userIDs)-1] != summary.UserID {
+			userIDs = append(userIDs, summary.UserID)
+		}
+	}
+	if err = cursor.Err(); err != nil {
+		return nil, fmt.Errorf("unable to list summary user ids: %w", err)
+	}
+
+	return userIDs, nil
 }
 
 func (r *Summaries[PP, PB, P, B]) DeleteSummary(ctx context.Context, userId string) error {
