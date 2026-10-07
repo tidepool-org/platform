@@ -19,6 +19,7 @@ import (
 	dataSourceStoreStructured "github.com/tidepool-org/platform/data/source/store/structured"
 	dataSourceStoreStructuredMongo "github.com/tidepool-org/platform/data/source/store/structured/mongo"
 	dataSourceTest "github.com/tidepool-org/platform/data/source/test"
+	dataTest "github.com/tidepool-org/platform/data/test"
 	"github.com/tidepool-org/platform/errors"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
@@ -421,7 +422,7 @@ var _ = Describe("Mongo", func() {
 							"State":              Equal(dataSource.StateDisconnected),
 							"Metadata":           Equal(create.Metadata),
 							"Error":              BeNil(),
-							"DataSetID":          BeNil(),
+							"DataSetIDs":         BeNil(),
 							"EarliestDataTime":   BeNil(),
 							"LatestDataTime":     BeNil(),
 							"LastImportTime":     BeNil(),
@@ -554,6 +555,53 @@ var _ = Describe("Mongo", func() {
 					It("returns the result when the id exists", func() {
 						Expect(repository.Get(ctx, id)).To(Equal(result))
 					})
+
+					When("the document has a deprecated data set id", func() {
+						var dataSetID string
+
+						BeforeEach(func() {
+							dataSetID = dataTest.RandomDataSetID()
+						})
+
+						JustBeforeEach(func() {
+							_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"id": id}, bson.M{"$set": bson.M{"dataSetId": dataSetID}})
+							Expect(err).ToNot(HaveOccurred())
+						})
+
+						When("the document has no data set ids", func() {
+							BeforeEach(func() {
+								result.DataSetIDs = nil
+							})
+
+							It("returns it as the only data set id", func() {
+								expected := dataSourceTest.CloneSource(result)
+								expected.DataSetIDs = pointer.From([]string{dataSetID})
+								Expect(repository.Get(ctx, id)).To(Equal(expected))
+							})
+						})
+
+						When("the data set ids do not contain it", func() {
+							BeforeEach(func() {
+								result.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+							})
+
+							It("returns it as the last data set id", func() {
+								expected := dataSourceTest.CloneSource(result)
+								expected.DataSetIDs = pointer.From(append(append([]string{}, *result.DataSetIDs...), dataSetID))
+								Expect(repository.Get(ctx, id)).To(Equal(expected))
+							})
+						})
+
+						When("the data set ids contain it", func() {
+							BeforeEach(func() {
+								result.DataSetIDs = pointer.From(append(dataTest.RandomDataSetIDs(), dataSetID))
+							})
+
+							It("returns the data set ids unchanged", func() {
+								Expect(repository.Get(ctx, id)).To(Equal(result))
+							})
+						})
+					})
 				})
 			})
 
@@ -639,6 +687,22 @@ var _ = Describe("Mongo", func() {
 					})
 
 					updateAssertions := func() {
+						Context("with a deprecated data set id", func() {
+							BeforeEach(func() {
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"id": id}, bson.M{"$set": bson.M{"dataSetId": dataTest.RandomDataSetID()}})
+								Expect(err).ToNot(HaveOccurred())
+							})
+
+							It("removes the deprecated data set id when the data set ids are updated", func() {
+								update.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+								result, err := repository.Update(ctx, id, condition, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.DataSetIDs).To(Equal(update.DataSetIDs))
+								Expect(mongoCollection.FindOne(context.Background(), bson.M{"id": id, "dataSetId": bson.M{"$exists": true}}).Err()).To(MatchError(mongo.ErrNoDocuments))
+							})
+						})
+
 						Context("with updates", func() {
 							It("returns updated result when the id exists and state is connected without error", func() {
 								update.ProviderSessionID = pointer.FromString(authTest.RandomProviderSessionID())
@@ -655,7 +719,7 @@ var _ = Describe("Mongo", func() {
 									"State":              Equal(*update.State),
 									"Metadata":           Equal(pointer.Default(update.Metadata, original.Metadata)),
 									"Error":              BeNil(),
-									"DataSetID":          Equal(pointer.DefaultPointer(update.DataSetID, original.DataSetID)),
+									"DataSetIDs":         Equal(pointer.DefaultPointer(update.DataSetIDs, original.DataSetIDs)),
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),
@@ -691,7 +755,7 @@ var _ = Describe("Mongo", func() {
 									"State":              Equal(*update.State),
 									"Metadata":           Equal(pointer.Default(update.Metadata, original.Metadata)),
 									"Error":              BeNil(),
-									"DataSetID":          Equal(pointer.DefaultPointer(update.DataSetID, original.DataSetID)),
+									"DataSetIDs":         Equal(pointer.DefaultPointer(update.DataSetIDs, original.DataSetIDs)),
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),
@@ -727,7 +791,7 @@ var _ = Describe("Mongo", func() {
 									"State":              Equal(*update.State),
 									"Metadata":           Equal(pointer.Default(update.Metadata, original.Metadata)),
 									"Error":              Equal(update.Error),
-									"DataSetID":          Equal(pointer.DefaultPointer(update.DataSetID, original.DataSetID)),
+									"DataSetIDs":         Equal(pointer.DefaultPointer(update.DataSetIDs, original.DataSetIDs)),
 									"EarliestDataTime":   Equal(pointer.DefaultPointer(update.EarliestDataTime, original.EarliestDataTime)),
 									"LatestDataTime":     Equal(pointer.DefaultPointer(update.LatestDataTime, original.LatestDataTime)),
 									"LastImportTime":     Equal(pointer.DefaultPointer(update.LastImportTime, original.LastImportTime)),

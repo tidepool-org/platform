@@ -102,7 +102,7 @@ type dataSourceDataSetMixin struct {
 func (d *dataSourceDataSetMixin) FetchDataSetFromDataSource() *work.ProcessResult {
 	if dataSrc := d.DataSource(); dataSrc == nil {
 		return d.Failed(errors.New("data source is missing"))
-	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
+	} else if dataSetID := dataSrc.LastDataSetID(); dataSetID == nil {
 		return d.Failed(errors.New("data source data set id is missing"))
 	} else {
 		return d.FetchDataSet(*dataSetID)
@@ -112,12 +112,13 @@ func (d *dataSourceDataSetMixin) FetchDataSetFromDataSource() *work.ProcessResul
 func (d *dataSourceDataSetMixin) CreateDataSetForDataSource(dataSetCreate *data.DataSetCreate) *work.ProcessResult {
 	if dataSrc := d.DataSource(); dataSrc == nil {
 		return d.Failed(errors.New("data source is missing"))
-	} else if dataSetID := dataSrc.DataSetID; dataSetID != nil {
+	} else if dataSrc.LastDataSetID() != nil {
 		return d.Failed(errors.New("data source data set id already exists"))
 	} else if result := d.CreateDataSet(dataSrc.UserID, dataSetCreate); result != nil {
 		return result
 	} else {
-		return d.UpdateDataSource(&dataSource.Update{DataSetID: d.DataSet().ID})
+		dataSrc.AddDataSetID(pointer.To(d.DataSet().ID))
+		return d.UpdateDataSource(&dataSource.Update{DataSetIDs: dataSrc.DataSetIDs})
 	}
 }
 
@@ -153,9 +154,9 @@ type dataSourceDataRawMixin struct {
 func (d *dataSourceDataRawMixin) CreateDataRawForDataSource(dataRawCreate *dataRaw.Create, reader io.Reader) *work.ProcessResult {
 	if dataSrc := d.DataSource(); dataSrc == nil {
 		return d.Failed(errors.New("data source is missing"))
-	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
+	} else if dataSetID := dataSrc.LastDataSetID(); dataSetID == nil {
 		return d.Failed(errors.New("data source data set id is missing"))
-	} else if result := d.CreateDataRaw(dataSrc.UserID, *dataSrc.DataSetID, dataRawCreate, reader); result != nil {
+	} else if result := d.CreateDataRaw(dataSrc.UserID, *dataSetID, dataRawCreate, reader); result != nil {
 		return result
 	} else {
 		return d.UpdateDataSource(&dataSource.Update{LastImportTime: pointer.From(d.DataRaw().CreatedTime)})

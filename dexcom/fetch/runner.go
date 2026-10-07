@@ -279,7 +279,10 @@ func (t *TaskRunner) getDataSource() error {
 }
 
 func (t *TaskRunner) updateDataSourceWithDataSet(dataSet *data.DataSet) error {
-	return t.updateDataSource(&dataSource.Update{DataSetID: dataSet.ID})
+	if !t.dataSource.AddDataSetID(*dataSet.ID) {
+		return nil
+	}
+	return t.updateDataSource(&dataSource.Update{DataSetIDs: t.dataSource.DataSetIDs})
 }
 
 func (t *TaskRunner) updateDataSourceWithDataTime(earliestDataTime *time.Time, latestDataTime *time.Time) error {
@@ -713,15 +716,17 @@ func (t *TaskRunner) prepareDataSet() error {
 	return nil
 }
 
+// findDataSet returns the newest data set of the data source that still exists.
 func (t *TaskRunner) findDataSet() (*data.DataSet, error) {
-	if t.dataSource.DataSetID == nil {
-		return nil, nil
+	dataSetIDs := pointer.To(t.dataSource.DataSetIDs)
+	for index := len(dataSetIDs) - 1; index >= 0; index-- {
+		if dataSet, err := t.DataClient().GetDataSet(t.context, dataSetIDs[index]); err != nil {
+			return nil, ErrorResourceFailureError(errors.Wrap(err, "unable to get data set"))
+		} else if dataSet != nil {
+			return dataSet, nil
+		}
 	}
-	dataSet, err := t.DataClient().GetDataSet(t.context, *t.dataSource.DataSetID)
-	if err != nil {
-		return nil, ErrorResourceFailureError(errors.Wrap(err, "unable to get data set"))
-	}
-	return dataSet, nil
+	return nil, nil
 }
 
 func (t *TaskRunner) createDataSet() (*data.DataSet, error) {

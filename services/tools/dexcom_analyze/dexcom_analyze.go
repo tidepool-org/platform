@@ -1005,7 +1005,7 @@ func (t *Tool) analyzeDataSources() {
 			}
 		}
 
-		if record.DataSetID != nil {
+		if record.LastDataSetID() != nil {
 			if record.LastImportTime == nil {
 				record.AppendIssue(Issue_DataSource_With_DataSetID_LastImportTime_Missing)
 			}
@@ -1074,7 +1074,7 @@ func (t *Tool) analyzeTasks() {
 				}
 
 				if record.dataSource != nil {
-					if record.dataSource.DataSetID == nil {
+					if record.dataSource.LastDataSetID() == nil {
 						record.AppendIssue(Issue_Task_With_DeviceHashes_And_DataSource_DataSetID_Missing)
 					}
 					if record.dataSource.LastImportTime == nil {

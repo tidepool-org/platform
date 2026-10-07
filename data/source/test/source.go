@@ -151,7 +151,7 @@ func RandomUpdate(options ...test.Option) *dataSource.Update {
 		State:              state,
 		Metadata:           test.RandomOptional(metadataTest.RandomMetadataMap, options...),
 		Error:              test.RandomOptionalPointer(errorsTest.RandomSerializable, options...),
-		DataSetID:          test.RandomOptional(dataTest.RandomDataSetID, options...),
+		DataSetIDs:         test.RandomOptional(dataTest.RandomDataSetIDs, options...),
 		EarliestDataTime:   earliestDataTime,
 		LatestDataTime:     latestDataTime,
 		LastImportTime:     lastImportTime,
@@ -168,7 +168,7 @@ func CloneUpdate(datum *dataSource.Update) *dataSource.Update {
 		State:              pointer.CloneString(datum.State),
 		Metadata:           metadataTest.CloneMetadataMapPointer(datum.Metadata),
 		Error:              errorsTest.CloneSerializable(datum.Error),
-		DataSetID:          pointer.CloneString(datum.DataSetID),
+		DataSetIDs:         pointer.CloneStringArray(datum.DataSetIDs),
 		EarliestDataTime:   pointer.CloneTime(datum.EarliestDataTime),
 		LatestDataTime:     pointer.CloneTime(datum.LatestDataTime),
 		LastImportTime:     pointer.CloneTime(datum.LastImportTime),
@@ -192,8 +192,8 @@ func NewObjectFromUpdate(datum *dataSource.Update, objectFormat test.ObjectForma
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)
 	}
-	if datum.DataSetID != nil {
-		object["dataSetId"] = test.NewObjectFromString(*datum.DataSetID, objectFormat)
+	if datum.DataSetIDs != nil {
+		object["dataSetIds"] = test.NewArrayFromStringArray(*datum.DataSetIDs, objectFormat)
 	}
 	if datum.EarliestDataTime != nil {
 		object["earliestDataTime"] = test.NewObjectFromTime(*datum.EarliestDataTime, objectFormat)
@@ -214,7 +214,7 @@ func MatchUpdate(datum *dataSource.Update) gomegaTypes.GomegaMatcher {
 		"State":              gomega.Equal(datum.State),
 		"Metadata":           gomega.Equal(datum.Metadata),
 		"Error":              gomega.Equal(datum.Error),
-		"DataSetID":          gomega.Equal(datum.DataSetID),
+		"DataSetIDs":         gomega.Equal(datum.DataSetIDs),
 		"EarliestDataTime":   test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":     test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":     test.MatchTime(datum.LastImportTime),
@@ -233,7 +233,7 @@ func RandomSource(options ...test.Option) *dataSource.Source {
 	datum.State = state
 	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.Error = test.RandomOptionalPointer(errorsTest.RandomSerializable, options...)
-	datum.DataSetID = test.RandomOptional(dataTest.RandomDataSetID, options...)
+	datum.DataSetIDs = test.RandomOptional(dataTest.RandomDataSetIDs, options...)
 	datum.LastImportTime = test.RandomOptional(test.RandomTimeBeforeNow, options...)
 	if datum.LastImportTime != nil && test.RandomBool() {
 		datum.LatestDataTime = pointer.FromTime(test.RandomTimeBefore(*datum.LastImportTime))
@@ -259,7 +259,7 @@ func CloneSource(datum *dataSource.Source) *dataSource.Source {
 	clone.State = datum.State
 	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
 	clone.Error = errorsTest.CloneSerializable(datum.Error)
-	clone.DataSetID = pointer.CloneString(datum.DataSetID)
+	clone.DataSetIDs = pointer.CloneStringArray(datum.DataSetIDs)
 	clone.EarliestDataTime = pointer.CloneTime(datum.EarliestDataTime)
 	clone.LatestDataTime = pointer.CloneTime(datum.LatestDataTime)
 	clone.LastImportTime = pointer.CloneTime(datum.LastImportTime)
@@ -291,8 +291,8 @@ func NewObjectFromSource(datum *dataSource.Source, objectFormat test.ObjectForma
 	if datum.Error != nil {
 		object["error"] = errorsTest.NewObjectFromSerializable(datum.Error, objectFormat)
 	}
-	if datum.DataSetID != nil {
-		object["dataSetId"] = test.NewObjectFromString(*datum.DataSetID, objectFormat)
+	if datum.DataSetIDs != nil {
+		object["dataSetIds"] = test.NewArrayFromStringArray(*datum.DataSetIDs, objectFormat)
 	}
 	if datum.EarliestDataTime != nil {
 		object["earliestDataTime"] = test.NewObjectFromTime(*datum.EarliestDataTime, objectFormat)
@@ -325,7 +325,7 @@ func MatchSource(datum *dataSource.Source) gomegaTypes.GomegaMatcher {
 		"State":              gomega.Equal(datum.State),
 		"Metadata":           gomega.Equal(datum.Metadata),
 		"Error":              gomega.Equal(datum.Error),
-		"DataSetID":          gomega.Equal(datum.DataSetID),
+		"DataSetIDs":         gomega.Equal(datum.DataSetIDs),
 		"EarliestDataTime":   test.MatchTime(datum.EarliestDataTime),
 		"LatestDataTime":     test.MatchTime(datum.LatestDataTime),
 		"LastImportTime":     test.MatchTime(datum.LastImportTime),

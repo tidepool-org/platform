@@ -637,18 +637,18 @@ var _ = Describe("Source", func() {
 						expectedDatum.Error = valid
 					},
 				),
-				Entry("data set id invalid type",
+				Entry("data set ids invalid type",
 					func(object map[string]any, expectedDatum *dataSource.Update) {
-						object["dataSetId"] = true
-						expectedDatum.DataSetID = nil
+						object["dataSetIds"] = true
+						expectedDatum.DataSetIDs = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 				),
-				Entry("data set id valid",
+				Entry("data set ids valid",
 					func(object map[string]any, expectedDatum *dataSource.Update) {
-						valid := dataTest.RandomDataSetID()
-						object["dataSetId"] = valid
-						expectedDatum.DataSetID = pointer.FromString(valid)
+						valid := dataTest.RandomDataSetIDs()
+						object["dataSetIds"] = test.NewArrayFromStringArray(valid, test.ObjectFormatJSON)
+						expectedDatum.DataSetIDs = pointer.From(valid)
 					},
 				),
 				Entry("earliest data time invalid type",
@@ -721,7 +721,7 @@ var _ = Describe("Source", func() {
 						object["state"] = true
 						object["metadata"] = true
 						object["error"] = true
-						object["dataSetId"] = true
+						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
 						object["latestDataTime"] = true
 						object["lastImportTime"] = true
@@ -730,7 +730,7 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = nil
 						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
-						expectedDatum.DataSetID = nil
+						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
 						expectedDatum.LatestDataTime = nil
 						expectedDatum.LastImportTime = nil
@@ -740,7 +740,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/latestDataTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/lastImportTime"),
@@ -950,24 +950,37 @@ var _ = Describe("Source", func() {
 						datum.Error = errorsTest.RandomSerializable()
 					},
 				),
-				Entry("data set id missing",
-					func(datum *dataSource.Update) { datum.DataSetID = nil },
+				Entry("data set ids missing",
+					func(datum *dataSource.Update) { datum.DataSetIDs = nil },
 				),
-				Entry("data set id empty",
+				Entry("data set ids empty",
 					func(datum *dataSource.Update) {
-						datum.DataSetID = pointer.FromString("")
+						datum.DataSetIDs = pointer.From([]string{})
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 				),
-				Entry("data set id invalid",
+				Entry("data set ids element empty",
 					func(datum *dataSource.Update) {
-						datum.DataSetID = pointer.FromString("invalid")
+						datum.DataSetIDs = pointer.From([]string{dataTest.RandomDataSetID(), ""})
 					},
-					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds/1"),
 				),
-				Entry("data set id valid",
+				Entry("data set ids element invalid",
 					func(datum *dataSource.Update) {
-						datum.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+						datum.DataSetIDs = pointer.From([]string{"invalid"})
+					},
+					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetIds/0"),
+				),
+				Entry("data set ids element duplicate",
+					func(datum *dataSource.Update) {
+						dataSetID := dataTest.RandomDataSetID()
+						datum.DataSetIDs = pointer.From([]string{dataSetID, dataSetID})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/dataSetIds/1"),
+				),
+				Entry("data set ids valid",
+					func(datum *dataSource.Update) {
+						datum.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 					},
 				),
 				Entry("earliest data time missing",
@@ -1070,7 +1083,7 @@ var _ = Describe("Source", func() {
 						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = pointer.FromString("")
 						datum.Metadata = &map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataSizeMaximum)}
-						datum.DataSetID = pointer.FromString("")
+						datum.DataSetIDs = pointer.From([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
 						datum.LastImportTime = pointer.FromTime(time.Time{})
@@ -1079,7 +1092,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataSizeMaximum), "/metadata"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/lastImportTime"),
@@ -1163,8 +1176,8 @@ var _ = Describe("Source", func() {
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
-			It("returns false when data set id is not nil", func() {
-				datum.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+			It("returns false when data set ids is not nil", func() {
+				datum.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 				Expect(datum.IsEmpty()).To(BeFalse())
 			})
 
@@ -1345,18 +1358,18 @@ var _ = Describe("Source", func() {
 						expectedDatum.Error = valid
 					},
 				),
-				Entry("data set id invalid type",
+				Entry("data set ids invalid type",
 					func(object map[string]any, expectedDatum *dataSource.Source) {
-						object["dataSetId"] = true
-						expectedDatum.DataSetID = nil
+						object["dataSetIds"] = true
+						expectedDatum.DataSetIDs = nil
 					},
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 				),
-				Entry("data set id valid",
+				Entry("data set ids valid",
 					func(object map[string]any, expectedDatum *dataSource.Source) {
-						valid := dataTest.RandomDataSetID()
-						object["dataSetId"] = valid
-						expectedDatum.DataSetID = pointer.FromString(valid)
+						valid := dataTest.RandomDataSetIDs()
+						object["dataSetIds"] = test.NewArrayFromStringArray(valid, test.ObjectFormatJSON)
+						expectedDatum.DataSetIDs = pointer.From(valid)
 					},
 				),
 				Entry("earliest data time invalid type",
@@ -1489,7 +1502,7 @@ var _ = Describe("Source", func() {
 						object["state"] = true
 						object["metadata"] = true
 						object["error"] = true
-						object["dataSetId"] = true
+						object["dataSetIds"] = true
 						object["earliestDataTime"] = true
 						object["latestDataTime"] = true
 						object["lastImportTime"] = true
@@ -1505,7 +1518,7 @@ var _ = Describe("Source", func() {
 						expectedDatum.State = ""
 						expectedDatum.Metadata = nil
 						expectedDatum.Error = nil
-						expectedDatum.DataSetID = nil
+						expectedDatum.DataSetIDs = nil
 						expectedDatum.EarliestDataTime = nil
 						expectedDatum.LatestDataTime = nil
 						expectedDatum.LastImportTime = nil
@@ -1522,7 +1535,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/state"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotObject(true), "/metadata"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/error"),
-					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/dataSetId"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/latestDataTime"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/lastImportTime"),
@@ -1822,24 +1835,37 @@ var _ = Describe("Source", func() {
 						datum.Error = errorsTest.RandomSerializable()
 					},
 				),
-				Entry("data set id missing",
-					func(datum *dataSource.Source) { datum.DataSetID = nil },
+				Entry("data set ids missing",
+					func(datum *dataSource.Source) { datum.DataSetIDs = nil },
 				),
-				Entry("data set id empty",
+				Entry("data set ids empty",
 					func(datum *dataSource.Source) {
-						datum.DataSetID = pointer.FromString("")
+						datum.DataSetIDs = pointer.From([]string{})
 					},
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 				),
-				Entry("data set id invalid",
+				Entry("data set ids element empty",
 					func(datum *dataSource.Source) {
-						datum.DataSetID = pointer.FromString("invalid")
+						datum.DataSetIDs = pointer.From([]string{dataTest.RandomDataSetID(), ""})
 					},
-					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds/1"),
 				),
-				Entry("data set id valid",
+				Entry("data set ids element invalid",
 					func(datum *dataSource.Source) {
-						datum.DataSetID = pointer.FromString(dataTest.RandomDataSetID())
+						datum.DataSetIDs = pointer.From([]string{"invalid"})
+					},
+					errorsTest.WithPointerSource(data.ErrorValueStringAsSetIDNotValid("invalid"), "/dataSetIds/0"),
+				),
+				Entry("data set ids element duplicate",
+					func(datum *dataSource.Source) {
+						dataSetID := dataTest.RandomDataSetID()
+						datum.DataSetIDs = pointer.From([]string{dataSetID, dataSetID})
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueDuplicate(), "/dataSetIds/1"),
+				),
+				Entry("data set ids valid",
+					func(datum *dataSource.Source) {
+						datum.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
 					},
 				),
 				Entry("earliest data time missing",
@@ -1993,7 +2019,7 @@ var _ = Describe("Source", func() {
 						datum.ProviderExternalID = pointer.FromString("")
 						datum.State = ""
 						datum.Metadata = map[string]any{"invalid": strings.Repeat("X", dataSource.MetadataSizeMaximum)}
-						datum.DataSetID = pointer.FromString("")
+						datum.DataSetIDs = pointer.From([]string{})
 						datum.EarliestDataTime = pointer.FromTime(time.Time{})
 						datum.LatestDataTime = pointer.FromTime(time.Time{})
 						datum.LastImportTime = pointer.FromTime(time.Time{})
@@ -2009,7 +2035,7 @@ var _ = Describe("Source", func() {
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/providerExternalId"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringNotOneOf("", dataSource.States()), "/state"),
 					errorsTest.WithPointerSource(structureValidator.ErrorSizeNotLessThanOrEqualTo(4110, dataSource.MetadataSizeMaximum), "/metadata"),
-					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetIds"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/earliestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/latestDataTime"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/lastImportTime"),
@@ -2103,6 +2129,73 @@ var _ = Describe("Source", func() {
 				source.Metadata = metadata
 				source.EnsureMetadata()
 				Expect(source.Metadata).To(Equal(metadata))
+			})
+		})
+
+		Context("HasDataSetID", func() {
+			It("returns false if the data set ids are nil", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = nil
+				Expect(source.HasDataSetID(dataTest.RandomDataSetID())).To(BeFalse())
+			})
+
+			It("returns false if the data set ids do not contain the data set id", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+				Expect(source.HasDataSetID(dataTest.RandomDataSetID())).To(BeFalse())
+			})
+
+			It("returns true if the data set ids contain the data set id", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+				Expect(source.HasDataSetID((*source.DataSetIDs)[0])).To(BeTrue())
+			})
+		})
+
+		Context("AddDataSetID", func() {
+			It("appends the data set id when the data set ids are nil", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = nil
+				dataSetID := dataTest.RandomDataSetID()
+				Expect(source.AddDataSetID(dataSetID)).To(BeTrue())
+				Expect(source.DataSetIDs).To(PointTo(Equal([]string{dataSetID})))
+			})
+
+			It("appends the data set id after the existing data set ids", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+				existing := append([]string{}, *source.DataSetIDs...)
+				dataSetID := dataTest.RandomDataSetID()
+				Expect(source.AddDataSetID(dataSetID)).To(BeTrue())
+				Expect(source.DataSetIDs).To(PointTo(Equal(append(existing, dataSetID))))
+			})
+
+			It("returns false and leaves the data set ids when the data set id is present", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+				existing := append([]string{}, *source.DataSetIDs...)
+				Expect(source.AddDataSetID(existing[0])).To(BeFalse())
+				Expect(source.DataSetIDs).To(PointTo(Equal(existing)))
+			})
+		})
+
+		Context("LastDataSetID", func() {
+			It("returns nil if the data set ids are nil", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = nil
+				Expect(source.LastDataSetID()).To(BeNil())
+			})
+
+			It("returns nil if the data set ids are empty", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From([]string{})
+				Expect(source.LastDataSetID()).To(BeNil())
+			})
+
+			It("returns the last data set id", func() {
+				source := dataSourceTest.RandomSource(test.AllowOptionals())
+				source.DataSetIDs = pointer.From(dataTest.RandomDataSetIDs())
+				Expect(source.LastDataSetID()).To(PointTo(Equal((*source.DataSetIDs)[len(*source.DataSetIDs)-1])))
 			})
 		})
 
