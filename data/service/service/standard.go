@@ -665,8 +665,8 @@ func (s *Standard) initializeAbbottClient() error {
 		WorkClient:            s.workClient,
 		JWKS:                  abbottJWKS,
 	}
-	if prvdr, err := abbottProvider.New(abbottProviderDependencies); err != nil {
-		s.Logger().Warn("Unable to create abbott provider")
+	if prvdr, err := abbottProvider.New(abbottProviderDependencies); err != nil || prvdr == nil {
+		s.Logger().WithError(err).Warn("Unable to create abbott provider")
 	} else {
 		s.Logger().Debug("Loading abbott client config")
 
