@@ -14,7 +14,6 @@ import (
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/page"
-	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -266,8 +265,9 @@ func (c *DataSourcesRepository) Update(ctx context.Context, id string, condition
 				unset["error"] = true
 			}
 		}
-		if update.DataSetID != nil {
-			set["dataSetId"] = *update.DataSetID
+		if update.DataSetIDs != nil {
+			set["dataSetIds"] = *update.DataSetIDs
+			unset["dataSetId"] = true
 		}
 		if update.EarliestDataTime != nil {
 			set["earliestDataTime"] = *update.EarliestDataTime
@@ -427,24 +427,26 @@ func (c *DataSourcesRepository) get(ctx context.Context, query bson.M, condition
 	return result.Modernize(), nil
 }
 
+// sourceDEPRECATED reads the single dataSetId that documents written between 2026-03 and 2026-10 carry
+// instead of, or alongside, dataSetIds. Being the newer field, it becomes the last data set id.
 type sourceDEPRECATED struct {
 	dataSource.Source `bson:",inline"`
 
-	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+	DataSetID *string `bson:"dataSetId,omitempty"`
 }
 
 func (s *sourceDEPRECATED) Modernize() *dataSource.Source {
-	if s.DataSetID == nil && s.DataSetIDs != nil && len(*s.DataSetIDs) > 0 {
-		s.DataSetID = pointer.FromString((*s.DataSetIDs)[0])
+	if s.DataSetID != nil {
+		s.AddDataSetID(*s.DataSetID)
 	}
 	return &s.Source
 }
 
 type sourcesDEPRECATED []*sourceDEPRECATED
 
-func (s *sourcesDEPRECATED) Modernize() dataSource.SourceArray {
-	dataSrcs := make(dataSource.SourceArray, len(*s))
-	for index, source := range *s {
+func (s sourcesDEPRECATED) Modernize() dataSource.SourceArray {
+	dataSrcs := make(dataSource.SourceArray, len(s))
+	for index, source := range s {
 		dataSrcs[index] = source.Modernize()
 	}
 	return dataSrcs

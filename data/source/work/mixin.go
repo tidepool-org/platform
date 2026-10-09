@@ -262,7 +262,7 @@ func (m *mixin[M]) EnsureDataSourceHasProviderSessionID() *work.ProcessResult {
 func (m *mixin[M]) EnsureDataSourceHasDataSetID() *work.ProcessResult {
 	if dataSrc := m.DataSource(); dataSrc == nil {
 		return m.Failed(errors.New("data source is missing"))
-	} else if dataSetID := dataSrc.DataSetID; dataSetID == nil {
+	} else if dataSrc.LastDataSetID() == nil {
 		return m.Failed(errors.New("data source data set id is missing"))
 	} else {
 		return nil
@@ -286,6 +286,6 @@ func dataSourceToFields(dataSrc *dataSource.Source) log.Fields {
 		"providerSessionId":  dataSrc.ProviderSessionID,
 		"state":              dataSrc.State,
 		"metadata":           dataSrc.Metadata,
-		"dataSetId":          dataSrc.DataSetID,
+		"dataSetIds":         dataSrc.DataSetIDs,
 	}
 }

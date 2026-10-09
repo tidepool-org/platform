@@ -302,12 +302,12 @@ var _ = Describe("processor", func() {
 								dataSrc.ProviderExternalID = pointer.From(ouraUserID)
 								dataSrc.ProviderSessionID = pointer.From(providerSessionID)
 								dataSrc.State = dataSource.StateConnected
-								dataSrc.DataSetID = pointer.From(dataTest.RandomDataSetID())
+								dataSrc.DataSetIDs = pointer.From([]string{dataTest.RandomDataSetID()})
 								mockDataSourceClient.EXPECT().GetFromProviderSession(gomock.Not(gomock.Nil()), providerSessionID).Return(dataSrc, nil)
 							})
 
 							It("returns failed process result if data set id is missing", func() {
-								dataSrc.DataSetID = nil
+								dataSrc.DataSetIDs = nil
 								Expect(processor.Process(ctx, wrk, mockProcessingUpdater)).To(workTest.MatchFailedProcessResultError(MatchError("data source data set id is missing")))
 							})
 
@@ -374,7 +374,7 @@ var _ = Describe("processor", func() {
 														},
 													))
 													mockDataRawClient.EXPECT().
-														Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+														Create(gomock.Not(gomock.Nil()), userID, *dataSrc.LastDataSetID(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 														DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
 															Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
 																"Metadata": Equal(map[string]any{
@@ -461,7 +461,7 @@ var _ = Describe("processor", func() {
 											testErr := errorsTest.RandomError()
 											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
 											mockDataRawClient.EXPECT().
-												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.LastDataSetID(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
 													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
 														"Metadata": Equal(map[string]any{
@@ -494,7 +494,7 @@ var _ = Describe("processor", func() {
 											))
 											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
 											mockDataRawClient.EXPECT().
-												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.LastDataSetID(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
 													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
 														"Metadata": Equal(map[string]any{
@@ -528,7 +528,7 @@ var _ = Describe("processor", func() {
 											))
 											mockOuraClient.EXPECT().GetData(gomock.Not(gomock.Nil()), *expectedDataType, expectedTimeRange, &oura.Pagination{NextToken: expectedToken}, gomock.Not(gomock.Nil())).Return(&oura.DataResponse{Data: expectedData}, nil)
 											mockDataRawClient.EXPECT().
-												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.DataSetID, gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
+												Create(gomock.Not(gomock.Nil()), userID, *dataSrc.LastDataSetID(), gomock.Not(gomock.Nil()), gomock.Not(gomock.Nil())).
 												DoAndReturn(func(_ context.Context, _ string, _ string, dataRawCreate *dataRaw.Create, reader io.Reader) (*dataRaw.Raw, error) {
 													Expect(dataRawCreate).To(PointTo(MatchAllFields(Fields{
 														"Metadata": Equal(map[string]any{

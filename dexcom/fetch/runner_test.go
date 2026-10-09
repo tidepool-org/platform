@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 
 	"go.uber.org/mock/gomock"
 	"golang.org/x/oauth2"
@@ -616,6 +617,52 @@ var _ = Describe("Runner", func() {
 								assertProviderSessionRefreshedTimes(6)
 							})
 
+							Context("with existing data sets", func() {
+								newDataSet := func(suffix string) *data.DataSet {
+									return &data.DataSet{
+										ID:       pointer.FromString("test-data-set-id-" + suffix),
+										UploadID: pointer.FromString("test-data-set-upload-id-" + suffix),
+									}
+								}
+
+								BeforeEach(func() {
+									dataSrc.DataSetIDs = pointer.From([]string{"test-data-set-id-1", "test-data-set-id-2"})
+								})
+
+								It("adds the data to the newest data set", func() {
+									dataClient.EXPECT().GetDataSet(matchContext(), "test-data-set-id-2").Return(newDataSet("2"), nil)
+									dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+									dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id-2", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+									taskRunner.Run(ctx)
+									assertTaskAndDataSourceState(task.TaskStatePending)
+									assertTaskAndDataSourceErrorNotPresent()
+									Expect(dataSrc.DataSetIDs).To(PointTo(Equal([]string{"test-data-set-id-1", "test-data-set-id-2"})))
+								})
+
+								It("adds the data to an older data set when the newest was deleted", func() {
+									dataClient.EXPECT().GetDataSet(matchContext(), "test-data-set-id-2").Return(nil, nil)
+									dataClient.EXPECT().GetDataSet(matchContext(), "test-data-set-id-1").Return(newDataSet("1"), nil)
+									dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc))
+									dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id-1", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+									taskRunner.Run(ctx)
+									assertTaskAndDataSourceState(task.TaskStatePending)
+									assertTaskAndDataSourceErrorNotPresent()
+									Expect(dataSrc.DataSetIDs).To(PointTo(Equal([]string{"test-data-set-id-1", "test-data-set-id-2"})))
+								})
+
+								It("creates a data set after the existing ones when every one was deleted", func() {
+									dataClient.EXPECT().GetDataSet(matchContext(), "test-data-set-id-2").Return(nil, nil)
+									dataClient.EXPECT().GetDataSet(matchContext(), "test-data-set-id-1").Return(nil, nil)
+									dataClient.EXPECT().CreateUserDataSet(matchContext(), "test-user-id", matchNotNil()).DoAndReturn(mockDataClientCreateUserDataSet(newDataSet("3"), nil))
+									dataSourceClient.EXPECT().Update(matchContext(), "test-data-source-id", matchNil(), matchNotNil()).DoAndReturn(mockDataSourceClientUpdate(dataSrc)).Times(2)
+									dataClient.EXPECT().CreateDataSetsData(matchContext(), "test-data-set-upload-id-3", matchNotNil()).DoAndReturn(mockDataClientCreateDataSetsData(nil))
+									taskRunner.Run(ctx)
+									assertTaskAndDataSourceState(task.TaskStatePending)
+									assertTaskAndDataSourceErrorNotPresent()
+									Expect(dataSrc.DataSetIDs).To(PointTo(Equal([]string{"test-data-set-id-1", "test-data-set-id-2", "test-data-set-id-3"})))
+								})
+							})
+
 							It("is available soon if the deadline is exceeded", func() {
 								runnerDurationMaximum = -time.Second
 								dataSet := &data.DataSet{
@@ -769,8 +816,8 @@ func mockDataSourceClientUpdate(dataSrc *dataSource.Source) func(context.Context
 		if update.Error != nil {
 			localDataSrc.Error = update.Error
 		}
-		if update.DataSetID != nil {
-			localDataSrc.DataSetID = update.DataSetID
+		if update.DataSetIDs != nil {
+			localDataSrc.DataSetIDs = update.DataSetIDs
 		}
 		if update.EarliestDataTime != nil {
 			localDataSrc.EarliestDataTime = update.EarliestDataTime

@@ -155,7 +155,7 @@ var _ = Describe("Provider", func() {
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"DataSetID":          PointTo(Equal(dataSetID)),
+						"DataSetIDs":         PointTo(Equal([]string{dataSetID})),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),
@@ -178,7 +178,7 @@ var _ = Describe("Provider", func() {
 				ProviderSessionID:  pointer.FromString(session.ID),
 				ProviderExternalID: pointer.FromString(dataSourceExternalID),
 				State:              dataSource.StateConnected,
-				DataSetID:          pointer.FromString(dataSetID),
+				DataSetIDs:         pointer.From([]string{dataSetID}),
 			}
 
 			dataSourceClient.EXPECT().
@@ -210,7 +210,7 @@ var _ = Describe("Provider", func() {
 				Update(ctx, gomock.Eq(dataSrc.ID), gomock.Any(), gomock.Any()).
 				DoAndReturn(func(_ context.Context, id string, condition *request.Condition, update *dataSource.Update) (*dataSource.Source, error) {
 					Expect(update).To(PointTo(MatchFields(IgnoreExtras, Fields{
-						"DataSetID":          PointTo(Equal(dataSetID)),
+						"DataSetIDs":         PointTo(Equal([]string{dataSetID})),
 						"ProviderExternalID": PointTo(Equal(dataSourceExternalID)),
 						"ProviderSessionID":  PointTo(Equal(session.ID)),
 						"State":              PointTo(Equal("connected")),

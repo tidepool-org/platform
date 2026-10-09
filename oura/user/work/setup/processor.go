@@ -185,7 +185,7 @@ func (p *Processor) updateDataSourceProviderExternalID() *work.ProcessResult {
 }
 
 func (p *Processor) ensureDataSetForDataSource() *work.ProcessResult {
-	if p.DataSource().DataSetID != nil {
+	if p.DataSource().LastDataSetID() != nil {
 		return p.FetchDataSetFromDataSource()
 	}
 	return p.CreateDataSetForDataSource(NewDataSetCreate())

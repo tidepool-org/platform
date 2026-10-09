@@ -245,7 +245,7 @@ var _ = Describe("processor", func() {
 								initialDataSource.ProviderSessionID = pointer.From(providerSessionID)
 								initialDataSource.ProviderExternalID = nil
 								initialDataSource.State = dataSource.StateConnected
-								initialDataSource.DataSetID = nil
+								initialDataSource.DataSetIDs = nil
 								initialDataSource.EarliestDataTime = nil
 								initialDataSource.LatestDataTime = nil
 								initialDataSource.LastImportTime = nil
@@ -382,8 +382,8 @@ var _ = Describe("processor", func() {
 												mockDataSetClient.EXPECT().CreateUserDataSet(gomock.Not(gomock.Nil()), userID, ouraUserWorkSetup.NewDataSetCreate()).Return(initialDataSet, nil)
 												expectedDataSourceID = dataSourceStack.Latest().ID
 												expectedDataSourceUpdate = &dataSource.Update{
-													Metadata:  metadataTest.PointerFromMetadataMap(dataSourceStack.Latest().Metadata),
-													DataSetID: initialDataSet.ID,
+													Metadata:   metadataTest.PointerFromMetadataMap(dataSourceStack.Latest().Metadata),
+													DataSetIDs: pointer.From([]string{*initialDataSet.ID}),
 												}
 											})
 
@@ -396,7 +396,7 @@ var _ = Describe("processor", func() {
 											Context("with successful update data source with data set id", func() {
 												BeforeEach(func() {
 													updatedDataSource := dataSourceTest.CloneSource(dataSourceStack.Latest())
-													updatedDataSource.DataSetID = initialDataSet.ID
+													updatedDataSource.DataSetIDs = pointer.From([]string{*initialDataSet.ID})
 													dataSourceStack.Push(updatedDataSource)
 													mockDataSourceClient.EXPECT().Update(gomock.Not(gomock.Nil()), expectedDataSourceID, nil, expectedDataSourceUpdate).Return(updatedDataSource, nil)
 												})
@@ -408,7 +408,7 @@ var _ = Describe("processor", func() {
 
 									Context("with existing data set", func() {
 										BeforeEach(func() {
-											dataSourceStack.Each(func(s *dataSource.Source) { s.DataSetID = initialDataSet.ID })
+											dataSourceStack.Each(func(s *dataSource.Source) { s.DataSetIDs = pointer.From([]string{*initialDataSet.ID}) })
 										})
 
 										It("returns failing process result if unable to get data set", func() {
@@ -510,7 +510,7 @@ var _ = Describe("processor", func() {
 										existingDataSource.ProviderName = oura.ProviderName
 										existingDataSource.ProviderExternalID = pointer.From(ouraUserID)
 										existingDataSource.State = dataSource.StateDisconnected
-										existingDataSource.DataSetID = nil
+										existingDataSource.DataSetIDs = nil
 										expectedDataSourceUpdate = &dataSource.Update{
 											ProviderSessionID: pointer.From(providerSessionID),
 											State:             pointer.From(dataSource.StateConnected),

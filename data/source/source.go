@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"regexp"
+	"slices"
 	"time"
 
 	"github.com/tidepool-org/platform/auth"
@@ -127,7 +128,7 @@ type Update struct {
 	State              *string              `json:"state,omitempty" bson:"state,omitempty"`
 	Metadata           *map[string]any      `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	Error              *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
-	DataSetID          *string              `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	DataSetIDs         *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
 	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
 	LastImportTime     *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
@@ -149,7 +150,7 @@ func (u *Update) Parse(parser structure.ObjectParser) {
 			u.Error = serializable
 		}
 	}
-	u.DataSetID = parser.String("dataSetId")
+	u.DataSetIDs = parser.StringArray("dataSetIds")
 	u.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
 	u.LatestDataTime = parser.Time("latestDataTime", time.RFC3339Nano)
 	u.LastImportTime = parser.Time("lastImportTime", time.RFC3339Nano)
@@ -167,7 +168,7 @@ func (u *Update) Validate(validator structure.Validator) {
 	if u.Error != nil {
 		u.Error.Validate(validator.WithReference("error"))
 	}
-	validator.String("dataSetId", u.DataSetID).Using(data.SetIDValidator)
+	validator.StringArray("dataSetIds", u.DataSetIDs).NotEmpty().EachUsing(data.SetIDValidator).EachUnique()
 	validator.Time("earliestDataTime", u.EarliestDataTime).NotZero().BeforeNow(time.Second)
 	validator.Time("latestDataTime", u.LatestDataTime).NotZero().After(pointer.ToTime(u.EarliestDataTime)).BeforeNow(time.Second)
 	validator.Time("lastImportTime", u.LastImportTime).NotZero().BeforeNow(time.Second)
@@ -184,9 +185,10 @@ func (u *Update) SetMetadata(metadata map[string]any) {
 }
 
 func (u *Update) IsEmpty() bool {
-	return u.ProviderSessionID == nil && u.ProviderExternalID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetID == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
+	return u.ProviderSessionID == nil && u.ProviderExternalID == nil && u.State == nil && u.Metadata == nil && u.Error == nil && u.DataSetIDs == nil && u.EarliestDataTime == nil && u.LatestDataTime == nil && u.LastImportTime == nil
 }
 
+// Source references every data set of the data source in DataSetIDs, oldest first; the last is the current one.
 type Source struct {
 	ID                 string               `json:"id" bson:"id"`
 	UserID             string               `json:"userId" bson:"userId"`
@@ -197,7 +199,7 @@ type Source struct {
 	State              string               `json:"state" bson:"state"`
 	Metadata           map[string]any       `json:"metadata,omitempty" bson:"metadata,omitempty"`
 	Error              *errors.Serializable `json:"error,omitempty" bson:"error,omitempty"`
-	DataSetID          *string              `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+	DataSetIDs         *[]string            `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
 	EarliestDataTime   *time.Time           `json:"earliestDataTime,omitempty" bson:"earliestDataTime,omitempty"`
 	LatestDataTime     *time.Time           `json:"latestDataTime,omitempty" bson:"latestDataTime,omitempty"`
 	LastImportTime     *time.Time           `json:"lastImportTime,omitempty" bson:"lastImportTime,omitempty"`
@@ -234,7 +236,7 @@ func (s *Source) Parse(parser structure.ObjectParser) {
 			s.Error = serializable
 		}
 	}
-	s.DataSetID = parser.String("dataSetId")
+	s.DataSetIDs = parser.StringArray("dataSetIds")
 	s.EarliestDataTime = parser.Time("earliestDataTime", time.RFC3339Nano)
 	s.LatestDataTime = parser.Time("latestDataTime", time.RFC3339Nano)
 	s.LastImportTime = parser.Time("lastImportTime", time.RFC3339Nano)
@@ -263,7 +265,7 @@ func (s *Source) Validate(validator structure.Validator) {
 	if s.Error != nil {
 		s.Error.Validate(validator.WithReference("error"))
 	}
-	validator.String("dataSetId", s.DataSetID).Using(data.SetIDValidator)
+	validator.StringArray("dataSetIds", s.DataSetIDs).NotEmpty().EachUsing(data.SetIDValidator).EachUnique()
 	validator.Time("earliestDataTime", s.EarliestDataTime).NotZero().BeforeNow(time.Second)
 	validator.Time("latestDataTime", s.LatestDataTime).NotZero().After(pointer.ToTime(s.EarliestDataTime)).BeforeNow(time.Second)
 	validator.Time("lastImportTime", s.LastImportTime).NotZero().BeforeNow(time.Second)
@@ -302,6 +304,26 @@ func (s *Source) EnsureMetadata() {
 	if s.Metadata == nil {
 		s.Metadata = map[string]any{}
 	}
+}
+
+func (s *Source) HasDataSetID(dataSetID string) bool {
+	return s.DataSetIDs != nil && slices.Contains(*s.DataSetIDs, dataSetID)
+}
+
+// AddDataSetID appends the data set id and reports whether it was not already present.
+func (s *Source) AddDataSetID(dataSetID string) bool {
+	if s.HasDataSetID(dataSetID) {
+		return false
+	}
+	s.DataSetIDs = pointer.From(append(pointer.To(s.DataSetIDs), dataSetID))
+	return true
+}
+
+func (s *Source) LastDataSetID() *string {
+	if s.DataSetIDs == nil || len(*s.DataSetIDs) == 0 {
+		return nil
+	}
+	return pointer.FromString((*s.DataSetIDs)[len(*s.DataSetIDs)-1])
 }
 
 func (s *Source) HasError() bool {

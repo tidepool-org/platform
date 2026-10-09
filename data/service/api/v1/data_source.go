@@ -2,6 +2,7 @@ package v1
 
 import (
 	"net/http"
+	"slices"
 
 	"github.com/tidepool-org/platform/data"
 	dataService "github.com/tidepool-org/platform/data/service"
@@ -65,7 +66,7 @@ func ListSources(dataServiceContext dataService.Context) {
 		return
 	}
 
-	responder.Data(http.StatusOK, sources)
+	responder.Data(http.StatusOK, newSourceArrayDEPRECATED(sources))
 }
 
 // TODO: BEGIN: Update to new service paradigm
@@ -105,7 +106,7 @@ func CreateSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	responder.Data(http.StatusCreated, source)
+	responder.Data(http.StatusCreated, newSourceDEPRECATED(source))
 }
 
 // TODO: BEGIN: Update to new service paradigm
@@ -178,7 +179,7 @@ func GetSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	responder.Data(http.StatusOK, source)
+	responder.Data(http.StatusOK, newSourceDEPRECATED(source))
 }
 
 // TODO: BEGIN: Update to new service paradigm
@@ -218,7 +219,19 @@ func UpdateSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, update.Modernize())
+	if update.DataSetID != nil {
+		source, err := dataServiceContext.DataSourceClient().Get(req.Context(), id)
+		if err != nil {
+			responder.InternalServerError(err)
+			return
+		} else if source == nil {
+			responder.Error(http.StatusNotFound, request.ErrorResourceNotFoundWithID(id))
+			return
+		}
+		update.Modernize(source)
+	}
+
+	source, err := dataServiceContext.DataSourceClient().Update(req.Context(), id, condition, &update.Update)
 	if err != nil {
 		responder.InternalServerError(err)
 		return
@@ -227,7 +240,7 @@ func UpdateSource(dataServiceContext dataService.Context) {
 		return
 	}
 
-	responder.Data(http.StatusOK, source)
+	responder.Data(http.StatusOK, newSourceDEPRECATED(source))
 }
 
 // TODO: BEGIN: Update to new service paradigm
@@ -307,28 +320,30 @@ func GetSourceFromProviderSession(dataServiceContext dataService.Context) {
 		return
 	}
 
-	responder.Data(http.StatusOK, source)
+	responder.Data(http.StatusOK, newSourceDEPRECATED(source))
 }
 
+// UpdateDEPRECATED accepts the single dataSetId that services built before dataSetIds returned (2026-10) still
+// send, so the services can be deployed in any order. Remove once every service sends dataSetIds.
 type UpdateDEPRECATED struct {
 	dataSource.Update `bson:",inline"`
 
-	DataSetIDs *[]string `json:"dataSetIds,omitempty" bson:"dataSetIds,omitempty"`
+	DataSetID *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
 }
 
 func (u *UpdateDEPRECATED) Parse(parser structure.ObjectParser) {
 	u.Update.Parse(parser)
 
-	u.DataSetIDs = parser.StringArray("dataSetIds")
+	u.DataSetID = parser.String("dataSetId")
 }
 
 func (u *UpdateDEPRECATED) Validate(validator structure.Validator) {
 	u.Update.Validate(validator)
 
-	if dataSetIDsValidator := validator.StringArray("dataSetIds", u.DataSetIDs); u.DataSetID != nil {
-		dataSetIDsValidator.NotExists()
+	if dataSetIDValidator := validator.String("dataSetId", u.DataSetID); u.DataSetIDs != nil {
+		dataSetIDValidator.NotExists()
 	} else {
-		dataSetIDsValidator.EachUsing(data.SetIDValidator).EachUnique()
+		dataSetIDValidator.Using(data.SetIDValidator)
 	}
 }
 
@@ -336,9 +351,48 @@ func (u *UpdateDEPRECATED) Normalize(normalizer structure.Normalizer) {
 	u.Update.Normalize(normalizer)
 }
 
-func (u *UpdateDEPRECATED) Modernize() *dataSource.Update {
-	if u.DataSetID == nil && u.DataSetIDs != nil && len(*u.DataSetIDs) > 0 {
-		u.DataSetID = pointer.FromString((*u.DataSetIDs)[0])
+// Modernize turns the single data set id into the data source's data set ids with it as the last, the way the
+// sending service would have had them.
+func (u *UpdateDEPRECATED) Modernize(source *dataSource.Source) {
+	if u.DataSetID != nil && u.DataSetIDs == nil {
+		dataSetIDs := pointer.To(pointer.CloneStringArray(source.DataSetIDs))
+		if !slices.Contains(dataSetIDs, *u.DataSetID) {
+			dataSetIDs = append(dataSetIDs, *u.DataSetID)
+		}
+		u.DataSetIDs = pointer.From(dataSetIDs)
 	}
-	return &u.Update
+}
+
+// SourceDEPRECATED adds the single dataSetId that services built before dataSetIds returned (2026-10) still
+// read, so the services can be deployed in any order. Remove once every service reads dataSetIds.
+type SourceDEPRECATED struct {
+	*dataSource.Source
+
+	DataSetID *string `json:"dataSetId,omitempty" bson:"dataSetId,omitempty"`
+}
+
+func newSourceDEPRECATED(source *dataSource.Source) *SourceDEPRECATED {
+	if source == nil {
+		return nil
+	}
+	return &SourceDEPRECATED{Source: source, DataSetID: source.LastDataSetID()}
+}
+
+type SourceArrayDEPRECATED []*SourceDEPRECATED
+
+func newSourceArrayDEPRECATED(sources dataSource.SourceArray) SourceArrayDEPRECATED {
+	result := make(SourceArrayDEPRECATED, len(sources))
+	for index, source := range sources {
+		result[index] = newSourceDEPRECATED(source)
+	}
+	return result
+}
+
+func (s SourceArrayDEPRECATED) Sanitize(details request.AuthDetails) error {
+	for _, source := range s {
+		if err := source.Sanitize(details); err != nil {
+			return err
+		}
+	}
+	return nil
 }
