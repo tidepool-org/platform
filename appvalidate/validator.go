@@ -2,11 +2,18 @@ package appvalidate
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
+	"fmt"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	"golang.org/x/exp/slices"
+
+	attest "github.com/tidepool-org/appattest/attestation"
+	"github.com/tidepool-org/appattest/utils"
+	"github.com/ugorji/go/codec"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -152,8 +159,33 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	var pubKey []byte
 	var receipt []byte
 	var foundValidAppID bool
+	logger := log.LoggerFromContext(ctx)
 	for _, appleAppID := range v.appleAppIDs {
 		pubKey, receipt, vErr = attestation.Verify(appleAppID, v.isProduction)
+		appIdHash := sha256.Sum256([]byte(appleAppID))
+		appIdHex := hex.EncodeToString(appIdHash[:])
+		logFields := log.Fields{
+			"appId":        appleAppID,
+			"userId":       av.UserID,
+			"keyId":        av.KeyID,
+			"isProduction": v.isProduction,
+			"appIdHash":    appIdHex,
+		}
+		if vErr != nil {
+			logFields["verificationError"] = vErr
+		}
+		if res, err := parseAuthAttestationResponse(attestation); err == nil {
+			responseAppIdHex := hex.EncodeToString(res.AuthData.RPIDHash)
+			logFields["responseRPHash"] = responseAppIdHex
+			logFields["responseAuthEnvironment"] = string(res.AuthData.AttData.AAGUID)
+			logFields["responseKeyIdBase64"] = base64.StdEncoding.EncodeToString(res.AuthData.AttData.CredentialID)
+			logFields["matchedKeyId"] = base64.StdEncoding.EncodeToString(res.AuthData.AttData.CredentialID) == av.KeyID
+			logFields["matchedAppId"] = appIdHex == responseAppIdHex
+		} else {
+			logFields["parseError"] = err
+		}
+		logger.WithFields(logFields).Debug("VerifyAttestation")
+
 		// Stop at first working Apple App Id
 		if vErr == nil {
 			foundValidAppID = true
@@ -175,6 +207,28 @@ func (v *Validator) VerifyAttestation(ctx context.Context, av *AttestationVerify
 	}
 
 	return v.repo.UpdateAttestation(ctx, filter, update)
+}
+
+func parseAuthAttestationResponse(aar *attest.AuthenticatorAttestationResponse) (*attest.AttestationObject, error) {
+	var a attest.AttestationObject
+
+	cborHandler := codec.CborHandle{}
+
+	err := codec.NewDecoderBytes(aar.AttestationObject, &cborHandler).Decode(&a)
+	if err != nil {
+		return nil, utils.ErrParsingData.WithDetails(err.Error())
+	}
+
+	err = a.AuthData.Unmarshal(a.RawAuthData)
+	if err != nil {
+		return nil, fmt.Errorf("error decoding auth data: %v", err)
+	}
+
+	if !a.AuthData.Flags.HasAttestedCredentialData() {
+		return nil, utils.ErrAttestationFormat.WithDetails("Attestation missing attested credential data flag")
+	}
+
+	return &a, nil
 }
 
 func (v *Validator) VerifyAssertion(ctx context.Context, av *AssertionVerify) error {
