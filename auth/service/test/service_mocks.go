@@ -23,8 +23,10 @@ import (
 	store "github.com/tidepool-org/platform/auth/store"
 	config "github.com/tidepool-org/platform/config"
 	log "github.com/tidepool-org/platform/log"
+	permission "github.com/tidepool-org/platform/permission"
 	provider "github.com/tidepool-org/platform/provider"
 	task "github.com/tidepool-org/platform/task"
+	user "github.com/tidepool-org/platform/user"
 	version "github.com/tidepool-org/platform/version"
 )
 
@@ -394,6 +396,82 @@ func (c *MockServicePartnerSecretsCall) DoAndReturn(f func() *appvalidate.Partne
 	return c
 }
 
+// PermissionsClient mocks base method.
+func (m *MockService) PermissionsClient() permission.Client {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PermissionsClient")
+	ret0, _ := ret[0].(permission.Client)
+	return ret0
+}
+
+// PermissionsClient indicates an expected call of PermissionsClient.
+func (mr *MockServiceMockRecorder) PermissionsClient() *MockServicePermissionsClientCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermissionsClient", reflect.TypeOf((*MockService)(nil).PermissionsClient))
+	return &MockServicePermissionsClientCall{Call: call}
+}
+
+// MockServicePermissionsClientCall wrap *gomock.Call
+type MockServicePermissionsClientCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServicePermissionsClientCall) Return(arg0 permission.Client) *MockServicePermissionsClientCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServicePermissionsClientCall) Do(f func() permission.Client) *MockServicePermissionsClientCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServicePermissionsClientCall) DoAndReturn(f func() permission.Client) *MockServicePermissionsClientCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// ProfileAccessor mocks base method.
+func (m *MockService) ProfileAccessor() user.ProfileAccessor {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ProfileAccessor")
+	ret0, _ := ret[0].(user.ProfileAccessor)
+	return ret0
+}
+
+// ProfileAccessor indicates an expected call of ProfileAccessor.
+func (mr *MockServiceMockRecorder) ProfileAccessor() *MockServiceProfileAccessorCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ProfileAccessor", reflect.TypeOf((*MockService)(nil).ProfileAccessor))
+	return &MockServiceProfileAccessorCall{Call: call}
+}
+
+// MockServiceProfileAccessorCall wrap *gomock.Call
+type MockServiceProfileAccessorCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServiceProfileAccessorCall) Return(arg0 user.ProfileAccessor) *MockServiceProfileAccessorCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServiceProfileAccessorCall) Do(f func() user.ProfileAccessor) *MockServiceProfileAccessorCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServiceProfileAccessorCall) DoAndReturn(f func() user.ProfileAccessor) *MockServiceProfileAccessorCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // ProviderFactory mocks base method.
 func (m *MockService) ProviderFactory() provider.Factory {
 	m.ctrl.T.Helper()
@@ -580,6 +658,44 @@ func (c *MockServiceTwiistServiceAccountAuthorizerCall) Do(f func() auth.Service
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
 func (c *MockServiceTwiistServiceAccountAuthorizerCall) DoAndReturn(f func() auth.ServiceAccountAuthorizer) *MockServiceTwiistServiceAccountAuthorizerCall {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
+// UserAccessor mocks base method.
+func (m *MockService) UserAccessor() user.UserAccessor {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UserAccessor")
+	ret0, _ := ret[0].(user.UserAccessor)
+	return ret0
+}
+
+// UserAccessor indicates an expected call of UserAccessor.
+func (mr *MockServiceMockRecorder) UserAccessor() *MockServiceUserAccessorCall {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UserAccessor", reflect.TypeOf((*MockService)(nil).UserAccessor))
+	return &MockServiceUserAccessorCall{Call: call}
+}
+
+// MockServiceUserAccessorCall wrap *gomock.Call
+type MockServiceUserAccessorCall struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockServiceUserAccessorCall) Return(arg0 user.UserAccessor) *MockServiceUserAccessorCall {
+	c.Call = c.Call.Return(arg0)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockServiceUserAccessorCall) Do(f func() user.UserAccessor) *MockServiceUserAccessorCall {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockServiceUserAccessorCall) DoAndReturn(f func() user.UserAccessor) *MockServiceUserAccessorCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }

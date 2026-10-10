@@ -72,7 +72,11 @@ func (c *Config) AsConnectionString() string {
 }
 
 func (c *Config) Load() error {
-	return envconfig.Process("", c)
+	return c.LoadPrefix("")
+}
+
+func (c *Config) LoadPrefix(prefix string) error {
+	return envconfig.Process(prefix, c)
 }
 
 func (c *Config) SetDatabaseFromReporter(configReporter platformConfig.Reporter) error {

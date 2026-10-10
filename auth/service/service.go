@@ -9,9 +9,11 @@ import (
 	"github.com/tidepool-org/platform/appvalidate"
 	"github.com/tidepool-org/platform/auth"
 	authStore "github.com/tidepool-org/platform/auth/store"
+	permission "github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/provider"
 	"github.com/tidepool-org/platform/service"
 	"github.com/tidepool-org/platform/task"
+	"github.com/tidepool-org/platform/user"
 )
 
 //go:generate mockgen -source=service.go -destination=test/service_mocks.go -package=test -typed
@@ -21,6 +23,10 @@ type Service interface {
 
 	Domain() string
 	AuthStore() authStore.Store
+
+	UserAccessor() user.UserAccessor
+	ProfileAccessor() user.ProfileAccessor
+	PermissionsClient() permission.Client
 
 	ProviderFactory() provider.Factory
 
