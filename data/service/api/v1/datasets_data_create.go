@@ -8,14 +8,13 @@ import (
 	dataNormalizer "github.com/tidepool-org/platform/data/normalizer"
 	dataService "github.com/tidepool-org/platform/data/service"
 	dataTypesFactory "github.com/tidepool-org/platform/data/types/factory"
+	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/permission"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
 	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
-	"github.com/tidepool-org/platform/summary"
-	summaryTypes "github.com/tidepool-org/platform/summary/types"
 )
 
 func DataSetsDataCreate(dataServiceContext dataService.Context) {
@@ -113,11 +112,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	updatesSummary := make(map[string]struct{})
-	for _, datum := range datumArray {
-		summary.CheckDatumUpdatesSummary(updatesSummary, datum)
+	// Reported for every upload, whatever it contains, as data that feeds no summary is still
+	// postprocessed
+	if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, dataWorkPostprocess.ReasonDataAdded); err != nil {
+		lgr.WithError(err).Error("Unable to report data added")
 	}
-	summary.MaybeUpdateSummary(ctx, dataServiceContext.SummarizerRegistry(), updatesSummary, *dataSet.UserID, summaryTypes.OutdatedReasonDataAdded)
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {
 		lgr.WithError(err).Error("Unable to record metric")
