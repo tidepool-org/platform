@@ -12,7 +12,7 @@ import (
 
 const (
 	Quantity  = 15
-	Frequency = 30 * time.Second
+	Frequency = 5 * time.Second
 
 	FailingRetryDuration        = 1 * time.Minute
 	FailingRetryDurationJitter  = 0.1

@@ -21,7 +21,7 @@ var _ = Describe("Factory", func() {
 	})
 
 	It("Frequency is expected", func() {
-		Expect(dataWorkPostprocess.Frequency).To(Equal(30 * time.Second))
+		Expect(dataWorkPostprocess.Frequency).To(Equal(5 * time.Second))
 	})
 
 	Context("with dependencies", func() {
