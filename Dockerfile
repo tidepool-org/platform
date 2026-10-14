@@ -1,5 +1,5 @@
 ARG GOLANG_VERSION=1.25.7-alpine
-ARG MONGO_VERSION=6.0.23
+ARG MONGO_VERSION=8.0.32
 ARG PLUGIN_VISIBILITY=public
 
 ### Bases
@@ -12,11 +12,12 @@ USER tidepool
 WORKDIR /home/tidepool
 
 # platform-base-golang
-FROM golang:${GOLANG_VERSION} AS platform-base-golang
+FROM --platform=${BUILDPLATFORM} golang:${GOLANG_VERSION} AS platform-base-golang
 RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata git make
 
 # platform-base-delve
-FROM platform-base-golang AS platform-base-delve
+FROM golang:${GOLANG_VERSION} AS platform-base-delve
+RUN apk --no-cache update && apk --no-cache upgrade && apk --no-cache add ca-certificates tzdata
 RUN go install github.com/go-delve/delve/cmd/dlv@latest
 RUN adduser --disabled-password delve
 USER delve
@@ -28,7 +29,7 @@ FROM mongo:${MONGO_VERSION} AS platform-base-mongo
 ENV HOME="/home/tidepool/"
 ENV DEBIAN_FRONTEND="noninteractive"
 RUN apt -y update && apt -y install ca-certificates tzdata
-RUN adduser --disabled-password --gecos GECOS tidepool
+RUN userdel --remove ubuntu && adduser --disabled-password --gecos GECOS tidepool
 USER tidepool
 WORKDIR /home/tidepool
 
@@ -38,27 +39,24 @@ WORKDIR /home/tidepool
 FROM platform-base-golang AS platform-init
 WORKDIR /build
 COPY Makefile go.* ./
-COPY plugin/abbott/go.* ./plugin/abbott/
-COPY plugin/visibility/ ./plugin/visibility/
+COPY plugin/ ./plugin/
 
 # platform-init-public
 FROM platform-init AS platform-init-public
-COPY plugin/abbott/abbott/plugin/ ./plugin/abbott/abbott/plugin/
-RUN make init plugins-visibility
+RUN make init plugins-visibility-public
 
 # platform-init-private
 FROM platform-init AS platform-init-private
-COPY private/plugin/abbott/go.* ./private/plugin/abbott/
-COPY private/plugin/abbott/abbott/plugin/ ./private/plugin/abbott/abbott/plugin/
-RUN make init plugins-visibility
+COPY private/plugin/ ./private/plugin/
+RUN make init plugins-visibility-private
 
 ### Build
 
 # platform-build
 FROM platform-init-${PLUGIN_VISIBILITY} AS platform-build
-ARG SERVICE DELVE_PORT
+ARG TARGETOS TARGETARCH SERVICE DELVE_PORT
 COPY . .
-RUN BUILD=services/${SERVICE} make build
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} BUILD=services/${SERVICE} make build
 
 ### Delve
 

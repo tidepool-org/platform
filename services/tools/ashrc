@@ -2,6 +2,6 @@
 
 alias mongo=$'/usr/bin/mongosh "${TIDEPOOL_STORE_SCHEME}://${TIDEPOOL_STORE_ADDRESSES}/${TIDEPOOL_STORE_DATABASE}?${TIDEPOOL_STORE_OPT_PARAMS}" $( [ "$TIDEPOOL_STORE_TLS" == "true" ] && echo "--tls" ) --username "mongo-${TIDEPOOL_STORE_USERNAME##*-}-readonly" ${TIDEPOOL_STORE_PASSWORD:+-p "$TIDEPOOL_STORE_PASSWORD"}'
 
-alias mongow=$'/usr/bin/mongosh "${TIDEPOOL_STORE_SCHEME}://${TIDEPOOL_STORE_ADDRESSES}/${TIDEPOOL_STORE_DATABASE}?${TIDEPOOL_STORE_OPT_PARAMS}" $( [ "$TIDEPOOL_STORE_TLS" == "true" ] && echo "--tls" ) --username "$TIDEPOOL_STORE_USERNAME -p'
+alias mongow=$'/usr/bin/mongosh "${TIDEPOOL_STORE_SCHEME}://${TIDEPOOL_STORE_ADDRESSES}/${TIDEPOOL_STORE_DATABASE}?${TIDEPOOL_STORE_OPT_PARAMS}" $( [ "$TIDEPOOL_STORE_TLS" == "true" ] && echo "--tls" ) --username "$TIDEPOOL_STORE_USERNAME" -p'
 
 alias mongoa=$'/usr/bin/mongosh "${TIDEPOOL_STORE_SCHEME}://${TIDEPOOL_STORE_ADDRESSES}/${TIDEPOOL_STORE_DATABASE}?${TIDEPOOL_STORE_OPT_PARAMS}" $( [ "$TIDEPOOL_STORE_TLS" == "true" ] && echo "--tls" ) --username "mongo-${TIDEPOOL_STORE_USERNAME##*-}-admin" -p'

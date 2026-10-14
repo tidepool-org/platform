@@ -1,6 +1,6 @@
 os: linux
 
-dist: jammy
+dist: noble
 
 language: go
 
@@ -12,8 +12,8 @@ services:
 
 env:
   global:
-    - MONGODB=6.0.23
-    - MONGOSH=2.5.1
+    - MONGODB=8.0.32
+    - MONGOSH=2.13.0
   jobs:
     - PLUGINS_VISIBILITY=public
     - PLUGINS_VISIBILITY=private
@@ -36,8 +36,8 @@ before_install:
 addons:
   apt:
     sources:
-      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse'
-        key_url: 'https://pgp.mongodb.com/server-6.0.asc'
+      - sourceline: 'deb https://repo.mongodb.org/apt/ubuntu noble/mongodb-org/8.0 multiverse'
+        key_url: 'https://pgp.mongodb.com/server-8.0.asc'
 
 script:
   - export TIMING_CMD='time -p'

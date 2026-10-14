@@ -6,6 +6,15 @@ ROOT_DIRECTORY:=$(realpath $(dir $(MAKEFILE)))
 
 PLATFORM_PACKAGE=github.com/tidepool-org/platform
 
+PLATFORM_PLUGINS ?= abbott
+PLATFORM_SERVICES ?= auth blob data migrations prescription task tools
+
+ifeq ($(shell go env GOWORK),)
+PLATFORM_PLUGIN_VISIBILITY:=public
+else
+PLATFORM_PLUGIN_VISIBILITY:=private
+endif
+
 REPOSITORY_PACKAGE:=$(shell sed -En 's/^module (.*)$$/\1/p' $(ROOT_DIRECTORY)/go.mod)
 REPOSITORY_NAME:=$(notdir $(REPOSITORY_PACKAGE))
 
@@ -13,7 +22,7 @@ BIN_DIRECTORY := ${ROOT_DIRECTORY}/_bin
 PATH := ${PATH}:${BIN_DIRECTORY}
 
 ifneq ($(wildcard ./version.env),)
-    include ./version.env
+include ./version.env
 endif
 
 VERSION_BASE?=$(REPOSITORY_NAME)
@@ -25,12 +34,12 @@ GOIMPORTS_LOCAL:=$(PLATFORM_PACKAGE)
 
 GO_BUILD_FLAGS+=-buildvcs=false
 ifdef DELVE_PORT
-	GO_BUILD_FLAGS+=-gcflags 'all=-N -l'
+GO_BUILD_FLAGS+=-gcflags 'all=-N -l'
 endif
 
 GO_LD_FLAGS:=-ldflags '-X $(VERSION_PACKAGE).VersionBase=$(VERSION_BASE) -X $(VERSION_PACKAGE).VersionShortCommit=$(VERSION_SHORT_COMMIT) -X $(VERSION_PACKAGE).VersionFullCommit=$(VERSION_FULL_COMMIT)'
 
-FIND_CMD=find . -not -path '*/.git/*' -not -path '*/.gvm_local/*' -not -path '*/.vs_code/*'
+FIND_CMD=find . -not -path '*/.git/*' -not -path '*/.gvm_local/*' -not -path '*/.vscode/*'
 FIND_MAIN_CMD:=$(FIND_CMD) -not -path './private/*' -path './$(BUILD)*' -type f -name '*.go' -not -name '*_test.go' -exec grep -E -l '^\s*func\s+main\s*(\s*)' {} \;
 TRANSFORM_GO_BUILD_CMD:=sed 's|\.\(.*\)\(/[^/]*\)/[^/]*|_bin\1\2\2 .\1\2/.|'
 
@@ -38,9 +47,9 @@ GO_BUILD_CMD:=go build $(GO_BUILD_FLAGS) $(GO_LD_FLAGS)
 
 ifndef GOTEST_PKGS
 ifdef TEST
-	GOTEST_PKGS=$(REPOSITORY_PACKAGE)/$(TEST)
+GOTEST_PKGS=$(REPOSITORY_PACKAGE)/$(TEST)
 else
-	GOTEST_PKGS=./...
+GOTEST_PKGS=./...
 endif
 endif
 GOTEST_FLAGS ?=
@@ -50,50 +59,101 @@ GINKGO_CI_WATCH_FLAGS += --randomize-all --succinct --fail-on-pending --cover --
 GINKGO_CI_FLAGS += $(GINKGO_CI_WATCH_FLAGS) --randomize-suites --keep-going
 
 ifdef TEST
-	TEST_PACKAGE=$(shell [ -d "$(TEST)" ] && echo "$(TEST)" || dirname "$(TEST)")
-	TEST_PACKAGE_NAME=$(notdir $(TEST_PACKAGE))
-	TEST_DIRECTORY=$(realpath $(TEST_PACKAGE))
-	TEST_FILE=$(notdir $(TEST))
+TEST_PACKAGE=$(shell [ -d "$(TEST)" ] && echo "$(TEST)" || dirname "$(TEST)")
+TEST_PACKAGE_NAME=$(notdir $(TEST_PACKAGE))
+TEST_DIRECTORY=$(realpath $(TEST_PACKAGE))
+TEST_FILE=$(notdir $(TEST))
 endif
 
 TEST_REPEAT ?= 1
 
+# Help prevent erroneous Docker tag or push
+ifneq ($(origin DOCKER),undefined)
+$(error DOCKER must not be defined outside Makefile)
+endif
+
+# If a service Docker build
+ifneq ($(DOCKER_SERVICE),)
+
+# If not on Travis
+ifneq ($(TRAVIS),true)
+
+# Enable Docker for local builds
+override DOCKER := local
+
+# Otherwise, only on Travis push or API-triggered non-PR, non-tag builds of the official repository
+else ifneq ($(filter push api,$(TRAVIS_EVENT_TYPE)),)
+ifeq (|$(TRAVIS_PULL_REQUEST)|$(TRAVIS_TAG)|$(TRAVIS_REPO_SLUG)|,|false||tidepool-org/platform|)
+
+# Ensure required environment variables
+ifeq ($(value TRAVIS_BRANCH),)
+$(error TRAVIS_BRANCH not defined for Travis CI Docker build)
+else ifeq ($(TRAVIS_COMMIT),)
+$(error TRAVIS_COMMIT not defined for Travis CI Docker build)
+endif
+
+# Docker tags limited to 128 [A-Za-z0-9_.-] characters; ensure branch matches same (with '/' translated to '-' below),
+# but limit to 76 characters to allow for '-<commit>-<timestamp>' suffix below
+ifneq ($(shell printf '%s' "$${TRAVIS_BRANCH}" | LC_ALL=C grep -Eq '^[A-Za-z0-9_./-]{1,76}$$' && echo valid),valid)
+$(error TRAVIS_BRANCH not valid; limited to 76 [A-Za-z0-9_./-] characters)
+else ifneq ($(filter master-% master/%,$(value TRAVIS_BRANCH)),)
+$(error TRAVIS_BRANCH not valid; 'master-' and 'master/' prefix are reserved for the 'master' branch)
+endif
+
+# If master branch or private plugin visibility, enable Docker for Travis builds
+ifeq ($(value TRAVIS_BRANCH),master)
+override DOCKER := travis
+else ifeq ($(PLATFORM_PLUGIN_VISIBILITY),private)
+override DOCKER := travis
+endif
+
+endif
+endif
+
+# If on any Docker build
+ifneq ($(DOCKER),)
+
+DOCKER_BUILDX_CMD ?= docker buildx
+
+# Calculate base Docker repository, including '-private' suffix if the plugin visibility is private
+override DOCKER_REPOSITORY := $(REPOSITORY_NAME)-$(DOCKER_SERVICE)
+ifeq ($(PLATFORM_PLUGIN_VISIBILITY),private)
+override DOCKER_REPOSITORY := $(DOCKER_REPOSITORY)-private
+endif
+
+override DOCKER_BUILD_FLAGS := --target=platform-$(DOCKER_SERVICE) --build-arg=SERVICE=$(DOCKER_SERVICE) --build-arg=PLUGIN_VISIBILITY=$(PLATFORM_PLUGIN_VISIBILITY)
+
+# If Travis Docker build
+ifeq ($(DOCKER),travis)
+
 DOCKER_LOGIN_CMD ?= docker login
-DOCKER_BUILD_CMD ?= docker build
-DOCKER_PUSH_CMD ?= docker push
-DOCKER_TAG_CMD ?= docker tag
+DOCKER_BUILDER ?= platform
+DOCKER_PLATFORM ?= linux/amd64,linux/arm64
 
-ifdef TRAVIS_COMMIT
-ifdef TRAVIS_BRANCH
-ifeq ($(TRAVIS_BRANCH),master)
-    DOCKER:=true
-else # ifneq ($(shell go env GOWORK),) # TODO: Enable after BACK-3295 is merged into master
-    DOCKER:=true
-endif
-ifdef DOCKER
-	DOCKER_TRAVIS_BRANCH:=$(subst /,-,$(TRAVIS_BRANCH))
-endif
-endif
-endif
+# Push to the Tidepool Docker repository
+override DOCKER_REPOSITORY := tidepool/$(DOCKER_REPOSITORY)
 
-ifdef DOCKER
-ifdef DOCKER_SERVICE
-	DOCKER_REPOSITORY:=tidepool/$(REPOSITORY_NAME)-$(DOCKER_SERVICE)
-ifneq ($(shell go env GOWORK),)
-	DOCKER_REPOSITORY:=$(DOCKER_REPOSITORY)-private
-endif
-endif
+# Calculate the Docker build flags for the service
+override DOCKER_BUILD_FLAGS := $(DOCKER_BUILD_FLAGS) --builder=$(DOCKER_BUILDER) --platform=$(DOCKER_PLATFORM) --provenance=false
+
+# Calculate the Docker branch name for the Travis build; use the unexpanded value so make does not interpret it
+override DOCKER_TRAVIS_BRANCH := $(subst /,-,$(value TRAVIS_BRANCH))
+
+# Calculate the Docker tags for the Travis build based on the branch, commit, and timestamp
+override DOCKER_TRAVIS_TAGS := $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-latest
+ifeq ($(DOCKER_TRAVIS_BRANCH),master)
+override DOCKER_TRAVIS_TAGS+=$(DOCKER_REPOSITORY):latest
 endif
 
-PLUGINS=abbott
+# Otherwise, if a local Docker build
+else ifeq ($(DOCKER),local)
 
-ifeq ($(shell go env GOWORK),)
-	PLUGIN_VISIBILITY:=public
-else
-	PLUGIN_VISIBILITY:=private
+# Calculate the Docker build flags for the service
+override DOCKER_BUILD_FLAGS := $(DOCKER_BUILD_FLAGS) --tag=$(DOCKER_REPOSITORY):local --output=type=docker
+
 endif
-
-SERVICES=auth blob data migrations prescription task tools
+endif
+endif
 
 default: generate build test
 
@@ -136,41 +196,41 @@ buildable: bindir CompileDaemon ginkgo goimports
 
 plugins-visibility:
 	@cd $(ROOT_DIRECTORY) && \
-		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility PLUGIN="$${PLUGIN}"; done
+		for PLATFORM_PLUGIN in $(PLATFORM_PLUGINS); do $(MAKE) plugin-visibility PLATFORM_PLUGIN="$${PLATFORM_PLUGIN}" || exit 1; done
 
 plugin-visibility:
-ifdef PLUGIN
+ifdef PLATFORM_PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		echo "Plugin $(PLUGIN) is `go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go`."
+		VISIBILITY=`go run $(GO_BUILD_FLAGS) $${GOWORK_FLAGS:-} plugin/visibility/visibility.go $(PLATFORM_PLUGIN)` && \
+		echo "Plugin $(PLATFORM_PLUGIN) is $${VISIBILITY}."
 endif
 
 plugins-visibility-public:
 	@cd $(ROOT_DIRECTORY) && \
-		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-public PLUGIN="$${PLUGIN}"; done
+		for PLATFORM_PLUGIN in $(PLATFORM_PLUGINS); do $(MAKE) plugin-visibility-public PLATFORM_PLUGIN="$${PLATFORM_PLUGIN}" || exit 1; done
 
 plugin-visibility-public:
-ifdef PLUGIN
+ifdef PLATFORM_PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		{ [ ! -e go.work ] || go work edit -dropuse=./private/plugin/$(PLUGIN); } && \
+		{ [ ! -e go.work ] || go work edit -dropuse=./private/plugin/$(PLATFORM_PLUGIN); } && \
 		{ [ "`go list -m -mod=readonly`" != "${REPOSITORY_PACKAGE}" ] || rm go.work go.work.sum 2> /dev/null || true; } && \
-		git config set --local submodule.private/plugin/$(PLUGIN).update none && \
-		git config set --file=.gitmodules submodule.private/plugin/$(PLUGIN).update none && \
+		{ ! git rev-parse --git-dir > /dev/null 2>&1 || git config --local submodule.private/plugin/$(PLATFORM_PLUGIN).update none; } && \
 		$(MAKE) plugin-visibility
 endif
 
 plugins-visibility-private:
 	@cd $(ROOT_DIRECTORY) && \
-		for PLUGIN in $(PLUGINS); do $(MAKE) plugin-visibility-private PLUGIN="$${PLUGIN}"; done
+		for PLATFORM_PLUGIN in $(PLATFORM_PLUGINS); do $(MAKE) plugin-visibility-private PLATFORM_PLUGIN="$${PLATFORM_PLUGIN}" || exit 1; done
 
 plugin-visibility-private:
-ifdef PLUGIN
+ifdef PLATFORM_PLUGIN
 	@cd $(ROOT_DIRECTORY) && \
-		{ git config unset --local submodule.private/plugin/$(PLUGIN).update || true; } && \
-		{ git config unset --file=.gitmodules submodule.private/plugin/$(PLUGIN).update || true; } && \
-		git submodule update --init private/plugin/$(PLUGIN) && \
+		{ ! git rev-parse --git-dir > /dev/null 2>&1 || { \
+			git config --local submodule.private/plugin/$(PLATFORM_PLUGIN).update checkout && \
+			git submodule update --init private/plugin/$(PLATFORM_PLUGIN); }; } && \
 		{ [ -e go.work ] || go work init .; } && \
-		go work edit -use=./private/plugin/$(PLUGIN) && \
+		go work edit -use=./private/plugin/$(PLATFORM_PLUGIN) && \
 		go work edit -go=`sed -n 's/^go //p' go.mod` && \
 		go work edit -toolchain=`grep -q '^toolchain' go.mod && sed -n 's/^toolchain //p' go.mod || sed -n 's/^go /go/p' go.mod` && \
 		$(MAKE) plugin-visibility
@@ -240,8 +300,8 @@ vet: tmp
 	@echo "go vet ./..."
 	@cd $(ROOT_DIRECTORY) && \
 		{ [ -z `go env GOWORK` ] || GOWORK_FLAGS=-mod=readonly; } && \
-		$(TIMING_CMD) go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
-		(diff .govetignore _tmp/govet.out && exit 1)
+		go vet $${GOWORK_FLAGS:-} ./... > _tmp/govet.out 2>&1 || \
+		{ LC_ALL=C sort -o _tmp/govet.out _tmp/govet.out && diff .govetignore _tmp/govet.out; }
 
 vet-ignore:
 	@cd $(ROOT_DIRECTORY) && cp _tmp/govet.out .govetignore
@@ -335,73 +395,75 @@ ifdef TEST
 endif
 
 service-build:
-ifdef SERVICE
-	@$(MAKE) build BUILD=$${SERVICE}
+ifdef PLATFORM_SERVICE
+	@$(MAKE) build BUILD=$${PLATFORM_SERVICE}
 endif
 
 service-start: CompileDaemon tmp
-ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+ifdef PLATFORM_SERVICE
+	@cd $(ROOT_DIRECTORY) && BUILD=$(PLATFORM_SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='_bin/$(PLATFORM_SERVICE)/$(notdir $(PLATFORM_SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(PLATFORM_SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
 endif
 
 service-debug: CompileDaemon tmp
-ifdef SERVICE
+ifdef PLATFORM_SERVICE
 ifdef DEBUG_PORT
-	@cd $(ROOT_DIRECTORY) && BUILD=$(SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(SERVICE)/$(notdir $(SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
+	@cd $(ROOT_DIRECTORY) && BUILD=$(PLATFORM_SERVICE) CompileDaemon -build-dir='.' -build='make build' -command='dlv exec --headless --log --listen=:$(DEBUG_PORT) --api-version=2 _bin/$(PLATFORM_SERVICE)/$(notdir $(PLATFORM_SERVICE))' -directory='_tmp' -pattern='^$$' -include='$(subst /,.,$(PLATFORM_SERVICE)).restart' -recursive=false -log-prefix=false -graceful-kill=true -graceful-timeout=60
 endif
 endif
 
 service-restart: tmp
-ifdef SERVICE
-	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/$(subst /,.,$(SERVICE)).restart
+ifdef PLATFORM_SERVICE
+	@cd $(ROOT_DIRECTORY) && date +'%Y-%m-%dT%H:%M:%S%z' > _tmp/$(subst /,.,$(PLATFORM_SERVICE)).restart
 endif
 
 service-restart-all:
-	@cd $(ROOT_DIRECTORY) && for SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart SERVICE="services/$${SERVICE}"; done
+	@cd $(ROOT_DIRECTORY) && for PLATFORM_SERVICE in $(shell ls -1 services) ; do $(MAKE) service-restart PLATFORM_SERVICE="services/$${PLATFORM_SERVICE}"; done
 
 docker-dump:
 	@echo "DOCKER=$(DOCKER)"
+	@echo "DOCKER_SERVICE=$(DOCKER_SERVICE)"
 	@echo "DOCKER_REPOSITORY=$(DOCKER_REPOSITORY)"
+	@echo "DOCKER_BUILD_FLAGS=$(DOCKER_BUILD_FLAGS)"
+	@echo "DOCKER_TRAVIS_TAGS=$(DOCKER_TRAVIS_TAGS)"
 
 docker:
-ifdef DOCKER
 	@cd $(ROOT_DIRECTORY) && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done && \
-		for SERVICE in $(SERVICES); do $(MAKE) docker-push DOCKER_SERVICE="$${SERVICE}" TIMESTAMP="$(TIMESTAMP)"; done
+		for PLATFORM_SERVICE in $(PLATFORM_SERVICES); do $(MAKE) docker-build DOCKER_SERVICE="$${PLATFORM_SERVICE}" || exit 1; done
+
+docker-build: docker-dump
+ifeq ($(DOCKER),local)
+	@cd $(ROOT_DIRECTORY) && \
+		$(TIMING_CMD) $(DOCKER_BUILDX_CMD) build $(DOCKER_BUILD_FLAGS) .
 endif
 
-docker-login:
-ifdef DOCKER_REPOSITORY
+ci-docker: version-write
+	@cd $(ROOT_DIRECTORY) && \
+		for PLATFORM_SERVICE in $(PLATFORM_SERVICES); do $(MAKE) ci-docker-build DOCKER_SERVICE="$${PLATFORM_SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit 1; done && \
+		for PLATFORM_SERVICE in $(PLATFORM_SERVICES); do $(MAKE) ci-docker-push DOCKER_SERVICE="$${PLATFORM_SERVICE}" TIMESTAMP="$(TIMESTAMP)" || exit 1; done
+
+ci-docker-login:
+ifeq ($(DOCKER),travis)
 	@echo "$(DOCKER_PASSWORD)" | $(DOCKER_LOGIN_CMD) --username "$(DOCKER_USERNAME)" --password-stdin
 endif
 
-docker-build: docker-dump docker-login
-ifdef DOCKER_REPOSITORY
-	@cd $(ROOT_DIRECTORY) && \
-		$(TIMING_CMD) $(DOCKER_BUILD_CMD) --build-arg=PLUGIN_VISIBILITY=$(PLUGIN_VISIBILITY) --target=platform-${DOCKER_SERVICE} --tag $(DOCKER_REPOSITORY) .
-ifdef DOCKER_TRAVIS_BRANCH
-	@cd $(ROOT_DIRECTORY) && \
-		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
-		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) && \
-		$(DOCKER_TAG_CMD) $(DOCKER_REPOSITORY) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-latest
-endif
+ci-docker-builder:
+ifeq ($(DOCKER),travis)
+	@$(DOCKER_BUILDX_CMD) inspect $(DOCKER_BUILDER) > /dev/null 2>&1 || \
+		$(DOCKER_BUILDX_CMD) create --name $(DOCKER_BUILDER) --driver docker-container --bootstrap
 endif
 
-docker-push: docker-dump docker-login
-ifdef DOCKER_REPOSITORY
-ifdef DOCKER_TRAVIS_BRANCH
-ifeq ($(DOCKER_TRAVIS_BRANCH),master)
+# Multi-platform images cannot be loaded locally; build every service into the builder cache before push
+ci-docker-build: docker-dump ci-docker-login ci-docker-builder
+ifeq ($(DOCKER),travis)
 	@cd $(ROOT_DIRECTORY) && \
-		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY)
-endif
-	@cd $(ROOT_DIRECTORY) && \
-		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT)-$(TIMESTAMP) && \
-		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-$(TRAVIS_COMMIT) && \
-		$(DOCKER_PUSH_CMD) $(DOCKER_REPOSITORY):$(DOCKER_TRAVIS_BRANCH)-latest
-endif
+		$(TIMING_CMD) $(DOCKER_BUILDX_CMD) build $(DOCKER_BUILD_FLAGS) .
 endif
 
-ci-docker: version-write docker
+ci-docker-push: docker-dump ci-docker-login ci-docker-builder
+ifeq ($(DOCKER),travis)
+	@cd $(ROOT_DIRECTORY) && \
+		$(TIMING_CMD) $(DOCKER_BUILDX_CMD) build $(DOCKER_BUILD_FLAGS) $(addprefix --tag=,$(DOCKER_TRAVIS_TAGS)) --push .
+endif
 
 version-write:
 	@cd $(ROOT_DIRECTORY) && \
@@ -439,18 +501,19 @@ pre-commit: format imports vet
 
 phony:
 	@{ rm $(MAKEFILE) && sed -E -n '/^.PHONY: /q;p' > $(MAKEFILE); } < $(MAKEFILE)
-	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/    /g' >> $(MAKEFILE)
+	@grep -E '^[^ #]+:( |$$)' $(MAKEFILE) | sed -E 's/^([^ #]+):.*/\1/' | sort -u | xargs echo '.PHONY:' | fold -s -w 80 | sed '$$!s/$$/\\/;2,$$s/^/\t/g' >> $(MAKEFILE)
 
 .PHONY: bindir build build-list build-watch buildable ci ci-build \
-    ci-build-watch ci-docker ci-generate ci-init ci-test ci-test-ginkgo \
-    ci-test-ginkgo-repeat ci-test-ginkgo-until-failure ci-test-ginkgo-watch \
-    ci-test-go clean clean-all clean-bin clean-cover clean-debug clean-generate \
-    clean-test clean-version CompileDaemon default docker docker-build docker-dump \
-    docker-login docker-push format format-write format-write-changed generate \
-    ginkgo ginkgo-bootstrap ginkgo-generate go-generate go-mod-download go-mod-tidy \
-    goimports imports imports-write imports-write-changed init mockgen phony \
-    plugin-visibility plugin-visibility-private plugin-visibility-public \
-    plugins-visibility plugins-visibility-private plugins-visibility-public \
-    pre-commit service-build service-debug service-restart service-restart-all \
-    service-start test test-ginkgo test-ginkgo-repeat test-ginkgo-until-failure \
-    test-ginkgo-watch test-go tmp version-write vet vet-ignore
+	ci-build-watch ci-docker ci-docker-build ci-docker-builder ci-docker-login \
+	ci-docker-push ci-generate ci-init ci-test ci-test-ginkgo ci-test-ginkgo-repeat \
+	ci-test-ginkgo-until-failure ci-test-ginkgo-watch ci-test-go clean clean-all \
+	clean-bin clean-cover clean-debug clean-generate clean-test clean-version \
+	CompileDaemon default docker docker-build docker-dump format format-write \
+	format-write-changed generate ginkgo ginkgo-bootstrap ginkgo-generate \
+	go-generate go-mod-download go-mod-tidy goimports imports imports-write \
+	imports-write-changed init mockgen phony plugin-visibility \
+	plugin-visibility-private plugin-visibility-public plugins-visibility \
+	plugins-visibility-private plugins-visibility-public pre-commit service-build \
+	service-debug service-restart service-restart-all service-start test \
+	test-ginkgo test-ginkgo-repeat test-ginkgo-until-failure test-ginkgo-watch \
+	test-go tmp version-write vet vet-ignore

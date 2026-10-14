@@ -36,7 +36,7 @@ make buildable
 
 # Configure Plugin Visibility
 
-By default, all plugins are configured to use the public versions (which typically are nothing more than a bare minimum shell). Public visilibity is fine for developing, building, or using platform without any of the private plugin functionality.
+By default, all plugins are configured to use the public versions (which typically are nothing more than a bare minimum shell). Public visibility is fine for developing, building, or using platform without any of the private plugin functionality.
 
 To change plugin visibility to private:
 
@@ -44,7 +44,7 @@ To change plugin visibility to private:
 make plugins-visibility-private
 ```
 
-This will update the private plugin submodules and create a Go workspace to use the private plugin during development and builds.
+This will update the private plugin submodules and create a Go workspace to use the private plugins during development and builds. Visibility applies to all plugins at once.
 
 To restore the plugin visibility to public:
 
@@ -52,7 +52,16 @@ To restore the plugin visibility to public:
 make plugins-visibility-public
 ```
 
-NOTE: Do **NOT** commit any `update = none` changes to `.gitmodules` nor the `go.work` or `go.work.sum` files. Furthermore, ensure no private code is committed to the public platform repository.
+Each private plugin submodule is declared in `.gitmodules` with `update = none`, so a default `git submodule update` (including the one Travis CI runs when cloning) skips it. Changing visibility only sets `submodule.<path>.update` in your local Git configuration (`checkout` for private, `none` for public) and never modifies `.gitmodules`.
+
+NOTE: Do **NOT** commit the `go.work` or `go.work.sum` files. Furthermore, ensure no private code is committed to the public platform repository.
+
+## Add a Plugin
+
+1. Add the public version as its own Go module at `plugin/<name>`, including a `<name>/plugin` package with a `Visibility()` function that returns `public`.
+1. Add the private version as a submodule at `private/plugin/<name>`, with `update = none` in `.gitmodules`. Its `<name>/plugin` package's `Visibility()` returns `private`.
+1. In `go.mod`, require the plugin module and `replace` it with `./plugin/<name>`.
+1. Add `<name>` to `PLATFORM_PLUGINS` in the `Makefile` and register its `Visibility()` in `plugin/visibility/visibility.go`.
 
 # Execute
 

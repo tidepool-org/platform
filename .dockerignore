@@ -5,8 +5,8 @@
 *.env
 .envrc
 env*.sh
-private/plugin/abbott/*.env
-private/plugin/abbott/env*.sh
+private/plugin/*/*.env
+private/plugin/*/env*.sh
 !version.env
 
 # Debug
@@ -36,6 +36,8 @@ test
 */*/*/*/*/*/*/*_test.go
 
 # Project
+go.work
+go.work.sum
 vendor
 _bin
 _data
@@ -48,7 +50,7 @@ _tmp
 .vscode
 .govetignore
 *.code-workspace
-private/plugin/abbott/.govetignore
+private/plugin/*/.govetignore
 
 # Documentation
 CHANGELOG.md
@@ -62,9 +64,9 @@ README.md
 .git
 .gitignore
 .gitmodules
-private/plugin/abbott/.git
-private/plugin/abbott/.gitignore
-private/plugin/abbott/Makefile
+private/plugin/*/.git
+private/plugin/*/.gitignore
+private/plugin/*/Makefile
 
 # Docker
 .dockerignore
