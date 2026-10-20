@@ -20,7 +20,44 @@ const (
 	SizeStoredMaximum       = 10 * 1024 * 1024
 	MetadataSizeMaximum     = 4 * 1024
 	MediaTypeDefault        = "application/octet-stream"
+
+	// The metadata keys the sequence filter and sort query: the lowest and highest sequence of the raw data, each a
+	// sequence group and a sequence number within it, ordered by group then number.
+	MetadataKeyMinimumSequenceGroup  = "minimumSequenceGroup"
+	MetadataKeyMinimumSequenceNumber = "minimumSequenceNumber"
+	MetadataKeyMaximumSequenceGroup  = "maximumSequenceGroup"
+	MetadataKeyMaximumSequenceNumber = "maximumSequenceNumber"
+
+	SortCreatedTime = "createdTime"
+	SortSequence    = "sequence"
 )
+
+// ListOption chooses the sort of List: SortCreatedTime by default, or SortSequence, by minimum sequence group, then
+// minimum sequence number, then created time, with raw data without a sequence first.
+type ListOption struct {
+	sort *string
+}
+
+func (l ListOption) Sort() string {
+	if l.sort == nil {
+		return SortCreatedTime
+	}
+	return *l.sort
+}
+
+func ListOptions(options []ListOption) ListOption {
+	option := ListOption{}
+	for _, o := range options {
+		if o.sort != nil {
+			option.sort = o.sort
+		}
+	}
+	return option
+}
+
+func WithSort(sort string) ListOption {
+	return ListOption{sort: pointer.From(sort)}
+}
 
 type Filter struct {
 	CreatedDate      *string    `json:"createdDate,omitempty" bson:"createdDate,omitempty"`
@@ -29,6 +66,14 @@ type Filter struct {
 	Processed        *bool      `json:"processed,omitempty" bson:"processed,omitempty"`
 	Archivable       *bool      `json:"archivable,omitempty" bson:"archivable,omitempty"`
 	Archived         *bool      `json:"archived,omitempty" bson:"archived,omitempty"`
+	MediaTypes       *[]string  `json:"mediaTypes,omitempty" bson:"mediaTypes,omitempty"`
+
+	// Raw with a sequence entirely within this sequence group; raw without a sequence is excluded
+	SequenceGroup *int64 `json:"sequenceGroup,omitempty" bson:"sequenceGroup,omitempty"`
+
+	// Raw whose minimum sequence is in SequenceGroup and after this number, whatever its maximum, even in a later
+	// group. Requires SequenceGroup, since sequence numbers are only comparable within a group.
+	SequenceNumberAfter *int64 `json:"sequenceNumberAfter,omitempty" bson:"sequenceNumberAfter,omitempty"`
 }
 
 func (f *Filter) Parse(parser structure.ObjectParser) {
@@ -38,12 +83,21 @@ func (f *Filter) Parse(parser structure.ObjectParser) {
 	f.Processed = parser.Bool("processed")
 	f.Archivable = parser.Bool("archivable")
 	f.Archived = parser.Bool("archived")
+	f.MediaTypes = parser.StringArray("mediaTypes")
+	f.SequenceGroup = parser.Int64("sequenceGroup")
+	f.SequenceNumberAfter = parser.Int64("sequenceNumberAfter")
 }
 
 func (f *Filter) Validate(validator structure.Validator) {
 	validator.String("createdDate", f.CreatedDate).AsTime(FilterCreatedDateFormat).NotZero()
 	validator.Time("createdTimeStart", f.CreatedTimeStart).NotZero()
 	validator.String("dataSetId", f.DataSetID).Using(data.SetIDValidator)
+	validator.StringArray("mediaTypes", f.MediaTypes).NotEmpty().EachUsing(net.MediaTypeValidator).EachUnique()
+	sequenceGroupValidator := validator.Int64("sequenceGroup", f.SequenceGroup).GreaterThanOrEqualTo(0)
+	if f.SequenceNumberAfter != nil {
+		sequenceGroupValidator.Exists()
+	}
+	validator.Int64("sequenceNumberAfter", f.SequenceNumberAfter).GreaterThanOrEqualTo(0)
 }
 
 func (f *Filter) CreatedTime() *time.Time {
