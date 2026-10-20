@@ -1,6 +1,7 @@
 package test
 
 import (
+	"math"
 	"time"
 
 	dataRaw "github.com/tidepool-org/platform/data/raw"
@@ -26,15 +27,25 @@ func RandomCreatedDate() string {
 	return test.RandomTimeBeforeNow().UTC().Format(dataRaw.FilterCreatedDateFormat)
 }
 
+func RandomSequenceNumber() int64 {
+	return test.RandomInt64FromRange(0, math.MaxInt32)
+}
+
 func RandomFilter(options ...test.Option) *dataRaw.Filter {
-	return &dataRaw.Filter{
+	filter := &dataRaw.Filter{
 		CreatedDate:      test.RandomOptional(RandomCreatedDate, options...),
 		CreatedTimeStart: test.RandomOptional(test.RandomTimeBeforeNow, options...),
 		DataSetID:        test.RandomOptional(dataTest.RandomDataSetID, options...),
 		Processed:        test.RandomOptional(test.RandomBool, options...),
 		Archivable:       test.RandomOptional(test.RandomBool, options...),
 		Archived:         test.RandomOptional(test.RandomBool, options...),
+		MediaTypes:       test.RandomOptional(func() []string { return netTest.RandomMediaTypes(1, 3) }, options...),
+		SequenceGroup:    test.RandomOptional(RandomSequenceNumber, options...),
 	}
+	if filter.SequenceGroup != nil {
+		filter.SequenceNumberAfter = test.RandomOptional(RandomSequenceNumber, options...)
+	}
+	return filter
 }
 
 func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
@@ -42,12 +53,15 @@ func CloneFilter(datum *dataRaw.Filter) *dataRaw.Filter {
 		return nil
 	}
 	return &dataRaw.Filter{
-		CreatedDate:      pointer.CloneString(datum.CreatedDate),
-		CreatedTimeStart: pointer.CloneTime(datum.CreatedTimeStart),
-		DataSetID:        pointer.CloneString(datum.DataSetID),
-		Processed:        pointer.CloneBool(datum.Processed),
-		Archivable:       pointer.CloneBool(datum.Archivable),
-		Archived:         pointer.CloneBool(datum.Archived),
+		CreatedDate:         pointer.CloneString(datum.CreatedDate),
+		CreatedTimeStart:    pointer.CloneTime(datum.CreatedTimeStart),
+		DataSetID:           pointer.CloneString(datum.DataSetID),
+		Processed:           pointer.CloneBool(datum.Processed),
+		Archivable:          pointer.CloneBool(datum.Archivable),
+		Archived:            pointer.CloneBool(datum.Archived),
+		MediaTypes:          pointer.CloneStringArray(datum.MediaTypes),
+		SequenceGroup:       pointer.Clone(datum.SequenceGroup),
+		SequenceNumberAfter: pointer.Clone(datum.SequenceNumberAfter),
 	}
 }
 
@@ -73,6 +87,15 @@ func NewObjectFromFilter(datum *dataRaw.Filter, objectFormat test.ObjectFormat) 
 	}
 	if datum.Archived != nil {
 		object["archived"] = test.NewObjectFromBool(*datum.Archived, objectFormat)
+	}
+	if datum.MediaTypes != nil {
+		object["mediaTypes"] = test.NewArrayFromStringArray(*datum.MediaTypes, objectFormat)
+	}
+	if datum.SequenceGroup != nil {
+		object["sequenceGroup"] = test.NewObjectFromInt64(*datum.SequenceGroup, objectFormat)
+	}
+	if datum.SequenceNumberAfter != nil {
+		object["sequenceNumberAfter"] = test.NewObjectFromInt64(*datum.SequenceNumberAfter, objectFormat)
 	}
 	return object
 }

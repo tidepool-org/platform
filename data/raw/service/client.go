@@ -14,7 +14,7 @@ import (
 //go:generate mockgen -source=client.go -destination=test/client_mocks.go -package=test -typed
 
 type Store interface {
-	List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination) ([]*dataRaw.Raw, error)
+	List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination, options ...dataRaw.ListOption) ([]*dataRaw.Raw, error)
 	Create(ctx context.Context, userID string, dataSetID string, create *dataRaw.Create, data io.Reader) (*dataRaw.Raw, error)
 	Get(ctx context.Context, id string, condition *storeStructured.Condition) (*dataRaw.Raw, error)
 	GetContent(ctx context.Context, id string, condition *storeStructured.Condition) (*dataRaw.Content, error)
@@ -38,8 +38,8 @@ func NewClient(store Store) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination) ([]*dataRaw.Raw, error) {
-	return c.store.List(ctx, userID, filter, pagination)
+func (c *Client) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination, options ...dataRaw.ListOption) ([]*dataRaw.Raw, error) {
+	return c.store.List(ctx, userID, filter, pagination, options...)
 }
 
 func (c *Client) Create(ctx context.Context, userID string, dataSetID string, create *dataRaw.Create, data io.Reader) (*dataRaw.Raw, error) {

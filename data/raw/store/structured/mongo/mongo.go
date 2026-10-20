@@ -33,7 +33,17 @@ const (
 	IDDateFormat = time.DateOnly
 
 	CompressionFactorMinimum = 0.1
+
+	metadataKeyMinimumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMinimumSequenceGroup
+	metadataKeyMinimumSequenceNumber = "metadata." + dataRaw.MetadataKeyMinimumSequenceNumber
+	metadataKeyMaximumSequenceGroup  = "metadata." + dataRaw.MetadataKeyMaximumSequenceGroup
 )
+
+var sorts = map[string]bson.D{
+	dataRaw.SortCreatedTime: {{Key: "createdTime", Value: 1}},
+	// Raw data without a sequence sorts first, as missing fields sort before numbers
+	dataRaw.SortSequence: {{Key: metadataKeyMinimumSequenceGroup, Value: 1}, {Key: metadataKeyMinimumSequenceNumber, Value: 1}, {Key: "createdTime", Value: 1}},
+}
 
 type Store struct {
 	*storeStructuredMongo.Store
@@ -62,10 +72,37 @@ func (s *Store) EnsureIndexes() error {
 			Options: mongoOptions.Index().
 				SetName("UserIdDataSetIdCreatedTime"),
 		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: "processedTime", Value: 1},
+				{Key: "mediaType", Value: 1},
+				{Key: metadataKeyMinimumSequenceGroup, Value: 1},
+				{Key: metadataKeyMinimumSequenceNumber, Value: 1},
+				{Key: "createdTime", Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetName("UserIdDataSetIdProcessedTimeMediaTypeMinimumSequenceCreatedTime"),
+		},
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "dataSetId", Value: 1},
+				{Key: metadataKeyMinimumSequenceGroup, Value: 1},
+				{Key: metadataKeyMinimumSequenceNumber, Value: 1},
+			},
+			Options: mongoOptions.Index().
+				SetPartialFilterExpression(bson.D{
+					{Key: "processedTime", Value: bson.M{"$exists": true}},
+					{Key: metadataKeyMinimumSequenceGroup, Value: bson.M{"$exists": true}},
+				}).
+				SetName("UserIdDataSetIdProcessedMinimumSequence"),
+		},
 	})
 }
 
-func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination) ([]*dataRaw.Raw, error) {
+func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter, pagination *page.Pagination, options ...dataRaw.ListOption) ([]*dataRaw.Raw, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -84,8 +121,13 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	} else if err := structureValidator.New(log.LoggerFromContext(ctx)).Validate(pagination); err != nil {
 		return nil, errors.Wrap(err, "pagination is invalid")
 	}
+	sort := dataRaw.ListOptions(options).Sort()
+	sortDocument, ok := sorts[sort]
+	if !ok {
+		return nil, errors.New("sort is invalid")
+	}
 
-	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination})
+	ctx, lgr := log.ContextAndLoggerWithFields(ctx, log.Fields{"userId": userID, "filter": filter, "pagination": pagination, "sort": sort})
 
 	now := time.Now()
 	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("List") }()
@@ -124,9 +166,20 @@ func (s *Store) List(ctx context.Context, userID string, filter *dataRaw.Filter,
 	if filter.Archived != nil {
 		query["archivedTime"] = bson.M{"$exists": *filter.Archived}
 	}
+	if filter.MediaTypes != nil {
+		query["mediaType"] = bson.M{"$in": *filter.MediaTypes}
+	}
+	if filter.SequenceGroup != nil {
+		query[metadataKeyMinimumSequenceGroup] = *filter.SequenceGroup
+		if filter.SequenceNumberAfter != nil {
+			query[metadataKeyMinimumSequenceNumber] = bson.M{"$gt": *filter.SequenceNumberAfter}
+		} else {
+			query[metadataKeyMaximumSequenceGroup] = *filter.SequenceGroup
+		}
+	}
 
 	opts := storeStructuredMongo.FindWithPagination(pagination).
-		SetSort(bson.M{"createdTime": 1}).
+		SetSort(sortDocument).
 		SetProjection(bson.M{"data": 0})
 	documents, err := s.findMany(ctx, query, opts)
 	lgr = lgr.WithError(err)
