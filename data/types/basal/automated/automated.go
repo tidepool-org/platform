@@ -70,12 +70,7 @@ func (a *Automated) Validate(validator structure.Validator) {
 	}
 
 	validator.Int("duration", a.Duration).Exists().InRange(DurationMinimum, DurationMaximum)
-	expectedDurationValidator := validator.Int("expectedDuration", a.DurationExpected)
-	if a.Duration != nil && *a.Duration >= DurationMinimum && *a.Duration <= DurationMaximum {
-		expectedDurationValidator.InRange(*a.Duration, DurationMaximum)
-	} else {
-		expectedDurationValidator.InRange(DurationMinimum, DurationMaximum)
-	}
+	validator.Int("expectedDuration", a.DurationExpected).InRange(DurationMinimum, DurationMaximum)
 	if a.InsulinFormulation != nil {
 		a.InsulinFormulation.Validate(validator.WithReference("insulinFormulation"))
 	}
