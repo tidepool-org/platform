@@ -159,12 +159,18 @@ var _ = Describe("Status", func() {
 						datum.DurationExpected = nil
 					},
 				),
-				Entry("duration in range; duration expected out of range",
+				Entry("duration in range; duration expected less than duration",
 					func(datum *status.Status) {
 						datum.Duration = pointer.FromInt(1)
 						datum.DurationExpected = pointer.FromInt(0)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(0, 1), "/expectedDuration", NewMeta()),
+				),
+				Entry("duration in range; duration expected out of range",
+					func(datum *status.Status) {
+						datum.Duration = pointer.FromInt(1)
+						datum.DurationExpected = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range; duration expected in range",
 					func(datum *status.Status) {

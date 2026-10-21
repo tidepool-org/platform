@@ -235,17 +235,23 @@ var _ = Describe("Scheduled", func() {
 						datum.DurationExpected = nil
 					},
 				),
-				Entry("duration in range (upper); duration expected out of range (lower)",
+				Entry("duration in range (upper); duration expected less than duration",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800000)
 						datum.DurationExpected = pointer.FromInt(604799999)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604799999, 604800000, 604800000), "/expectedDuration", NewMeta()),
+				),
+				Entry("duration in range (upper); duration expected out of range (lower)",
+					func(datum *scheduled.Scheduled) {
+						datum.Duration = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(-1)
+					},
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(-1, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration in range (upper); duration expected in range (lower)",
 					func(datum *scheduled.Scheduled) {
 						datum.Duration = pointer.FromInt(604800000)
-						datum.DurationExpected = pointer.FromInt(604800000)
+						datum.DurationExpected = pointer.FromInt(0)
 					},
 				),
 				Entry("duration in range (upper); duration expected in range (upper)",
@@ -259,7 +265,7 @@ var _ = Describe("Scheduled", func() {
 						datum.Duration = pointer.FromInt(604800000)
 						datum.DurationExpected = pointer.FromInt(604800001)
 					},
-					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 604800000, 604800000), "/expectedDuration", NewMeta()),
+					errorsTest.WithPointerSourceAndMeta(structureValidator.ErrorValueNotInRange(604800001, 0, 604800000), "/expectedDuration", NewMeta()),
 				),
 				Entry("duration out of range (upper); duration expected missing",
 					func(datum *scheduled.Scheduled) {
