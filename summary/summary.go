@@ -151,7 +151,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 		}
 
 		var status *data.UserDataStatus
-		status, err = gs.dataFetcher.GetLastUpdatedForUser(sessionCtx, userID, dataTypes, userSummary.Dates.LastUpdatedDate)
+		status, err = gs.dataFetcher.GetUserDataStatus(sessionCtx, userID, dataTypes, userSummary.Dates.LastUpdatedDate)
 		if err != nil {
 			return nil, err
 		}
