@@ -169,20 +169,10 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateSummary(ctx context.Context, us
 			return userSummary, nil
 		}
 
-		// Data modified at or before the last data summarized invalidates the buckets from
-		// its hour on. They're dropped, and the data is read again from the end of the
-		// newest bucket kept, or from the start of the range when no bucket was dropped or
-		// none is kept.
-		if !status.EarliestModified.After(userSummary.Dates.LastData) {
-			if newFirstData, clearErr := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userID, status.EarliestModified); clearErr != nil {
-				return nil, clearErr
-			} else if !newFirstData.IsZero() {
-				status.FirstData = newFirstData
-			}
-		} else if userSummary.Dates.LastData.After(status.FirstData) {
-			// Otherwise only data after the last data summarized was modified, so only the
-			// data after it is read.
-			status.FirstData = userSummary.Dates.LastData
+		status.FirstData, err = gs.invalidateBuckets(sessionCtx, userID,
+			userSummary.Dates.LastData, status)
+		if err != nil {
+			return nil, err
 		}
 
 		cursor, err := gs.dataFetcher.GetDataRange(sessionCtx, userID, dataTypes, status)
@@ -290,6 +280,34 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) getOrInitSummary(ctx context.Context,
 	}
 
 	return userSummary, resetNone, nil
+}
+
+// invalidateBuckets drops the buckets invalidated by data modified at or before lastData,
+// the last data summarized, and returns the time after which the data must be read.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) invalidateBuckets(ctx context.Context,
+	userID string, lastData time.Time, status *data.UserDataStatus) (time.Time, error) {
+
+	if status.EarliestModified.After(lastData) {
+		// Only data after the last data summarized was modified, so only the data after it
+		// is read, unless the range starts later.
+		if lastData.After(status.FirstData) {
+			return lastData, nil
+		}
+		return status.FirstData, nil
+	}
+
+	// The modified data invalidates the buckets from its hour on. The data is read again
+	// from the end of the newest bucket kept, or from the start of the range when no
+	// bucket was dropped or none is kept.
+	newFirstData, err := gs.buckets.ClearInvalidatedBuckets(ctx, userID,
+		status.EarliestModified)
+	if err != nil {
+		return time.Time{}, err
+	}
+	if newFirstData.IsZero() {
+		return status.FirstData, nil
+	}
+	return newFirstData, nil
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userID string, summaryType string, cursor fetcher.DeviceDataCursor) error {
