@@ -35,9 +35,20 @@ func GetBuckets[B BucketDataPt[A], A BucketData](ctx context.Context, userId str
 	return buckets
 }
 
+// UpdateSummaryLogs returns the fields of the info logs of completed summary updates.
+func UpdateSummaryLogs(logger *logTest.Logger) []log.Fields {
+	logs := []log.Fields{}
+	for _, fields := range logger.SerializedFields {
+		if fields["level"] == log.InfoLevel && fields["message"] == "UpdateOrRecalculateSummary" {
+			logs = append(logs, fields)
+		}
+	}
+	return logs
+}
+
 var _ = Describe("End to end summary calculations", func() {
 	var err error
-	var logger log.Logger
+	var logger *logTest.Logger
 	var ctx context.Context
 	var registry *summary.SummarizerRegistry
 	var mongoStore *dataStoreMongo.Store
@@ -92,7 +103,22 @@ var _ = Describe("End to end summary calculations", func() {
 
 		_, err = dataCollection.DeleteMany(ctx, bson.D{})
 		Expect(err).ToNot(HaveOccurred())
+
+		_, err = bucketsRepo.DeleteMany(ctx, bson.D{})
+		Expect(err).ToNot(HaveOccurred())
 	})
+
+	// deleteOldestData removes the two oldest hours of the 5 hours of data written at
+	// datumTime, without marking anything modified, so an incremental update doesn't notice
+	// and only a reset of the buckets drops theirs.
+	deleteOldestData := func() {
+		result, err := dataCollection.DeleteMany(ctx, bson.M{
+			"_userId": userId,
+			"time":    bson.M{"$lt": datumTime.Add(-3 * time.Hour)},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result.DeletedCount).To(Equal(int64(2)))
+	}
 
 	It("repeat out of order cgm summary calc", func() {
 		opts := options.BulkWrite().SetOrdered(false)
@@ -334,6 +360,153 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
 		Expect(bgmSummary.Dates.LastUpdatedDate).To(BeTemporally(">",
 			bgmSummaryStored.Dates.LastUpdatedDate))
+	})
+
+	It("summary calc recalculation drops the buckets of deleted data", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(5))
+
+		deleteOldestData()
+
+		// an incremental update doesn't notice the removal, so the buckets remain
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(5))
+
+		bgmSummary, err = bgmSummarizer.RecalculateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(3))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(3))
+
+		logs := UpdateSummaryLogs(logger)
+		Expect(logs).ToNot(BeEmpty())
+		Expect(logs[len(logs)-1]).To(SatisfyAll(
+			HaveKeyWithValue("schemaMigration", false),
+			HaveKeyWithValue("recalculation", true),
+		))
+	})
+
+	It("summary calc with an outdated schema drops the buckets of deleted data", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(5))
+
+		deleteOldestData()
+
+		bgmSummaryStored, err := bgmSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		bgmSummaryStored.Config.SchemaVersion = SchemaVersion - 1
+		Expect(bgmStore.ReplaceSummary(ctx, bgmSummaryStored)).To(Succeed())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(3))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(3))
+
+		logs := UpdateSummaryLogs(logger)
+		Expect(logs).ToNot(BeEmpty())
+		Expect(logs[len(logs)-1]).To(SatisfyAll(
+			HaveKeyWithValue("schemaMigration", true),
+			HaveKeyWithValue("recalculation", false),
+		))
+	})
+
+	It("summary calc without a stored summary drops orphaned buckets", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(5))
+
+		// delete the summary without its buckets, and the data of some of them
+		Expect(bgmStore.DeleteSummary(ctx, userId)).To(Succeed())
+		deleteOldestData()
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(GetBuckets(ctx, userId, bgmBucketsStore)).To(HaveLen(3))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(3))
+	})
+
+	It("summary calc with stored null periods recalculates the periods", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		// GetSummary decodes into a created summary, whose periods a missing field leaves
+		// as they are, so only a null field decodes to nil periods
+		result, err := summaryRepo.UpdateOne(ctx,
+			bson.M{"userId": userId, "type": SummaryTypeBGM},
+			bson.M{"$set": bson.M{"periods": nil}})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result.ModifiedCount).To(Equal(int64(1)))
+
+		bgmSummaryStored, err := bgmSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummaryStored.Periods).To(BeNil())
+
+		// new data, so that the update calculates the periods rather than returning early
+		deviceData = NewDataSetData("smbg", userId, datumTime.Add(2*time.Hour), 2, 5)
+		_, err = dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.Periods).ToNot(BeNil())
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(7))
+	})
+
+	It("summary calc logs the completed update", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		logs := UpdateSummaryLogs(logger)
+		Expect(logs).To(HaveLen(1))
+		Expect(logs[0]).To(SatisfyAll(
+			HaveKeyWithValue("summaryType", SummaryTypeBGM),
+			HaveKeyWithValue("schemaMigration", false),
+			HaveKeyWithValue("recalculation", false),
+			HaveKeyWithValue("duration", BeNumerically(">=", 0)),
+		))
+
+		// an update without new data returns early, without logging a completed update
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(UpdateSummaryLogs(logger)).To(HaveLen(1))
 	})
 
 	It("summary calc with realtime data", func() {
