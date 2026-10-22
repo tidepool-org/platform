@@ -66,7 +66,7 @@ type DatumRepository interface {
 	ListUserDataSets(ctx context.Context, userID string, filter *data.DataSetFilter, pagination *page.Pagination) (data.DataSets, error)
 
 	GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
-	GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
+	GetUserDataStatus(ctx context.Context, userId string, typ []string, since time.Time) (*data.UserDataStatus, error)
 
 	// GetAlertableData queries for the data used to evaluate alerts configurations.
 	GetAlertableData(ctx context.Context, params AlertableParams) (*AlertableResponse, error)
