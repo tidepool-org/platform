@@ -166,19 +166,22 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 		// this filters out users which cannot be updated, as they somehow got called for update, but have no new data
 		if status.EarliestModified.IsZero() {
 			logger.Warnf("User %s was called for a %s summary update, but has no new data, skipping", userID, summaryType)
-
 			return userSummary, nil
 		}
 
-		// only attempt to invalidate buckets if there is buckets which exist in the modified range
-		if status.EarliestModified.Compare(userSummary.Dates.LastData) <= 0 {
+		// Data modified at or before the last data summarized invalidates the buckets from
+		// its hour on. They're dropped, and the data is read again from the end of the
+		// newest bucket kept, or from the start of the range when no bucket was dropped or
+		// none is kept.
+		if !status.EarliestModified.After(userSummary.Dates.LastData) {
 			if newFirstData, clearErr := gs.buckets.ClearInvalidatedBuckets(sessionCtx, userID, status.EarliestModified); clearErr != nil {
 				return nil, clearErr
 			} else if !newFirstData.IsZero() {
 				status.FirstData = newFirstData
 			}
 		} else if userSummary.Dates.LastData.After(status.FirstData) {
-			// otherwise limit FirstData to previous LastData
+			// Otherwise only data after the last data summarized was modified, so only the
+			// data after it is read.
 			status.FirstData = userSummary.Dates.LastData
 		}
 
@@ -231,6 +234,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 			"recalculation":   recalculate,
 			"duration":        time.Since(now).Microseconds(),
 		}).Info("UpdateOrRecalculateSummary")
+
 		return userSummary, nil
 	})
 	if err != nil {
