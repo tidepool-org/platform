@@ -735,10 +735,11 @@ func (d *DatumRepository) getAlertableData(ctx context.Context, params store.Ale
 	return cursor, nil
 }
 
-func (d *DatumRepository) getTimeRange(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
-	timestamp := time.Now().UTC()
-	futureCutoff := timestamp.AddDate(0, 0, 1)
-	pastCutoff := timestamp.AddDate(-2, 0, 0)
+func (d *DatumRepository) getLastTime(ctx context.Context, userID string, typ []string,
+	now time.Time) (time.Time, error) {
+
+	futureCutoff := now.AddDate(0, 0, 1)
+	pastCutoff := now.AddDate(-2, 0, 0)
 
 	// get latest active record
 	selector := bson.M{
@@ -763,21 +764,20 @@ func (d *DatumRepository) getTimeRange(ctx context.Context, userID string, typ [
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get last %s time: %w", typ, err)
+		return time.Time{}, fmt.Errorf("unable to get last %s time: %w", typ, err)
 	}
 
 	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode last %s time: %w", typ, err)
+		return time.Time{}, fmt.Errorf("unable to decode last %s time: %w", typ, err)
 	}
 
 	// if we have a record
 	if len(dataSet) > 0 {
-		status.LastData = dataSet[0].Time.UTC()
-		status.FirstData = status.LastData.AddDate(0, 0, -types.HoursAgoToKeep/24)
+		return dataSet[0].Time.UTC(), nil
 	}
 
-	return nil
+	return time.Time{}, nil
 }
 
 func (d *DatumRepository) populateLastUpload(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
@@ -892,19 +892,24 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID stri
 		return nil, errors.New("typ is empty")
 	}
 
-	status := &data.UserDataStatus{
-		LastUpdated:     lastUpdated,
-		NextLastUpdated: time.Now().UTC().Truncate(time.Millisecond),
-	}
+	// taken before reading the user's data, so that data modified afterwards is newer than
+	// it and is found by the next update
+	nextLastUpdated := time.Now().UTC().Truncate(time.Millisecond)
 
-	err := d.getTimeRange(ctx, userID, typ, status)
+	last, err := d.getLastTime(ctx, userID, typ, nextLastUpdated)
 	if err != nil {
 		return nil, err
 	}
-
-	// the user has no eligible data, quit out early
-	if status.LastData.IsZero() {
+	if last.IsZero() {
+		// the user has no eligible data, quit out early
 		return nil, nil
+	}
+
+	status := &data.UserDataStatus{
+		LastData:        last,
+		FirstData:       last.AddDate(0, 0, -types.HoursAgoToKeep/24),
+		LastUpdated:     lastUpdated,
+		NextLastUpdated: nextLastUpdated,
 	}
 
 	err = d.populateLastUpload(ctx, userID, typ, status)
