@@ -202,18 +202,19 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 			return nil, err
 		}
 
-		// this filters out users which may have appeared to have relevant data, but was filtered during calculation
-		oldest, err := gs.buckets.GetOldestRecordTime(sessionCtx, userID)
+		// All the data in the range may have been skipped when the buckets were updated, in
+		// which case no bucket has data, and the summary is deleted.
+		firstData, err := gs.buckets.GetFirstData(sessionCtx, userID)
 		if err != nil {
 			return nil, err
 		}
 
-		if oldest.IsZero() {
+		if firstData.IsZero() {
 			logger.Warnf("User %s has a summary, but no valid data within range, deleting summary", userID)
 			return nil, gs.summaries.DeleteSummary(sessionCtx, userID)
 		}
+		userSummary.Dates.Update(status, firstData)
 
-		userSummary.Dates.Update(status, oldest)
 		if err := gs.summaries.ReplaceSummary(sessionCtx, userSummary); err != nil {
 			return nil, err
 		}

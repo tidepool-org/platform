@@ -156,7 +156,7 @@ func (r *Buckets[PB, B]) ClearInvalidatedBuckets(ctx context.Context, userId str
 		return time.Time{}, nil
 	}
 
-	return r.GetNewestRecordTime(ctx, userId)
+	return r.GetLastData(ctx, userId)
 }
 
 func (r *Buckets[PB, B]) Reset(ctx context.Context, userId string) error {
@@ -209,7 +209,7 @@ func (r *Buckets[PB, B]) GetOldest(ctx context.Context, userId string) (*types.B
 	return r.getOne(ctx, userId, 1)
 }
 
-func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string) (time.Time, error) {
+func (r *Buckets[PB, B]) GetLastData(ctx context.Context, userId string) (time.Time, error) {
 	if ctx == nil {
 		return time.Time{}, errors.New("context is missing")
 	}
@@ -225,7 +225,7 @@ func (r *Buckets[PB, B]) GetNewestRecordTime(ctx context.Context, userId string)
 	return bucket.LastData, nil
 }
 
-func (r *Buckets[PB, B]) GetOldestRecordTime(ctx context.Context, userId string) (time.Time, error) {
+func (r *Buckets[PB, B]) GetFirstData(ctx context.Context, userId string) (time.Time, error) {
 	if ctx == nil {
 		return time.Time{}, errors.New("context is missing")
 	}
