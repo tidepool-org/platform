@@ -27,18 +27,13 @@ type DatumRepository struct {
 	*storeStructuredMongo.Repository
 }
 
-const (
-	LowerTimeIndexRaw = "2022-01-01T00:00:00Z"
-)
+// LowerTimeIndex is the time after which data is in the partial indexes on time and
+// modifiedTime
+var LowerTimeIndex = time.Date(2022, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 var ErrSelectorsInvalid = errors.New("selectors is invalid")
 
 func (d *DatumRepository) EnsureIndexes() error {
-	lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw)
-	if err != nil {
-		return err
-	}
-
 	return d.CreateAllIndexes(context.Background(), []mongo.IndexModel{
 		// Additional indexes are also created in `tide-whisperer` and `jellyfish`
 		{
@@ -76,7 +71,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{
 						Key: "time",
 						Value: bson.D{
-							{Key: "$gt", Value: lowerTimeBound},
+							{Key: "$gt", Value: LowerTimeIndex},
 						},
 					},
 				}),
@@ -95,7 +90,7 @@ func (d *DatumRepository) EnsureIndexes() error {
 					{
 						Key: "time",
 						Value: bson.D{
-							{Key: "$gt", Value: lowerTimeBound},
+							{Key: "$gt", Value: LowerTimeIndex},
 						},
 					},
 				}),
@@ -800,8 +795,7 @@ func (d *DatumRepository) getLastUpload(ctx context.Context, userID string, typ 
 	}
 
 	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
-	lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw)
-	if err == nil && first.After(lowerTimeBound) {
+	if first.After(LowerTimeIndex) {
 		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 	}
 	findOptions.SetLimit(1)
@@ -833,14 +827,17 @@ func (d *DatumRepository) getLastUpload(ctx context.Context, userID string, typ 
 	return time.Time{}, nil
 }
 
-func (d *DatumRepository) populateEarliestModified(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
-	// get earliest modified record which is newer than LastUpdated
+func (d *DatumRepository) getEarliestModified(ctx context.Context, userID string,
+	typ []string, first, last, lastUpdated time.Time) (time.Time, error) {
+
+	// Find the earliest data in the range that was modified since lastUpdated, whether it's
+	// active or not.
 	selector := bson.M{
 		"_userId": userID,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
-			"$gte": status.FirstData,
-			"$lte": status.LastData,
+			"$gte": first,
+			"$lte": last,
 		},
 	}
 
@@ -855,35 +852,41 @@ func (d *DatumRepository) populateEarliestModified(ctx context.Context, userID s
 	findOptions.SetSort(bson.D{{Key: "time", Value: 1}}).
 		SetProjection(bson.M{"_id": 0, "time": 1})
 
-	// this skips using modifiedTime on fresh calculations as it may cause trouble with initial calculation of summaries
-	// for users with only data old enough to not have a modifiedTime, which would be excluded by this.
-	// this is not a concern for subsequent updates, as they would be triggered by new data, which would have modifiedTime
-	if !status.LastUpdated.IsZero() {
+	// A zero lastUpdated means a fresh calculation, which needs the earliest data in the
+	// range however long ago it was modified, so it doesn't filter on modifiedTime. That
+	// keeps the query a cheap lookup of the first data by time, rather than a blocking sort
+	// of all the data in the range. It isn't to include data without a modifiedTime: both
+	// writers of device data have set it since 2023-04 (BACK-2384), and a query of
+	// production on 2026-10-22 found no data within reach of the summaries without one.
+	if !lastUpdated.IsZero() {
 		selector["modifiedTime"] = bson.M{
-			"$gte": status.LastUpdated,
+			"$gte": lastUpdated,
 		}
-		if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
-			// has blocking sort, but more selective so usually performs better.
+		if first.After(LowerTimeIndex) {
+			// This index requires a blocking sort, but it's more selective, so the query
+			// usually performs better with it.
 			findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 		}
 	}
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get earliest %s recently modified time: %w", typ, err)
+		return time.Time{}, fmt.Errorf(
+			"unable to get earliest %s recently modified time: %w", typ, err)
 	}
 
 	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode earliest %s recently modified time: %w", typ, err)
+		return time.Time{}, fmt.Errorf(
+			"unable to decode earliest %s recently modified time: %w", typ, err)
 	}
 
-	// if we have a record
+	// The time is zero when no data in the range was modified since lastUpdated.
 	if len(dataSet) > 0 {
-		status.EarliestModified = dataSet[0].Time.UTC()
+		return dataSet[0].Time.UTC(), nil
 	}
 
-	return nil
+	return time.Time{}, nil
 }
 
 func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
@@ -917,18 +920,18 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID stri
 		return nil, err
 	}
 
-	status := &data.UserDataStatus{
-		LastData:        last,
-		FirstData:       first,
-		LastUpload:      lastUpload,
-		LastUpdated:     lastUpdated,
-		NextLastUpdated: nextLastUpdated,
-	}
-
-	err = d.populateEarliestModified(ctx, userID, typ, status)
+	earliestModified, err := d.getEarliestModified(ctx, userID, typ, first, last,
+		lastUpdated)
 	if err != nil {
 		return nil, err
 	}
 
-	return status, nil
+	return &data.UserDataStatus{
+		FirstData:        first,
+		LastData:         last,
+		EarliestModified: earliestModified,
+		LastUpload:       lastUpload,
+		LastUpdated:      lastUpdated,
+		NextLastUpdated:  nextLastUpdated,
+	}, nil
 }

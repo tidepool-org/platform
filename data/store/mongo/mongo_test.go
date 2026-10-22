@@ -297,8 +297,7 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 				err = cursor.All(context.Background(), &indexes)
 				Expect(err).ToNot(HaveOccurred())
 
-				lowerTimeIndex, err := time.Parse(time.RFC3339, dataStoreMongo.LowerTimeIndexRaw)
-				Expect(err).ToNot(HaveOccurred())
+				lowerTime := primitive.NewDateTimeFromTime(dataStoreMongo.LowerTimeIndex)
 				Expect(indexes).To(ConsistOf(
 					MatchFields(IgnoreExtras, Fields{
 						"Key": Equal(storeStructuredMongoTest.MakeKeySlice("_id")),
@@ -315,14 +314,14 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "time", "modifiedTime")),
 						"Name": Equal("UserIdActiveTypeTimeModifiedTime"),
 						"PartialFilterExpression": Equal(bson.D{
-							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
+							{Key: "time", Value: bson.D{{Key: "$gt", Value: lowerTime}}},
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
 						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "_active", "type", "modifiedTime", "time")),
 						"Name": Equal("UserIdActiveTypeModifiedTimeTime"),
 						"PartialFilterExpression": Equal(bson.D{
-							{Key: "time", Value: bson.D{{Key: "$gt", Value: primitive.NewDateTimeFromTime(lowerTimeIndex)}}},
+							{Key: "time", Value: bson.D{{Key: "$gt", Value: lowerTime}}},
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
@@ -1217,6 +1216,58 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{bolus.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeNil())
+							})
+
+							// getStatus returns the status of the user's continuous data
+							getStatus := func(lastUpdated time.Time) *data.UserDataStatus {
+								status, err := repository.GetLastUpdatedForUser(
+									ctx, *dataSet.UserID, []string{continuous.Type},
+									lastUpdated)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(status).ToNot(BeNil())
+								return status
+							}
+
+							// storedTime returns the stored time of the data at the index
+							storedTime := func(i int) time.Time {
+								return dataSetData[i].GetTime().Truncate(time.Millisecond)
+							}
+
+							It("finds the earliest data for a fresh calculation", func() {
+								status := getStatus(time.Time{})
+								Expect(status.EarliestModified).To(Equal(storedTime(1)))
+							})
+
+							Context("with data modified since the last update", func() {
+								var lastUpdated time.Time
+
+								BeforeEach(func() {
+									// Only data modified again after it's created is
+									// newer than lastUpdated.
+									lastUpdated = time.Now().UTC().Add(time.Second)
+
+									selector := bson.M{
+										"_userId": *dataSet.UserID,
+										"time":    storedTime(3),
+									}
+									update := bson.M{"$set": bson.M{
+										"modifiedTime": lastUpdated.Add(time.Minute),
+									}}
+									result, err := store.GetCollection("deviceData").
+										UpdateOne(ctx, selector, update)
+									Expect(err).ToNot(HaveOccurred())
+									Expect(result.ModifiedCount).To(Equal(int64(1)))
+								})
+
+								It("finds the earliest data modified later", func() {
+									status := getStatus(lastUpdated)
+									Expect(status.EarliestModified).To(Equal(storedTime(3)))
+								})
+
+								It("finds none when no data was modified later", func() {
+									status := getStatus(lastUpdated.Add(time.Hour))
+									Expect(status.EarliestModified.IsZero()).To(BeTrue())
+								})
 							})
 
 						})
