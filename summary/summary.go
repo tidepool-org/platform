@@ -134,38 +134,16 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 	logger := log.LoggerFromContext(ctx)
 	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient, func(sessionCtx mongo.SessionContext) (interface{}, error) {
 		now := time.Now()
-		userSummary, err := gs.GetSummary(sessionCtx, userID)
 		summaryType := types.GetType[PP, PB]()
 		dataTypes := types.GetDeviceDataType[PP, PB]()
+		userSummary, reset, err := gs.getOrInitSummary(sessionCtx, userID, recalculate)
 		if err != nil {
 			return nil, err
 		}
 
-		logger.Debugf("Starting %s summary calculation for %s", types.GetType[PP, PB](), userID)
+		logger.Debugf("Starting %s summary calculation for %s", summaryType, userID)
 
-		// user has no usable summary for incremental update
-		if userSummary == nil {
-			userSummary = types.Create[PP, PB](userID)
-
-			// This should be/will be a No-Op, but in case the summary was deleted without deleting buckets
-			err = gs.buckets.Reset(sessionCtx, userID)
-			if err != nil {
-				return nil, err
-			}
-		}
-
-		if userSummary.Periods == nil {
-			userSummary.Periods = new(P)
-			userSummary.Periods.Init()
-		}
-
-		schemaMigration := userSummary.Config.SchemaVersion != types.SchemaVersion
-		if recalculate || schemaMigration {
-			// A summary calculated with an outdated schema, or whose recalculation was
-			// requested, is recreated from nothing
-			*userSummary = *types.Create[PP, PB](userID)
-
-			// Drop all buckets for this user for a full reset
+		if reset != resetNone {
 			err = gs.buckets.Reset(sessionCtx, userID)
 			if err != nil {
 				return nil, err
@@ -249,7 +227,7 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 
 		logger.WithFields(log.Fields{
 			"summaryType":     summaryType,
-			"schemaMigration": schemaMigration,
+			"schemaMigration": reset == resetSchemaMigration,
 			"recalculation":   recalculate,
 			"duration":        time.Since(now).Microseconds(),
 		}).Info("UpdateOrRecalculateSummary")
@@ -264,6 +242,50 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateOrRecalculateSummary(ctx contex
 	}
 
 	return result.(*types.Summary[PP, PB, P, B]), err
+}
+
+// resetReason is why the buckets of a user must be reset before their summary is calculated
+type resetReason int
+
+const (
+	// resetNone keeps the buckets, as the stored summary is updated incrementally
+	resetNone resetReason = iota
+	// resetNewSummary drops any buckets left by a summary deleted without deleting them
+	resetNewSummary
+	// resetSchemaMigration drops the buckets of a summary calculated with an outdated
+	// schema
+	resetSchemaMigration
+	// resetRecalculation drops the buckets of a summary whose recalculation was requested
+	resetRecalculation
+)
+
+// getOrInitSummary returns the stored summary of the user, or a new summary when there's
+// none or it must be recalculated from all of the user's data, along with why the user's
+// buckets must be reset. A summary calculated with an outdated schema reports a schema
+// migration even when its recalculation was also requested.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) getOrInitSummary(ctx context.Context,
+	userID string, recalculate bool) (*types.Summary[PP, PB, P, B], resetReason, error) {
+
+	userSummary, err := gs.GetSummary(ctx, userID)
+	if err != nil {
+		return nil, resetNone, err
+	}
+
+	switch {
+	case userSummary == nil:
+		return types.Create[PP, PB](userID), resetNewSummary, nil
+	case userSummary.Config.SchemaVersion != types.SchemaVersion:
+		return types.Create[PP, PB](userID), resetSchemaMigration, nil
+	case recalculate:
+		return types.Create[PP, PB](userID), resetRecalculation, nil
+	}
+
+	if userSummary.Periods == nil {
+		userSummary.Periods = new(P)
+		userSummary.Periods.Init()
+	}
+
+	return userSummary, resetNone, nil
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateBuckets(ctx context.Context, userID string, summaryType string, cursor fetcher.DeviceDataCursor) error {
