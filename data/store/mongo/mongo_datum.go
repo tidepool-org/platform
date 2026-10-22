@@ -780,14 +780,16 @@ func (d *DatumRepository) getLastTime(ctx context.Context, userID string, typ []
 	return time.Time{}, nil
 }
 
-func (d *DatumRepository) populateLastUpload(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
-	// get latest modified record
+func (d *DatumRepository) getLastUpload(ctx context.Context, userID string, typ []string,
+	first, last time.Time) (time.Time, error) {
+
+	// Find the most recently modified data in the range, whether it's active or not.
 	selector := bson.M{
 		"_userId": userID,
 		"_active": bson.M{"$in": bson.A{true, false}},
 		"time": bson.M{
-			"$gte": status.FirstData,
-			"$lte": status.LastData,
+			"$gte": first,
+			"$lte": last,
 		},
 	}
 
@@ -798,7 +800,8 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userID string,
 	}
 
 	findOptions := options.Find().SetProjection(bson.M{"_id": 0, "modifiedTime": 1, "createdTime": 1})
-	if lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw); err == nil && status.FirstData.After(lowerTimeBound) {
+	lowerTimeBound, err := time.Parse(time.RFC3339, LowerTimeIndexRaw)
+	if err == nil && first.After(lowerTimeBound) {
 		findOptions.SetHint("UserIdActiveTypeModifiedTimeTime")
 	}
 	findOptions.SetLimit(1)
@@ -806,26 +809,28 @@ func (d *DatumRepository) populateLastUpload(ctx context.Context, userID string,
 
 	cursor, err := d.Find(ctx, selector, findOptions)
 	if err != nil {
-		return fmt.Errorf("unable to get last %s  modifiedTime: %w", typ, err)
+		return time.Time{}, fmt.Errorf("unable to get last %s modifiedTime: %w", typ, err)
 	}
 
 	var dataSet []*baseDatum.Base
 	if err = cursor.All(ctx, &dataSet); err != nil {
-		return fmt.Errorf("unable to decode last %s modifiedTime: %w", typ, err)
+		return time.Time{}, fmt.Errorf("unable to decode last %s modifiedTime: %w", typ,
+			err)
 	}
 
-	// if we have a record
+	// The time is zero when there's no data in the range.
 	if len(dataSet) > 0 {
-		// handle data without modifiedTime, as older data may not have it
-		// this will only be triggered on fresh summaries of old data
+		// Data without a modifiedTime falls back to its createdTime. Both writers of device
+		// data have set modifiedTime since 2023-04 (BACK-2384), and a query of production
+		// on 2026-10-22 found no data within reach of the summaries without one, so this
+		// fallback isn't expected to be used.
 		if dataSet[0].ModifiedTime != nil {
-			status.LastUpload = dataSet[0].ModifiedTime.UTC()
-		} else {
-			status.LastUpload = dataSet[0].CreatedTime.UTC()
+			return dataSet[0].ModifiedTime.UTC(), nil
 		}
+		return dataSet[0].CreatedTime.UTC(), nil
 	}
 
-	return nil
+	return time.Time{}, nil
 }
 
 func (d *DatumRepository) populateEarliestModified(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) error {
@@ -905,16 +910,19 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID stri
 		return nil, nil
 	}
 
-	status := &data.UserDataStatus{
-		LastData:        last,
-		FirstData:       last.AddDate(0, 0, -types.HoursAgoToKeep/24),
-		LastUpdated:     lastUpdated,
-		NextLastUpdated: nextLastUpdated,
-	}
+	first := last.AddDate(0, 0, -types.HoursAgoToKeep/24)
 
-	err = d.populateLastUpload(ctx, userID, typ, status)
+	lastUpload, err := d.getLastUpload(ctx, userID, typ, first, last)
 	if err != nil {
 		return nil, err
+	}
+
+	status := &data.UserDataStatus{
+		LastData:        last,
+		FirstData:       first,
+		LastUpload:      lastUpload,
+		LastUpdated:     lastUpdated,
+		NextLastUpdated: nextLastUpdated,
 	}
 
 	err = d.populateEarliestModified(ctx, userID, typ, status)
