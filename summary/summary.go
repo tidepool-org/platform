@@ -191,17 +191,6 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateSummary(ctx context.Context, us
 			return nil, err
 		}
 
-		allBuckets, err := gs.buckets.GetAllBuckets(sessionCtx, userID)
-		if err != nil {
-			return nil, err
-		}
-		defer storeStructuredMongo.CloseCursor(sessionCtx, allBuckets)
-
-		err = userSummary.Periods.Update(sessionCtx, allBuckets)
-		if err != nil {
-			return nil, err
-		}
-
 		// All the data in the range may have been skipped when the buckets were updated, in
 		// which case no bucket has data, and the summary is deleted.
 		firstData, err := gs.buckets.GetFirstData(sessionCtx, userID)
@@ -214,6 +203,17 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) updateSummary(ctx context.Context, us
 			return nil, gs.summaries.DeleteSummary(sessionCtx, userID)
 		}
 		userSummary.Dates.Update(status, firstData)
+
+		allBuckets, err := gs.buckets.GetAllBuckets(sessionCtx, userID)
+		if err != nil {
+			return nil, err
+		}
+		defer storeStructuredMongo.CloseCursor(sessionCtx, allBuckets)
+
+		err = userSummary.Periods.Update(sessionCtx, allBuckets)
+		if err != nil {
+			return nil, err
+		}
 
 		if err := gs.summaries.ReplaceSummary(sessionCtx, userSummary); err != nil {
 			return nil, err
