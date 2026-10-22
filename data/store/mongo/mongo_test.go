@@ -1162,21 +1162,21 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						})
 					})
 
-					Context("GetLastUpdatedForUser", func() {
+					Context("GetUserDataStatus", func() {
 						It("returns an error if context is missing", func() {
-							_, err := repository.GetLastUpdatedForUser(nil, *dataSet.UserID, []string{dataSetData[2].GetType()}, time.Time{})
+							_, err := repository.GetUserDataStatus(nil, *dataSet.UserID, []string{dataSetData[2].GetType()}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("context is missing"))
 						})
 
 						It("returns an error if user id is empty", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, "", []string{dataSetData[2].GetType()}, time.Time{})
+							_, err := repository.GetUserDataStatus(ctx, "", []string{dataSetData[2].GetType()}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("user id is empty"))
 						})
 
 						It("returns an error if typ is empty", func() {
-							_, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{}, time.Time{})
+							_, err := repository.GetUserDataStatus(ctx, *dataSet.UserID, []string{}, time.Time{})
 							Expect(err).To(HaveOccurred())
 							Expect(err).To(MatchError("typ is empty"))
 						})
@@ -1200,27 +1200,27 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 							})
 
 							It("correctly finds the LastUpload and LastData for a matching set", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{continuous.Type}, time.Time{})
+								status, err := repository.GetUserDataStatus(ctx, *dataSet.UserID, []string{continuous.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status.LastData).To(Equal(dataSetData[len(dataSetData)-1].GetTime().Truncate(time.Millisecond)))
 								Expect(status.LastUpload).To(BeTemporally("~", createdTime, time.Second))
 							})
 
 							It("correctly does not find the LastUpload and LastData for an inactive type", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{selfmonitored.Type}, time.Time{})
+								status, err := repository.GetUserDataStatus(ctx, *dataSet.UserID, []string{selfmonitored.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeNil())
 							})
 
 							It("correctly does not find the LastUpload and LastData for an unused type", func() {
-								status, err := repository.GetLastUpdatedForUser(ctx, *dataSet.UserID, []string{bolus.Type}, time.Time{})
+								status, err := repository.GetUserDataStatus(ctx, *dataSet.UserID, []string{bolus.Type}, time.Time{})
 								Expect(err).ToNot(HaveOccurred())
 								Expect(status).To(BeNil())
 							})
 
 							// getStatus returns the status of the user's continuous data
 							getStatus := func(lastUpdated time.Time) *data.UserDataStatus {
-								status, err := repository.GetLastUpdatedForUser(
+								status, err := repository.GetUserDataStatus(
 									ctx, *dataSet.UserID, []string{continuous.Type},
 									lastUpdated)
 								Expect(err).ToNot(HaveOccurred())

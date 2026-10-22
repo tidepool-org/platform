@@ -19,6 +19,6 @@ type DeviceDataCursor interface {
 
 type DeviceDataFetcher interface {
 	GetDataSet(ctx context.Context, dataSetID string) (*data.DataSet, error)
-	GetLastUpdatedForUser(ctx context.Context, userID string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error)
+	GetUserDataStatus(ctx context.Context, userID string, typ []string, since time.Time) (*data.UserDataStatus, error)
 	GetDataRange(ctx context.Context, userID string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error)
 }

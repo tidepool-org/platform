@@ -828,10 +828,10 @@ func (d *DatumRepository) getLastUpload(ctx context.Context, userID string, typ 
 }
 
 func (d *DatumRepository) getEarliestModified(ctx context.Context, userID string,
-	typ []string, first, last, lastUpdated time.Time) (time.Time, error) {
+	typ []string, first, last, since time.Time) (time.Time, error) {
 
-	// Find the earliest data in the range that was modified since lastUpdated, whether it's
-	// active or not.
+	// Find the earliest data in the range, active or not, whose modifiedTime is at or after
+	// since.
 	selector := bson.M{
 		"_userId": userID,
 		"_active": bson.M{"$in": bson.A{true, false}},
@@ -852,15 +852,15 @@ func (d *DatumRepository) getEarliestModified(ctx context.Context, userID string
 	findOptions.SetSort(bson.D{{Key: "time", Value: 1}}).
 		SetProjection(bson.M{"_id": 0, "time": 1})
 
-	// A zero lastUpdated means a fresh calculation, which needs the earliest data in the
-	// range however long ago it was modified, so it doesn't filter on modifiedTime. That
-	// keeps the query a cheap lookup of the first data by time, rather than a blocking sort
-	// of all the data in the range. It isn't to include data without a modifiedTime: both
+	// A zero since means a fresh calculation, which needs the earliest data in the range
+	// however long ago it was modified, so it doesn't filter on modifiedTime. That keeps
+	// the query a cheap lookup of the first data by time, rather than a blocking sort of
+	// all the data in the range. It isn't to include data without a modifiedTime: both
 	// writers of device data have set it since 2023-04 (BACK-2384), and a query of
 	// production on 2026-10-22 found no data within reach of the summaries without one.
-	if !lastUpdated.IsZero() {
+	if !since.IsZero() {
 		selector["modifiedTime"] = bson.M{
-			"$gte": lastUpdated,
+			"$gte": since,
 		}
 		if first.After(LowerTimeIndex) {
 			// This index requires a blocking sort, but it's more selective, so the query
@@ -881,7 +881,7 @@ func (d *DatumRepository) getEarliestModified(ctx context.Context, userID string
 			"unable to decode earliest %s recently modified time: %w", typ, err)
 	}
 
-	// The time is zero when no data in the range was modified since lastUpdated.
+	// The time is zero when no data in the range has a modifiedTime at or after since.
 	if len(dataSet) > 0 {
 		return dataSet[0].Time.UTC(), nil
 	}
@@ -889,7 +889,7 @@ func (d *DatumRepository) getEarliestModified(ctx context.Context, userID string
 	return time.Time{}, nil
 }
 
-func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
+func (d *DatumRepository) GetUserDataStatus(ctx context.Context, userID string, typ []string, since time.Time) (*data.UserDataStatus, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
 	}
@@ -921,7 +921,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID stri
 	}
 
 	earliestModified, err := d.getEarliestModified(ctx, userID, typ, first, last,
-		lastUpdated)
+		since)
 	if err != nil {
 		return nil, err
 	}
@@ -931,7 +931,7 @@ func (d *DatumRepository) GetLastUpdatedForUser(ctx context.Context, userID stri
 		LastData:         last,
 		EarliestModified: earliestModified,
 		LastUpload:       lastUpload,
-		LastUpdated:      lastUpdated,
+		LastUpdated:      since,
 		NextLastUpdated:  nextLastUpdated,
 	}, nil
 }

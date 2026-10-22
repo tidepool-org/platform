@@ -147,16 +147,16 @@ type ListUserDataSetsOutput struct {
 	Error    error
 }
 
-type GetLastUpdatedForUserInput struct {
-	Context     context.Context
-	UserID      string
-	Typ         []string
-	LastUpdated time.Time
+type GetUserDataStatusInput struct {
+	Context context.Context
+	UserID  string
+	Typ     []string
+	Since   time.Time
 }
 
-type GetLastUpdatedForUserOutput struct {
-	UserLastUpdated *data.UserDataStatus
-	Error           error
+type GetUserDataStatusOutput struct {
+	UserDataStatus *data.UserDataStatus
+	Error          error
 }
 
 type GetDataRangeInput struct {
@@ -254,9 +254,9 @@ type DataRepository struct {
 	GetDataRangeInputs      []GetDataRangeInput
 	GetDataRangeOutputs     []GetDataRangeOutput
 
-	GetLastUpdatedForUserInvocations int
-	GetLastUpdatedForUserInputs      []GetLastUpdatedForUserInput
-	GetLastUpdatedForUserOutputs     []GetLastUpdatedForUserOutput
+	GetUserDataStatusInvocations int
+	GetUserDataStatusInputs      []GetUserDataStatusInput
+	GetUserDataStatusOutputs     []GetUserDataStatusOutput
 
 	GetUsersWithBGDataSinceInvocations int
 	GetUsersWithBGDataSinceInputs      []GetUsersWithBGDataSinceInput
@@ -498,16 +498,16 @@ func (d *DataRepository) GetDataSet(ctx context.Context, id string) (*data.DataS
 	return output.DataSet, output.Error
 }
 
-func (d *DataRepository) GetLastUpdatedForUser(ctx context.Context, userId string, typ []string, lastUpdated time.Time) (*data.UserDataStatus, error) {
-	d.GetLastUpdatedForUserInvocations++
+func (d *DataRepository) GetUserDataStatus(ctx context.Context, userId string, typ []string, since time.Time) (*data.UserDataStatus, error) {
+	d.GetUserDataStatusInvocations++
 
-	d.GetLastUpdatedForUserInputs = append(d.GetLastUpdatedForUserInputs, GetLastUpdatedForUserInput{Context: ctx, UserID: userId, Typ: typ, LastUpdated: lastUpdated})
+	d.GetUserDataStatusInputs = append(d.GetUserDataStatusInputs, GetUserDataStatusInput{Context: ctx, UserID: userId, Typ: typ, Since: since})
 
-	gomega.Expect(d.GetLastUpdatedForUserOutputs).ToNot(gomega.BeEmpty())
+	gomega.Expect(d.GetUserDataStatusOutputs).ToNot(gomega.BeEmpty())
 
-	output := d.GetLastUpdatedForUserOutputs[0]
-	d.GetLastUpdatedForUserOutputs = d.GetLastUpdatedForUserOutputs[1:]
-	return output.UserLastUpdated, output.Error
+	output := d.GetUserDataStatusOutputs[0]
+	d.GetUserDataStatusOutputs = d.GetUserDataStatusOutputs[1:]
+	return output.UserDataStatus, output.Error
 }
 
 func (d *DataRepository) GetDataRange(ctx context.Context, userId string, typ []string, status *data.UserDataStatus) (*mongo.Cursor, error) {
@@ -565,6 +565,6 @@ func (d *DataRepository) Expectations() {
 	gomega.Expect(d.DestroyDataForUserByIDOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.ListUserDataSetsOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetDataSetOutputs).To(gomega.BeEmpty())
-	gomega.Expect(d.GetLastUpdatedForUserOutputs).To(gomega.BeEmpty())
+	gomega.Expect(d.GetUserDataStatusOutputs).To(gomega.BeEmpty())
 	gomega.Expect(d.GetUsersWithBGDataSinceOutputs).To(gomega.BeEmpty())
 }
