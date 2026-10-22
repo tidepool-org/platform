@@ -35,6 +35,18 @@ func GetBuckets[B BucketDataPt[A], A BucketData](ctx context.Context, userId str
 	return buckets
 }
 
+// GetBucketRecords returns the number of records in each of the user's buckets, by the
+// hour of the bucket.
+func GetBucketRecords(ctx context.Context, userId string,
+	bucketsStore *store.Buckets[*GlucoseBucket, GlucoseBucket]) map[time.Time]int {
+
+	records := map[time.Time]int{}
+	for _, bucket := range GetBuckets(ctx, userId, bucketsStore) {
+		records[bucket.Time.UTC()] = bucket.Data.Total.Records
+	}
+	return records
+}
+
 // UpdateSummaryLogs returns the fields of the info logs of completed summary updates.
 func UpdateSummaryLogs(logger *logTest.Logger) []log.Fields {
 	logs := []log.Fields{}
@@ -118,6 +130,20 @@ var _ = Describe("End to end summary calculations", func() {
 		})
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result.DeletedCount).To(Equal(int64(2)))
+	}
+
+	// atHour returns the time the given number of hours from datumTime
+	atHour := func(hours int) time.Time {
+		return datumTime.Add(time.Duration(hours) * time.Hour)
+	}
+
+	// writeBGMData writes BGM data at each hour before the given end, for the given number
+	// of hours
+	writeBGMData := func(end time.Time, hours float64) {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, end, hours, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
 	}
 
 	It("repeat out of order cgm summary calc", func() {
@@ -742,5 +768,101 @@ var _ = Describe("End to end summary calculations", func() {
 
 		buckets = GetBuckets(ctx, userId, cgmBucketsStore)
 		Expect(len(buckets)).To(Equal(7 * 24))
+	})
+
+	Describe("incremental bgm summary calc", func() {
+		// BGM buckets don't skip readings already counted, unlike CGM buckets. Counting a
+		// reading again doesn't mark its bucket modified, so the count is only written, and
+		// the reading counted twice, when the bucket also gains a new reading.
+
+		BeforeEach(func() {
+			// a reading at each of the 5 hours before datumTime
+			writeBGMData(datumTime, 5)
+
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+			records := GetBucketRecords(ctx, userId, bgmBucketsStore)
+			Expect(records).To(Equal(map[time.Time]int{
+				atHour(-5): 1, atHour(-4): 1, atHour(-3): 1, atHour(-2): 1, atHour(-1): 1,
+			}))
+		})
+
+		It("with backfilled data rebuilds only the invalidated buckets", func() {
+			// a reading within the hour of the bucket at -4h, before the last data
+			writeBGMData(atHour(-3).Add(30*time.Minute), 1)
+
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+
+			// the bucket at -5h precedes the backfilled reading, so it's kept and not read
+			// again
+			records := GetBucketRecords(ctx, userId, bgmBucketsStore)
+			Expect(records).To(Equal(map[time.Time]int{
+				atHour(-5): 1, atHour(-4): 2, atHour(-3): 1, atHour(-2): 1, atHour(-1): 1,
+			}))
+			Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(6))
+			Expect(bgmSummary.Dates.FirstData).To(BeTemporally("==", atHour(-5)))
+			Expect(bgmSummary.Dates.LastData).To(BeTemporally("==", atHour(-1)))
+		})
+
+		It("with appended data reads only the data after the last data", func() {
+			// a reading at each of the 2 hours after datumTime
+			writeBGMData(atHour(3), 2)
+
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+
+			records := GetBucketRecords(ctx, userId, bgmBucketsStore)
+			Expect(records).To(Equal(map[time.Time]int{
+				atHour(-5): 1, atHour(-4): 1, atHour(-3): 1, atHour(-2): 1, atHour(-1): 1,
+				atHour(1): 1, atHour(2): 1,
+			}))
+			Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(7))
+			Expect(bgmSummary.Dates.FirstData).To(BeTemporally("==", atHour(-5)))
+			Expect(bgmSummary.Dates.LastData).To(BeTemporally("==", atHour(2)))
+		})
+
+		It("with data appended within the last hour reads only the data after it", func() {
+			// a reading 30 minutes after the last data, within the hour of the bucket at
+			// -1h
+			writeBGMData(datumTime.Add(30*time.Minute), 1)
+
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+
+			// a bucket that a read counts again is only written when it also gains new
+			// data, so reading from before the last data would count the bucket at -1h
+			// twice
+			records := GetBucketRecords(ctx, userId, bgmBucketsStore)
+			Expect(records).To(Equal(map[time.Time]int{
+				atHour(-5): 1, atHour(-4): 1, atHour(-3): 1, atHour(-2): 1, atHour(-1): 2,
+			}))
+			Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(6))
+			Expect(bgmSummary.Dates.FirstData).To(BeTemporally("==", atHour(-5)))
+			Expect(bgmSummary.Dates.LastData).To(BeTemporally("==",
+				atHour(-1).Add(30*time.Minute)))
+		})
+
+		It("with backfilled and appended data rebuilds from the earliest modified", func() {
+			writeBGMData(atHour(-3).Add(30*time.Minute), 1)
+			writeBGMData(atHour(3), 2)
+
+			bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bgmSummary).ToNot(BeNil())
+
+			records := GetBucketRecords(ctx, userId, bgmBucketsStore)
+			Expect(records).To(Equal(map[time.Time]int{
+				atHour(-5): 1, atHour(-4): 2, atHour(-3): 1, atHour(-2): 1, atHour(-1): 1,
+				atHour(1): 1, atHour(2): 1,
+			}))
+			Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(8))
+			Expect(bgmSummary.Dates.FirstData).To(BeTemporally("==", atHour(-5)))
+			Expect(bgmSummary.Dates.LastData).To(BeTemporally("==", atHour(2)))
+		})
 	})
 })
