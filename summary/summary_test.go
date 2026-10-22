@@ -427,6 +427,36 @@ var _ = Describe("End to end summary calculations", func() {
 		))
 	})
 
+	It("summary calc recalculating a summary with an outdated schema reports both", func() {
+		opts := options.BulkWrite().SetOrdered(false)
+		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+		_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+		Expect(err).ToNot(HaveOccurred())
+
+		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+
+		bgmSummaryStored, err := bgmSummarizer.GetSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		bgmSummaryStored.Config.SchemaVersion = SchemaVersion - 1
+		Expect(bgmStore.ReplaceSummary(ctx, bgmSummaryStored)).To(Succeed())
+
+		bgmSummary, err = bgmSummarizer.RecalculateSummary(ctx, userId)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(bgmSummary).ToNot(BeNil())
+		Expect(bgmSummary.Config.SchemaVersion).To(Equal(SchemaVersion))
+		Expect(bgmSummary.ID).To(Equal(bgmSummaryStored.ID))
+		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+
+		logs := UpdateSummaryLogs(logger)
+		Expect(logs).ToNot(BeEmpty())
+		Expect(logs[len(logs)-1]).To(SatisfyAll(
+			HaveKeyWithValue("schemaMigration", true),
+			HaveKeyWithValue("recalculation", true),
+		))
+	})
+
 	It("summary calc without a stored summary drops orphaned buckets", func() {
 		opts := options.BulkWrite().SetOrdered(false)
 		deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
