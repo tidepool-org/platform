@@ -12,6 +12,10 @@ import (
 
 type Summarizers interface {
 	UpdateSummaries(ctx context.Context, userID string) (SummariesUpdate, error)
+	// RecalculateSummaries recalculates the CGM and BGM summaries of the user from all of
+	// their data, rather than incrementally. The continuous summary doesn't classify
+	// readings by glucose range, so it's only updated.
+	RecalculateSummaries(ctx context.Context, userID string) (SummariesUpdate, error)
 }
 
 type SummariesUpdate struct {
@@ -36,15 +40,23 @@ func NewSummarizers(registry *summary.SummarizerRegistry) (Summarizers, error) {
 	return &summarizers{registry: registry}, nil
 }
 
-// UpdateSummaries returns the update made so far even when it reports an error, so that a change
-// calculated before the error is recorded rather than lost to the retry.
 func (s *summarizers) UpdateSummaries(ctx context.Context, userID string) (SummariesUpdate, error) {
+	return s.updateSummaries(ctx, userID, false)
+}
+
+func (s *summarizers) RecalculateSummaries(ctx context.Context, userID string) (SummariesUpdate, error) {
+	return s.updateSummaries(ctx, userID, true)
+}
+
+// updateSummaries returns the update made so far even when it reports an error, so that a change
+// calculated before the error is recorded rather than lost to the retry.
+func (s *summarizers) updateSummaries(ctx context.Context, userID string, recalculate bool) (SummariesUpdate, error) {
 	update := SummariesUpdate{}
 	var err error
-	if update.CGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.CGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
+	if update.CGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.CGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, recalculate, &update); err != nil {
 		return update, err
 	}
-	if update.BGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.BGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
+	if update.BGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.BGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, recalculate, &update); err != nil {
 		return update, err
 	}
 	if _, err = summary.GetSummarizer[*summaryTypes.ContinuousPeriods, *summaryTypes.ContinuousBucket](s.registry).UpdateSummary(ctx, userID); err != nil {
@@ -54,14 +66,19 @@ func (s *summarizers) UpdateSummaries(ctx context.Context, userID string) (Summa
 }
 
 // updateSummary calculates the summary of the user and records the change made in the given update
-func updateSummary[PP summaryTypes.PeriodsPt[P, PB, B], PB summaryTypes.BucketDataPt[B], P summaryTypes.Periods, B summaryTypes.BucketData](ctx context.Context, summarizer summary.Summarizer[PP, PB, P, B], userID string, update *SummariesUpdate) (*summaryTypes.Summary[PP, PB, P, B], error) {
+func updateSummary[PP summaryTypes.PeriodsPt[P, PB, B], PB summaryTypes.BucketDataPt[B], P summaryTypes.Periods, B summaryTypes.BucketData](ctx context.Context, summarizer summary.Summarizer[PP, PB, P, B], userID string, recalculate bool, update *SummariesUpdate) (*summaryTypes.Summary[PP, PB, P, B], error) {
 	summaryType := summaryTypes.GetType[PP, PB]()
 
 	before, err := summarizer.GetSummary(ctx, userID)
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to get %s summary", summaryType)
 	}
-	after, err := summarizer.UpdateSummary(ctx, userID)
+	var after *summaryTypes.Summary[PP, PB, P, B]
+	if recalculate {
+		after, err = summarizer.RecalculateSummary(ctx, userID)
+	} else {
+		after, err = summarizer.UpdateSummary(ctx, userID)
+	}
 	if err != nil {
 		return nil, errors.Wrapf(err, "unable to update %s summary", summaryType)
 	}
