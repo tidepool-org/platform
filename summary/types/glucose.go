@@ -204,15 +204,14 @@ func (r *Range) CalculateDelta(currentRange, offsetRange *Range) {
 }
 
 type GlucoseRanges struct {
-	Total       Range `json:"total" bson:"total"`
-	VeryLow     Range `json:"inVeryLow" bson:"inVeryLow"`
-	Low         Range `json:"inLow" bson:"inLow"`
-	Target      Range `json:"inTarget" bson:"inTarget"`
-	High        Range `json:"inHigh" bson:"inHigh"`
-	VeryHigh    Range `json:"inVeryHigh" bson:"inVeryHigh"`
-	ExtremeHigh Range `json:"inExtremeHigh" bson:"inExtremeHigh"`
-	AnyLow      Range `json:"inAnyLow" bson:"inAnyLow"`
-	AnyHigh     Range `json:"inAnyHigh" bson:"inAnyHigh"`
+	Total    Range `json:"total" bson:"total"`
+	VeryLow  Range `json:"inVeryLow" bson:"inVeryLow"`
+	Low      Range `json:"inLow" bson:"inLow"`
+	Target   Range `json:"inTarget" bson:"inTarget"`
+	High     Range `json:"inHigh" bson:"inHigh"`
+	VeryHigh Range `json:"inVeryHigh" bson:"inVeryHigh"`
+	AnyLow   Range `json:"inAnyLow" bson:"inAnyLow"`
+	AnyHigh  Range `json:"inAnyHigh" bson:"inAnyHigh"`
 }
 
 func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
@@ -222,7 +221,6 @@ func (rs *GlucoseRanges) Add(new *GlucoseRanges) {
 	rs.Target.Add(&new.Target)
 	rs.High.Add(&new.High)
 	rs.VeryHigh.Add(&new.VeryHigh)
-	rs.ExtremeHigh.Add(&new.ExtremeHigh)
 	rs.AnyLow.Add(&new.AnyLow)
 	rs.AnyHigh.Add(&new.AnyHigh)
 }
@@ -234,7 +232,6 @@ func (rs *GlucoseRanges) finalizeMinutes(days int) {
 	rs.Target.Percent = float64(rs.Target.Minutes) / float64(rs.Total.Minutes)
 	rs.High.Percent = float64(rs.High.Minutes) / float64(rs.Total.Minutes)
 	rs.VeryHigh.Percent = float64(rs.VeryHigh.Minutes) / float64(rs.Total.Minutes)
-	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Minutes) / float64(rs.Total.Minutes)
 	rs.AnyLow.Percent = float64(rs.AnyLow.Minutes) / float64(rs.Total.Minutes)
 	rs.AnyHigh.Percent = float64(rs.AnyHigh.Minutes) / float64(rs.Total.Minutes)
 }
@@ -247,7 +244,6 @@ func (rs *GlucoseRanges) finalizeRecords() {
 	rs.Target.Percent = float64(rs.Target.Records) / float64(rs.Total.Records)
 	rs.High.Percent = float64(rs.High.Records) / float64(rs.Total.Records)
 	rs.VeryHigh.Percent = float64(rs.VeryHigh.Records) / float64(rs.Total.Records)
-	rs.ExtremeHigh.Percent = float64(rs.ExtremeHigh.Records) / float64(rs.Total.Records)
 	rs.AnyLow.Percent = float64(rs.AnyLow.Records) / float64(rs.Total.Records)
 	rs.AnyHigh.Percent = float64(rs.AnyHigh.Records) / float64(rs.Total.Records)
 }
@@ -279,9 +275,6 @@ func (rs *GlucoseRanges) Update(record Glucose) {
 	case classificationVeryHigh:
 		rs.VeryHigh.Update(record)
 		rs.AnyHigh.Update(record)
-		if isExtremeHigh(n) {
-			rs.ExtremeHigh.Update(record)
-		}
 	}
 	rs.Total.UpdateTotal(record)
 }
@@ -312,13 +305,6 @@ func classifyADAStandard(n float64) classification {
 	}
 }
 
-// isExtremeHigh reports if a normalized (mmol/L) glucose value matches the criteria for an
-// extreme high classification. This extreme high classification is a special one-off
-// classification for a particular clinic, which is why its handled as a special case.
-func isExtremeHigh(n float64) bool {
-	return n >= extremeHighBloodGlucose
-}
-
 func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
 	rs.Total.CalculateDelta(&current.Total, &previous.Total)
 	rs.VeryLow.CalculateDelta(&current.VeryLow, &previous.VeryLow)
@@ -326,7 +312,6 @@ func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
 	rs.Target.CalculateDelta(&current.Target, &previous.Target)
 	rs.High.CalculateDelta(&current.High, &previous.High)
 	rs.VeryHigh.CalculateDelta(&current.VeryHigh, &previous.VeryHigh)
-	rs.ExtremeHigh.CalculateDelta(&current.ExtremeHigh, &previous.ExtremeHigh)
 	rs.AnyLow.CalculateDelta(&current.AnyLow, &previous.AnyLow)
 	rs.AnyHigh.CalculateDelta(&current.AnyHigh, &previous.AnyHigh)
 }

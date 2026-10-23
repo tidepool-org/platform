@@ -26,15 +26,14 @@ func RandomRange(minutes bool) types.Range {
 
 func RandomRanges(minutes bool) types.GlucoseRanges {
 	return types.GlucoseRanges{
-		Total:       RandomRange(minutes),
-		VeryLow:     RandomRange(minutes),
-		Low:         RandomRange(minutes),
-		Target:      RandomRange(minutes),
-		High:        RandomRange(minutes),
-		VeryHigh:    RandomRange(minutes),
-		ExtremeHigh: RandomRange(minutes),
-		AnyLow:      RandomRange(minutes),
-		AnyHigh:     RandomRange(minutes),
+		Total:    RandomRange(minutes),
+		VeryLow:  RandomRange(minutes),
+		Low:      RandomRange(minutes),
+		Target:   RandomRange(minutes),
+		High:     RandomRange(minutes),
+		VeryHigh: RandomRange(minutes),
+		AnyLow:   RandomRange(minutes),
+		AnyHigh:  RandomRange(minutes),
 	}
 }
 

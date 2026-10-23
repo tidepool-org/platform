@@ -474,13 +474,6 @@ var _ = Describe("Glucose", func() {
 					Percent:  63,
 					Variance: 64,
 				},
-				ExtremeHigh: Range{
-					Glucose:  70,
-					Minutes:  71,
-					Records:  72,
-					Percent:  73,
-					Variance: 74,
-				},
 				AnyLow: Range{
 					Glucose:  80,
 					Minutes:  81,
@@ -539,13 +532,6 @@ var _ = Describe("Glucose", func() {
 					Records:  67,
 					Percent:  68,
 					Variance: 69,
-				},
-				ExtremeHigh: Range{
-					Glucose:  75,
-					Minutes:  76,
-					Records:  77,
-					Percent:  78,
-					Variance: 79,
 				},
 				AnyLow: Range{
 					Glucose:  85,
@@ -607,13 +593,6 @@ var _ = Describe("Glucose", func() {
 					Records:  129,
 					Percent:  0,
 					Variance: 133.00004889478234,
-				},
-				ExtremeHigh: Range{
-					Glucose:  145,
-					Minutes:  147,
-					Records:  149,
-					Percent:  0,
-					Variance: 153.00003151742536,
 				},
 				AnyLow: Range{
 					Glucose:  165,
@@ -687,22 +666,11 @@ var _ = Describe("Glucose", func() {
 			glucoseRanges.Update(g)
 			Expect(glucoseRanges.VeryHigh.Records).To(Equal(1))
 			Expect(glucoseRanges.Total.Records).To(Equal(5))
-
-			By("adding a High value")
-			glucoseRecord = NewContinuousGlucoseWithValue(bucketTime, ExtremeHighBloodGlucose+0.1)
-			g, err = NewGlucose(glucoseRecord)
-			Expect(err).ToNot(HaveOccurred())
-
-			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(0))
-			glucoseRanges.Update(g)
-			Expect(glucoseRanges.ExtremeHigh.Records).To(Equal(1))
-			Expect(glucoseRanges.VeryHigh.Records).To(Equal(2))
-			Expect(glucoseRanges.Total.Records).To(Equal(6))
 		})
 
 		Context("ranges.Update at the ADA cut points", func() {
 			type rangeRecords struct {
-				VeryLow, Low, Target, High, VeryHigh, ExtremeHigh, AnyLow, AnyHigh int
+				VeryLow, Low, Target, High, VeryHigh, AnyLow, AnyHigh int
 			}
 
 			veryLow := rangeRecords{VeryLow: 1, AnyLow: 1}
@@ -710,7 +678,6 @@ var _ = Describe("Glucose", func() {
 			inRange := rangeRecords{Target: 1}
 			high := rangeRecords{High: 1, AnyHigh: 1}
 			veryHigh := rangeRecords{VeryHigh: 1, AnyHigh: 1}
-			extremeHigh := rangeRecords{VeryHigh: 1, ExtremeHigh: 1, AnyHigh: 1}
 
 			newRecord := func(units string, value float64) Glucose {
 				datumTime := time.Now()
@@ -725,14 +692,13 @@ var _ = Describe("Glucose", func() {
 
 			recordsOf := func(rs GlucoseRanges) rangeRecords {
 				return rangeRecords{
-					VeryLow:     rs.VeryLow.Records,
-					Low:         rs.Low.Records,
-					Target:      rs.Target.Records,
-					High:        rs.High.Records,
-					VeryHigh:    rs.VeryHigh.Records,
-					ExtremeHigh: rs.ExtremeHigh.Records,
-					AnyLow:      rs.AnyLow.Records,
-					AnyHigh:     rs.AnyHigh.Records,
+					VeryLow:  rs.VeryLow.Records,
+					Low:      rs.Low.Records,
+					Target:   rs.Target.Records,
+					High:     rs.High.Records,
+					VeryHigh: rs.VeryHigh.Records,
+					AnyLow:   rs.AnyLow.Records,
+					AnyHigh:  rs.AnyHigh.Records,
 				}
 			}
 
@@ -753,7 +719,7 @@ var _ = Describe("Glucose", func() {
 				Entry("250 mg/dL is high", glucose.MgdL, 250.0, high),
 				Entry("251 mg/dL is very high", glucose.MgdL, 251.0, veryHigh),
 				Entry("349 mg/dL is very high", glucose.MgdL, 349.0, veryHigh),
-				Entry("350 mg/dL is extreme high", glucose.MgdL, 350.0, extremeHigh),
+				Entry("350 mg/dL is very high", glucose.MgdL, 350.0, veryHigh),
 				Entry("2.9 mmol/L is very low", glucose.MmolL, 2.9, veryLow),
 				Entry("3.0 mmol/L is low", glucose.MmolL, 3.0, low),
 				Entry("3.8 mmol/L is low", glucose.MmolL, 3.8, low),
@@ -763,13 +729,12 @@ var _ = Describe("Glucose", func() {
 				Entry("13.9 mmol/L is high", glucose.MmolL, 13.9, high),
 				Entry("14.0 mmol/L is very high", glucose.MmolL, 14.0, veryHigh),
 				Entry("19.3 mmol/L is very high", glucose.MmolL, 19.3, veryHigh),
-				Entry("19.4 mmol/L is extreme high", glucose.MmolL, 19.4, extremeHigh),
+				Entry("19.4 mmol/L is very high", glucose.MmolL, 19.4, veryHigh),
 			)
 
 			It("classifies every supported input by its native-unit standard", func() {
 				// The ADA standard (Battelino T, et al. Diabetes Care.
-				// 2019;42(8):1593-1603), applied to the input as recorded. Extreme high
-				// isn't part of the standard; it mirrors the 19.4 mmol/L threshold.
+				// 2019;42(8):1593-1603), applied to the input as recorded.
 				nativeMgdL := func(mg int) rangeRecords {
 					switch {
 					case mg < 54:
@@ -780,10 +745,8 @@ var _ = Describe("Glucose", func() {
 						return inRange
 					case mg <= 250:
 						return high
-					case mg < 350:
-						return veryHigh
 					default:
-						return extremeHigh
+						return veryHigh
 					}
 				}
 				nativeMmolL := func(tenths int) rangeRecords {
@@ -796,10 +759,8 @@ var _ = Describe("Glucose", func() {
 						return inRange
 					case tenths <= 139:
 						return high
-					case tenths < 194:
-						return veryHigh
 					default:
-						return extremeHigh
+						return veryHigh
 					}
 				}
 				// The cut points used before BACK-4158, applied to the stored mmol/L value.
@@ -813,10 +774,8 @@ var _ = Describe("Glucose", func() {
 						return inRange
 					case n <= 13.9:
 						return high
-					case n < 19.4:
-						return veryHigh
 					default:
-						return extremeHigh
+						return veryHigh
 					}
 				}
 
@@ -897,10 +856,6 @@ var _ = Describe("Glucose", func() {
 					Minutes: 60 * 5,
 					Records: 50,
 				},
-				ExtremeHigh: Range{
-					Minutes: 60 * 6,
-					Records: 60,
-				},
 				AnyLow: Range{
 					Minutes: 60 * 7,
 					Records: 70,
@@ -919,7 +874,6 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Target.Percent).To(Equal(60.0 * 3.0 / totalMinutes))
 			Expect(glucoseRanges.High.Percent).To(Equal(60.0 * 4.0 / totalMinutes))
 			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(60.0 * 5.0 / totalMinutes))
-			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(60.0 * 6.0 / totalMinutes))
 			Expect(glucoseRanges.AnyLow.Percent).To(Equal(60.0 * 7.0 / totalMinutes))
 			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(60.0 * 8.0 / totalMinutes))
 		})
@@ -944,9 +898,6 @@ var _ = Describe("Glucose", func() {
 				VeryHigh: Range{
 					Records: 50,
 				},
-				ExtremeHigh: Range{
-					Records: 60,
-				},
 				AnyLow: Range{
 					Records: 70,
 				},
@@ -963,7 +914,6 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.Target.Percent).To(Equal(30.0 / 100.0))
 			Expect(glucoseRanges.High.Percent).To(Equal(40.0 / 100.0))
 			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(50.0 / 100.0))
-			Expect(glucoseRanges.ExtremeHigh.Percent).To(Equal(60.0 / 100.0))
 			Expect(glucoseRanges.AnyLow.Percent).To(Equal(70.0 / 100.0))
 			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(80.0 / 100.0))
 		})
@@ -1107,11 +1057,11 @@ var _ = Describe("Glucose", func() {
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
 
 			ranges := map[float64]*Range{
-				VeryLowBloodGlucose - 0.1:     &userBucket.Data.VeryLow,
-				LowBloodGlucose - 0.1:         &userBucket.Data.Low,
-				InTargetBloodGlucose + 0.1:    &userBucket.Data.Target,
-				HighBloodGlucose + 0.1:        &userBucket.Data.High,
-				ExtremeHighBloodGlucose + 0.1: &userBucket.Data.ExtremeHigh,
+				VeryLowBloodGlucose - 0.1:  &userBucket.Data.VeryLow,
+				LowBloodGlucose - 0.1:      &userBucket.Data.Low,
+				InTargetBloodGlucose + 0.1: &userBucket.Data.Target,
+				HighBloodGlucose + 0.1:     &userBucket.Data.High,
+				VeryHighBloodGlucose + 0.1: &userBucket.Data.VeryHigh,
 			}
 
 			expectedMin := 9999.9
@@ -1330,7 +1280,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(0.0))
 			Expect(period.High.Percent).To(Equal(0.5))
 			Expect(period.VeryLow.Percent).To(Equal(0.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(0.0))
 
 			avgGlucose := (5.0 + 5.0 + 11.0 + 11.0) / 4.0
 			Expect(period.AverageDailyRecords).To(Equal(4.0 / float64(periodDays)))
@@ -1361,7 +1310,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(1.0))
 			Expect(period.High.Percent).To(Equal(1.0))
 			Expect(period.VeryLow.Percent).To(Equal(1.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
@@ -1391,7 +1339,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(1.0))
 			Expect(period.High.Percent).To(Equal(1.0))
 			Expect(period.VeryLow.Percent).To(Equal(1.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 24.0))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
@@ -1421,7 +1368,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(1.0))
 			Expect(period.High.Percent).To(Equal(1.0))
 			Expect(period.VeryLow.Percent).To(Equal(1.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal((12.0 * 24.0) * 5 / 7))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
@@ -1451,7 +1397,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(1.0))
 			Expect(period.High.Percent).To(Equal(1.0))
 			Expect(period.VeryLow.Percent).To(Equal(1.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 16.0))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
@@ -1481,7 +1426,6 @@ var _ = Describe("Glucose", func() {
 			Expect(period.Low.Percent).To(Equal(1.0))
 			Expect(period.High.Percent).To(Equal(1.0))
 			Expect(period.VeryLow.Percent).To(Equal(1.0))
-			Expect(period.ExtremeHigh.Percent).To(Equal(1.0))
 
 			Expect(period.AverageDailyRecords).To(Equal(12.0 * 23.0 / 7))
 			Expect(period.AverageGlucose).To(Equal(InTargetBloodGlucose))
@@ -1801,13 +1745,6 @@ var _ = Describe("Glucose", func() {
 							Percent:  5,
 							Variance: 5,
 						},
-						ExtremeHigh: Range{
-							Glucose:  6,
-							Minutes:  6,
-							Records:  6,
-							Percent:  6,
-							Variance: 6,
-						},
 						AnyLow: Range{
 							Glucose:  7,
 							Minutes:  7,
@@ -1877,13 +1814,6 @@ var _ = Describe("Glucose", func() {
 							Percent:  46,
 							Variance: 45,
 						},
-						ExtremeHigh: Range{
-							Glucose:  39,
-							Minutes:  38,
-							Records:  37,
-							Percent:  36,
-							Variance: 35,
-						},
 						AnyLow: Range{
 							Glucose:  29,
 							Minutes:  28,
@@ -1942,11 +1872,6 @@ var _ = Describe("Glucose", func() {
 							Minutes: -43,
 							Records: -42,
 							Percent: -41,
-						},
-						ExtremeHigh: Range{
-							Minutes: -32,
-							Records: -31,
-							Percent: -30,
 						},
 						AnyLow: Range{
 							Minutes: -21,

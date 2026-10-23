@@ -33,7 +33,7 @@ var _ = Describe("factory", func() {
 	})
 
 	It("ID is expected", func() {
-		Expect(dataWorkSummaryRecalculate.ID).To(Equal("BACK-4158-gap-based-cut-points"))
+		Expect(dataWorkSummaryRecalculate.ID).To(Equal("BACK-3480-remove-extreme-high"))
 	})
 
 	Context("with dependencies", func() {

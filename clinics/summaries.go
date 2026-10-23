@@ -115,74 +115,68 @@ func exportCGMPeriod(period *types.GlucosePeriod, days int) clinic.CgmPeriodV1 {
 	}
 
 	exported := clinic.CgmPeriodV1{
-		AverageDailyRecords:           pointer.FromFloat64(period.AverageDailyRecords),
-		AverageDailyRecordsDelta:      pointer.FromFloat64(delta.AverageDailyRecords),
-		DaysWithData:                  period.DaysWithData,
-		DaysWithDataDelta:             delta.DaysWithData,
-		HasAverageDailyRecords:        period.AverageDailyRecords != 0,
-		HasTimeCGMUseMinutes:          period.Total.Minutes != 0,
-		HasTimeCGMUseRecords:          period.Total.Records != 0,
-		HasTimeInAnyHighMinutes:       period.AnyHigh.Minutes != 0,
-		HasTimeInAnyHighRecords:       period.AnyHigh.Records != 0,
-		HasTimeInAnyLowMinutes:        period.AnyLow.Minutes != 0,
-		HasTimeInAnyLowRecords:        period.AnyLow.Records != 0,
-		HasTimeInExtremeHighMinutes:   period.ExtremeHigh.Minutes != 0,
-		HasTimeInExtremeHighRecords:   period.ExtremeHigh.Records != 0,
-		HasTimeInHighMinutes:          period.High.Minutes != 0,
-		HasTimeInHighRecords:          period.High.Records != 0,
-		HasTimeInLowMinutes:           period.Low.Minutes != 0,
-		HasTimeInLowRecords:           period.Low.Records != 0,
-		HasTimeInTargetMinutes:        period.Target.Minutes != 0,
-		HasTimeInTargetRecords:        period.Target.Records != 0,
-		HasTimeInVeryHighMinutes:      period.VeryHigh.Minutes != 0,
-		HasTimeInVeryHighRecords:      period.VeryHigh.Records != 0,
-		HasTimeInVeryLowMinutes:       period.VeryLow.Minutes != 0,
-		HasTimeInVeryLowRecords:       period.VeryLow.Records != 0,
-		HasTotalRecords:               period.Total.Records != 0,
-		HoursWithData:                 period.HoursWithData,
-		HoursWithDataDelta:            delta.HoursWithData,
-		TimeCGMUseMinutes:             pointer.FromInt(period.Total.Minutes),
-		TimeCGMUseMinutesDelta:        pointer.FromInt(delta.Total.Minutes),
-		TimeCGMUseRecords:             pointer.FromInt(period.Total.Records),
-		TimeCGMUseRecordsDelta:        pointer.FromInt(delta.Total.Records),
-		TimeInAnyHighMinutes:          pointer.FromInt(period.AnyHigh.Minutes),
-		TimeInAnyHighMinutesDelta:     pointer.FromInt(delta.AnyHigh.Minutes),
-		TimeInAnyHighRecords:          pointer.FromInt(period.AnyHigh.Records),
-		TimeInAnyHighRecordsDelta:     pointer.FromInt(delta.AnyHigh.Records),
-		TimeInAnyLowMinutes:           pointer.FromInt(period.AnyLow.Minutes),
-		TimeInAnyLowMinutesDelta:      pointer.FromInt(delta.AnyLow.Minutes),
-		TimeInAnyLowRecords:           pointer.FromInt(period.AnyLow.Records),
-		TimeInAnyLowRecordsDelta:      pointer.FromInt(delta.AnyLow.Records),
-		TimeInExtremeHighMinutes:      pointer.FromInt(period.ExtremeHigh.Minutes),
-		TimeInExtremeHighMinutesDelta: pointer.FromInt(delta.ExtremeHigh.Minutes),
-		TimeInExtremeHighRecords:      pointer.FromInt(period.ExtremeHigh.Records),
-		TimeInExtremeHighRecordsDelta: pointer.FromInt(delta.ExtremeHigh.Records),
-		TimeInHighMinutes:             pointer.FromInt(period.High.Minutes),
-		TimeInHighMinutesDelta:        pointer.FromInt(delta.High.Minutes),
-		TimeInHighRecords:             pointer.FromInt(period.High.Records),
-		TimeInHighRecordsDelta:        pointer.FromInt(delta.High.Records),
-		TimeInLowMinutes:              pointer.FromInt(period.Low.Minutes),
-		TimeInLowMinutesDelta:         pointer.FromInt(delta.Low.Minutes),
-		TimeInLowRecords:              pointer.FromInt(period.Low.Records),
-		TimeInLowRecordsDelta:         pointer.FromInt(delta.Low.Records),
-		TimeInTargetMinutes:           pointer.FromInt(period.Target.Minutes),
-		TimeInTargetMinutesDelta:      pointer.FromInt(delta.Target.Minutes),
-		TimeInTargetRecords:           pointer.FromInt(period.Target.Records),
-		TimeInTargetRecordsDelta:      pointer.FromInt(delta.Target.Records),
-		TimeInVeryHighMinutes:         pointer.FromInt(period.VeryHigh.Minutes),
-		TimeInVeryHighMinutesDelta:    pointer.FromInt(delta.VeryHigh.Minutes),
-		TimeInVeryHighRecords:         pointer.FromInt(period.VeryHigh.Records),
-		TimeInVeryHighRecordsDelta:    pointer.FromInt(delta.VeryHigh.Records),
-		TimeInVeryLowMinutes:          pointer.FromInt(period.VeryLow.Minutes),
-		TimeInVeryLowMinutesDelta:     pointer.FromInt(delta.VeryLow.Minutes),
-		TimeInVeryLowRecords:          pointer.FromInt(period.VeryLow.Records),
-		TimeInVeryLowRecordsDelta:     pointer.FromInt(delta.VeryLow.Records),
-		TotalRecords:                  pointer.FromInt(period.Total.Records),
-		TotalRecordsDelta:             pointer.FromInt(delta.Total.Records),
-		Min:                           period.Min,
-		MinDelta:                      delta.Min,
-		Max:                           period.Max,
-		MaxDelta:                      delta.Max,
+		AverageDailyRecords:        pointer.FromFloat64(period.AverageDailyRecords),
+		AverageDailyRecordsDelta:   pointer.FromFloat64(delta.AverageDailyRecords),
+		DaysWithData:               period.DaysWithData,
+		DaysWithDataDelta:          delta.DaysWithData,
+		HasAverageDailyRecords:     period.AverageDailyRecords != 0,
+		HasTimeCGMUseMinutes:       period.Total.Minutes != 0,
+		HasTimeCGMUseRecords:       period.Total.Records != 0,
+		HasTimeInAnyHighMinutes:    period.AnyHigh.Minutes != 0,
+		HasTimeInAnyHighRecords:    period.AnyHigh.Records != 0,
+		HasTimeInAnyLowMinutes:     period.AnyLow.Minutes != 0,
+		HasTimeInAnyLowRecords:     period.AnyLow.Records != 0,
+		HasTimeInHighMinutes:       period.High.Minutes != 0,
+		HasTimeInHighRecords:       period.High.Records != 0,
+		HasTimeInLowMinutes:        period.Low.Minutes != 0,
+		HasTimeInLowRecords:        period.Low.Records != 0,
+		HasTimeInTargetMinutes:     period.Target.Minutes != 0,
+		HasTimeInTargetRecords:     period.Target.Records != 0,
+		HasTimeInVeryHighMinutes:   period.VeryHigh.Minutes != 0,
+		HasTimeInVeryHighRecords:   period.VeryHigh.Records != 0,
+		HasTimeInVeryLowMinutes:    period.VeryLow.Minutes != 0,
+		HasTimeInVeryLowRecords:    period.VeryLow.Records != 0,
+		HasTotalRecords:            period.Total.Records != 0,
+		HoursWithData:              period.HoursWithData,
+		HoursWithDataDelta:         delta.HoursWithData,
+		TimeCGMUseMinutes:          pointer.FromInt(period.Total.Minutes),
+		TimeCGMUseMinutesDelta:     pointer.FromInt(delta.Total.Minutes),
+		TimeCGMUseRecords:          pointer.FromInt(period.Total.Records),
+		TimeCGMUseRecordsDelta:     pointer.FromInt(delta.Total.Records),
+		TimeInAnyHighMinutes:       pointer.FromInt(period.AnyHigh.Minutes),
+		TimeInAnyHighMinutesDelta:  pointer.FromInt(delta.AnyHigh.Minutes),
+		TimeInAnyHighRecords:       pointer.FromInt(period.AnyHigh.Records),
+		TimeInAnyHighRecordsDelta:  pointer.FromInt(delta.AnyHigh.Records),
+		TimeInAnyLowMinutes:        pointer.FromInt(period.AnyLow.Minutes),
+		TimeInAnyLowMinutesDelta:   pointer.FromInt(delta.AnyLow.Minutes),
+		TimeInAnyLowRecords:        pointer.FromInt(period.AnyLow.Records),
+		TimeInAnyLowRecordsDelta:   pointer.FromInt(delta.AnyLow.Records),
+		TimeInHighMinutes:          pointer.FromInt(period.High.Minutes),
+		TimeInHighMinutesDelta:     pointer.FromInt(delta.High.Minutes),
+		TimeInHighRecords:          pointer.FromInt(period.High.Records),
+		TimeInHighRecordsDelta:     pointer.FromInt(delta.High.Records),
+		TimeInLowMinutes:           pointer.FromInt(period.Low.Minutes),
+		TimeInLowMinutesDelta:      pointer.FromInt(delta.Low.Minutes),
+		TimeInLowRecords:           pointer.FromInt(period.Low.Records),
+		TimeInLowRecordsDelta:      pointer.FromInt(delta.Low.Records),
+		TimeInTargetMinutes:        pointer.FromInt(period.Target.Minutes),
+		TimeInTargetMinutesDelta:   pointer.FromInt(delta.Target.Minutes),
+		TimeInTargetRecords:        pointer.FromInt(period.Target.Records),
+		TimeInTargetRecordsDelta:   pointer.FromInt(delta.Target.Records),
+		TimeInVeryHighMinutes:      pointer.FromInt(period.VeryHigh.Minutes),
+		TimeInVeryHighMinutesDelta: pointer.FromInt(delta.VeryHigh.Minutes),
+		TimeInVeryHighRecords:      pointer.FromInt(period.VeryHigh.Records),
+		TimeInVeryHighRecordsDelta: pointer.FromInt(delta.VeryHigh.Records),
+		TimeInVeryLowMinutes:       pointer.FromInt(period.VeryLow.Minutes),
+		TimeInVeryLowMinutesDelta:  pointer.FromInt(delta.VeryLow.Minutes),
+		TimeInVeryLowRecords:       pointer.FromInt(period.VeryLow.Records),
+		TimeInVeryLowRecordsDelta:  pointer.FromInt(delta.VeryLow.Records),
+		TotalRecords:               pointer.FromInt(period.Total.Records),
+		TotalRecordsDelta:          pointer.FromInt(delta.Total.Records),
+		Min:                        period.Min,
+		MinDelta:                   delta.Min,
+		Max:                        period.Max,
+		MaxDelta:                   delta.Max,
 	}
 
 	// reconstruct some previous period values for comparison later
@@ -232,9 +226,6 @@ func exportCGMPeriod(period *types.GlucosePeriod, days int) clinic.CgmPeriodV1 {
 			exported.HasTimeInVeryHighPercent = true
 			exported.TimeInVeryHighPercent = pointer.FromFloat64(period.VeryHigh.Percent)
 
-			exported.HasTimeInExtremeHighPercent = true
-			exported.TimeInExtremeHighPercent = pointer.FromFloat64(period.ExtremeHigh.Percent)
-
 			exported.HasTimeInAnyHighPercent = true
 			exported.TimeInAnyHighPercent = pointer.FromFloat64(period.AnyHigh.Percent)
 
@@ -246,7 +237,6 @@ func exportCGMPeriod(period *types.GlucosePeriod, days int) clinic.CgmPeriodV1 {
 				exported.TimeInAnyLowPercentDelta = pointer.FromFloat64(delta.AnyLow.Percent)
 				exported.TimeInHighPercentDelta = pointer.FromFloat64(delta.High.Percent)
 				exported.TimeInVeryHighPercentDelta = pointer.FromFloat64(delta.VeryHigh.Percent)
-				exported.TimeInExtremeHighPercentDelta = pointer.FromFloat64(delta.ExtremeHigh.Percent)
 				exported.TimeInAnyHighPercentDelta = pointer.FromFloat64(delta.AnyHigh.Percent)
 			}
 		}
@@ -273,42 +263,39 @@ func exportBGMPeriod(period *types.GlucosePeriod) clinic.BgmPeriodV1 {
 	}
 
 	exported := clinic.BgmPeriodV1{
-		AverageDailyRecords:           pointer.FromFloat64(period.AverageDailyRecords),
-		AverageDailyRecordsDelta:      pointer.FromFloat64(delta.AverageDailyRecords),
-		DaysWithData:                  period.DaysWithData,
-		DaysWithDataDelta:             delta.DaysWithData,
-		HasAverageDailyRecords:        period.AverageDailyRecords != 0,
-		HasTimeInAnyHighRecords:       period.AnyHigh.Records != 0,
-		HasTimeInAnyLowRecords:        period.AnyLow.Records != 0,
-		HasTimeInExtremeHighRecords:   period.ExtremeHigh.Records != 0,
-		HasTimeInHighRecords:          period.High.Records != 0,
-		HasTimeInLowRecords:           period.Low.Records != 0,
-		HasTimeInTargetRecords:        period.Target.Records != 0,
-		HasTimeInVeryHighRecords:      period.VeryHigh.Records != 0,
-		HasTimeInVeryLowRecords:       period.VeryLow.Records != 0,
-		HasTotalRecords:               period.Total.Records != 0,
-		TimeInAnyHighRecords:          pointer.FromInt(period.AnyHigh.Records),
-		TimeInAnyHighRecordsDelta:     pointer.FromInt(delta.AnyHigh.Records),
-		TimeInAnyLowRecords:           pointer.FromInt(period.AnyLow.Records),
-		TimeInAnyLowRecordsDelta:      pointer.FromInt(delta.AnyLow.Records),
-		TimeInExtremeHighRecords:      pointer.FromInt(period.ExtremeHigh.Records),
-		TimeInExtremeHighRecordsDelta: pointer.FromInt(delta.ExtremeHigh.Records),
-		TimeInHighRecords:             pointer.FromInt(period.High.Records),
-		TimeInHighRecordsDelta:        pointer.FromInt(delta.High.Records),
-		TimeInLowRecords:              pointer.FromInt(period.Low.Records),
-		TimeInLowRecordsDelta:         pointer.FromInt(delta.Low.Records),
-		TimeInTargetRecords:           pointer.FromInt(period.Target.Records),
-		TimeInTargetRecordsDelta:      pointer.FromInt(delta.Target.Records),
-		TimeInVeryHighRecords:         pointer.FromInt(period.VeryHigh.Records),
-		TimeInVeryHighRecordsDelta:    pointer.FromInt(delta.VeryHigh.Records),
-		TimeInVeryLowRecords:          pointer.FromInt(period.VeryLow.Records),
-		TimeInVeryLowRecordsDelta:     pointer.FromInt(delta.VeryLow.Records),
-		TotalRecords:                  pointer.FromInt(period.Total.Records),
-		TotalRecordsDelta:             pointer.FromInt(delta.Total.Records),
-		Min:                           period.Min,
-		MinDelta:                      delta.Min,
-		Max:                           period.Max,
-		MaxDelta:                      delta.Max,
+		AverageDailyRecords:        pointer.FromFloat64(period.AverageDailyRecords),
+		AverageDailyRecordsDelta:   pointer.FromFloat64(delta.AverageDailyRecords),
+		DaysWithData:               period.DaysWithData,
+		DaysWithDataDelta:          delta.DaysWithData,
+		HasAverageDailyRecords:     period.AverageDailyRecords != 0,
+		HasTimeInAnyHighRecords:    period.AnyHigh.Records != 0,
+		HasTimeInAnyLowRecords:     period.AnyLow.Records != 0,
+		HasTimeInHighRecords:       period.High.Records != 0,
+		HasTimeInLowRecords:        period.Low.Records != 0,
+		HasTimeInTargetRecords:     period.Target.Records != 0,
+		HasTimeInVeryHighRecords:   period.VeryHigh.Records != 0,
+		HasTimeInVeryLowRecords:    period.VeryLow.Records != 0,
+		HasTotalRecords:            period.Total.Records != 0,
+		TimeInAnyHighRecords:       pointer.FromInt(period.AnyHigh.Records),
+		TimeInAnyHighRecordsDelta:  pointer.FromInt(delta.AnyHigh.Records),
+		TimeInAnyLowRecords:        pointer.FromInt(period.AnyLow.Records),
+		TimeInAnyLowRecordsDelta:   pointer.FromInt(delta.AnyLow.Records),
+		TimeInHighRecords:          pointer.FromInt(period.High.Records),
+		TimeInHighRecordsDelta:     pointer.FromInt(delta.High.Records),
+		TimeInLowRecords:           pointer.FromInt(period.Low.Records),
+		TimeInLowRecordsDelta:      pointer.FromInt(delta.Low.Records),
+		TimeInTargetRecords:        pointer.FromInt(period.Target.Records),
+		TimeInTargetRecordsDelta:   pointer.FromInt(delta.Target.Records),
+		TimeInVeryHighRecords:      pointer.FromInt(period.VeryHigh.Records),
+		TimeInVeryHighRecordsDelta: pointer.FromInt(delta.VeryHigh.Records),
+		TimeInVeryLowRecords:       pointer.FromInt(period.VeryLow.Records),
+		TimeInVeryLowRecordsDelta:  pointer.FromInt(delta.VeryLow.Records),
+		TotalRecords:               pointer.FromInt(period.Total.Records),
+		TotalRecordsDelta:          pointer.FromInt(delta.Total.Records),
+		Min:                        period.Min,
+		MinDelta:                   delta.Min,
+		Max:                        period.Max,
+		MaxDelta:                   delta.Max,
 	}
 
 	// reconstruct previous period total records for comparison later
@@ -334,9 +321,6 @@ func exportBGMPeriod(period *types.GlucosePeriod) clinic.BgmPeriodV1 {
 		exported.HasTimeInVeryHighPercent = true
 		exported.TimeInVeryHighPercent = pointer.FromFloat64(period.VeryHigh.Percent)
 
-		exported.HasTimeInExtremeHighPercent = true
-		exported.TimeInExtremeHighPercent = pointer.FromFloat64(period.ExtremeHigh.Percent)
-
 		exported.HasTimeInAnyHighPercent = true
 		exported.TimeInAnyHighPercent = pointer.FromFloat64(period.AnyHigh.Percent)
 
@@ -350,7 +334,6 @@ func exportBGMPeriod(period *types.GlucosePeriod) clinic.BgmPeriodV1 {
 			exported.TimeInAnyLowPercentDelta = pointer.FromFloat64(delta.AnyLow.Percent)
 			exported.TimeInHighPercentDelta = pointer.FromFloat64(delta.High.Percent)
 			exported.TimeInVeryHighPercentDelta = pointer.FromFloat64(delta.VeryHigh.Percent)
-			exported.TimeInExtremeHighPercentDelta = pointer.FromFloat64(delta.ExtremeHigh.Percent)
 			exported.TimeInAnyHighPercentDelta = pointer.FromFloat64(delta.AnyHigh.Percent)
 			exported.AverageGlucoseMmolDelta = pointer.FromFloat64(delta.AverageGlucose)
 		}
