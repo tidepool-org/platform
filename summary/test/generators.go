@@ -18,12 +18,11 @@ import (
 )
 
 const (
-	VeryLowBloodGlucose     = 2.97
-	LowBloodGlucose         = 3.87
-	HighBloodGlucose        = 10.02
-	VeryHighBloodGlucose    = 13.91
-	ExtremeHighBloodGlucose = 19.4
-	InTargetBloodGlucose    = 5.0
+	VeryLowBloodGlucose  = 2.97
+	LowBloodGlucose      = 3.87
+	HighBloodGlucose     = 10.02
+	VeryHighBloodGlucose = 13.91
+	InTargetBloodGlucose = 5.0
 )
 
 func SliceToCursor[T any](s []T) (*mongo.Cursor, error) {
@@ -50,14 +49,13 @@ func ExpectedAverage(windowSize int, hoursAdded int, newAvg float64, oldAvg floa
 var Units = "mmol/L"
 
 type DataRanges struct {
-	Min         float64
-	Max         float64
-	Padding     float64
-	VeryLow     float64
-	Low         float64
-	High        float64
-	VeryHigh    float64
-	ExtremeHigh float64
+	Min      float64
+	Max      float64
+	Padding  float64
+	VeryLow  float64
+	Low      float64
+	High     float64
+	VeryHigh float64
 }
 
 func Mean(x []float64) float64 {
@@ -170,17 +168,16 @@ func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRang
 	uploadId := test.RandomDataSetID()
 	deviceId := "SummaryTestDevice"
 
-	glucoseBrackets := [6][2]float64{
+	glucoseBrackets := [5][2]float64{
 		{ranges.Min, ranges.VeryLow - ranges.Padding},
 		{ranges.VeryLow, ranges.Low - ranges.Padding},
 		{ranges.Low, ranges.High - ranges.Padding},
 		{ranges.High, ranges.VeryHigh - ranges.Padding},
-		{ranges.VeryHigh, ranges.ExtremeHigh - ranges.Padding},
-		{ranges.ExtremeHigh, ranges.Max},
+		{ranges.VeryHigh, ranges.Max},
 	}
 
 	// generate requiredRecords of data
-	for count := 0; count < requiredRecords; count += 6 {
+	for count := 0; count < requiredRecords; count += 5 {
 		for i, bracket := range glucoseBrackets {
 			datumTime := startTime.Add(time.Duration(-(count + i + 1)) * time.Minute * 5)
 
@@ -244,7 +241,6 @@ func CreateGlucoseBuckets(startTime time.Time, hours int, recordsPerBucket int, 
 			&buckets[i].Data.Target,
 			&buckets[i].Data.High,
 			&buckets[i].Data.VeryHigh,
-			&buckets[i].Data.ExtremeHigh,
 			&buckets[i].Data.AnyLow,
 			&buckets[i].Data.AnyHigh,
 		}

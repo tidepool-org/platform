@@ -33,13 +33,11 @@ const (
 	// Readings are compared after normalization to mmol/L, so each cut point sits in the
 	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
 	// as the ADA standard intends. Readings with finer precision may not classify as
-	// expected. extremeHighBloodGlucose already falls in such a gap (349 mg/dL ≈ 19.37,
-	// 350 mg/dL ≈ 19.43), so it needs no adjustment.
-	veryLowBloodGlucose     = 2.97
-	lowBloodGlucose         = 3.87
-	highBloodGlucose        = 10.02
-	veryHighBloodGlucose    = 13.91
-	extremeHighBloodGlucose = 19.4
+	// expected.
+	veryLowBloodGlucose  = 2.97
+	lowBloodGlucose      = 3.87
+	highBloodGlucose     = 10.02
+	veryHighBloodGlucose = 13.91
 
 	HoursAgoToKeep = 60 * 24
 )
