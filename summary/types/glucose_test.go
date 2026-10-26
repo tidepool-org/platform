@@ -959,6 +959,99 @@ var _ = Describe("Glucose", func() {
 			Expect(userBucket.IsModified()).To(BeTrue())
 		})
 
+		It("records the cgm reading", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)
+
+			Expect(userBucket.Update(cgmDatum)).To(Succeed())
+			Expect(userBucket.Data.Readings).To(Equal([]GlucoseReading{
+				{Time: datumTime, Value: InTargetBloodGlucose, Duration: 5},
+			}))
+		})
+
+		It("records the bgm reading without a duration", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeBGM)
+			bgmDatum := NewSelfMonitoredGlucoseWithValue(datumTime, InTargetBloodGlucose)
+
+			Expect(userBucket.Update(bgmDatum)).To(Succeed())
+			Expect(userBucket.Data.Readings).To(Equal([]GlucoseReading{
+				{Time: datumTime, Value: InTargetBloodGlucose},
+			}))
+		})
+
+		It("doesn't record a cgm value skipped by the blackout window", func() {
+			datumTime := bucketTime.Add(5 * time.Minute)
+			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime, InTargetBloodGlucose)
+			Expect(userBucket.Update(cgmDatum)).To(Succeed())
+
+			cgmDatum = NewContinuousGlucoseWithValue(datumTime.Add(4*time.Minute),
+				InTargetBloodGlucose)
+			Expect(userBucket.Update(cgmDatum)).To(Succeed())
+
+			Expect(userBucket.Data.Total.Records).To(Equal(1))
+			Expect(userBucket.Data.Readings).To(HaveLen(1))
+		})
+
+		It("records one reading per record counted, reproducing the ranges", func() {
+			buckets := BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
+			// the generator needs a multiple of 5 records: 10 hours is 120
+			userData := NewDataSetCGMDataRanges(bucketTime, 10, DataRanges{
+				Min:      1,
+				Max:      25,
+				Padding:  0.01,
+				VeryLow:  VeryLowBloodGlucose,
+				Low:      LowBloodGlucose,
+				High:     HighBloodGlucose,
+				VeryHigh: VeryHighBloodGlucose,
+			})
+			createBucket := CreateBucketForUser[*GlucoseBucket](userId, SummaryTypeCGM)
+			Expect(buckets.Update(createBucket, userData)).To(Succeed())
+			Expect(buckets).To(HaveLen(10))
+
+			for _, bucket := range buckets {
+				var ranges GlucoseRanges
+				minutes := 0
+				for _, reading := range bucket.Data.Readings {
+					minutes += reading.Duration
+					var counted []*Range
+					switch {
+					case reading.Value < VeryLowBloodGlucose:
+						counted = []*Range{&ranges.VeryLow, &ranges.AnyLow}
+					case reading.Value < LowBloodGlucose:
+						counted = []*Range{&ranges.Low, &ranges.AnyLow}
+					case reading.Value < HighBloodGlucose:
+						counted = []*Range{&ranges.Target}
+					case reading.Value < VeryHighBloodGlucose:
+						counted = []*Range{&ranges.High, &ranges.AnyHigh}
+					default:
+						counted = []*Range{&ranges.VeryHigh, &ranges.AnyHigh}
+					}
+					for _, r := range counted {
+						r.Records++
+						r.Minutes += reading.Duration
+					}
+				}
+
+				Expect(bucket.Data.Readings).To(HaveLen(bucket.Data.Total.Records))
+				Expect(minutes).To(Equal(bucket.Data.Total.Minutes))
+				for _, pair := range [][2]Range{
+					{ranges.VeryLow, bucket.Data.VeryLow},
+					{ranges.Low, bucket.Data.Low},
+					{ranges.Target, bucket.Data.Target},
+					{ranges.High, bucket.Data.High},
+					{ranges.VeryHigh, bucket.Data.VeryHigh},
+					{ranges.AnyLow, bucket.Data.AnyLow},
+					{ranges.AnyHigh, bucket.Data.AnyHigh},
+				} {
+					Expect(pair[0].Records).To(Equal(pair[1].Records))
+					Expect(pair[0].Minutes).To(Equal(pair[1].Minutes))
+				}
+			}
+		})
+
 		It("With two cgm values within 5 minutes", func() {
 			datumTime := bucketTime.Add(5 * time.Minute)
 			userBucket = NewBucket[*GlucoseBucket](userId, bucketTime, SummaryTypeCGM)

@@ -349,11 +349,26 @@ func (m *MinMax) CalculateDelta(current *MinMax, previous *MinMax) {
 	m.Max = current.Max - previous.Max
 }
 
+// GlucoseReading is a reading counted in a bucket, kept so that the bucket can be
+// re-aggregated with other glucose ranges. The time isn't needed for that, but helps
+// debugging. Value is normalized to mmol/L.
+type GlucoseReading struct {
+	Time  time.Time `json:"time" bson:"time"`
+	Value float64   `json:"value" bson:"value"`
+	// Duration is the minutes the reading represents, which is 0 for BGM readings.
+	Duration int `json:"duration,omitempty" bson:"duration,omitempty"`
+}
+
 type GlucoseBucket struct {
 	GlucoseRanges `bson:",inline"`
 	MinMax        `bson:",inline"`
 
 	LastRecordDuration int `json:"lastRecordDuration" bson:"lastRecordDuration"`
+
+	// Readings are the readings counted in the ranges, in the order they were counted.
+	// There is one per record counted in Total, with their durations summing to its
+	// minutes. Buckets calculated before schema version 7 have none.
+	Readings []GlucoseReading `json:"readings" bson:"readings"`
 }
 
 func (b *GlucoseBucket) ShouldSkipDatum(d Glucose, lastData *time.Time) bool {
@@ -390,6 +405,11 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 	b.MinMax.Update(g)
 	b.GlucoseRanges.Update(g)
 	b.LastRecordDuration = g.Duration()
+	b.Readings = append(b.Readings, GlucoseReading{
+		Time:     *g.Time(),
+		Value:    g.NormalizedValue(),
+		Duration: g.Duration(),
+	})
 
 	return true, nil
 }

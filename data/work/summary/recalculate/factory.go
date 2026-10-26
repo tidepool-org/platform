@@ -28,7 +28,7 @@ const (
 // Change it to a new, never before used, value whenever every summary must be recalculated,
 // such as when the glucose ranges are modified. To run the recalculation with the current
 // id again, delete its work.
-const ID = "BACK-3480-remove-extreme-high"
+const ID = "BACK-3480-bucket-readings"
 
 type SummaryLister interface {
 	// ListUserIDs returns, in ascending order, the ids of up to limit users with a summary,

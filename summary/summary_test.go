@@ -348,6 +348,10 @@ var _ = Describe("End to end summary calculations", func() {
 		// a summary calculated with an outdated schema is recreated in place of the stored one
 		bgmSummaryStored.Config.SchemaVersion = SchemaVersion - 1
 		Expect(bgmStore.ReplaceSummary(ctx, bgmSummaryStored)).To(Succeed())
+		// along with its buckets, which lack the readings that version 7 added
+		_, err = bucketsRepo.UpdateMany(ctx, bson.M{"userId": userId},
+			bson.M{"$unset": bson.M{"data.readings": ""}})
+		Expect(err).ToNot(HaveOccurred())
 
 		bgmSummary, err = bgmSummarizer.UpdateSummary(ctx, userId)
 		Expect(err).ToNot(HaveOccurred())
@@ -355,6 +359,13 @@ var _ = Describe("End to end summary calculations", func() {
 		Expect(bgmSummary.Config.SchemaVersion).To(Equal(SchemaVersion))
 		Expect(bgmSummary.ID).To(Equal(bgmSummaryStored.ID))
 		Expect(bgmSummary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+
+		buckets := GetBuckets(ctx, userId, bgmBucketsStore)
+		Expect(buckets).To(HaveLen(5))
+		for _, bucket := range buckets {
+			Expect(bucket.Data.Readings).To(HaveLen(bucket.Data.Total.Records))
+			Expect(bucket.Data.Readings).ToNot(BeEmpty())
+		}
 	})
 
 	It("summary calc recalculates a current summary without new data when requested", func() {

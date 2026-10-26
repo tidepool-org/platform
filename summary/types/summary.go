@@ -22,8 +22,8 @@ const (
 	// next time it's updated. If incrementing it requires every summary to be migrated
 	// promptly, then also change the recalculation id in the
 	// data/work/summary/recalculate package. That recalculates only the CGM and BGM
-	// summaries.
-	SchemaVersion = 6
+	// summaries. Version 7 added the readings to the glucose buckets.
+	SchemaVersion = 7
 
 	// These values are defined in BACK-4158. They represent the ADA standard glucose
 	// ranges. If they, or how readings are classified against them, are modified, then

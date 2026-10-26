@@ -102,6 +102,56 @@ var _ = Describe("Buckets", Label("mongodb", "slow", "integration"), func() {
 			}
 		})
 
+		Context("readings", func() {
+			It("round trip through the store", func() {
+				readingTime := bucketTime.Add(5 * time.Minute).Add(123 * time.Millisecond)
+				bucket := types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]{
+					BaseBucket: types.BaseBucket{
+						UserId: userId,
+						Type:   types.SummaryTypeCGM,
+						Time:   bucketTime,
+					},
+					Data: &types.GlucoseBucket{
+						LastRecordDuration: 5,
+						Readings: []types.GlucoseReading{
+							{Time: readingTime, Value: 5.5, Duration: 5},
+							{Time: readingTime.Add(5 * time.Minute), Value: 2.99740},
+						},
+					},
+				}
+				_, err := bucketsRepository.InsertOne(ctx, bucket)
+				Expect(err).ToNot(HaveOccurred())
+
+				r, err := cgmStore.GetBucketsByTime(ctx, userId, bucketTime, bucketTime)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(r).To(HaveLen(1))
+				stored := r[bucketTime.Truncate(time.Millisecond)]
+				Expect(stored).ToNot(BeNil())
+				Expect(stored.Data.Readings).To(HaveLen(2))
+				// BSON stores times at millisecond precision, in UTC
+				Expect(stored.Data.Readings[0].Time).To(BeTemporally("==", readingTime))
+				Expect(stored.Data.Readings[0].Value).To(Equal(5.5))
+				Expect(stored.Data.Readings[0].Duration).To(Equal(5))
+				Expect(stored.Data.Readings[1].Value).To(Equal(2.99740))
+				Expect(stored.Data.Readings[1].Duration).To(Equal(0))
+			})
+
+			It("are empty for a bucket stored before they were added", func() {
+				_, err := bucketsRepository.InsertOne(ctx, bson.M{
+					"userId": userId,
+					"type":   types.SummaryTypeCGM,
+					"time":   bucketTime,
+					"data":   bson.M{"lastRecordDuration": 5},
+				})
+				Expect(err).ToNot(HaveOccurred())
+
+				r, err := cgmStore.GetBucketsByTime(ctx, userId, bucketTime, bucketTime)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(r).To(HaveLen(1))
+				Expect(r[bucketTime.Truncate(time.Millisecond)].Data.Readings).To(BeEmpty())
+			})
+		})
+
 		Context("GetBucketsByTime", func() {
 			It("With two buckets in time range, two outside", func() {
 				buckets := []types.Bucket[*types.GlucoseBucket, types.GlucoseBucket]{
