@@ -259,50 +259,23 @@ func (rs *GlucoseRanges) Finalize(days int) {
 }
 
 func (rs *GlucoseRanges) Update(record Glucose) {
-	n := record.NormalizedValue()
-	switch classifyADAStandard(n) {
-	case classificationVeryLow:
+	switch StandardCutPoints().Classify(record.NormalizedValue()) {
+	case ClassificationVeryLow:
 		rs.VeryLow.Update(record)
 		rs.AnyLow.Update(record)
-	case classificationLow:
+	case ClassificationLow:
 		rs.Low.Update(record)
 		rs.AnyLow.Update(record)
-	case classificationInRange:
+	case ClassificationInRange:
 		rs.Target.Update(record)
-	case classificationHigh:
+	case ClassificationHigh:
 		rs.High.Update(record)
 		rs.AnyHigh.Update(record)
-	case classificationVeryHigh:
+	case ClassificationVeryHigh:
 		rs.VeryHigh.Update(record)
 		rs.AnyHigh.Update(record)
 	}
 	rs.Total.UpdateTotal(record)
-}
-
-type classification int
-
-const (
-	classificationVeryLow classification = iota + 1
-	classificationLow
-	classificationInRange
-	classificationHigh
-	classificationVeryHigh
-)
-
-// classifyADAStandard classifies a normalized (mmol/L) glucose value.
-func classifyADAStandard(n float64) classification {
-	switch {
-	case n < veryLowBloodGlucose:
-		return classificationVeryLow
-	case n < lowBloodGlucose:
-		return classificationLow
-	case n < highBloodGlucose:
-		return classificationInRange
-	case n < veryHighBloodGlucose:
-		return classificationHigh
-	default:
-		return classificationVeryHigh
-	}
 }
 
 func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {

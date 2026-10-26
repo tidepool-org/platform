@@ -26,9 +26,12 @@ const (
 	SchemaVersion = 7
 
 	// These values are defined in BACK-4158. They represent the ADA standard glucose
-	// ranges. If they, or how readings are classified against them, are modified, then
-	// change the recalculation id in the data/work/summary/recalculate package, so that
-	// every patient's summary is recalculated based on the modified thresholds.
+	// ranges, as StandardCutPoints. If they, or how readings are classified against them,
+	// are modified, then change the recalculation id in the data/work/summary/recalculate
+	// package, so that every patient's summary is recalculated based on the modified
+	// thresholds. The cut points of other glucose ranges are derived in ranges.go, and the
+	// tests check that these classify readings as those derived for the ADA standard
+	// preset do.
 	//
 	// Readings are compared after normalization to mmol/L, so each cut point sits in the
 	// gap between the nearest whole mg/dL and one-decimal mmol/L values, classifying both
@@ -123,12 +126,13 @@ type BGMSummary = Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket
 type ContinuousSummary = Summary[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
 
 func NewConfig() Config {
+	standard := StandardCutPoints()
 	return Config{
 		SchemaVersion:            SchemaVersion,
-		HighGlucoseThreshold:     highBloodGlucose,
-		VeryHighGlucoseThreshold: veryHighBloodGlucose,
-		LowGlucoseThreshold:      lowBloodGlucose,
-		VeryLowGlucoseThreshold:  veryLowBloodGlucose,
+		HighGlucoseThreshold:     standard.High,
+		VeryHighGlucoseThreshold: standard.VeryHigh,
+		LowGlucoseThreshold:      standard.Low,
+		VeryLowGlucoseThreshold:  standard.VeryLow,
 	}
 }
 
