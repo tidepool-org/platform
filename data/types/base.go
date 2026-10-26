@@ -52,6 +52,7 @@ type Base struct {
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
 	Provenance        *data.Provenance              `json:"-" bson:"provenance,omitempty"`
+	Revisions         *[]data.Revision              `json:"revisions,omitempty" bson:"revisions,omitempty"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *time.Time                    `json:"time,omitempty" bson:"time,omitempty"`
@@ -383,6 +384,39 @@ func (b *Base) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplicat
 
 func (b *Base) SetProvenance(provenance *data.Provenance) {
 	b.Provenance = provenance
+}
+
+func (b *Base) GetRevisions() *[]data.Revision {
+	return b.Revisions
+}
+
+func (b *Base) SetRevisions(revisions *[]data.Revision) {
+	b.Revisions = revisions
+}
+
+func (b *Base) GetVersionInternal() int {
+	return b.VersionInternal
+}
+
+func (b *Base) SetVersionInternal(versionInternal int) {
+	b.VersionInternal = versionInternal
+}
+
+// DeriveChildOriginID gives a child datum added during normalization an origin id derived from its parent's
+// origin id and the reference the child was added under, unless the child already has one.
+func DeriveChildOriginID(parent data.Datum, child data.Datum, reference string) {
+	parentOrigin := parent.GetOrigin()
+	if parentOrigin == nil || parentOrigin.ID == nil || *parentOrigin.ID == "" {
+		return
+	}
+	childOrigin := child.GetOrigin()
+	if childOrigin == nil {
+		childOrigin = origin.NewOrigin()
+	} else if childOrigin.ID != nil {
+		return
+	}
+	childOrigin.ID = pointer.FromString(*parentOrigin.ID + ":" + reference)
+	child.SetOrigin(childOrigin)
 }
 
 func latestTime(tms ...time.Time) time.Time {

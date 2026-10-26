@@ -20,6 +20,7 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -1821,6 +1822,45 @@ var _ = Describe("Calculator", func() {
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
 				Expect(datum).To(Equal(expectedDatum))
+			})
+
+			It("derives the bolus origin id from the calculator origin id when the bolus has none", func() {
+				datumBolus := dataTypesBolusNormalTest.RandomNormal()
+				datumBolus.Origin = nil
+				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
+				datum.Bolus = data.DatumAsPointer(datumBolus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(normalizer.Data()).To(Equal([]data.Datum{datumBolus}))
+				Expect(datumBolus.Origin).ToNot(BeNil())
+				Expect(datumBolus.Origin.ID).To(Equal(pointer.FromString(*datum.Origin.ID + ":bolus")))
+			})
+
+			It("keeps the bolus origin when the bolus has one", func() {
+				datumBolus := dataTypesBolusNormalTest.RandomNormal()
+				expectedOrigin := originTest.CloneOrigin(datumBolus.Origin)
+				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
+				datum.Bolus = data.DatumAsPointer(datumBolus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(datumBolus.Origin).To(Equal(expectedOrigin))
+			})
+
+			It("leaves the bolus without an origin when the calculator has none", func() {
+				datumBolus := dataTypesBolusNormalTest.RandomNormal()
+				datumBolus.Origin = nil
+				datum := NewCalculatorWithBolusID(pointer.FromString("mmol/L"))
+				datum.Origin = nil
+				datum.Bolus = data.DatumAsPointer(datumBolus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(datumBolus.Origin).To(BeNil())
 			})
 
 			It("normalizes the datum and replaces combination bolus with bolus id", func() {

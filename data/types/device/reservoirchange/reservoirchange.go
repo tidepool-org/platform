@@ -2,6 +2,7 @@ package reservoirchange
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/structure"
@@ -72,6 +73,7 @@ func (r *ReservoirChange) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if r.Status != nil {
+			types.DeriveChildOriginID(r, *r.Status, "status")
 			normalizer.AddData(*r.Status)
 			switch status := (*r.Status).(type) {
 			case *dataTypesDeviceStatus.Status:

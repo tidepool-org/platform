@@ -103,6 +103,7 @@ func CloneBase(datum *types.Base) *types.Base {
 	clone.Notes = pointer.CloneStringArray(datum.Notes)
 	clone.Origin = originTest.CloneOrigin(datum.Origin)
 	clone.Payload = metadataTest.CloneMetadata(datum.Payload)
+	clone.Revisions = dataTest.CloneRevisions(datum.Revisions)
 	clone.Source = pointer.CloneString(datum.Source)
 	clone.Tags = pointer.CloneStringArray(datum.Tags)
 	clone.Time = pointer.CloneTime(datum.Time)
@@ -189,6 +190,9 @@ func NewObjectFromBase(datum *types.Base, objectFormat test.ObjectFormat) map[st
 	}
 	if datum.Payload != nil {
 		object["payload"] = metadataTest.NewObjectFromMetadata(datum.Payload, objectFormat)
+	}
+	if datum.Revisions != nil {
+		object["revisions"] = dataTest.NewArrayFromRevisions(datum.Revisions, objectFormat)
 	}
 	if datum.Source != nil {
 		object["source"] = test.NewObjectFromString(*datum.Source, objectFormat)
