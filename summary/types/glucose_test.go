@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -916,6 +917,135 @@ var _ = Describe("Glucose", func() {
 			Expect(glucoseRanges.VeryHigh.Percent).To(Equal(50.0 / 100.0))
 			Expect(glucoseRanges.AnyLow.Percent).To(Equal(70.0 / 100.0))
 			Expect(glucoseRanges.AnyHigh.Percent).To(Equal(80.0 / 100.0))
+		})
+	})
+
+	Context("bucket.RangesFor", func() {
+		var buckets BucketsByTime[*GlucoseBucket, GlucoseBucket]
+
+		BeforeEach(func() {
+			buckets = BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
+			userData := NewDataSetCGMDataRanges(bucketTime, 10, RangeSetDataRanges)
+			createBucket := CreateBucketForUser[*GlucoseBucket](userId, SummaryTypeCGM)
+			Expect(buckets.Update(createBucket, userData)).To(Succeed())
+		})
+
+		It("reproduces the stored ranges with the standard cut points", func() {
+			for _, bucket := range buckets {
+				ranges, err := bucket.Data.RangesFor(StandardCutPoints())
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ranges).To(Equal(bucket.Data.GlucoseRanges))
+			}
+		})
+
+		It("counts the very low readings as low for the high risk preset", func() {
+			highRisk, _ := PresetRangeSet(PresetADAHighRisk)
+			cutPoints, err := highRisk.CutPoints()
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, bucket := range buckets {
+				stored := bucket.Data.GlucoseRanges
+				ranges, err := bucket.Data.RangesFor(cutPoints)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ranges.VeryLow).To(Equal(Range{}))
+				Expect(ranges.Low.Records).
+					To(Equal(stored.VeryLow.Records + stored.Low.Records))
+				Expect(ranges.Low.Minutes).
+					To(Equal(stored.VeryLow.Minutes + stored.Low.Minutes))
+				Expect(ranges.AnyLow).To(Equal(stored.AnyLow))
+				Expect(ranges.Target).To(Equal(stored.Target))
+				Expect(ranges.High).To(Equal(stored.High))
+				Expect(ranges.VeryHigh).To(Equal(stored.VeryHigh))
+				Expect(ranges.AnyHigh).To(Equal(stored.AnyHigh))
+				Expect(ranges.Total).To(Equal(stored.Total))
+			}
+		})
+
+		It("moves readings from the target range to the high range for a lower high "+
+			"threshold", func() {
+
+			narrower, err := NewCustomRangeSet("custom:test", glucose.MgdL,
+				Thresholds{Low: 70, High: 140})
+			Expect(err).ToNot(HaveOccurred())
+			cutPoints, err := narrower.CutPoints()
+			Expect(err).ToNot(HaveOccurred())
+
+			moved := 0
+			for _, bucket := range buckets {
+				stored := bucket.Data.GlucoseRanges
+				ranges, err := bucket.Data.RangesFor(cutPoints)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(ranges.Target.Records).To(BeNumerically("<=", stored.Target.Records))
+				above := ranges.Target.Records + ranges.High.Records +
+					ranges.VeryHigh.Records
+				storedAbove := stored.Target.Records + stored.High.Records +
+					stored.VeryHigh.Records
+				Expect(above).To(Equal(storedAbove))
+				Expect(ranges.Total).To(Equal(stored.Total))
+				moved += stored.Target.Records - ranges.Target.Records
+			}
+			Expect(moved).To(BeNumerically(">", 0))
+		})
+
+		It("reports a bucket calculated before its readings were stored", func() {
+			for _, bucket := range buckets {
+				bucket.Data.Readings = bucket.Data.Readings[1:]
+				_, err := bucket.Data.RangesFor(StandardCutPoints())
+				Expect(err).To(MatchError(ContainSubstring("readings for")))
+				break
+			}
+		})
+
+		It("reports a bucket whose readings' minutes don't match its total", func() {
+			for _, bucket := range buckets {
+				bucket.Data.Readings[0].Duration++
+				_, err := bucket.Data.RangesFor(StandardCutPoints())
+				Expect(err).To(MatchError(ContainSubstring("readings of")))
+				break
+			}
+		})
+	})
+
+	Context("periods.UpdateForRangeSet", func() {
+		It("calculates the standard periods from the standard cut points", func() {
+			buckets := BucketsByTime[*GlucoseBucket, GlucoseBucket]{}
+			userData := NewDataSetCGMDataRanges(bucketTime, 10, DataRanges{
+				Min:      1,
+				Max:      25,
+				Padding:  0.01,
+				VeryLow:  VeryLowBloodGlucose,
+				Low:      LowBloodGlucose,
+				High:     HighBloodGlucose,
+				VeryHigh: VeryHighBloodGlucose,
+			})
+			createBucket := CreateBucketForUser[*GlucoseBucket](userId, SummaryTypeCGM)
+			Expect(buckets.Update(createBucket, userData)).To(Succeed())
+
+			// the cursor delivers the buckets newest first
+			var newestFirst []*Bucket[*GlucoseBucket, GlucoseBucket]
+			for _, bucket := range buckets {
+				newestFirst = append(newestFirst, bucket)
+			}
+			slices.SortFunc(newestFirst,
+				func(a, b *Bucket[*GlucoseBucket, GlucoseBucket]) int {
+					return b.Time.Compare(a.Time)
+				})
+
+			cursor, err := SliceToCursor(newestFirst)
+			Expect(err).ToNot(HaveOccurred())
+			standard := CGMPeriods{}
+			standard.Init()
+			Expect(standard.Update(context.Background(), cursor)).To(Succeed())
+
+			cursor, err = SliceToCursor(newestFirst)
+			Expect(err).ToNot(HaveOccurred())
+			forRangeSet := CGMPeriods{}
+			forRangeSet.Init()
+			Expect(forRangeSet.UpdateForRangeSet(context.Background(), cursor,
+				StandardCutPoints())).To(Succeed())
+
+			Expect(forRangeSet).To(BeComparableTo(standard,
+				cmpopts.IgnoreUnexported(GlucosePeriod{})))
 		})
 	})
 

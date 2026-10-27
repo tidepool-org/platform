@@ -129,7 +129,12 @@ func (r *Range) Add(new *Range) {
 }
 
 func (r *Range) Update(record Glucose) {
-	r.Minutes += record.Duration()
+	r.count(record.Duration())
+}
+
+// count counts a reading of the duration in the range.
+func (r *Range) count(duration int) {
+	r.Minutes += duration
 	r.Records++
 }
 
@@ -259,23 +264,29 @@ func (rs *GlucoseRanges) Finalize(days int) {
 }
 
 func (rs *GlucoseRanges) Update(record Glucose) {
-	switch StandardCutPoints().Classify(record.NormalizedValue()) {
-	case ClassificationVeryLow:
-		rs.VeryLow.Update(record)
-		rs.AnyLow.Update(record)
-	case ClassificationLow:
-		rs.Low.Update(record)
-		rs.AnyLow.Update(record)
-	case ClassificationInRange:
-		rs.Target.Update(record)
-	case ClassificationHigh:
-		rs.High.Update(record)
-		rs.AnyHigh.Update(record)
-	case ClassificationVeryHigh:
-		rs.VeryHigh.Update(record)
-		rs.AnyHigh.Update(record)
-	}
+	rs.count(StandardCutPoints().Classify(record.NormalizedValue()), record.Duration())
 	rs.Total.UpdateTotal(record)
+}
+
+// count counts a reading of the classification and duration in its range, and in the
+// any low or any high range that includes it. Total isn't counted.
+func (rs *GlucoseRanges) count(classification Classification, duration int) {
+	switch classification {
+	case ClassificationVeryLow:
+		rs.VeryLow.count(duration)
+		rs.AnyLow.count(duration)
+	case ClassificationLow:
+		rs.Low.count(duration)
+		rs.AnyLow.count(duration)
+	case ClassificationInRange:
+		rs.Target.count(duration)
+	case ClassificationHigh:
+		rs.High.count(duration)
+		rs.AnyHigh.count(duration)
+	case ClassificationVeryHigh:
+		rs.VeryHigh.count(duration)
+		rs.AnyHigh.count(duration)
+	}
 }
 
 func (rs *GlucoseRanges) CalculateDelta(current, previous *GlucoseRanges) {
@@ -385,6 +396,28 @@ func (b *GlucoseBucket) Update(d data.Datum, lastData *time.Time) (bool, error) 
 	})
 
 	return true, nil
+}
+
+// RangesFor returns the bucket's ranges with its readings classified by the cut points,
+// rather than by the standard ones they were counted with. Total is the same as the
+// bucket's, as it doesn't depend on the cut points. It reports an error for a bucket whose
+// readings don't match its total, such as one calculated before its readings were stored.
+func (b *GlucoseBucket) RangesFor(cutPoints CutPoints) (GlucoseRanges, error) {
+	if len(b.Readings) != b.Total.Records {
+		return GlucoseRanges{}, fmt.Errorf("bucket has %d readings for %d records",
+			len(b.Readings), b.Total.Records)
+	}
+	ranges := GlucoseRanges{Total: b.Total}
+	minutes := 0
+	for _, reading := range b.Readings {
+		ranges.count(cutPoints.Classify(reading.Value), reading.Duration)
+		minutes += reading.Duration
+	}
+	if minutes != b.Total.Minutes {
+		return GlucoseRanges{}, fmt.Errorf("bucket has readings of %d minutes for %d",
+			minutes, b.Total.Minutes)
+	}
+	return ranges, nil
 }
 
 type GlucosePeriod struct {
@@ -510,6 +543,22 @@ func (st *GlucosePeriods) Init() {
 }
 
 func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Cursor) error {
+	return st.update(ctx, bucketsCursor, nil)
+}
+
+// UpdateForRangeSet calculates the periods as [GlucosePeriods.Update] does, but with the
+// buckets' readings classified by the cut points rather than by the standard ones.
+func (st *GlucosePeriods) UpdateForRangeSet(ctx context.Context,
+	bucketsCursor *mongo.Cursor, cutPoints CutPoints) error {
+
+	return st.update(ctx, bucketsCursor, &cutPoints)
+}
+
+// update calculates the periods from the buckets, with their readings classified by the
+// cut points if any are given.
+func (st *GlucosePeriods) update(ctx context.Context, bucketsCursor *mongo.Cursor,
+	cutPoints *CutPoints) error {
+
 	// count backwards (newest first) through hourly stats, stopping at 1d, 7d, 14d, 30d
 	period := GlucosePeriod{}
 	offsetPeriod := GlucosePeriod{}
@@ -527,6 +576,13 @@ func (st *GlucosePeriods) Update(ctx context.Context, bucketsCursor *mongo.Curso
 		bucket := &Bucket[*GlucoseBucket, GlucoseBucket]{}
 		if err := bucketsCursor.Decode(bucket); err != nil {
 			return err
+		}
+		if cutPoints != nil {
+			ranges, err := bucket.Data.RangesFor(*cutPoints)
+			if err != nil {
+				return fmt.Errorf("bucket of %s: %w", bucket.Time, err)
+			}
+			bucket.Data.GlucoseRanges = ranges
 		}
 
 		if !previousBucketTime.IsZero() && bucket.Time.Compare(previousBucketTime) >= 0 {

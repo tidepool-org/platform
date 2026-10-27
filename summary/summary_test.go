@@ -14,6 +14,7 @@ import (
 	"github.com/tidepool-org/platform/data"
 	dataStore "github.com/tidepool-org/platform/data/store"
 	dataStoreMongo "github.com/tidepool-org/platform/data/store/mongo"
+	"github.com/tidepool-org/platform/data/types/blood/glucose/continuous"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
@@ -327,6 +328,128 @@ var _ = Describe("End to end summary calculations", func() {
 		// ensure unchanged
 		cmpOpts := cmpopts.IgnoreUnexported(GlucosePeriod{})
 		Expect(cgmSummaryNew).To(BeComparableTo(cgmSummary, cmpOpts))
+	})
+
+	Describe("SummarizeForRangeSet", func() {
+		writeRangeSpanningData := func() {
+			userData := NewDataSetCGMDataRanges(datumTime, 10, RangeSetDataRanges)
+			for _, datum := range userData {
+				datum.(*continuous.Continuous).UserID = &userId
+			}
+			opts := options.BulkWrite().SetOrdered(false)
+			_, err := dataCollection.BulkWrite(ctx, SliceToInsertWriteModel(userData), opts)
+			Expect(err).ToNot(HaveOccurred())
+		}
+
+		It("summarizes the readings for another set of ranges without storing it", func() {
+			writeRangeSpanningData()
+			_, err := cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			stored, err := cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(stored).ToNot(BeNil())
+			summaries, err := summaryRepo.CountDocuments(ctx, bson.M{"userId": userId})
+			Expect(err).ToNot(HaveOccurred())
+			cmpOpts := cmpopts.IgnoreUnexported(GlucosePeriod{})
+
+			// the standard ranges give the stored summary
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			same, err := cgmSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(same.ID.IsZero()).To(BeTrue())
+			Expect(same.Type).To(Equal(stored.Type))
+			Expect(same.Dates).To(Equal(stored.Dates))
+			Expect(same.Config.GlycemicRangesKey).To(Equal("preset:adaStandard"))
+			Expect(same.Periods).To(BeComparableTo(stored.Periods, cmpOpts))
+
+			// the high risk preset has no very low range
+			highRisk, _ := PresetRangeSet(PresetADAHighRisk)
+			other, err := cgmSummarizer.SummarizeForRangeSet(ctx, userId, highRisk)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(other.ID.IsZero()).To(BeTrue())
+			Expect(other.Config.GlycemicRangesKey).To(Equal("preset:adaHighRisk"))
+			Expect(other.Periods.GlucosePeriods).ToNot(BeEmpty())
+			for name, period := range other.Periods.GlucosePeriods {
+				storedPeriod := stored.Periods.GlucosePeriods[name]
+				Expect(period.VeryLow.Records).To(Equal(0), name)
+				Expect(period.Low.Records).
+					To(Equal(storedPeriod.VeryLow.Records+storedPeriod.Low.Records), name)
+				Expect(period.Total.Records).To(Equal(storedPeriod.Total.Records), name)
+				Expect(period.AverageGlucose).To(Equal(storedPeriod.AverageGlucose), name)
+			}
+
+			// nothing was stored or changed
+			count, err := summaryRepo.CountDocuments(ctx, bson.M{"userId": userId})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(count).To(Equal(summaries))
+			again, err := cgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(again).To(BeComparableTo(stored, cmpOpts))
+		})
+
+		It("summarizes nothing for a user without a stored summary", func() {
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			summary, err := cgmSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(summary).To(BeNil())
+		})
+
+		It("reports buckets calculated before their readings were stored", func() {
+			writeRangeSpanningData()
+			_, err := cgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = bucketsRepo.UpdateMany(ctx, bson.M{"userId": userId},
+				bson.M{"$unset": bson.M{"data.readings": ""}})
+			Expect(err).ToNot(HaveOccurred())
+
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			_, err = cgmSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).To(MatchError(ContainSubstring("readings for")))
+		})
+
+		It("reports a stored summary calculated with an outdated schema", func() {
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			stored, err := bgmSummarizer.GetSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+			stored.Config.SchemaVersion = SchemaVersion - 1
+			Expect(bgmStore.ReplaceSummary(ctx, stored)).To(Succeed())
+
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			_, err = bgmSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).To(MatchError(summary.ErrOutdatedSummary))
+		})
+
+		It("reports an invalid range set", func() {
+			_, err := cgmSummarizer.SummarizeForRangeSet(ctx, userId, RangeSet{})
+			Expect(err).To(MatchError(ContainSubstring("no thresholds")))
+		})
+
+		It("reports that continuous summaries don't depend on glycemic ranges", func() {
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			_, err := continuousSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).To(MatchError(ContainSubstring("don't depend on glycemic ranges")))
+		})
+
+		It("summarizes bgm readings by records", func() {
+			opts := options.BulkWrite().SetOrdered(false)
+			deviceData = NewDataSetData("smbg", userId, datumTime, 5, 5)
+			_, err := dataCollection.BulkWrite(ctx, deviceData, opts)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = bgmSummarizer.UpdateSummary(ctx, userId)
+			Expect(err).ToNot(HaveOccurred())
+
+			standard, _ := PresetRangeSet(PresetADAStandard)
+			summary, err := bgmSummarizer.SummarizeForRangeSet(ctx, userId, standard)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(summary.Periods.GlucosePeriods["7d"].Total.Records).To(Equal(5))
+			Expect(summary.Periods.GlucosePeriods["7d"].Target.Records).To(Equal(5))
+			Expect(summary.Periods.GlucosePeriods["7d"].Total.Minutes).To(Equal(0))
+		})
 	})
 
 	It("summary calc recreating a summary with an outdated schema reports the stored id", func() {

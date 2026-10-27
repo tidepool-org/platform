@@ -160,6 +160,22 @@ func NewDataSetCGMDataAvg(startTime time.Time, hours float64, reqAvg float64) []
 	return dataSetData
 }
 
+// RangeSetDataRanges are data ranges whose readings classify alike by the cut points of
+// the ADA standard and high risk presets, except for the very low readings, which the high
+// risk preset counts as low. The generated readings aren't whole mg/dL or single decimal
+// mmol/L values, so the presets' cut points, which only agree on those, don't classify
+// all of them alike. The low, high, and very high ranges start above both presets' cut
+// points, and each range ends at least Padding below both.
+var RangeSetDataRanges = DataRanges{
+	Min:      1,
+	Max:      25,
+	Padding:  0.02,
+	VeryLow:  VeryLowBloodGlucose,
+	Low:      LowBloodGlucose,
+	High:     10.03,
+	VeryHigh: 13.92,
+}
+
 // creates a dataset with random values evenly divided between ranges
 func NewDataSetCGMDataRanges(startTime time.Time, hours float64, ranges DataRanges) []data.Datum {
 	perHour := 12.0

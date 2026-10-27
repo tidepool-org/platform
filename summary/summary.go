@@ -2,6 +2,7 @@ package summary
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -49,6 +50,13 @@ type Summarizer[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.
 	// RecalculateSummary recalculates the summary of the user from all of their data,
 	// rather than incrementally from the data modified since it was last updated.
 	RecalculateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error)
+	// SummarizeForRangeSet calculates a summary of the user's readings for the range set,
+	// from the buckets of their stored summary, without storing it. It has no id, as it
+	// isn't stored. It's nil without a stored summary.
+	// Only CGM and BGM summaries depend on the range set; for other types it reports an
+	// error.
+	SummarizeForRangeSet(ctx context.Context, userID string,
+		rangeSet types.RangeSet) (*types.Summary[PP, PB, P, B], error)
 }
 
 // Compile time interface check
@@ -117,6 +125,81 @@ func (gs *GlucoseSummarizer[PP, PB, P, B]) GetSummary(ctx context.Context, userI
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) GetBucketsRange(ctx context.Context, userID string, startTime time.Time, endTime time.Time) (*mongo.Cursor, error) {
 	return gs.buckets.GetBucketsRange(ctx, userID, &startTime, &endTime)
+}
+
+// ErrOutdatedSummary is reported by [GlucoseSummarizer.SummarizeForRangeSet] for a user
+// whose stored summary was calculated with an outdated schema, whose buckets may lack the
+// readings to classify. It's current once the summary is next updated.
+var ErrOutdatedSummary = fmt.Errorf("summary was calculated with an outdated schema")
+
+// SummarizeForRangeSet calculates a summary of the user's readings for the range set from
+// the buckets of their stored summary, with the readings classified by the range set's
+// cut points. The summary has the stored summary's dates and the range set's config, but
+// no id, as it isn't stored: the clinic service identifies its copy of it by the patient
+// record and the range set's key. It's nil without a stored summary. It
+// reports [ErrOutdatedSummary] for a stored summary calculated with an outdated schema,
+// and an error for a summary type that doesn't depend on the range set. The stored
+// summary and its buckets are read from the same snapshot, so an update in progress
+// doesn't mix into it.
+func (gs *GlucoseSummarizer[PP, PB, P, B]) SummarizeForRangeSet(ctx context.Context,
+	userID string, rangeSet types.RangeSet) (*types.Summary[PP, PB, P, B], error) {
+
+	now := time.Now()
+	summaryType := types.GetType[PP, PB]()
+	periods := PP(new(P))
+	rangeSetPeriods, ok := any(periods).(types.RangeSetPeriods)
+	if !ok {
+		return nil, errors.Newf("%s summaries don't depend on glycemic ranges", summaryType)
+	}
+	cutPoints, err := rangeSet.CutPoints()
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := storeStructuredMongo.WithTransaction(ctx, gs.mongoClient,
+		func(sessionCtx mongo.SessionContext) (interface{}, error) {
+			stored, err := gs.GetSummary(sessionCtx, userID)
+			if err != nil || stored == nil {
+				return nil, err
+			}
+			if stored.Config.SchemaVersion != types.SchemaVersion {
+				return nil, fmt.Errorf("%w: version %d", ErrOutdatedSummary,
+					stored.Config.SchemaVersion)
+			}
+
+			allBuckets, err := gs.buckets.GetAllBuckets(sessionCtx, userID)
+			if err != nil {
+				return nil, err
+			}
+			defer storeStructuredMongo.CloseCursor(sessionCtx, allBuckets)
+
+			periods.Init()
+			if err := rangeSetPeriods.UpdateForRangeSet(sessionCtx, allBuckets,
+				cutPoints); err != nil {
+				return nil, err
+			}
+
+			return &types.Summary[PP, PB, P, B]{
+				BaseSummary: types.BaseSummary{
+					Type:   stored.Type,
+					UserID: stored.UserID,
+					Config: types.NewConfigFor(rangeSet.Key, cutPoints),
+					Dates:  stored.Dates,
+				},
+				Periods: periods,
+			}, nil
+		})
+	if err != nil || result == nil {
+		return nil, err
+	}
+
+	log.LoggerFromContext(ctx).WithFields(log.Fields{
+		"summaryType":       summaryType,
+		"glycemicRangesKey": rangeSet.Key,
+		"duration":          time.Since(now).Microseconds(),
+	}).Info("SummarizeForRangeSet")
+
+	return result.(*types.Summary[PP, PB, P, B]), nil
 }
 
 func (gs *GlucoseSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {

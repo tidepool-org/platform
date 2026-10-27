@@ -49,6 +49,7 @@ func RandomDates() types.Dates {
 func RandomConfig() types.Config {
 	return types.Config{
 		SchemaVersion:            test.RandomIntFromRange(1, 5),
+		GlycemicRangesKey:        "preset:adaStandard",
 		HighGlucoseThreshold:     test.RandomFloat64FromRange(5, 10),
 		VeryHighGlucoseThreshold: test.RandomFloat64FromRange(10, 20),
 		LowGlucoseThreshold:      test.RandomFloat64FromRange(3, 5),

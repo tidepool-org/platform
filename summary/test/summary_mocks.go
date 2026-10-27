@@ -161,6 +161,45 @@ func (c *MockSummarizerRecalculateSummaryCall[PP, PB, P, B]) DoAndReturn(f func(
 	return c
 }
 
+// SummarizeForRangeSet mocks base method.
+func (m *MockSummarizer[PP, PB, P, B]) SummarizeForRangeSet(ctx context.Context, userID string, rangeSet types.RangeSet) (*types.Summary[PP, PB, P, B], error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SummarizeForRangeSet", ctx, userID, rangeSet)
+	ret0, _ := ret[0].(*types.Summary[PP, PB, P, B])
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SummarizeForRangeSet indicates an expected call of SummarizeForRangeSet.
+func (mr *MockSummarizerMockRecorder[PP, PB, P, B]) SummarizeForRangeSet(ctx, userID, rangeSet any) *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B] {
+	mr.mock.ctrl.T.Helper()
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SummarizeForRangeSet", reflect.TypeOf((*MockSummarizer[PP, PB, P, B])(nil).SummarizeForRangeSet), ctx, userID, rangeSet)
+	return &MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B]{Call: call}
+}
+
+// MockSummarizerSummarizeForRangeSetCall wrap *gomock.Call
+type MockSummarizerSummarizeForRangeSetCall[PP types.PeriodsPt[P, PB, B], PB types.BucketDataPt[B], P types.Periods, B types.BucketData] struct {
+	*gomock.Call
+}
+
+// Return rewrite *gomock.Call.Return
+func (c *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B]) Return(arg0 *types.Summary[PP, PB, P, B], arg1 error) *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B] {
+	c.Call = c.Call.Return(arg0, arg1)
+	return c
+}
+
+// Do rewrite *gomock.Call.Do
+func (c *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B]) Do(f func(context.Context, string, types.RangeSet) (*types.Summary[PP, PB, P, B], error)) *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B] {
+	c.Call = c.Call.Do(f)
+	return c
+}
+
+// DoAndReturn rewrite *gomock.Call.DoAndReturn
+func (c *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B]) DoAndReturn(f func(context.Context, string, types.RangeSet) (*types.Summary[PP, PB, P, B], error)) *MockSummarizerSummarizeForRangeSetCall[PP, PB, P, B] {
+	c.Call = c.Call.DoAndReturn(f)
+	return c
+}
+
 // UpdateSummary mocks base method.
 func (m *MockSummarizer[PP, PB, P, B]) UpdateSummary(ctx context.Context, userID string) (*types.Summary[PP, PB, P, B], error) {
 	m.ctrl.T.Helper()

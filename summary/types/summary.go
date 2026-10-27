@@ -57,7 +57,8 @@ var AllSummaryTypes = []string{SummaryTypeCGM, SummaryTypeBGM, SummaryTypeContin
 type Config struct {
 	SchemaVersion int `json:"schemaVersion" bson:"schemaVersion"`
 
-	// these are just constants right now.
+	GlycemicRangesKey string `json:"glycemicRangesKey,omitempty" bson:"glycemicRangesKey,omitempty"`
+
 	HighGlucoseThreshold     float64 `json:"highGlucoseThreshold" bson:"highGlucoseThreshold"`
 	VeryHighGlucoseThreshold float64 `json:"veryHighGlucoseThreshold" bson:"veryHighGlucoseThreshold"`
 	LowGlucoseThreshold      float64 `json:"lowGlucoseThreshold" bson:"lowGlucoseThreshold"`
@@ -107,6 +108,19 @@ type PeriodsPt[P Periods, PB BucketDataPt[B], B BucketData] interface {
 	Update(context.Context, *mongo.Cursor) error
 }
 
+// RangeSetPeriods are periods that depend on the glycemic ranges their readings are
+// classified by, so that they can be calculated for any range set.
+type RangeSetPeriods interface {
+	// UpdateForRangeSet calculates the periods from the buckets, with their readings
+	// classified by the cut points.
+	UpdateForRangeSet(context.Context, *mongo.Cursor, CutPoints) error
+}
+
+var (
+	_ RangeSetPeriods = &CGMPeriods{}
+	_ RangeSetPeriods = &BGMPeriods{}
+)
+
 type BaseSummary struct {
 	ID     primitive.ObjectID `json:"id" bson:"_id,omitempty"`
 	Type   string             `json:"type" bson:"type"`
@@ -125,14 +139,23 @@ type CGMSummary = Summary[*CGMPeriods, *GlucoseBucket, CGMPeriods, GlucoseBucket
 type BGMSummary = Summary[*BGMPeriods, *GlucoseBucket, BGMPeriods, GlucoseBucket]
 type ContinuousSummary = Summary[*ContinuousPeriods, *ContinuousBucket, ContinuousPeriods, ContinuousBucket]
 
+// NewConfig returns the config of a summary of the ADA standard ranges, as the stored
+// summaries are.
 func NewConfig() Config {
-	standard := StandardCutPoints()
+	return NewConfigFor(presetKeyPrefix+PresetADAStandard, StandardCutPoints())
+}
+
+// NewConfigFor returns the config of a summary of the range set with the key and cut
+// points. A threshold the range set doesn't set has an infinite cut point, which JSON
+// can't encode.
+func NewConfigFor(key string, cutPoints CutPoints) Config {
 	return Config{
 		SchemaVersion:            SchemaVersion,
-		HighGlucoseThreshold:     standard.High,
-		VeryHighGlucoseThreshold: standard.VeryHigh,
-		LowGlucoseThreshold:      standard.Low,
-		VeryLowGlucoseThreshold:  standard.VeryLow,
+		GlycemicRangesKey:        key,
+		HighGlucoseThreshold:     cutPoints.High,
+		VeryHighGlucoseThreshold: cutPoints.VeryHigh,
+		LowGlucoseThreshold:      cutPoints.Low,
+		VeryLowGlucoseThreshold:  cutPoints.VeryLow,
 	}
 }
 
