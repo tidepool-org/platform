@@ -1169,6 +1169,13 @@ var _ = Describe("Base", func() {
 			})
 		})
 
+		Context("GetProvenance", func() {
+			It("gets the provenance", func() {
+				datumBase.Provenance = dataTest.RandomProvenance()
+				Expect(datum.GetProvenance()).To(Equal(datumBase.Provenance))
+			})
+		})
+
 		Context("SetProvenance", func() {
 			It("sets the provenance", func() {
 				provenance := dataTest.RandomProvenance()

@@ -4,6 +4,8 @@ import (
 	"context"
 	"slices"
 
+	"go.mongodb.org/mongo-driver/bson"
+
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
@@ -23,6 +25,9 @@ type DataStore interface {
 	DeleteDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DestroyDeletedDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
 	DestroyDataSetData(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) error
+
+	GetDataSetDocuments(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) ([]map[string]any, error)
+	UpdateDataSetDatum(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors, update bson.M) error
 
 	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error

@@ -75,6 +75,8 @@ type Datum struct {
 	SetDeduplicatorDescriptorInvocations int
 	IsActiveInvocations                  int
 	IsActiveOutputs                      []bool
+	ProvenanceValue                      *data.Provenance
+	GetProvenanceInvocations             int
 	SetProvenanceInvocations             int
 	SetProvenanceInputs                  []*data.Provenance
 	GetUploadIDInvocations               int
@@ -281,9 +283,16 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
+func (d *Datum) GetProvenance() *data.Provenance {
+	d.GetProvenanceInvocations++
+
+	return d.ProvenanceValue
+}
+
 func (d *Datum) SetProvenance(p *data.Provenance) {
 	d.SetProvenanceInvocations++
 	d.SetProvenanceInputs = append(d.SetProvenanceInputs, p)
+	d.ProvenanceValue = p
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
@@ -462,7 +471,7 @@ func NewObjectFromRevision(datum *data.Revision, objectFormat test.ObjectFormat)
 		return nil
 	}
 	object := map[string]any{}
-	if datum.Provenance != nil {
+	if datum.Provenance != nil && objectFormat == test.ObjectFormatBSON {
 		object["provenance"] = NewObjectFromProvenance(datum.Provenance, objectFormat)
 	}
 	object["time"] = test.NewObjectFromTime(datum.Time, objectFormat)

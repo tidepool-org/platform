@@ -87,11 +87,33 @@ func (s *SelectorOrigin) NewerThan(other *SelectorOrigin) bool {
 	}
 }
 
+// SelectorDataRaw selects every datum with a revision by the raw data record: everything it created or changed.
+// It is built by internal callers only and is not parsed from a request.
+type SelectorDataRaw struct {
+	ID *string `json:"id,omitempty" bson:"id,omitempty"`
+}
+
+func NewSelectorDataRaw() *SelectorDataRaw {
+	return &SelectorDataRaw{}
+}
+
+func (s *SelectorDataRaw) Validate(validator structure.Validator) {
+	validator.String("id", s.ID).Exists().NotEmpty()
+}
+
+func (s *SelectorDataRaw) Matches(other *SelectorDataRaw) bool {
+	return s != nil && other != nil && s.ID != nil && other.ID != nil && *s.ID == *other.ID
+}
+
 type Selector struct {
 	ID           *string               `json:"id,omitempty" bson:"id,omitempty"`
 	Time         *time.Time            `json:"time,omitempty" bson:"time,omitempty"` // Inclusive, currently NOT used in database query
 	Deduplicator *SelectorDeduplicator `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
 	Origin       *SelectorOrigin       `json:"origin,omitempty" bson:"origin,omitempty"`
+	DataRaw      *SelectorDataRaw      `json:"dataRaw,omitempty" bson:"dataRaw,omitempty"`
+	// Version, with the id or origin, selects the datum only at that stored version; zero means no stored version.
+	// It is built by internal callers only and is not parsed from a request.
+	Version *int `json:"-" bson:"-"`
 }
 
 func ParseSelector(parser structure.ObjectParser) *Selector {
@@ -115,6 +137,7 @@ func (s *Selector) Parse(parser structure.ObjectParser) {
 }
 
 func (s *Selector) Validate(validator structure.Validator) {
+	validator.Int("version", s.Version).GreaterThanOrEqualTo(0)
 	if s.ID != nil {
 		validator.String("id", s.ID).Using(IDValidator)
 		if s.Deduplicator != nil {
@@ -123,15 +146,29 @@ func (s *Selector) Validate(validator structure.Validator) {
 		if s.Origin != nil {
 			validator.WithReference("origin").ReportError(structureValidator.ErrorValueExists())
 		}
+		if s.DataRaw != nil {
+			validator.WithReference("dataRaw").ReportError(structureValidator.ErrorValueExists())
+		}
 	} else if s.Deduplicator != nil {
 		s.Deduplicator.Validate(validator.WithReference("deduplicator"))
 		if s.Origin != nil {
 			validator.WithReference("origin").ReportError(structureValidator.ErrorValueExists())
 		}
+		if s.DataRaw != nil {
+			validator.WithReference("dataRaw").ReportError(structureValidator.ErrorValueExists())
+		}
 	} else if s.Origin != nil {
 		s.Origin.Validate(validator.WithReference("origin"))
+		if s.DataRaw != nil {
+			validator.WithReference("dataRaw").ReportError(structureValidator.ErrorValueExists())
+		}
+	} else if s.DataRaw != nil {
+		s.DataRaw.Validate(validator.WithReference("dataRaw"))
 	} else {
-		validator.ReportError(structureValidator.ErrorValuesNotExistForOne("id", "deduplicator", "origin"))
+		validator.ReportError(structureValidator.ErrorValuesNotExistForOne("id", "deduplicator", "origin", "dataRaw"))
+	}
+	if s.ID == nil && s.Origin == nil && s.Version != nil {
+		validator.WithReference("version").ReportError(structureValidator.ErrorValueExists())
 	}
 
 	if timeValidator := validator.Time("time", s.Time); s.ID != nil {
@@ -150,6 +187,8 @@ func (s *Selector) Matches(other *Selector) bool {
 		return other.Deduplicator != nil && s.Deduplicator.Matches(other.Deduplicator)
 	} else if s.Origin != nil { // If origin matters, then must match
 		return other.Origin != nil && s.Origin.Matches(other.Origin)
+	} else if s.DataRaw != nil { // If data raw matters, then must match
+		return s.DataRaw.Matches(other.DataRaw)
 	} else {
 		return false
 	}

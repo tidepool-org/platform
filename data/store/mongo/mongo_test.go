@@ -2,6 +2,7 @@ package mongo_test
 
 import (
 	"context"
+	"errors"
 	"math/rand"
 	"sync"
 	"time"
@@ -337,6 +338,13 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 						"Name": Equal("UserIdOriginId"),
 						"PartialFilterExpression": Equal(bson.D{
 							{Key: "origin.id", Value: bson.D{{Key: "$exists", Value: true}}},
+						}),
+					}),
+					MatchFields(IgnoreExtras, Fields{
+						"Key":  Equal(storeStructuredMongoTest.MakeKeySlice("_userId", "revisions.provenance.dataRaw.id")),
+						"Name": Equal("UserIdRevisionsProvenanceDataRawId"),
+						"PartialFilterExpression": Equal(bson.D{
+							{Key: "revisions", Value: bson.D{{Key: "$exists", Value: true}}},
 						}),
 					}),
 					MatchFields(IgnoreExtras, Fields{
@@ -976,6 +984,331 @@ var _ = Describe("Mongo", Label("mongodb", "slow", "integration"), func() {
 								datum, err = repository.GetLatestDataSetDatum(ctx, dataSet, "deviceEvent", "pumpSettingsOverride")
 								Expect(err).ToNot(HaveOccurred())
 								Expect(datum).To(BeNil())
+							})
+						})
+					})
+
+					Context("with stored documents", func() {
+						var dataRawID string
+						var otherDataRawID string
+						var created *types.Base
+						var revised *types.Base
+						var byOther *types.Base
+						var deleted *types.Base
+						var plain *types.Base
+						var other *types.Base
+
+						newBase := func(originID string, revisions *[]data.Revision) *types.Base {
+							base := dataTypesTest.RandomBase()
+							base.Active = true
+							base.DeletedTime = nil
+							base.DeletedUserID = nil
+							base.VersionInternal = 0
+							base.Origin.ID = pointer.FromString(originID)
+							base.Revisions = revisions
+							return base
+						}
+						entry := func(rawID string, undo map[string]any) data.Revision {
+							return data.Revision{
+								Provenance: &data.Provenance{ClientID: "tandem", DataRaw: &data.DataRawReference{ID: rawID}},
+								Time:       time.Now().UTC().Truncate(time.Millisecond),
+								Undo:       undo,
+							}
+						}
+						originSelectors := func(originIDs ...string) *data.Selectors {
+							selectors := data.Selectors{}
+							for _, originID := range originIDs {
+								selectors = append(selectors, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.FromString(originID)}})
+							}
+							return &selectors
+						}
+						dataRawSelectors := func(dataRawIDs ...string) *data.Selectors {
+							selectors := data.Selectors{}
+							for _, dataRawID := range dataRawIDs {
+								selectors = append(selectors, &data.Selector{DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(dataRawID)}})
+							}
+							return &selectors
+						}
+						documentsByOriginID := func(originIDs ...string) map[string]map[string]any {
+							documents, err := repository.GetDataSetDocuments(ctx, dataSet, originSelectors(originIDs...))
+							Expect(err).ToNot(HaveOccurred())
+							result := map[string]map[string]any{}
+							for _, document := range documents {
+								result[document["origin"].(map[string]any)["id"].(string)] = document
+							}
+							return result
+						}
+
+						BeforeEach(func() {
+							preparePersistedDataSets()
+							dataRawID = dataTest.RandomDataRawID()
+							otherDataRawID = dataTest.RandomDataRawID()
+							created = newBase("origin-created", &[]data.Revision{entry(dataRawID, nil)})
+							revised = newBase("origin-revised", &[]data.Revision{entry(otherDataRawID, nil), entry(dataRawID, map[string]any{"rate": 1.5})})
+							byOther = newBase("origin-other-raw", &[]data.Revision{entry(otherDataRawID, nil)})
+							deleted = newBase("origin-deleted", nil)
+							deleted.DeletedTime = pointer.FromTime(time.Now().UTC().Truncate(time.Millisecond))
+							plain = newBase("origin-plain", nil)
+							plain.VersionInternal = 2
+							other = newBase("origin-created", &[]data.Revision{entry(dataRawID, nil)})
+							Expect(repository.CreateDataSetData(ctx, dataSet, []data.Datum{created, revised, byOther, deleted, plain})).To(Succeed())
+							Expect(repository.CreateDataSetData(ctx, dataSetExistingOne, []data.Datum{other})).To(Succeed())
+						})
+
+						Context("GetDataSetDocuments", func() {
+							It("returns an error when the context is missing", func() {
+								documents, err := repository.GetDataSetDocuments(nil, dataSet, originSelectors("origin-created"))
+								Expect(err).To(MatchError("context is missing"))
+								Expect(documents).To(BeNil())
+							})
+
+							It("returns an error when the data set is missing", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, nil, originSelectors("origin-created"))
+								Expect(err).To(MatchError("data set is missing"))
+								Expect(documents).To(BeNil())
+							})
+
+							It("returns an error when the selectors are missing", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, nil)
+								Expect(err).To(MatchError("selectors is missing"))
+								Expect(documents).To(BeNil())
+							})
+
+							It("returns an error when the selectors are empty", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, &data.Selectors{})
+								Expect(err).To(HaveOccurred())
+								Expect(errors.Is(err, dataStoreMongo.ErrSelectorsInvalid)).To(BeTrue())
+								Expect(documents).To(BeNil())
+							})
+
+							It("returns an error when the selectors mix kinds", func() {
+								selectors := originSelectors("origin-created")
+								*selectors = append(*selectors, (*dataRawSelectors(dataRawID))[0])
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, selectors)
+								Expect(err).To(MatchError("selectors is invalid, only one type of selector allowed"))
+								Expect(documents).To(BeNil())
+							})
+
+							It("returns the documents of the data set with the origin ids, not deleted, as decoded maps", func() {
+								documents := documentsByOriginID("origin-created", "origin-plain", "origin-deleted", "origin-unknown")
+								Expect(documents).To(HaveLen(2))
+								Expect(documents).To(HaveKey("origin-created"))
+								Expect(documents).To(HaveKey("origin-plain"))
+								document := documents["origin-created"]
+								Expect(document["_id"]).To(BeAssignableToTypeOf(primitive.ObjectID{}))
+								Expect(document["id"]).To(Equal(*created.ID))
+								Expect(document["uploadId"]).To(Equal(*dataSet.UploadID))
+								Expect(document["time"]).To(BeAssignableToTypeOf(time.Time{}))
+								Expect(document["time"].(time.Time)).To(BeTemporally("==", *created.Time))
+								Expect(document["tags"]).To(BeAssignableToTypeOf([]any{}))
+								Expect(document["revisions"]).To(HaveLen(1))
+								Expect(document["revisions"].([]any)[0].(map[string]any)["provenance"].(map[string]any)["dataRaw"].(map[string]any)["id"]).To(Equal(dataRawID))
+								Expect(document).ToNot(HaveKey("_version"))
+								Expect(documents["origin-plain"]["_version"]).To(Equal(int32(2)))
+							})
+
+							It("returns nothing when no origin id is stored", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, originSelectors("origin-unknown"))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(BeEmpty())
+							})
+
+							It("returns the documents by id", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, &data.Selectors{{ID: created.ID}, {ID: deleted.ID}})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(HaveLen(1))
+								Expect(documents[0]["id"]).To(Equal(*created.ID))
+							})
+
+							It("returns the documents of the data set the raws created or revised", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, dataRawSelectors(dataRawID))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(HaveLen(2))
+								ids := []string{documents[0]["id"].(string), documents[1]["id"].(string)}
+								Expect(ids).To(ConsistOf(*created.ID, *revised.ID))
+
+								documents, err = repository.GetDataSetDocuments(ctx, dataSet, dataRawSelectors(dataRawID, otherDataRawID))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(HaveLen(3))
+							})
+
+							It("returns nothing when the raw wrote nothing", func() {
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, dataRawSelectors(dataTest.RandomDataRawID()))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(BeEmpty())
+							})
+
+							It("uses the revisions index", func() {
+								explain := bson.M{}
+								command := bson.D{
+									{Key: "explain", Value: bson.D{
+										{Key: "find", Value: collection.Name()},
+										{Key: "filter", Value: bson.M{
+											"_userId":                         dataSet.UserID,
+											"uploadId":                        dataSet.UploadID,
+											"revisions":                       bson.M{"$exists": true},
+											"revisions.provenance.dataRaw.id": dataRawID,
+										}},
+									}},
+								}
+								Expect(collection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+								plan, err := bson.MarshalExtJSON(explain["queryPlanner"], false, false)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(string(plan)).To(ContainSubstring("UserIdRevisionsProvenanceDataRawId"))
+							})
+						})
+
+						Context("DestroyDataSetData", func() {
+							It("destroys every document with a revision by the raws of the data raw selectors and nothing else", func() {
+								Expect(repository.DestroyDataSetData(ctx, dataSet, dataRawSelectors(dataRawID))).To(Succeed())
+								documents, err := repository.GetDataSetDocuments(ctx, dataSet, originSelectors("origin-created", "origin-revised", "origin-other-raw", "origin-plain"))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(HaveLen(2))
+								Expect([]string{documents[0]["id"].(string), documents[1]["id"].(string)}).To(ConsistOf(*byOther.ID, *plain.ID))
+								documents, err = repository.GetDataSetDocuments(ctx, dataSetExistingOne, originSelectors("origin-created"))
+								Expect(err).ToNot(HaveOccurred())
+								Expect(documents).To(HaveLen(1), "another data set is untouched")
+							})
+						})
+
+						Context("UpdateDataSetDatum", func() {
+							var selectors *data.Selectors
+							var update bson.M
+
+							BeforeEach(func() {
+								selectors = &data.Selectors{{Origin: &data.SelectorOrigin{ID: pointer.FromString("origin-created")}, Version: pointer.FromInt(0)}}
+								update = bson.M{
+									"$set": bson.M{
+										"deviceTime": "2026-10-20T08:00:00",
+										"payload":    map[string]any{"added": true},
+										"revisions":  []data.Revision{entry(dataRawID, nil), entry(otherDataRawID, map[string]any{"deviceTime": *created.DeviceTime, "notes": []any{"a"}})},
+									},
+									"$unset": bson.M{"notes": 1},
+								}
+							})
+
+							It("returns an error when the context is missing", func() {
+								Expect(repository.UpdateDataSetDatum(nil, dataSet, selectors, update)).To(MatchError("context is missing"))
+							})
+
+							It("returns an error when the data set is missing", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, nil, selectors, update)).To(MatchError("data set is missing"))
+							})
+
+							It("returns an error when the selectors are missing", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, nil, update)).To(MatchError("selectors is missing"))
+							})
+
+							It("returns an error when the selectors are invalid", func() {
+								err := repository.UpdateDataSetDatum(ctx, dataSet, &data.Selectors{{Origin: &data.SelectorOrigin{ID: pointer.FromString("")}}}, update)
+								Expect(errors.Is(err, dataStoreMongo.ErrSelectorsInvalid)).To(BeTrue())
+							})
+
+							It("returns an error when there is more than one selector", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, originSelectors("origin-created", "origin-plain"), update)).To(MatchError("selectors is invalid, exactly one selector allowed"))
+							})
+
+							It("returns an error when the selector is not an origin selector", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, &data.Selectors{{ID: created.ID}}, update)).To(MatchError("selectors is invalid, only an origin selector allowed"))
+							})
+
+							It("uses the origin index", func() {
+								explain := bson.M{}
+								command := bson.D{
+									{Key: "explain", Value: bson.D{
+										{Key: "find", Value: collection.Name()},
+										{Key: "filter", Value: bson.M{
+											"_userId":   dataSet.UserID,
+											"uploadId":  dataSet.UploadID,
+											"origin.id": "origin-created",
+											"_version":  bson.M{"$in": bson.A{nil, 0}},
+										}},
+									}},
+								}
+								Expect(collection.Database().RunCommand(ctx, command).Decode(&explain)).To(Succeed())
+								plan, err := bson.MarshalExtJSON(explain["queryPlanner"], false, false)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(string(plan)).To(ContainSubstring("UserIdOriginId"))
+							})
+
+							It("refuses an update whose origin id is not stored", func() {
+								(*selectors)[0].Origin.ID = pointer.FromString("origin-unknown")
+								Expect(dataStore.IsErrorDatumUpdateConflict(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update))).To(BeTrue())
+							})
+
+							It("returns an error when the update is missing", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, bson.M{})).To(MatchError("update is missing"))
+							})
+
+							It("applies the update, stamps the modified time and bumps the version", func() {
+								before := time.Now().UTC().Truncate(time.Millisecond)
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+
+								document := documentsByOriginID("origin-created")["origin-created"]
+								Expect(document["_version"]).To(Equal(int32(1)))
+								Expect(document["deviceTime"]).To(Equal("2026-10-20T08:00:00"))
+								Expect(document["payload"]).To(Equal(map[string]any{"added": true}))
+								Expect(document).ToNot(HaveKey("notes"))
+								Expect(document["revisions"]).To(HaveLen(2))
+								Expect(document["revisions"].([]any)[1].(map[string]any)["undo"]).To(Equal(map[string]any{"deviceTime": *created.DeviceTime, "notes": []any{"a"}}))
+								Expect(document["modifiedTime"].(time.Time)).To(BeTemporally(">=", before))
+								Expect(document["createdTime"].(time.Time)).To(BeTemporally("==", *created.CreatedTime))
+								Expect(document["id"]).To(Equal(*created.ID))
+
+								(*selectors)[0].Version = pointer.FromInt(1)
+								update = bson.M{"$set": bson.M{"deviceTime": "2026-10-20T09:00:00"}}
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+								document = documentsByOriginID("origin-created")["origin-created"]
+								Expect(document["_version"]).To(Equal(int32(2)))
+								Expect(document["deviceTime"]).To(Equal("2026-10-20T09:00:00"))
+								Expect(document["revisions"]).To(HaveLen(2), "an update without revisions leaves them as they are")
+
+								Expect(dataStore.IsErrorDatumUpdateConflict(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update))).To(BeTrue(), "a stale version")
+								Expect(documentsByOriginID("origin-created")["origin-created"]["_version"]).To(Equal(int32(2)))
+							})
+
+							It("does not modify the update it is given", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+								Expect(update["$set"]).ToNot(HaveKey("modifiedTime"))
+								Expect(update).ToNot(HaveKey("$inc"))
+							})
+
+							It("bumps the version of an update with no $set", func() {
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, bson.M{"$unset": bson.M{"notes": 1}})).To(Succeed())
+								document := documentsByOriginID("origin-created")["origin-created"]
+								Expect(document["_version"]).To(Equal(int32(1)))
+								Expect(document).ToNot(HaveKey("notes"))
+							})
+
+							It("updates a document with an explicit zero version", func() {
+								_, err := collection.UpdateOne(ctx, bson.M{"id": *created.ID}, bson.M{"$set": bson.M{"_version": 0}})
+								Expect(err).ToNot(HaveOccurred())
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+								Expect(documentsByOriginID("origin-created")["origin-created"]["_version"]).To(Equal(int32(1)))
+							})
+
+							It("updates without a version guard when the selector has no version", func() {
+								(*selectors)[0].Version = nil
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+								Expect(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update)).To(Succeed())
+								Expect(documentsByOriginID("origin-created")["origin-created"]["_version"]).To(Equal(int32(2)))
+							})
+
+							It("refuses an update whose version does not match a stored version", func() {
+								(*selectors)[0].Version = pointer.FromInt(1)
+								Expect(dataStore.IsErrorDatumUpdateConflict(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update))).To(BeTrue())
+							})
+
+							It("refuses an update that expects no version when the document has one", func() {
+								(*selectors)[0].Origin.ID = pointer.FromString("origin-plain")
+								Expect(dataStore.IsErrorDatumUpdateConflict(repository.UpdateDataSetDatum(ctx, dataSet, selectors, update))).To(BeTrue())
+							})
+
+							It("refuses an update for a document of another data set", func() {
+								// origin-revised is stored in dataSet only; origin-created is stored in both data sets
+								(*selectors)[0].Origin.ID = pointer.FromString("origin-revised")
+								Expect(dataStore.IsErrorDatumUpdateConflict(repository.UpdateDataSetDatum(ctx, dataSetExistingOne, selectors, update))).To(BeTrue())
+								Expect(documentsByOriginID("origin-revised")["origin-revised"]).ToNot(HaveKey("_version"))
 							})
 						})
 					})

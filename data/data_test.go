@@ -8,7 +8,9 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
+	logTest "github.com/tidepool-org/platform/log/test"
 	"github.com/tidepool-org/platform/pointer"
+	structureParser "github.com/tidepool-org/platform/structure/parser"
 	structureTest "github.com/tidepool-org/platform/structure/test"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 	"github.com/tidepool-org/platform/test"
@@ -78,11 +80,76 @@ var _ = Describe("Data", func() {
 		})
 	})
 
+	Context("SelectorDataRaw", func() {
+		Context("Matches", func() {
+			id := pointer.FromString(data.NewID())
+
+			DescribeTable("return the expected results when the selector data raw",
+				func(dataRaw *data.SelectorDataRaw, otherDataRaw *data.SelectorDataRaw, expectedResult bool) {
+					Expect(dataRaw.Matches(otherDataRaw)).To(Equal(expectedResult))
+				},
+				Entry("both are nil", nil, nil, false),
+				Entry("data raw is nil", nil, &data.SelectorDataRaw{ID: id}, false),
+				Entry("other data raw is nil", &data.SelectorDataRaw{ID: id}, nil, false),
+				Entry("id is nil", &data.SelectorDataRaw{}, &data.SelectorDataRaw{ID: id}, false),
+				Entry("other id is nil", &data.SelectorDataRaw{ID: id}, &data.SelectorDataRaw{}, false),
+				Entry("id mismatch", &data.SelectorDataRaw{ID: id}, &data.SelectorDataRaw{ID: pointer.FromString("mismatch")}, false),
+				Entry("id match", &data.SelectorDataRaw{ID: id}, &data.SelectorDataRaw{ID: id}, true),
+			)
+		})
+
+		Context("Validate", func() {
+			DescribeTable("validates the selector data raw",
+				func(mutator func(dataRaw *data.SelectorDataRaw), expectedErrors ...error) {
+					dataRaw := &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}
+					mutator(dataRaw)
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(dataRaw), expectedErrors...)
+				},
+				Entry("succeeds", func(dataRaw *data.SelectorDataRaw) {}),
+				Entry("id missing", func(dataRaw *data.SelectorDataRaw) { dataRaw.ID = nil }, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/id")),
+				Entry("id empty", func(dataRaw *data.SelectorDataRaw) { dataRaw.ID = pointer.FromString("") }, errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/id")),
+			)
+		})
+	})
+
 	Context("Selector", func() {
+		Context("Validate", func() {
+			DescribeTable("validates the selector",
+				func(selector *data.Selector, expectedErrors ...error) {
+					errorsTest.ExpectEqual(structureValidator.New(logTest.NewLogger()).Validate(selector), expectedErrors...)
+				},
+				Entry("data raw", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}}),
+				Entry("data raw id missing", &data.Selector{DataRaw: &data.SelectorDataRaw{}}, errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/dataRaw/id")),
+				Entry("data raw with id", &data.Selector{ID: pointer.FromString(data.NewID()), DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/dataRaw")),
+				Entry("data raw with deduplicator", &data.Selector{Deduplicator: &data.SelectorDeduplicator{Hash: pointer.FromString(data.NewID())}, DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/dataRaw")),
+				Entry("data raw with origin", &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.FromString(data.NewID())}, DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/dataRaw")),
+				Entry("data raw with time", &data.Selector{Time: pointer.FromTime(time.Now()), DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/time")),
+				Entry("nothing", &data.Selector{}, errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForOne("id", "deduplicator", "origin", "dataRaw"), "")),
+				Entry("id with version", &data.Selector{ID: pointer.FromString(data.NewID()), Version: pointer.FromInt(0)}),
+				Entry("id with origin", &data.Selector{ID: pointer.FromString(data.NewID()), Origin: &data.SelectorOrigin{ID: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/origin")),
+				Entry("origin with version", &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.FromString(data.NewID())}, Version: pointer.FromInt(2)}),
+				Entry("id with deduplicator", &data.Selector{ID: pointer.FromString(data.NewID()), Deduplicator: &data.SelectorDeduplicator{Hash: pointer.FromString(data.NewID())}}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/deduplicator")),
+				Entry("id with negative version", &data.Selector{ID: pointer.FromString(data.NewID()), Version: pointer.FromInt(-1)}, errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(-1, 0), "/version")),
+				Entry("version without id or origin", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: pointer.FromString(data.NewID())}, Version: pointer.FromInt(1)}, errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/version")),
+			)
+		})
+
+		Context("Parse", func() {
+			It("does not parse a data raw selector from a request", func() {
+				object := map[string]any{"dataRaw": map[string]any{"id": data.NewID()}}
+				parser := structureParser.NewObject(logTest.NewLogger(), &object)
+				selector := data.ParseSelector(parser)
+				Expect(selector).ToNot(BeNil())
+				Expect(selector.DataRaw).To(BeNil())
+				Expect(parser.NotParsed()).To(HaveOccurred())
+			})
+		})
+
 		Context("Matches", func() {
 			id := pointer.FromString(data.NewID())
 			deduplicatorHash := pointer.FromString(data.NewID())
 			originID := pointer.FromString(data.NewID())
+			dataRawID := pointer.FromString(data.NewID())
 
 			DescribeTable("return the expected results when the selector",
 				func(selector *data.Selector, otherSector *data.Selector, expectedResult bool) {
@@ -101,6 +168,9 @@ var _ = Describe("Data", func() {
 				Entry("other selector origin is nil", &data.Selector{Origin: &data.SelectorOrigin{ID: originID}}, &data.Selector{}, false),
 				Entry("other selector origin id mismatch", &data.Selector{Origin: &data.SelectorOrigin{ID: originID}}, &data.Selector{Origin: &data.SelectorOrigin{ID: pointer.FromString("mismatch")}}, false),
 				Entry("other selector origin match", &data.Selector{Origin: &data.SelectorOrigin{ID: originID}}, &data.Selector{Origin: &data.SelectorOrigin{ID: originID}}, true),
+				Entry("other selector data raw is nil", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: dataRawID}}, &data.Selector{}, false),
+				Entry("other selector data raw id mismatch", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: dataRawID}}, &data.Selector{DataRaw: &data.SelectorDataRaw{ID: pointer.FromString("mismatch")}}, false),
+				Entry("other selector data raw match", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: dataRawID}}, &data.Selector{DataRaw: &data.SelectorDataRaw{ID: dataRawID}}, true),
 			)
 		})
 
@@ -133,6 +203,7 @@ var _ = Describe("Data", func() {
 				Entry("selector origin time same", &data.Selector{Origin: &data.SelectorOrigin{Time: tmString}}, &data.Selector{Origin: &data.SelectorOrigin{Time: tmString}}, false),
 				Entry("selector origin time same in different time zone", &data.Selector{Origin: &data.SelectorOrigin{Time: tmString}}, &data.Selector{Origin: &data.SelectorOrigin{Time: pointer.FromString(now.In(time.FixedZone("Etc/GMT-1", int(-time.Hour.Seconds()))).Format(time.RFC3339Nano))}}, false),
 				Entry("selector origin time later", &data.Selector{Origin: &data.SelectorOrigin{Time: tmString}}, &data.Selector{Origin: &data.SelectorOrigin{Time: pointer.FromString(now.Add(-time.Hour).Format(time.RFC3339Nano))}}, true),
+				Entry("selector data raw is never newer", &data.Selector{DataRaw: &data.SelectorDataRaw{ID: id}}, &data.Selector{DataRaw: &data.SelectorDataRaw{ID: id}}, false),
 			)
 		})
 	})
