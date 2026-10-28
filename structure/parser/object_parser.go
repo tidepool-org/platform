@@ -124,7 +124,7 @@ func (o *Object) Float64(reference string) *float64 {
 
 	float64Value, float64ValueOk := rawValue.(float64)
 	if !float64ValueOk {
-		intValue, intValueOk := rawValue.(int)
+		intValue, intValueOk := integerValue(rawValue)
 		if !intValueOk {
 			o.base.WithReference(reference).ReportError(ErrorTypeNotFloat64(rawValue))
 			return nil
@@ -141,14 +141,12 @@ func (o *Object) Int(reference string) *int {
 		return nil
 	}
 
-	intValue, intValueOk := rawValue.(int)
-	if !intValueOk {
+	var intValue int
+	if int64Value, int64ValueOk := integerValue(rawValue); int64ValueOk {
+		intValue = int(int64Value)
+	} else {
 		float64Value, float64ValueOk := rawValue.(float64)
-		if !float64ValueOk {
-			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
-			return nil
-		}
-		if math.Trunc(float64Value) != float64Value {
+		if !float64ValueOk || math.Trunc(float64Value) != float64Value {
 			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
 			return nil
 		}
@@ -164,14 +162,10 @@ func (o *Object) Int64(reference string) *int64 {
 		return nil
 	}
 
-	intValue, intValueOk := rawValue.(int64)
+	intValue, intValueOk := integerValue(rawValue)
 	if !intValueOk {
 		float64Value, float64ValueOk := rawValue.(float64)
-		if !float64ValueOk {
-			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
-			return nil
-		}
-		if math.Trunc(float64Value) != float64Value {
+		if !float64ValueOk || math.Trunc(float64Value) != float64Value {
 			o.base.WithReference(reference).ReportError(ErrorTypeNotInt(rawValue))
 			return nil
 		}
@@ -372,6 +366,22 @@ func (o *Object) WithReferenceArrayParser(reference string) structure.ArrayParse
 
 func (o *Object) WithReferenceErrorReporter(reference string) structure.ErrorReporter {
 	return o.base.WithReference(reference)
+}
+
+// integerValue returns rawValue as an int64 when it is a Go integer. A JSON body yields float64 for every number,
+// so the numeric accessors accept whole float64 values as well; the BSON decoder yields int32 and int64, so a
+// stored document parses the same way as a request body.
+func integerValue(rawValue interface{}) (int64, bool) {
+	switch value := rawValue.(type) {
+	case int:
+		return int64(value), true
+	case int32:
+		return int64(value), true
+	case int64:
+		return value, true
+	default:
+		return 0, false
+	}
 }
 
 func (o *Object) raw(reference string) (interface{}, bool) {

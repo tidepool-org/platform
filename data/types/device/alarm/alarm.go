@@ -2,6 +2,7 @@ package alarm
 
 import (
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/data/types"
 	"github.com/tidepool-org/platform/data/types/device"
 	dataTypesDeviceStatus "github.com/tidepool-org/platform/data/types/device/status"
 	"github.com/tidepool-org/platform/structure"
@@ -100,6 +101,7 @@ func (a *Alarm) Normalize(normalizer data.Normalizer) {
 
 	if normalizer.Origin() == structure.OriginExternal {
 		if a.Status != nil {
+			types.DeriveChildOriginID(a, *a.Status, "status")
 			normalizer.AddData(*a.Status)
 			switch status := (*a.Status).(type) {
 			case *dataTypesDeviceStatus.Status:

@@ -29,38 +29,39 @@ const (
 )
 
 type Base struct {
-	Active            bool                          `json:"-" bson:"_active"`
+	Active            bool                          `json:"-" bson:"_active" revision:"omit"`
 	Annotations       *metadata.MetadataArray       `json:"annotations,omitempty" bson:"annotations,omitempty"`
-	ArchivedDataSetID *string                       `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty"`
-	ArchivedTime      *time.Time                    `json:"archivedTime,omitempty" bson:"archivedTime,omitempty"`
+	ArchivedDataSetID *string                       `json:"archivedDatasetId,omitempty" bson:"archivedDatasetId,omitempty" revision:"omit"`
+	ArchivedTime      *time.Time                    `json:"archivedTime,omitempty" bson:"archivedTime,omitempty" revision:"omit"`
 	Associations      *association.AssociationArray `json:"associations,omitempty" bson:"associations,omitempty"`
 	ClockDriftOffset  *int                          `json:"clockDriftOffset,omitempty" bson:"clockDriftOffset,omitempty"`
 	ConversionOffset  *int                          `json:"conversionOffset,omitempty" bson:"conversionOffset,omitempty"`
-	CreatedTime       *time.Time                    `json:"createdTime,omitempty" bson:"createdTime,omitempty"`
-	CreatedUserID     *string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty"`
-	Deduplicator      *data.DeduplicatorDescriptor  `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty"`
-	DeletedTime       *time.Time                    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty"`
-	DeletedUserID     *string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty"`
+	CreatedTime       *time.Time                    `json:"createdTime,omitempty" bson:"createdTime,omitempty" revision:"omit"`
+	CreatedUserID     *string                       `json:"createdUserId,omitempty" bson:"createdUserId,omitempty" revision:"omit"`
+	Deduplicator      *data.DeduplicatorDescriptor  `json:"deduplicator,omitempty" bson:"_deduplicator,omitempty" revision:"omit"`
+	DeletedTime       *time.Time                    `json:"deletedTime,omitempty" bson:"deletedTime,omitempty" revision:"omit"`
+	DeletedUserID     *string                       `json:"deletedUserId,omitempty" bson:"deletedUserId,omitempty" revision:"omit"`
 	DeviceID          *string                       `json:"deviceId,omitempty" bson:"deviceId,omitempty"`
 	DeviceTime        *string                       `json:"deviceTime,omitempty" bson:"deviceTime,omitempty"`
-	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty"`
-	ID                *string                       `json:"id,omitempty" bson:"id,omitempty"`
+	GUID              *string                       `json:"guid,omitempty" bson:"guid,omitempty" revision:"omit"`
+	ID                *string                       `json:"id,omitempty" bson:"id,omitempty" revision:"omit"`
 	Location          *location.Location            `json:"location,omitempty" bson:"location,omitempty"`
-	ModifiedTime      *time.Time                    `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty"`
-	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty"`
+	ModifiedTime      *time.Time                    `json:"modifiedTime,omitempty" bson:"modifiedTime,omitempty" revision:"omit"`
+	ModifiedUserID    *string                       `json:"modifiedUserId,omitempty" bson:"modifiedUserId,omitempty" revision:"omit"`
 	Notes             *[]string                     `json:"notes,omitempty" bson:"notes,omitempty"`
 	Origin            *origin.Origin                `json:"origin,omitempty" bson:"origin,omitempty"`
 	Payload           *metadata.Metadata            `json:"payload,omitempty" bson:"payload,omitempty"`
-	Provenance        *data.Provenance              `json:"-" bson:"provenance,omitempty"`
+	Provenance        *data.Provenance              `json:"-" bson:"provenance,omitempty" revision:"omit"`
+	Revisions         *[]data.Revision              `json:"revisions,omitempty" bson:"revisions,omitempty" revision:"omit"`
 	Source            *string                       `json:"source,omitempty" bson:"source,omitempty"`
 	Tags              *[]string                     `json:"tags,omitempty" bson:"tags,omitempty"`
 	Time              *time.Time                    `json:"time,omitempty" bson:"time,omitempty"`
 	TimeZoneName      *string                       `json:"timezone,omitempty" bson:"timezone,omitempty"`             // TODO: Rename to timeZoneName
 	TimeZoneOffset    *int                          `json:"timezoneOffset,omitempty" bson:"timezoneOffset,omitempty"` // TODO: Rename to timeZoneOffset
 	Type              string                        `json:"type,omitempty" bson:"type,omitempty"`
-	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty"`
-	UserID            *string                       `json:"-" bson:"_userId,omitempty"`
-	VersionInternal   int                           `json:"-" bson:"_version,omitempty"`
+	UploadID          *string                       `json:"uploadId,omitempty" bson:"uploadId,omitempty" revision:"omit"`
+	UserID            *string                       `json:"-" bson:"_userId,omitempty" revision:"omit"`
+	VersionInternal   int                           `json:"-" bson:"_version,omitempty" revision:"omit"`
 }
 
 type Meta struct {
@@ -381,8 +382,45 @@ func (b *Base) SetDeduplicatorDescriptor(deduplicatorDescriptor *data.Deduplicat
 	b.Deduplicator = deduplicatorDescriptor
 }
 
+func (b *Base) GetProvenance() *data.Provenance {
+	return b.Provenance
+}
+
 func (b *Base) SetProvenance(provenance *data.Provenance) {
 	b.Provenance = provenance
+}
+
+func (b *Base) GetRevisions() *[]data.Revision {
+	return b.Revisions
+}
+
+func (b *Base) SetRevisions(revisions *[]data.Revision) {
+	b.Revisions = revisions
+}
+
+func (b *Base) GetVersionInternal() int {
+	return b.VersionInternal
+}
+
+func (b *Base) SetVersionInternal(versionInternal int) {
+	b.VersionInternal = versionInternal
+}
+
+// DeriveChildOriginID gives a child datum added during normalization an origin id derived from its parent's
+// origin id and the reference the child was added under, unless the child already has one.
+func DeriveChildOriginID(parent data.Datum, child data.Datum, reference string) {
+	parentOrigin := parent.GetOrigin()
+	if parentOrigin == nil || parentOrigin.ID == nil || *parentOrigin.ID == "" {
+		return
+	}
+	childOrigin := child.GetOrigin()
+	if childOrigin == nil {
+		childOrigin = origin.NewOrigin()
+	} else if childOrigin.ID != nil {
+		return
+	}
+	childOrigin.ID = pointer.FromString(*parentOrigin.ID + ":" + reference)
+	child.SetOrigin(childOrigin)
 }
 
 func latestTime(tms ...time.Time) time.Time {

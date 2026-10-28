@@ -59,6 +59,7 @@ var _ = Describe("Base", func() {
 			Expect(datum.Notes).To(BeNil())
 			Expect(datum.Origin).To(BeNil())
 			Expect(datum.Payload).To(BeNil())
+			Expect(datum.Revisions).To(BeNil())
 			Expect(datum.Source).To(BeNil())
 			Expect(datum.Tags).To(BeNil())
 			Expect(datum.Time).To(BeNil())
@@ -69,6 +70,23 @@ var _ = Describe("Base", func() {
 			Expect(datum.UserID).To(BeNil())
 			Expect(datum.VersionInternal).To(Equal(0))
 		})
+	})
+
+	Context("Serialize", func() {
+		DescribeTable("serializes the datum as expected",
+			func(mutator func(datum *types.Base)) {
+				datum := dataTypesTest.RandomBase()
+				mutator(datum)
+				test.ExpectSerializedObjectBSON(datum, dataTypesTest.NewObjectFromBase(datum, test.ObjectFormatBSON))
+				test.ExpectSerializedObjectJSON(datum, dataTypesTest.NewObjectFromBase(datum, test.ObjectFormatJSON))
+			},
+			Entry("succeeds",
+				func(datum *types.Base) {},
+			),
+			Entry("with revisions",
+				func(datum *types.Base) { datum.Revisions = dataTest.RandomRevisions() },
+			),
+		)
 	})
 
 	Context("with new datum", func() {
@@ -1150,5 +1168,106 @@ var _ = Describe("Base", func() {
 				Expect(datumBase.Deduplicator).To(Equal(deduplicatorDescriptor))
 			})
 		})
+
+		Context("GetProvenance", func() {
+			It("gets the provenance", func() {
+				datumBase.Provenance = dataTest.RandomProvenance()
+				Expect(datum.GetProvenance()).To(Equal(datumBase.Provenance))
+			})
+		})
+
+		Context("SetProvenance", func() {
+			It("sets the provenance", func() {
+				provenance := dataTest.RandomProvenance()
+				datum.SetProvenance(provenance)
+				Expect(datumBase.Provenance).To(Equal(provenance))
+			})
+		})
+
+		Context("GetRevisions", func() {
+			It("gets the revisions", func() {
+				Expect(datum.GetRevisions()).To(Equal(datumBase.Revisions))
+			})
+		})
+
+		Context("SetRevisions", func() {
+			It("sets the revisions", func() {
+				revisions := dataTest.RandomRevisions()
+				datum.SetRevisions(revisions)
+				Expect(datumBase.Revisions).To(Equal(revisions))
+			})
+
+			It("clears the revisions", func() {
+				datum.SetRevisions(nil)
+				Expect(datumBase.Revisions).To(BeNil())
+			})
+		})
+
+		Context("GetVersionInternal", func() {
+			It("gets the version internal", func() {
+				Expect(datum.GetVersionInternal()).To(Equal(datumBase.VersionInternal))
+			})
+		})
+
+		Context("SetVersionInternal", func() {
+			It("sets the version internal", func() {
+				versionInternal := dataTypesTest.NewVersionInternal()
+				datum.SetVersionInternal(versionInternal)
+				Expect(datumBase.VersionInternal).To(Equal(versionInternal))
+			})
+		})
+	})
+})
+
+var _ = Describe("DeriveChildOriginID", func() {
+	var parent *types.Base
+	var child *types.Base
+	var reference string
+
+	BeforeEach(func() {
+		parent = dataTypesTest.RandomBase()
+		child = dataTypesTest.RandomBase()
+		child.Origin = nil
+		reference = test.RandomStringFromCharset(test.CharsetAlphaNumeric)
+	})
+
+	It("sets the child origin id from the parent origin id and the reference when the child has no origin", func() {
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).ToNot(BeNil())
+		Expect(child.Origin.ID).To(Equal(pointer.FromString(*parent.Origin.ID + ":" + reference)))
+	})
+
+	It("sets only the child origin id when the child origin has no id", func() {
+		child.Origin = originTest.RandomOrigin()
+		child.Origin.ID = nil
+		expectedOrigin := originTest.CloneOrigin(child.Origin)
+		expectedOrigin.ID = pointer.FromString(*parent.Origin.ID + ":" + reference)
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).To(Equal(expectedOrigin))
+	})
+
+	It("keeps the child origin when it has an id", func() {
+		child.Origin = originTest.RandomOrigin()
+		expectedOrigin := originTest.CloneOrigin(child.Origin)
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).To(Equal(expectedOrigin))
+	})
+
+	It("leaves the child without an origin when the parent has no origin", func() {
+		parent.Origin = nil
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).To(BeNil())
+	})
+
+	It("leaves the child without an origin when the parent origin has no id", func() {
+		parent.Origin.ID = nil
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).To(BeNil())
+	})
+
+	It("leaves the child without an origin when the parent origin id is empty", func() {
+		parent.Origin.ID = pointer.FromString("")
+		types.DeriveChildOriginID(parent, child, reference)
+		Expect(child.Origin).To(BeNil())
 	})
 })

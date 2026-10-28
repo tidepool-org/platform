@@ -15,6 +15,7 @@ import (
 	dataTypesTest "github.com/tidepool-org/platform/data/types/test"
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	logTest "github.com/tidepool-org/platform/log/test"
+	originTest "github.com/tidepool-org/platform/origin/test"
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
@@ -287,6 +288,45 @@ var _ = Describe("Change", func() {
 				Expect(normalizer.Error()).To(BeNil())
 				Expect(normalizer.Data()).To(BeEmpty())
 				Expect(datum).To(Equal(expectedDatum))
+			})
+
+			It("derives the status origin id from the datum origin id when the status has none", func() {
+				datumStatus := dataTypesDeviceStatusTest.NewStatus()
+				datumStatus.Origin = nil
+				datum := NewAlarmWithStatusID()
+				datum.Status = data.DatumAsPointer(datumStatus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(normalizer.Data()).To(Equal([]data.Datum{datumStatus}))
+				Expect(datumStatus.Origin).ToNot(BeNil())
+				Expect(datumStatus.Origin.ID).To(Equal(pointer.FromString(*datum.Origin.ID + ":status")))
+			})
+
+			It("keeps the status origin when the status has one", func() {
+				datumStatus := dataTypesDeviceStatusTest.NewStatus()
+				expectedOrigin := originTest.CloneOrigin(datumStatus.Origin)
+				datum := NewAlarmWithStatusID()
+				datum.Status = data.DatumAsPointer(datumStatus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(datumStatus.Origin).To(Equal(expectedOrigin))
+			})
+
+			It("leaves the status without an origin when the datum has none", func() {
+				datumStatus := dataTypesDeviceStatusTest.NewStatus()
+				datumStatus.Origin = nil
+				datum := NewAlarmWithStatusID()
+				datum.Origin = nil
+				datum.Status = data.DatumAsPointer(datumStatus)
+				normalizer := dataNormalizer.New(logTest.NewLogger())
+				Expect(normalizer).ToNot(BeNil())
+				datum.Normalize(normalizer)
+				Expect(normalizer.Error()).To(BeNil())
+				Expect(datumStatus.Origin).To(BeNil())
 			})
 
 			It("normalizes the datum and replaces status with status id", func() {

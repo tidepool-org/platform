@@ -370,6 +370,8 @@ var _ = Describe("Array", func() {
 				3,
 				4.0,
 				5.67,
+				int32(6),
+				int64(7),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -410,6 +412,20 @@ var _ = Describe("Array", func() {
 			Expect(*value).To(BeNumerically("==", 5.67))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
+
+		It("with index parameter with int32 type returns value", func() {
+			value := parser.Float64(4)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 6.))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with index parameter with int64 type returns value", func() {
+			value := parser.Float64(5)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 7.))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
 	})
 
 	Context("Int", func() {
@@ -421,6 +437,8 @@ var _ = Describe("Array", func() {
 				3,
 				4.0,
 				5.67,
+				int32(6),
+				int64(7),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -459,6 +477,20 @@ var _ = Describe("Array", func() {
 			Expect(parser.Int(3)).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(5.67), "/3"))
+		})
+
+		It("with index parameter with int32 type returns value", func() {
+			value := parser.Int(4)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 6))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with index parameter with int64 type returns value", func() {
+			value := parser.Int(5)
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 7))
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 

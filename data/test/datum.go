@@ -7,6 +7,7 @@ import (
 
 	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/metadata"
+	metadataTest "github.com/tidepool-org/platform/metadata/test"
 	netTest "github.com/tidepool-org/platform/net/test"
 	"github.com/tidepool-org/platform/origin"
 	"github.com/tidepool-org/platform/pointer"
@@ -74,10 +75,18 @@ type Datum struct {
 	SetDeduplicatorDescriptorInvocations int
 	IsActiveInvocations                  int
 	IsActiveOutputs                      []bool
+	ProvenanceValue                      *data.Provenance
+	GetProvenanceInvocations             int
 	SetProvenanceInvocations             int
 	SetProvenanceInputs                  []*data.Provenance
 	GetUploadIDInvocations               int
 	GetUploadIDOutputs                   []*string
+	RevisionsValue                       *[]data.Revision
+	GetRevisionsInvocations              int
+	SetRevisionsInvocations              int
+	VersionInternalValue                 int
+	GetVersionInternalInvocations        int
+	SetVersionInternalInvocations        int
 }
 
 func NewDatum() *Datum {
@@ -274,9 +283,16 @@ func (d *Datum) SetDeletedUserID(deletedUserID *string) {
 	d.SetDeletedUserIDInputs = append(d.SetDeletedUserIDInputs, deletedUserID)
 }
 
+func (d *Datum) GetProvenance() *data.Provenance {
+	d.GetProvenanceInvocations++
+
+	return d.ProvenanceValue
+}
+
 func (d *Datum) SetProvenance(p *data.Provenance) {
 	d.SetProvenanceInvocations++
 	d.SetProvenanceInputs = append(d.SetProvenanceInputs, p)
+	d.ProvenanceValue = p
 }
 
 func (d *Datum) DeduplicatorDescriptor() *data.DeduplicatorDescriptor {
@@ -311,11 +327,36 @@ func (d *Datum) GetUploadID() *string {
 	return output
 }
 
+func (d *Datum) GetRevisions() *[]data.Revision {
+	d.GetRevisionsInvocations++
+
+	return d.RevisionsValue
+}
+
+func (d *Datum) SetRevisions(revisions *[]data.Revision) {
+	d.SetRevisionsInvocations++
+
+	d.RevisionsValue = revisions
+}
+
+func (d *Datum) GetVersionInternal() int {
+	d.GetVersionInternalInvocations++
+
+	return d.VersionInternalValue
+}
+
+func (d *Datum) SetVersionInternal(versionInternal int) {
+	d.SetVersionInternalInvocations++
+
+	d.VersionInternalValue = versionInternal
+}
+
 func RandomProvenance() *data.Provenance {
 	datum := data.NewProvenance()
 	datum.ClientID = test.RandomString()
 	datum.ByUserID = pointer.FromString(userTest.RandomUserID())
 	datum.SourceIP = pointer.FromString(netTest.RandomFQDN())
+	datum.DataRaw = RandomDataRawReference()
 	return datum
 }
 
@@ -325,7 +366,128 @@ func CloneProvenance(datum *data.Provenance) *data.Provenance {
 	}
 	clone := data.NewProvenance()
 	clone.ClientID = datum.ClientID
-	clone.ByUserID = datum.ByUserID
-	clone.SourceIP = datum.SourceIP
+	clone.ByUserID = pointer.CloneString(datum.ByUserID)
+	clone.SourceIP = pointer.CloneString(datum.SourceIP)
+	clone.DataRaw = CloneDataRawReference(datum.DataRaw)
 	return clone
+}
+
+func NewObjectFromProvenance(datum *data.Provenance, objectFormat test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if objectFormat == test.ObjectFormatBSON {
+		object["clientID"] = test.NewObjectFromString(datum.ClientID, objectFormat)
+	} else {
+		object["clientId"] = test.NewObjectFromString(datum.ClientID, objectFormat)
+	}
+	if datum.ByUserID != nil {
+		if objectFormat == test.ObjectFormatBSON {
+			object["byUserID"] = test.NewObjectFromString(*datum.ByUserID, objectFormat)
+		} else {
+			object["byUserId"] = test.NewObjectFromString(*datum.ByUserID, objectFormat)
+		}
+	}
+	if datum.SourceIP != nil {
+		object["sourceIP"] = test.NewObjectFromString(*datum.SourceIP, objectFormat)
+	}
+	if datum.DataRaw != nil {
+		object["dataRaw"] = NewObjectFromDataRawReference(datum.DataRaw, objectFormat)
+	}
+	return object
+}
+
+func RandomDataRawReference() *data.DataRawReference {
+	return &data.DataRawReference{ID: RandomDataRawID()}
+}
+
+func CloneDataRawReference(datum *data.DataRawReference) *data.DataRawReference {
+	if datum == nil {
+		return nil
+	}
+	return &data.DataRawReference{ID: datum.ID, Reference: datum.Reference}
+}
+
+func NewObjectFromDataRawReference(datum *data.DataRawReference, objectFormat test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.ID != "" {
+		object["id"] = test.NewObjectFromString(datum.ID, objectFormat)
+	}
+	if datum.Reference != nil {
+		object["reference"] = datum.Reference
+	}
+	return object
+}
+
+func RandomDataRawID() string {
+	return test.RandomStringFromRangeAndCharset(32, 32, test.CharsetHexadecimalLowercase)
+}
+
+func RandomRevision() *data.Revision {
+	return &data.Revision{
+		Provenance: RandomProvenance(),
+		Time:       test.RandomTime(),
+		Undo:       metadataTest.RandomMetadataMap(),
+	}
+}
+
+func RandomRevisions() *[]data.Revision {
+	revisions := []data.Revision{}
+	for range test.RandomIntFromRange(1, 3) {
+		revisions = append(revisions, *RandomRevision())
+	}
+	revisions[0].Undo = nil
+	return &revisions
+}
+
+func CloneRevision(datum *data.Revision) *data.Revision {
+	if datum == nil {
+		return nil
+	}
+	return &data.Revision{
+		Provenance: CloneProvenance(datum.Provenance),
+		Time:       datum.Time,
+		Undo:       metadataTest.CloneMetadataMap(datum.Undo),
+	}
+}
+
+func CloneRevisions(datum *[]data.Revision) *[]data.Revision {
+	if datum == nil {
+		return nil
+	}
+	clone := []data.Revision{}
+	for _, revision := range *datum {
+		clone = append(clone, *CloneRevision(&revision))
+	}
+	return &clone
+}
+
+func NewObjectFromRevision(datum *data.Revision, objectFormat test.ObjectFormat) map[string]any {
+	if datum == nil {
+		return nil
+	}
+	object := map[string]any{}
+	if datum.Provenance != nil && objectFormat == test.ObjectFormatBSON {
+		object["provenance"] = NewObjectFromProvenance(datum.Provenance, objectFormat)
+	}
+	object["time"] = test.NewObjectFromTime(datum.Time, objectFormat)
+	if datum.Undo != nil {
+		object["undo"] = metadataTest.NewObjectFromMetadataMap(datum.Undo, objectFormat)
+	}
+	return object
+}
+
+func NewArrayFromRevisions(datum *[]data.Revision, objectFormat test.ObjectFormat) []any {
+	if datum == nil {
+		return nil
+	}
+	array := []any{}
+	for _, revision := range *datum {
+		array = append(array, NewObjectFromRevision(&revision, objectFormat))
+	}
+	return array
 }

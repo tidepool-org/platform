@@ -43,7 +43,12 @@ type Datum interface {
 	SetDeletedUserID(deletedUserID *string)
 	DeduplicatorDescriptor() *DeduplicatorDescriptor
 	SetDeduplicatorDescriptor(deduplicatorDescriptor *DeduplicatorDescriptor)
+	GetProvenance() *Provenance
 	SetProvenance(provenance *Provenance)
+	GetRevisions() *[]Revision
+	SetRevisions(revisions *[]Revision)
+	GetVersionInternal() int
+	SetVersionInternal(versionInternal int)
 }
 
 func DatumAsPointer(datum Datum) *Datum {
@@ -131,6 +136,15 @@ func (p *Provenance) Parse(parser structure.ObjectParser) {
 	p.ByUserID = parser.String("byUserId")
 	p.SourceIP = parser.String("sourceIP")
 	p.DataRaw = ParseDataRawReference(parser.WithReferenceObjectParser("dataRaw"))
+}
+
+// Revision is a write that created or changed a datum. The first revision records the creating write and has no
+// Undo. Every later revision's Undo is an RFC 7386 JSON merge patch which, applied to the mutable fields of the
+// datum as stored now, yields them as they were before the write. The provenance is stored, never served.
+type Revision struct {
+	Provenance *Provenance    `json:"-" bson:"provenance,omitempty"`
+	Time       time.Time      `json:"time" bson:"time"`
+	Undo       map[string]any `json:"undo,omitempty" bson:"undo,omitempty"`
 }
 
 type DataRawReference struct {

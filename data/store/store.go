@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/tidepool-org/platform/alerts"
@@ -11,6 +12,7 @@ import (
 	"github.com/tidepool-org/platform/data/types/dosingdecision"
 
 	"github.com/tidepool-org/platform/data"
+	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/page"
 	storeStructuredMongo "github.com/tidepool-org/platform/store/structured/mongo"
 	"github.com/tidepool-org/platform/structure"
@@ -63,6 +65,14 @@ type DatumRepository interface {
 	// subtype if not empty, or nil if there is none.
 	GetLatestDataSetDatum(ctx context.Context, dataSet *data.DataSet, typ string, subType string) (data.Datum, error)
 
+	// GetDataSetDocuments returns the stored documents of the data set the selectors match, not deleted, as decoded
+	// maps. A data raw selector matches everything the raw data record created or changed.
+	GetDataSetDocuments(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors) ([]map[string]any, error)
+	// UpdateDataSetDatum applies the update to the one datum of the data set the selector matches, an origin selector
+	// with the version the datum was read at, bumping its version and modified time, or returns
+	// ErrorDatumUpdateConflict when none matches.
+	UpdateDataSetDatum(ctx context.Context, dataSet *data.DataSet, selectors *data.Selectors, update bson.M) error
+
 	ArchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
 	UnarchiveDeviceDataUsingHashesFromDataSet(ctx context.Context, dataSet *data.DataSet) error
 	DeleteOtherDataSetData(ctx context.Context, dataSet *data.DataSet) error
@@ -81,6 +91,17 @@ type DatumRepository interface {
 type DataRepository interface {
 	DataSetRepository
 	DatumRepository
+}
+
+const ErrorCodeDatumUpdateConflict = "datum-update-conflict"
+
+// ErrorDatumUpdateConflict is returned when the datum an update was built from is no longer stored at that version.
+func ErrorDatumUpdateConflict() error {
+	return errors.Prepared(ErrorCodeDatumUpdateConflict, "datum update conflict", "datum update conflict")
+}
+
+func IsErrorDatumUpdateConflict(err error) bool {
+	return errors.Code(err) == ErrorCodeDatumUpdateConflict
 }
 
 type Filter struct {
