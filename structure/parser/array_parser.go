@@ -122,7 +122,7 @@ func (a *Array) Float64(reference int) *float64 {
 
 	float64Value, float64ValueOk := rawValue.(float64)
 	if !float64ValueOk {
-		intValue, intValueOk := rawValue.(int)
+		intValue, intValueOk := integerValue(rawValue)
 		if !intValueOk {
 			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotFloat64(rawValue))
 			return nil
@@ -139,14 +139,12 @@ func (a *Array) Int(reference int) *int {
 		return nil
 	}
 
-	intValue, intValueOk := rawValue.(int)
-	if !intValueOk {
+	var intValue int
+	if int64Value, int64ValueOk := integerValue(rawValue); int64ValueOk {
+		intValue = int(int64Value)
+	} else {
 		float64Value, float64ValueOk := rawValue.(float64)
-		if !float64ValueOk {
-			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
-			return nil
-		}
-		if math.Trunc(float64Value) != float64Value {
+		if !float64ValueOk || math.Trunc(float64Value) != float64Value {
 			a.base.WithReference(strconv.Itoa(reference)).ReportError(ErrorTypeNotInt(rawValue))
 			return nil
 		}

@@ -367,6 +367,8 @@ var _ = Describe("Object", func() {
 				"one":   3,
 				"two":   4.0,
 				"three": 5.67,
+				"four":  int32(6),
+				"five":  int64(7),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -402,6 +404,20 @@ var _ = Describe("Object", func() {
 			Expect(*value).To(BeNumerically("==", 5.67))
 			Expect(base.Error()).ToNot(HaveOccurred())
 		})
+
+		It("with key with int32 type returns value", func() {
+			value := parser.Float64("four")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 6.))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with int64 type returns value", func() {
+			value := parser.Float64("five")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 7.))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
 	})
 
 	Context("Int", func() {
@@ -413,6 +429,8 @@ var _ = Describe("Object", func() {
 				"one":   3,
 				"two":   4.0,
 				"three": 5.67,
+				"four":  int32(6),
+				"five":  int64(7),
 			})
 			Expect(parser).ToNot(BeNil())
 		})
@@ -446,6 +464,81 @@ var _ = Describe("Object", func() {
 			Expect(parser.Int("three")).To(BeNil())
 			Expect(base.Error()).To(HaveOccurred())
 			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(5.67), "/three"))
+		})
+
+		It("with key with int32 type returns value", func() {
+			value := parser.Int("four")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 6))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with int64 type returns value", func() {
+			value := parser.Int("five")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 7))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("Int64", func() {
+		var parser *structureParser.Object
+
+		BeforeEach(func() {
+			parser = structureParser.NewObjectParser(base, &map[string]interface{}{
+				"zero":  false,
+				"one":   3,
+				"two":   4.0,
+				"three": 5.67,
+				"four":  int32(6),
+				"five":  int64(7),
+			})
+			Expect(parser).ToNot(BeNil())
+		})
+
+		It("with key not found in the object returns nil", func() {
+			Expect(parser.Int64("unknown")).To(BeNil())
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with different type returns nil and reports an ErrorCodeTypeNotInt", func() {
+			Expect(parser.Int64("zero")).To(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(false), "/zero"))
+		})
+
+		It("with key with integer type returns value", func() {
+			value := parser.Int64("one")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 3))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with float type and whole number returns value", func() {
+			value := parser.Int64("two")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 4))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with float type and not whole number returns nil and reports an ErrorCodeTypeNotInt", func() {
+			Expect(parser.Int64("three")).To(BeNil())
+			Expect(base.Error()).To(HaveOccurred())
+			errorsTest.ExpectEqual(base.Error(), errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(5.67), "/three"))
+		})
+
+		It("with key with int32 type returns value", func() {
+			value := parser.Int64("four")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 6))
+			Expect(base.Error()).ToNot(HaveOccurred())
+		})
+
+		It("with key with int64 type returns value", func() {
+			value := parser.Int64("five")
+			Expect(value).ToNot(BeNil())
+			Expect(*value).To(BeNumerically("==", 7))
+			Expect(base.Error()).ToNot(HaveOccurred())
 		})
 	})
 

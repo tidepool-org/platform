@@ -2,7 +2,6 @@ package mongo
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -481,16 +480,8 @@ func (d *DatumRepository) GetLatestDataSetDatum(ctx context.Context, dataSet *da
 // decodeDatum parses a stored datum as data from a client is parsed: the stored document does not say which type
 // fills a field declared as an interface, such as the suppressed basal of an automated basal, but the parser does.
 func decodeDatum(ctx context.Context, dataSet *data.DataSet, raw bson.Raw) (data.Datum, error) {
-	document, err := storeStructuredMongo.DecodeDocument(raw)
+	object, err := storeStructuredMongo.DecodeDocument(raw)
 	if err != nil {
-		return nil, err
-	}
-	body, err := json.Marshal(document)
-	if err != nil {
-		return nil, err
-	}
-	object := map[string]any{}
-	if err = json.Unmarshal(body, &object); err != nil {
 		return nil, err
 	}
 
