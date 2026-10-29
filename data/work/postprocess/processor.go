@@ -164,7 +164,11 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 
 func (p *Processor) updateSummaries() *work.ProcessResult {
 	var err error
-	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID)
+	updateSummaries := p.UpdateSummaries
+	if RecalculatesSummaries(p.Metadata().Reasons) {
+		updateSummaries = p.RecalculateSummaries
+	}
+	p.summariesUpdate, err = updateSummaries(p.Context(), *p.User().UserID)
 
 	// The changes made are recorded in the metadata before they are synced to the clinic service,
 	// so that a failure between the two retries the update. They are recorded even when the
