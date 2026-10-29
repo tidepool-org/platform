@@ -53,6 +53,25 @@ var _ = Describe("Work", func() {
 		)
 	})
 
+	Context("DeduplicationIDFromUserIDAndReason", func() {
+		var userID string
+
+		BeforeEach(func() {
+			userID = userTest.RandomUserID()
+		})
+
+		// The deduplication id is scoped to the type by the store, so the type is not repeated in it
+		It("scopes the user id to the reason", func() {
+			Expect(dataWorkPostprocess.DeduplicationIDFromUserIDAndReason(userID, dataWorkPostprocess.ReasonDataAdded)).
+				To(Equal(userID + ":DATA_ADDED"))
+		})
+
+		It("differs between reasons", func() {
+			Expect(dataWorkPostprocess.DeduplicationIDFromUserIDAndReason(userID, dataWorkPostprocess.ReasonDataAdded)).
+				ToNot(Equal(dataWorkPostprocess.DeduplicationIDFromUserIDAndReason(userID, dataWorkPostprocess.ReasonUploadCompleted)))
+		})
+	})
+
 	Context("IDFromUserID", func() {
 		var userID string
 

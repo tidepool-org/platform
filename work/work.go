@@ -4,10 +4,12 @@ import (
 	"maps"
 	"regexp"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/net"
+	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/structure"
 	structureValidator "github.com/tidepool-org/platform/structure/validator"
 )
@@ -30,6 +32,8 @@ const (
 	StateSuccess    = "success"
 
 	DeduplicationIDSingleton = "singleton"
+
+	ReleasedSuffix = ":released:"
 )
 
 func States() []string {
@@ -255,7 +259,8 @@ func (p *PendingUpdate) Validate(validator structure.Validator) {
 }
 
 type ProcessingUpdate struct {
-	Metadata map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
+	DeduplicationID *string        `json:"deduplicationId,omitempty" bson:"deduplicationId,omitempty"`
+	Metadata        map[string]any `json:"metadata,omitempty" bson:"metadata,omitempty"`
 }
 
 func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
@@ -268,12 +273,14 @@ func ParseProcessingUpdate(parser structure.ObjectParser) *ProcessingUpdate {
 }
 
 func (p *ProcessingUpdate) Parse(parser structure.ObjectParser) {
+	p.DeduplicationID = parser.String("deduplicationId")
 	if ptr := parser.Object("metadata"); ptr != nil {
 		p.Metadata = *ptr
 	}
 }
 
 func (p *ProcessingUpdate) Validate(validator structure.Validator) {
+	validator.String("deduplicationId", p.DeduplicationID).NotEmpty().LengthLessThanOrEqualTo(DeduplicationIDLengthMaximum)
 	validator.Object("metadata", &p.Metadata).SizeLessThanOrEqualTo(MetadataSizeMaximum)
 }
 
@@ -617,6 +624,26 @@ func (w *Work) EnsureMetadata() {
 
 func (w *Work) ProcessingTimeoutDuration() time.Duration {
 	return time.Duration(w.ProcessingTimeout) * time.Second
+}
+
+func (w *Work) IsDeduplicationIDReleased() bool {
+	return w.DeduplicationID == nil || strings.HasSuffix(*w.DeduplicationID, w.releasedSuffix())
+}
+
+func (w *Work) ReleasedDeduplicationID() *string {
+	if w.IsDeduplicationIDReleased() {
+		return nil
+	}
+	deduplicationIDRunes := []rune(*w.DeduplicationID)
+	suffixRunes := []rune(w.releasedSuffix())
+	if deduplicationIDRunesMaximum := DeduplicationIDLengthMaximum - len(suffixRunes); len(deduplicationIDRunes) > deduplicationIDRunesMaximum {
+		deduplicationIDRunes = deduplicationIDRunes[:deduplicationIDRunesMaximum]
+	}
+	return pointer.FromString(string(append(deduplicationIDRunes, suffixRunes...)))
+}
+
+func (w *Work) releasedSuffix() string {
+	return ReleasedSuffix + w.ID
 }
 
 func IsValidWorkID(value string) bool {

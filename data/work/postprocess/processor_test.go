@@ -139,6 +139,79 @@ var _ = Describe("Processor", func() {
 		Expect(process().Result).To(Equal(work.ResultDelete))
 	})
 
+	// Work created by Enqueue is deduplicated by user and reason. Once claimed, the work may read
+	// the data before a change reported against it, so it releases the id, by suffixing it with its
+	// own, before anything else, and a change reported from then on creates work of its own
+	Context("with a deduplication id", func() {
+		var deduplicationID string
+
+		expectRelease := func() *workTest.MockProcessingUpdaterProcessingUpdateCall {
+			return processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
+					Expect(update.DeduplicationID).To(PointTo(Equal(deduplicationID + work.ReleasedSuffix + wrk.ID)))
+					Expect(update.Metadata).To(Equal(wrk.Metadata))
+					updated := *wrk
+					updated.DeduplicationID = update.DeduplicationID
+					updated.Revision = wrk.Revision + 1
+					return &updated, nil
+				})
+		}
+
+		BeforeEach(func() {
+			deduplicationID = dataWorkPostprocess.DeduplicationIDFromUserIDAndReason(userID, dataWorkPostprocess.ReasonDataAdded)
+			wrk.DeduplicationID = pointer.FromString(deduplicationID)
+		})
+
+		It("releases it before listing the work also pending", func() {
+			gomock.InOrder(
+				expectRelease(),
+				workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+			)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// Failed work is never deleted, so a failed work still holding the id would discard every
+		// change of the user for the reason from then on
+		It("releases it before failing work not scoped to the user its metadata reports", func() {
+			wrk.GroupID = pointer.FromString(dataWorkPostprocess.IDFromUserID(userTest.RandomUserID()))
+			expectRelease()
+
+			result := process()
+			Expect(result.Result).To(Equal(work.ResultFailed))
+			Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("does not match metadata user id")))
+		})
+
+		It("releases it before failing work of a user that no longer exists", func() {
+			fetchUser = func() (*user.User, error) { return nil, nil }
+			expectRelease()
+
+			result := process()
+			Expect(result.Result).To(Equal(work.ResultFailed))
+			Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("user is missing")))
+		})
+
+		// A retry has already released the id, and releasing it again would cost an update per retry
+		It("leaves it alone when it is already released", func() {
+			wrk.DeduplicationID = pointer.FromString(deduplicationID + work.ReleasedSuffix + wrk.ID)
+			expectListNone()
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		// The id is retained, so a change reported before the retry is discarded against this work,
+		// and the retry reads the data from scratch and observes it
+		It("retries when it cannot be released", func() {
+			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(nil, errorsTest.RandomError())
+
+			result := process()
+			Expect(result.Result).To(Equal(work.ResultFailing))
+			Expect(result.FailingUpdate.FailingRetryTime).To(BeTemporally(">", time.Now()))
+		})
+	})
+
 	DescribeTable("requests a synchronization only for the reasons that report a change is complete",
 		func(reasons []string, expectSync bool) {
 			wrk = newWork(work.StateProcessing, reasons, time.Now().Add(-time.Minute))

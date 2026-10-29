@@ -248,6 +248,56 @@ var _ = Describe("processor", func() {
 					})
 				})
 
+				Context("ReleaseDeduplicationID", func() {
+					var deduplicationID string
+					var releasedDeduplicationID string
+
+					BeforeEach(func() {
+						deduplicationID = workTest.RandomDeduplicationID()
+						wrk.DeduplicationID = &deduplicationID
+						releasedDeduplicationID = deduplicationID + work.ReleasedSuffix + wrk.ID
+					})
+
+					It("returns nil without updating when the work has no deduplication id", func() {
+						wrk.DeduplicationID = nil
+
+						Expect(processor.ReleaseDeduplicationID()).To(BeNil())
+					})
+
+					It("returns nil without updating when the deduplication id is already released", func() {
+						wrk.DeduplicationID = &releasedDeduplicationID
+
+						Expect(processor.ReleaseDeduplicationID()).To(BeNil())
+					})
+
+					It("returns failing ProcessResult when processing update fails", func() {
+						expectedErr := errorsTest.RandomError()
+						mockProcessingUpdater.EXPECT().
+							ProcessingUpdate(gomock.Not(gomock.Nil()), work.ProcessingUpdate{DeduplicationID: &releasedDeduplicationID, Metadata: wrk.Metadata}).
+							Return(nil, expectedErr)
+
+						expectedProcessResult := workTest.RandomFailingProcessResult()
+						mockProcessResultBuilder.EXPECT().
+							Failing(gomock.Not(gomock.Nil()), wrk, errorsTest.Matcher(fmt.Sprintf("unable to update work; %s", expectedErr.Error())), gomock.Not(gomock.Nil())).
+							Return(expectedProcessResult)
+
+						Expect(processor.ReleaseDeduplicationID()).To(Equal(expectedProcessResult))
+					})
+
+					It("returns nil and updates work with the deduplication id suffixed by the work id when processing update succeeds", func() {
+						expectedMockMetadata := workTest.RandomMockMetadata(test.AllowOptionals())
+						expectedWork := workTest.RandomWork()
+						expectedWork.DeduplicationID = &releasedDeduplicationID
+						expectedWork.Metadata = expectedMockMetadata.AsObject()
+						mockProcessingUpdater.EXPECT().
+							ProcessingUpdate(gomock.Not(gomock.Nil()), work.ProcessingUpdate{DeduplicationID: &releasedDeduplicationID, Metadata: wrk.Metadata}).
+							Return(expectedWork, nil)
+
+						Expect(processor.ReleaseDeduplicationID()).To(BeNil())
+						Expect(processor.Metadata()).To(Equal(expectedMockMetadata))
+					})
+				})
+
 				Context("Metadata", func() {
 					It("returns the work metadata", func() {
 						Expect(processor.Metadata()).To(Equal(mockMetadata))

@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"go.mongodb.org/mongo-driver/bson"
 	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -237,6 +238,51 @@ var _ = Describe("Mongo", func() {
 				Expect(unchanged).ToNot(BeNil())
 				Expect(unchanged.State).To(Equal(work.StatePending))
 				Expect(unchanged.Revision).To(Equal(pending.Revision))
+			})
+		})
+
+		Context("Create", func() {
+			var deduplicationID string
+
+			createWithDeduplicationID := func() (*work.Work, error) {
+				return store.Create(ctx, &work.Create{
+					Type:              typ,
+					DeduplicationID:   pointer.FromString(deduplicationID),
+					ProcessingTimeout: processingTimeout,
+				})
+			}
+
+			createdTotal := func() float64 {
+				return testutil.ToFloat64(workStoreStructuredMongo.CreateTypeResolutionTotal.WithLabelValues(typ, workStoreStructuredMongo.CreateTypeResolutionCreated))
+			}
+
+			deduplicatedTotal := func() float64 {
+				return testutil.ToFloat64(workStoreStructuredMongo.CreateTypeResolutionTotal.WithLabelValues(typ, workStoreStructuredMongo.CreateTypeResolutionDeduplicated))
+			}
+
+			BeforeEach(func() {
+				deduplicationID = typ + ":" + test.RandomString()
+			})
+
+			It("counts the work created", func() {
+				created, err := createWithDeduplicationID()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(created).ToNot(BeNil())
+
+				Expect(createdTotal()).To(Equal(1.0))
+				Expect(deduplicatedTotal()).To(Equal(0.0))
+			})
+
+			// The counts are by type, so a per-type ratio reports how much a producer coalesces
+			It("counts the work deduplicated into work already present", func() {
+				Expect(createWithDeduplicationID()).ToNot(BeNil())
+
+				duplicate, err := createWithDeduplicationID()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(duplicate).To(BeNil())
+
+				Expect(createdTotal()).To(Equal(1.0))
+				Expect(deduplicatedTotal()).To(Equal(1.0))
 			})
 		})
 
@@ -470,6 +516,76 @@ var _ = Describe("Mongo", func() {
 					stale, err := store.Update(ctx, created.ID, &storeStructured.Condition{Revision: pointer.FromInt(created.Revision)}, update)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(stale).To(BeNil())
+				})
+			})
+
+			Context("with a processing work item updated with a deduplication id", func() {
+				var deduplicationID string
+				var claimed *work.Work
+
+				createWithDeduplicationID := func(deduplicationID string) *work.Work {
+					created, err := store.Create(ctx, &work.Create{
+						Type:              typ,
+						DeduplicationID:   pointer.FromString(deduplicationID),
+						ProcessingTimeout: processingTimeout,
+						Metadata:          map[string]any{"reasons": []any{"DATA_ADDED"}},
+					})
+					Expect(err).ToNot(HaveOccurred())
+					return created
+				}
+
+				updateProcessing := func(processingUpdate *work.ProcessingUpdate) (*work.Work, error) {
+					return store.Update(ctx, claimed.ID, &storeStructured.Condition{Revision: pointer.FromInt(claimed.Revision)}, &work.Update{
+						State:            work.StateProcessing,
+						ProcessingUpdate: processingUpdate,
+					})
+				}
+
+				BeforeEach(func() {
+					deduplicationID = typ + ":" + test.RandomString()
+					Expect(createWithDeduplicationID(deduplicationID)).ToNot(BeNil())
+
+					polled, err := store.Poll(ctx, &work.Poll{TypeQuantities: work.TypeQuantities{typ: 1}})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(polled).To(HaveLen(1))
+					claimed = polled[0]
+					Expect(claimed.State).To(Equal(work.StateProcessing))
+					Expect(claimed.DeduplicationID).To(PointTo(Equal(deduplicationID)))
+				})
+
+				It("replaces the deduplication id and releases the original for new work", func() {
+					updated, err := updateProcessing(&work.ProcessingUpdate{
+						DeduplicationID: pointer.FromString(claimed.ID),
+						Metadata:        claimed.Metadata,
+					})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+					Expect(updated.State).To(Equal(work.StateProcessing))
+					Expect(updated.Revision).To(Equal(claimed.Revision + 1))
+					Expect(updated.DeduplicationID).To(PointTo(Equal(claimed.ID)))
+
+					Expect(createWithDeduplicationID(deduplicationID)).ToNot(BeNil())
+				})
+
+				It("retains the deduplication id when the update omits it", func() {
+					updated, err := updateProcessing(&work.ProcessingUpdate{Metadata: claimed.Metadata})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).ToNot(BeNil())
+					Expect(updated.DeduplicationID).To(PointTo(Equal(deduplicationID)))
+
+					Expect(createWithDeduplicationID(deduplicationID)).To(BeNil())
+				})
+
+				It("returns an error when the deduplication id is already in use", func() {
+					otherDeduplicationID := typ + ":" + test.RandomString()
+					Expect(createWithDeduplicationID(otherDeduplicationID)).ToNot(BeNil())
+
+					updated, err := updateProcessing(&work.ProcessingUpdate{
+						DeduplicationID: pointer.FromString(otherDeduplicationID),
+						Metadata:        claimed.Metadata,
+					})
+					Expect(err).To(MatchError(ContainSubstring("unable to update work")))
+					Expect(updated).To(BeNil())
 				})
 			})
 		})

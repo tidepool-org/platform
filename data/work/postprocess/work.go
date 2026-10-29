@@ -77,6 +77,12 @@ func IDFromUserID(userID string) string {
 	return fmt.Sprintf("%s:%s", Type, userID)
 }
 
+// DeduplicationIDFromUserIDAndReason returns the deduplication id that coalesces the work of a user reporting
+// one reason while that work is not yet claimed
+func DeduplicationIDFromUserIDAndReason(userID string, reason string) string {
+	return fmt.Sprintf("%s:%s", userID, reason)
+}
+
 // validateIdentity reports an error if the serial or group ids of the metadata don't match the expected user id
 func validateIdentity(groupID *string, serialID *string, workMetadata *Metadata) error {
 	if workMetadata == nil || workMetadata.UserID == nil {

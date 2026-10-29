@@ -63,8 +63,14 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	}, nil
 }
 
+// Process releases the deduplication id first, so that a change reported from now on creates work rather than
+// being discarded against this work, which may read the data before the change. The release precedes any step
+// that can fail without retrying, so that failed work, which is never deleted, cannot discard the changes of the
+// user forever, and is persisted before anything is read, so a change discarded against this work before the
+// release is always observed by it.
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
+		p.ReleaseDeduplicationID,
 		func() *work.ProcessResult { return p.validateWork(wrk) },
 		p.FetchUserFromWorkMetadata,
 		p.absorbPending,

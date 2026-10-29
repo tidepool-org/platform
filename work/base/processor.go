@@ -102,17 +102,32 @@ func (p *Processor[W]) AddFieldsToContext(fields log.Fields) {
 }
 
 func (p *Processor[W]) ProcessingUpdate() *work.ProcessResult {
+	return p.processingUpdate(work.ProcessingUpdate{})
+}
+
+// ReleaseDeduplicationID releases the deduplication id so that new work with the same deduplication id can be
+// submitted. This allows for work that, when being processed, is immediately considered out-of-date.
+func (p *Processor[W]) ReleaseDeduplicationID() *work.ProcessResult {
+	if deduplicationID := p.work.ReleasedDeduplicationID(); deduplicationID != nil {
+		return p.processingUpdate(work.ProcessingUpdate{DeduplicationID: deduplicationID})
+	} else {
+		return nil
+	}
+}
+
+func (p *Processor[W]) processingUpdate(processingUpdate work.ProcessingUpdate) *work.ProcessResult {
 	log.LoggerFromContext(p.Context()).Debug("update work")
 
 	if result := p.encodeMetadata(); result != nil {
 		return result
 	}
+	processingUpdate.Metadata = p.work.Metadata
 
 	// Do not interrupt normally, but do enforce a reasonable timeout
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(p.Context()), 10*time.Second)
 	defer cancel()
 
-	wrk, err := p.processingUpdater.ProcessingUpdate(ctx, work.ProcessingUpdate{Metadata: p.work.Metadata})
+	wrk, err := p.processingUpdater.ProcessingUpdate(ctx, processingUpdate)
 	if err != nil {
 		return p.Failing(errors.Wrap(err, "unable to update work"))
 	} else if wrk == nil {

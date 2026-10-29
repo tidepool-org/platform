@@ -6,6 +6,8 @@ import (
 	"slices"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.mongodb.org/mongo-driver/bson"
 	bsonPrimitive "go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -418,6 +420,7 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 
 		// Return nil without error to indicate duplicate based upon type and deduplication id (see unique index above), but ok
 		if mongo.IsDuplicateKeyError(err) {
+			CreateTypeResolutionTotal.WithLabelValues(create.Type, CreateTypeResolutionDeduplicated).Inc()
 			lgr.Debug("work with same type and deduplication id already exists")
 			return nil, nil
 		}
@@ -432,6 +435,8 @@ func (s *Store) Create(ctx context.Context, create *work.Create) (*work.Work, er
 	} else {
 		document.ID = insertedID
 	}
+
+	CreateTypeResolutionTotal.WithLabelValues(create.Type, CreateTypeResolutionCreated).Inc()
 
 	return document.AsWork(), nil
 }
@@ -572,6 +577,9 @@ func (s *Store) Update(ctx context.Context, id string, condition *storeStructure
 		set["metadata"] = update.PendingUpdate.Metadata
 	}
 	if update.ProcessingUpdate != nil {
+		if update.ProcessingUpdate.DeduplicationID != nil {
+			set["deduplicationId"] = *update.ProcessingUpdate.DeduplicationID
+		}
 		set["metadata"] = update.ProcessingUpdate.Metadata
 	}
 	if update.FailingUpdate != nil {
@@ -805,3 +813,15 @@ func latestTime(tms ...time.Time) time.Time {
 	}
 	return latestTime
 }
+
+const (
+	CreateTypeResolutionCreated      = "created"
+	CreateTypeResolutionDeduplicated = "deduplicated"
+)
+
+// CreateTypeResolutionTotal counts the work created by type and resolution (created or deduplicated).
+// The ratio reports how much a deduplicated producer coalesces. Creations that fail are not counted.
+var CreateTypeResolutionTotal = promauto.NewCounterVec(prometheus.CounterOpts{
+	Name: "tidepool_work_create_type_resolution_total",
+	Help: "The total number of work create operations by type and resolution (created or deduplicated)",
+}, []string{"type", "resolution"})

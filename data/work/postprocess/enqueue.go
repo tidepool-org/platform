@@ -14,11 +14,15 @@ import (
 	"github.com/tidepool-org/platform/work"
 )
 
-// Enqueue creates a work item to signal a change to the data of a user to trigger the postprocessor.
-// Work is created for every change reported, rather than merged into the work already pending for the user,
-// so that reporting a change is a single insert when data is uploaded. If there are multiple pending work items
-// for the same user, they are merged during processing.
-func Enqueue(ctx context.Context, workClient work.Client, userID string, reasons ...string) error {
+// Enqueue creates work reporting one reason to signal a change to the data of a user to trigger the postprocessor.
+// Reporting a change is a single insert, deduplicated by user and reason against the work not yet claimed, so
+// that frequent changes coalesce into one work item rather than one each. A change reported while such work waits
+// is discarded, not merged, so the reason is the only thing a change carries: anything else reported with it, such
+// as which data set changed, would be lost. The work is deduplicated per reason rather than per user so that a
+// reason reported while another waits is not discarded, which is why a caller with several reasons to report calls
+// once per reason. Work that has been claimed releases its deduplication id, as it may no longer observe the change
+// reported, and the work created in its place is merged into it during processing if it is still pending then.
+func Enqueue(ctx context.Context, workClient work.Client, userID string, reason string) error {
 	if ctx == nil {
 		return errors.New("context is missing")
 	}
@@ -28,11 +32,11 @@ func Enqueue(ctx context.Context, workClient work.Client, userID string, reasons
 	if userID == "" {
 		return errors.New("user id is missing")
 	}
-	if len(reasons) == 0 {
-		return errors.New("reasons is missing")
+	if !slices.Contains(Reasons(), reason) {
+		return errors.New("reason is invalid")
 	}
 
-	create, err := newCreate(userID, reasons)
+	create, err := newCreate(userID, reason)
 	if err != nil {
 		return err
 	}
@@ -44,18 +48,19 @@ func Enqueue(ctx context.Context, workClient work.Client, userID string, reasons
 	return nil
 }
 
-func newCreate(userID string, reasons []string) (*work.Create, error) {
+func newCreate(userID string, reason string) (*work.Create, error) {
 	create, err := metadata.WithMetadata(
 		&work.Create{
 			Type:                    Type,
 			GroupID:                 pointer.FromString(IDFromUserID(userID)),
+			DeduplicationID:         pointer.FromString(DeduplicationIDFromUserIDAndReason(userID, reason)),
 			SerialID:                pointer.FromString(IDFromUserID(userID)),
 			ProcessingAvailableTime: time.Now(),
 			ProcessingTimeout:       int(ProcessingTimeout.Seconds()),
 		},
 		&Metadata{
 			Metadata: userWork.Metadata{UserID: pointer.FromString(userID)},
-			Reasons:  normalizeReasons(reasons),
+			Reasons:  []string{reason},
 		},
 	)
 	if err != nil {

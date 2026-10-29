@@ -62,20 +62,21 @@ var _ = Describe("Enqueue", func() {
 		Expect(created().Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded)))
 	})
 
-	// Work is never merged into work already pending, so that reporting a change is a single insert.
-	// The deduplication id is deliberately absent as it would instead discard the work reported.
-	It("creates work that is neither deduplicated nor merged into work already pending", func() {
+	// Reporting a change is a single insert, so work is never merged into work already pending.
+	// It is instead deduplicated by user and reason, so that frequent changes coalesce into the
+	// work not yet claimed for the reason rather than creating work each
+	It("creates work deduplicated by user and reason", func() {
 		created := expectCreate()
 
 		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
 
-		Expect(created().DeduplicationID).To(BeNil())
+		Expect(created().DeduplicationID).To(PointTo(Equal(dataWorkPostprocess.DeduplicationIDFromUserIDAndReason(userID, dataWorkPostprocess.ReasonDataAdded))))
 	})
 
 	// Work is always available now. The time to defer a change until, which the legacy ingestion
 	// service computes from its own batching, is expected to be reported by its caller rather than
 	// derived here.
-	It("creates work available now whatever the reasons report", func() {
+	It("creates work available now whatever the reason reports", func() {
 		created := expectCreate()
 
 		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonLegacyDataAdded)).To(Succeed())
@@ -83,12 +84,23 @@ var _ = Describe("Enqueue", func() {
 		Expect(created().ProcessingAvailableTime).To(BeTemporally("~", time.Now(), time.Second))
 	})
 
-	It("creates work reporting every reason once", func() {
-		created := expectCreate()
+	// The reason is part of the deduplication id, so each reason yields work of its own and a reason
+	// reported while another is pending for the user is not discarded against it
+	It("creates work deduplicated differently per reason", func() {
+		var created []*work.Create
+		workClient.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(_ context.Context, create *work.Create) (*work.Work, error) {
+				created = append(created, create)
+				return &work.Work{ID: create.Type}, nil
+			}).Times(2)
 
-		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonUploadCompleted)).To(Succeed())
 
-		Expect(created().Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted)))
+		Expect(created).To(HaveLen(2))
+		Expect(created[0].DeduplicationID).ToNot(Equal(created[1].DeduplicationID))
+		Expect(created[0].Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded)))
+		Expect(created[1].Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonUploadCompleted)))
 	})
 
 	It("returns an error when the work cannot be created", func() {
@@ -98,22 +110,25 @@ var _ = Describe("Enqueue", func() {
 		Expect(err).To(MatchError(ContainSubstring("unable to create work")))
 	})
 
-	DescribeTable("returns an error when a parameter is missing",
-		func(get func() (context.Context, work.Client, string, []string), expected string) {
-			enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReasons := get()
-			Expect(dataWorkPostprocess.Enqueue(enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReasons...)).To(MatchError(expected))
+	DescribeTable("returns an error when a parameter is missing or invalid",
+		func(get func() (context.Context, work.Client, string, string), expected string) {
+			enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReason := get()
+			Expect(dataWorkPostprocess.Enqueue(enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReason)).To(MatchError(expected))
 		},
-		Entry("context", func() (context.Context, work.Client, string, []string) {
-			return nil, workClient, userID, []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("context", func() (context.Context, work.Client, string, string) {
+			return nil, workClient, userID, dataWorkPostprocess.ReasonDataAdded
 		}, "context is missing"),
-		Entry("work client", func() (context.Context, work.Client, string, []string) {
-			return ctx, nil, userID, []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("work client", func() (context.Context, work.Client, string, string) {
+			return ctx, nil, userID, dataWorkPostprocess.ReasonDataAdded
 		}, "work client is missing"),
-		Entry("user id", func() (context.Context, work.Client, string, []string) {
-			return ctx, workClient, "", []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("user id", func() (context.Context, work.Client, string, string) {
+			return ctx, workClient, "", dataWorkPostprocess.ReasonDataAdded
 		}, "user id is missing"),
-		Entry("reasons", func() (context.Context, work.Client, string, []string) {
-			return ctx, workClient, userID, nil
-		}, "reasons is missing"),
+		Entry("reason empty", func() (context.Context, work.Client, string, string) {
+			return ctx, workClient, userID, ""
+		}, "reason is invalid"),
+		Entry("reason unknown", func() (context.Context, work.Client, string, string) {
+			return ctx, workClient, userID, "INVALID"
+		}, "reason is invalid"),
 	)
 })
