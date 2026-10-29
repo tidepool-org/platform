@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 
 	"github.com/tidepool-org/platform/auth"
+	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/duration"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/log"
@@ -23,15 +24,15 @@ import (
 //go:generate mockgen -source=coordinator.go -destination=test/coordinator_mocks.go -package=test -typed
 
 const (
-	CoordinatorFrequencyDefault = 5 * time.Minute
+	CoordinatorFrequencyDefault = 5 * time.Second
 	CoordinatorDelayInitial     = 1 * time.Minute
 	CoordinatorDelayJitter      = 0.1
 
 	FailingRetryDuration       = 1 * time.Minute
 	FailingRetryDurationJitter = 0.1
 
-	// ReapExpiredProcessingInterval decouples the reap cadence from the frequency of the fastest
-	// processor, which drives how often work is requested
+	// ReapExpiredProcessingInterval decouples the reap cadence from the frequency at which work is
+	// requested
 	ReapExpiredProcessingInterval = time.Minute
 
 	// ReapExpiredProcessingGraceDuration is the duration beyond the processing timeout time that
@@ -60,6 +61,37 @@ type WorkClient interface {
 	Delete(ctx context.Context, id string, condition *request.Condition) (*work.Work, error)
 }
 
+type CoordinatorConfig struct {
+	Frequency time.Duration `json:"frequency,omitempty"`
+}
+
+func NewCoordinatorConfig() *CoordinatorConfig {
+	return &CoordinatorConfig{
+		Frequency: CoordinatorFrequencyDefault,
+	}
+}
+
+func (c *CoordinatorConfig) Load(configReporter config.Reporter) error {
+	if configReporter == nil {
+		return errors.New("config reporter is missing")
+	}
+	if valueString, err := configReporter.Get("frequency"); err == nil {
+		if value, parseErr := duration.Parse(valueString, time.Second); parseErr != nil || value <= 0 {
+			return errors.New("frequency is invalid")
+		} else {
+			c.Frequency = value
+		}
+	}
+	return nil
+}
+
+func (c *CoordinatorConfig) Validate() error {
+	if c.Frequency <= 0 {
+		return errors.New("frequency is invalid")
+	}
+	return nil
+}
+
 type Coordinator struct {
 	logger                     log.Logger
 	serverSessionTokenProvider ServerSessionTokenProvider
@@ -83,7 +115,12 @@ type Coordinator struct {
 	NowFunc func() time.Time
 }
 
-func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionTokenProvider, workClient WorkClient) (*Coordinator, error) {
+func NewCoordinator(config *CoordinatorConfig, logger log.Logger, serverSessionTokenProvider ServerSessionTokenProvider, workClient WorkClient) (*Coordinator, error) {
+	if config == nil {
+		return nil, errors.New("config is missing")
+	} else if err := config.Validate(); err != nil {
+		return nil, errors.Wrap(err, "config is invalid")
+	}
 	if logger == nil {
 		return nil, errors.New("logger is missing")
 	}
@@ -107,7 +144,7 @@ func NewCoordinator(logger log.Logger, serverSessionTokenProvider ServerSessionT
 		workClient:                 workClient,
 		processorFactories:         map[string]work.ProcessorFactory{},
 		typeQuantities:             work.TypeQuantities{},
-		frequency:                  CoordinatorFrequencyDefault,
+		frequency:                  config.Frequency,
 		processResultBuilder:       processResultBuilder,
 	}, nil
 }
@@ -134,10 +171,6 @@ func (c *Coordinator) RegisterProcessorFactory(processorFactory work.ProcessorFa
 	if processorQuantity <= 0 {
 		return errors.New("processor quantity is invalid")
 	}
-	processorFrequency := processorFactory.Frequency()
-	if processorFrequency <= 0 {
-		return errors.New("processor frequency is invalid")
-	}
 
 	if c.workersCompletionChannel != nil {
 		return errors.New("coordinator already started")
@@ -145,9 +178,6 @@ func (c *Coordinator) RegisterProcessorFactory(processorFactory work.ProcessorFa
 
 	c.processorFactories[processorType] = processorFactory
 	c.typeQuantities.Set(processorType, processorQuantity)
-	if c.frequency > processorFrequency {
-		c.frequency = processorFrequency
-	}
 
 	return nil
 }
@@ -213,16 +243,28 @@ func (c *Coordinator) startManager() {
 				if !ok {
 					return
 				}
-				c.stopTimer()
 				c.completeWork(completion)
-				c.requestAndDispatchWork()
-				c.startTimerWithDuration(c.frequency)
 			case <-c.timer.C:
+				c.completeAllWork()
 				c.requestAndDispatchWork()
 				c.startTimerWithDuration(c.frequency)
 			}
 		}
 	})
+}
+
+func (c *Coordinator) completeAllWork() {
+	for {
+		select {
+		case completion, ok := <-c.workersCompletionChannel:
+			if !ok {
+				return
+			}
+			c.completeWork(completion)
+		default:
+			return
+		}
+	}
 }
 
 func (c *Coordinator) requestAndDispatchWork() {
