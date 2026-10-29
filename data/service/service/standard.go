@@ -805,12 +805,17 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 
 	s.Logger().Debug("Creating data upload postprocess work processor factory")
 
+	postprocessConfig := dataWorkPostprocess.NewConfig()
+	if err := postprocessConfig.Load(s.ConfigReporter().WithScopes("work", "postprocess")); err != nil {
+		return errors.Wrap(err, "unable to load data upload postprocess work config")
+	}
+
 	summarizers, err := dataWorkPostprocess.NewSummarizers(s.summarizerRegistry)
 	if err != nil {
 		return errors.Wrap(err, "unable to create summarizers")
 	}
 
-	if processorFactory, err := dataWorkPostprocess.NewProcessorFactory(dataWorkPostprocess.Dependencies{
+	if processorFactory, err := dataWorkPostprocess.NewProcessorFactory(postprocessConfig, dataWorkPostprocess.Dependencies{
 		Dependencies:  dependencies,
 		Summarizers:   summarizers,
 		ClinicsClient: s.clinicsClient,
