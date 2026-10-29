@@ -137,7 +137,7 @@ func UpdateSummaries(dataServiceContext dataService.Context) {
 		return
 	}
 
-	if err := dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), id, dataWorkPostprocess.ReasonDataAdded); err != nil {
+	if err := dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), id, types.AllSummaryTypes, dataWorkPostprocess.ReasonDataAdded); err != nil {
 		responder.InternalServerError(err)
 		return
 	}

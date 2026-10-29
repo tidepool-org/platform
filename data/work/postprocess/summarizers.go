@@ -2,6 +2,7 @@ package postprocess
 
 import (
 	"context"
+	"slices"
 
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/summary"
@@ -11,7 +12,8 @@ import (
 //go:generate mockgen -source=summarizers.go -destination=test/summarizers_mocks.go -package=test -typed
 
 type Summarizers interface {
-	UpdateSummaries(ctx context.Context, userID string) (SummariesUpdate, error)
+	// UpdateSummaries recalculates the summaries of the given types for the user
+	UpdateSummaries(ctx context.Context, userID string, summaryTypes []string) (SummariesUpdate, error)
 }
 
 type SummariesUpdate struct {
@@ -38,17 +40,23 @@ func NewSummarizers(registry *summary.SummarizerRegistry) (Summarizers, error) {
 
 // UpdateSummaries returns the update made so far even when it reports an error, so that a change
 // calculated before the error is recorded rather than lost to the retry.
-func (s *summarizers) UpdateSummaries(ctx context.Context, userID string) (SummariesUpdate, error) {
+func (s *summarizers) UpdateSummaries(ctx context.Context, userID string, types []string) (SummariesUpdate, error) {
 	update := SummariesUpdate{}
 	var err error
-	if update.CGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.CGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
-		return update, err
+	if slices.Contains(types, summaryTypes.SummaryTypeCGM) {
+		if update.CGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.CGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
+			return update, err
+		}
 	}
-	if update.BGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.BGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
-		return update, err
+	if slices.Contains(types, summaryTypes.SummaryTypeBGM) {
+		if update.BGM, err = updateSummary(ctx, summary.GetSummarizer[*summaryTypes.BGMPeriods, *summaryTypes.GlucoseBucket](s.registry), userID, &update); err != nil {
+			return update, err
+		}
 	}
-	if _, err = summary.GetSummarizer[*summaryTypes.ContinuousPeriods, *summaryTypes.ContinuousBucket](s.registry).UpdateSummary(ctx, userID); err != nil {
-		return update, errors.Wrapf(err, "unable to update %s summary", summaryTypes.SummaryTypeContinuous)
+	if slices.Contains(types, summaryTypes.SummaryTypeContinuous) {
+		if _, err = summary.GetSummarizer[*summaryTypes.ContinuousPeriods, *summaryTypes.ContinuousBucket](s.registry).UpdateSummary(ctx, userID); err != nil {
+			return update, errors.Wrapf(err, "unable to update %s summary", summaryTypes.SummaryTypeContinuous)
+		}
 	}
 	return update, nil
 }

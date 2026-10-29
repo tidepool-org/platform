@@ -7,6 +7,7 @@ import (
 
 	mapset "github.com/deckarep/golang-set/v2"
 
+	"github.com/tidepool-org/platform/data"
 	"github.com/tidepool-org/platform/errors"
 	"github.com/tidepool-org/platform/structure"
 	summaryTypes "github.com/tidepool-org/platform/summary/types"
@@ -33,9 +34,44 @@ const (
 
 const (
 	MetadataKeyReasons               = "reasons"
+	MetadataKeySummaryTypes          = "summaryTypes"
 	MetadataKeyPendingSummaryUpdates = "pendingSummaryUpdates"
 	MetadataKeyPendingSummaryDeletes = "pendingSummaryDeletes"
 )
+
+const (
+	// Data older than this, or further in the future than SummaryDataFutureMaximum, feeds no summary
+	SummaryDataAgeMaximumMonths = 24
+	SummaryDataFutureMaximum    = 24 * time.Hour
+)
+
+// SummaryTypesForData reports the summaries the data affects: those calculated from active data of
+// a glucose type, no older than two years and no more than a day in the future. Data the deduplicator
+// deactivates until its data set is closed affects none until then.
+func SummaryTypesForData(datumArray data.Data) []string {
+	now := time.Now().UTC()
+	oldest := now.AddDate(0, -SummaryDataAgeMaximumMonths, 0)
+	newest := now.Add(SummaryDataFutureMaximum)
+
+	affected := mapset.NewSet[string]()
+	for _, datum := range datumArray {
+		if datum == nil || !datum.IsActive() {
+			continue
+		}
+		types, ok := summaryTypes.DeviceDataToSummaryTypes[datum.GetType()]
+		if !ok {
+			continue
+		}
+		if tm := datum.GetTime(); tm == nil || !tm.After(oldest) || !tm.Before(newest) {
+			continue
+		}
+		affected.Append(types...)
+		if affected.Cardinality() == len(summaryTypes.AllSummaryTypes) {
+			break
+		}
+	}
+	return slices.Sorted(slices.Values(affected.ToSlice()))
+}
 
 func Reasons() []string {
 	return []string{
@@ -96,6 +132,10 @@ type Metadata struct {
 	userWork.Metadata `bson:",inline"`
 	Reasons           []string `json:"reasons,omitempty" bson:"reasons,omitempty"`
 
+	// SummaryTypes lists the summaries the change affects. Work reporting none, as work created before
+	// the field existed and the work of the legacy ingestion service do, is parsed as affecting every summary.
+	SummaryTypes []string `json:"summaryTypes,omitempty" bson:"summaryTypes,omitempty"`
+
 	// Summary changes already calculated by this work item but not yet reported to the clinic service.
 	PendingSummaryUpdates []string `json:"pendingSummaryUpdates,omitempty" bson:"pendingSummaryUpdates,omitempty"`
 	PendingSummaryDeletes []string `json:"pendingSummaryDeletes,omitempty" bson:"pendingSummaryDeletes,omitempty"`
@@ -105,6 +145,11 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 	m.Metadata.Parse(parser)
 	if ptr := parser.StringArray(MetadataKeyReasons); ptr != nil {
 		m.Reasons = *ptr
+	}
+	if ptr := parser.StringArray(MetadataKeySummaryTypes); ptr != nil {
+		m.SummaryTypes = *ptr
+	} else {
+		m.SummaryTypes = slices.Clone(summaryTypes.AllSummaryTypes)
 	}
 	if ptr := parser.StringArray(MetadataKeyPendingSummaryUpdates); ptr != nil {
 		m.PendingSummaryUpdates = *ptr
@@ -117,6 +162,7 @@ func (m *Metadata) Parse(parser structure.ObjectParser) {
 func (m *Metadata) Validate(validator structure.Validator) {
 	m.Metadata.Validate(validator)
 	validator.StringArray(MetadataKeyReasons, &m.Reasons).NotEmpty().EachOneOf(Reasons()...).EachUnique()
+	validator.StringArray(MetadataKeySummaryTypes, &m.SummaryTypes).NotEmpty().EachOneOf(summaryTypes.AllSummaryTypes...).EachUnique()
 	validator.StringArray(MetadataKeyPendingSummaryUpdates, &m.PendingSummaryUpdates).EachOneOf(summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM).EachUnique()
 	validator.StringArray(MetadataKeyPendingSummaryDeletes, &m.PendingSummaryDeletes).EachNotEmpty().EachUnique()
 }

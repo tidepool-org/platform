@@ -1,6 +1,8 @@
 package types_test
 
 import (
+	"maps"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -149,5 +151,33 @@ var _ = Describe("Summary utils", func() {
 
 			Expect(c).To(Equal(3))
 		})
+	})
+})
+
+// DeviceDataToSummaryTypes gates which summaries an upload recalculates, so it must agree with the
+// device data types each summary is calculated from
+var _ = Describe("DeviceDataToSummaryTypes", func() {
+	It("maps every device data type of every summary to that summary, and nothing else", func() {
+		expected := map[string][]string{}
+		for _, summaryType := range AllSummaryTypes {
+			var deviceDataTypes []string
+			switch summaryType {
+			case SummaryTypeCGM:
+				deviceDataTypes = GetDeviceDataType[*CGMPeriods, *GlucoseBucket]()
+			case SummaryTypeBGM:
+				deviceDataTypes = GetDeviceDataType[*BGMPeriods, *GlucoseBucket]()
+			case SummaryTypeContinuous:
+				deviceDataTypes = GetDeviceDataType[*ContinuousPeriods, *ContinuousBucket]()
+			}
+			Expect(deviceDataTypes).ToNot(BeEmpty())
+			for _, deviceDataType := range deviceDataTypes {
+				expected[deviceDataType] = append(expected[deviceDataType], summaryType)
+			}
+		}
+		Expect(DeviceDataToSummaryTypes).To(HaveLen(len(expected)))
+		for deviceDataType, summaryTypes := range expected {
+			Expect(DeviceDataToSummaryTypes).To(HaveKeyWithValue(deviceDataType, ConsistOf(summaryTypes)))
+		}
+		Expect(DeviceDataTypesSet.ToSlice()).To(ConsistOf(slices.Collect(maps.Keys(expected))))
 	})
 })

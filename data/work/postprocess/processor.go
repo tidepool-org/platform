@@ -103,6 +103,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	var absorbed []*work.Work
 	var deferredUntil time.Time
 	reasons := p.Metadata().Reasons
+	affected := p.Metadata().SummaryTypes
 	for _, wrk := range wrks {
 		workMetadata, err := metadata.Decode[Metadata](p.Context(), wrk.Metadata)
 		if err == nil && workMetadata == nil {
@@ -120,7 +121,8 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 		}
 
 		absorbed = append(absorbed, wrk)
-		reasons = normalizeReasons(reasons, workMetadata.Reasons)
+		reasons = normalizeStrings(reasons, workMetadata.Reasons)
+		affected = normalizeStrings(affected, workMetadata.SummaryTypes)
 		if wrk.ProcessingAvailableTime.After(deferredUntil) {
 			deferredUntil = wrk.ProcessingAvailableTime
 		}
@@ -130,6 +132,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	}
 
 	p.Metadata().Reasons = reasons
+	p.Metadata().SummaryTypes = affected
 	if result := p.ProcessingUpdate(); result != nil {
 		return result
 	}
@@ -148,8 +151,9 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 
 	if len(absorbed) > 0 {
 		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
-			"count":   len(absorbed),
-			"reasons": reasons,
+			"count":        len(absorbed),
+			"reasons":      reasons,
+			"summaryTypes": affected,
 		}).Debug("absorbed pending work for the user")
 	}
 
@@ -164,7 +168,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 
 func (p *Processor) updateSummaries() *work.ProcessResult {
 	var err error
-	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID)
+	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID, p.Metadata().SummaryTypes)
 
 	// The changes made are recorded in the metadata before they are synced to the clinic service,
 	// so that a failure between the two retries the update. They are recorded even when the
@@ -179,9 +183,10 @@ func (p *Processor) updateSummaries() *work.ProcessResult {
 			return result
 		}
 		log.LoggerFromContext(p.Context()).WithFields(log.Fields{
-			"reasons": p.Metadata().Reasons,
-			"updated": p.summariesUpdate.UpdatedTypes,
-			"deleted": p.summariesUpdate.Deleted,
+			"reasons":      p.Metadata().Reasons,
+			"summaryTypes": p.Metadata().SummaryTypes,
+			"updated":      p.summariesUpdate.UpdatedTypes,
+			"deleted":      p.summariesUpdate.Deleted,
 		}).Info("updated user summaries")
 	}
 

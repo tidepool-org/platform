@@ -13,6 +13,7 @@ import (
 	errorsTest "github.com/tidepool-org/platform/errors/test"
 	"github.com/tidepool-org/platform/log"
 	logTest "github.com/tidepool-org/platform/log/test"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
 	userTest "github.com/tidepool-org/platform/user/test"
 	"github.com/tidepool-org/platform/work"
 	workTest "github.com/tidepool-org/platform/work/test"
@@ -24,6 +25,7 @@ var _ = Describe("Enqueue", func() {
 	var ctx context.Context
 	var userID string
 	var id string
+	var allSummaryTypes []string
 
 	BeforeEach(func() {
 		controller = gomock.NewController(GinkgoT())
@@ -31,6 +33,7 @@ var _ = Describe("Enqueue", func() {
 		ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		userID = userTest.RandomUserID()
 		id = dataWorkPostprocess.IDFromUserID(userID)
+		allSummaryTypes = summaryTypes.AllSummaryTypes
 	})
 
 	AfterEach(func() {
@@ -50,7 +53,7 @@ var _ = Describe("Enqueue", func() {
 	It("creates work available now", func() {
 		created := expectCreate()
 
-		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, allSummaryTypes, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
 
 		Expect(created().Type).To(Equal(dataWorkPostprocess.Type))
 		Expect(created().GroupID).To(PointTo(Equal(id)))
@@ -60,6 +63,23 @@ var _ = Describe("Enqueue", func() {
 		Expect(created().ProcessingAvailableTime).To(BeTemporally("~", time.Now(), time.Second))
 		Expect(created().Metadata).To(HaveKeyWithValue("userId", userID))
 		Expect(created().Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded)))
+		Expect(created().Metadata).To(HaveKeyWithValue("summaryTypes", ConsistOf(allSummaryTypes)))
+	})
+
+	It("creates work reporting only the summary types given", func() {
+		created := expectCreate()
+
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, []string{summaryTypes.SummaryTypeBGM}, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+
+		Expect(created().Metadata).To(HaveKeyWithValue("summaryTypes", ConsistOf(summaryTypes.SummaryTypeBGM)))
+	})
+
+	It("creates work reporting every summary type once", func() {
+		created := expectCreate()
+
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, []string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeBGM}, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+
+		Expect(created().Metadata).To(HaveKeyWithValue("summaryTypes", ConsistOf(summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM)))
 	})
 
 	// Work is never merged into work already pending, so that reporting a change is a single insert.
@@ -67,7 +87,7 @@ var _ = Describe("Enqueue", func() {
 	It("creates work that is neither deduplicated nor merged into work already pending", func() {
 		created := expectCreate()
 
-		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, allSummaryTypes, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
 
 		Expect(created().DeduplicationID).To(BeNil())
 	})
@@ -78,7 +98,7 @@ var _ = Describe("Enqueue", func() {
 	It("creates work available now whatever the reasons report", func() {
 		created := expectCreate()
 
-		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonLegacyDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, allSummaryTypes, dataWorkPostprocess.ReasonLegacyDataAdded)).To(Succeed())
 
 		Expect(created().ProcessingAvailableTime).To(BeTemporally("~", time.Now(), time.Second))
 	})
@@ -86,7 +106,7 @@ var _ = Describe("Enqueue", func() {
 	It("creates work reporting every reason once", func() {
 		created := expectCreate()
 
-		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
+		Expect(dataWorkPostprocess.Enqueue(ctx, workClient, userID, allSummaryTypes, dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted, dataWorkPostprocess.ReasonDataAdded)).To(Succeed())
 
 		Expect(created().Metadata).To(HaveKeyWithValue("reasons", ConsistOf(dataWorkPostprocess.ReasonDataAdded, dataWorkPostprocess.ReasonUploadCompleted)))
 	})
@@ -94,26 +114,30 @@ var _ = Describe("Enqueue", func() {
 	It("returns an error when the work cannot be created", func() {
 		workClient.EXPECT().Create(gomock.Any(), gomock.Any()).Return(nil, errorsTest.RandomError())
 
-		err := dataWorkPostprocess.Enqueue(ctx, workClient, userID, dataWorkPostprocess.ReasonDataAdded)
+		err := dataWorkPostprocess.Enqueue(ctx, workClient, userID, allSummaryTypes, dataWorkPostprocess.ReasonDataAdded)
 		Expect(err).To(MatchError(ContainSubstring("unable to create work")))
 	})
 
 	DescribeTable("returns an error when a parameter is missing",
-		func(get func() (context.Context, work.Client, string, []string), expected string) {
-			enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReasons := get()
-			Expect(dataWorkPostprocess.Enqueue(enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueReasons...)).To(MatchError(expected))
+		func(get func() (context.Context, work.Client, string, []string, []string), expected string) {
+			enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueSummaryTypes, enqueueReasons := get()
+			Expect(dataWorkPostprocess.Enqueue(enqueueCtx, enqueueWorkClient, enqueueUserID, enqueueSummaryTypes, enqueueReasons...)).To(MatchError(expected))
 		},
-		Entry("context", func() (context.Context, work.Client, string, []string) {
-			return nil, workClient, userID, []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("context", func() (context.Context, work.Client, string, []string, []string) {
+			return nil, workClient, userID, allSummaryTypes, []string{dataWorkPostprocess.ReasonDataAdded}
 		}, "context is missing"),
-		Entry("work client", func() (context.Context, work.Client, string, []string) {
-			return ctx, nil, userID, []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("work client", func() (context.Context, work.Client, string, []string, []string) {
+			return ctx, nil, userID, allSummaryTypes, []string{dataWorkPostprocess.ReasonDataAdded}
 		}, "work client is missing"),
-		Entry("user id", func() (context.Context, work.Client, string, []string) {
-			return ctx, workClient, "", []string{dataWorkPostprocess.ReasonDataAdded}
+		Entry("user id", func() (context.Context, work.Client, string, []string, []string) {
+			return ctx, workClient, "", allSummaryTypes, []string{dataWorkPostprocess.ReasonDataAdded}
 		}, "user id is missing"),
-		Entry("reasons", func() (context.Context, work.Client, string, []string) {
-			return ctx, workClient, userID, nil
+		// A change affecting no summary is not postprocessed, so the caller reports nothing
+		Entry("summary types", func() (context.Context, work.Client, string, []string, []string) {
+			return ctx, workClient, userID, nil, []string{dataWorkPostprocess.ReasonDataAdded}
+		}, "summary types is missing"),
+		Entry("reasons", func() (context.Context, work.Client, string, []string, []string) {
+			return ctx, workClient, userID, allSummaryTypes, nil
 		}, "reasons is missing"),
 	)
 })

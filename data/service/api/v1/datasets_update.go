@@ -11,6 +11,7 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/service"
+	summaryTypes "github.com/tidepool-org/platform/summary/types"
 )
 
 func DataSetsUpdate(dataServiceContext dataService.Context) {
@@ -91,7 +92,8 @@ func DataSetsUpdate(dataServiceContext dataService.Context) {
 			return
 		}
 
-		if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, dataWorkPostprocess.ReasonUploadCompleted); err != nil {
+		// Closing activates the data of the set, whatever its types, so every summary is reported
+		if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, summaryTypes.AllSummaryTypes, dataWorkPostprocess.ReasonUploadCompleted); err != nil {
 			lgr.WithError(err).Error("Unable to report upload completed")
 		}
 	}
