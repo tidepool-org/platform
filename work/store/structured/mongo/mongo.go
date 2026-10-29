@@ -147,6 +147,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "poll", poll)
 
 	now := time.Now()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("Poll") }()
+
 	types := slices.Sorted(maps.Keys(poll.TypeQuantities))
 
 	var pipeline bson.A
@@ -301,8 +303,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		ids[index] = wrk.ID
 	}
 
-	lgr.WithFields(log.Fields{"ids": ids, "duration": time.Since(now) / time.Microsecond}).Debug("Poll")
-
+	lgr = lgr.WithField("ids", ids)
 	return wrks, nil
 }
 
