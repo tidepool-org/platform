@@ -112,10 +112,11 @@ func DataSetsDataCreate(dataServiceContext dataService.Context) {
 		return
 	}
 
-	// Reported for every upload, whatever it contains, as data that feeds no summary is still
-	// postprocessed
-	if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, dataWorkPostprocess.ReasonDataAdded); err != nil {
-		lgr.WithError(err).Error("Unable to report data added")
+	// Nothing is postprocessed when the data added feeds no summary, so nothing is reported
+	if summaryTypes := dataWorkPostprocess.SummaryTypesForData(datumArray); len(summaryTypes) > 0 {
+		if err = dataWorkPostprocess.Enqueue(ctx, dataServiceContext.WorkClient(), *dataSet.UserID, summaryTypes, dataWorkPostprocess.ReasonDataAdded); err != nil {
+			lgr.WithError(err).Error("Unable to report data added")
+		}
 	}
 
 	if err = dataServiceContext.MetricClient().RecordMetric(ctx, "data_sets_data_create", map[string]string{"count": strconv.Itoa(len(datumArray))}); err != nil {

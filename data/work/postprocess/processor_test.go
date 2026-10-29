@@ -44,10 +44,11 @@ var _ = Describe("Processor", func() {
 	var userID string
 	var wrk *work.Work
 
-	newWork := func(state string, reasons []string, availableTime time.Time) *work.Work {
+	newWorkWithSummaryTypes := func(state string, reasons []string, summaryTypes []string, availableTime time.Time) *work.Work {
 		encoded, err := metadata.Encode(&dataWorkPostprocess.Metadata{
-			Metadata: userWork.Metadata{UserID: pointer.FromString(userID)},
-			Reasons:  reasons,
+			Metadata:     userWork.Metadata{UserID: pointer.FromString(userID)},
+			Reasons:      reasons,
+			SummaryTypes: summaryTypes,
 		})
 		Expect(err).ToNot(HaveOccurred())
 		return &work.Work{
@@ -61,6 +62,10 @@ var _ = Describe("Processor", func() {
 			State:                   state,
 			Revision:                2,
 		}
+	}
+
+	newWork := func(state string, reasons []string, availableTime time.Time) *work.Work {
+		return newWorkWithSummaryTypes(state, reasons, summaryTypes.AllSummaryTypes, availableTime)
 	}
 
 	newSummariesUpdate := func(updatedTypes ...string) dataWorkPostprocess.SummariesUpdate {
@@ -134,7 +139,29 @@ var _ = Describe("Processor", func() {
 
 	It("calculates the summaries and deletes the work", func() {
 		expectListNone()
-		summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+		summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+		Expect(process().Result).To(Equal(work.ResultDelete))
+	})
+
+	It("calculates only the summaries the work reports", func() {
+		wrk = newWorkWithSummaryTypes(work.StateProcessing, []string{dataWorkPostprocess.ReasonDataAdded},
+			[]string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeContinuous}, time.Now().Add(-time.Minute))
+		expectListNone()
+		summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, []string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeContinuous}).
+			Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+		Expect(process().Result).To(Equal(work.ResultDelete))
+	})
+
+	// Work created before the summary types were reported, and the work of the legacy ingestion
+	// service, report none
+	It("calculates every summary when the work reports no summary types", func() {
+		wrk = newWorkWithSummaryTypes(work.StateProcessing, []string{dataWorkPostprocess.ReasonLegacyDataAdded}, nil, time.Now().Add(-time.Minute))
+		expectListNone()
+		summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.InAnyOrder(summaryTypes.AllSummaryTypes)).
+			Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+		clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 		Expect(process().Result).To(Equal(work.ResultDelete))
 	})
@@ -143,7 +170,7 @@ var _ = Describe("Processor", func() {
 		func(reasons []string, expectSync bool) {
 			wrk = newWork(work.StateProcessing, reasons, time.Now().Add(-time.Minute))
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			if expectSync {
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 			}
@@ -163,7 +190,7 @@ var _ = Describe("Processor", func() {
 		wrk = newWork(work.StateProcessing, []string{dataWorkPostprocess.ReasonUploadCompleted}, time.Now().Add(-time.Minute))
 		expectListNone()
 		gomock.InOrder(
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil),
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil),
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil),
 		)
 
@@ -238,28 +265,28 @@ var _ = Describe("Processor", func() {
 		}),
 		Entry("calculating the summaries", func() {
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, errorsTest.RandomError())
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, errorsTest.RandomError())
 		}),
 		Entry("requesting a synchronization", func() {
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(errorsTest.RandomError())
 		}),
 		Entry("recording the changed summaries", func() {
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(nil, errorsTest.RandomError())
 		}),
 		Entry("reporting a summary update to the clinic service", func() {
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(newSummariesUpdate(summaryTypes.SummaryTypeCGM), nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).Return(errorsTest.RandomError())
 		}),
 		Entry("reporting a summary deletion to the clinic service", func() {
 			expectListNone()
 			update := dataWorkPostprocess.SummariesUpdate{Deleted: map[string]string{summaryTypes.SummaryTypeCGM: primitive.NewObjectID().Hex()}}
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(update, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(update, nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().DeletePatientSummary(gomock.Any(), gomock.Any()).Return(errorsTest.RandomError())
 		}),
@@ -281,7 +308,7 @@ var _ = Describe("Processor", func() {
 		It("records them, reports them to the clinic service, and requests a synchronization, in that order", func() {
 			expectListNone()
 			gomock.InOrder(
-				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil),
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil),
 				processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
 					func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
 						Expect(update.Metadata).To(HaveKeyWithValue("pendingSummaryUpdates",
@@ -308,7 +335,7 @@ var _ = Describe("Processor", func() {
 		It("reports only the summaries that changed", func() {
 			summariesUpdate = newSummariesUpdate(summaryTypes.SummaryTypeCGM)
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
 				func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
@@ -326,7 +353,7 @@ var _ = Describe("Processor", func() {
 		It("reports nothing when the calculation reports the summaries did not change", func() {
 			summariesUpdate = newSummariesUpdate()
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
@@ -338,7 +365,7 @@ var _ = Describe("Processor", func() {
 			summariesUpdate.CGM = nil
 			summariesUpdate.Deleted = map[string]string{summaryTypes.SummaryTypeCGM: deletedSummaryID}
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil)
 			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
 				func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
 					Expect(update.Metadata).To(HaveKeyWithValue("pendingSummaryDeletes", ConsistOf(deletedSummaryID)))
@@ -376,7 +403,7 @@ var _ = Describe("Processor", func() {
 
 			summariesUpdate = newSummariesUpdate()
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil)
 			clinicsClient.EXPECT().DeletePatientSummary(gomock.Any(), deletedSummaryID).Return(nil)
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).DoAndReturn(
 				func(_ context.Context, _ string, patientSummary *clinic.PatientSummaryV1) error {
@@ -393,7 +420,7 @@ var _ = Describe("Processor", func() {
 		// The changes ride along on the failing update, so the retry still knows a report is owed
 		It("keeps them recorded when reporting them fails", func() {
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, nil)
 			expectProcessingUpdate()
 			clinicsClient.EXPECT().UpdatePatientSummary(gomock.Any(), userID, gomock.Any()).Return(errorsTest.RandomError())
 
@@ -408,7 +435,7 @@ var _ = Describe("Processor", func() {
 		It("records a change calculated before the calculation of another summary fails", func() {
 			summariesUpdate = newSummariesUpdate(summaryTypes.SummaryTypeCGM)
 			expectListNone()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(summariesUpdate, errorsTest.RandomError())
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(summariesUpdate, errorsTest.RandomError())
 
 			result := process()
 			Expect(result.Result).To(Equal(work.ResultFailing))
@@ -448,7 +475,51 @@ var _ = Describe("Processor", func() {
 		It("reports its reasons, deletes it, and processes once", func() {
 			expectListWithSibling()
 			expectProcessingUpdateThenDelete()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("calculates the summaries it reports along with its own", func() {
+			wrk = newWorkWithSummaryTypes(work.StateProcessing, []string{dataWorkPostprocess.ReasonDataAdded},
+				[]string{summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeContinuous}, time.Now().Add(-time.Minute))
+			sibling = newWorkWithSummaryTypes(work.StatePending, []string{dataWorkPostprocess.ReasonDataAdded},
+				[]string{summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeContinuous}, time.Now().Add(-time.Second))
+			expectListWithSibling()
+			gomock.InOrder(
+				processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
+					func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
+						Expect(update.Metadata).To(HaveKeyWithValue("summaryTypes",
+							ConsistOf(summaryTypes.SummaryTypeBGM, summaryTypes.SummaryTypeCGM, summaryTypes.SummaryTypeContinuous)))
+						updated := *wrk
+						updated.Metadata = update.Metadata
+						updated.Revision = wrk.Revision + 1
+						return &updated, nil
+					}),
+				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil),
+			)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.InAnyOrder(summaryTypes.AllSummaryTypes)).
+				Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+
+			Expect(process().Result).To(Equal(work.ResultDelete))
+		})
+
+		It("calculates every summary when it reports no summary types", func() {
+			wrk = newWorkWithSummaryTypes(work.StateProcessing, []string{dataWorkPostprocess.ReasonDataAdded},
+				[]string{summaryTypes.SummaryTypeCGM}, time.Now().Add(-time.Minute))
+			sibling = newWorkWithSummaryTypes(work.StatePending, []string{dataWorkPostprocess.ReasonLegacyDataAdded}, nil, time.Now().Add(-time.Second))
+			expectListWithSibling()
+			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, update work.ProcessingUpdate) (*work.Work, error) {
+					updated := *wrk
+					updated.Metadata = update.Metadata
+					updated.Revision = wrk.Revision + 1
+					return &updated, nil
+				})
+			workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.InAnyOrder(summaryTypes.AllSummaryTypes)).
+				Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
@@ -460,7 +531,7 @@ var _ = Describe("Processor", func() {
 			func(mutate func()) {
 				mutate()
 				expectListWithSibling()
-				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 
 				Expect(process().Result).To(Equal(work.ResultDelete))
 			},
@@ -482,7 +553,7 @@ var _ = Describe("Processor", func() {
 			invalid.Metadata = nil
 			workClient.EXPECT().List(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*work.Work{invalid, sibling}, nil)
 			expectProcessingUpdateThenDelete()
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))
@@ -521,7 +592,7 @@ var _ = Describe("Processor", func() {
 						return &updated, nil
 					})
 				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
-				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 				Expect(process().Result).To(Equal(work.ResultDelete))
@@ -537,7 +608,7 @@ var _ = Describe("Processor", func() {
 						return &updated, nil
 					})
 				workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(sibling, nil)
-				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+				summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 				clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 				Expect(process().Result).To(Equal(work.ResultDelete))
@@ -559,7 +630,7 @@ var _ = Describe("Processor", func() {
 			expectListWithSibling()
 			processingUpdater.EXPECT().ProcessingUpdate(gomock.Any(), gomock.Any()).Return(wrk, nil)
 			workClient.EXPECT().Delete(gomock.Any(), sibling.ID, &request.Condition{Revision: pointer.FromInt(sibling.Revision)}).Return(nil, nil)
-			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
+			summarizers.EXPECT().UpdateSummaries(gomock.Any(), userID, gomock.Any()).Return(dataWorkPostprocess.SummariesUpdate{}, nil)
 			clinicsClient.EXPECT().SyncEHRDataForPatient(gomock.Any(), userID).Return(nil)
 
 			Expect(process().Result).To(Equal(work.ResultDelete))

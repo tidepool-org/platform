@@ -100,11 +100,16 @@ type mockDataServiceContext struct {
 	// DataSetTester tests the resulting data set.
 	DataSetTester func(testingT, *data.DataSet)
 
-	// RestRequest, RestResponse and TestWorkClient, when set, are returned by
-	// Request, Response and WorkClient in place of the defaults.
-	RestRequest    *rest.Request
-	RestResponse   rest.ResponseWriter
-	TestWorkClient work.Client
+	// RestRequest, RestResponse, TestWorkClient and TestDataRepository, when set, are returned by
+	// Request, Response, WorkClient and DataRepository in place of the defaults.
+	RestRequest        *rest.Request
+	RestResponse       rest.ResponseWriter
+	TestWorkClient     work.Client
+	TestDataRepository dataStore.DataRepository
+
+	// RespondedStatusCode and RespondedObject record the response of RespondWithStatusAndData
+	RespondedStatusCode int
+	RespondedObject     any
 }
 
 func newMockDataServiceContext(t testingT) *mockDataServiceContext {
@@ -173,12 +178,14 @@ func (c *mockDataServiceContext) NotificationsHistoryRecorder() notificationsHis
 }
 
 func (c *mockDataServiceContext) RespondWithStatusAndData(statusCode int, object interface{}) {
-	dataSet, ok := object.(*data.DataSet)
-	if !ok {
-		c.t.Errorf("expected data.DataSet response, got %v", object)
-	}
+	c.RespondedStatusCode = statusCode
+	c.RespondedObject = object
 
 	if c.DataSetTester != nil {
+		dataSet, ok := object.(*data.DataSet)
+		if !ok {
+			c.t.Errorf("expected data.DataSet response, got %v", object)
+		}
 		c.DataSetTester(c.t, dataSet)
 	}
 }
@@ -209,6 +216,9 @@ func (c *mockDataServiceContext) DataDeduplicatorFactory() deduplicator.Factory 
 }
 
 func (c *mockDataServiceContext) DataRepository() dataStore.DataRepository {
+	if c.TestDataRepository != nil {
+		return c.TestDataRepository
+	}
 	r := dataStoreTest.NewDataRepository()
 	r.CreateDataSetOutputs = []error{nil}
 	return r

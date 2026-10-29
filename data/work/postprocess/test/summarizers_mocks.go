@@ -43,18 +43,18 @@ func (m *MockSummarizers) EXPECT() *MockSummarizersMockRecorder {
 }
 
 // UpdateSummaries mocks base method.
-func (m *MockSummarizers) UpdateSummaries(ctx context.Context, userID string) (postprocess.SummariesUpdate, error) {
+func (m *MockSummarizers) UpdateSummaries(ctx context.Context, userID string, summaryTypes []string) (postprocess.SummariesUpdate, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSummaries", ctx, userID)
+	ret := m.ctrl.Call(m, "UpdateSummaries", ctx, userID, summaryTypes)
 	ret0, _ := ret[0].(postprocess.SummariesUpdate)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateSummaries indicates an expected call of UpdateSummaries.
-func (mr *MockSummarizersMockRecorder) UpdateSummaries(ctx, userID any) *MockSummarizersUpdateSummariesCall {
+func (mr *MockSummarizersMockRecorder) UpdateSummaries(ctx, userID, summaryTypes any) *MockSummarizersUpdateSummariesCall {
 	mr.mock.ctrl.T.Helper()
-	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSummaries", reflect.TypeOf((*MockSummarizers)(nil).UpdateSummaries), ctx, userID)
+	call := mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSummaries", reflect.TypeOf((*MockSummarizers)(nil).UpdateSummaries), ctx, userID, summaryTypes)
 	return &MockSummarizersUpdateSummariesCall{Call: call}
 }
 
@@ -70,13 +70,13 @@ func (c *MockSummarizersUpdateSummariesCall) Return(arg0 postprocess.SummariesUp
 }
 
 // Do rewrite *gomock.Call.Do
-func (c *MockSummarizersUpdateSummariesCall) Do(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
+func (c *MockSummarizersUpdateSummariesCall) Do(f func(context.Context, string, []string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
 	c.Call = c.Call.Do(f)
 	return c
 }
 
 // DoAndReturn rewrite *gomock.Call.DoAndReturn
-func (c *MockSummarizersUpdateSummariesCall) DoAndReturn(f func(context.Context, string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
+func (c *MockSummarizersUpdateSummariesCall) DoAndReturn(f func(context.Context, string, []string) (postprocess.SummariesUpdate, error)) *MockSummarizersUpdateSummariesCall {
 	c.Call = c.Call.DoAndReturn(f)
 	return c
 }
