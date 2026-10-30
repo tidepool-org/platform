@@ -23,7 +23,6 @@ import (
 	"github.com/tidepool-org/platform/request"
 	summaryTest "github.com/tidepool-org/platform/summary/test"
 	summaryTypes "github.com/tidepool-org/platform/summary/types"
-	"github.com/tidepool-org/platform/user"
 	userTest "github.com/tidepool-org/platform/user/test"
 	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
@@ -37,8 +36,6 @@ var _ = Describe("Processor", func() {
 	var summarizers *dataWorkPostprocessTest.MockSummarizers
 	var clinicsClient *clinicsTest.MockClient
 	var processingUpdater *workTest.MockProcessingUpdater
-	var userClient *userTest.MockClient
-	var fetchUser func() (*user.User, error)
 	var processor *dataWorkPostprocess.Processor
 	var ctx context.Context
 	var userID string
@@ -108,7 +105,6 @@ var _ = Describe("Processor", func() {
 		summarizers = dataWorkPostprocessTest.NewMockSummarizers(controller)
 		clinicsClient = clinicsTest.NewMockClient(controller)
 		processingUpdater = workTest.NewMockProcessingUpdater(controller)
-		userClient = userTest.NewMockClient(controller)
 		ctx = log.NewContextWithLogger(context.Background(), logTest.NewLogger())
 		userID = userTest.RandomUserID()
 		wrk = newWork(work.StateProcessing, []string{dataWorkPostprocess.ReasonDataAdded}, time.Now().Add(-time.Minute))
@@ -118,14 +114,8 @@ var _ = Describe("Processor", func() {
 			Dependencies:  workBase.Dependencies{WorkClient: workClient},
 			Summarizers:   summarizers,
 			ClinicsClient: clinicsClient,
-			UserClient:    userClient,
 		})
 		Expect(err).ToNot(HaveOccurred())
-
-		// The user mixin fetches the user reported by the metadata before any step runs
-		fetchUser = func() (*user.User, error) { return &user.User{UserID: pointer.FromString(userID)}, nil }
-		userClient.EXPECT().Get(gomock.Any(), userID).
-			DoAndReturn(func(_ context.Context, _ string) (*user.User, error) { return fetchUser() }).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -209,20 +199,6 @@ var _ = Describe("Processor", func() {
 			wrk.SerialID = nil
 		}),
 	)
-
-	It("fails without retrying when the user no longer exists", func() {
-		fetchUser = func() (*user.User, error) { return nil, nil }
-
-		result := process()
-		Expect(result.Result).To(Equal(work.ResultFailed))
-		Expect(result.FailedUpdate.FailedError.Error).To(MatchError(ContainSubstring("user is missing")))
-	})
-
-	It("retries when the user cannot be fetched", func() {
-		fetchUser = func() (*user.User, error) { return nil, errorsTest.RandomError() }
-
-		Expect(process().Result).To(Equal(work.ResultFailing))
-	})
 
 	DescribeTable("retries when a step fails",
 		func(expect func()) {

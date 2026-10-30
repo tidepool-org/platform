@@ -13,16 +13,12 @@ import (
 	"github.com/tidepool-org/platform/pointer"
 	"github.com/tidepool-org/platform/request"
 	summaryTypes "github.com/tidepool-org/platform/summary/types"
-	userWork "github.com/tidepool-org/platform/user/work"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
 
-type UserMixin = userWork.MixinFromWork
-
 type Processor struct {
 	*workBase.Processor[Metadata]
-	UserMixin
 	Summarizers
 	ClinicsClient
 
@@ -49,14 +45,9 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to create processor")
 	}
-	userMixin, err := userWork.NewMixinFromWork(processor, dependencies.UserClient, &processor.Metadata().Metadata)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to create user mixin")
-	}
 
 	return &Processor{
 		Processor:      processor,
-		UserMixin:      userMixin,
 		Summarizers:    dependencies.Summarizers,
 		ClinicsClient:  dependencies.ClinicsClient,
 		pendingBuilder: pendingBuilder,
@@ -66,7 +57,6 @@ func NewProcessor(dependencies Dependencies) (*Processor, error) {
 func (p *Processor) Process(ctx context.Context, wrk *work.Work, processingUpdater work.ProcessingUpdater) *work.ProcessResult {
 	return append(p.ProcessPipeline(ctx, wrk, processingUpdater),
 		func() *work.ProcessResult { return p.validateWork(wrk) },
-		p.FetchUserFromWorkMetadata,
 		p.absorbPending,
 		p.updateSummaries,
 		p.updateClinicSummaries,
@@ -90,7 +80,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 	filter := &work.Filter{
 		Types:   pointer.FromAny([]string{Type}),
 		State:   pointer.FromAny(work.StatePending),
-		GroupID: pointer.FromString(IDFromUserID(*p.User().UserID)),
+		GroupID: pointer.FromString(IDFromUserID(*p.Metadata().UserID)),
 	}
 
 	wrks, err := page.Collect(func(pagination page.Pagination) ([]*work.Work, error) {
@@ -164,7 +154,7 @@ func (p *Processor) absorbPending() *work.ProcessResult {
 
 func (p *Processor) updateSummaries() *work.ProcessResult {
 	var err error
-	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.User().UserID)
+	p.summariesUpdate, err = p.UpdateSummaries(p.Context(), *p.Metadata().UserID)
 
 	// The changes made are recorded in the metadata before they are synced to the clinic service,
 	// so that a failure between the two retries the update. They are recorded even when the
@@ -209,7 +199,7 @@ func (p *Processor) updateClinicSummaries() *work.ProcessResult {
 		bgm = p.summariesUpdate.BGM
 	}
 	if cgm != nil || bgm != nil {
-		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.User().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
+		if err := p.ClinicsClient.UpdatePatientSummary(p.Context(), *p.Metadata().UserID, clinics.NewPatientSummary(cgm, bgm)); err != nil {
 			return p.Failing(errors.Wrap(err, "unable to update patient summary"))
 		}
 	}
@@ -228,7 +218,7 @@ func (p *Processor) triggerEHRSync() *work.ProcessResult {
 		return nil
 	}
 
-	if err := p.ClinicsClient.SyncEHRDataForPatient(p.Context(), *p.User().UserID); err != nil {
+	if err := p.ClinicsClient.SyncEHRDataForPatient(p.Context(), *p.Metadata().UserID); err != nil {
 		return p.Failing(errors.Wrap(err, "unable to trigger EHR sync"))
 	}
 

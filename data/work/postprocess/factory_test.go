@@ -12,7 +12,6 @@ import (
 	dataWorkPostprocess "github.com/tidepool-org/platform/data/work/postprocess"
 	dataWorkPostprocessTest "github.com/tidepool-org/platform/data/work/postprocess/test"
 	"github.com/tidepool-org/platform/test"
-	userTest "github.com/tidepool-org/platform/user/test"
 	workBase "github.com/tidepool-org/platform/work/base"
 	workTest "github.com/tidepool-org/platform/work/test"
 )
@@ -96,7 +95,6 @@ var _ = Describe("Factory", func() {
 				Dependencies:  workBase.Dependencies{WorkClient: workTest.NewMockClient(controller)},
 				Summarizers:   dataWorkPostprocessTest.NewMockSummarizers(controller),
 				ClinicsClient: clinicsTest.NewMockClient(controller),
-				UserClient:    userTest.NewMockClient(controller),
 			}
 		})
 
@@ -123,9 +121,6 @@ var _ = Describe("Factory", func() {
 			Entry("reports the clinics client is missing", func(dependencies *dataWorkPostprocess.Dependencies) {
 				dependencies.ClinicsClient = nil
 			}, "clinics client is missing"),
-			Entry("reports the user client is missing", func(dependencies *dataWorkPostprocess.Dependencies) {
-				dependencies.UserClient = nil
-			}, "user client is missing"),
 		)
 
 		It("NewProcessorFactory reports the type, configured quantity and frequency of the work", func() {
