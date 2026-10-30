@@ -147,6 +147,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	ctx, lgr := log.ContextAndLoggerWithField(ctx, "poll", poll)
 
 	now := time.Now()
+	defer func() { lgr.WithField("duration", time.Since(now)/time.Microsecond).Debug("Poll") }()
+
 	types := slices.Sorted(maps.Keys(poll.TypeQuantities))
 
 	var pipeline bson.A
@@ -234,8 +236,8 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 	// Only need _id and revision
 	pipeline = append(pipeline, bson.M{"$project": bson.M{"_id": true, "revision": true}})
 
-	// Perform aggregation
-	cursor, err := s.Aggregate(ctx, pipeline)
+	// The sort and group span the whole backlog, which may exceed the in-memory limit (defensive)
+	cursor, err := s.Aggregate(ctx, pipeline, mongoOptions.Aggregate().SetAllowDiskUse(true))
 	if err != nil {
 		lgr.WithError(err).WithField("pipeline", pipeline).Error("unable to aggregate poll work")
 		return nil, errors.Wrap(err, "unable to aggregate poll work")
@@ -301,8 +303,7 @@ func (s *Store) Poll(ctx context.Context, poll *work.Poll) ([]*work.Work, error)
 		ids[index] = wrk.ID
 	}
 
-	lgr.WithFields(log.Fields{"ids": ids, "duration": time.Since(now) / time.Microsecond}).Debug("Poll")
-
+	lgr = lgr.WithField("ids", ids)
 	return wrks, nil
 }
 

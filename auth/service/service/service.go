@@ -886,7 +886,12 @@ func (s *Service) terminateUserEventsHandler() {
 func (s *Service) initializeWorkCoordinator() error {
 	s.Logger().Debug("Creating work coordinator")
 
-	if coordinator, err := workService.NewCoordinator(s.Logger(), s.AuthClient(), s.workClient); err != nil {
+	config := workService.NewCoordinatorConfig()
+	if err := config.Load(s.ConfigReporter().WithScopes("work", "coordinator")); err != nil {
+		return errors.Wrap(err, "unable to load work coordinator config")
+	}
+
+	if coordinator, err := workService.NewCoordinator(config, s.Logger(), s.AuthClient(), s.workClient); err != nil {
 		return errors.Wrap(err, "unable to create work coordinator")
 	} else {
 		s.workCoordinator = coordinator
