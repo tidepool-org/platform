@@ -7,7 +7,6 @@ import (
 	"github.com/tidepool-org/platform/clinics"
 	"github.com/tidepool-org/platform/config"
 	"github.com/tidepool-org/platform/errors"
-	"github.com/tidepool-org/platform/user"
 	"github.com/tidepool-org/platform/work"
 	workBase "github.com/tidepool-org/platform/work/base"
 )
@@ -21,10 +20,7 @@ const (
 	FailingRetryDurationMaximum = 1 * time.Hour
 )
 
-type (
-	ClinicsClient = clinics.Client
-	UserClient    = user.Client
-)
+type ClinicsClient = clinics.Client
 
 type Config struct {
 	Quantity int
@@ -61,7 +57,6 @@ type Dependencies struct {
 	workBase.Dependencies
 	Summarizers
 	ClinicsClient
-	UserClient
 }
 
 func (d Dependencies) Validate() error {
@@ -73,9 +68,6 @@ func (d Dependencies) Validate() error {
 	}
 	if d.ClinicsClient == nil {
 		return errors.New("clinics client is missing")
-	}
-	if d.UserClient == nil {
-		return errors.New("user client is missing")
 	}
 	return nil
 }

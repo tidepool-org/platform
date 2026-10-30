@@ -824,7 +824,6 @@ func (s *Standard) initializeWorkProcessorFactories() error {
 		Dependencies:  dependencies,
 		Summarizers:   summarizers,
 		ClinicsClient: s.clinicsClient,
-		UserClient:    s.userClient,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create data upload postprocess work processor factory")
 	} else {
