@@ -91,7 +91,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *data.DataSe
 		}
 		unset := bson.M{}
 		// Note setting updateInfo and err as defined above
-		updateInfo, err = d.DataSetRepository.UpdateMany(ctx, selector, d.DataSetRepository.ConstructUpdate(set, unset))
+		updateInfo, err = d.DataSetRepository.UpdateMany(ctx, selector, d.DataSetRepository.ConstructUpdate(set, unset, dataSetVersionIncrement))
 	}
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}
@@ -103,6 +103,7 @@ func (d *DataRepository) DeleteDataSet(ctx context.Context, dataSet *data.DataSe
 
 	dataSet.DeletedTime = &timestamp
 	dataSet.ModifiedTime = &timestamp
+	dataSet.VersionInternal++
 	return nil
 }
 
@@ -145,7 +146,7 @@ func (d *DataRepository) DeleteOtherDataSetData(ctx context.Context, dataSet *da
 			"deletedTime": timestamp,
 		}
 		unset := bson.M{}
-		updateInfo, err = d.DataSetRepository.UpdateMany(ctx, selector, d.DataSetRepository.ConstructUpdate(set, unset))
+		updateInfo, err = d.DataSetRepository.UpdateMany(ctx, selector, d.DataSetRepository.ConstructUpdate(set, unset, dataSetVersionIncrement))
 	}
 
 	loggerFields := log.Fields{"dataSetId": dataSet.UploadID, "removeInfo": removeInfo, "updateInfo": updateInfo, "duration": time.Since(now) / time.Microsecond}

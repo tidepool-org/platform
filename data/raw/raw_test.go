@@ -110,6 +110,7 @@ var _ = Describe("Raw", func() {
 					datum.MediaTypes = pointer.From(netTest.RandomMediaTypes(1, 3))
 					datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
 					datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+					datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
 				},
 			),
 		)
@@ -138,6 +139,7 @@ var _ = Describe("Raw", func() {
 						object["mediaTypes"] = true
 						object["sequenceGroup"] = ""
 						object["sequenceNumberAfter"] = ""
+						object["sequenceNumberFrom"] = ""
 						expectedDatum.CreatedDate = nil
 						expectedDatum.CreatedTimeStart = nil
 						expectedDatum.DataSetID = nil
@@ -147,6 +149,7 @@ var _ = Describe("Raw", func() {
 						expectedDatum.MediaTypes = nil
 						expectedDatum.SequenceGroup = nil
 						expectedDatum.SequenceNumberAfter = nil
+						expectedDatum.SequenceNumberFrom = nil
 					},
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotString(true), "/createdDate"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotTime(true), "/createdTimeStart"),
@@ -157,6 +160,7 @@ var _ = Describe("Raw", func() {
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotArray(true), "/mediaTypes"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceGroup"),
 					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberAfter"),
+					errorsTest.WithPointerSource(structureParser.ErrorTypeNotInt(""), "/sequenceNumberFrom"),
 				),
 			)
 		})
@@ -232,6 +236,7 @@ var _ = Describe("Raw", func() {
 					func(datum *dataRaw.Filter) {
 						datum.SequenceGroup = pointer.From(int64(0))
 						datum.SequenceNumberAfter = pointer.From(int64(0))
+						datum.SequenceNumberFrom = nil
 					},
 				),
 				Entry("sequenceGroup without sequenceNumberAfter",
@@ -251,6 +256,7 @@ var _ = Describe("Raw", func() {
 					func(datum *dataRaw.Filter) {
 						datum.SequenceGroup = nil
 						datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberFrom = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
 				),
@@ -258,8 +264,40 @@ var _ = Describe("Raw", func() {
 					func(datum *dataRaw.Filter) {
 						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
 						datum.SequenceNumberAfter = pointer.From(int64(-1))
+						datum.SequenceNumberFrom = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberAfter"),
+				),
+				Entry("sequenceNumberFrom zero",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(int64(0))
+					},
+				),
+				Entry("sequenceNumberFrom without sequenceGroup",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = nil
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotExists(), "/sequenceGroup"),
+				),
+				Entry("sequenceNumberFrom negative",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = nil
+						datum.SequenceNumberFrom = pointer.From(int64(-1))
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueNotGreaterThanOrEqualTo(int64(-1), int64(0)), "/sequenceNumberFrom"),
+				),
+				Entry("sequenceNumberFrom with sequenceNumberAfter",
+					func(datum *dataRaw.Filter) {
+						datum.SequenceGroup = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberAfter = pointer.From(dataRawTest.RandomSequenceNumber())
+						datum.SequenceNumberFrom = pointer.From(dataRawTest.RandomSequenceNumber())
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/sequenceNumberFrom"),
 				),
 				Entry("multiple errors",
 					func(datum *dataRaw.Filter) {
@@ -267,6 +305,7 @@ var _ = Describe("Raw", func() {
 						datum.DataSetID = pointer.FromString("")
 						datum.SequenceGroup = nil
 						datum.SequenceNumberAfter = pointer.From(int64(-1))
+						datum.SequenceNumberFrom = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValueStringAsTimeNotValid("invalid", dataRaw.FilterCreatedDateFormat), "/createdDate"),
 					errorsTest.WithPointerSource(structureValidator.ErrorValueEmpty(), "/dataSetId"),
@@ -531,6 +570,7 @@ var _ = Describe("Raw", func() {
 					datum.ArchivableTime = pointer.From(test.RandomTimeBeforeNow())
 					datum.ArchivedTime = pointer.From(test.RandomTimeBeforeNow())
 					datum.Metadata = metadataTest.RandomMetadataMapPointer()
+					datum.ClearProcessed = true
 				},
 			),
 		)
@@ -615,6 +655,31 @@ var _ = Describe("Raw", func() {
 						datum.Metadata = nil
 					},
 					errorsTest.WithPointerSource(structureValidator.ErrorValuesNotExistForAny("archivableTime", "archivedTime", "metadata", "processedTime"), ""),
+				),
+				Entry("clearProcessed alone",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{ClearProcessed: true}
+					},
+				),
+				Entry("clearProcessed with archivedTime and metadata",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{
+							ArchivedTime:   pointer.FromTime(test.RandomTimeBeforeNow()),
+							Metadata:       metadataTest.RandomMetadataMapPointer(),
+							ClearProcessed: true,
+						}
+					},
+				),
+				Entry("clearProcessed with the fields it clears",
+					func(datum *dataRaw.Update) {
+						*datum = dataRaw.Update{
+							ProcessedTime:  pointer.FromTime(test.RandomTimeBeforeNow()),
+							ArchivableTime: pointer.FromTime(test.RandomTimeBeforeNow()),
+							ClearProcessed: true,
+						}
+					},
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/processedTime"),
+					errorsTest.WithPointerSource(structureValidator.ErrorValueExists(), "/archivableTime"),
 				),
 				Entry("multiple errors",
 					func(datum *dataRaw.Update) {

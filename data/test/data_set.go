@@ -147,6 +147,27 @@ func RandomDataSetUpdate(options ...test.Option) *data.DataSetUpdate {
 	return datum
 }
 
+func CloneDataSetUpdate(datum *data.DataSetUpdate) *data.DataSetUpdate {
+	if datum == nil {
+		return nil
+	}
+	clone := data.NewDataSetUpdate()
+	clone.Active = pointer.CloneBool(datum.Active)
+	clone.DeviceID = pointer.CloneString(datum.DeviceID)
+	clone.DeviceModel = pointer.CloneString(datum.DeviceModel)
+	clone.DeviceSerialNumber = pointer.CloneString(datum.DeviceSerialNumber)
+	clone.Deduplicator = CloneDeduplicatorDescriptor(datum.Deduplicator)
+	clone.State = pointer.CloneString(datum.State)
+	clone.Time = pointer.CloneTime(datum.Time)
+	clone.TimeZoneName = pointer.CloneString(datum.TimeZoneName)
+	clone.TimeZoneOffset = pointer.CloneInt(datum.TimeZoneOffset)
+	clone.Metadata = metadataTest.CloneMetadataMapPointer(datum.Metadata)
+	if datum.Condition != nil {
+		clone.Condition = data.NewDataSetConditionWithVersionInternal(pointer.CloneInt(datum.Condition.VersionInternal))
+	}
+	return clone
+}
+
 func RandomDataSet(options ...test.Option) *data.DataSet {
 	createdTime := test.RandomTimeBefore(time.Now().Add(-30 * 24 * time.Hour))
 	modifiedTime := test.RandomTimeFromRange(createdTime, time.Now().Add(-24*time.Hour))
@@ -175,6 +196,7 @@ func RandomDataSet(options ...test.Option) *data.DataSet {
 	datum.DeviceTags = pointer.FromStringArray(test.RandomStringArrayFromRangeAndArrayWithoutDuplicates(1, len(data.DeviceTags()), data.DeviceTags()))
 	datum.DeviceTime = pointer.FromString(test.RandomTime().Format("2006-01-02T15:04:05"))
 	datum.ID = pointer.FromString(dataSetID)
+	datum.Metadata = metadataTest.RandomMetadataMap()
 	datum.ModifiedTime = pointer.FromTime(modifiedTime)
 	datum.ModifiedUserID = pointer.FromString(userTest.RandomUserID())
 	datum.Payload = metadataTest.RandomMetadata()
@@ -217,6 +239,7 @@ func CloneDataSet(datum *data.DataSet) *data.DataSet {
 	clone.DeviceTags = pointer.CloneStringArray(datum.DeviceTags)
 	clone.DeviceTime = pointer.CloneString(datum.DeviceTime)
 	clone.ID = pointer.CloneString(datum.ID)
+	clone.Metadata = metadataTest.CloneMetadataMap(datum.Metadata)
 	clone.ModifiedTime = pointer.CloneTime(datum.ModifiedTime)
 	clone.ModifiedUserID = pointer.CloneString(datum.ModifiedUserID)
 	clone.Payload = metadataTest.CloneMetadata(datum.Payload)

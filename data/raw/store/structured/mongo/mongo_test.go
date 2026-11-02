@@ -479,6 +479,24 @@ var _ = Describe("Mongo", func() {
 							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(spanningGroups)))
 						})
 
+						It("returns only records whose minimum sequence is in the group and at or after the number", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:          pointer.From(dataSetID),
+								SequenceGroup:      pointer.From(int64(0)),
+								SequenceNumberFrom: pointer.From(int64(100)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(unprocessed), documentID(spanningGroups)))
+						})
+
+						It("returns every record of the group at or after zero", func() {
+							filter := &dataRaw.Filter{
+								DataSetID:          pointer.From(dataSetID),
+								SequenceGroup:      pointer.From(int64(0)),
+								SequenceNumberFrom: pointer.From(int64(0)),
+							}
+							Expect(listIDs(filter)).To(ConsistOf(documentID(from100), documentID(from50), documentID(unprocessed), documentID(spanningGroups)))
+						})
+
 						It("returns records of any processed state when processed is not specified", func() {
 							filter := &dataRaw.Filter{
 								DataSetID:           pointer.From(dataSetID),
@@ -684,6 +702,14 @@ var _ = Describe("Mongo", func() {
 						var storedDocument dataRawStoreStructuredMongo.Document
 						Expect(mongoCollection.FindOne(context.Background(), bson.M{"_id": objectID}).Decode(&storedDocument)).To(Succeed())
 						Expect(storedDocument.Compressed).To(BeFalse())
+					})
+
+					It("returns an error when the context is cancelled", func() {
+						cancelledCtx, cancel := context.WithCancel(ctx)
+						cancel()
+						result, err := store.Create(cancelledCtx, userID, dataSetID, create, bytes.NewReader(test.RandomBytes()))
+						Expect(err).To(MatchError(ContainSubstring("unable to create raw")))
+						Expect(result).To(BeNil())
 					})
 
 					It("stores compressed data when data is large enough to benefit from compression", func() {
@@ -1027,6 +1053,47 @@ var _ = Describe("Mongo", func() {
 								Expect(result.Metadata).To(Equal(document.Metadata))
 							}
 							Expect(result.ModifiedTime).To(PointTo(BeTemporally("~", time.Now(), time.Second)))
+						})
+
+						It("returns an error when the context is cancelled", func() {
+							cancelledCtx, cancel := context.WithCancel(ctx)
+							cancel()
+							condition = nil
+							result, err := store.Update(cancelledCtx, id, nil, update)
+							Expect(err).To(MatchError(ContainSubstring("unable to update raw")))
+							Expect(result).To(BeNil())
+						})
+
+						Context("processed", func() {
+							BeforeEach(func() {
+								condition = nil
+								processedTime := time.Now().UTC().Truncate(time.Millisecond)
+								_, err := mongoCollection.UpdateOne(context.Background(), bson.M{"_id": document.ID}, bson.M{"$set": bson.M{"processedTime": processedTime, "archivableTime": processedTime}})
+								Expect(err).ToNot(HaveOccurred())
+							})
+
+							It("clears the processed and archivable times and keeps the rest", func() {
+								update = &dataRaw.Update{ClearProcessed: true}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.ProcessedTime).To(BeNil())
+								Expect(result.ArchivableTime).To(BeNil())
+								Expect(result.ArchivedTime).To(Equal(document.ArchivedTime))
+								Expect(result.Metadata).To(Equal(document.Metadata))
+								Expect(result.Revision).To(Equal(document.Revision + 1))
+								Expect(result.ModifiedTime).To(PointTo(BeTemporally("~", time.Now(), time.Second)))
+							})
+
+							It("clears the processed state and sets the metadata in one update", func() {
+								metadata := map[string]any{"rewind": true}
+								update = &dataRaw.Update{ClearProcessed: true, Metadata: &metadata}
+								result, err := store.Update(ctx, id, nil, update)
+								Expect(err).ToNot(HaveOccurred())
+								Expect(result).ToNot(BeNil())
+								Expect(result.ProcessedTime).To(BeNil())
+								Expect(result.Metadata).To(Equal(metadata))
+							})
 						})
 					})
 				})

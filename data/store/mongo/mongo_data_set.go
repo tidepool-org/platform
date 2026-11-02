@@ -128,6 +128,10 @@ func (d *DataSetRepository) createDataSet(ctx context.Context, dataSet *data.Dat
 	return d.GetDataSet(ctx, *dataSet.ID)
 }
 
+// dataSetVersionIncrement bumps the data set version on every write so that a conditional update, which matches
+// on the version read, misses any data set written since.
+var dataSetVersionIncrement = map[string]bson.M{"$inc": {"_version": 1}}
+
 func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update *data.DataSetUpdate, now time.Time) (*data.DataSet, error) {
 	if ctx == nil {
 		return nil, errors.New("context is missing")
@@ -178,11 +182,24 @@ func (d *DataSetRepository) updateDataSet(ctx context.Context, id string, update
 	if update.TimeZoneOffset != nil {
 		set["timezoneOffset"] = *update.TimeZoneOffset
 	}
+	if update.Metadata != nil {
+		set["metadata"] = *update.Metadata
+	}
+	selector := bson.M{"uploadId": id}
+	if update.Condition != nil && update.Condition.VersionInternal != nil {
+		if version := *update.Condition.VersionInternal; version == 0 {
+			selector["_version"] = bson.M{"$in": bson.A{0, nil}} // A data set created by the platform has no version
+		} else {
+			selector["_version"] = version
+		}
+	}
 	opts := options.Update().SetUpsert(false) // Can only update an existing document
-	changeInfo, err := d.UpdateMany(ctx, bson.M{"uploadId": id}, d.ConstructUpdate(set, unset), opts)
+	changeInfo, err := d.UpdateMany(ctx, selector, d.ConstructUpdate(set, unset, dataSetVersionIncrement), opts)
 	logger.WithFields(log.Fields{"changeInfo": changeInfo, "duration": time.Since(now) / time.Microsecond}).WithError(err).Debug("DataSetRepository.UpdateDataSet")
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to upsert data set")
+	} else if update.Condition != nil && changeInfo.MatchedCount == 0 {
+		return nil, nil
 	}
 
 	return d.GetDataSet(ctx, id)

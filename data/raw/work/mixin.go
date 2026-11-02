@@ -1,7 +1,6 @@
 package work
 
 import (
-	"context"
 	"io"
 
 	dataRaw "github.com/tidepool-org/platform/data/raw"
@@ -9,6 +8,7 @@ import (
 	"github.com/tidepool-org/platform/log"
 	"github.com/tidepool-org/platform/metadata"
 	"github.com/tidepool-org/platform/pointer"
+	"github.com/tidepool-org/platform/request"
 	"github.com/tidepool-org/platform/structure"
 	"github.com/tidepool-org/platform/work"
 )
@@ -202,7 +202,8 @@ func (m *mixin[M]) CreateDataRaw(userID string, dataSetID string, dataRawCreate 
 		return m.Failed(errors.New("data raw already exists"))
 	}
 
-	if dataRw, err := m.dataRawClient.Create(context.WithoutCancel(m.Context()), userID, dataSetID, dataRawCreate, reader); err != nil {
+	// The work's context is passed as is so the create cannot outlive the work's deadline
+	if dataRw, err := m.dataRawClient.Create(m.Context(), userID, dataSetID, dataRawCreate, reader); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to create data raw"))
 	} else if dataRw == nil {
 		return m.Failed(errors.New("data raw is missing"))
@@ -228,10 +229,13 @@ func (m *mixin[M]) UpdateDataRaw(dataRawUpdate *dataRaw.Update) *work.ProcessRes
 		dataRawUpdate.Metadata = &dataRwMetadata
 	}
 
-	if dataRw, err := m.dataRawClient.Update(context.WithoutCancel(m.Context()), m.dataRaw.ID, nil, dataRawUpdate); err != nil {
+	// Conditioned on the revision read, so a concurrent writer cannot be overwritten; no match is a conflict. The
+	// work's context is passed as is so the update cannot outlive the work's deadline.
+	condition := request.NewConditionWithRevision(pointer.From(m.dataRaw.Revision))
+	if dataRw, err := m.dataRawClient.Update(m.Context(), m.dataRaw.ID, condition, dataRawUpdate); err != nil {
 		return m.Failing(errors.Wrap(err, "unable to update data raw"))
 	} else if dataRw == nil {
-		return m.Failed(errors.New("data raw is missing"))
+		return m.Failing(errors.Wrap(dataRaw.ErrorDataRawUpdateConflict(), "unable to update data raw"))
 	} else {
 		return m.SetDataRaw(dataRw)
 	}
